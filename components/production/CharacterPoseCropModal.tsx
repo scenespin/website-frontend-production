@@ -4,14 +4,15 @@
  * CharacterPoseCropModal - Interactive crop tool for character pose images
  * 
  * Allows users to crop character poses to remove artifacts (e.g., multiple people)
- * Maintains aspect ratio, no zoom (prevents quality loss), allows panning
- * Uses react-easy-crop for interactive crop selection
+ * Supports free resizing (no aspect ratio lock), no zoom (prevents quality loss)
+ * Uses react-image-crop for interactive crop selection with free resize support
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Cropper from 'react-easy-crop';
+import ReactCrop, { Crop, PixelCrop, makeAspectCrop, centerCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 
@@ -25,13 +26,6 @@ interface CharacterPoseCropModalProps {
   onCropComplete: () => void; // Callback to refresh character data
 }
 
-interface CropArea {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 export function CharacterPoseCropModal({
   isOpen,
   onClose,
@@ -42,14 +36,15 @@ export function CharacterPoseCropModal({
   onCropComplete
 }: CharacterPoseCropModalProps) {
   const { getToken } = useAuth();
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom] = useState(1); // Locked at 1 (no zoom to prevent quality loss)
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [isCropping, setIsCropping] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [imageError, setImageError] = useState(false);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
   const [aspectRatio, setAspectRatio] = useState<number | undefined>(undefined); // undefined = free resize
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
   // Fetch image URL from S3 key
   useEffect(() => {
@@ -57,8 +52,8 @@ export function CharacterPoseCropModal({
       const fetchImageUrl = async () => {
         setImageLoaded(false);
         setImageError(false);
-        setCrop({ x: 0, y: 0 });
-        setCroppedAreaPixels(null);
+        setCrop(undefined);
+        setCompletedCrop(undefined);
 
         try {
           const token = await getToken({ template: 'wryda-backend' });
@@ -104,22 +99,44 @@ export function CharacterPoseCropModal({
     }
   }, [isOpen, poseS3Key, getToken]);
 
-  // Mark image as loaded
-  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+  // Initialize crop area when image loads
+  const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
+    const { naturalWidth, naturalHeight } = img;
+    setImageSize({ width: naturalWidth, height: naturalHeight });
     setImageLoaded(true);
+    
     console.log('[CharacterPoseCropModal] ✅ Image loaded', {
-      width: img.naturalWidth,
-      height: img.naturalHeight
+      width: naturalWidth,
+      height: naturalHeight
     });
-  }, []);
 
-  const onCropCompleteCallback = useCallback((croppedArea: CropArea, croppedAreaPixels: CropArea) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
+    // Initialize crop area (center, 80% of image size)
+    if (aspectRatio) {
+      const crop = makeAspectCrop(
+        {
+          unit: '%',
+          width: 80,
+        },
+        aspectRatio,
+        naturalWidth,
+        naturalHeight
+      );
+      setCrop(centerCrop(crop, naturalWidth, naturalHeight));
+    } else {
+      // Free resize - start with 80% centered crop
+      setCrop({
+        unit: '%',
+        x: 10,
+        y: 10,
+        width: 80,
+        height: 80
+      });
+    }
+  }, [aspectRatio]);
 
   const handleCrop = useCallback(async () => {
-    if (!croppedAreaPixels || !poseS3Key) {
+    if (!completedCrop || !poseS3Key || !imgRef.current) {
       toast.error('Please select a crop area');
       return;
     }
@@ -144,10 +161,10 @@ export function CharacterPoseCropModal({
             poseId,
             poseS3Key,
             screenplayId,
-            cropX: Math.round(croppedAreaPixels.x),
-            cropY: Math.round(croppedAreaPixels.y),
-            cropWidth: Math.round(croppedAreaPixels.width),
-            cropHeight: Math.round(croppedAreaPixels.height)
+            cropX: Math.round(completedCrop.x),
+            cropY: Math.round(completedCrop.y),
+            cropWidth: Math.round(completedCrop.width),
+            cropHeight: Math.round(completedCrop.height)
           })
         }
       );
@@ -166,7 +183,35 @@ export function CharacterPoseCropModal({
     } finally {
       setIsCropping(false);
     }
-  }, [croppedAreaPixels, poseId, poseS3Key, characterId, screenplayId, getToken, onCropComplete, onClose]);
+  }, [completedCrop, poseId, poseS3Key, characterId, screenplayId, getToken, onCropComplete, onClose]);
+
+  // Update crop when aspect ratio changes
+  useEffect(() => {
+    if (imageLoaded && imgRef.current && imageSize.width > 0 && imageSize.height > 0) {
+      if (aspectRatio) {
+        const newCrop = makeAspectCrop(
+          {
+            unit: '%',
+            width: 80,
+          },
+          aspectRatio,
+          imageSize.width,
+          imageSize.height
+        );
+        setCrop(centerCrop(newCrop, imageSize.width, imageSize.height));
+      } else {
+        // Free resize - reset to 80% centered
+        setCrop({
+          unit: '%',
+          x: 10,
+          y: 10,
+          width: 80,
+          height: 80
+        });
+      }
+      setCompletedCrop(undefined);
+    }
+  }, [aspectRatio, imageLoaded, imageSize]);
 
   if (!isOpen) return null;
 
@@ -192,12 +237,14 @@ export function CharacterPoseCropModal({
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-[#3F3F46]">
-                  <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   <h2 className="text-lg font-semibold text-[#FFFFFF]">
                     Crop Pose
                   </h2>
                   <div className="flex items-center gap-2 text-xs text-[#808080]">
-                    <span>Drag image to pan • Drag corners/edges to resize crop area</span>
+                    <span>Drag corners/edges to resize crop area</span>
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Drag crop area to move it</span>
                     <span className="text-[#DC143C]">•</span>
                     <span>No zoom (prevents quality loss)</span>
                   </div>
@@ -211,7 +258,7 @@ export function CharacterPoseCropModal({
               </div>
 
               {/* Crop Area */}
-              <div className="flex-1 relative bg-[#141414] min-h-[500px] h-[500px]">
+              <div className="flex-1 relative bg-[#141414] min-h-[500px] h-[500px] overflow-auto">
                 {imageError && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-[#DC143C]">
@@ -229,86 +276,71 @@ export function CharacterPoseCropModal({
                   </div>
                 )}
                 {imageUrl && !imageError && (
-                  <>
-                    {/* Hidden image to detect load errors and calculate aspect ratio */}
-                    <img
-                      src={imageUrl}
-                      alt=""
-                      onError={async () => {
-                        console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
-                        if (poseS3Key) {
-                          try {
-                            const token = await getToken({ template: 'wryda-backend' });
-                            if (token) {
-                              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-                              const response = await fetch(
-                                `${BACKEND_API_URL}/api/s3/download-url`,
-                                {
-                                  method: 'POST',
-                                  headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                  },
-                                  body: JSON.stringify({
-                                    s3Key: poseS3Key,
-                                    expiresIn: 3600
-                                  })
-                                }
-                              );
+                  <div className="flex items-center justify-center p-4 min-h-full">
+                    {imageLoaded && crop && (
+                      <ReactCrop
+                        crop={crop}
+                        onChange={(_, percentCrop) => setCrop(percentCrop)}
+                        onComplete={(c) => setCompletedCrop(c)}
+                        aspect={aspectRatio}
+                        className="max-w-full max-h-full"
+                      >
+                        <img
+                          ref={imgRef}
+                          src={imageUrl}
+                          alt="Crop"
+                          onLoad={onImageLoad}
+                          onError={async () => {
+                            console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
+                            if (poseS3Key) {
+                              try {
+                                const token = await getToken({ template: 'wryda-backend' });
+                                if (token) {
+                                  const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                  const response = await fetch(
+                                    `${BACKEND_API_URL}/api/s3/download-url`,
+                                    {
+                                      method: 'POST',
+                                      headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json'
+                                      },
+                                      body: JSON.stringify({
+                                        s3Key: poseS3Key,
+                                        expiresIn: 3600
+                                      })
+                                    }
+                                  );
 
-                              if (response.ok) {
-                                const data = await response.json();
-                                setImageUrl(data.downloadUrl || '');
-                                setImageError(false);
-                                return;
+                                  if (response.ok) {
+                                    const data = await response.json();
+                                    setImageUrl(data.downloadUrl || '');
+                                    setImageError(false);
+                                    return;
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Error fetching fresh presigned URL:', error);
                               }
                             }
-                          } catch (error) {
-                            console.error('Error fetching fresh presigned URL:', error);
-                          }
-                        }
-                        setImageError(true);
-                        setImageLoaded(false);
-                      }}
-                      onLoad={handleImageLoad}
-                      style={{ display: 'none' }}
-                    />
-                    {imageLoaded && imageUrl && (
-                      <div className="absolute inset-0">
-                        <Cropper
-                          image={imageUrl}
-                          crop={crop}
-                          zoom={zoom}
-                          aspect={aspectRatio} // undefined = free resize (if supported)
-                          onCropChange={setCrop}
-                          onCropComplete={onCropCompleteCallback}
-                          cropShape="rect"
-                          showGrid={true}
-                          restrictPosition={false}
-                          minZoom={1}
-                          maxZoom={1}
-                          style={{
-                            containerStyle: {
-                              width: '100%',
-                              height: '100%',
-                              position: 'relative'
-                            },
-                            cropAreaStyle: {
-                              border: '2px solid #DC143C',
-                              borderRadius: '4px'
-                            }
+                            setImageError(true);
+                            setImageLoaded(false);
                           }}
+                          style={{ maxWidth: '100%', maxHeight: '500px', display: 'block' }}
                         />
-                        {/* Helper text overlay */}
-                        {!croppedAreaPixels && (
-                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs px-3 py-2 rounded-lg pointer-events-none text-center">
-                            <div>Drag image to pan • Drag crop corners/edges to resize</div>
-                            <div className="text-[#DC143C] mt-1">Select exactly what you want to keep</div>
-                          </div>
-                        )}
-                      </div>
+                      </ReactCrop>
                     )}
-                  </>
+                    {!imageLoaded && imageUrl && (
+                      <div className="text-[#808080]">Loading image...</div>
+                    )}
+                  </div>
+                )}
+                {/* Helper text overlay */}
+                {imageLoaded && !completedCrop && (
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs px-3 py-2 rounded-lg pointer-events-none text-center z-10">
+                    <div>Drag crop corners/edges to resize • Drag crop area to move</div>
+                    <div className="text-[#DC143C] mt-1">Select exactly what you want to keep</div>
+                  </div>
                 )}
               </div>
 
@@ -332,9 +364,6 @@ export function CharacterPoseCropModal({
                       } else if (value === '3/4') {
                         setAspectRatio(3 / 4);
                       }
-                      // Reset crop position when aspect changes
-                      setCrop({ x: 0, y: 0 });
-                      setCroppedAreaPixels(null);
                     }}
                     className="bg-[#1F1F1F] border border-[#3F3F46] text-[#FFFFFF] text-xs px-2 py-1 rounded"
                   >
@@ -355,7 +384,7 @@ export function CharacterPoseCropModal({
                   </button>
                   <button
                     onClick={handleCrop}
-                    disabled={isCropping || !croppedAreaPixels}
+                    disabled={isCropping || !completedCrop}
                     className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91C1C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isCropping ? 'Cropping...' : 'Apply Crop'}
@@ -369,4 +398,3 @@ export function CharacterPoseCropModal({
     </AnimatePresence>
   );
 }
-
