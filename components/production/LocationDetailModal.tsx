@@ -19,7 +19,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
-import { LocationAngleCropModal } from './LocationAngleCropModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import {
@@ -67,15 +66,8 @@ interface LocationReference {
     referenceImageUrls?: string[];
     generatedAt?: string;
     isRegenerated?: boolean;
-    // 🔥 NEW: Crop-related metadata for location images
-    originalS3Key?: string; // Original square 4096x4096 version S3 key
-    originalImageUrl?: string; // Original square URL (for UI toggle)
-    autoCropped16_9S3Key?: string; // Auto-cropped 16:9 version S3 key
-    autoCropped16_9ImageUrl?: string; // Auto-cropped 16:9 URL (for fallback)
-    cropped16_9S3Key?: string; // Cropped 16:9 version S3 key (user or auto)
-    cropped16_9ImageUrl?: string; // Cropped 16:9 URL (user or auto)
-    croppedImageUrl?: string; // Legacy field for cropped URL (deprecated, use cropped16_9ImageUrl)
-    userCropped?: boolean; // Flag indicating if this was user-defined crop
+    // ✅ Images are now generated directly at 16:9 (or 21:9) - no cropping needed
+    // No crop-related metadata needed anymore
     cropMethod?: 'center' | 'user-defined'; // Crop method used
     aspectRatio?: '16:9' | '21:9'; // Final aspect ratio shown to user
     autoCropped?: boolean; // Flag indicating this was auto-cropped
@@ -141,7 +133,6 @@ export function LocationDetailModal({
   const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string; variation?: LocationReference } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
-  const [cropAngle, setCropAngle] = useState<{ angleId: string; variation: LocationReference } | null>(null); // Angle to crop
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -361,43 +352,19 @@ export function LocationDetailModal({
       // Extract isRegenerated from metadata (like Characters do)
       const isRegenerated = variation.metadata?.isRegenerated || false;
       
-      // 🔥 FIX: Get image URL based on view mode (cropped 16:9 or original square)
-      // Note: variation.imageUrl is the PRIMARY display URL (cropped 16:9 after auto-crop for new images)
-      // Backend now generates fresh presigned URLs for both original and cropped versions in metadata
-      const getImageUrl = () => {
-        // 🔥 SIMPLIFIED: Always show the 16:9 cropped version (final version for video)
-        // Priority: user-cropped > auto-cropped > primary display (variation.imageUrl)
-        // Backend generates fresh presigned URLs for these in metadata
-        if (variation.metadata?.cropped16_9ImageUrl) {
-          return variation.metadata.cropped16_9ImageUrl; // User-cropped (fresh URL from backend)
-        }
-        if (variation.metadata?.autoCropped16_9ImageUrl) {
-          return variation.metadata.autoCropped16_9ImageUrl; // Auto-cropped (fresh URL from backend)
-        }
-        // Primary display: variation.imageUrl is cropped 16:9 for new images
-        // For Gen-4 images (already 16:9) or older images, this is the final version
-        // If metadata indicates it was cropped, use it; otherwise it's the final version (fallback)
-        if (variation.metadata?.autoCropped || variation.metadata?.userCropped) {
-          return variation.imageUrl || ''; // Primary display (already cropped 16:9)
-        }
-        // For Gen-4 images (no originalS3Key) or older images without metadata, use primary display
-        return variation.imageUrl || '';
-      };
-      
+      // ✅ SIMPLIFIED: Just use variation.imageUrl directly (like assets do)
+      // Images are now generated directly at 16:9 (or 21:9) - no cropping needed
+      // Backend already provides fresh presigned URLs in variation.imageUrl
       images.push({
         id: variation.id || `ref_${variation.s3Key}`,
-        imageUrl: getImageUrl(),
+        imageUrl: variation.imageUrl || '', // Direct 16:9 image (no cropping logic needed)
         label: `${location.name} - ${variation.angle} view`,
         isBase: false,
         s3Key: variation.s3Key,
         isRegenerated: isRegenerated,
         metadata: {
           ...variation.metadata,
-          // 🔥 FIX: Store correct URLs - don't use variation.imageUrl as fallback for original
-          // variation.imageUrl is the cropped 16:9 version (primary display)
-          originalImageUrl: variation.metadata?.originalImageUrl, // Only use metadata, no fallback
-          croppedImageUrl: variation.metadata?.cropped16_9ImageUrl || variation.metadata?.autoCropped16_9ImageUrl || variation.imageUrl,
-          variation: variation // Store full variation for crop modal
+          variation: variation // Store full variation for regeneration
         }
       });
     });
@@ -886,33 +853,7 @@ export function LocationDetailModal({
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                         Download
                                       </DropdownMenuItem>
-                                      {/* 🔥 Custom Crop option - ONLY for square images (1:1 aspect ratio) */}
-                                      {/* Only show if originalS3Key exists AND it's NOT a Gen4 image (Nano Banana Pro only) */}
-                                      {/* Runway Gen-4 images (1920x1080, already 16:9) don't need cropping */}
-                                      {variation.id && variation.metadata?.originalS3Key && variation.metadata?.providerId !== 'runway-gen4-image' && variation.metadata?.providerId !== 'runway-gen-4' && (
-                                        <DropdownMenuItem
-                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            // 🔥 DEBUG: Log what we're passing to crop modal
-                                            if (process.env.NODE_ENV === 'development') {
-                                              console.log('[LocationDetailModal] 🔍 DEBUG: Opening crop modal for square image:', {
-                                                angleId: variation.id,
-                                                originalS3Key: variation.metadata?.originalS3Key,
-                                                providerId: variation.metadata?.providerId,
-                                                hasOriginalImageUrl: !!variation.metadata?.originalImageUrl
-                                              });
-                                            }
-                                            setCropAngle({
-                                              angleId: variation.id,
-                                              variation: variation
-                                            });
-                                          }}
-                                        >
-                                          <Camera className="w-4 h-4 mr-2" />
-                                          Custom Crop (16:9)
-                                        </DropdownMenuItem>
-                                      )}
+                                      {/* ✅ Images are now generated directly at 16:9 - no cropping needed */}
                                       {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
                                       {variation.id && variation.s3Key && (variation.generationMethod === 'angle-variation' || variation.generationMethod === 'ai-generated') && (() => {
                                         // 🔥 FIX: Ensure both values are strings and trimmed for reliable comparison
@@ -1076,51 +1017,6 @@ export function LocationDetailModal({
       imageType="angle"
     />
 
-    {/* 🔥 NEW: Location Angle Crop Modal */}
-    {cropAngle && (
-      <LocationAngleCropModal
-        isOpen={cropAngle !== null}
-        onClose={() => setCropAngle(null)}
-        angleId={cropAngle.angleId}
-        originalImageUrl={(() => {
-          const url = cropAngle.variation.metadata?.originalImageUrl || '';
-          // 🔥 DEBUG: Log props when crop modal is rendered
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[LocationDetailModal] 🔍 DEBUG: Passing props to crop modal:', {
-              angleId: cropAngle.angleId,
-              originalImageUrl: url ? `${url.substring(0, 80)}...` : 'EMPTY',
-              originalS3Key: (cropAngle.variation.metadata?.originalS3Key || cropAngle.variation.s3Key) ? `${(cropAngle.variation.metadata?.originalS3Key || cropAngle.variation.s3Key).substring(0, 80)}...` : 'EMPTY',
-              hasMetadata: !!cropAngle.variation.metadata,
-              metadataKeys: cropAngle.variation.metadata ? Object.keys(cropAngle.variation.metadata) : [],
-              variationKeys: Object.keys(cropAngle.variation)
-            });
-          }
-          return url;
-        })()}
-        originalS3Key={cropAngle.variation.metadata?.originalS3Key} // Only use originalS3Key, never fallback to cropped s3Key
-        locationId={location.locationId}
-        screenplayId={screenplayId}
-        onCropComplete={async () => {
-          // Refresh location data
-          queryClient.invalidateQueries({ queryKey: ['location-bank', screenplayId] });
-          queryClient.invalidateQueries({ queryKey: ['location', location.locationId] });
-          queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-          if (onUpdate) {
-            const token = await getToken({ template: 'wryda-backend' });
-            if (token) {
-              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-              const updatedLocation = await fetch(
-                `${BACKEND_API_URL}/api/location-bank/${location.locationId}?screenplayId=${screenplayId}`,
-                { headers: { 'Authorization': `Bearer ${token}` } }
-              ).then(r => r.json());
-              // onUpdate expects (locationId, updates) signature
-              onUpdate(location.locationId, updatedLocation);
-            }
-          }
-        }}
-      />
-    )}
     
     {/* Image Viewer */}
     {previewImageIndex !== null && (
