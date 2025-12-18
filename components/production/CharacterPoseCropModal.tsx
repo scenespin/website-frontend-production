@@ -277,61 +277,74 @@ export function CharacterPoseCropModal({
                 )}
                 {imageUrl && !imageError && (
                   <div className="flex items-center justify-center p-4 min-h-full">
-                    {imageLoaded && crop && (
-                      <ReactCrop
-                        crop={crop}
-                        onChange={(_, percentCrop) => setCrop(percentCrop)}
-                        onComplete={(c) => setCompletedCrop(c)}
-                        aspect={aspectRatio}
-                        className="max-w-full max-h-full"
-                      >
-                        <img
-                          ref={imgRef}
-                          src={imageUrl}
-                          alt="Crop"
-                          onLoad={onImageLoad}
-                          onError={async () => {
-                            console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
-                            if (poseS3Key) {
-                              try {
-                                const token = await getToken({ template: 'wryda-backend' });
-                                if (token) {
-                                  const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-                                  const response = await fetch(
-                                    `${BACKEND_API_URL}/api/s3/download-url`,
-                                    {
-                                      method: 'POST',
-                                      headers: {
-                                        'Authorization': `Bearer ${token}`,
-                                        'Content-Type': 'application/json'
-                                      },
-                                      body: JSON.stringify({
-                                        s3Key: poseS3Key,
-                                        expiresIn: 3600
-                                      })
-                                    }
-                                  );
-
-                                  if (response.ok) {
-                                    const data = await response.json();
-                                    setImageUrl(data.downloadUrl || '');
-                                    setImageError(false);
-                                    return;
-                                  }
+                    {!imageLoaded && (
+                      <div className="text-[#808080]">Loading image...</div>
+                    )}
+                    {/* Always render image (hidden if not loaded) to trigger onLoad */}
+                    <img
+                      ref={imgRef}
+                      src={imageUrl}
+                      alt="Crop"
+                      onLoad={onImageLoad}
+                      onError={async () => {
+                        console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
+                        if (poseS3Key) {
+                          try {
+                            const token = await getToken({ template: 'wryda-backend' });
+                            if (token) {
+                              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                              const response = await fetch(
+                                `${BACKEND_API_URL}/api/s3/download-url`,
+                                {
+                                  method: 'POST',
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                  },
+                                  body: JSON.stringify({
+                                    s3Key: poseS3Key,
+                                    expiresIn: 3600
+                                  })
                                 }
-                              } catch (error) {
-                                console.error('Error fetching fresh presigned URL:', error);
+                              );
+
+                              if (response.ok) {
+                                const data = await response.json();
+                                setImageUrl(data.downloadUrl || '');
+                                setImageError(false);
+                                return;
                               }
                             }
-                            setImageError(true);
-                            setImageLoaded(false);
-                          }}
-                          style={{ maxWidth: '100%', maxHeight: '500px', display: 'block' }}
-                        />
-                      </ReactCrop>
-                    )}
-                    {!imageLoaded && imageUrl && (
-                      <div className="text-[#808080]">Loading image...</div>
+                          } catch (error) {
+                            console.error('Error fetching fresh presigned URL:', error);
+                          }
+                        }
+                        setImageError(true);
+                        setImageLoaded(false);
+                      }}
+                      style={{ 
+                        maxWidth: imageLoaded ? '100%' : '0',
+                        maxHeight: imageLoaded ? '500px' : '0',
+                        display: imageLoaded ? 'block' : 'none'
+                      }}
+                    />
+                    {/* Show ReactCrop once image is loaded and crop is initialized */}
+                    {imageLoaded && crop && (
+                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <ReactCrop
+                          crop={crop}
+                          onChange={(_, percentCrop) => setCrop(percentCrop)}
+                          onComplete={(c) => setCompletedCrop(c)}
+                          aspect={aspectRatio}
+                          className="max-w-full max-h-full"
+                        >
+                          <img
+                            src={imageUrl}
+                            alt="Crop"
+                            style={{ maxWidth: '100%', maxHeight: '500px', display: 'block' }}
+                          />
+                        </ReactCrop>
+                      </div>
                     )}
                   </div>
                 )}
