@@ -195,13 +195,17 @@ export function CharacterPoseCropModal({
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-[#3F3F46]">
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col gap-1">
                   <h2 className="text-lg font-semibold text-[#FFFFFF]">
                     Crop Pose
                   </h2>
-                  <span className="text-xs text-[#808080]">
-                    Pan to select crop area (maintains aspect ratio, no zoom)
-                  </span>
+                  <div className="flex items-center gap-2 text-xs text-[#808080]">
+                    <span>Click and drag the image to pan and select crop area</span>
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Maintains aspect ratio</span>
+                    <span className="text-[#DC143C]">•</span>
+                    <span>No zoom (prevents quality loss)</span>
+                  </div>
                 </div>
                 <button
                   onClick={onClose}
@@ -290,10 +294,25 @@ export function CharacterPoseCropModal({
                             containerStyle: {
                               width: '100%',
                               height: '100%',
-                              position: 'relative'
+                              position: 'relative',
+                              cursor: 'grab'
+                            },
+                            cropAreaStyle: {
+                              border: '2px solid #DC143C',
+                              borderRadius: '4px',
+                              cursor: 'move'
+                            },
+                            mediaStyle: {
+                              cursor: 'grab'
                             }
                           }}
                         />
+                        {/* Helper text overlay */}
+                        {!croppedAreaPixels && (
+                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs px-3 py-2 rounded-lg pointer-events-none">
+                            Click and drag the image to position it
+                          </div>
+                        )}
                       </div>
                     )}
                   </>
