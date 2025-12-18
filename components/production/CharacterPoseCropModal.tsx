@@ -49,7 +49,6 @@ export function CharacterPoseCropModal({
   const [imageUrl, setImageUrl] = useState('');
   const [imageError, setImageError] = useState(false);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
-  const [imageAspectRatio, setImageAspectRatio] = useState<number>(1); // Will be calculated from image
 
   // Fetch image URL from S3 key
   useEffect(() => {
@@ -104,16 +103,13 @@ export function CharacterPoseCropModal({
     }
   }, [isOpen, poseS3Key, getToken]);
 
-  // Calculate aspect ratio from image when loaded
+  // Mark image as loaded
   const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
-    const aspectRatio = img.naturalWidth / img.naturalHeight;
-    setImageAspectRatio(aspectRatio);
     setImageLoaded(true);
     console.log('[CharacterPoseCropModal] ✅ Image loaded', {
       width: img.naturalWidth,
-      height: img.naturalHeight,
-      aspectRatio
+      height: img.naturalHeight
     });
   }, []);
 
@@ -195,14 +191,12 @@ export function CharacterPoseCropModal({
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-[#3F3F46]">
-                <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1">
                   <h2 className="text-lg font-semibold text-[#FFFFFF]">
                     Crop Pose
                   </h2>
                   <div className="flex items-center gap-2 text-xs text-[#808080]">
-                    <span>Click and drag the image to pan and select crop area</span>
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Maintains aspect ratio</span>
+                    <span>Drag image to pan • Drag corners/edges to resize crop area</span>
                     <span className="text-[#DC143C]">•</span>
                     <span>No zoom (prevents quality loss)</span>
                   </div>
@@ -284,7 +278,7 @@ export function CharacterPoseCropModal({
                           image={imageUrl}
                           crop={crop}
                           zoom={zoom}
-                          aspect={imageAspectRatio} // Maintain original aspect ratio
+                          // No aspect prop = allows free resizing of crop area
                           onCropChange={setCrop}
                           onCropComplete={onCropCompleteCallback}
                           cropShape="rect"
@@ -309,8 +303,9 @@ export function CharacterPoseCropModal({
                         />
                         {/* Helper text overlay */}
                         {!croppedAreaPixels && (
-                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs px-3 py-2 rounded-lg pointer-events-none">
-                            Click and drag the image to position it
+                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs px-3 py-2 rounded-lg pointer-events-none text-center">
+                            <div>Drag image to pan • Drag crop corners/edges to resize</div>
+                            <div className="text-[#DC143C] mt-1">Select exactly what you want to keep</div>
                           </div>
                         )}
                       </div>
