@@ -125,13 +125,11 @@ export function LocationAngleCropModal({
             console.error('[LocationAngleCropModal] ❌ Failed to fetch image URL:', error);
             setImageError(true);
           }
-        } else if (originalImageUrl) {
-          // Fallback to originalImageUrl if no S3 key (shouldn't happen, but handle gracefully)
-          console.warn('[LocationAngleCropModal] ⚠️ No originalS3Key provided, using originalImageUrl (may be expired or wrong)');
-          setImageUrl(originalImageUrl);
         } else {
-          console.error('[LocationAngleCropModal] ❌ No originalS3Key or originalImageUrl provided');
+          // originalS3Key is required - cannot crop without the original square image
+          console.error('[LocationAngleCropModal] ❌ No originalS3Key provided - cannot crop without original 4096x4096 square image');
           setImageError(true);
+          toast.error('Original square image not found. Cannot crop.');
         }
       };
 
@@ -148,8 +146,15 @@ export function LocationAngleCropModal({
     
     console.log('[LocationAngleCropModal] ✅ Image loaded', {
       width: naturalWidth,
-      height: naturalHeight
+      height: naturalHeight,
+      expectedSquare: naturalWidth === 4096 && naturalHeight === 4096
     });
+
+    // Verify we have the original square image (4096x4096)
+    if (naturalWidth !== 4096 || naturalHeight !== 4096) {
+      console.warn('[LocationAngleCropModal] ⚠️ Image is not 4096x4096! Got:', naturalWidth, 'x', naturalHeight);
+      toast.error('Expected 4096x4096 square image. Please ensure originalS3Key points to the original square image.');
+    }
 
     // Initialize 16:9 crop area (centered, 80% of image size)
     const crop = makeAspectCrop(
@@ -178,11 +183,29 @@ export function LocationAngleCropModal({
 
       const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
-      // Convert pixel coordinates (already in pixels from react-image-crop)
+      // react-image-crop's PixelCrop gives coordinates relative to the natural image size
+      // These should already be correct for 4096x4096, but verify
       const cropX = Math.round(completedCrop.x);
       const cropY = Math.round(completedCrop.y);
       const cropWidth = Math.round(completedCrop.width);
       const cropHeight = Math.round(completedCrop.height);
+      
+      console.log('[LocationAngleCropModal] 📐 Crop coordinates:', {
+        x: cropX,
+        y: cropY,
+        width: cropWidth,
+        height: cropHeight,
+        aspectRatio: cropWidth / cropHeight,
+        expectedAspectRatio: 16 / 9,
+        imageSize: imageSize
+      });
+      
+      // Validate crop dimensions match 16:9 aspect ratio (within tolerance)
+      const actualAspectRatio = cropWidth / cropHeight;
+      const expectedAspectRatio = 16 / 9;
+      if (Math.abs(actualAspectRatio - expectedAspectRatio) > 0.01) {
+        console.warn('[LocationAngleCropModal] ⚠️ Crop aspect ratio mismatch:', actualAspectRatio, 'expected', expectedAspectRatio);
+      }
 
       const response = await fetch(
         `${BACKEND_API_URL}/api/location-bank/${locationId}/crop-angle?screenplayId=${screenplayId}`,

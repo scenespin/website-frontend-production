@@ -932,9 +932,9 @@ export function LocationDetailModal({
                                         Download
                                       </DropdownMenuItem>
                                       {/* 🔥 Custom Crop option - ONLY for square images (1:1 aspect ratio) */}
-                                      {/* Only show if originalS3Key exists in metadata (indicates 4096x4096 square image that was auto-cropped) */}
-                                      {/* Runway Gen-4 images (1920x1080, already 16:9) don't have originalS3Key, so crop option is hidden */}
-                                      {variation.id && variation.metadata?.originalS3Key && (
+                                      {/* Only show if originalS3Key exists AND it's NOT a Gen4 image (Nano Banana Pro only) */}
+                                      {/* Runway Gen-4 images (1920x1080, already 16:9) don't need cropping */}
+                                      {variation.id && variation.metadata?.originalS3Key && variation.metadata?.providerId !== 'runway-gen-4' && (
                                         <DropdownMenuItem
                                           className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
                                           onClick={(e) => {
@@ -1142,7 +1142,7 @@ export function LocationDetailModal({
           }
           return url;
         })()}
-        originalS3Key={cropAngle.variation.metadata?.originalS3Key || cropAngle.variation.s3Key}
+        originalS3Key={cropAngle.variation.metadata?.originalS3Key} // Only use originalS3Key, never fallback to cropped s3Key
         locationId={location.locationId}
         screenplayId={screenplayId}
         onCropComplete={async () => {
