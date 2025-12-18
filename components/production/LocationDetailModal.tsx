@@ -356,7 +356,7 @@ export function LocationDetailModal({
       });
     }
     
-    // Add angle variations with viewMode-aware URLs
+    // Add angle variations (always 16:9 cropped version)
     angleVariations.forEach((variation: any) => {
       // Extract isRegenerated from metadata (like Characters do)
       const isRegenerated = variation.metadata?.isRegenerated || false;
