@@ -582,9 +582,13 @@ export interface DialogueBlock {
  */
 export interface WorkflowRecommendation {
     workflowId: string;
+    workflowName: string;
     shotType: 'close-up' | 'medium' | 'wide' | 'establishing' | 'auto';
     reasoning: string;
     confidence: 'high' | 'medium' | 'low';
+    confidenceScore: number; // 0-100
+    canCombine: boolean; // Always true - all workflows can combine
+    combinationHint?: string; // Which workflows it works with
 }
 
 /**

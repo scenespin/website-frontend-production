@@ -56,6 +56,8 @@ import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { EditorContextBanner } from './EditorContextBanner';
 import { SceneSelector } from './SceneSelector';
+import { WorkflowRecommendationsPanel } from './WorkflowRecommendationsPanel';
+import { CombinationPreviewCard } from './CombinationPreviewCard';
 import { ManualSceneEntry } from './ManualSceneEntry';
 import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
@@ -184,6 +186,29 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       return 'review-issues-only';
     }
   );
+  
+  // Workflow Detection state (Feature Workflow Detection Phase 2)
+  const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
+  
+  // Auto-select workflows when analysis completes
+  useEffect(() => {
+    if (sceneAnalysisResult?.workflowRecommendations) {
+      // Auto-select all workflows that can combine (default behavior)
+      const combinableWorkflows = sceneAnalysisResult.workflowRecommendations
+        .filter(rec => rec.canCombine)
+        .map(rec => rec.workflowId);
+      setSelectedWorkflows(combinableWorkflows);
+    }
+  }, [sceneAnalysisResult]);
+  
+  // Toggle workflow selection
+  const toggleWorkflow = (workflowId: string) => {
+    setSelectedWorkflows(prev => 
+      prev.includes(workflowId)
+        ? prev.filter(id => id !== workflowId)
+        : [...prev, workflowId]
+    );
+  };
   
   // Note: Mobile no longer forces defaults - users can choose any options
   
@@ -1585,15 +1610,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       // Prepare workflow inputs - backend expects flat structure, not nested in 'inputs'
       // Backend expects: workflowId, sceneDescription, characterRefs (not characterReferences), etc.
       // Task 5: Use workflow recommendations from Scene Analyzer if available (Feature 0136 Phase 2.2)
-      // Default to 'complete-scene' if no recommendations
-      // NOTE: Backend currently only supports 'complete-scene', so map other workflows to it
-      const recommendedWorkflowId = sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId || 'complete-scene';
-      const supportedWorkflowId = recommendedWorkflowId === 'voice-consistency-system' || recommendedWorkflowId === 'complete-scene' 
-        ? 'complete-scene' 
-        : 'complete-scene'; // Fallback to complete-scene for any other workflow
+      // NEW: Support multiple workflow selection (Feature Workflow Detection Phase 3)
+      // Use selected workflows if available, otherwise use first recommendation, otherwise default to 'complete-scene'
+      const workflowIdsToUse = selectedWorkflows.length > 0 
+        ? selectedWorkflows 
+        : (sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId ? [sceneAnalysisResult.workflowRecommendations[0].workflowId] : ['complete-scene']);
       
       const workflowRequest: any = {
-        workflowId: supportedWorkflowId, // Use supported workflow (map voice-consistency-system to complete-scene)
+        workflowIds: workflowIdsToUse, // NEW: Pass array of workflow IDs for combined execution
         sceneDescription: sceneDescription.trim(),
         characterRefs: finalCharacterRefs, // Pre-populated from analysis + manual uploads (max 3)
         aspectRatio: '16:9',
@@ -1604,10 +1628,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       };
       
       // Log workflow selection
-      if (recommendedWorkflowId !== supportedWorkflowId) {
-        console.log(`[SceneBuilderPanel] Scene Analyzer recommended "${recommendedWorkflowId}", using "${supportedWorkflowId}" (backend supported workflow)`);
-      } else if (recommendedWorkflowId !== 'complete-scene') {
-        console.log('[SceneBuilderPanel] Using recommended workflow from Scene Analyzer:', recommendedWorkflowId);
+      if (workflowIdsToUse.length > 1) {
+        console.log('[SceneBuilderPanel] Using combined workflows:', workflowIdsToUse);
+      } else if (workflowIdsToUse[0] !== 'complete-scene') {
+        console.log('[SceneBuilderPanel] Using recommended workflow from Scene Analyzer:', workflowIdsToUse[0]);
       }
       
       // Add optional fields if available
@@ -2480,6 +2504,23 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       <div className="text-xs text-[#808080]">No analysis available. Please select a scene.</div>
                     </CardContent>
                   </Card>
+                )}
+
+                {/* Workflow Recommendations (Feature Workflow Detection Phase 2) */}
+                {selectedSceneId && sceneAnalysisResult?.workflowRecommendations && sceneAnalysisResult.workflowRecommendations.length > 0 && (
+                  <>
+                    <WorkflowRecommendationsPanel
+                      recommendations={sceneAnalysisResult.workflowRecommendations}
+                      selectedWorkflows={selectedWorkflows}
+                      onToggleWorkflow={toggleWorkflow}
+                    />
+                    <CombinationPreviewCard
+                      selectedWorkflows={selectedWorkflows}
+                      recommendations={sceneAnalysisResult.workflowRecommendations}
+                      onGenerate={handleGenerate}
+                      isGenerating={isGenerating}
+                    />
+                  </>
                 )}
 
                 {/* Optional Overrides - Compact */}
