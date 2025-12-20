@@ -1825,8 +1825,10 @@ export function CharacterDetailModal({
           characterId={character.id}
           screenplayId={screenplayId}
           onCropComplete={async () => {
-            // Refresh character data after crop
+            // Refresh character data after crop - invalidate AND refetch to immediately update UI
             await queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+            // Force immediate refetch to update the displayed image
+            await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
             setCropPose(null);
           }}
         />
