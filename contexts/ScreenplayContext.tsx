@@ -1061,6 +1061,34 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             window.removeEventListener('refreshAssets', handleRefreshAssets);
         };
     }, [screenplayId]);
+    
+    // 🔥 NEW: Listen for scene refresh events (e.g., when scene analyzer updates dialogue blocks)
+    useEffect(() => {
+        if (!screenplayId) return;
+        
+        const handleRefreshScenes = async () => {
+            console.log('[ScreenplayContext] Refreshing scenes due to refreshScenes event');
+            try {
+                const scenesData = await listScenes(screenplayId, getToken);
+                const transformedScenes = transformScenesFromAPI(scenesData);
+                // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
+                setTimeout(() => {
+                    startTransition(() => {
+                        setScenes(transformedScenes);
+                    });
+                }, 0);
+                console.log('[ScreenplayContext] ✅ Refreshed scenes from API:', transformedScenes.length, 'scenes');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to refresh scenes:', error);
+            }
+        };
+        
+        window.addEventListener('refreshScenes', handleRefreshScenes);
+        return () => {
+            window.removeEventListener('refreshScenes', handleRefreshScenes);
+        };
+        // 🔥 FIX: Remove transformScenesFromAPI from deps - it's a stable useCallback and including it causes hooks mismatch
+    }, [screenplayId, getToken]);
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {

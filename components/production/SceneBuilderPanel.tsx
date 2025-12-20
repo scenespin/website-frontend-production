@@ -383,6 +383,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             setQualityTier('professional');
             console.log('[SceneBuilderPanel] Auto-suggested Professional tier (simple scene)');
           }
+          
+          // 🔥 NEW: Refresh scenes in context after analysis completes
+          // This ensures the UI shows updated dialogue blocks and character information
+          console.log('[SceneBuilderPanel] 🔄 Triggering scene refresh after analysis');
+          window.dispatchEvent(new CustomEvent('refreshScenes'));
         } else {
           throw new Error(result.message || 'Analysis failed');
         }
