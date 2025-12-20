@@ -154,6 +154,15 @@ export function CharacterPoseCropModal({
     const cropWidth = Math.max(1, Math.min(Math.round(completedCrop.width), imageSize.width - cropX));
     const cropHeight = Math.max(1, Math.min(Math.round(completedCrop.height), imageSize.height - cropY));
 
+    // Get current image dimensions for verification
+    const img = imgRef.current;
+    const displayWidth = img?.width || 0;
+    const displayHeight = img?.height || 0;
+    const naturalWidth = img?.naturalWidth || imageSize.width;
+    const naturalHeight = img?.naturalHeight || imageSize.height;
+    const scaleX = naturalWidth / (displayWidth || 1);
+    const scaleY = naturalHeight / (displayHeight || 1);
+    
     console.log('[CharacterPoseCropModal] Crop coordinates:', {
       original: {
         x: completedCrop.x,
@@ -167,7 +176,20 @@ export function CharacterPoseCropModal({
         width: cropWidth,
         height: cropHeight
       },
-      imageSize
+      imageDimensions: {
+        natural: { width: naturalWidth, height: naturalHeight },
+        display: { width: displayWidth, height: displayHeight },
+        scale: { x: scaleX, y: scaleY }
+      },
+      imageSize,
+      // Verify coordinates make sense
+      coordinateCheck: {
+        cropXPercent: (cropX / naturalWidth * 100).toFixed(2) + '%',
+        cropYPercent: (cropY / naturalHeight * 100).toFixed(2) + '%',
+        cropWidthPercent: (cropWidth / naturalWidth * 100).toFixed(2) + '%',
+        cropHeightPercent: (cropHeight / naturalHeight * 100).toFixed(2) + '%',
+        fitsInImage: cropX + cropWidth <= naturalWidth && cropY + cropHeight <= naturalHeight
+      }
     });
 
     setIsCropping(true);
@@ -328,11 +350,21 @@ export function CharacterPoseCropModal({
                           onChange={(_, percentCrop) => setCrop(percentCrop)}
                           onComplete={(c) => {
                             const img = imgRef.current;
-                            if (!img) return;
+                            if (!img) {
+                              console.error('[CharacterPoseCropModal] ❌ imgRef.current is null in onComplete');
+                              return;
+                            }
                             
                             // Verify coordinates are in natural image space
-                            const scaleX = img.naturalWidth / img.width;
-                            const scaleY = img.naturalHeight / img.height;
+                            const scaleX = img.naturalWidth / (img.width || 1);
+                            const scaleY = img.naturalHeight / (img.height || 1);
+                            
+                            // CRITICAL: Verify ReactCrop is using natural coordinates
+                            // PixelCrop should already be in natural image coordinates
+                            // But let's verify the image dimensions match
+                            const dimensionMismatch = 
+                              Math.abs(img.naturalWidth - imageSize.width) > 1 ||
+                              Math.abs(img.naturalHeight - imageSize.height) > 1;
                             
                             console.log('[CharacterPoseCropModal] Crop completed:', {
                               pixelCrop: c,
@@ -346,14 +378,30 @@ export function CharacterPoseCropModal({
                               },
                               scale: { x: scaleX, y: scaleY },
                               imageSize,
+                              dimensionMismatch,
                               // Verify: PixelCrop should already be in natural coordinates
                               verification: {
                                 cropXInBounds: c.x >= 0 && c.x <= img.naturalWidth,
                                 cropYInBounds: c.y >= 0 && c.y <= img.naturalHeight,
                                 cropWidthInBounds: c.width > 0 && c.width <= img.naturalWidth,
-                                cropHeightInBounds: c.height > 0 && c.height <= img.naturalHeight
+                                cropHeightInBounds: c.height > 0 && c.height <= img.naturalHeight,
+                                // Check if coordinates seem reasonable (not zoomed/scaled incorrectly)
+                                cropAreaPercent: {
+                                  x: (c.x / img.naturalWidth * 100).toFixed(1) + '%',
+                                  y: (c.y / img.naturalHeight * 100).toFixed(1) + '%',
+                                  width: (c.width / img.naturalWidth * 100).toFixed(1) + '%',
+                                  height: (c.height / img.naturalHeight * 100).toFixed(1) + '%'
+                                }
                               }
                             });
+                            
+                            if (dimensionMismatch) {
+                              console.warn('[CharacterPoseCropModal] ⚠️ Image dimension mismatch detected!', {
+                                naturalSize: { width: img.naturalWidth, height: img.naturalHeight },
+                                imageSize
+                              });
+                            }
+                            
                             setCompletedCrop(c);
                           }}
                           aspect={aspectRatio}
