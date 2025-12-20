@@ -147,12 +147,48 @@ export function CharacterPoseCropModal({
       return;
     }
 
-    // PixelCrop coordinates are already relative to natural image size
-    // But we need to ensure they're valid
-    const cropX = Math.max(0, Math.min(Math.round(completedCrop.x), imageSize.width - 1));
-    const cropY = Math.max(0, Math.min(Math.round(completedCrop.y), imageSize.height - 1));
-    const cropWidth = Math.max(1, Math.min(Math.round(completedCrop.width), imageSize.width - cropX));
-    const cropHeight = Math.max(1, Math.min(Math.round(completedCrop.height), imageSize.height - cropY));
+    // CRITICAL FIX: ReactCrop's PixelCrop gives coordinates in DISPLAY space, not natural space!
+    // We need to scale them to natural image coordinates.
+    // This works for ALL image sizes (small, large, nano banana pro, etc.) because we use
+    // the actual measured dimensions from the image element, not hardcoded values.
+    const img = imgRef.current;
+    if (!img) {
+      toast.error('Image reference lost. Please try again.');
+      return;
+    }
+    
+    const displayWidth = img.width;
+    const displayHeight = img.height;
+    const naturalWidth = img.naturalWidth;
+    const naturalHeight = img.naturalHeight;
+    
+    // Calculate scale factors from display to natural (works for any image size)
+    const scaleX = naturalWidth / displayWidth;
+    const scaleY = naturalHeight / displayHeight;
+    
+    // Scale PixelCrop coordinates from display space to natural space
+    const cropX = Math.max(0, Math.min(Math.round(completedCrop.x * scaleX), naturalWidth - 1));
+    const cropY = Math.max(0, Math.min(Math.round(completedCrop.y * scaleY), naturalHeight - 1));
+    const cropWidth = Math.max(1, Math.min(Math.round(completedCrop.width * scaleX), naturalWidth - cropX));
+    const cropHeight = Math.max(1, Math.min(Math.round(completedCrop.height * scaleY), naturalHeight - cropY));
+    
+    console.log('[CharacterPoseCropModal] 🔧 Scaling coordinates from display to natural:', {
+      displayCrop: {
+        x: completedCrop.x,
+        y: completedCrop.y,
+        width: completedCrop.width,
+        height: completedCrop.height
+      },
+      naturalCrop: {
+        x: cropX,
+        y: cropY,
+        width: cropWidth,
+        height: cropHeight
+      },
+      scale: { x: scaleX, y: scaleY },
+      displaySize: { width: displayWidth, height: displayHeight },
+      naturalSize: { width: naturalWidth, height: naturalHeight }
+    });
 
     // Get current image dimensions for verification
     const img = imgRef.current;
