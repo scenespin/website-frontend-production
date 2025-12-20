@@ -138,6 +138,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [dialogueMode, setDialogueMode] = useState<'talking-head' | 'user-video'>('talking-head');
   const [dialogueText, setDialogueText] = useState('');
   const [drivingVideoUrl, setDrivingVideoUrl] = useState<string | null>(null);
+  const [useNewWorkflow, setUseNewWorkflow] = useState(false); // Toggle for testing new VEO workflow
   
   // Per-character outfit selection state (NEW: Phase 3 - Outfit Integration)
   const [characterOutfits, setCharacterOutfits] = useState<Record<string, string>>({});
@@ -1389,7 +1390,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         hasFountainContext: !!dialogueRequest.fountainContext
       });
       
-      const response = await fetch('/api/dialogue/generate', {
+      // Use new workflow endpoint if toggle is enabled
+      const endpoint = useNewWorkflow 
+        ? '/api/dialogue/generate-first-frame-lipsync'
+        : '/api/dialogue/generate';
+      
+      console.log(`[SceneBuilderPanel] Using ${useNewWorkflow ? 'NEW' : 'ORIGINAL'} workflow endpoint: ${endpoint}`);
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2727,6 +2735,27 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         />
                       </div>
                     )
+                  )}
+
+                  {/* Testing Toggle: New VEO Workflow (Dialogue First Frame Lipsync) */}
+                  {(sceneAnalysisResult?.dialogue?.hasDialogue || hasDialogue) && (
+                    <div className="mt-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="useNewWorkflow"
+                          checked={useNewWorkflow}
+                          onChange={(e) => setUseNewWorkflow(e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
+                        />
+                        <Label htmlFor="useNewWorkflow" className="text-sm text-yellow-200 cursor-pointer">
+                          🧪 Test New VEO 3.1 Workflow (First Frame + Audio Overlay)
+                        </Label>
+                      </div>
+                      <p className="text-xs text-yellow-300/70 mt-1 ml-6">
+                        Uses VEO 3.1 with first frame reference + FFmpeg audio overlay (no Runway Act-Two)
+                      </p>
+                    </div>
                   )}
 
                   {/* Action Buttons */}

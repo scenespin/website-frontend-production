@@ -320,73 +320,39 @@ export function CharacterPoseCropModal({
                     {!imageLoaded && (
                       <div className="text-[#808080]">Loading image...</div>
                     )}
-                    {/* Always render image (hidden if not loaded) to trigger onLoad */}
-                    <img
-                      ref={imgRef}
-                      src={imageUrl}
-                      alt="Crop"
-                      onLoad={onImageLoad}
-                      onError={async () => {
-                        console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
-                        if (poseS3Key) {
-                          try {
-                            const token = await getToken({ template: 'wryda-backend' });
-                            if (token) {
-                              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-                              const response = await fetch(
-                                `${BACKEND_API_URL}/api/s3/download-url`,
-                                {
-                                  method: 'POST',
-                                  headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                  },
-                                  body: JSON.stringify({
-                                    s3Key: poseS3Key,
-                                    expiresIn: 3600
-                                  })
-                                }
-                              );
-
-                              if (response.ok) {
-                                const data = await response.json();
-                                setImageUrl(data.downloadUrl || '');
-                                setImageError(false);
-                                return;
-                              }
-                            }
-                          } catch (error) {
-                            console.error('Error fetching fresh presigned URL:', error);
-                          }
-                        }
-                        setImageError(true);
-                        setImageLoaded(false);
-                      }}
-                      style={{ 
-                        maxWidth: imageLoaded ? '100%' : '0',
-                        maxHeight: imageLoaded ? '500px' : '0',
-                        display: imageLoaded ? 'block' : 'none'
-                      }}
-                    />
-                    {/* Show ReactCrop once image is loaded and crop is initialized */}
-                    {imageLoaded && crop && (
+                    {/* Render image once - ReactCrop will wrap it when loaded */}
+                    {imageLoaded && crop ? (
                       <div className="absolute inset-0 flex items-center justify-center p-4">
                         <ReactCrop
                           crop={crop}
                           onChange={(_, percentCrop) => setCrop(percentCrop)}
                           onComplete={(c) => {
                             const img = imgRef.current;
+                            if (!img) return;
+                            
+                            // Verify coordinates are in natural image space
+                            const scaleX = img.naturalWidth / img.width;
+                            const scaleY = img.naturalHeight / img.height;
+                            
                             console.log('[CharacterPoseCropModal] Crop completed:', {
                               pixelCrop: c,
                               naturalSize: {
-                                width: img?.naturalWidth,
-                                height: img?.naturalHeight
+                                width: img.naturalWidth,
+                                height: img.naturalHeight
                               },
                               displaySize: {
-                                width: img?.width,
-                                height: img?.height
+                                width: img.width,
+                                height: img.height
                               },
-                              imageSize
+                              scale: { x: scaleX, y: scaleY },
+                              imageSize,
+                              // Verify: PixelCrop should already be in natural coordinates
+                              verification: {
+                                cropXInBounds: c.x >= 0 && c.x <= img.naturalWidth,
+                                cropYInBounds: c.y >= 0 && c.y <= img.naturalHeight,
+                                cropWidthInBounds: c.width > 0 && c.width <= img.naturalWidth,
+                                cropHeightInBounds: c.height > 0 && c.height <= img.naturalHeight
+                              }
                             });
                             setCompletedCrop(c);
                           }}
@@ -394,8 +360,45 @@ export function CharacterPoseCropModal({
                           className="max-w-full max-h-full"
                         >
                           <img
+                            ref={imgRef}
                             src={imageUrl}
                             alt="Crop"
+                            onError={async () => {
+                              console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
+                              if (poseS3Key) {
+                                try {
+                                  const token = await getToken({ template: 'wryda-backend' });
+                                  if (token) {
+                                    const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                    const response = await fetch(
+                                      `${BACKEND_API_URL}/api/s3/download-url`,
+                                      {
+                                        method: 'POST',
+                                        headers: {
+                                          'Authorization': `Bearer ${token}`,
+                                          'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                          s3Key: poseS3Key,
+                                          expiresIn: 3600
+                                        })
+                                      }
+                                    );
+
+                                    if (response.ok) {
+                                      const data = await response.json();
+                                      setImageUrl(data.downloadUrl || '');
+                                      setImageError(false);
+                                      return;
+                                    }
+                                  }
+                                } catch (error) {
+                                  console.error('Error fetching fresh presigned URL:', error);
+                                }
+                              }
+                              setImageError(true);
+                              setImageLoaded(false);
+                            }}
                             style={{ 
                               maxWidth: '100%', 
                               maxHeight: '500px', 
@@ -403,11 +406,59 @@ export function CharacterPoseCropModal({
                               width: 'auto',
                               height: 'auto'
                             }}
-                            width={imageSize.width}
-                            height={imageSize.height}
                           />
                         </ReactCrop>
                       </div>
+                    ) : (
+                      <img
+                        ref={imgRef}
+                        src={imageUrl}
+                        alt="Crop"
+                        onLoad={onImageLoad}
+                        onError={async () => {
+                          console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
+                          if (poseS3Key) {
+                            try {
+                              const token = await getToken({ template: 'wryda-backend' });
+                              if (token) {
+                                const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                const response = await fetch(
+                                  `${BACKEND_API_URL}/api/s3/download-url`,
+                                  {
+                                    method: 'POST',
+                                    headers: {
+                                      'Authorization': `Bearer ${token}`,
+                                      'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                      s3Key: poseS3Key,
+                                      expiresIn: 3600
+                                    })
+                                  }
+                                );
+
+                                if (response.ok) {
+                                  const data = await response.json();
+                                  setImageUrl(data.downloadUrl || '');
+                                  setImageError(false);
+                                  return;
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error fetching fresh presigned URL:', error);
+                            }
+                          }
+                          setImageError(true);
+                          setImageLoaded(false);
+                        }}
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '500px', 
+                          display: 'block',
+                          width: 'auto',
+                          height: 'auto'
+                        }}
+                      />
                     )}
                   </div>
                 )}
