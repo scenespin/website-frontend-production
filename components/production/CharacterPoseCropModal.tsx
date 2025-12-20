@@ -178,6 +178,23 @@ export function CharacterPoseCropModal({
       }
 
       const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      
+      const requestBody = {
+        poseId,
+        poseS3Key,
+        screenplayId,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight
+      };
+      
+      console.log('[CharacterPoseCropModal] Sending crop request:', {
+        url: `${BACKEND_API_URL}/api/screenplays/${screenplayId}/characters/${characterId}/crop-pose`,
+        body: requestBody,
+        imageSize
+      });
+      
       const response = await fetch(
         `${BACKEND_API_URL}/api/screenplays/${screenplayId}/characters/${characterId}/crop-pose`,
         {
@@ -186,17 +203,11 @@ export function CharacterPoseCropModal({
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            poseId,
-            poseS3Key,
-            screenplayId,
-            cropX,
-            cropY,
-            cropWidth,
-            cropHeight
-          })
+          body: JSON.stringify(requestBody)
         }
       );
+      
+      console.log('[CharacterPoseCropModal] Crop response status:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
