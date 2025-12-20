@@ -99,7 +99,7 @@ export function CharacterPoseCropModal({
     }
   }, [isOpen, poseS3Key, getToken]);
 
-  // Initialize crop area when image loads
+  // Initialize image when it loads (no default crop area)
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     const { naturalWidth, naturalHeight } = img;
@@ -111,29 +111,9 @@ export function CharacterPoseCropModal({
       height: naturalHeight
     });
 
-    // Initialize crop area (center, 80% of image size)
-    if (aspectRatio) {
-      const crop = makeAspectCrop(
-        {
-          unit: '%',
-          width: 80,
-        },
-        aspectRatio,
-        naturalWidth,
-        naturalHeight
-      );
-      setCrop(centerCrop(crop, naturalWidth, naturalHeight));
-    } else {
-      // Free resize - start with 80% centered crop
-      setCrop({
-        unit: '%',
-        x: 10,
-        y: 10,
-        width: 80,
-        height: 80
-      });
-    }
-  }, [aspectRatio]);
+    // No default crop area - user must select their own crop area
+    setCrop(undefined);
+  }, []);
 
   const handleCrop = useCallback(async () => {
     if (!completedCrop || !poseS3Key || !imgRef.current) {
@@ -274,33 +254,13 @@ export function CharacterPoseCropModal({
     }
   }, [completedCrop, poseId, poseS3Key, characterId, screenplayId, getToken, onCropComplete, onClose]);
 
-  // Update crop when aspect ratio changes
+  // Clear completed crop when aspect ratio changes (user needs to reselect)
   useEffect(() => {
-    if (imageLoaded && imgRef.current && imageSize.width > 0 && imageSize.height > 0) {
-      if (aspectRatio) {
-        const newCrop = makeAspectCrop(
-          {
-            unit: '%',
-            width: 80,
-          },
-          aspectRatio,
-          imageSize.width,
-          imageSize.height
-        );
-        setCrop(centerCrop(newCrop, imageSize.width, imageSize.height));
-      } else {
-        // Free resize - reset to 80% centered
-        setCrop({
-          unit: '%',
-          x: 10,
-          y: 10,
-          width: 80,
-          height: 80
-        });
-      }
+    if (aspectRatio !== undefined) {
       setCompletedCrop(undefined);
+      // Don't auto-create crop - let user select their own
     }
-  }, [aspectRatio, imageLoaded, imageSize]);
+  }, [aspectRatio]);
 
   if (!isOpen) return null;
 
@@ -365,13 +325,13 @@ export function CharacterPoseCropModal({
                   </div>
                 )}
                 {imageUrl && !imageError && (
-                  <div className="flex items-center justify-center p-4 min-h-full">
+                  <div className="absolute inset-0 flex items-center justify-center p-4 overflow-hidden">
                     {!imageLoaded && (
                       <div className="text-[#808080]">Loading image...</div>
                     )}
                     {/* Render image once - ReactCrop will wrap it when loaded */}
                     {imageLoaded && crop ? (
-                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                      <div className="w-full h-full flex items-center justify-center">
                         <ReactCrop
                           crop={crop}
                           onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -476,7 +436,7 @@ export function CharacterPoseCropModal({
                             }}
                             style={{ 
                               maxWidth: '100%', 
-                              maxHeight: '500px', 
+                              maxHeight: 'calc(100% - 2rem)', 
                               display: 'block',
                               width: 'auto',
                               height: 'auto'
@@ -528,7 +488,7 @@ export function CharacterPoseCropModal({
                         }}
                         style={{ 
                           maxWidth: '100%', 
-                          maxHeight: '500px', 
+                          maxHeight: 'calc(100% - 2rem)', 
                           display: 'block',
                           width: 'auto',
                           height: 'auto'
