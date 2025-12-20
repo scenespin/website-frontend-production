@@ -141,6 +141,35 @@ export function CharacterPoseCropModal({
       return;
     }
 
+    // Validate crop coordinates
+    if (!imageSize.width || !imageSize.height) {
+      toast.error('Image dimensions not loaded. Please try again.');
+      return;
+    }
+
+    // PixelCrop coordinates are already relative to natural image size
+    // But we need to ensure they're valid
+    const cropX = Math.max(0, Math.min(Math.round(completedCrop.x), imageSize.width - 1));
+    const cropY = Math.max(0, Math.min(Math.round(completedCrop.y), imageSize.height - 1));
+    const cropWidth = Math.max(1, Math.min(Math.round(completedCrop.width), imageSize.width - cropX));
+    const cropHeight = Math.max(1, Math.min(Math.round(completedCrop.height), imageSize.height - cropY));
+
+    console.log('[CharacterPoseCropModal] Crop coordinates:', {
+      original: {
+        x: completedCrop.x,
+        y: completedCrop.y,
+        width: completedCrop.width,
+        height: completedCrop.height
+      },
+      validated: {
+        x: cropX,
+        y: cropY,
+        width: cropWidth,
+        height: cropHeight
+      },
+      imageSize
+    });
+
     setIsCropping(true);
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -161,10 +190,10 @@ export function CharacterPoseCropModal({
             poseId,
             poseS3Key,
             screenplayId,
-            cropX: Math.round(completedCrop.x),
-            cropY: Math.round(completedCrop.y),
-            cropWidth: Math.round(completedCrop.width),
-            cropHeight: Math.round(completedCrop.height)
+            cropX,
+            cropY,
+            cropWidth,
+            cropHeight
           })
         }
       );
@@ -334,14 +363,37 @@ export function CharacterPoseCropModal({
                         <ReactCrop
                           crop={crop}
                           onChange={(_, percentCrop) => setCrop(percentCrop)}
-                          onComplete={(c) => setCompletedCrop(c)}
+                          onComplete={(c) => {
+                            const img = imgRef.current;
+                            console.log('[CharacterPoseCropModal] Crop completed:', {
+                              pixelCrop: c,
+                              naturalSize: {
+                                width: img?.naturalWidth,
+                                height: img?.naturalHeight
+                              },
+                              displaySize: {
+                                width: img?.width,
+                                height: img?.height
+                              },
+                              imageSize
+                            });
+                            setCompletedCrop(c);
+                          }}
                           aspect={aspectRatio}
                           className="max-w-full max-h-full"
                         >
                           <img
                             src={imageUrl}
                             alt="Crop"
-                            style={{ maxWidth: '100%', maxHeight: '500px', display: 'block' }}
+                            style={{ 
+                              maxWidth: '100%', 
+                              maxHeight: '500px', 
+                              display: 'block',
+                              width: 'auto',
+                              height: 'auto'
+                            }}
+                            width={imageSize.width}
+                            height={imageSize.height}
                           />
                         </ReactCrop>
                       </div>
