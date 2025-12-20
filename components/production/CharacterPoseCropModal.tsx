@@ -189,15 +189,6 @@ export function CharacterPoseCropModal({
       displaySize: { width: displayWidth, height: displayHeight },
       naturalSize: { width: naturalWidth, height: naturalHeight }
     });
-
-    // Get current image dimensions for verification
-    const img = imgRef.current;
-    const displayWidth = img?.width || 0;
-    const displayHeight = img?.height || 0;
-    const naturalWidth = img?.naturalWidth || imageSize.width;
-    const naturalHeight = img?.naturalHeight || imageSize.height;
-    const scaleX = naturalWidth / (displayWidth || 1);
-    const scaleY = naturalHeight / (displayHeight || 1);
     
     console.log('[CharacterPoseCropModal] Crop coordinates:', {
       original: {
