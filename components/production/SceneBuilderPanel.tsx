@@ -35,7 +35,8 @@ import {
   Film,
   Save,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -142,6 +143,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Per-character outfit selection state (NEW: Phase 3 - Outfit Integration)
   const [characterOutfits, setCharacterOutfits] = useState<Record<string, string>>({});
+  
+  // Feature 0163 Phase 1: Character headshot selection state
+  const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>({});
+  const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number }>>>({});
+  const [loadingHeadshots, setLoadingHeadshots] = useState<Record<string, boolean>>({});
   
   // Wizard flow state
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -516,6 +522,86 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     loadCharacters();
   }, [projectId, getToken]);
+  
+  // Feature 0163 Phase 1: Fetch character headshots for dialogue shots
+  useEffect(() => {
+    async function fetchHeadshotsForDialogueShots() {
+      if (!projectId || !sceneAnalysisResult?.shotBreakdown?.shots) return;
+      
+      const dialogueShots = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => shot.type === 'dialogue' && shot.characterId);
+      if (dialogueShots.length === 0) return;
+      
+      const characterIds = [...new Set(dialogueShots.map((shot: any) => shot.characterId))];
+      
+      for (const characterId of characterIds) {
+        if (characterHeadshots[characterId] || loadingHeadshots[characterId]) continue; // Already loaded or loading
+        
+        setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
+        
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) continue;
+          
+          // Fetch character profile with all pose references
+          const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(projectId)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const character = data.character;
+            
+            // Filter to only headshot poses
+            // Combine poseReferences and angleReferences (they serve the same purpose)
+            const allPoseReferences = [
+              ...(character?.poseReferences || []),
+              ...(character?.angleReferences || [])
+            ];
+            
+            // Filter headshots (we'll do this on backend validation, but filter by common headshot poseIds here)
+            const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4'];
+            const headshots = allPoseReferences
+              .filter((ref: any) => {
+                const poseId = ref.poseId || ref.metadata?.poseId;
+                return poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
+              })
+              .map((ref: any) => ({
+                poseId: ref.poseId || ref.metadata?.poseId,
+                s3Key: ref.s3Key,
+                imageUrl: ref.imageUrl || ref.imageUrl,
+                label: ref.label || ref.metadata?.poseName || 'Headshot',
+                priority: ref.priority || 999
+              }))
+              .slice(0, 10); // Limit to 10 headshots
+            
+            if (headshots.length > 0) {
+              setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
+              
+              // Auto-select highest priority headshot (lowest priority number)
+              const bestHeadshot = headshots.reduce((best: any, current: any) => 
+                (current.priority || 999) < (best.priority || 999) ? current : best
+              );
+              
+              setSelectedCharacterReferences(prev => ({
+                ...prev,
+                [characterId]: {
+                  poseId: bestHeadshot.poseId,
+                  s3Key: bestHeadshot.s3Key,
+                  imageUrl: bestHeadshot.imageUrl
+                }
+              }));
+            }
+          }
+        } catch (error) {
+          console.error(`[SceneBuilderPanel] Failed to fetch headshots for character ${characterId}:`, error);
+        } finally {
+          setLoadingHeadshots(prev => ({ ...prev, [characterId]: false }));
+        }
+      }
+    }
+    
+    fetchHeadshotsForDialogueShots();
+  }, [projectId, sceneAnalysisResult?.shotBreakdown, characterHeadshots, loadingHeadshots, getToken]);
   
   // Check voice profile when character is selected
   useEffect(() => {
@@ -1650,6 +1736,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         aspectRatio: '16:9',
         duration,
         qualityTier,
+        shotBreakdown: sceneAnalysisResult?.shotBreakdown, // NEW: Pass shot breakdown for shot-based generation
+        selectedCharacterReferences: Object.keys(selectedCharacterReferences).length > 0 ? selectedCharacterReferences : undefined, // Feature 0163 Phase 1: Per-character selected references
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
