@@ -1346,46 +1346,17 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         return;
       }
       
-      // Extract actual Fountain scene text if scene is selected
-      // Use scene.fountain.startLine/endLine to extract from screenplay content
-      let fountainContext: string | undefined = undefined;
-      if (selectedSceneId && screenplay.scenes) {
-        const selectedScene = screenplay.scenes.find(s => s.id === selectedSceneId);
-        if (selectedScene?.fountain?.startLine !== undefined && selectedScene.fountain.endLine !== undefined) {
-          // Fetch screenplay content to extract scene text
-          try {
-            const screenplayResponse = await fetch(`/api/screenplay/${projectId}`);
-            if (screenplayResponse.ok) {
-              const screenplayData = await screenplayResponse.json();
-              // API returns { screenplay: { content: ... } }
-              const screenplayContent = screenplayData.screenplay?.content;
-              if (screenplayContent) {
-                const fountainLines = screenplayContent.split('\n');
-                const startLine = selectedScene.fountain.startLine;
-                const endLine = selectedScene.fountain.endLine;
-                // Extract scene text (includes synopsis lines with = prefix, which will be filtered by backend)
-                fountainContext = fountainLines.slice(startLine, endLine).join('\n');
-                console.log('[SceneBuilderPanel] ✅ Extracted Fountain scene text from screenplay', {
-                  sceneId: selectedSceneId,
-                  startLine,
-                  endLine,
-                  extractedLength: fountainContext.length,
-                  preview: fountainContext.substring(0, 100) + '...',
-                  hasSynopsisPrefix: fountainContext.includes('=')
-                });
-              } else {
-                console.warn('[SceneBuilderPanel] Screenplay content not found in API response', {
-                  screenplayDataKeys: Object.keys(screenplayData.screenplay || {})
-                });
-              }
-            }
-          } catch (error) {
-            console.warn('[SceneBuilderPanel] Failed to fetch screenplay content, falling back to sceneDescription', error);
-          }
-        }
+      // Validate sceneId is required (single source of truth enforcement)
+      if (!selectedSceneId) {
+        toast.error('Scene selection required', {
+          description: 'Please select a scene from the screenplay. Single source of truth enforcement: sceneId is required for dialogue generation.'
+        });
+        setIsGenerating(false);
+        return;
       }
       
       // Prepare dialogue generation request
+      // sceneId is required - backend will use hash system's extractSceneContent() (single source of truth)
       const dialogueRequest: any = {
         characterId: characterId, // Use character from scene analyzer or selected
         screenplayId: projectId,
@@ -1393,7 +1364,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         mode: dialogueMode || 'talking-head', // Ensure mode is set
         autoMatchVoice: true, // Default to auto-match if no voice profile
         duration: parsedDuration,
-        fountainContext: fountainContext || sceneDescription.trim(), // Use extracted Fountain text if available, otherwise fallback to sceneDescription
+        sceneId: selectedSceneId, // Required: Backend uses hash system's extractSceneContent() (single source of truth, no fallbacks)
         sceneDescription: sceneDescription.trim(), // For establishing shot prompt
         qualityTier: qualityTier || 'premium', // Quality tier for establishing shot
         aspectRatio: '16:9' // Default aspect ratio (can be made configurable later)
