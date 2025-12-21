@@ -1346,8 +1346,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         return;
       }
       
+      // Get sceneId - try selectedSceneId first, then fallback to editor context
+      // sceneId is required for single source of truth enforcement
+      const sceneId = selectedSceneId || contextStore.context.currentSceneId;
+      
       // Validate sceneId is required (single source of truth enforcement)
-      if (!selectedSceneId) {
+      if (!sceneId) {
         toast.error('Scene selection required', {
           description: 'Please select a scene from the screenplay. Single source of truth enforcement: sceneId is required for dialogue generation.'
         });
@@ -1364,7 +1368,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         mode: dialogueMode || 'talking-head', // Ensure mode is set
         autoMatchVoice: true, // Default to auto-match if no voice profile
         duration: parsedDuration,
-        sceneId: selectedSceneId, // Required: Backend uses hash system's extractSceneContent() (single source of truth, no fallbacks)
+        sceneId: sceneId, // Required: Backend uses hash system's extractSceneContent() (single source of truth, no fallbacks)
         sceneDescription: sceneDescription.trim(), // For establishing shot prompt
         qualityTier: qualityTier || 'premium', // Quality tier for establishing shot
         aspectRatio: '16:9' // Default aspect ratio (can be made configurable later)
