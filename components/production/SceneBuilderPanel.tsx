@@ -149,6 +149,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number }>>>({});
   const [loadingHeadshots, setLoadingHeadshots] = useState<Record<string, boolean>>({});
   
+  // UI State: Collapsible sections
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
   // Wizard flow state
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   
@@ -2634,11 +2637,12 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       recommendations={sceneAnalysisResult.workflowRecommendations}
                       onGenerate={handleGenerate}
                       isGenerating={isGenerating}
+                      shotBreakdown={sceneAnalysisResult.shotBreakdown} // Feature 0167: Pass actual shot breakdown for accurate credits
                     />
                   </>
                 )}
 
-                {/* Optional Overrides - Compact */}
+                {/* Step 2: Configure - Streamlined */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
                   <CardHeader className="pb-1.5">
                     <CardTitle className="text-sm text-[#FFFFFF]">⚙️ Step 2: Configure</CardTitle>
@@ -2646,33 +2650,8 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       All settings are auto-configured. Override only if needed.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3 pt-2">
-                {/* Character Outfit Selection (NEW) */}
-                {sceneAnalysisResult?.characters && sceneAnalysisResult.characters.length > 0 && (
-                  <div>
-                    <Label className="text-xs font-medium mb-3 block text-[#808080]">Character Outfits</Label>
-                    <div className="space-y-3">
-                      {sceneAnalysisResult.characters.map((char) => (
-                        <CharacterOutfitSelector
-                          key={char.id}
-                          characterId={char.id}
-                          characterName={char.name}
-                          availableOutfits={char.availableOutfits}
-                          defaultOutfit={char.defaultOutfit}
-                          selectedOutfit={characterOutfits[char.id]}
-                          onOutfitChange={(charId, outfitName) => {
-                            setCharacterOutfits(prev => ({
-                              ...prev,
-                              [charId]: outfitName || undefined
-                            }));
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Quality Tier - Compact */}
+                  <CardContent className="space-y-4 pt-2">
+                {/* Quality Tier - Primary Setting */}
                 <div>
                   <Label className="text-xs font-medium mb-4 block text-[#808080]">Quality Tier</Label>
                   <div className="grid grid-cols-2 gap-4">
@@ -2720,6 +2699,127 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     </button>
                   </div>
                 </div>
+                
+                {/* Advanced Options - Collapsible */}
+                {(sceneAnalysisResult?.characters?.length > 0 || sceneAnalysisResult?.shotBreakdown?.shots?.some((shot: any) => shot.type === 'dialogue')) && (
+                  <div className="border-t border-[#3F3F46] pt-3">
+                    <button
+                      onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                      className="w-full flex items-center justify-between text-xs text-[#808080] hover:text-[#FFFFFF] transition-colors"
+                    >
+                      <span>Advanced Options</span>
+                      <ChevronRight className={`w-4 h-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`} />
+                    </button>
+                    
+                    {showAdvancedOptions && (
+                      <div className="mt-3 space-y-4">
+                        {/* Character Outfit Selection */}
+                        {sceneAnalysisResult?.characters && sceneAnalysisResult.characters.length > 0 && (
+                          <div>
+                            <Label className="text-xs font-medium mb-2 block text-[#808080]">Character Outfits</Label>
+                            <div className="space-y-2">
+                              {sceneAnalysisResult.characters.map((char) => (
+                                <CharacterOutfitSelector
+                                  key={char.id}
+                                  characterId={char.id}
+                                  characterName={char.name}
+                                  availableOutfits={char.availableOutfits}
+                                  defaultOutfit={char.defaultOutfit}
+                                  selectedOutfit={characterOutfits[char.id]}
+                                  onOutfitChange={(charId, outfitName) => {
+                                    setCharacterOutfits(prev => ({
+                                      ...prev,
+                                      [charId]: outfitName || undefined
+                                    }));
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Feature 0163 Phase 1: Character Headshot Selection for Dialogue Shots */}
+                        {sceneAnalysisResult?.shotBreakdown?.shots?.some((shot: any) => shot.type === 'dialogue') && (
+                          <div>
+                            <Label className="text-xs font-medium mb-2 block text-[#808080]">Character Headshots (Dialogue)</Label>
+                            <div className="space-y-3">
+                              {sceneAnalysisResult.shotBreakdown.shots
+                                .filter((shot: any) => shot.type === 'dialogue' && shot.characterId)
+                                .map((shot: any) => {
+                                  const characterId = shot.characterId;
+                                  const character = sceneAnalysisResult.characters?.find((c: any) => c.id === characterId);
+                                  const headshots = characterHeadshots[characterId] || [];
+                                  const selected = selectedCharacterReferences[characterId];
+                                  const isLoading = loadingHeadshots[characterId];
+                                  
+                                  return (
+                                    <div key={`headshot-${shot.slot}-${characterId}`} className="space-y-2">
+                                      <div className="text-xs text-[#FFFFFF]">
+                                        {character?.name || 'Character'} - Shot {shot.slot}
+                                      </div>
+                                      {isLoading ? (
+                                        <div className="text-xs text-[#808080]">Loading headshots...</div>
+                                      ) : headshots.length > 0 ? (
+                                        <div className="grid grid-cols-4 gap-2">
+                                          {headshots.map((headshot, idx) => {
+                                            const isSelected = selected?.poseId === headshot.poseId || selected?.s3Key === headshot.s3Key;
+                                            return (
+                                              <button
+                                                key={idx}
+                                                onClick={() => {
+                                                  setSelectedCharacterReferences(prev => ({
+                                                    ...prev,
+                                                    [characterId]: {
+                                                      poseId: headshot.poseId,
+                                                      s3Key: headshot.s3Key,
+                                                      imageUrl: headshot.imageUrl
+                                                    }
+                                                  }));
+                                                }}
+                                                className={`relative aspect-square rounded border-2 overflow-hidden transition-all ${
+                                                  isSelected
+                                                    ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                                    : 'border-[#3F3F46] hover:border-[#DC143C]'
+                                                }`}
+                                              >
+                                                {headshot.imageUrl ? (
+                                                  <img
+                                                    src={headshot.imageUrl}
+                                                    alt={headshot.label || 'Headshot'}
+                                                    className="w-full h-full object-cover"
+                                                  />
+                                                ) : (
+                                                  <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080]">
+                                                    {headshot.label || 'Headshot'}
+                                                  </div>
+                                                )}
+                                                {isSelected && (
+                                                  <div className="absolute top-1 right-1 w-4 h-4 bg-[#DC143C] rounded-full flex items-center justify-center">
+                                                    <Check className="w-3 h-3 text-white" />
+                                                  </div>
+                                                )}
+                                                {idx === 0 && !selected && (
+                                                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-[#DC143C]/80 text-[8px] text-white rounded">
+                                                    Recommended
+                                                  </div>
+                                                )}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <div className="text-xs text-[#808080]">No headshots available - using automatic selection</div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                   </CardContent>
                 </Card>

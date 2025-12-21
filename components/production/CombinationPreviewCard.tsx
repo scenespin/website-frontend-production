@@ -18,6 +18,10 @@ interface CombinationPreviewCardProps {
   recommendations: WorkflowRecommendation[];
   onGenerate: () => void;
   isGenerating?: boolean;
+  shotBreakdown?: {
+    totalCredits: number;
+    totalShots: number;
+  } | null; // Feature 0167: Use actual shot breakdown instead of hardcoded estimates
 }
 
 // Estimate credits per workflow (rough estimates)
@@ -62,7 +66,8 @@ export function CombinationPreviewCard({
   selectedWorkflows,
   recommendations,
   onGenerate,
-  isGenerating = false
+  isGenerating = false,
+  shotBreakdown = null
 }: CombinationPreviewCardProps) {
   if (selectedWorkflows.length < 2) {
     return null;
@@ -74,9 +79,12 @@ export function CombinationPreviewCard({
   );
 
   // Calculate combined credits
-  const totalCredits = selectedWorkflows.reduce((sum, workflowId) => {
-    return sum + (WORKFLOW_CREDITS[workflowId] || 100);
-  }, 0);
+  // Priority: Use shot breakdown (accurate) > workflow estimates (fallback)
+  const totalCredits = shotBreakdown?.totalCredits 
+    ? shotBreakdown.totalCredits
+    : selectedWorkflows.reduce((sum, workflowId) => {
+        return sum + (WORKFLOW_CREDITS[workflowId] || 100);
+      }, 0);
 
   // Calculate combined time (parallel where possible, sequential for dialogue)
   const hasDialogue = selectedWorkflows.includes('voice-consistency-system');
