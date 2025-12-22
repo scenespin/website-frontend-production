@@ -1361,7 +1361,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       return;
     }
     
+    // PRIORITY 0: If shot breakdown exists, ALWAYS use workflow generation (shot-based generation)
+    // This is the new system that supports shot-based generation with media organization
+    if (sceneAnalysisResult?.shotBreakdown && sceneAnalysisResult.shotBreakdown.shots.length > 0) {
+      console.log('[SceneBuilderPanel] Shot breakdown detected, using workflow generation (shot-based)');
+      await handleWorkflowGeneration();
+      return;
+    }
+    
     // PRIORITY 1: Check Scene Analyzer result (most accurate - uses backend analysis)
+    // Only use old dialogue endpoint if NO shot breakdown exists
     if (sceneAnalysisResult?.dialogue?.hasDialogue) {
       // Scene Analyzer detected dialogue - use dialogue generation endpoint
       console.log('[SceneBuilderPanel] Scene Analyzer detected dialogue, routing to /api/dialogue/generate');
@@ -1867,9 +1876,20 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         console.log('[SceneBuilderPanel] Using recommended workflow from Scene Analyzer:', workflowIdsToUse[0]);
       }
       
-      // Add optional fields if available
-      if (selectedSceneId) {
-        workflowRequest.sceneId = selectedSceneId;
+      // Add scene information for media organization (Feature 0170)
+      // Priority: sceneAnalysisResult.sceneId > selectedSceneId > contextStore.currentSceneId
+      const sceneId = sceneAnalysisResult?.sceneId || selectedSceneId || contextStore.context.currentSceneId;
+      if (sceneId) {
+        workflowRequest.sceneId = sceneId;
+      }
+      
+      // Add scene number and name if available from selected scene
+      if (selectedSceneId && screenplay.scenes) {
+        const selectedScene = screenplay.scenes.find(s => s.id === selectedSceneId);
+        if (selectedScene) {
+          workflowRequest.sceneNumber = selectedScene.sceneNumber;
+          workflowRequest.sceneName = selectedScene.heading || selectedScene.synopsis || undefined;
+        }
       }
       
       // Note: Outfit selection is now handled per-character in the scene analysis phase
@@ -2479,11 +2499,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   }
   
   return (
-    <div className="h-full overflow-auto bg-[#1e2229]">
+    <div className="h-full overflow-auto bg-[#0A0A0A]">
       <div className="p-3 md:p-4 space-y-3">
         {/* Sticky Editor Context Banner (when scene auto-selected) */}
         {showEditorContextBanner && editorContextSceneName && (
-          <div className="sticky top-0 z-10 -mx-3 md:-mx-4 px-3 md:px-4 pt-3 md:pt-4 pb-1.5 bg-[#1e2229]">
+          <div className="sticky top-0 z-10 -mx-3 md:-mx-4 px-3 md:px-4 pt-3 md:pt-4 pb-1.5 bg-[#0A0A0A]">
             <EditorContextBanner
               sceneName={editorContextSceneName}
               onDismiss={() => setShowEditorContextBanner(false)}
