@@ -9,7 +9,7 @@ import { auth } from '@clerk/nextjs/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { characterId: string } }
+  { params }: { params: Promise<{ characterId: string }> }
 ) {
   try {
     // Get the token from the Authorization header that the client sent
@@ -32,7 +32,8 @@ export async function GET(
       );
     }
 
-    const characterId = params.characterId;
+    // Next.js 15: params is now a Promise
+    const { characterId } = await params;
     
     // Get query parameters
     const { searchParams } = new URL(request.url);
