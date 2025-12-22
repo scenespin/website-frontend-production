@@ -353,8 +353,9 @@ export default function AdminPricingDashboard() {
               ) : (
                 <>
                   {/* Desktop Table View */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="table table-zebra w-full">
+                  <div className="hidden md:block w-full">
+                    <div className="overflow-x-auto max-w-full">
+                      <table className="table table-zebra w-full min-w-max">
                       <thead>
                         <tr>
                           <th>Provider</th>
@@ -404,6 +405,7 @@ export default function AdminPricingDashboard() {
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
 
                   {/* Mobile Card View */}
@@ -800,6 +802,7 @@ export default function AdminPricingDashboard() {
                             })}
                         </tbody>
                       </table>
+                      </div>
                     </div>
 
                     {/* Mobile Card View */}
