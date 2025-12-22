@@ -340,7 +340,7 @@ export default function AdminPricingDashboard() {
         <div className="card-body">
           {/* Price Registry Tab */}
           {activeTab === 'overview' && (
-            <div className="overflow-x-auto">
+            <div className="w-full">
               {loading ? (
                 <div className="text-center py-8">
                   <span className="loading loading-spinner loading-lg"></span>
@@ -351,19 +351,63 @@ export default function AdminPricingDashboard() {
                   <p className="text-base-content/70">No pricing data available</p>
                 </div>
               ) : (
-                <table className="table table-zebra w-full">
-                  <thead>
-                    <tr>
-                      <th>Provider</th>
-                      <th>Operation</th>
-                      <th className="text-right">Cost (USD)</th>
-                      <th className="text-right">Retail Credits</th>
-                      <th className="text-right">Margin</th>
-                      <th className="text-center">Last Updated</th>
-                      <th className="text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="table table-zebra w-full">
+                      <thead>
+                        <tr>
+                          <th>Provider</th>
+                          <th>Operation</th>
+                          <th className="text-right">Cost (USD)</th>
+                          <th className="text-right">Retail Credits</th>
+                          <th className="text-right">Margin</th>
+                          <th className="text-center">Last Updated</th>
+                          <th className="text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {priceRegistry.map((price) => {
+                          const margin = price.margin_percent || 0;
+                          const marginClass = margin < 60 
+                            ? 'badge-error' 
+                            : margin < 70 
+                            ? 'badge-warning' 
+                            : 'badge-success';
+                          
+                          return (
+                            <tr key={`${price.provider_id}-${price.operation_type}`}>
+                              <td className="font-medium">{price.provider_id}</td>
+                              <td className="text-sm opacity-70">{price.operation_type}</td>
+                              <td className="text-right font-mono">
+                                ${(price.base_cost_usd || 0).toFixed(4)}
+                              </td>
+                              <td className="text-right font-mono">{price.retail_credits || 0}</td>
+                              <td className="text-right">
+                                <span className={`badge ${marginClass}`}>
+                                  {margin.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="text-center text-sm opacity-70">
+                                {new Date(price.last_updated || price.effective_date || Date.now()).toLocaleDateString()}
+                              </td>
+                              <td className="text-center">
+                                <button
+                                  onClick={() => handleEditPrice(price)}
+                                  className="btn btn-sm btn-ghost"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden space-y-3">
                     {priceRegistry.map((price) => {
                       const margin = price.margin_percent || 0;
                       const marginClass = margin < 60 
@@ -373,34 +417,48 @@ export default function AdminPricingDashboard() {
                         : 'badge-success';
                       
                       return (
-                        <tr key={`${price.provider_id}-${price.operation_type}`}>
-                          <td className="font-medium">{price.provider_id}</td>
-                          <td className="text-sm opacity-70">{price.operation_type}</td>
-                          <td className="text-right font-mono">
-                            ${(price.base_cost_usd || 0).toFixed(4)}
-                          </td>
-                          <td className="text-right font-mono">{price.retail_credits || 0}</td>
-                          <td className="text-right">
-                            <span className={`badge ${marginClass}`}>
-                              {margin.toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="text-center text-sm opacity-70">
-                            {new Date(price.last_updated || price.effective_date || Date.now()).toLocaleDateString()}
-                          </td>
-                          <td className="text-center">
-                            <button
-                              onClick={() => handleEditPrice(price)}
-                              className="btn btn-sm btn-ghost"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
+                        <div key={`${price.provider_id}-${price.operation_type}`} className="card bg-base-200 shadow">
+                          <div className="card-body p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <h3 className="font-medium">{price.provider_id}</h3>
+                                <p className="text-sm opacity-70">{price.operation_type}</p>
+                              </div>
+                              <button
+                                onClick={() => handleEditPrice(price)}
+                                className="btn btn-sm btn-ghost"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <p className="opacity-70 text-xs mb-1">Cost (USD)</p>
+                                <p className="font-mono">${(price.base_cost_usd || 0).toFixed(4)}</p>
+                              </div>
+                              <div>
+                                <p className="opacity-70 text-xs mb-1">Retail Credits</p>
+                                <p className="font-mono">{price.retail_credits || 0}</p>
+                              </div>
+                              <div>
+                                <p className="opacity-70 text-xs mb-1">Margin</p>
+                                <span className={`badge ${marginClass}`}>
+                                  {margin.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div>
+                                <p className="opacity-70 text-xs mb-1">Last Updated</p>
+                                <p className="text-xs">
+                                  {new Date(price.last_updated || price.effective_date || Date.now()).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -592,7 +650,7 @@ export default function AdminPricingDashboard() {
               ) : (
                 <>
                   {/* Category Filter */}
-                  <div className="flex gap-2 mb-4">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     <button
                       className={`btn btn-sm ${selectedCategory === 'all' ? 'btn-primary' : 'btn-outline'}`}
                       onClick={() => setSelectedCategory('all')}
@@ -625,93 +683,148 @@ export default function AdminPricingDashboard() {
                     </button>
                   </div>
 
-                  {/* Providers Table */}
-                  <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full">
-                      <thead>
-                        <tr>
-                          <th>Provider ID</th>
-                          <th>Label</th>
-                          <th className="text-right">Config Cost (USD)</th>
-                          <th className="text-right">Registry Cost (USD)</th>
-                          <th className="text-right">Config Credits</th>
-                          <th className="text-right">Registry Credits</th>
-                          <th className="text-right">Config Margin</th>
-                          <th className="text-right">Registry Margin</th>
-                          <th className="text-center">Status</th>
-                          <th className="text-center">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allProviders
-                          .filter(p => selectedCategory === 'all' || p.category === selectedCategory)
-                          .map((provider) => {
-                            const hasRegistry = provider.has_registry_entry;
-                            const costDiff = provider.registry_cost_usd !== null 
-                              ? ((provider.registry_cost_usd - provider.config_cost_usd) / provider.config_cost_usd * 100).toFixed(1)
-                              : null;
-                            
-                            return (
-                              <tr 
-                                key={`${provider.provider_id}-${provider.operation_type}`}
-                                className={!hasRegistry ? 'opacity-60' : ''}
-                              >
-                                <td className="font-mono text-sm">{provider.provider_id}</td>
-                                <td>
-                                  <div className="font-medium">{provider.label}</div>
-                                  <div className="text-xs opacity-70">{provider.description}</div>
-                                </td>
-                                <td className="text-right font-mono">
-                                  ${(provider.config_cost_usd || 0).toFixed(4)}
-                                </td>
-                                <td className="text-right font-mono">
-                                  {provider.registry_cost_usd !== null ? (
-                                    <span className={costDiff && Math.abs(costDiff) > 5 ? 'text-warning' : ''}>
-                                      ${(provider.registry_cost_usd || 0).toFixed(4)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-error">Not in registry</span>
-                                  )}
-                                </td>
-                                <td className="text-right font-mono">
-                                  {provider.config_credits || '-'}
-                                </td>
-                                <td className="text-right font-mono">
-                                  {provider.registry_credits !== null ? provider.registry_credits : '-'}
-                                </td>
-                                <td className="text-right">
-                                  {provider.config_margin !== null ? (
-                                    <span className="badge badge-info">{provider.config_margin.toFixed(1)}%</span>
-                                  ) : '-'}
-                                </td>
-                                <td className="text-right">
-                                  {provider.registry_margin !== null ? (
-                                    <span className={`badge ${
-                                      provider.registry_margin < 60 ? 'badge-error' :
-                                      provider.registry_margin < 70 ? 'badge-warning' :
-                                      'badge-success'
-                                    }`}>
-                                      {provider.registry_margin.toFixed(1)}%
-                                    </span>
-                                  ) : '-'}
-                                </td>
-                                <td className="text-center">
-                                  <div className="flex flex-col gap-1">
-                                    {provider.enabled && (
-                                      <span className="badge badge-success badge-sm">Enabled</span>
+                  {/* Providers Table - Responsive */}
+                  <div className="w-full">
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block overflow-x-auto">
+                      <table className="table table-zebra w-full">
+                        <thead>
+                          <tr>
+                            <th>Provider ID</th>
+                            <th>Label</th>
+                            <th className="text-right">Config Cost (USD)</th>
+                            <th className="text-right">Registry Cost (USD)</th>
+                            <th className="text-right">Config Credits</th>
+                            <th className="text-right">Registry Credits</th>
+                            <th className="text-right">Config Margin</th>
+                            <th className="text-right">Registry Margin</th>
+                            <th className="text-center">Status</th>
+                            <th className="text-center">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allProviders
+                            .filter(p => selectedCategory === 'all' || p.category === selectedCategory)
+                            .map((provider) => {
+                              const hasRegistry = provider.has_registry_entry;
+                              const costDiff = provider.registry_cost_usd !== null 
+                                ? ((provider.registry_cost_usd - provider.config_cost_usd) / provider.config_cost_usd * 100).toFixed(1)
+                                : null;
+                              
+                              return (
+                                <tr 
+                                  key={`${provider.provider_id}-${provider.operation_type}`}
+                                  className={!hasRegistry ? 'opacity-60' : ''}
+                                >
+                                  <td className="font-mono text-sm">{provider.provider_id}</td>
+                                  <td>
+                                    <div className="font-medium">{provider.label}</div>
+                                    <div className="text-xs opacity-70">{provider.description}</div>
+                                  </td>
+                                  <td className="text-right font-mono">
+                                    ${(provider.config_cost_usd || 0).toFixed(4)}
+                                  </td>
+                                  <td className="text-right font-mono">
+                                    {provider.registry_cost_usd !== null ? (
+                                      <span className={costDiff && Math.abs(costDiff) > 5 ? 'text-warning' : ''}>
+                                        ${(provider.registry_cost_usd || 0).toFixed(4)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-error">Not in registry</span>
                                     )}
-                                    {provider.launchReady && (
-                                      <span className="badge badge-info badge-sm">Launch Ready</span>
-                                    )}
-                                    {!hasRegistry && (
-                                      <span className="badge badge-error badge-sm">No Registry Entry</span>
-                                    )}
+                                  </td>
+                                  <td className="text-right font-mono">
+                                    {provider.config_credits || '-'}
+                                  </td>
+                                  <td className="text-right font-mono">
+                                    {provider.registry_credits !== null ? provider.registry_credits : '-'}
+                                  </td>
+                                  <td className="text-right">
+                                    {provider.config_margin !== null ? (
+                                      <span className="badge badge-info">{provider.config_margin.toFixed(1)}%</span>
+                                    ) : '-'}
+                                  </td>
+                                  <td className="text-right">
+                                    {provider.registry_margin !== null ? (
+                                      <span className={`badge ${
+                                        provider.registry_margin < 60 ? 'badge-error' :
+                                        provider.registry_margin < 70 ? 'badge-warning' :
+                                        'badge-success'
+                                      }`}>
+                                        {provider.registry_margin.toFixed(1)}%
+                                      </span>
+                                    ) : '-'}
+                                  </td>
+                                  <td className="text-center">
+                                    <div className="flex flex-col gap-1">
+                                      {provider.enabled && (
+                                        <span className="badge badge-success badge-sm">Enabled</span>
+                                      )}
+                                      {provider.launchReady && (
+                                        <span className="badge badge-info badge-sm">Launch Ready</span>
+                                      )}
+                                      {!hasRegistry && (
+                                        <span className="badge badge-error badge-sm">No Registry Entry</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="text-center">
+                                    <button
+                                      onClick={() => {
+                                        // Create a price entry if it doesn't exist, or edit existing
+                                        const priceToEdit = hasRegistry ? {
+                                          provider_id: provider.provider_id,
+                                          operation_type: provider.operation_type,
+                                          base_cost_usd: provider.registry_cost_usd,
+                                          retail_credits: provider.registry_credits,
+                                          margin_percent: provider.registry_margin,
+                                          notes: ''
+                                        } : {
+                                          provider_id: provider.provider_id,
+                                          operation_type: provider.operation_type,
+                                          base_cost_usd: provider.config_cost_usd,
+                                          retail_credits: provider.config_credits,
+                                          margin_percent: provider.config_margin,
+                                          notes: 'Initial entry from config'
+                                        };
+                                        handleEditPrice(priceToEdit);
+                                      }}
+                                      className="btn btn-sm btn-ghost"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="lg:hidden space-y-4">
+                      {allProviders
+                        .filter(p => selectedCategory === 'all' || p.category === selectedCategory)
+                        .map((provider) => {
+                          const hasRegistry = provider.has_registry_entry;
+                          const costDiff = provider.registry_cost_usd !== null 
+                            ? ((provider.registry_cost_usd - provider.config_cost_usd) / provider.config_cost_usd * 100).toFixed(1)
+                            : null;
+                          
+                          return (
+                            <div 
+                              key={`${provider.provider_id}-${provider.operation_type}`}
+                              className={`card bg-base-200 shadow ${!hasRegistry ? 'opacity-60' : ''}`}
+                            >
+                              <div className="card-body p-4">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex-1">
+                                    <h3 className="font-mono text-sm font-bold mb-1">{provider.provider_id}</h3>
+                                    <p className="font-medium text-sm">{provider.label}</p>
+                                    <p className="text-xs opacity-70 mt-1">{provider.description}</p>
                                   </div>
-                                </td>
-                                <td className="text-center">
                                   <button
                                     onClick={() => {
-                                      // Create a price entry if it doesn't exist, or edit existing
                                       const priceToEdit = hasRegistry ? {
                                         provider_id: provider.provider_id,
                                         operation_type: provider.operation_type,
@@ -733,16 +846,71 @@ export default function AdminPricingDashboard() {
                                   >
                                     <Edit className="w-4 h-4" />
                                   </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                      </tbody>
-                    </table>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                                  <div>
+                                    <p className="opacity-70 text-xs mb-1">Config Cost</p>
+                                    <p className="font-mono">${(provider.config_cost_usd || 0).toFixed(4)}</p>
+                                  </div>
+                                  <div>
+                                    <p className="opacity-70 text-xs mb-1">Registry Cost</p>
+                                    {provider.registry_cost_usd !== null ? (
+                                      <p className={`font-mono ${costDiff && Math.abs(costDiff) > 5 ? 'text-warning' : ''}`}>
+                                        ${(provider.registry_cost_usd || 0).toFixed(4)}
+                                      </p>
+                                    ) : (
+                                      <p className="text-error text-xs">Not in registry</p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="opacity-70 text-xs mb-1">Config Credits</p>
+                                    <p className="font-mono">{provider.config_credits || '-'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="opacity-70 text-xs mb-1">Registry Credits</p>
+                                    <p className="font-mono">{provider.registry_credits !== null ? provider.registry_credits : '-'}</p>
+                                  </div>
+                                  {provider.config_margin !== null && (
+                                    <div>
+                                      <p className="opacity-70 text-xs mb-1">Config Margin</p>
+                                      <span className="badge badge-info badge-sm">{provider.config_margin.toFixed(1)}%</span>
+                                    </div>
+                                  )}
+                                  {provider.registry_margin !== null && (
+                                    <div>
+                                      <p className="opacity-70 text-xs mb-1">Registry Margin</p>
+                                      <span className={`badge badge-sm ${
+                                        provider.registry_margin < 60 ? 'badge-error' :
+                                        provider.registry_margin < 70 ? 'badge-warning' :
+                                        'badge-success'
+                                      }`}>
+                                        {provider.registry_margin.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-wrap gap-1">
+                                  {provider.enabled && (
+                                    <span className="badge badge-success badge-sm">Enabled</span>
+                                  )}
+                                  {provider.launchReady && (
+                                    <span className="badge badge-info badge-sm">Launch Ready</span>
+                                  )}
+                                  {!hasRegistry && (
+                                    <span className="badge badge-error badge-sm">No Registry Entry</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
                   </div>
 
                   {/* Summary Stats */}
-                  <div className="grid grid-cols-4 gap-4 mt-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                     <div className="card bg-base-200">
                       <div className="card-body p-4">
                         <div className="text-2xl font-bold">{allProviders.length}</div>
