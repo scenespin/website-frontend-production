@@ -575,13 +575,34 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             });
             
             // Filter to only headshot poses
-            // Combine poseReferences and angleReferences (they serve the same purpose)
-            const allPoseReferences = [
-              ...(character?.poseReferences || []),
-              ...(character?.angleReferences || [])
-            ];
+            // Backend sets both poseReferences and angleReferences to the same array, so we need to deduplicate
+            // Use a Set to track unique references by s3Key (or poseId if s3Key is missing)
+            const seenRefs = new Set<string>();
+            const allPoseReferences: any[] = [];
             
-            console.log(`[SceneBuilderPanel] Total pose references for ${characterId}:`, allPoseReferences.length);
+            // Add poseReferences first
+            if (character?.poseReferences) {
+              for (const ref of character.poseReferences) {
+                const key = ref.s3Key || ref.poseId || ref.metadata?.poseId || JSON.stringify(ref);
+                if (!seenRefs.has(key)) {
+                  seenRefs.add(key);
+                  allPoseReferences.push(ref);
+                }
+              }
+            }
+            
+            // Add angleReferences, skipping duplicates
+            if (character?.angleReferences) {
+              for (const ref of character.angleReferences) {
+                const key = ref.s3Key || ref.poseId || ref.metadata?.poseId || JSON.stringify(ref);
+                if (!seenRefs.has(key)) {
+                  seenRefs.add(key);
+                  allPoseReferences.push(ref);
+                }
+              }
+            }
+            
+            console.log(`[SceneBuilderPanel] Total pose references for ${characterId} (deduplicated):`, allPoseReferences.length);
             
             // Filter headshots (we'll do this on backend validation, but filter by common headshot poseIds here)
             const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
