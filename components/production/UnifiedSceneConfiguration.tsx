@@ -70,11 +70,25 @@ export function UnifiedSceneConfiguration({
       if (enabledShots.length === 0 || !allShotSlots.every(slot => enabledShots.includes(slot))) {
         onEnabledShotsChange(allShotSlots);
       }
+      
+      // Auto-expand dialogue shots to show headshots by default
+      const dialogueShots = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => shot.type === 'dialogue' && shot.characterId);
+      const expanded: Record<number, boolean> = {};
+      dialogueShots.forEach((shot: any) => {
+        expanded[shot.slot] = true;
+      });
+      setExpandedShots(expanded);
     }
   }, [sceneAnalysisResult?.shotBreakdown?.shots]);
 
   if (!sceneAnalysisResult?.shotBreakdown) {
-    return null;
+    return (
+      <Card className="bg-[#141414] border-[#3F3F46]">
+        <CardContent className="p-3">
+          <div className="text-xs text-[#808080]">No shot breakdown available. Please analyze the scene first.</div>
+        </CardContent>
+      </Card>
+    );
   }
 
   const { shots, totalCredits, totalShots, estimatedTime } = sceneAnalysisResult.shotBreakdown;
