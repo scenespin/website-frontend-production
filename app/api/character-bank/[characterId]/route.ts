@@ -68,6 +68,16 @@ export async function GET(
     }
 
     const data = await response.json();
+    
+    // Debug logging
+    console.log('[Character Bank API Route] Backend response:', {
+      hasSuccess: !!data.success,
+      hasCharacter: !!data.character,
+      characterId: data.character?.id,
+      poseRefsCount: data.character?.poseReferences?.length || data.character?.angleReferences?.length || 0,
+      responseKeys: Object.keys(data)
+    });
+    
     return NextResponse.json(data);
 
   } catch (error: any) {
