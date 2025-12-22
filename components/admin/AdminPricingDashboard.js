@@ -757,14 +757,17 @@ export default function AdminPricingDashboard() {
                                   </td>
                                   <td className="text-center">
                                     <div className="flex flex-col gap-1">
-                                      {provider.enabled && (
-                                        <span className="badge badge-success badge-sm">Enabled</span>
+                                      {provider.enabled && provider.launchReady && (
+                                        <span className="badge badge-success badge-sm">✅ Active & Live</span>
                                       )}
-                                      {provider.launchReady && (
-                                        <span className="badge badge-info badge-sm">Launch Ready</span>
+                                      {provider.enabled && !provider.launchReady && (
+                                        <span className="badge badge-warning badge-sm">⚠️ Enabled (Not Live)</span>
+                                      )}
+                                      {!provider.enabled && (
+                                        <span className="badge badge-error badge-sm">❌ Disabled</span>
                                       )}
                                       {!hasRegistry && (
-                                        <span className="badge badge-error badge-sm">No Registry Entry</span>
+                                        <span className="badge badge-error badge-sm">📝 Not in Price Registry</span>
                                       )}
                                     </div>
                                   </td>
@@ -892,14 +895,17 @@ export default function AdminPricingDashboard() {
                                 </div>
 
                                 <div className="flex flex-wrap gap-1">
-                                  {provider.enabled && (
-                                    <span className="badge badge-success badge-sm">Enabled</span>
+                                  {provider.enabled && provider.launchReady && (
+                                    <span className="badge badge-success badge-sm">✅ Active & Live</span>
                                   )}
-                                  {provider.launchReady && (
-                                    <span className="badge badge-info badge-sm">Launch Ready</span>
+                                  {provider.enabled && !provider.launchReady && (
+                                    <span className="badge badge-warning badge-sm">⚠️ Enabled (Not Live)</span>
+                                  )}
+                                  {!provider.enabled && (
+                                    <span className="badge badge-error badge-sm">❌ Disabled</span>
                                   )}
                                   {!hasRegistry && (
-                                    <span className="badge badge-error badge-sm">No Registry Entry</span>
+                                    <span className="badge badge-error badge-sm">📝 Not in Price Registry</span>
                                   )}
                                 </div>
                               </div>
