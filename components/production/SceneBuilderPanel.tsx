@@ -552,13 +552,20 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           });
           
           if (response.ok) {
-            const data = await response.json();
-            const character = data.character;
+            const responseData = await response.json();
+            // Backend wraps response in { success: true, data: { character: ... } }
+            const character = responseData.data?.character || responseData.character;
             
             console.log(`[SceneBuilderPanel] Fetched character ${characterId}:`, {
               hasCharacter: !!character,
               poseRefsCount: character?.poseReferences?.length || 0,
               angleRefsCount: character?.angleReferences?.length || 0,
+              responseStructure: {
+                hasData: !!responseData.data,
+                hasCharacter: !!responseData.character,
+                hasDataCharacter: !!responseData.data?.character,
+                keys: Object.keys(responseData)
+              },
               poseRefs: character?.poseReferences?.slice(0, 3).map((r: any) => ({
                 poseId: r.poseId || r.metadata?.poseId,
                 hasImageUrl: !!r.imageUrl,
