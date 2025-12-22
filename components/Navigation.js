@@ -208,39 +208,42 @@ export default function Navigation() {
   return (
     <>
       {/* Desktop Navigation */}
-      <div className="hidden md:flex bg-base-200 border-b border-base-300">
-        <div className="max-w-7xl mx-auto w-full px-4">
+      <div className="hidden md:flex bg-base-200 border-b border-base-300 w-full">
+        <div className="w-full px-4">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-cinema-red rounded-lg flex items-center justify-center">
-                <span className="text-base-content font-bold text-xl">W</span>
-              </div>
-              <span className="text-xl font-bold">
-                Wryda<span className="text-cinema-red">.ai</span>
-              </span>
-            </Link>
+            {/* Left Side: Logo + Navigation Links */}
+            <div className="flex items-center gap-4">
+              {/* Logo */}
+              <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-cinema-red rounded-lg flex items-center justify-center">
+                  <span className="text-base-content font-bold text-xl">W</span>
+                </div>
+                <span className="text-xl font-bold">
+                  Wryda<span className="text-cinema-red">.ai</span>
+                </span>
+              </Link>
 
-            {/* Navigation Links - Desktop: Flat Links */}
-            <nav className="flex items-center gap-1">
-              {/* Main Navigation Items - Simple Flat Links */}
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isParentActive(item)
-                      ? 'bg-cinema-red text-base-content'
-                      : 'text-base-content hover:bg-base-300'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.name}</span>
-                </Link>
-              ))}
-            </nav>
+              {/* Navigation Links - Desktop: Flat Links */}
+              <nav className="flex items-center gap-1">
+                {/* Main Navigation Items - Simple Flat Links */}
+                {navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                      isParentActive(item)
+                        ? 'bg-cinema-red text-base-content'
+                        : 'text-base-content hover:bg-base-300'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                ))}
+              </nav>
+            </div>
 
-            {/* User Menu - Desktop */}
+            {/* Right Side: New Project + Credits + Buy Credits + User Button */}
             <div className="flex items-center gap-3">
               {user && (
                 <>
