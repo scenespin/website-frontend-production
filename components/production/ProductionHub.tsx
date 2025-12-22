@@ -182,7 +182,7 @@ export function ProductionHub({}: ProductionHubProps) {
   // 🔥 CRITICAL: Early return AFTER all hooks are called
   if (!screenplayId) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#1e2229] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400">Loading screenplay...</p>
@@ -252,7 +252,7 @@ export function ProductionHub({}: ProductionHubProps) {
 
   if (isMobile) {
     return (
-      <div className="flex flex-col h-screen bg-gray-950">
+      <div className="flex flex-col h-screen bg-[#1e2229]">
         {/* Mobile Header */}
         <div className="bg-gray-900 border-b border-gray-800 p-4">
           <h1 className="text-xl font-bold text-white">Production Hub</h1>
@@ -389,7 +389,7 @@ export function ProductionHub({}: ProductionHubProps) {
   // ============================================================================
 
   return (
-    <div className="flex flex-col h-screen bg-[#0A0A0A]">
+    <div className="flex flex-col h-screen bg-[#1e2229]">
       {/* Horizontal Tab Navigation */}
       <ProductionTabBar
         activeTab={activeTab}
@@ -427,7 +427,7 @@ export function ProductionHub({}: ProductionHubProps) {
       )}
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-hidden bg-[#0A0A0A]">
+        <div className="flex-1 overflow-hidden bg-[#1e2229]">
         {activeTab === 'characters' && (
           <div className="h-full overflow-y-auto">
             <ProductionErrorBoundary componentName="Character Bank">

@@ -112,7 +112,7 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
   }
 
   return (
-    <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
+    <div className={`h-full flex flex-col bg-[#1e2229] ${className}`}>
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46]">
         <div className="flex items-center justify-between mb-1">

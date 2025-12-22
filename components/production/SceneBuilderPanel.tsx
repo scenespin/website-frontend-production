@@ -2479,11 +2479,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   }
   
   return (
-    <div className="h-full overflow-auto bg-[#0A0A0A]">
+    <div className="h-full overflow-auto bg-[#1e2229]">
       <div className="p-3 md:p-4 space-y-3">
         {/* Sticky Editor Context Banner (when scene auto-selected) */}
         {showEditorContextBanner && editorContextSceneName && (
-          <div className="sticky top-0 z-10 -mx-3 md:-mx-4 px-3 md:px-4 pt-3 md:pt-4 pb-1.5 bg-[#0A0A0A]">
+          <div className="sticky top-0 z-10 -mx-3 md:-mx-4 px-3 md:px-4 pt-3 md:pt-4 pb-1.5 bg-[#1e2229]">
             <EditorContextBanner
               sceneName={editorContextSceneName}
               onDismiss={() => setShowEditorContextBanner(false)}

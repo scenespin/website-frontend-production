@@ -772,7 +772,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   }
 
   return (
-    <div className="h-full bg-[#0A0A0A] overflow-auto">
+    <div className="h-full bg-[#1e2229] overflow-auto">
       {/* Header with filter */}
       <div className="flex items-center justify-between p-4 md:p-5 border-b border-slate-700/50">
         <div className="flex items-center gap-2">

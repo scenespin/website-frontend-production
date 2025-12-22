@@ -118,7 +118,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
 
 
   return (
-    <div className={`flex flex-col h-full bg-[#0A0A0A] ${className}`}>
+    <div className={`flex flex-col h-full bg-[#1e2229] ${className}`}>
       {/* Context Indicator Banner */}
       {editorContext.currentSceneName && (
         <div className="bg-[#1F1F1F] border-b border-[#3F3F46] px-4 py-2">
