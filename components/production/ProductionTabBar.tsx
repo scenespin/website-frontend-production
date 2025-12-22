@@ -25,25 +25,31 @@ interface ProductionTabBarProps {
   jobCount?: number; // Badge for active jobs
 }
 
-// Sub-tabs for Library group
+// Sub-tabs for Library group (matching Create section colors)
 const LIBRARY_SUBTABS = [
   {
     id: 'characters' as ProductionTab,
     label: 'Characters',
     icon: Users,
     description: 'Character bank & references',
+    color: 'text-green-500',
+    activeColor: 'text-green-600 dark:text-green-400',
   },
   {
     id: 'locations' as ProductionTab,
     label: 'Locations',
     icon: MapPin,
     description: 'Location bank & references',
+    color: 'text-pink-500',
+    activeColor: 'text-pink-600 dark:text-pink-400',
   },
   {
     id: 'assets' as ProductionTab,
     label: 'Assets',
     icon: Package,
     description: 'Props, vehicles & furniture',
+    color: 'text-orange-500',
+    activeColor: 'text-orange-600 dark:text-orange-400',
   },
 ] as const;
 
@@ -54,12 +60,16 @@ const STUDIO_SUBTABS = [
     label: 'Action',
     icon: Clapperboard,
     description: 'Script-based scene generation',
+    color: 'text-blue-500',
+    activeColor: 'text-blue-600 dark:text-blue-400',
   },
   {
     id: 'scenes' as ProductionTab,
     label: 'Scenes',
     icon: Film,
     description: 'Scene videos & storyboard',
+    color: 'text-purple-500',
+    activeColor: 'text-purple-600 dark:text-purple-400',
   },
 ] as const;
 
@@ -113,7 +123,7 @@ export function ProductionTabBar({
   const activeStudioSubTab = isStudioActive ? activeTab : null;
 
   return (
-    <div className="border-b border-white/10 bg-[#141414]">
+    <div className="border-b border-base-300 bg-base-200">
       <div className="max-w-7xl mx-auto">
         {/* Top-level tabs */}
         <div className="flex gap-1 overflow-x-auto px-4">
@@ -140,15 +150,15 @@ export function ProductionTabBar({
                     "whitespace-nowrap",
                     isGroupActive
                       ? cn(
-                          "border-[#DC143C]",
-                          "bg-[#DC143C]/10",
-                          "text-[#DC143C]"
+                          "border-cinema-red",
+                          "bg-base-100",
+                          "text-base-content"
                         )
                       : cn(
                           "border-transparent",
-                          "text-white/60",
-                          "hover:text-white/90",
-                          "hover:bg-white/5"
+                          "text-base-content/60",
+                          "hover:text-base-content",
+                          "hover:bg-base-100/50"
                         )
                   )}
                   aria-current={isGroupActive ? 'page' : undefined}
@@ -176,15 +186,15 @@ export function ProductionTabBar({
                   "whitespace-nowrap",
                   isActive
                     ? cn(
-                        "border-[#DC143C]",
-                        "bg-[#DC143C]/10",
-                        "text-[#DC143C]"
+                        "border-cinema-red",
+                        "bg-base-100",
+                        "text-base-content"
                       )
                     : cn(
                         "border-transparent",
-                        "text-white/60",
-                        "hover:text-white/90",
-                        "hover:bg-white/5"
+                        "text-base-content/60",
+                        "hover:text-base-content",
+                        "hover:bg-base-100/50"
                       )
                 )}
                 aria-current={isActive ? 'page' : undefined}
@@ -198,7 +208,7 @@ export function ProductionTabBar({
                   <span className={cn(
                     "ml-1 px-1.5 py-0.5 rounded-full",
                     "text-xs font-bold",
-                    "bg-[#DC143C] text-white",
+                    "bg-cinema-red text-white",
                     "min-w-[18px] text-center"
                   )}>
                     {jobCount > 99 ? '99+' : jobCount}
@@ -211,7 +221,7 @@ export function ProductionTabBar({
 
         {/* Sub-tabs for Library group */}
         {isLibraryActive && (
-          <div className="border-t border-white/5 bg-[#0F0F0F]">
+          <div className="border-t border-base-300 bg-base-200">
             <div className="flex gap-1 overflow-x-auto px-4">
               {LIBRARY_SUBTABS.map((subTab) => {
                 const Icon = subTab.icon;
@@ -222,27 +232,30 @@ export function ProductionTabBar({
                     key={subTab.id}
                     onClick={() => onTabChange(subTab.id)}
                     className={cn(
-                      "relative flex items-center gap-2 px-4 py-2.5 font-medium text-xs",
+                      "relative flex items-center gap-2 px-4 py-3 font-medium text-sm",
                       "transition-colors duration-200",
                       "border-b-2 -mb-[2px]",
                       "whitespace-nowrap",
                       isActive
                         ? cn(
-                            "border-[#DC143C]",
-                            "bg-[#DC143C]/10",
-                            "text-[#DC143C]"
+                            "border-cinema-red",
+                            subTab.activeColor,
+                            "bg-base-100"
                           )
                         : cn(
                             "border-transparent",
-                            "text-white/50",
-                            "hover:text-white/80",
-                            "hover:bg-white/5"
+                            "text-base-content/60",
+                            "hover:text-base-content",
+                            "hover:bg-base-100/50"
                           )
                     )}
                     aria-current={isActive ? 'page' : undefined}
                     title={subTab.description}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className={cn(
+                      "w-4 h-4",
+                      isActive ? subTab.activeColor : subTab.color
+                    )} />
                     <span>{subTab.label}</span>
                   </button>
                 );
@@ -253,7 +266,7 @@ export function ProductionTabBar({
 
         {/* Sub-tabs for Studio group */}
         {isStudioActive && (
-          <div className="border-t border-white/5 bg-[#0F0F0F]">
+          <div className="border-t border-base-300 bg-base-200">
             <div className="flex gap-1 overflow-x-auto px-4">
               {STUDIO_SUBTABS.map((subTab) => {
                 const Icon = subTab.icon;
@@ -264,27 +277,30 @@ export function ProductionTabBar({
                     key={subTab.id}
                     onClick={() => onTabChange(subTab.id)}
                     className={cn(
-                      "relative flex items-center gap-2 px-4 py-2.5 font-medium text-xs",
+                      "relative flex items-center gap-2 px-4 py-3 font-medium text-sm",
                       "transition-colors duration-200",
                       "border-b-2 -mb-[2px]",
                       "whitespace-nowrap",
                       isActive
                         ? cn(
-                            "border-[#DC143C]",
-                            "bg-[#DC143C]/10",
-                            "text-[#DC143C]"
+                            "border-cinema-red",
+                            subTab.activeColor,
+                            "bg-base-100"
                           )
                         : cn(
                             "border-transparent",
-                            "text-white/50",
-                            "hover:text-white/80",
-                            "hover:bg-white/5"
+                            "text-base-content/60",
+                            "hover:text-base-content",
+                            "hover:bg-base-100/50"
                           )
                     )}
                     aria-current={isActive ? 'page' : undefined}
                     title={subTab.description}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className={cn(
+                      "w-4 h-4",
+                      isActive ? subTab.activeColor : subTab.color
+                    )} />
                     <span>{subTab.label}</span>
                   </button>
                 );

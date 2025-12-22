@@ -686,8 +686,9 @@ export default function AdminPricingDashboard() {
                   {/* Providers Table - Responsive */}
                   <div className="w-full">
                     {/* Desktop Table View */}
-                    <div className="hidden lg:block overflow-x-auto">
-                      <table className="table table-zebra w-full">
+                    <div className="hidden lg:block w-full">
+                      <div className="overflow-x-auto max-w-full">
+                        <table className="table table-zebra w-full min-w-max">
                         <thead>
                           <tr>
                             <th>Provider ID</th>
