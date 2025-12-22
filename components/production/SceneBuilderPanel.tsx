@@ -57,14 +57,12 @@ import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { EditorContextBanner } from './EditorContextBanner';
 import { SceneSelector } from './SceneSelector';
-import { WorkflowRecommendationsPanel } from './WorkflowRecommendationsPanel';
-import { CombinationPreviewCard } from './CombinationPreviewCard';
 import { ManualSceneEntry } from './ManualSceneEntry';
 import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
-import { SceneAnalysisPreview } from './SceneAnalysisPreview';
+import { UnifiedSceneConfiguration } from './UnifiedSceneConfiguration';
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
 
@@ -152,8 +150,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // UI State: Collapsible sections
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   
-  // Wizard flow state
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  // Wizard flow state (Step 3 removed - now part of UnifiedSceneConfiguration)
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   
   // Phase 2: Scene selection state
   const [inputMethod, setInputMethod] = useState<'database' | 'manual'>('database');
@@ -715,7 +713,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   totalCreditsUsed: execution.totalCreditsUsed || 0,
                   finalOutputs: execution.finalOutputs || []
                 });
-                setCurrentStep(3); // Show progress view
+                setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
                 toast.info('Resuming workflow generation...', {
                   description: 'Your previous generation is still running'
                 });
@@ -1727,10 +1725,27 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       // Backend expects: workflowId, sceneDescription, characterRefs (not characterReferences), etc.
       // Task 5: Use workflow recommendations from Scene Analyzer if available (Feature 0136 Phase 2.2)
       // NEW: Support multiple workflow selection (Feature Workflow Detection Phase 3)
-      // Use selected workflows if available, otherwise use first recommendation, otherwise default to 'complete-scene'
-      const workflowIdsToUse = selectedWorkflows.length > 0 
-        ? selectedWorkflows 
-        : (sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId ? [sceneAnalysisResult.workflowRecommendations[0].workflowId] : ['complete-scene']);
+      // Use enabled shots to determine which workflows to run
+      // If shot breakdown is available, use workflows from enabled shots
+      // Otherwise fall back to selected workflows or recommendations
+      let workflowIdsToUse: string[] = [];
+      
+      if (sceneAnalysisResult?.shotBreakdown && enabledShots.length > 0) {
+        // Get unique workflows from enabled shots
+        const enabledShotWorkflows = sceneAnalysisResult.shotBreakdown.shots
+          .filter((shot: any) => enabledShots.includes(shot.slot))
+          .map((shot: any) => shot.workflow)
+          .filter((workflow: string) => workflow) as string[];
+        
+        workflowIdsToUse = [...new Set(enabledShotWorkflows)];
+      }
+      
+      // Fallback to selected workflows or recommendations
+      if (workflowIdsToUse.length === 0) {
+        workflowIdsToUse = selectedWorkflows.length > 0 
+          ? selectedWorkflows 
+          : (sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId ? [sceneAnalysisResult.workflowRecommendations[0].workflowId] : ['complete-scene']);
+      }
       
       const workflowRequest: any = {
         workflowIds: workflowIdsToUse, // NEW: Pass array of workflow IDs for combined execution
@@ -1739,7 +1754,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         aspectRatio: '16:9',
         duration,
         qualityTier,
-        shotBreakdown: sceneAnalysisResult?.shotBreakdown, // NEW: Pass shot breakdown for shot-based generation
+        shotBreakdown: sceneAnalysisResult?.shotBreakdown ? {
+          ...sceneAnalysisResult.shotBreakdown,
+          shots: enabledShots.length > 0 
+            ? sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => enabledShots.includes(shot.slot))
+            : sceneAnalysisResult.shotBreakdown.shots,
+          totalShots: enabledShots.length > 0 ? enabledShots.length : sceneAnalysisResult.shotBreakdown.totalShots,
+          totalCredits: enabledShots.length > 0 
+            ? sceneAnalysisResult.shotBreakdown.shots
+                .filter((shot: any) => enabledShots.includes(shot.slot))
+                .reduce((sum: number, shot: any) => sum + shot.credits, 0)
+            : sceneAnalysisResult.shotBreakdown.totalCredits
+        } : undefined, // NEW: Pass filtered shot breakdown (only enabled shots)
         selectedCharacterReferences: Object.keys(selectedCharacterReferences).length > 0 ? selectedCharacterReferences : undefined, // Feature 0163 Phase 1: Per-character selected references
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
@@ -1813,7 +1839,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           finalOutputs: []
         });
         // Move to a "generating" view - hide wizard, show progress
-        setCurrentStep(3); // Keep on Step 3 but show progress instead
+        setCurrentStep(2); // Stay on Step 2 (UnifiedSceneConfiguration handles generation)
         toast.success('Scene Builder started!', {
           description: 'Generating your complete scene package...'
         });
@@ -2397,16 +2423,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             <ChevronRight className="w-4 h-4 text-[#808080]" />
             <div className={`flex items-center gap-2 ${currentStep >= 2 ? 'text-[#DC143C]' : currentStep === 1 ? 'text-[#808080]' : 'text-[#3F3F46] opacity-50'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep >= 2 ? 'border-[#DC143C] bg-[#DC143C]/10' : currentStep === 1 ? 'border-[#3F3F46] bg-[#141414]' : 'border-[#3F3F46] bg-[#141414] opacity-50'}`}>
-                {currentStep > 2 ? <CheckCircle2 className="w-5 h-5 text-[#DC143C]" /> : <span className="text-sm font-bold">2</span>}
+                {currentStep >= 2 ? <CheckCircle2 className="w-5 h-5 text-[#DC143C]" /> : <span className="text-sm font-bold">2</span>}
               </div>
               <span className="text-sm font-medium hidden sm:inline">Configure</span>
-            </div>
-            <ChevronRight className="w-4 h-4 text-[#808080]" />
-            <div className={`flex items-center gap-2 ${currentStep === 3 ? 'text-[#DC143C]' : 'text-[#3F3F46] opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 3 ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#141414] opacity-50'}`}>
-                <span className="text-sm font-bold">3</span>
-              </div>
-              <span className="text-sm font-medium hidden sm:inline">Generate</span>
             </div>
           </div>
         )}
@@ -2605,17 +2624,9 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               </Card>
             )}
 
-            {/* Step 2: Review Analysis */}
+            {/* Step 2: Unified Scene Configuration */}
             {currentStep === 2 && (
               <>
-                {/* Scene Analysis Preview (Feature 0136 Phase 2.2) */}
-                {selectedSceneId && sceneAnalysisResult && (
-                  <SceneAnalysisPreview
-                    analysis={sceneAnalysisResult}
-                    isAnalyzing={isAnalyzing}
-                    error={analysisError}
-                  />
-                )}
                 {selectedSceneId && !sceneAnalysisResult && !isAnalyzing && !analysisError && (
                   <Card className="bg-[#141414] border-[#3F3F46]">
                     <CardContent className="p-3">
@@ -2624,369 +2635,51 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   </Card>
                 )}
 
-                {/* Workflow Recommendations (Feature Workflow Detection Phase 2) */}
-                {selectedSceneId && sceneAnalysisResult?.workflowRecommendations && sceneAnalysisResult.workflowRecommendations.length > 0 && (
-                  <>
-                    <WorkflowRecommendationsPanel
-                      recommendations={sceneAnalysisResult.workflowRecommendations}
-                      selectedWorkflows={selectedWorkflows}
-                      onToggleWorkflow={toggleWorkflow}
-                    />
-                    <CombinationPreviewCard
-                      selectedWorkflows={selectedWorkflows}
-                      recommendations={sceneAnalysisResult.workflowRecommendations}
-                      onGenerate={handleGenerate}
-                      isGenerating={isGenerating}
-                      shotBreakdown={sceneAnalysisResult.shotBreakdown} // Feature 0167: Pass actual shot breakdown for accurate credits
-                    />
-                  </>
+                {selectedSceneId && sceneAnalysisResult && (
+                  <UnifiedSceneConfiguration
+                    sceneAnalysisResult={sceneAnalysisResult}
+                    qualityTier={qualityTier}
+                    onQualityTierChange={setQualityTier}
+                    selectedCharacterReferences={selectedCharacterReferences}
+                    onCharacterReferenceChange={(characterId, reference) => {
+                      setSelectedCharacterReferences(prev => ({
+                        ...prev,
+                        [characterId]: reference
+                      }));
+                    }}
+                    characterHeadshots={characterHeadshots}
+                    loadingHeadshots={loadingHeadshots}
+                    characterOutfits={characterOutfits}
+                    onCharacterOutfitChange={(characterId, outfitName) => {
+                      setCharacterOutfits(prev => ({
+                        ...prev,
+                        [characterId]: outfitName || undefined
+                      }));
+                    }}
+                    enabledShots={enabledShots}
+                    onEnabledShotsChange={setEnabledShots}
+                    onGenerate={handleGenerate}
+                    isGenerating={isGenerating}
+                    screenplayId={projectId}
+                    getToken={getToken}
+                  />
                 )}
 
-                {/* Step 2: Configure - Streamlined */}
-                <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardHeader className="pb-1.5">
-                    <CardTitle className="text-sm text-[#FFFFFF]">⚙️ Step 2: Configure</CardTitle>
-                    <CardDescription className="text-[10px] text-[#808080]">
-                      All settings are auto-configured. Override only if needed.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-2">
-                {/* Quality Tier - Primary Setting */}
-                <div>
-                  <Label className="text-xs font-medium mb-4 block text-[#808080]">Quality Tier</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setQualityTier('professional')}
-                      className={`h-14 px-4 py-3 rounded border text-left transition-all ${
-                        qualityTier === 'professional'
-                          ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                          : 'border-[#3F3F46] bg-[#0A0A0A] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
-                      }`}
-                    >
-                      <div className="font-medium text-sm">Professional</div>
-                      <div className="text-xs text-[#808080] mt-1">
-                        {sceneAnalysisResult?.shotBreakdown?.totalCredits 
-                          ? `${sceneAnalysisResult.shotBreakdown.totalCredits} credits`  // Use Scene Analyzer's calculation
-                          : sceneAnalysisResult?.dialogue?.hasDialogue 
-                            ? '105 credits'  // Fallback: dialogue scenes
-                            : '100-125 credits'  // Fallback: workflow scenes
-                        }
-                      </div>
-                    </button>
-                    
-                    <button
-                      onClick={() => setQualityTier('premium')}
-                      className={`h-14 px-4 py-3 rounded border text-left transition-all ${
-                        qualityTier === 'premium'
-                          ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                          : 'border-[#3F3F46] bg-[#0A0A0A] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
-                      }`}
-                    >
-                      <div className="font-medium text-sm flex items-center gap-1.5">
-                        Premium
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div className="text-xs text-[#808080] mt-1">
-                        {sceneAnalysisResult?.shotBreakdown?.totalCredits 
-                          ? sceneAnalysisResult?.dialogue?.hasDialogue
-                            ? `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Dialogue: add premium quality for establishing shot
-                            : `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Workflow: add premium quality
-                          : sceneAnalysisResult?.dialogue?.hasDialogue 
-                            ? '205 credits'  // Fallback: dialogue scenes (105 + 100 premium)
-                            : '200-225 credits'  // Fallback: workflow scenes
-                        }
-                      </div>
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Advanced Options - Collapsible */}
-                {(sceneAnalysisResult?.characters?.length > 0 || sceneAnalysisResult?.shotBreakdown?.shots?.some((shot: any) => shot.type === 'dialogue')) && (
-                  <div className="border-t border-[#3F3F46] pt-3">
-                    <button
-                      onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                      className="w-full flex items-center justify-between text-xs text-[#808080] hover:text-[#FFFFFF] transition-colors"
-                    >
-                      <span>Advanced Options</span>
-                      <ChevronRight className={`w-4 h-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`} />
-                    </button>
-                    
-                    {showAdvancedOptions && (
-                      <div className="mt-3 space-y-4">
-                        {/* Character Outfit Selection */}
-                        {sceneAnalysisResult?.characters && sceneAnalysisResult.characters.length > 0 && (
-                          <div>
-                            <Label className="text-xs font-medium mb-2 block text-[#808080]">Character Outfits</Label>
-                            <div className="space-y-2">
-                              {sceneAnalysisResult.characters.map((char) => (
-                                <CharacterOutfitSelector
-                                  key={char.id}
-                                  characterId={char.id}
-                                  characterName={char.name}
-                                  availableOutfits={char.availableOutfits}
-                                  defaultOutfit={char.defaultOutfit}
-                                  selectedOutfit={characterOutfits[char.id]}
-                                  onOutfitChange={(charId, outfitName) => {
-                                    setCharacterOutfits(prev => ({
-                                      ...prev,
-                                      [charId]: outfitName || undefined
-                                    }));
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Feature 0163 Phase 1: Character Headshot Selection for Dialogue Shots */}
-                        {sceneAnalysisResult?.shotBreakdown?.shots?.some((shot: any) => shot.type === 'dialogue') && (
-                          <div>
-                            <Label className="text-xs font-medium mb-2 block text-[#808080]">Character Headshots (Dialogue)</Label>
-                            <div className="space-y-3">
-                              {sceneAnalysisResult.shotBreakdown.shots
-                                .filter((shot: any) => shot.type === 'dialogue' && shot.characterId)
-                                .map((shot: any) => {
-                                  const characterId = shot.characterId;
-                                  const character = sceneAnalysisResult.characters?.find((c: any) => c.id === characterId);
-                                  const headshots = characterHeadshots[characterId] || [];
-                                  const selected = selectedCharacterReferences[characterId];
-                                  const isLoading = loadingHeadshots[characterId];
-                                  
-                                  return (
-                                    <div key={`headshot-${shot.slot}-${characterId}`} className="space-y-2">
-                                      <div className="text-xs text-[#FFFFFF]">
-                                        {character?.name || 'Character'} - Shot {shot.slot}
-                                      </div>
-                                      {isLoading ? (
-                                        <div className="text-xs text-[#808080]">Loading headshots...</div>
-                                      ) : headshots.length > 0 ? (
-                                        <div className="grid grid-cols-4 gap-2">
-                                          {headshots.map((headshot, idx) => {
-                                            const isSelected = selected?.poseId === headshot.poseId || selected?.s3Key === headshot.s3Key;
-                                            return (
-                                              <button
-                                                key={idx}
-                                                onClick={() => {
-                                                  setSelectedCharacterReferences(prev => ({
-                                                    ...prev,
-                                                    [characterId]: {
-                                                      poseId: headshot.poseId,
-                                                      s3Key: headshot.s3Key,
-                                                      imageUrl: headshot.imageUrl
-                                                    }
-                                                  }));
-                                                }}
-                                                className={`relative aspect-square rounded border-2 overflow-hidden transition-all ${
-                                                  isSelected
-                                                    ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                                                    : 'border-[#3F3F46] hover:border-[#DC143C]'
-                                                }`}
-                                              >
-                                                {headshot.imageUrl ? (
-                                                  <img
-                                                    src={headshot.imageUrl}
-                                                    alt={headshot.label || 'Headshot'}
-                                                    className="w-full h-full object-cover"
-                                                  />
-                                                ) : (
-                                                  <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080]">
-                                                    {headshot.label || 'Headshot'}
-                                                  </div>
-                                                )}
-                                                {isSelected && (
-                                                  <div className="absolute top-1 right-1 w-4 h-4 bg-[#DC143C] rounded-full flex items-center justify-center">
-                                                    <Check className="w-3 h-3 text-white" />
-                                                  </div>
-                                                )}
-                                                {idx === 0 && !selected && (
-                                                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-[#DC143C]/80 text-[8px] text-white rounded">
-                                                    Recommended
-                                                  </div>
-                                                )}
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      ) : (
-                                        <div className="text-xs text-[#808080]">No headshots available - using automatic selection</div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                  </CardContent>
-                </Card>
-
-                {/* Continue to Step 3 Button */}
+                {/* Back Button */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
                   <CardContent className="pt-3 pb-3">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Button
-                        onClick={() => setCurrentStep(1)}
-                        variant="outline"
-                        className="flex-1 h-11 text-sm px-4 py-2.5 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
-                      >
-                        ← Back
-                      </Button>
-                      <Button
-                        onClick={() => setCurrentStep(3)}
-                        className="flex-1 h-11 text-sm px-4 py-2.5 bg-[#DC143C] hover:bg-[#B91238] text-white"
-                      >
-                        Continue to Step 3
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={() => setCurrentStep(1)}
+                      variant="outline"
+                      className="w-full h-11 text-sm px-4 py-2.5 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
+                    >
+                      ← Back
+                    </Button>
                   </CardContent>
                 </Card>
               </>
             )}
 
-            {/* Step 3: Review & Generate */}
-            {currentStep === 3 && (
-              <Card className="bg-[#141414] border-[#3F3F46]">
-                <CardHeader className="pb-1.5">
-                  <CardTitle className="text-sm text-[#FFFFFF]">✨ Step 3: Review & Generate</CardTitle>
-                  <CardDescription className="text-[10px] text-[#808080]">
-                    Review your selections and generate your scene package
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-2">
-                  {/* What You'll Get Preview */}
-                  <div className="p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46]">
-                    <div className="text-xs font-medium mb-1.5 text-[#FFFFFF]">What You'll Get:</div>
-                    <ul className="text-[10px] text-[#808080] space-y-0.5">
-                      {sceneAnalysisResult?.dialogue?.hasDialogue ? (
-                        <>
-                          <li>• {sceneAnalysisResult.shotBreakdown?.totalShots || 3} videos ({sceneAnalysisResult.shotBreakdown?.shots?.filter((s: any) => s.type === 'establishing').length || 1} establishing + {sceneAnalysisResult.shotBreakdown?.shots?.filter((s: any) => s.type === 'dialogue').length || 2} dialogue shots)</li>
-                          <li>• {qualityTier === 'premium' ? 'Premium quality establishing shot, optimized dialogue videos' : 'Professional quality'}</li>
-                        </>
-                      ) : (
-                        <>
-                          <li>• {referenceImages.some(img => img !== null) ? '4 videos (establishing + 3 character angles)' : '4 videos (establishing + 3 scene variations)'}</li>
-                          <li>• {qualityTier === 'premium' ? 'Premium quality' : 'Professional quality'}</li>
-                        </>
-                      )}
-                      <li>• {duration} each</li>
-                      <li>• Perfect consistency across all clips</li>
-                    </ul>
-                  </div>
-
-                  {/* Selected Options Summary */}
-                  <div className="p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46] space-y-1">
-                    <div className="text-xs font-medium text-[#FFFFFF] mb-1">Your Selections:</div>
-                    <div className="text-[10px] text-[#808080] space-y-0.5">
-                      <div><strong className="text-[#FFFFFF]">Scene:</strong> {sceneDescription.split('\n')[0]?.substring(0, 60) || 'Custom scene'}{sceneDescription.split('\n')[0]?.length > 60 ? '...' : ''}</div>
-                      <div><strong className="text-[#FFFFFF]">Quality:</strong> {qualityTier === 'premium' ? 'Premium' : 'Professional'}</div>
-                      <div><strong className="text-[#FFFFFF]">Duration:</strong> {duration}</div>
-                      <div><strong className="text-[#FFFFFF]">Character References:</strong> {referenceImages.filter(img => img !== null).length} uploaded</div>
-                      {mediaUploads.some(m => m !== null) && (
-                        <div><strong className="text-[#FFFFFF]">Media Files:</strong> {mediaUploads.filter(m => m !== null).length} uploaded</div>
-                      )}
-                      {visualAnnotations && (
-                        <div><strong className="text-[#FFFFFF]">Annotations:</strong> ✓ Applied</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Cost & Time */}
-                  <div className="flex items-center justify-between p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46]">
-                    <div>
-                      <div className="text-[10px] text-[#808080] mb-0.5">Estimated Cost</div>
-                      <div className="text-lg font-bold text-[#DC143C]">{calculateEstimate()} credits</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-[#808080] mb-0.5">Estimated Time</div>
-                      <div className="text-sm font-semibold text-[#FFFFFF]">8-15 min</div>
-                    </div>
-                  </div>
-
-                  {visualAnnotations && (
-                    <div className="p-2 bg-[#DC143C]/10 rounded-lg border border-[#DC143C]/20">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3 h-3 text-[#DC143C]" />
-                        <span className="text-[10px] text-[#FFFFFF]">Annotations will be applied to generation</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Dialogue Review Panel (Feature 0158) */}
-                  {sceneAnalysisResult?.dialogue && (
-                    (sceneAnalysisResult.dialogue.needsReview || dialogueReviewPreference === 'always-review') && (
-                      <div className="mt-4">
-                        <DialogueConfirmationPanel
-                          dialogue={sceneAnalysisResult.dialogue}
-                          mode={dialogueReviewPreference === 'always-review' ? 'full-review' : 'issue-detection'}
-                          userPreference={dialogueReviewPreference}
-                          onConfirm={(confirmedDialogue) => {
-                            setConfirmedDialogue(confirmedDialogue);
-                            toast.success('Dialogue confirmed!');
-                          }}
-                          onSkip={() => {
-                            setConfirmedDialogue(null);
-                            toast.info('Using all dialogue blocks as-is');
-                          }}
-                          onToggleMode={() => {
-                            const newPreference = dialogueReviewPreference === 'always-review' ? 'review-issues-only' : 'always-review';
-                            setDialogueReviewPreference(newPreference);
-                            if (typeof window !== 'undefined') {
-                              localStorage.setItem('dialogueReviewPreference', newPreference);
-                            }
-                          }}
-                        />
-                      </div>
-                    )
-                  )}
-
-                  {/* Testing Toggle: New VEO Workflow (Dialogue First Frame Lipsync) */}
-                  {(sceneAnalysisResult?.dialogue?.hasDialogue || hasDialogue) && (
-                    <div className="mt-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="useNewWorkflow"
-                          checked={useNewWorkflow}
-                          onChange={(e) => setUseNewWorkflow(e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
-                        />
-                        <Label htmlFor="useNewWorkflow" className="text-sm text-yellow-200 cursor-pointer">
-                          🧪 Test New VEO 3.1 Workflow (First Frame + Audio Overlay)
-                        </Label>
-                      </div>
-                      <p className="text-xs text-yellow-300/70 mt-1 ml-6">
-                        Uses VEO 3.1 with first frame reference + FFmpeg audio overlay (no Runway Act-Two)
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-4 pt-3">
-                    <Button
-                      onClick={() => setCurrentStep(2)}
-                      variant="outline"
-                      className="flex-1 h-11 text-sm px-4 py-2.5 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
-                    >
-                      ← Back
-                    </Button>
-                    <Button
-                      onClick={handleGenerate}
-                      disabled={!sceneDescription.trim() || isGenerating || isGeneratingFirstFrame}
-                      className="flex-1 h-11 text-sm px-4 py-2.5 bg-[#DC143C] hover:bg-[#B91238] text-white font-medium"
-                    >
-                      <Sparkles className="w-3 h-3 mr-1.5" />
-                      Generate Complete Scene
-                      <ArrowRight className="w-3 h-3 ml-1.5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </motion.div>
         )}
         
