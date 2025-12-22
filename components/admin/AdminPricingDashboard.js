@@ -187,7 +187,11 @@ export default function AdminPricingDashboard() {
         editingPrice.provider_id,
         editFormData.base_cost_usd,
         'manual',
-        token
+        token,
+        editingPrice.operation_type,
+        editFormData.retail_credits,
+        undefined, // margin_percent - will be calculated by backend
+        editFormData.notes
       );
       
       if (result.success) {

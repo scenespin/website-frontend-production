@@ -123,7 +123,11 @@ export async function updateProviderPrice(
   providerId: string,
   newCostUsd: number,
   source: 'manual' | 'web_scraper' = 'manual',
-  token?: string
+  token?: string,
+  operationType?: string,
+  retailCredits?: number,
+  marginPercent?: number,
+  notes?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const headers: Record<string, string> = {
@@ -134,13 +138,28 @@ export async function updateProviderPrice(
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const body: any = {
+      new_cost_usd: newCostUsd,
+      source,
+    };
+    
+    if (operationType) {
+      body.operation_type = operationType;
+    }
+    if (retailCredits !== undefined) {
+      body.retail_credits = retailCredits;
+    }
+    if (marginPercent !== undefined) {
+      body.margin_percent = marginPercent;
+    }
+    if (notes !== undefined) {
+      body.notes = notes;
+    }
+
     const response = await fetch(`/api/admin/pricing/registry/${providerId}`, {
       method: 'PUT',
       headers,
-      body: JSON.stringify({
-        new_cost_usd: newCostUsd,
-        source,
-      }),
+      body: JSON.stringify(body),
     })
 
     if (!response.ok) {
