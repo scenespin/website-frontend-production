@@ -279,32 +279,32 @@ export function UnifiedSceneConfiguration({
                     </div>
 
                     {/* Character Outfit */}
-                    {character && (
-                      <div>
-                        {(() => {
-                          // Debug logging
-                          console.log(`[UnifiedSceneConfiguration] Rendering outfit selector for ${character.name}:`, {
-                            characterId: character.id,
-                            availableOutfits: character.availableOutfits,
-                            availableOutfitsLength: character.availableOutfits?.length || 0,
-                            defaultOutfit: character.defaultOutfit,
-                            selectedOutfit: selectedOutfit,
-                            fullCharacter: character
-                          });
-                          return null;
-                        })()}
-                        <CharacterOutfitSelector
-                          characterId={character.id}
-                          characterName={character.name}
-                          availableOutfits={character.availableOutfits || []}
-                          defaultOutfit={character.defaultOutfit}
-                          selectedOutfit={selectedOutfit}
-                          onOutfitChange={(charId, outfitName) => {
-                            onCharacterOutfitChange(charId, outfitName || undefined);
-                          }}
-                        />
-                      </div>
-                    )}
+                    {character && (() => {
+                      // Debug logging
+                      console.log(`[UnifiedSceneConfiguration] Rendering outfit selector for ${character.name}:`, {
+                        characterId: character.id,
+                        availableOutfits: character.availableOutfits,
+                        availableOutfitsLength: character.availableOutfits?.length || 0,
+                        defaultOutfit: character.defaultOutfit,
+                        selectedOutfit: selectedOutfit,
+                        fullCharacter: character
+                      });
+                      
+                      return (
+                        <div>
+                          <CharacterOutfitSelector
+                            characterId={character.id}
+                            characterName={character.name}
+                            availableOutfits={character.availableOutfits || []}
+                            defaultOutfit={character.defaultOutfit}
+                            selectedOutfit={selectedOutfit}
+                            onOutfitChange={(charId, outfitName) => {
+                              onCharacterOutfitChange(charId, outfitName || undefined);
+                            }}
+                          />
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
