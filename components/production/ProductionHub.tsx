@@ -38,8 +38,7 @@ import {
   X,
   Loader2,
   CheckCircle,
-  AlertCircle,
-  Building2
+  AlertCircle
 } from 'lucide-react';
 
 // Phase 2 Components (Feature 0109)
@@ -55,8 +54,6 @@ import { CharacterBankPanel } from './CharacterBankPanel';
 import { LocationBankPanel } from './LocationBankPanel';
 import AssetBankPanel from './AssetBankPanel';
 import { ProductionJobsPanel } from './ProductionJobsPanel';
-import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
-import { QuickActions } from './QuickActions';
 import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 import { ProductionTabBar } from './ProductionTabBar';
 
@@ -65,15 +62,15 @@ import { ProductionTabBar } from './ProductionTabBar';
 // ============================================================================
 
 type ProductionTab = 
-  | 'overview'      // Dashboard + Creative Gallery
+  | 'characters'    // Character Bank
+  | 'locations'     // Location Bank
+  | 'assets'        // Asset Bank
   | 'scene-builder' // Screenplay-driven scene generation
   | 'scenes'        // Scene videos & storyboard (Feature 0170)
+  | 'jobs'          // Job Monitoring
   | 'media'         // Media Library + Style Analyzer
-  | 'banks'         // Banks (Characters, Locations, Assets via dropdown)
-  | 'jobs';         // Job Monitoring
+  | 'playground';   // Playground (Creative Possibilities)
   // Note: AI Chat is now a drawer (not a tab) - triggered from various buttons
-
-type BankTab = 'characters' | 'locations' | 'assets';
 
 interface ProductionHubProps {
   // Removed projectId prop - screenplayId comes from ScreenplayContext
@@ -103,8 +100,7 @@ export function ProductionHub({}: ProductionHubProps) {
   
   // State - sync with URL params (ALL HOOKS MUST BE CALLED BEFORE EARLY RETURN)
   // 🔥 FIX: Initialize with default, then sync from URL in useEffect to prevent React error #300
-  const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
-  const [activeBankId, setActiveBankId] = useState<BankTab | null>(null);
+  const [activeTab, setActiveTab] = useState<ProductionTab>('characters');
   const [isMobile, setIsMobile] = useState(false);
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
@@ -123,19 +119,13 @@ export function ProductionHub({}: ProductionHubProps) {
     }
     
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
-    const bankFromUrl = searchParams.get('bank') as BankTab | null;
     
-    if (tabFromUrl && ['overview', 'scene-builder', 'scenes', 'media', 'banks', 'jobs'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['characters', 'locations', 'assets', 'scene-builder', 'scenes', 'jobs', 'media', 'playground'].includes(tabFromUrl)) {
       // Only update if different to prevent React error #300 (circular updates)
       setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
-      
-      // Handle bank selection from URL
-      if (tabFromUrl === 'banks' && bankFromUrl && ['characters', 'locations', 'assets'].includes(bankFromUrl)) {
-        setActiveBankId(bankFromUrl);
-      }
     } else {
-      // If no tab in URL, set to 'overview' (but only if not already 'overview' to prevent unnecessary updates)
-      setActiveTab(prevTab => prevTab !== 'overview' ? 'overview' : prevTab);
+      // If no tab in URL, set to 'characters' (but only if not already 'characters' to prevent unnecessary updates)
+      setActiveTab(prevTab => prevTab !== 'characters' ? 'characters' : prevTab);
     }
   }, [searchParams]);
 
@@ -212,31 +202,12 @@ export function ProductionHub({}: ProductionHubProps) {
     // Use setTimeout to ensure router.push happens after state update, preventing render conflicts
     setTimeout(() => {
       const newUrl = new URL(window.location.href);
-      if (tab === 'overview') {
+      if (tab === 'characters') {
         newUrl.searchParams.delete('tab');
-        newUrl.searchParams.delete('bank');
       } else {
         newUrl.searchParams.set('tab', tab);
-        if (tab === 'banks' && activeBankId) {
-          newUrl.searchParams.set('bank', activeBankId);
-        } else if (tab !== 'banks') {
-          newUrl.searchParams.delete('bank');
-        }
       }
       // Use router.push instead of window.history.pushState to let Next.js handle it properly
-      router.push(newUrl.pathname + newUrl.search, { scroll: false });
-    }, 0);
-  };
-
-  // Handle bank selection from dropdown
-  const handleBankChange = (bankId: BankTab) => {
-    setActiveBankId(bankId);
-    setActiveTab('banks');
-    isUpdatingTabRef.current = true;
-    setTimeout(() => {
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set('tab', 'banks');
-      newUrl.searchParams.set('bank', bankId);
       router.push(newUrl.pathname + newUrl.search, { scroll: false });
     }, 0);
   };
@@ -326,22 +297,32 @@ export function ProductionHub({}: ProductionHubProps) {
         <ProductionTabBar
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          activeBankId={activeBankId}
-          onBankChange={handleBankChange}
           jobCount={activeJobs}
         />
 
         {/* Mobile Content */}
         <div className="flex-1 overflow-hidden">
-          {activeTab === 'overview' && (
-            <div className="h-full overflow-y-auto p-4">
-              <OverviewTab 
-                projectId={screenplayId}
-                onStartExample={handleStartExample}
-                onNavigate={handleTabChange}
-                onOpenChat={() => openDrawer('workflows')}
-                isMobile={true}
-              />
+          {activeTab === 'characters' && (
+            <div className="h-full overflow-y-auto">
+              <ProductionErrorBoundary componentName="Character Bank">
+                <CharacterBankPanel className="h-full" />
+              </ProductionErrorBoundary>
+            </div>
+          )}
+
+          {activeTab === 'locations' && (
+            <div className="h-full overflow-y-auto">
+              <ProductionErrorBoundary componentName="Location Bank">
+                <LocationBankPanel className="h-full" />
+              </ProductionErrorBoundary>
+            </div>
+          )}
+
+          {activeTab === 'assets' && (
+            <div className="h-full overflow-y-auto">
+              <ProductionErrorBoundary componentName="Asset Bank">
+                <AssetBankPanel className="h-full" />
+              </ProductionErrorBoundary>
             </div>
           )}
 
@@ -381,39 +362,21 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'banks' && (
-            <div className="h-full overflow-y-auto">
-              {activeBankId === 'characters' && (
-                <ProductionErrorBoundary componentName="Character Bank">
-                  <CharacterBankPanel className="h-full" />
-                </ProductionErrorBoundary>
-              )}
-              {activeBankId === 'locations' && (
-                <ProductionErrorBoundary componentName="Location Bank">
-                  <LocationBankPanel className="h-full" />
-                </ProductionErrorBoundary>
-              )}
-              {activeBankId === 'assets' && (
-                <ProductionErrorBoundary componentName="Asset Bank">
-                  <AssetBankPanel className="h-full" />
-                </ProductionErrorBoundary>
-              )}
-              {!activeBankId && (
-                <div className="flex items-center justify-center h-full p-4">
-                  <div className="text-center">
-                    <Building2 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-400 text-sm">Select a bank from the dropdown</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto p-4">
               <ProductionErrorBoundary componentName="Production Jobs">
                 <ProductionJobsPanel />
               </ProductionErrorBoundary>
+            </div>
+          )}
+
+          {activeTab === 'playground' && (
+            <div className="h-full overflow-y-auto p-4">
+              <CreativePossibilitiesGallery
+                onStartExample={handleStartExample}
+                className="rounded-xl overflow-hidden"
+              />
             </div>
           )}
         </div>
@@ -431,8 +394,6 @@ export function ProductionHub({}: ProductionHubProps) {
       <ProductionTabBar
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        activeBankId={activeBankId}
-        onBankChange={handleBankChange}
         jobCount={activeJobs}
       />
 
@@ -467,17 +428,29 @@ export function ProductionHub({}: ProductionHubProps) {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden bg-[#0A0A0A]">
-          {activeTab === 'overview' && (
-            <div className="h-full overflow-y-auto">
-            <OverviewTab 
-              projectId={screenplayId}
-              onStartExample={handleStartExample}
-              onNavigate={handleTabChange}
-              onOpenChat={() => openDrawer('workflows')}
-              isMobile={false}
-            />
-            </div>
-          )}
+        {activeTab === 'characters' && (
+          <div className="h-full overflow-y-auto">
+            <ProductionErrorBoundary componentName="Character Bank">
+              <CharacterBankPanel className="h-full" />
+            </ProductionErrorBoundary>
+          </div>
+        )}
+
+        {activeTab === 'locations' && (
+          <div className="h-full overflow-y-auto">
+            <ProductionErrorBoundary componentName="Location Bank">
+              <LocationBankPanel className="h-full" />
+            </ProductionErrorBoundary>
+          </div>
+        )}
+
+        {activeTab === 'assets' && (
+          <div className="h-full overflow-y-auto">
+            <ProductionErrorBoundary componentName="Asset Bank">
+              <AssetBankPanel className="h-full" />
+            </ProductionErrorBoundary>
+          </div>
+        )}
 
           {activeTab === 'scene-builder' && (
             <div className="h-full overflow-y-auto">
@@ -527,33 +500,6 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'banks' && (
-            <div className="h-full overflow-y-auto">
-              {activeBankId === 'characters' && (
-                <ProductionErrorBoundary componentName="Character Bank">
-                  <CharacterBankPanel className="h-full" />
-                </ProductionErrorBoundary>
-              )}
-              {activeBankId === 'locations' && (
-                <ProductionErrorBoundary componentName="Location Bank">
-                  <LocationBankPanel className="h-full" />
-                </ProductionErrorBoundary>
-              )}
-              {activeBankId === 'assets' && (
-                <ProductionErrorBoundary componentName="Asset Bank">
-                  <AssetBankPanel className="h-full" />
-                </ProductionErrorBoundary>
-              )}
-              {!activeBankId && (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <Building2 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-400">Select a bank from the dropdown</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto">
@@ -567,93 +513,5 @@ export function ProductionHub({}: ProductionHubProps) {
   );
 }
 
-// ============================================================================
-// OVERVIEW TAB COMPONENT
-// ============================================================================
-
-interface OverviewTabProps {
-  projectId: string;
-  onStartExample: (example: any) => void;
-  onNavigate: (tab: ProductionTab) => void;
-  onOpenChat?: () => void; // NEW: For opening AI Interview drawer
-  isMobile: boolean;
-}
-
-function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobile }: OverviewTabProps) {
-  const screenplay = useScreenplay();
-
-  const handleViewEditor = () => {
-    // Navigate to editor page
-    window.location.href = '/write';
-  };
-
-  return (
-    <div className="p-4 md:p-5 space-y-4 md:space-y-5 bg-[#0A0A0A]">
-      {/* Screenplay Connection Status Banner */}
-      <ScreenplayStatusBanner
-        onViewEditor={handleViewEditor}
-      />
-
-      {/* Welcome Section with Quick Actions */}
-      <div className="bg-gradient-to-br from-[#DC143C]/20 to-[#1F1F1F] border border-[#DC143C]/30 rounded-xl p-4 md:p-5">
-        <h2 className="text-lg md:text-xl font-semibold text-[#FFFFFF] mb-2">
-          Welcome to Production Hub
-        </h2>
-        <p className="text-sm md:text-base text-[#B3B3B3] mb-3 md:mb-4">
-          Three powerful ways to create your video content:
-        </p>
-
-        <QuickActions
-          onOneOffClick={() => {
-            if (onOpenChat) {
-              onOpenChat(); // Open AI Interview drawer
-            }
-          }}
-          onScreenplayClick={() => onNavigate('scene-builder')}
-          onHybridClick={() => onNavigate('media')}
-          isMobile={isMobile}
-        />
-      </div>
-
-      {/* Project Stats */}
-      {!isMobile && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
-            <p className="text-xs md:text-sm text-[#808080] mb-1">Scenes</p>
-            <p className="text-lg md:text-xl font-bold text-[#FFFFFF]">
-              {screenplay.scenes?.length || 0}
-            </p>
-          </div>
-          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
-            <p className="text-xs md:text-sm text-[#808080] mb-1">Characters</p>
-            <p className="text-lg md:text-xl font-bold text-[#FFFFFF]">
-              {screenplay.characters?.length || 0}
-            </p>
-          </div>
-          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
-            <p className="text-xs md:text-sm text-[#808080] mb-1">Locations</p>
-            <p className="text-lg md:text-xl font-bold text-[#FFFFFF]">
-              {screenplay.locations?.length || 0}
-            </p>
-          </div>
-          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
-            <p className="text-xs md:text-sm text-[#808080] mb-1">Jobs Running</p>
-            <p className="text-lg md:text-xl font-bold text-[#DC143C]">0</p>
-          </div>
-        </div>
-      )}
-
-      {/* Creative Possibilities Gallery */}
-      <div>
-        <h3 className="text-lg md:text-xl font-bold text-[#FFFFFF] mb-3 md:mb-4">
-          Creative Possibilities
-        </h3>
-        <CreativePossibilitiesGallery
-          onStartExample={onStartExample}
-          className="rounded-xl overflow-hidden"
-        />
-      </div>
-    </div>
-  );
-}
+// OverviewTab component removed - Playground tab now shows only Creative Possibilities Gallery
 
