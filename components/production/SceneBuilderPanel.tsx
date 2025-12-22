@@ -1887,7 +1887,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       if (selectedSceneId && screenplay.scenes) {
         const selectedScene = screenplay.scenes.find(s => s.id === selectedSceneId);
         if (selectedScene) {
-          workflowRequest.sceneNumber = selectedScene.sceneNumber;
+          workflowRequest.sceneNumber = selectedScene.number;
           workflowRequest.sceneName = selectedScene.heading || selectedScene.synopsis || undefined;
         }
       }
