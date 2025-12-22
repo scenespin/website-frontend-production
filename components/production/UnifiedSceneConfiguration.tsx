@@ -32,7 +32,7 @@ interface UnifiedSceneConfigurationProps {
   onQualityTierChange: (tier: 'professional' | 'premium') => void;
   selectedCharacterReferences: Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>;
   onCharacterReferenceChange: (characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
-  characterHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number }>>;
+  characterHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots: Record<string, boolean>;
   characterOutfits: Record<string, string>;
   onCharacterOutfitChange: (characterId: string, outfitName: string | undefined) => void;
@@ -160,10 +160,19 @@ export function UnifiedSceneConfiguration({
             const isExpanded = expandedShots[shot.slot] || false;
             const character = getCharacterForShot(shot);
             const isDialogue = shot.type === 'dialogue';
-            const headshots = isDialogue && shot.characterId ? characterHeadshots[shot.characterId] || [] : [];
+            const allHeadshots = isDialogue && shot.characterId ? characterHeadshots[shot.characterId] || [] : [];
+            const selectedOutfit = isDialogue && shot.characterId ? characterOutfits[shot.characterId] : undefined;
+            
+            // Filter headshots by selected outfit (if outfit is selected)
+            const headshots = selectedOutfit && selectedOutfit !== 'default' 
+              ? allHeadshots.filter((h: any) => {
+                  const headshotOutfit = h.outfitName || h.metadata?.outfitName;
+                  return headshotOutfit === selectedOutfit;
+                })
+              : allHeadshots; // Show all headshots if no outfit selected or using default
+            
             const isLoadingHeadshots = isDialogue && shot.characterId ? loadingHeadshots[shot.characterId] : false;
             const selectedHeadshot = isDialogue && shot.characterId ? selectedCharacterReferences[shot.characterId] : undefined;
-            const selectedOutfit = isDialogue && shot.characterId ? characterOutfits[shot.characterId] : undefined;
 
             return (
               <div
@@ -226,7 +235,13 @@ export function UnifiedSceneConfiguration({
                       {isLoadingHeadshots ? (
                         <div className="text-xs text-[#808080]">Loading headshots...</div>
                       ) : headshots.length > 0 ? (
-                        <div className="grid grid-cols-4 gap-2">
+                        <div>
+                          {selectedOutfit && selectedOutfit !== 'default' && (
+                            <div className="text-xs text-[#808080] mb-2">
+                              Showing headshots for outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-4 gap-2">
                           {headshots.map((headshot, idx) => {
                             // Use unique key: s3Key (most reliable) or imageUrl or poseId + idx fallback
                             const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}` || `headshot-${idx}`;
@@ -285,6 +300,17 @@ export function UnifiedSceneConfiguration({
                               </button>
                             );
                           })}
+                          </div>
+                        </div>
+                      ) : selectedOutfit && selectedOutfit !== 'default' ? (
+                        <div className="text-xs text-[#808080]">
+                          No headshots available for outfit "{selectedOutfit}". 
+                          <button 
+                            onClick={() => onCharacterOutfitChange(shot.characterId, undefined)}
+                            className="ml-1 text-[#DC143C] hover:underline"
+                          >
+                            Show all headshots
+                          </button>
                         </div>
                       ) : (
                         <div className="text-xs text-[#808080]">
@@ -314,6 +340,11 @@ export function UnifiedSceneConfiguration({
                             defaultOutfit={character.defaultOutfit}
                             selectedOutfit={selectedOutfit}
                             onOutfitChange={(charId, outfitName) => {
+                              console.log(`[UnifiedSceneConfiguration] Outfit change callback for ${character.name}:`, {
+                                characterId: charId,
+                                outfitName: outfitName || 'undefined (use default)',
+                                previousOutfit: selectedOutfit
+                              });
                               onCharacterOutfitChange(charId, outfitName || undefined);
                             }}
                           />

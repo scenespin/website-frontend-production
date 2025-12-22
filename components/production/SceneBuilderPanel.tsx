@@ -144,7 +144,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Feature 0163 Phase 1: Character headshot selection state
   const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>({});
-  const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number }>>>({});
+  const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>>({});
   const [loadingHeadshots, setLoadingHeadshots] = useState<Record<string, boolean>>({});
   
   // UnifiedSceneConfiguration: Track which shots are enabled
@@ -602,11 +602,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               }
             }
             
-            console.log(`[SceneBuilderPanel] Total pose references for ${characterId} (deduplicated):`, allPoseReferences.length);
+            const beforeDedupCount = allPoseReferences.length;
+            console.log(`[SceneBuilderPanel] Total pose references for ${characterId} (after initial deduplication):`, beforeDedupCount);
             
             // Filter headshots (we'll do this on backend validation, but filter by common headshot poseIds here)
             const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
-            const headshots = allPoseReferences
+            const beforeFinalDedup = allPoseReferences
               .filter((ref: any) => {
                 const poseId = ref.poseId || ref.metadata?.poseId;
                 const matches = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
@@ -620,20 +621,40 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                 s3Key: ref.s3Key,
                 imageUrl: ref.imageUrl,
                 label: ref.label || ref.metadata?.poseName || 'Headshot',
-                priority: ref.priority || 999
+                priority: ref.priority || 999,
+                outfitName: ref.outfitName || ref.metadata?.outfitName // Store outfit name for filtering
               }))
-              .filter((ref: any) => ref.imageUrl) // Only include headshots with imageUrl
-              // Final deduplication pass: remove any remaining duplicates by s3Key or poseId
+              .filter((ref: any) => ref.imageUrl); // Only include headshots with imageUrl
+            
+            // Final deduplication pass: remove any remaining duplicates by s3Key or poseId
+            const headshots = beforeFinalDedup
               .filter((ref: any, index: number, self: any[]) => {
                 const key = ref.s3Key || ref.poseId;
                 if (!key) return true; // Keep if no key (shouldn't happen)
-                return index === self.findIndex((r: any) => (r.s3Key || r.poseId) === key);
+                const firstIndex = self.findIndex((r: any) => (r.s3Key || r.poseId) === key);
+                const isDuplicate = index !== firstIndex;
+                if (isDuplicate) {
+                  console.log(`[SceneBuilderPanel] 🚫 Removed duplicate headshot:`, {
+                    poseId: ref.poseId,
+                    s3Key: ref.s3Key?.substring(0, 30) + '...',
+                    duplicateIndex: index,
+                    firstIndex: firstIndex
+                  });
+                }
+                return !isDuplicate;
               })
               .slice(0, 10); // Limit to 10 headshots
             
+            const duplicatesRemoved = beforeFinalDedup.length - headshots.length;
+            if (duplicatesRemoved > 0) {
+              console.log(`[SceneBuilderPanel] ✅ Deduplication: Removed ${duplicatesRemoved} duplicate headshot(s) for ${characterId}`);
+            }
+            
             console.log(`[SceneBuilderPanel] Filtered headshots for ${characterId}:`, {
               count: headshots.length,
-              headshots: headshots.map(h => ({ poseId: h.poseId, hasImageUrl: !!h.imageUrl, label: h.label }))
+              beforeDedup: beforeFinalDedup.length,
+              duplicatesRemoved: duplicatesRemoved,
+              headshots: headshots.map(h => ({ poseId: h.poseId, s3Key: h.s3Key?.substring(0, 20) + '...', hasImageUrl: !!h.imageUrl, label: h.label }))
             });
             
             if (headshots.length > 0) {

@@ -65,6 +65,11 @@ export function CharacterOutfitSelector({
 
   const handleOutfitChange = (value: string) => {
     setLocalSelectedOutfit(value);
+    console.log(`[CharacterOutfitSelector] Outfit changed for ${characterName}:`, {
+      newValue: value,
+      characterId,
+      willCallOnOutfitChange: true
+    });
     if (value === 'default') {
       onOutfitChange(characterId, undefined); // undefined means use default
     } else {
