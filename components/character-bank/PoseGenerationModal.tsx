@@ -616,14 +616,14 @@ export default function PoseGenerationModal({
                       >
                         {models.map((model) => (
                           <option key={model.id} value={model.id}>
-                            {model.name} ({model.referenceLimit} refs, {model.quality}, {model.credits} credits)
+                            {model.name} ({model.credits} credits)
                           </option>
                         ))}
                       </select>
                     )}
                     {selectedModel && (
                       <p className="mt-2 text-xs text-base-content/50">
-                        {selectedModel.referenceLimit} reference images • {selectedModel.quality} • {selectedModel.credits} credits per image
+                        {selectedModel.credits} credits per image
                         {supportsClothing && ` • Supports clothing/outfit images`}
                       </p>
                     )}

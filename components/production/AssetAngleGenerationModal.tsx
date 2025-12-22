@@ -336,14 +336,14 @@ export default function AssetAngleGenerationModal({
                       >
                         {models.map((model) => (
                           <option key={model.id} value={model.id}>
-                            {model.name} ({model.referenceLimit} refs, {model.quality}, {model.credits} credits)
+                            {model.name} ({model.credits} credits)
                           </option>
                         ))}
                       </select>
                     )}
                     {models.find(m => m.id === providerId) && (
                       <p className="mt-2 text-xs text-base-content/50">
-                        {models.find(m => m.id === providerId)?.referenceLimit} reference images • {models.find(m => m.id === providerId)?.quality} • {models.find(m => m.id === providerId)?.credits} credits per image
+                        {models.find(m => m.id === providerId)?.credits} credits per image
                       </p>
                     )}
                   </div>
