@@ -1787,23 +1787,6 @@ export default function MediaLibrary({
         {/* Phase 2: Selection Mode Toggle & Bulk Actions - Always show, persist across navigation */}
         <div className="flex items-center justify-between mt-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setSelectionMode(!selectionMode);
-                  if (selectionMode) {
-                    setSelectedFiles(new Set()); // Clear selection when exiting
-                    setSelectedFolders(new Set()); // Clear folder selection too
-                  }
-                }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  selectionMode
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                {selectionMode ? 'Selection Mode' : 'Select Multiple'}
-              </button>
               {selectionMode && (selectedFiles.size > 0 || selectedFolders.size > 0) && (
                 <span className="text-sm text-[#808080]">
                   {selectedFiles.size + selectedFolders.size} selected
@@ -1855,6 +1838,25 @@ export default function MediaLibrary({
               className="w-full pl-10 pr-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
             />
           </div>
+
+          {/* Select Multiple Button */}
+          <button
+            onClick={() => {
+              setSelectionMode(!selectionMode);
+              if (selectionMode) {
+                setSelectedFiles(new Set()); // Clear selection when exiting
+                setSelectedFolders(new Set()); // Clear folder selection too
+              }
+            }}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              selectionMode
+                ? 'bg-[#DC143C] text-white'
+                : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF] border border-[#3F3F46]'
+            }`}
+          >
+            {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+            {selectionMode ? 'Selection Mode' : 'Select Multiple'}
+          </button>
 
           <select
             value={filterType}

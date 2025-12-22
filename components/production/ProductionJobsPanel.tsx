@@ -776,9 +776,6 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       {/* Header with filter */}
       <div className="flex items-center justify-between p-4 md:p-5 border-b border-slate-700/50">
         <div className="flex items-center gap-2">
-          <h3 className="text-xl font-semibold text-slate-200">
-            Workflow Jobs
-          </h3>
           {isPolling && (
             <Loader2 className="w-4 h-4 animate-spin text-[#DC143C]" />
           )}
