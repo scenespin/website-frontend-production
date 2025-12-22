@@ -465,8 +465,8 @@ export function ProductionHub({}: ProductionHubProps) {
         </div>
       )}
 
-        {/* Tab Content */}
-        <div className="flex-1 overflow-hidden bg-gray-950">
+      {/* Tab Content */}
+      <div className="flex-1 overflow-hidden bg-[#0A0A0A]">
           {activeTab === 'overview' && (
             <div className="h-full overflow-y-auto">
             <OverviewTab 
@@ -562,7 +562,6 @@ export function ProductionHub({}: ProductionHubProps) {
               </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   );
