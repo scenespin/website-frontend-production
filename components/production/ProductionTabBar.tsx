@@ -123,8 +123,8 @@ export function ProductionTabBar({
   const activeStudioSubTab = isStudioActive ? activeTab : null;
 
   return (
-    <div className="border-b border-base-300 bg-base-200">
-      <div className="max-w-7xl mx-auto">
+    <div className="border-b border-base-300 bg-base-200 w-full">
+      <div className="w-full">
         {/* Top-level tabs */}
         <div className="flex flex-wrap gap-1 px-4">
           {TOP_LEVEL_TABS.map((tab) => {

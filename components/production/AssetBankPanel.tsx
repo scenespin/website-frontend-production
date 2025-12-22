@@ -143,16 +143,6 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46]">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-[#FFFFFF]">Asset Bank</h2>
-        </div>
-        <p className="text-xs text-[#808080]">
-          {filteredAssets.length} asset{filteredAssets.length !== 1 ? 's' : ''}
-        </p>
-      </div>
-
       {/* Category Filters */}
       <div className="flex gap-2 p-4 border-b border-[#3F3F46] overflow-x-auto">
         <button
@@ -186,7 +176,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
       </div>
 
       {/* Asset Grid */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 mx-4">
         {filteredAssets.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-[#808080]">
             <Package className="w-16 h-16 mb-4 opacity-50" />
@@ -199,7 +189,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
             {filteredAssets.map((asset) => {
               const allReferences: CinemaCardImage[] = [];
               

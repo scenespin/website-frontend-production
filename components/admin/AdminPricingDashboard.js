@@ -758,19 +758,19 @@ export default function AdminPricingDashboard() {
                                   <td className="text-center">
                                     <div className="flex flex-col gap-1">
                                       {provider.enabled && provider.launchReady && (
-                                        <span className="badge badge-success badge-sm">✅ Active & Live</span>
+                                        <span className={`badge badge-sm ${hasRegistry ? 'badge-success' : 'badge-success'}`}>
+                                          ✅ Live
+                                        </span>
                                       )}
                                       {provider.enabled && !provider.launchReady && (
-                                        <span className="badge badge-warning badge-sm">⚠️ Enabled (Not Live)</span>
+                                        <span className="badge badge-warning badge-sm">⚠️ Not Live</span>
                                       )}
                                       {!provider.enabled && (
                                         <span className="badge badge-error badge-sm">❌ Disabled</span>
                                       )}
-                                      {hasRegistry ? (
-                                        <span className="badge badge-info badge-sm">📊 Using Registry Price</span>
-                                      ) : (
-                                        <span className="badge badge-outline badge-sm">📝 Using Config Price</span>
-                                      )}
+                                      <span className={`badge badge-sm ${hasRegistry ? 'badge-info' : 'badge-ghost'}`} title={hasRegistry ? 'Price from DynamoDB registry' : 'Price from provider-costs.ts config'}>
+                                        {hasRegistry ? '📊 Registry' : '📝 Config'}
+                                      </span>
                                     </div>
                                   </td>
                                   <td className="text-center">
@@ -898,19 +898,17 @@ export default function AdminPricingDashboard() {
 
                                 <div className="flex flex-wrap gap-1">
                                   {provider.enabled && provider.launchReady && (
-                                    <span className="badge badge-success badge-sm">✅ Active & Live</span>
+                                    <span className="badge badge-success badge-sm">✅ Live</span>
                                   )}
                                   {provider.enabled && !provider.launchReady && (
-                                    <span className="badge badge-warning badge-sm">⚠️ Enabled (Not Live)</span>
+                                    <span className="badge badge-warning badge-sm">⚠️ Not Live</span>
                                   )}
                                   {!provider.enabled && (
                                     <span className="badge badge-error badge-sm">❌ Disabled</span>
                                   )}
-                                  {hasRegistry ? (
-                                    <span className="badge badge-info badge-sm">📊 Using Registry Price</span>
-                                  ) : (
-                                    <span className="badge badge-outline badge-sm">📝 Using Config Price</span>
-                                  )}
+                                  <span className={`badge badge-sm ${hasRegistry ? 'badge-info' : 'badge-ghost'}`} title={hasRegistry ? 'Price from DynamoDB registry' : 'Price from provider-costs.ts config'}>
+                                    {hasRegistry ? '📊 Registry' : '📝 Config'}
+                                  </span>
                                 </div>
                               </div>
                             </div>

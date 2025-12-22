@@ -122,19 +122,9 @@ export function LocationBankPanel({
 
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46]">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-[#FFFFFF]">Location Bank</h2>
-        </div>
-        <p className="text-xs text-[#808080]">
-          {locations.length} location{locations.length !== 1 ? 's' : ''}
-        </p>
-      </div>
-
       {/* Empty State */}
       {locations.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-5 text-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-5 mx-4 text-center">
           <MapPin className="w-12 h-12 text-[#808080] mb-3" />
           <p className="text-sm font-medium text-[#B3B3B3] mb-1">No locations yet</p>
           <p className="text-xs text-[#808080] mb-4">
@@ -143,8 +133,8 @@ export function LocationBankPanel({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+          <div className="p-4 mx-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2.5">
               {locations.map((location) => {
                 const allReferences: CinemaCardImage[] = [];
                 
