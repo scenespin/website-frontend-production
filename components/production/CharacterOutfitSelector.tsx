@@ -74,9 +74,12 @@ export function CharacterOutfitSelector({
 
   // Determine if we should show dropdown or just display
   // Use actual prop value, not default parameter, to detect if data has loaded
-  const outfitsArray = availableOutfits || [];
+  const outfitsArray = Array.isArray(availableOutfits) ? availableOutfits : [];
   const hasMultipleOutfits = outfitsArray.length > 1;
-  const hasAnyOutfits = outfitsArray.length > 0 || defaultOutfit;
+  const hasAnyOutfits = outfitsArray.length > 0 || !!defaultOutfit;
+  
+  // Force dropdown if we have multiple outfits (even if defaultOutfit exists)
+  const shouldShowDropdown = hasMultipleOutfits && hasAnyOutfits;
   
   // Debug logging
   useEffect(() => {
@@ -115,7 +118,7 @@ export function CharacterOutfitSelector({
       </Label>
       
       {hasAnyOutfits ? (
-        hasMultipleOutfits ? (
+        shouldShowDropdown ? (
           // Multiple outfits - show dropdown
           <select
             value={localSelectedOutfit}

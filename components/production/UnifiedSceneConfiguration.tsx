@@ -228,12 +228,27 @@ export function UnifiedSceneConfiguration({
                       ) : headshots.length > 0 ? (
                         <div className="grid grid-cols-4 gap-2">
                           {headshots.map((headshot, idx) => {
-                            const isSelected = selectedHeadshot?.poseId === headshot.poseId || 
-                                              selectedHeadshot?.s3Key === headshot.s3Key;
+                            // Use unique key: s3Key (most reliable) or imageUrl or poseId + idx fallback
+                            const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}` || `headshot-${idx}`;
+                            
+                            // Check if this specific headshot is selected
+                            // Priority: s3Key (unique per image) > imageUrl (unique per image) > poseId (may be shared)
+                            // Only match by poseId if BOTH headshots lack s3Key AND imageUrl
+                            const isSelected = selectedHeadshot && (
+                              // Match by s3Key (most reliable, unique per image)
+                              (headshot.s3Key && selectedHeadshot.s3Key && headshot.s3Key === selectedHeadshot.s3Key) ||
+                              // Match by imageUrl (also unique per image, but less reliable than s3Key)
+                              (headshot.imageUrl && selectedHeadshot.imageUrl && headshot.imageUrl === selectedHeadshot.imageUrl) ||
+                              // Only match by poseId if neither has s3Key or imageUrl (rare case)
+                              (!headshot.s3Key && !headshot.imageUrl && !selectedHeadshot.s3Key && !selectedHeadshot.imageUrl && 
+                               headshot.poseId && selectedHeadshot.poseId && headshot.poseId === selectedHeadshot.poseId)
+                            );
+                            
                             return (
                               <button
-                                key={idx}
+                                key={uniqueKey}
                                 onClick={() => {
+                                  // Always store s3Key and imageUrl when available for precise matching
                                   onCharacterReferenceChange(shot.characterId, {
                                     poseId: headshot.poseId,
                                     s3Key: headshot.s3Key,

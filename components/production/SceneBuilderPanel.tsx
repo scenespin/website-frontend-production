@@ -623,6 +623,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                 priority: ref.priority || 999
               }))
               .filter((ref: any) => ref.imageUrl) // Only include headshots with imageUrl
+              // Final deduplication pass: remove any remaining duplicates by s3Key or poseId
+              .filter((ref: any, index: number, self: any[]) => {
+                const key = ref.s3Key || ref.poseId;
+                if (!key) return true; // Keep if no key (shouldn't happen)
+                return index === self.findIndex((r: any) => (r.s3Key || r.poseId) === key);
+              })
               .slice(0, 10); // Limit to 10 headshots
             
             console.log(`[SceneBuilderPanel] Filtered headshots for ${characterId}:`, {
@@ -637,6 +643,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               const bestHeadshot = headshots.reduce((best: any, current: any) => 
                 (current.priority || 999) < (best.priority || 999) ? current : best
               );
+              
+              // Ensure we store s3Key and imageUrl for precise matching (not just poseId)
               
               setSelectedCharacterReferences(prev => ({
                 ...prev,
