@@ -942,7 +942,7 @@ export default function AdminPricingDashboard() {
                       </div>
                     </div>
                   </div>
-                </React.Fragment>
+                </div>
               )}
             </div>
           )}
