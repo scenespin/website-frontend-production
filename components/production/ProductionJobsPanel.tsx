@@ -772,39 +772,12 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   }
 
   return (
-    <div className="h-full bg-[#1e2229] overflow-auto">
-      {/* Header with filter */}
-      <div className="flex items-center justify-between p-4 md:p-5 border-b border-slate-700/50">
-        <div className="flex items-center gap-2">
-          {isPolling && (
-            <Loader2 className="w-4 h-4 animate-spin text-[#DC143C]" />
-          )}
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="px-3 py-1.5 rounded-lg border border-slate-700
-                     bg-slate-800 text-slate-200 text-sm
-                     focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-          >
-            <option value="all">All Jobs</option>
-            <option value="running">Running</option>
-            <option value="completed">Completed</option>
-            <option value="failed">Failed</option>
-          </select>
-        </div>
-      </div>
-
+    <div className="h-full bg-[#0A0A0A] overflow-auto">
       {/* Jobs List */}
       <div className="p-4 md:p-5">
         {jobs.length === 0 ? (
           <div className="text-center py-12 text-slate-400 relative z-10">
             <div className="flex flex-col items-center justify-center">
-              <Sparkles className="w-12 h-12 mb-3 opacity-50" style={{ maxWidth: '48px', maxHeight: '48px' }} />
               <p className="font-medium">No jobs found</p>
               <p className="text-sm mt-1">
                 {statusFilter === 'all' 

@@ -114,7 +114,7 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
     <>
       {/* Desktop Tabs */}
       <div className={cn(
-        "hidden md:block border-b border-base-300 bg-base-200",
+        "hidden md:block border-b border-white/10 bg-[#0A0A0A]",
         className
       )}>
         <div className="max-w-7xl mx-auto px-4">

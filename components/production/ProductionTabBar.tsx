@@ -123,7 +123,7 @@ export function ProductionTabBar({
   const activeStudioSubTab = isStudioActive ? activeTab : null;
 
   return (
-    <div className="border-b border-base-300 bg-base-200 w-full">
+    <div className="border-b border-white/10 bg-[#0A0A0A] w-full">
       <div className="w-full">
         {/* Top-level tabs */}
         <div className="flex flex-wrap gap-1 px-4">
@@ -132,8 +132,8 @@ export function ProductionTabBar({
             if ('subTabs' in tab) {
               const isGroupActive = tab.id === 'library' ? isLibraryActive : isStudioActive;
               const Icon = tab.icon;
-              
-              return (
+
+  return (
                 <button
                   key={tab.id}
                   onClick={() => {
@@ -221,7 +221,7 @@ export function ProductionTabBar({
 
         {/* Sub-tabs for Library group */}
         {isLibraryActive && (
-          <div className="border-t border-base-300 bg-base-200">
+          <div className="border-t border-white/10 bg-[#0A0A0A]">
             <div className="flex flex-wrap gap-1 px-4">
               {LIBRARY_SUBTABS.map((subTab) => {
                 const Icon = subTab.icon;
@@ -257,26 +257,26 @@ export function ProductionTabBar({
                       isActive ? subTab.activeColor : subTab.color
                     )} />
                     <span>{subTab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
         )}
 
         {/* Sub-tabs for Studio group */}
         {isStudioActive && (
-          <div className="border-t border-base-300 bg-base-200">
+          <div className="border-t border-white/10 bg-[#0A0A0A]">
             <div className="flex flex-wrap gap-1 px-4">
               {STUDIO_SUBTABS.map((subTab) => {
                 const Icon = subTab.icon;
                 const isActive = activeTab === subTab.id;
 
-                return (
-                  <button
+                  return (
+                      <button
                     key={subTab.id}
                     onClick={() => onTabChange(subTab.id)}
-                    className={cn(
+                        className={cn(
                       "relative flex items-center gap-2 px-4 py-3 font-medium text-sm",
                       "transition-colors duration-200",
                       "border-b-2 -mb-[2px]",
@@ -302,14 +302,14 @@ export function ProductionTabBar({
                       isActive ? subTab.activeColor : subTab.color
                     )} />
                     <span>{subTab.label}</span>
-                  </button>
-                );
-              })}
+                      </button>
+                  );
+                })}
             </div>
           </div>
-        )}
-      </div>
-    </div>
+            )}
+          </div>
+        </div>
   );
 }
 

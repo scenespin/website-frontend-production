@@ -121,7 +121,7 @@ export function LocationBankPanel({
   const selectedLocation = locations.find(l => l.locationId === selectedLocationId);
 
   return (
-    <div className={`h-full flex flex-col bg-[#1e2229] ${className}`}>
+    <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
       {/* Empty State */}
       {locations.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-5 mx-4 text-center">

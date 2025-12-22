@@ -208,7 +208,7 @@ export default function Navigation() {
   return (
     <>
       {/* Desktop Navigation */}
-      <div className="hidden md:flex bg-base-200 border-b border-base-300 w-full">
+      <div className="hidden md:flex bg-[#0A0A0A] border-b border-white/10 w-full">
         <div className="w-full px-4">
           <div className="flex items-center justify-between h-16">
             {/* Left Side: Logo + Navigation Links */}
@@ -288,7 +288,7 @@ export default function Navigation() {
       </div>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden bg-base-200 border-b border-base-300">
+      <div className="md:hidden bg-[#0A0A0A] border-b border-white/10">
         <div className="flex items-center justify-between h-16 px-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
