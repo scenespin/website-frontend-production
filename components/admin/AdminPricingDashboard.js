@@ -766,8 +766,10 @@ export default function AdminPricingDashboard() {
                                       {!provider.enabled && (
                                         <span className="badge badge-error badge-sm">❌ Disabled</span>
                                       )}
-                                      {!hasRegistry && (
-                                        <span className="badge badge-error badge-sm">📝 Not in Price Registry</span>
+                                      {hasRegistry ? (
+                                        <span className="badge badge-info badge-sm">📊 Using Registry Price</span>
+                                      ) : (
+                                        <span className="badge badge-outline badge-sm">📝 Using Config Price</span>
                                       )}
                                     </div>
                                   </td>
@@ -904,8 +906,10 @@ export default function AdminPricingDashboard() {
                                   {!provider.enabled && (
                                     <span className="badge badge-error badge-sm">❌ Disabled</span>
                                   )}
-                                  {!hasRegistry && (
-                                    <span className="badge badge-error badge-sm">📝 Not in Price Registry</span>
+                                  {hasRegistry ? (
+                                    <span className="badge badge-info badge-sm">📊 Using Registry Price</span>
+                                  ) : (
+                                    <span className="badge badge-outline badge-sm">📝 Using Config Price</span>
                                   )}
                                 </div>
                               </div>
