@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { 
   DollarSign,
@@ -354,8 +354,7 @@ export default function AdminPricingDashboard() {
                 <>
                   {/* Desktop Table View */}
                   <div className="hidden md:block w-full">
-                    <div className="overflow-x-auto max-w-full">
-                      <table className="table table-zebra w-full min-w-max">
+                    <table className="table table-zebra w-full">
                       <thead>
                         <tr>
                           <th>Provider</th>
@@ -405,7 +404,6 @@ export default function AdminPricingDashboard() {
                         })}
                       </tbody>
                     </table>
-                    </div>
                   </div>
 
                   {/* Mobile Card View */}
@@ -650,7 +648,7 @@ export default function AdminPricingDashboard() {
                   <p className="mt-4">Loading all APIs...</p>
                 </div>
               ) : (
-                <>
+                <div>
                   {/* Category Filter */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     <button
@@ -689,8 +687,7 @@ export default function AdminPricingDashboard() {
                   <div className="w-full">
                     {/* Desktop Table View */}
                     <div className="hidden lg:block w-full">
-                      <div className="overflow-x-auto max-w-full">
-                        <table className="table table-zebra w-full min-w-max">
+                      <table className="table table-zebra w-full">
                         <thead>
                           <tr>
                             <th>Provider ID</th>
@@ -802,7 +799,6 @@ export default function AdminPricingDashboard() {
                             })}
                         </tbody>
                       </table>
-                      </div>
                     </div>
 
                     {/* Mobile Card View */}
@@ -946,7 +942,7 @@ export default function AdminPricingDashboard() {
                       </div>
                     </div>
                   </div>
-                </>
+                </React.Fragment>
               )}
             </div>
           )}
