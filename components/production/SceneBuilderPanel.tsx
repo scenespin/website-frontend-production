@@ -605,7 +605,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     }
     
     fetchHeadshotsForDialogueShots();
-  }, [projectId, sceneAnalysisResult?.shotBreakdown, characterHeadshots, loadingHeadshots, getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, sceneAnalysisResult?.shotBreakdown?.shots]);
   
   // Check voice profile when character is selected
   useEffect(() => {
