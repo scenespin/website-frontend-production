@@ -34,6 +34,8 @@ export default function AdminPricingDashboard() {
   const [expandedChange, setExpandedChange] = useState(null);
   const [scraping, setScraping] = useState(false);
   const [editingPrice, setEditingPrice] = useState(null);
+  const [allProviders, setAllProviders] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [editFormData, setEditFormData] = useState({
     base_cost_usd: 0,
     retail_credits: 0,
@@ -79,6 +81,12 @@ export default function AdminPricingDashboard() {
       const marginsResult = await adminPricingApi.getLowMarginWorkflows(70, token);
       if (marginsResult.success) {
         setLowMarginWorkflows(marginsResult.workflows || []);
+      }
+
+      // Fetch all providers (comprehensive list)
+      const allProvidersResult = await adminPricingApi.getAllProviders(token);
+      if (allProvidersResult.success) {
+        setAllProviders(allProvidersResult.all || []);
       }
     } catch (error) {
       console.error('Error fetching pricing data:', error);
@@ -313,6 +321,13 @@ export default function AdminPricingDashboard() {
           {lowMarginWorkflows.length > 0 && (
             <span className="badge badge-error ml-2">{lowMarginWorkflows.length}</span>
           )}
+        </button>
+        <button
+          className={`tab ${activeTab === 'all-apis' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('all-apis')}
+        >
+          All APIs
+          <span className="badge badge-info ml-2">{allProviders.length}</span>
         </button>
       </div>
 
@@ -558,6 +573,204 @@ export default function AdminPricingDashboard() {
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          )}
+
+          {/* All APIs Tab - Comprehensive Manual Editing */}
+          {activeTab === 'all-apis' && (
+            <div className="space-y-4">
+              {loading ? (
+                <div className="text-center py-8">
+                  <span className="loading loading-spinner loading-lg"></span>
+                  <p className="mt-4">Loading all APIs...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Category Filter */}
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      className={`btn btn-sm ${selectedCategory === 'all' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => setSelectedCategory('all')}
+                    >
+                      All ({allProviders.length})
+                    </button>
+                    <button
+                      className={`btn btn-sm ${selectedCategory === 'video' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => setSelectedCategory('video')}
+                    >
+                      Video ({allProviders.filter(p => p.category === 'video').length})
+                    </button>
+                    <button
+                      className={`btn btn-sm ${selectedCategory === 'image' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => setSelectedCategory('image')}
+                    >
+                      Image ({allProviders.filter(p => p.category === 'image').length})
+                    </button>
+                    <button
+                      className={`btn btn-sm ${selectedCategory === 'audio' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => setSelectedCategory('audio')}
+                    >
+                      Audio ({allProviders.filter(p => p.category === 'audio').length})
+                    </button>
+                    <button
+                      className={`btn btn-sm ${selectedCategory === 'llm' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => setSelectedCategory('llm')}
+                    >
+                      LLM ({allProviders.filter(p => p.category === 'llm').length})
+                    </button>
+                  </div>
+
+                  {/* Providers Table */}
+                  <div className="overflow-x-auto">
+                    <table className="table table-zebra w-full">
+                      <thead>
+                        <tr>
+                          <th>Provider ID</th>
+                          <th>Label</th>
+                          <th className="text-right">Config Cost (USD)</th>
+                          <th className="text-right">Registry Cost (USD)</th>
+                          <th className="text-right">Config Credits</th>
+                          <th className="text-right">Registry Credits</th>
+                          <th className="text-right">Config Margin</th>
+                          <th className="text-right">Registry Margin</th>
+                          <th className="text-center">Status</th>
+                          <th className="text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allProviders
+                          .filter(p => selectedCategory === 'all' || p.category === selectedCategory)
+                          .map((provider) => {
+                            const hasRegistry = provider.has_registry_entry;
+                            const costDiff = provider.registry_cost_usd !== null 
+                              ? ((provider.registry_cost_usd - provider.config_cost_usd) / provider.config_cost_usd * 100).toFixed(1)
+                              : null;
+                            
+                            return (
+                              <tr 
+                                key={`${provider.provider_id}-${provider.operation_type}`}
+                                className={!hasRegistry ? 'opacity-60' : ''}
+                              >
+                                <td className="font-mono text-sm">{provider.provider_id}</td>
+                                <td>
+                                  <div className="font-medium">{provider.label}</div>
+                                  <div className="text-xs opacity-70">{provider.description}</div>
+                                </td>
+                                <td className="text-right font-mono">
+                                  ${(provider.config_cost_usd || 0).toFixed(4)}
+                                </td>
+                                <td className="text-right font-mono">
+                                  {provider.registry_cost_usd !== null ? (
+                                    <span className={costDiff && Math.abs(costDiff) > 5 ? 'text-warning' : ''}>
+                                      ${(provider.registry_cost_usd || 0).toFixed(4)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-error">Not in registry</span>
+                                  )}
+                                </td>
+                                <td className="text-right font-mono">
+                                  {provider.config_credits || '-'}
+                                </td>
+                                <td className="text-right font-mono">
+                                  {provider.registry_credits !== null ? provider.registry_credits : '-'}
+                                </td>
+                                <td className="text-right">
+                                  {provider.config_margin !== null ? (
+                                    <span className="badge badge-info">{provider.config_margin.toFixed(1)}%</span>
+                                  ) : '-'}
+                                </td>
+                                <td className="text-right">
+                                  {provider.registry_margin !== null ? (
+                                    <span className={`badge ${
+                                      provider.registry_margin < 60 ? 'badge-error' :
+                                      provider.registry_margin < 70 ? 'badge-warning' :
+                                      'badge-success'
+                                    }`}>
+                                      {provider.registry_margin.toFixed(1)}%
+                                    </span>
+                                  ) : '-'}
+                                </td>
+                                <td className="text-center">
+                                  <div className="flex flex-col gap-1">
+                                    {provider.enabled && (
+                                      <span className="badge badge-success badge-sm">Enabled</span>
+                                    )}
+                                    {provider.launchReady && (
+                                      <span className="badge badge-info badge-sm">Launch Ready</span>
+                                    )}
+                                    {!hasRegistry && (
+                                      <span className="badge badge-error badge-sm">No Registry Entry</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="text-center">
+                                  <button
+                                    onClick={() => {
+                                      // Create a price entry if it doesn't exist, or edit existing
+                                      const priceToEdit = hasRegistry ? {
+                                        provider_id: provider.provider_id,
+                                        operation_type: provider.operation_type,
+                                        base_cost_usd: provider.registry_cost_usd,
+                                        retail_credits: provider.registry_credits,
+                                        margin_percent: provider.registry_margin,
+                                        notes: ''
+                                      } : {
+                                        provider_id: provider.provider_id,
+                                        operation_type: provider.operation_type,
+                                        base_cost_usd: provider.config_cost_usd,
+                                        retail_credits: provider.config_credits,
+                                        margin_percent: provider.config_margin,
+                                        notes: 'Initial entry from config'
+                                      };
+                                      handleEditPrice(priceToEdit);
+                                    }}
+                                    className="btn btn-sm btn-ghost"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-4 gap-4 mt-6">
+                    <div className="card bg-base-200">
+                      <div className="card-body p-4">
+                        <div className="text-2xl font-bold">{allProviders.length}</div>
+                        <div className="text-sm opacity-70">Total APIs</div>
+                      </div>
+                    </div>
+                    <div className="card bg-base-200">
+                      <div className="card-body p-4">
+                        <div className="text-2xl font-bold text-success">
+                          {allProviders.filter(p => p.has_registry_entry).length}
+                        </div>
+                        <div className="text-sm opacity-70">In Registry</div>
+                      </div>
+                    </div>
+                    <div className="card bg-base-200">
+                      <div className="card-body p-4">
+                        <div className="text-2xl font-bold text-error">
+                          {allProviders.filter(p => !p.has_registry_entry).length}
+                        </div>
+                        <div className="text-sm opacity-70">Missing from Registry</div>
+                      </div>
+                    </div>
+                    <div className="card bg-base-200">
+                      <div className="card-body p-4">
+                        <div className="text-2xl font-bold text-info">
+                          {allProviders.filter(p => p.enabled && p.launchReady).length}
+                        </div>
+                        <div className="text-sm opacity-70">Enabled & Launch Ready</div>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}

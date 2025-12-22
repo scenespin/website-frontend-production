@@ -410,3 +410,39 @@ export async function getWorkflowCost(
   }
 }
 
+/**
+ * Get all providers from config files (comprehensive list for manual editing)
+ */
+export async function getAllProviders(token?: string): Promise<{
+  success: boolean
+  all?: any[]
+  by_category?: any
+  total?: number
+  error?: string
+}> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch('/api/admin/pricing/all-providers', {
+      method: 'GET',
+      headers,
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return { success: true, ...data }
+  } catch (error: any) {
+    console.error('Error fetching all providers:', error)
+    return { success: false, error: error.message }
+  }
+}
+
