@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Shield, Search, Download, Trash2, Filter, Calendar, User, AlertTriangle, CheckCircle, Info, XCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -18,6 +19,7 @@ import toast from 'react-hot-toast';
  * Add to your admin dashboard page.
  */
 export default function AdminVoiceConsentDashboard() {
+  const { getToken } = useAuth();
   const [consents, setConsents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +47,12 @@ export default function AdminVoiceConsentDashboard() {
   const loadConsents = async () => {
     setLoading(true);
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '20',
@@ -54,7 +62,11 @@ export default function AdminVoiceConsentDashboard() {
         search: searchQuery,
       });
 
-      const response = await fetch(`/api/admin/voice-consents?${params}`);
+      const response = await fetch(`/api/admin/voice-consents?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
 
       if (response.ok) {
@@ -74,8 +86,16 @@ export default function AdminVoiceConsentDashboard() {
 
   const handleDelete = async (consentId) => {
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
       const response = await fetch(`/api/admin/voice-consents/${consentId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       const data = await response.json();
@@ -105,8 +125,18 @@ export default function AdminVoiceConsentDashboard() {
     }
 
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
       const promises = Array.from(selectedConsents).map(id =>
-        fetch(`/api/admin/voice-consents/${id}`, { method: 'DELETE' })
+        fetch(`/api/admin/voice-consents/${id}`, { 
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
       );
 
       await Promise.all(promises);
@@ -121,12 +151,21 @@ export default function AdminVoiceConsentDashboard() {
 
   const handleExport = async (format = 'csv') => {
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
       const params = new URLSearchParams({
         status: statusFilter,
         format,
       });
 
-      const response = await fetch(`/api/admin/voice-consents/export?${params}`);
+      const response = await fetch(`/api/admin/voice-consents/export?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

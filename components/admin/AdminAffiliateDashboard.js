@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { 
   Users, 
   DollarSign, 
@@ -22,6 +22,7 @@ import {
  */
 export default function AdminAffiliateDashboard() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState(null);
   const [affiliates, setAffiliates] = useState([]);
@@ -40,12 +41,22 @@ export default function AdminAffiliateDashboard() {
     setLoading(true);
     
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        console.error('[Admin Affiliates] No auth token');
+        return;
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+      };
+
       // Fetch all admin data in parallel
       const [overviewRes, affiliatesRes, topPerformersRes, pendingPayoutsRes] = await Promise.all([
-        fetch('/api/admin/affiliates/overview'),
-        fetch(`/api/admin/affiliates?status=${statusFilter === 'all' ? '' : statusFilter}`),
-        fetch('/api/admin/affiliates/top-performers?limit=10'),
-        fetch('/api/admin/affiliates/payouts/pending'),
+        fetch('/api/admin/affiliates/overview', { headers }),
+        fetch(`/api/admin/affiliates?status=${statusFilter === 'all' ? '' : statusFilter}`, { headers }),
+        fetch('/api/admin/affiliates/top-performers?limit=10', { headers }),
+        fetch('/api/admin/affiliates/payouts/pending', { headers }),
       ]);
 
       const overviewData = await overviewRes.json();
@@ -66,8 +77,16 @@ export default function AdminAffiliateDashboard() {
 
   async function approveAffiliate(affiliateId) {
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
       await fetch(`/api/admin/affiliates/${affiliateId}/approve`, {
         method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
       fetchDashboardData();
     } catch (error) {
@@ -80,9 +99,17 @@ export default function AdminAffiliateDashboard() {
     if (!reason) return;
 
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
       await fetch(`/api/admin/affiliates/${affiliateId}/suspend`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ reason }),
       });
       fetchDashboardData();

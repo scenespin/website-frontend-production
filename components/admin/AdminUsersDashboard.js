@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { 
   Users, 
   Search, 
@@ -25,6 +25,7 @@ import {
  */
 export default function AdminUsersDashboard() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -50,6 +51,12 @@ export default function AdminUsersDashboard() {
     setLoading(true);
     
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        console.error('[Admin Users] No auth token');
+        return;
+      }
+
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
@@ -57,7 +64,11 @@ export default function AdminUsersDashboard() {
         ...(filters.status && { status: filters.status }),
       });
 
-      const response = await fetch(`/api/admin/users?${params}`);
+      const response = await fetch(`/api/admin/users?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
 
       setUsers(data.users || []);
@@ -74,9 +85,17 @@ export default function AdminUsersDashboard() {
     if (!amount) return;
 
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
       await fetch(`/api/admin/users/${userId}/credits`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ adjustment: parseInt(amount) }),
       });
       fetchUsers();
@@ -88,9 +107,17 @@ export default function AdminUsersDashboard() {
 
   async function handleTierChange(userId, newTier) {
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
       await fetch(`/api/admin/users/${userId}/tier`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ tier: newTier }),
       });
       fetchUsers();
@@ -106,8 +133,16 @@ export default function AdminUsersDashboard() {
     }
 
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
       await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
       fetchUsers();
     } catch (error) {

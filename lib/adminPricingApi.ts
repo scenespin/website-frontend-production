@@ -63,13 +63,19 @@ export interface ScrapingReport {
 /**
  * Fetch all prices from the registry
  */
-export async function getPriceRegistry(): Promise<{ success: boolean; prices: PriceEntry[]; error?: string }> {
+export async function getPriceRegistry(token?: string): Promise<{ success: boolean; prices: PriceEntry[]; error?: string }> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch('/api/admin/pricing/registry', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
@@ -116,14 +122,21 @@ export async function getProviderPrice(
 export async function updateProviderPrice(
   providerId: string,
   newCostUsd: number,
-  source: 'manual' | 'web_scraper' = 'manual'
+  source: 'manual' | 'web_scraper' = 'manual',
+  token?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`/api/admin/pricing/registry/${providerId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         new_cost_usd: newCostUsd,
         source,
@@ -146,18 +159,25 @@ export async function updateProviderPrice(
  */
 export async function getPriceChanges(
   status?: 'pending' | 'approved' | 'rejected',
-  limit?: number
+  limit?: number,
+  token?: string
 ): Promise<{ success: boolean; changes: PriceChange[]; error?: string }> {
   try {
     const params = new URLSearchParams()
     if (status) params.append('status', status)
     if (limit) params.append('limit', limit.toString())
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`/api/admin/pricing/changes?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
@@ -175,13 +195,19 @@ export async function getPriceChanges(
 /**
  * Approve a price change
  */
-export async function approvePriceChange(changeId: string): Promise<{ success: boolean; error?: string }> {
+export async function approvePriceChange(changeId: string, token?: string): Promise<{ success: boolean; error?: string }> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`/api/admin/pricing/changes/${changeId}/approve`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
@@ -200,14 +226,21 @@ export async function approvePriceChange(changeId: string): Promise<{ success: b
  */
 export async function rejectPriceChange(
   changeId: string,
-  reason?: string
+  reason?: string,
+  token?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`/api/admin/pricing/changes/${changeId}/reject`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ reason }),
     })
 
@@ -226,14 +259,21 @@ export async function rejectPriceChange(
  * Get low margin workflows
  */
 export async function getLowMarginWorkflows(
-  threshold: number = 70
+  threshold: number = 70,
+  token?: string
 ): Promise<{ success: boolean; workflows: WorkflowCost[]; error?: string }> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`/api/admin/pricing/margins/low?threshold=${threshold}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
@@ -279,17 +319,23 @@ export async function getPricesNeedingVerification(): Promise<{
 /**
  * Trigger manual price scraping job
  */
-export async function triggerPriceScraping(): Promise<{
+export async function triggerPriceScraping(token?: string): Promise<{
   success: boolean
   report?: ScrapingReport
   error?: string
 }> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch('/api/admin/pricing/scrape', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {

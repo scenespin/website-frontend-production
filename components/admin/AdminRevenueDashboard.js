@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -24,6 +24,7 @@ import {
  */
 export default function AdminRevenueDashboard() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState(null);
   const [funnel, setFunnel] = useState(null);
@@ -42,12 +43,22 @@ export default function AdminRevenueDashboard() {
     setError(null);
     
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        setError('Authentication required');
+        return;
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+      };
+
       // Fetch all revenue data in parallel
       const [metricsRes, funnelRes, burnRateRes, upgradeStatsRes] = await Promise.all([
-        fetch('/api/admin/revenue/metrics'),
-        fetch('/api/admin/revenue/conversion-funnel'),
-        fetch('/api/admin/revenue/free-tier-burn'),
-        fetch('/api/admin/revenue/upgrade-stats'),
+        fetch('/api/admin/revenue/metrics', { headers }),
+        fetch('/api/admin/revenue/conversion-funnel', { headers }),
+        fetch('/api/admin/revenue/free-tier-burn', { headers }),
+        fetch('/api/admin/revenue/upgrade-stats', { headers }),
       ]);
 
       if (!metricsRes.ok) throw new Error('Failed to fetch metrics');

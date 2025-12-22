@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { 
   Settings,
   Database,
@@ -22,6 +22,7 @@ import {
  */
 export default function AdminSettingsDashboard() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [systemStatus, setSystemStatus] = useState(null);
   const [showEnvVars, setShowEnvVars] = useState(false);
@@ -37,7 +38,10 @@ export default function AdminSettingsDashboard() {
     setLoading(true);
     
     try {
-      const response = await fetch('/api/health');
+      const token = await getToken({ template: 'wryda-backend' });
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      
+      const response = await fetch('/api/health', { headers });
       const data = await response.json();
       setSystemStatus(data);
     } catch (error) {
@@ -49,7 +53,16 @@ export default function AdminSettingsDashboard() {
 
   async function fetchEnvVars() {
     try {
-      const response = await fetch('/api/admin/env-status');
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
+      const response = await fetch('/api/admin/env-status', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
       setEnvVars(data.variables || []);
       setShowEnvVars(true);
