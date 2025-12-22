@@ -126,7 +126,7 @@ export function ProductionTabBar({
     <div className="border-b border-base-300 bg-base-200">
       <div className="max-w-7xl mx-auto">
         {/* Top-level tabs */}
-        <div className="flex gap-1 overflow-x-auto px-4">
+        <div className="flex flex-wrap gap-1 px-4">
           {TOP_LEVEL_TABS.map((tab) => {
             // Handle group tabs (library, studio)
             if ('subTabs' in tab) {
@@ -222,7 +222,7 @@ export function ProductionTabBar({
         {/* Sub-tabs for Library group */}
         {isLibraryActive && (
           <div className="border-t border-base-300 bg-base-200">
-            <div className="flex gap-1 overflow-x-auto px-4">
+            <div className="flex flex-wrap gap-1 px-4">
               {LIBRARY_SUBTABS.map((subTab) => {
                 const Icon = subTab.icon;
                 const isActive = activeTab === subTab.id;
@@ -267,7 +267,7 @@ export function ProductionTabBar({
         {/* Sub-tabs for Studio group */}
         {isStudioActive && (
           <div className="border-t border-base-300 bg-base-200">
-            <div className="flex gap-1 overflow-x-auto px-4">
+            <div className="flex flex-wrap gap-1 px-4">
               {STUDIO_SUBTABS.map((subTab) => {
                 const Icon = subTab.icon;
                 const isActive = activeTab === subTab.id;
