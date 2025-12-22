@@ -774,7 +774,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   return (
     <div className="h-full bg-[#0A0A0A] overflow-auto">
       {/* Header with filter */}
-      <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
+      <div className="flex items-center justify-between p-4 md:p-5 border-b border-slate-700/50">
         <div className="flex items-center gap-2">
           <h3 className="text-xl font-semibold text-slate-200">
             Workflow Jobs
@@ -803,7 +803,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       </div>
 
       {/* Jobs List */}
-      <div className="p-6">
+      <div className="p-4 md:p-5">
         {jobs.length === 0 ? (
           <div className="text-center py-12 text-slate-400 relative z-10">
             <div className="flex flex-col items-center justify-center">

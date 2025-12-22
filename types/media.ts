@@ -29,6 +29,7 @@ export interface MediaFile {
   fileUrl?: string; // DEPRECATED: Will be removed in Phase 2B/C. Use s3Key with on-demand presigned URL generation instead.
   folderId?: string; // Feature 0128: S3 folder ID (if file is in a folder)
   folderPath?: string[]; // Feature 0128: Breadcrumb path array for folder navigation
+  metadata?: Record<string, any>; // Feature 0170: Generation metadata (entityType, sceneId, etc.)
 }
 
 /**

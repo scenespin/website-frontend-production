@@ -88,7 +88,7 @@ export function useMediaFiles(screenplayId: string, folderId?: string, enabled: 
       const backendFiles = data.files || [];
 
       // Map backend format to frontend MediaFile format
-      // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt }
+      // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt, metadata }
       // Frontend expects: { id, fileName, s3Key, fileType (enum), fileSize, storageType, uploadedAt, folderId, folderPath }
       return backendFiles.map((file) => ({
         id: file.fileId,
@@ -102,6 +102,7 @@ export function useMediaFiles(screenplayId: string, folderId?: string, enabled: 
         thumbnailUrl: undefined,
         folderId: file.folderId, // Feature 0128: S3 folder support
         folderPath: file.folderPath, // Feature 0128: Breadcrumb path
+        metadata: file.metadata, // Feature 0170: Include metadata for scene organization
       }));
     },
     enabled: enabled && !!screenplayId,

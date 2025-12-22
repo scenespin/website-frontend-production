@@ -38,7 +38,8 @@ import {
   X,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 
 // Phase 2 Components (Feature 0109)
@@ -49,6 +50,7 @@ import CreativePossibilitiesGallery from './CreativePossibilitiesGallery';
 
 // Existing components
 import { SceneBuilderPanel } from './SceneBuilderPanel';
+import { ScenesPanel } from './ScenesPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { LocationBankPanel } from './LocationBankPanel';
 import AssetBankPanel from './AssetBankPanel';
@@ -56,6 +58,7 @@ import { ProductionJobsPanel } from './ProductionJobsPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { QuickActions } from './QuickActions';
 import { ProductionErrorBoundary } from './ProductionErrorBoundary';
+import { ProductionTabBar } from './ProductionTabBar';
 
 // ============================================================================
 // TYPES
@@ -64,12 +67,13 @@ import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 type ProductionTab = 
   | 'overview'      // Dashboard + Creative Gallery
   | 'scene-builder' // Screenplay-driven scene generation
+  | 'scenes'        // Scene videos & storyboard (Feature 0170)
   | 'media'         // Media Library + Style Analyzer
-  | 'characters'    // Character Bank
-  | 'locations'     // Location Bank
-  | 'assets'        // Asset Bank
+  | 'banks'         // Banks (Characters, Locations, Assets via dropdown)
   | 'jobs';         // Job Monitoring
   // Note: AI Chat is now a drawer (not a tab) - triggered from various buttons
+
+type BankTab = 'characters' | 'locations' | 'assets';
 
 interface ProductionHubProps {
   // Removed projectId prop - screenplayId comes from ScreenplayContext
@@ -100,6 +104,7 @@ export function ProductionHub({}: ProductionHubProps) {
   // State - sync with URL params (ALL HOOKS MUST BE CALLED BEFORE EARLY RETURN)
   // 🔥 FIX: Initialize with default, then sync from URL in useEffect to prevent React error #300
   const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
+  const [activeBankId, setActiveBankId] = useState<BankTab | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
@@ -118,9 +123,16 @@ export function ProductionHub({}: ProductionHubProps) {
     }
     
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
-    if (tabFromUrl && ['overview', 'scene-builder', 'media', 'characters', 'locations', 'assets', 'jobs'].includes(tabFromUrl)) {
+    const bankFromUrl = searchParams.get('bank') as BankTab | null;
+    
+    if (tabFromUrl && ['overview', 'scene-builder', 'scenes', 'media', 'banks', 'jobs'].includes(tabFromUrl)) {
       // Only update if different to prevent React error #300 (circular updates)
       setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
+      
+      // Handle bank selection from URL
+      if (tabFromUrl === 'banks' && bankFromUrl && ['characters', 'locations', 'assets'].includes(bankFromUrl)) {
+        setActiveBankId(bankFromUrl);
+      }
     } else {
       // If no tab in URL, set to 'overview' (but only if not already 'overview' to prevent unnecessary updates)
       setActiveTab(prevTab => prevTab !== 'overview' ? 'overview' : prevTab);
@@ -202,10 +214,29 @@ export function ProductionHub({}: ProductionHubProps) {
       const newUrl = new URL(window.location.href);
       if (tab === 'overview') {
         newUrl.searchParams.delete('tab');
+        newUrl.searchParams.delete('bank');
       } else {
         newUrl.searchParams.set('tab', tab);
+        if (tab === 'banks' && activeBankId) {
+          newUrl.searchParams.set('bank', activeBankId);
+        } else if (tab !== 'banks') {
+          newUrl.searchParams.delete('bank');
+        }
       }
       // Use router.push instead of window.history.pushState to let Next.js handle it properly
+      router.push(newUrl.pathname + newUrl.search, { scroll: false });
+    }, 0);
+  };
+
+  // Handle bank selection from dropdown
+  const handleBankChange = (bankId: BankTab) => {
+    setActiveBankId(bankId);
+    setActiveTab('banks');
+    isUpdatingTabRef.current = true;
+    setTimeout(() => {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('tab', 'banks');
+      newUrl.searchParams.set('bank', bankId);
       router.push(newUrl.pathname + newUrl.search, { scroll: false });
     }, 0);
   };
@@ -214,50 +245,7 @@ export function ProductionHub({}: ProductionHubProps) {
   // TAB CONFIGURATION
   // ============================================================================
 
-  const tabs: TabConfig[] = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      icon: <Sparkles className="w-5 h-5" />,
-      description: 'Project dashboard & creative possibilities'
-    },
-    {
-      id: 'scene-builder',
-      label: 'Scene Builder',
-      icon: <Video className="w-5 h-5" />,
-      description: 'Generate scenes from screenplay'
-    },
-    {
-      id: 'media',
-      label: 'Media',
-      icon: <FolderOpen className="w-5 h-5" />,
-      description: 'Uploads & style matching'
-    },
-    {
-      id: 'characters',
-      label: 'Characters',
-      icon: <Users className="w-5 h-5" />,
-      description: 'Character bank & references'
-    },
-    {
-      id: 'locations',
-      label: 'Locations',
-      icon: <MapPin className="w-5 h-5" />,
-      description: 'Location bank & references'
-    },
-    {
-      id: 'assets',
-      label: 'Assets',
-      icon: <Box className="w-5 h-5" />,
-      description: '3D models & props'
-    },
-    {
-      id: 'jobs',
-      label: 'Jobs',
-      icon: <Clock className="w-5 h-5" />,
-      description: 'Monitor generation status'
-    }
-  ];
+  // Tab configuration removed - now using ProductionTabBar component
 
   // ============================================================================
   // HANDLERS
@@ -334,20 +322,14 @@ export function ProductionHub({}: ProductionHubProps) {
           </div>
         )}
 
-        {/* Mobile Tab Selector (Dropdown) */}
-        <div className="bg-gray-900 border-b border-gray-800 p-3">
-          <select
-            value={activeTab}
-            onChange={(e) => handleTabChange(e.target.value as ProductionTab)}
-            className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            {tabs.map((tab) => (
-              <option key={tab.id} value={tab.id}>
-                {tab.label} - {tab.description}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Mobile Tab Navigation */}
+        <ProductionTabBar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          activeBankId={activeBankId}
+          onBankChange={handleBankChange}
+          jobCount={activeJobs}
+        />
 
         {/* Mobile Content */}
         <div className="flex-1 overflow-hidden">
@@ -399,33 +381,31 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'characters' && (
+          {activeTab === 'banks' && (
             <div className="h-full overflow-y-auto">
-              <ProductionErrorBoundary componentName="Character Bank">
-                <CharacterBankPanel
-                  className="h-full"
-                />
-              </ProductionErrorBoundary>
-            </div>
-          )}
-
-          {activeTab === 'locations' && (
-            <div className="h-full overflow-y-auto">
-              <ProductionErrorBoundary componentName="Location Bank">
-                <LocationBankPanel
-                  className="h-full"
-                />
-              </ProductionErrorBoundary>
-            </div>
-          )}
-
-          {activeTab === 'assets' && (
-            <div className="h-full overflow-y-auto">
-              <ProductionErrorBoundary componentName="Asset Bank">
-                <AssetBankPanel
-                  className="h-full"
-                />
-              </ProductionErrorBoundary>
+              {activeBankId === 'characters' && (
+                <ProductionErrorBoundary componentName="Character Bank">
+                  <CharacterBankPanel className="h-full" />
+                </ProductionErrorBoundary>
+              )}
+              {activeBankId === 'locations' && (
+                <ProductionErrorBoundary componentName="Location Bank">
+                  <LocationBankPanel className="h-full" />
+                </ProductionErrorBoundary>
+              )}
+              {activeBankId === 'assets' && (
+                <ProductionErrorBoundary componentName="Asset Bank">
+                  <AssetBankPanel className="h-full" />
+                </ProductionErrorBoundary>
+              )}
+              {!activeBankId && (
+                <div className="flex items-center justify-center h-full p-4">
+                  <div className="text-center">
+                    <Building2 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm">Select a bank from the dropdown</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -442,129 +422,48 @@ export function ProductionHub({}: ProductionHubProps) {
   }
 
   // ============================================================================
-  // RENDER: DESKTOP LAYOUT
+  // RENDER: DESKTOP LAYOUT (Horizontal Tabs - Matching Creation Area)
   // ============================================================================
 
   return (
-    <div className="flex h-screen bg-gray-950">
-      {/* Sidebar Navigation */}
-      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col relative z-10">
-        {/* Project Header */}
-        <div className="p-4 border-b border-gray-800">
-          <h2 className="text-lg font-bold text-white mb-1">Production Hub</h2>
-          <p className="text-sm text-gray-400 truncate">
-            {screenplay.screenplayId ? `${screenplay.scenes?.length || 0} scenes` : 'No screenplay'}
-          </p>
-        </div>
+    <div className="flex flex-col h-screen bg-[#0A0A0A]">
+      {/* Horizontal Tab Navigation */}
+      <ProductionTabBar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        activeBankId={activeBankId}
+        onBankChange={handleBankChange}
+        jobCount={activeJobs}
+      />
 
-        {/* Navigation Tabs */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                  ${isActive 
-                    ? 'bg-purple-600 text-white shadow-lg' 
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }
-                `}
-              >
-                <span className={isActive ? 'text-white' : 'text-gray-500'}>
-                  {tab.icon}
-                </span>
-                <div className="flex-1 text-left">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{tab.label}</span>
-                    {tab.badge && (
-                      <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </div>
-                  {!isActive && (
-                    <p className="text-xs text-gray-500 mt-0.5">{tab.description}</p>
-                  )}
-                </div>
-                {isActive && <ChevronRight className="w-4 h-4" />}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Help Footer */}
-        <div className="p-4 border-t border-gray-800">
-          <div className="bg-purple-900/30 border border-purple-700/50 rounded-lg p-3">
-            <p className="text-sm text-purple-300 font-medium mb-1">💡 Quick Tip</p>
-            <p className="text-xs text-purple-200">
-              Start with the AI Chat for guided workflows, or use Scene Builder for screenplay-driven generation.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Active Jobs Banner */}
-        {activeJobs > 0 && showJobsBanner && (
-          <div className="bg-blue-950 border-b border-blue-800 px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-blue-100">
-                  {activeJobs} {activeJobs === 1 ? 'job' : 'jobs'} running
-                </p>
-                <p className="text-xs text-blue-300">
-                  Videos generating in background • Auto-refreshing every 10s
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleTabChange('jobs')}
-                className="text-sm px-4 py-2 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded-lg transition-colors flex items-center gap-2 font-medium"
-              >
-                <Clock className="w-4 h-4" />
-                View Jobs
-              </button>
-              <button
-                onClick={() => setShowJobsBanner(false)}
-                className="p-2 hover:bg-blue-800 rounded-lg text-blue-300 hover:text-blue-100 transition-colors"
-                title="Dismiss banner"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Content Header */}
-        <div className="bg-gray-900 border-b border-gray-800 px-6 py-4">
-          <div className="flex items-center justify-between">
+      {/* Active Jobs Banner */}
+      {activeJobs > 0 && showJobsBanner && (
+        <div className="bg-blue-950 border-b border-blue-800 px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 text-blue-400 animate-spin flex-shrink-0" />
             <div>
-              <h1 className="text-2xl font-bold text-white mb-1">
-                {tabs.find(t => t.id === activeTab)?.label}
-              </h1>
-              <p className="text-sm text-gray-400">
-                {tabs.find(t => t.id === activeTab)?.description}
+              <p className="text-xs font-semibold text-blue-100">
+                {activeJobs} {activeJobs === 1 ? 'job' : 'jobs'} running
               </p>
             </div>
-
-            {/* Quick Actions */}
-            {activeTab === 'media' && (
-              <button
-                onClick={() => setShowStyleAnalyzer(!showStyleAnalyzer)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                {showStyleAnalyzer ? 'Hide' : 'Show'} Style Analyzer
-              </button>
-            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleTabChange('jobs')}
+              className="text-xs px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded transition-colors flex items-center gap-1"
+            >
+              View
+              <ChevronRight className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => setShowJobsBanner(false)}
+              className="p-1 hover:bg-blue-800 rounded text-blue-300 hover:text-blue-100"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
+      )}
 
         {/* Tab Content */}
         <div className="flex-1 overflow-hidden bg-gray-950">
@@ -592,22 +491,22 @@ export function ProductionHub({}: ProductionHubProps) {
 
           {activeTab === 'media' && (
             <div className="h-full overflow-y-auto">
-              <div className="p-6">
+              <div className="p-4 md:p-5">
                 <MediaLibrary
                   projectId={screenplayId}
                   onSelectFile={handleMediaSelect}
-                  className="mb-6"
+                  className="mb-4 md:mb-5"
                 />
 
                 {showStyleAnalyzer && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold text-white">Style Analyzer</h3>
+                  <div className="mt-4 md:mt-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg md:text-xl font-semibold text-white">Style Analyzer</h3>
                       <button
                         onClick={() => setShowStyleAnalyzer(false)}
-                        className="p-2 text-gray-400 hover:text-white transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-white transition-colors"
                       >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
                     <StyleAnalyzer
@@ -620,33 +519,45 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'characters' && (
+          {activeTab === 'scenes' && (
             <div className="h-full overflow-y-auto">
-              <CharacterBankPanel
+              <ScenesPanel
                 className="h-full"
               />
             </div>
           )}
 
-          {activeTab === 'locations' && (
+          {activeTab === 'banks' && (
             <div className="h-full overflow-y-auto">
-              <LocationBankPanel
-                className="h-full"
-              />
-            </div>
-          )}
-
-          {activeTab === 'assets' && (
-            <div className="h-full overflow-y-auto">
-              <AssetBankPanel
-                className="h-full"
-              />
+              {activeBankId === 'characters' && (
+                <ProductionErrorBoundary componentName="Character Bank">
+                  <CharacterBankPanel className="h-full" />
+                </ProductionErrorBoundary>
+              )}
+              {activeBankId === 'locations' && (
+                <ProductionErrorBoundary componentName="Location Bank">
+                  <LocationBankPanel className="h-full" />
+                </ProductionErrorBoundary>
+              )}
+              {activeBankId === 'assets' && (
+                <ProductionErrorBoundary componentName="Asset Bank">
+                  <AssetBankPanel className="h-full" />
+                </ProductionErrorBoundary>
+              )}
+              {!activeBankId && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Building2 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400">Select a bank from the dropdown</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto">
-              <div className="p-6">
+              <div className="p-4 md:p-5">
                 <ProductionJobsPanel />
               </div>
             </div>
@@ -686,7 +597,7 @@ function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobi
 
       {/* Welcome Section with Quick Actions */}
       <div className="bg-gradient-to-br from-[#DC143C]/20 to-[#1F1F1F] border border-[#DC143C]/30 rounded-xl p-4 md:p-5">
-        <h2 className="text-xl md:text-2xl font-bold text-[#FFFFFF] mb-2 md:mb-3">
+        <h2 className="text-lg md:text-xl font-semibold text-[#FFFFFF] mb-2">
           Welcome to Production Hub
         </h2>
         <p className="text-sm md:text-base text-[#B3B3B3] mb-3 md:mb-4">
@@ -710,25 +621,25 @@ function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobi
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
             <p className="text-xs md:text-sm text-[#808080] mb-1">Scenes</p>
-            <p className="text-xl md:text-2xl font-bold text-[#FFFFFF]">
+            <p className="text-lg md:text-xl font-bold text-[#FFFFFF]">
               {screenplay.scenes?.length || 0}
             </p>
           </div>
           <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
             <p className="text-xs md:text-sm text-[#808080] mb-1">Characters</p>
-            <p className="text-xl md:text-2xl font-bold text-[#FFFFFF]">
+            <p className="text-lg md:text-xl font-bold text-[#FFFFFF]">
               {screenplay.characters?.length || 0}
             </p>
           </div>
           <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
             <p className="text-xs md:text-sm text-[#808080] mb-1">Locations</p>
-            <p className="text-xl md:text-2xl font-bold text-[#FFFFFF]">
+            <p className="text-lg md:text-xl font-bold text-[#FFFFFF]">
               {screenplay.locations?.length || 0}
             </p>
           </div>
           <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
             <p className="text-xs md:text-sm text-[#808080] mb-1">Jobs Running</p>
-            <p className="text-xl md:text-2xl font-bold text-[#DC143C]">0</p>
+            <p className="text-lg md:text-xl font-bold text-[#DC143C]">0</p>
           </div>
         </div>
       )}

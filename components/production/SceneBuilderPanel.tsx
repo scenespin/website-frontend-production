@@ -2347,9 +2347,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     // Show detailed options toast after a brief delay
     setTimeout(() => {
       toast.custom((t) => (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-border p-6 max-w-md">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-2xl">🎬</span>
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-border p-4 md:p-5 max-w-md">
+          <div className="flex items-center gap-3 mb-3">
+            <Film className="w-5 h-5" />
             <div>
               <h3 className="font-bold text-lg">Next Steps</h3>
               <p className="text-sm text-muted-foreground">Choose your workflow</p>

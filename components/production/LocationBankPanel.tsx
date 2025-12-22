@@ -134,7 +134,7 @@ export function LocationBankPanel({
 
       {/* Empty State */}
       {locations.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-5 text-center">
           <MapPin className="w-12 h-12 text-[#808080] mb-3" />
           <p className="text-sm font-medium text-[#B3B3B3] mb-1">No locations yet</p>
           <p className="text-xs text-[#808080] mb-4">
