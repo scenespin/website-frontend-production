@@ -555,6 +555,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             const data = await response.json();
             const character = data.character;
             
+            console.log(`[SceneBuilderPanel] Fetched character ${characterId}:`, {
+              hasCharacter: !!character,
+              poseRefsCount: character?.poseReferences?.length || 0,
+              angleRefsCount: character?.angleReferences?.length || 0,
+              poseRefs: character?.poseReferences?.slice(0, 3).map((r: any) => ({
+                poseId: r.poseId || r.metadata?.poseId,
+                hasImageUrl: !!r.imageUrl,
+                hasS3Key: !!r.s3Key,
+                label: r.label
+              }))
+            });
+            
             // Filter to only headshot poses
             // Combine poseReferences and angleReferences (they serve the same purpose)
             const allPoseReferences = [
@@ -562,21 +574,33 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               ...(character?.angleReferences || [])
             ];
             
+            console.log(`[SceneBuilderPanel] Total pose references for ${characterId}:`, allPoseReferences.length);
+            
             // Filter headshots (we'll do this on backend validation, but filter by common headshot poseIds here)
-            const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4'];
+            const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
             const headshots = allPoseReferences
               .filter((ref: any) => {
                 const poseId = ref.poseId || ref.metadata?.poseId;
-                return poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
+                const matches = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
+                if (!matches && poseId) {
+                  console.log(`[SceneBuilderPanel] Pose ${poseId} did not match headshot filter`);
+                }
+                return matches;
               })
               .map((ref: any) => ({
                 poseId: ref.poseId || ref.metadata?.poseId,
                 s3Key: ref.s3Key,
-                imageUrl: ref.imageUrl || ref.imageUrl,
+                imageUrl: ref.imageUrl,
                 label: ref.label || ref.metadata?.poseName || 'Headshot',
                 priority: ref.priority || 999
               }))
+              .filter((ref: any) => ref.imageUrl) // Only include headshots with imageUrl
               .slice(0, 10); // Limit to 10 headshots
+            
+            console.log(`[SceneBuilderPanel] Filtered headshots for ${characterId}:`, {
+              count: headshots.length,
+              headshots: headshots.map(h => ({ poseId: h.poseId, hasImageUrl: !!h.imageUrl, label: h.label }))
+            });
             
             if (headshots.length > 0) {
               setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
@@ -594,7 +618,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   imageUrl: bestHeadshot.imageUrl
                 }
               }));
+            } else {
+              console.warn(`[SceneBuilderPanel] No headshots found for character ${characterId} after filtering`);
             }
+          } else {
+            console.error(`[SceneBuilderPanel] Failed to fetch character ${characterId}:`, response.status, response.statusText);
           }
         } catch (error) {
           console.error(`[SceneBuilderPanel] Failed to fetch headshots for character ${characterId}:`, error);
