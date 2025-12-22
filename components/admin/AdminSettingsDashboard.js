@@ -10,9 +10,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  RefreshCw,
-  Eye,
-  EyeOff
+  RefreshCw
 } from 'lucide-react';
 
 /**
@@ -25,8 +23,6 @@ export default function AdminSettingsDashboard() {
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [systemStatus, setSystemStatus] = useState(null);
-  const [showEnvVars, setShowEnvVars] = useState(false);
-  const [envVars, setEnvVars] = useState([]);
 
   useEffect(() => {
     if (user) {
@@ -51,25 +47,6 @@ export default function AdminSettingsDashboard() {
     }
   }
 
-  async function fetchEnvVars() {
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        alert('Authentication required');
-        return;
-      }
-      const response = await fetch('/api/admin/env-status', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      setEnvVars(data.variables || []);
-      setShowEnvVars(true);
-    } catch (error) {
-      console.error('[Admin Settings] Failed to fetch env vars:', error);
-    }
-  }
 
   const StatusBadge = ({ status }) => {
     if (status === 'healthy' || status === 'ok') {
@@ -148,84 +125,6 @@ export default function AdminSettingsDashboard() {
               <Zap className="w-8 h-8 text-yellow-500 opacity-50" />
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Environment Variables */}
-      <div className="card bg-base-200 shadow-lg">
-        <div className="card-body">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="card-title">Environment Configuration</h2>
-            <button
-              onClick={fetchEnvVars}
-              className="btn btn-sm btn-outline gap-2"
-            >
-              {showEnvVars ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              {showEnvVars ? 'Hide' : 'Show'} Variables
-            </button>
-          </div>
-
-          {!showEnvVars ? (
-            <div className="alert alert-info">
-              <AlertTriangle className="w-5 h-5" />
-              <span>Click &quot;Show Variables&quot; to view environment configuration status</span>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Critical Variables */}
-              <div>
-                <h3 className="font-semibold mb-2">Critical Variables</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2 p-2 bg-base-100 rounded">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="text-sm">AWS_REGION</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 bg-base-100 rounded">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="text-sm">DYNAMODB_TABLE_USERS</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 bg-base-100 rounded">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="text-sm">CLERK_SECRET_KEY</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 bg-base-100 rounded">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="text-sm">STRIPE_SECRET_KEY</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* API Keys - Real Names for Admin Management */}
-              <div>
-                <h3 className="font-semibold mb-2">AI Provider APIs</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2 p-2 bg-base-100 rounded">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="text-sm">RUNWAY_API_KEY</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 bg-base-100 rounded">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="text-sm">LUMA_API_KEY</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 bg-base-100 rounded">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="text-sm">GOOGLE_AI_API_KEY</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 bg-base-100 rounded">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="text-sm">OPENAI_API_KEY</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="alert alert-warning">
-                <AlertTriangle className="w-5 h-5" />
-                <span className="text-sm">
-                  Environment variables are loaded from .env files. Never expose actual values in the frontend.
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

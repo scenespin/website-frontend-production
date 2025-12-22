@@ -175,6 +175,8 @@ export async function getPriceChanges(
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Note: Price changes endpoint not yet implemented in backend
+    // This is a placeholder - backend needs to add this endpoint
     const response = await fetch(`/api/admin/pricing/changes?${params.toString()}`, {
       method: 'GET',
       headers,
@@ -271,7 +273,7 @@ export async function getLowMarginWorkflows(
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`/api/admin/pricing/margins/low?threshold=${threshold}`, {
+    const response = await fetch(`/api/admin/pricing/margins?minMargin=${threshold}`, {
       method: 'GET',
       headers,
     })
@@ -297,7 +299,7 @@ export async function getPricesNeedingVerification(): Promise<{
   error?: string
 }> {
   try {
-    const response = await fetch('/api/admin/pricing/verification/needed', {
+    const response = await fetch('/api/admin/pricing/verification', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -333,6 +335,8 @@ export async function triggerPriceScraping(token?: string): Promise<{
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Note: Price scraping endpoint not yet implemented in backend
+    // This is a placeholder - backend needs to add this endpoint
     const response = await fetch('/api/admin/pricing/scrape', {
       method: 'POST',
       headers,
