@@ -377,12 +377,12 @@ export function UnifiedSceneConfiguration({
                     })()}
                     
                     {/* Phase 2: Location Angle Selection */}
-                    {needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && sceneAnalysisResult?.location?.angleVariations && onLocationAngleChange && (
+                    {needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange && (
                       <div className="mt-3 pt-3 border-t border-[#3F3F46]">
                         <LocationAngleSelector
                           locationId={sceneAnalysisResult.location.id}
                           locationName={sceneAnalysisResult.location.name || 'Location'}
-                          angleVariations={sceneAnalysisResult.location.angleVariations}
+                          angleVariations={sceneAnalysisResult.location.angleVariations || []}
                           baseReference={sceneAnalysisResult.location.baseReference}
                           selectedAngle={selectedLocationReferences[shot.slot]}
                           onAngleChange={(locationId, angle) => {
