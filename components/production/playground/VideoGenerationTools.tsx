@@ -9,7 +9,7 @@
  * - Basic video workflows
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Video, Image as ImageIcon, Loader2, Upload, X, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -31,6 +31,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   const [activeMode, setActiveMode] = useState<VideoMode>('starting-frame');
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('luma-ray-flash-2');
+  const [selectedDuration, setSelectedDuration] = useState<number>(5);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
@@ -45,14 +46,111 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   const frame1InputRef = useRef<HTMLInputElement>(null);
   const frame2InputRef = useRef<HTMLInputElement>(null);
 
-  const videoModels = [
-    { id: 'runway-gen4-turbo', label: 'Runway Gen-4 Turbo', provider: 'runway', credits: 50, duration: '5s', resolution: '1080p' },
-    { id: 'runway-gen4-aleph', label: 'Runway Gen-4 Aleph', provider: 'runway', credits: 75, duration: '5s', resolution: '1080p' },
-    { id: 'luma-ray-flash-2', label: 'Luma Ray Flash 2', provider: 'luma-ray-flash-2', credits: 50, duration: '5s', resolution: '1080p' },
-    { id: 'luma-ray-2', label: 'Luma Ray 2', provider: 'luma-ray-2', credits: 200, duration: '10s', resolution: '4K' },
-    { id: 'veo-3.1', label: 'Google Veo 3.1', provider: 'veo-3.1', credits: 50, duration: '5s', resolution: '1080p' },
-    { id: 'veo-3.1-fast', label: 'Google Veo 3.1 Fast', provider: 'veo-3.1', credits: 40, duration: '5s', resolution: '1080p' },
+  // Video models with duration options
+  interface VideoModel {
+    id: string;
+    label: string;
+    provider: string;
+    baseCredits: number;
+    resolution: string;
+    durations: number[]; // Available durations in seconds
+    creditsPerSecond?: number; // Optional: credits per second (for variable pricing)
+  }
+
+  const videoModels: VideoModel[] = [
+    // Generate Models
+    { 
+      id: 'runway-gen4-turbo', 
+      label: 'Runway Gen-4 Turbo', 
+      provider: 'runway', 
+      baseCredits: 50, 
+      resolution: '1080p',
+      durations: [5, 10] 
+    },
+    { 
+      id: 'luma-ray-flash-2', 
+      label: 'Luma Ray Flash 2', 
+      provider: 'luma-ray-flash-2', 
+      baseCredits: 50, 
+      resolution: '1080p',
+      durations: [5, 10] 
+    },
+    { 
+      id: 'luma-ray-2', 
+      label: 'Luma Ray 2', 
+      provider: 'luma-ray-2', 
+      baseCredits: 200, 
+      resolution: '4K',
+      durations: [10] 
+    },
+    { 
+      id: 'veo-3.1', 
+      label: 'Google Veo 3.1', 
+      provider: 'veo-3.1', 
+      baseCredits: 50, 
+      resolution: '1080p',
+      durations: [4, 6, 8] 
+    },
+    { 
+      id: 'veo-3.1-fast', 
+      label: 'Google Veo 3.1 Fast', 
+      provider: 'veo-3.1', 
+      baseCredits: 40, 
+      resolution: '1080p',
+      durations: [4, 6, 8] 
+    },
+    { 
+      id: 'sora-2', 
+      label: 'OpenAI Sora 2', 
+      provider: 'openai', 
+      baseCredits: 100, 
+      resolution: '1080p',
+      durations: [4, 8, 12] 
+    },
+    { 
+      id: 'sora-2-pro', 
+      label: 'OpenAI Sora 2 Pro', 
+      provider: 'openai', 
+      baseCredits: 150, 
+      resolution: '1080p',
+      durations: [4, 8, 12] 
+    },
   ];
+
+  // Modify Models removed - use Post-Production Workflows instead
+  // Workflows handle video modification with wrapped pricing:
+  // - Element Eraser (Runway Gen-4 Aleph)
+  // - Scene Transformer (Runway Gen-4)
+  // - Other post-production workflows
+
+  // Get available durations for selected model
+  const getAvailableDurations = (modelId: string): number[] => {
+    const model = videoModels.find(m => m.id === modelId);
+    return model?.durations || [5];
+  };
+
+  // Get credits for selected model and duration
+  const getCreditsForModel = (modelId: string, duration: number): number => {
+    const model = videoModels.find(m => m.id === modelId);
+    if (!model) return 50;
+    
+    // If model has creditsPerSecond, calculate dynamically
+    if (model.creditsPerSecond) {
+      return model.creditsPerSecond * duration;
+    }
+    
+    // Otherwise use base credits (may need adjustment based on duration)
+    // For now, return base credits (backend will handle duration pricing)
+    return model.baseCredits;
+  };
+
+  // Update duration when model changes
+  useEffect(() => {
+    const availableDurations = getAvailableDurations(selectedModel);
+    if (availableDurations.length > 0 && !availableDurations.includes(selectedDuration)) {
+      setSelectedDuration(availableDurations[0]);
+    }
+  }, [selectedModel, selectedDuration]);
 
   // Camera angles for video generation (with motion descriptions)
   const cameraAngles = [
@@ -211,12 +309,12 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         prompts: [{
           segmentIndex: 0,
           startTime: 0,
-          endTime: 5,
-          duration: 5,
+          endTime: selectedDuration,
+          duration: selectedDuration,
           prompt: finalPrompt,
         }],
         provider: selectedModelInfo?.provider || selectedModel,
-        resolution: '1080p',
+        resolution: selectedModelInfo?.resolution || '1080p',
         sceneId: `playground_${Date.now()}`,
         sceneName: `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
         useVideoExtension: false
@@ -538,7 +636,34 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           >
             {videoModels.map((model) => (
               <option key={model.id} value={model.id}>
-                {model.label} ({model.credits} credits, {model.duration}, {model.resolution})
+                {model.label} ({model.baseCredits} credits, {model.resolution})
+              </option>
+            ))}
+          </select>
+          {selectedModel && (
+            <p className="mt-1.5 text-xs text-[#808080]">
+              Cost: {getCreditsForModel(selectedModel, selectedDuration)} credits • Provider: {videoModels.find(m => m.id === selectedModel)?.provider || 'Unknown'}
+            </p>
+          )}
+          <p className="mt-1.5 text-xs text-[#4A4A4A]">
+            💡 For video modification (remove objects, transform scenes), use <strong>Post-Production Workflows</strong> tab
+          </p>
+        </div>
+
+        {/* Duration Selection */}
+        <div className="flex-shrink-0">
+          <label className="block text-sm font-medium text-white mb-2">
+            Duration (seconds)
+          </label>
+          <select
+            value={selectedDuration}
+            onChange={(e) => setSelectedDuration(Number(e.target.value))}
+            className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+            disabled={isGenerating}
+          >
+            {getAvailableDurations(selectedModel).map((duration) => (
+              <option key={duration} value={duration}>
+                {duration} seconds
               </option>
             ))}
           </select>

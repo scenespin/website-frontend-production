@@ -67,10 +67,50 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
         
         const response = await apiModule.image.getModels();
-        const modelsData = response.data?.models || response.data?.data?.models || [];
+        let modelsData = response.data?.models || response.data?.data?.models || [];
+        
+        // Filter out Luma Photon models from Playground
+        modelsData = modelsData.filter((model: ImageModel) => 
+          !model.id.includes('luma-photon') && !model.id.includes('photon')
+        );
+        
+        // Sort by newest first (model release date), then most expensive second
+        // Model release order (newest to oldest): gpt-image-1.5 > imagen-4-ultra > nano-banana-pro > flux2-max > flux2-pro > imagen-4 > gpt-image-1 > imagen-3 > runway-gen4-image
+        const modelOrder: Record<string, number> = {
+          'gpt-image-1.5': 1,
+          'gpt-image-1-high': 1, // maps to 1.5
+          'imagen-4-ultra': 2,
+          'nano-banana-pro': 3,
+          'nano-banana-pro-2k': 3,
+          'flux2-max-4k-16:9': 4,
+          'flux2-flex': 4,
+          'flux2-pro-4k': 5,
+          'flux2-pro-2k': 5,
+          'imagen-4': 6,
+          'imagen-4-fast': 6,
+          'gpt-image-1': 7,
+          'gpt-image-1-medium': 7,
+          'gpt-image-1-mini': 8,
+          'gpt-image-1-low': 8,
+          'imagen-3': 9,
+          'imagen-3-fast': 9,
+          'runway-gen4-image': 10,
+          'nano-banana': 11, // editing tool, oldest
+        };
+        
+        modelsData.sort((a: ImageModel, b: ImageModel) => {
+          const orderA = modelOrder[a.id] || 999;
+          const orderB = modelOrder[b.id] || 999;
+          if (orderA !== orderB) {
+            return orderA - orderB; // Lower number = newer
+          }
+          // If same order, sort by credits (most expensive first)
+          return (b.creditsPerImage || 0) - (a.creditsPerImage || 0);
+        });
+        
         setModels(modelsData);
         
-        // Set default model (cheapest)
+        // Set default model (first in sorted list - newest/most expensive)
         if (modelsData.length > 0 && !selectedModel) {
           setSelectedModel(modelsData[0].id);
         }
@@ -343,10 +383,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   };
 
   return (
-    <div className={cn("h-full flex flex-col bg-[#0A0A0A] p-4 md:p-6", className)}>
-
-      {/* Generation Form */}
-      <div className="flex-1 flex flex-col gap-6">
+    <div className={cn("h-full flex flex-col bg-[#0A0A0A] overflow-hidden", className)}>
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        {/* Generation Form */}
+        <div className="flex flex-col gap-6 pb-6">
         {/* Prompt Input */}
         <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
