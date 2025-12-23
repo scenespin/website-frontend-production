@@ -271,7 +271,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                             </div>
 
                             {/* Locations List (STATIC - No Drag) */}
-                            <div className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200 border-2" style={{ backgroundColor: '#0A0A0B', borderColor: '#1C1C1E' }}>
+                            <div className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200 border-2" style={{ backgroundColor: '#0A0A0A', borderColor: '#1C1C1E' }}>
                                 {/* Empty State */}
                                 {column.locations.length === 0 && (
                                     <div className="flex flex-col items-center justify-center h-full py-12 px-4">

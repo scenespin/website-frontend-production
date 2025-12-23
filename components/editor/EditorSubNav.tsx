@@ -117,7 +117,7 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
         "hidden md:block border-b border-white/10 bg-[#0A0A0A]",
         className
       )}>
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="px-4">
           <div className="flex items-center justify-between gap-3 py-2 border-b border-base-300">
             <EditableScreenplayTitle />
             <div className="flex items-center gap-2">
@@ -179,15 +179,13 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
                     "border-b-2 -mb-[2px]",
                     isActive
                       ? cn(
-                          "border-cinema-red",
-                          tab.activeColor,
-                          "bg-base-100"
+                          "border-transparent",
+                          tab.activeColor
                         )
                       : cn(
                           "border-transparent",
                           "text-base-content/60",
-                          "hover:text-base-content",
-                          "hover:bg-base-100/50"
+                          "hover:text-base-content"
                         )
                   )}
                   aria-current={isActive ? 'page' : undefined}

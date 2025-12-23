@@ -238,15 +238,13 @@ export function ProductionTabBar({
                       "whitespace-nowrap",
                       isActive
                         ? cn(
-                            "border-cinema-red",
-                            subTab.activeColor,
-                            "bg-base-100"
+                            "border-transparent",
+                            subTab.activeColor
                           )
                         : cn(
                             "border-transparent",
                             "text-base-content/60",
-                            "hover:text-base-content",
-                            "hover:bg-base-100/50"
+                            "hover:text-base-content"
                           )
                     )}
                     aria-current={isActive ? 'page' : undefined}
@@ -283,15 +281,13 @@ export function ProductionTabBar({
                       "whitespace-nowrap",
                       isActive
                         ? cn(
-                            "border-cinema-red",
-                            subTab.activeColor,
-                            "bg-base-100"
+                            "border-transparent",
+                            subTab.activeColor
                           )
                         : cn(
                             "border-transparent",
                             "text-base-content/60",
-                            "hover:text-base-content",
-                            "hover:bg-base-100/50"
+                            "hover:text-base-content"
                           )
                     )}
                     aria-current={isActive ? 'page' : undefined}

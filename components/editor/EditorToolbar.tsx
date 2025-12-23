@@ -306,7 +306,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [showMoreFormats, setShowMoreFormats] = React.useState(false);
     
     return (
-        <div className={`bg-base-200 border-t border-base-300 shadow-sm ${className}`}>
+        <div className={`bg-[#0A0A0A] border-t border-white/10 shadow-sm ${className}`}>
             {/* Mobile-friendly toolbar - wraps instead of scrolling */}
             <div className="flex flex-wrap items-center gap-2 p-2">
                 

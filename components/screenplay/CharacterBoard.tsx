@@ -226,7 +226,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                         <div 
                             className="p-3 mb-3 rounded-lg border-l-4 flex items-center justify-between"
                             style={{
-                                backgroundColor: '#1C1C1E',
+                                backgroundColor: '#0A0A0A',
                                 borderLeftColor: column.color,
                             }}
                         >
@@ -248,7 +248,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                         <div 
                             className="flex-1 p-3 rounded-lg"
                             style={{
-                                backgroundColor: '#0F0F11',
+                                backgroundColor: '#0A0A0A',
                                 border: '1px solid #27272A',
                                 minHeight: '400px',
                             }}

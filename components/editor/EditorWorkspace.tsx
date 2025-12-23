@@ -375,7 +375,7 @@ export default function EditorWorkspace() {
                 {isSceneNavVisible && (
                     <div className="w-72 border-r border-base-300 flex-shrink-0 hidden lg:block">
                         <div className="h-full flex flex-col">
-                            <div className="p-3 border-b border-base-300 bg-base-200">
+                            <div className="p-3 border-b border-white/10 bg-[#0A0A0A]">
                                 <h2 className="text-sm font-semibold text-base-content flex items-center justify-between">
                                     <span>Scenes</span>
                                     <button

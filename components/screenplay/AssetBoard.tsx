@@ -253,7 +253,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                     </div>
 
                                     {/* Assets List */}
-                                    <div className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200 border-2" style={{ backgroundColor: '#0A0A0B', borderColor: '#1C1C1E' }}>
+                                    <div className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200 border-2" style={{ backgroundColor: '#0A0A0A', borderColor: '#1C1C1E' }}>
                                         {/* Empty State */}
                                         {column.assets.length === 0 && (
                                             <div className="flex flex-col items-center justify-center h-full py-12 px-4">
@@ -461,7 +461,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
             {/* Delete Confirmation Dialog */}
             {assetToDelete && (
                 <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center">
-                    <div className="bg-[#1C1C1E] rounded-lg p-6 max-w-md w-full mx-4 border border-[#2C2C2E]">
+                    <div className="bg-[#0A0A0A] rounded-lg p-6 max-w-md w-full mx-4 border border-[#2C2C2E]">
                         <h3 className="text-lg font-bold mb-2" style={{ color: '#E5E7EB' }}>
                             Delete Asset?
                         </h3>

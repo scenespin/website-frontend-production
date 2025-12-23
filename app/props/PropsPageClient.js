@@ -33,7 +33,7 @@ export default function PropsPageClient() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-base-content">
+    <div className="min-h-screen bg-[#0A0A0A] text-base-content">
       {/* Editor Sub-Navigation */}
       <EditorSubNav activeTab="props" screenplayId={screenplayId} />
 

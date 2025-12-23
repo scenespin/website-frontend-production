@@ -119,7 +119,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
 
     if (!allScenes || allScenes.length === 0) {
         return (
-            <div className={cn("w-full rounded-lg border border-base-300 bg-base-100 p-4", className)}>
+            <div className={cn("w-full rounded-lg border border-base-300 bg-[#0A0A0A] p-4", className)}>
                 <p className="text-sm font-medium text-base-content/70 mb-2">
                     No scenes yet
                 </p>
@@ -131,7 +131,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     }
 
     return (
-        <div className={cn("w-full h-full overflow-auto rounded-lg border border-base-300 bg-base-100 p-2 scrollbar-hide", className)}>
+        <div className={cn("w-full h-full overflow-auto rounded-lg border border-base-300 bg-[#0A0A0A] p-2 scrollbar-hide", className)}>
             <div className="flex flex-col gap-1">
                 {allScenes.map((scene) => {
                     const isCurrent = scene.id === currentSceneId;
