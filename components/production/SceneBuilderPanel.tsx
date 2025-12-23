@@ -142,8 +142,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Per-character outfit selection state (NEW: Phase 3 - Outfit Integration)
   const [characterOutfits, setCharacterOutfits] = useState<Record<string, string>>({});
   
-  // Feature 0163 Phase 1: Character headshot selection state
-  const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>({});
+  // Feature 0163 Phase 1: Character headshot selection state (per-shot for dialogue shots)
+  const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>>({});
   
   // Phase 2: Location angle selection per shot
   const [selectedLocationReferences, setSelectedLocationReferences] = useState<Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>>({});
@@ -670,13 +670,24 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               
               // Ensure we store s3Key and imageUrl for precise matching (not just poseId)
               
-              setSelectedCharacterReferences(prev => ({
-                ...prev,
-                [characterId]: {
+              // Store per-shot (not per-character) so each dialogue shot can have its own selection
+              // Find all dialogue shots for this character and auto-select the same headshot
+              const dialogueShots = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
+                s.type === 'dialogue' && s.characterId === characterId
+              ) || [];
+              
+              const newSelections: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }> = {};
+              dialogueShots.forEach((shot: any) => {
+                newSelections[shot.slot] = {
                   poseId: bestHeadshot.poseId,
                   s3Key: bestHeadshot.s3Key,
                   imageUrl: bestHeadshot.imageUrl
-                }
+                };
+              });
+              
+              setSelectedCharacterReferences(prev => ({
+                ...prev,
+                ...newSelections
               }));
             } else {
               console.warn(`[SceneBuilderPanel] No headshots found for character ${characterId} after filtering`);
@@ -1857,17 +1868,24 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         qualityTier,
         shotBreakdown: sceneAnalysisResult?.shotBreakdown ? {
           ...sceneAnalysisResult.shotBreakdown,
-          shots: enabledShots.length > 0 
+          shots: (enabledShots.length > 0 
             ? sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => enabledShots.includes(shot.slot))
-            : sceneAnalysisResult.shotBreakdown.shots,
+            : sceneAnalysisResult.shotBreakdown.shots
+          ).map((shot: any) => ({
+            ...shot,
+            // Add per-shot character reference if selected (backend Priority 1)
+            selectedCharacterReference: shot.type === 'dialogue' && selectedCharacterReferences[shot.slot] 
+              ? selectedCharacterReferences[shot.slot] 
+              : undefined
+          })),
           totalShots: enabledShots.length > 0 ? enabledShots.length : sceneAnalysisResult.shotBreakdown.totalShots,
           totalCredits: enabledShots.length > 0 
             ? sceneAnalysisResult.shotBreakdown.shots
                 .filter((shot: any) => enabledShots.includes(shot.slot))
                 .reduce((sum: number, shot: any) => sum + shot.credits, 0)
             : sceneAnalysisResult.shotBreakdown.totalCredits
-        } : undefined, // NEW: Pass filtered shot breakdown (only enabled shots)
-        selectedCharacterReferences: Object.keys(selectedCharacterReferences).length > 0 ? selectedCharacterReferences : undefined, // Feature 0163 Phase 1: Per-character selected references
+        } : undefined, // NEW: Pass filtered shot breakdown (only enabled shots) with per-shot character references
+        selectedCharacterReferences: Object.keys(selectedCharacterReferences).length > 0 ? selectedCharacterReferences : undefined, // Feature 0163 Phase 1: Per-shot selected references (fallback for backend Priority 3)
         selectedLocationReferences: Object.keys(selectedLocationReferences).length > 0 ? selectedLocationReferences : undefined, // Phase 2: Per-shot location angle selection
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
@@ -2755,10 +2773,10 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     qualityTier={qualityTier}
                     onQualityTierChange={setQualityTier}
                     selectedCharacterReferences={selectedCharacterReferences}
-                    onCharacterReferenceChange={(characterId, reference) => {
+                    onCharacterReferenceChange={(shotSlot, reference) => {
                       setSelectedCharacterReferences(prev => ({
                         ...prev,
-                        [characterId]: reference
+                        [shotSlot]: reference
                       }));
                     }}
                     characterHeadshots={characterHeadshots}

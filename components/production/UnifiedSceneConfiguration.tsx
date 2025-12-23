@@ -31,8 +31,8 @@ interface UnifiedSceneConfigurationProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
   qualityTier: 'professional' | 'premium';
   onQualityTierChange: (tier: 'professional' | 'premium') => void;
-  selectedCharacterReferences: Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>;
-  onCharacterReferenceChange: (characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
+  selectedCharacterReferences: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>; // Per-shot selection
+  onCharacterReferenceChange: (shotSlot: number, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   characterHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots: Record<string, boolean>;
   characterOutfits: Record<string, string>;
@@ -203,7 +203,7 @@ export function UnifiedSceneConfiguration({
               : allHeadshots; // Show all headshots if no outfit selected or using default
             
             const isLoadingHeadshots = isDialogue && shot.characterId ? loadingHeadshots[shot.characterId] : false;
-            const selectedHeadshot = isDialogue && shot.characterId ? selectedCharacterReferences[shot.characterId] : undefined;
+            const selectedHeadshot = isDialogue && shot.characterId ? selectedCharacterReferences[shot.slot] : undefined;
 
             return (
               <div
@@ -273,7 +273,7 @@ export function UnifiedSceneConfiguration({
                               Showing headshots for outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
                             </div>
                           )}
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-8 gap-1.5">
                           {headshots.map((headshot, idx) => {
                             // Use unique key: s3Key (most reliable) or imageUrl or poseId + idx fallback
                             const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}` || `headshot-${idx}`;
@@ -296,7 +296,8 @@ export function UnifiedSceneConfiguration({
                                 key={uniqueKey}
                                 onClick={() => {
                                   // Always store s3Key and imageUrl when available for precise matching
-                                  onCharacterReferenceChange(shot.characterId, {
+                                  // Store per-shot (not per-character) so each dialogue shot can have its own selection
+                                  onCharacterReferenceChange(shot.slot, {
                                     poseId: headshot.poseId,
                                     s3Key: headshot.s3Key,
                                     imageUrl: headshot.imageUrl
