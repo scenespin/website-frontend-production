@@ -142,16 +142,16 @@ export function UnifiedSceneConfiguration({
   const needsReferenceSelection = (shot: any): boolean => {
     const needsCharacter = shot.type === 'dialogue' && !!shot.characterId;
     const needsLocation = shot.type === 'establishing' || 
-                         (shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
-                         (shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
+                         !!(shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
+                         !!(shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
     return needsCharacter || needsLocation;
   };
   
   // Check if shot needs location angle selection
   const needsLocationAngle = (shot: any): boolean => {
     return shot.type === 'establishing' || 
-           (shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
-           (shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
+           !!(shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
+           !!(shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
   };
   
   // Check if location angle is required for this shot
