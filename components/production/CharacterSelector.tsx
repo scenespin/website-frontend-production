@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, User, Check } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 interface Character {
@@ -53,12 +52,12 @@ export function CharacterSelector({
     <div className="space-y-2">
       {/* Warning Message */}
       {warningMessage && (
-        <Alert variant="default" className="bg-yellow-900/20 border-yellow-700/50">
-          <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          <AlertDescription className="text-xs text-yellow-200">
+        <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-3 flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-yellow-200 flex-1">
             {warningMessage}
-          </AlertDescription>
-        </Alert>
+          </p>
+        </div>
       )}
 
       {/* Selected Characters */}
