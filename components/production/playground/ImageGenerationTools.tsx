@@ -87,37 +87,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
   }, [getToken, selectedModel]);
 
-  const categories = [
-    { 
-      id: 'character' as ImageCategory, 
-      label: 'Character', 
-      icon: Users, 
-      description: 'Experiment with character generation - test styles, poses, and designs',
-      placeholder: 'A detailed character description with appearance, clothing, and personality traits...',
-    },
-    { 
-      id: 'location' as ImageCategory, 
-      label: 'Location', 
-      icon: MapPin, 
-      description: 'Experiment with location generation - test different settings and atmospheres',
-      placeholder: 'Describe the location setting, time of day, atmosphere, and key visual elements...',
-    },
-    { 
-      id: 'asset' as ImageCategory, 
-      label: 'Asset', 
-      icon: Package, 
-      description: 'Experiment with prop/asset generation - test objects, styles, and compositions',
-      placeholder: 'Describe the prop or asset, its style, materials, and any specific details...',
-    },
-    { 
-      id: 'first-frame' as ImageCategory, 
-      label: 'First Frame', 
-      icon: Film, 
-      description: 'Experiment with first frame generation - test compositions for video workflows',
-      placeholder: 'Describe the opening shot, composition, camera angle, and visual style...',
-    },
-  ];
-
   // Model-specific prompt hints and reference image instructions
   const getModelHints = (modelId: string): { promptHint: string; referenceHint: string } => {
     if (modelId.includes('nano-banana-pro')) {
