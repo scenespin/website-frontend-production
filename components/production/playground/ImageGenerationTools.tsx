@@ -7,8 +7,8 @@
  * Categories: Character, Location, Asset, First Frame
  */
 
-import React, { useState, useEffect } from 'react';
-import { Users, MapPin, Package, Film, Loader2, Image as ImageIcon, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Loader2, Sparkles, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -18,13 +18,26 @@ interface ImageGenerationToolsProps {
   className?: string;
 }
 
-type ImageCategory = 'character' | 'location' | 'asset' | 'first-frame';
-
 interface ImageModel {
   id: string;
   provider: string;
   costPerImage: number;
   creditsPerImage: number;
+  label?: string;
+  description?: string;
+}
+
+interface ReferenceImage {
+  file: File;
+  preview: string;
+  s3Key?: string;
+}
+
+interface CameraAngle {
+  id: string;
+  label: string;
+  description: string;
+  promptText: string; // Model-agnostic text
 }
 
 export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
@@ -32,7 +45,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const screenplayId = screenplay.screenplayId;
   const { getToken } = useAuth();
   
-  const [activeCategory, setActiveCategory] = useState<ImageCategory>('character');
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -40,6 +52,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [models, setModels] = useState<ImageModel[]>([]);
   const [transparency, setTransparency] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<string>('16:9');
+  const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available models
   useEffect(() => {
@@ -72,11 +88,115 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   }, [getToken, selectedModel]);
 
   const categories = [
-    { id: 'character' as ImageCategory, label: 'Character', icon: Users, description: 'Generate character reference images' },
-    { id: 'location' as ImageCategory, label: 'Location', icon: MapPin, description: 'Generate location reference images' },
-    { id: 'asset' as ImageCategory, label: 'Asset', icon: Package, description: 'Generate prop/asset reference images' },
-    { id: 'first-frame' as ImageCategory, label: 'First Frame', icon: Film, description: 'Generate first frame for video' },
+    { 
+      id: 'character' as ImageCategory, 
+      label: 'Character', 
+      icon: Users, 
+      description: 'Experiment with character generation - test styles, poses, and designs',
+      placeholder: 'A detailed character description with appearance, clothing, and personality traits...',
+    },
+    { 
+      id: 'location' as ImageCategory, 
+      label: 'Location', 
+      icon: MapPin, 
+      description: 'Experiment with location generation - test different settings and atmospheres',
+      placeholder: 'Describe the location setting, time of day, atmosphere, and key visual elements...',
+    },
+    { 
+      id: 'asset' as ImageCategory, 
+      label: 'Asset', 
+      icon: Package, 
+      description: 'Experiment with prop/asset generation - test objects, styles, and compositions',
+      placeholder: 'Describe the prop or asset, its style, materials, and any specific details...',
+    },
+    { 
+      id: 'first-frame' as ImageCategory, 
+      label: 'First Frame', 
+      icon: Film, 
+      description: 'Experiment with first frame generation - test compositions for video workflows',
+      placeholder: 'Describe the opening shot, composition, camera angle, and visual style...',
+    },
   ];
+
+  // Model-specific prompt hints and reference image instructions
+  const getModelHints = (modelId: string): { promptHint: string; referenceHint: string } => {
+    if (modelId.includes('nano-banana-pro')) {
+      return {
+        promptHint: 'Nano Banana Pro: Use detailed descriptions with specific details. Best for photorealistic characters and locations. Supports up to 14 reference images for maximum consistency.',
+        referenceHint: 'Best practices: Upload 1-3 character reference images showing face and body. For locations, upload 1-2 reference images of similar settings. All images should be clear, well-lit, and show the subject prominently.'
+      };
+    }
+    if (modelId.includes('runway-gen4')) {
+      return {
+        promptHint: 'Runway Gen-4: Use simple, direct prompts. Focus on subject + action + style. Best for cinematic first frames. Supports up to 3 reference images.',
+        referenceHint: 'Best practices: Upload 1-3 reference images. First image gets highest priority. Use clear, front-facing images for best results. Combine character + clothing in one image when possible to maximize reference slots.'
+      };
+    }
+    if (modelId.includes('flux2')) {
+      return {
+        promptHint: 'FLUX.2: Use structured prompts: Subject + Action + Style + Context. Supports color hex codes (e.g., "color #FF0000"). Supports up to 10 reference images. Best for high-quality, detailed images.',
+        referenceHint: 'Best practices: Upload 1-10 reference images. First image is most important. Use high-quality, well-composed images. FLUX.2 excels at maintaining fine details and textures from references.'
+      };
+    }
+    if (modelId.includes('gpt-image-1')) {
+      return {
+        promptHint: 'GPT Image: Use natural language descriptions. Best for creative and artistic images. Supports up to 5 reference images. Excellent text understanding.',
+        referenceHint: 'Best practices: Upload 1-5 reference images. Use clear, well-lit images. GPT Image models excel at understanding context and maintaining style consistency.'
+      };
+    }
+    if (modelId.includes('imagen')) {
+      return {
+        promptHint: 'Imagen: Use detailed, specific prompts. Best for photorealistic images. Focus on subject, setting, lighting, and style.',
+        referenceHint: 'Imagen models do not support reference images. Use detailed text descriptions instead.'
+      };
+    }
+    return {
+      promptHint: 'Use clear, descriptive prompts with specific details about subject, style, lighting, and composition.',
+      referenceHint: 'This model may not support reference images. Check model documentation for details.'
+    };
+  };
+
+  // Check if selected model supports reference images
+  const selectedModelInfo = models.find(m => m.id === selectedModel);
+  const supportsReferenceImages = selectedModelInfo && (
+    selectedModelInfo.id.includes('nano-banana-pro') ||
+    selectedModelInfo.id.includes('runway-gen4') ||
+    selectedModelInfo.id.includes('flux2') ||
+    selectedModelInfo.id.includes('gpt-image-1')
+  );
+  
+  // Get reference limit based on model
+  const getReferenceLimit = (): number => {
+    if (!selectedModelInfo) return 0;
+    if (selectedModelInfo.id.includes('nano-banana-pro')) return 14;
+    if (selectedModelInfo.id.includes('runway-gen4')) return 3;
+    if (selectedModelInfo.id.includes('flux2')) return 10;
+    if (selectedModelInfo.id.includes('gpt-image-1')) return 5;
+    return 0;
+  };
+
+  // Format camera angle for model-specific prompts
+  const formatCameraAngleForModel = (angleId: string, modelId: string): string => {
+    if (!angleId) return '';
+    const angle = cameraAngles.find(a => a.id === angleId);
+    if (!angle) return '';
+
+    // Model-specific formatting
+    if (modelId.includes('flux2')) {
+      // FLUX.2: Use structured format
+      return `, ${angle.promptText}, cinematic composition`;
+    }
+    if (modelId.includes('runway-gen4')) {
+      // Runway: Simple, direct
+      return `, ${angle.promptText}`;
+    }
+    if (modelId.includes('gpt-image-1')) {
+      // GPT Image: Natural language
+      return `, ${angle.promptText}`;
+    }
+    // Default: Just add the prompt text
+    return `, ${angle.promptText}`;
+  };
 
   const aspectRatios = [
     { value: '16:9', label: '16:9 (Widescreen)' },
@@ -86,6 +206,96 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     { value: '21:9', label: '21:9 (Cinema)' },
   ];
 
+  const handleReferenceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const limit = getReferenceLimit();
+    if (referenceImages.length + files.length > limit) {
+      toast.error(`Maximum ${limit} reference images allowed for this model`);
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const newImages: ReferenceImage[] = [];
+
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) {
+          toast.error('Please upload image files only');
+          continue;
+        }
+
+        // Create preview
+        const preview = URL.createObjectURL(file);
+
+        // Upload to S3
+        const presignedResponse = await fetch(
+          `/api/video/upload/get-presigned-url?` +
+          `fileName=${encodeURIComponent(file.name)}` +
+          `&fileType=${encodeURIComponent(file.type)}` +
+          `&fileSize=${file.size}` +
+          `&projectId=${encodeURIComponent(screenplayId || 'default')}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!presignedResponse.ok) {
+          throw new Error('Failed to get upload URL');
+        }
+
+        const { url, fields, s3Key } = await presignedResponse.json();
+
+        // Upload to S3
+        const formData = new FormData();
+        Object.entries(fields).forEach(([key, value]) => {
+          if (key.toLowerCase() !== 'bucket') {
+            formData.append(key, value as string);
+          }
+        });
+        formData.append('file', file);
+
+        const s3Response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!s3Response.ok) {
+          throw new Error('S3 upload failed');
+        }
+
+        newImages.push({ file, preview, s3Key });
+      }
+
+      setReferenceImages(prev => [...prev, ...newImages]);
+      toast.success(`${newImages.length} reference image(s) uploaded`);
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      toast.error(error.message || 'Failed to upload reference images');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeReferenceImage = (index: number) => {
+    setReferenceImages(prev => {
+      const removed = prev[index];
+      URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating || !selectedModel) return;
 
@@ -94,20 +304,49 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
 
-      const response = await apiModule.image.generate({
-        prompt: prompt.trim(),
+      // Prepare reference image URLs
+      const referenceImageUrls = referenceImages
+        .map(img => {
+          if (img.s3Key) {
+            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+            return `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${img.s3Key}`;
+          }
+          return null;
+        })
+        .filter(Boolean) as string[];
+
+      // Build final prompt with camera angle
+      let finalPrompt = prompt.trim();
+      if (selectedCameraAngle) {
+        const angleText = formatCameraAngleForModel(selectedCameraAngle, selectedModel);
+        finalPrompt = finalPrompt + angleText;
+      }
+
+      const requestBody: any = {
+        prompt: finalPrompt,
         desiredModelId: selectedModel,
         aspectRatio,
         quality: transparency ? 'high-quality' : 'standard',
-        // Save to Playground folder
         projectId: screenplayId,
         entityType: 'playground',
-      });
+      };
+
+      // Add reference images if available
+      if (referenceImageUrls.length > 0) {
+        requestBody.characterReference = referenceImageUrls.length === 1 
+          ? referenceImageUrls[0] 
+          : referenceImageUrls;
+      }
+
+      const response = await apiModule.image.generate(requestBody);
 
       toast.success('Image generated! Saving to Playground...');
       
       // Reset form
       setPrompt('');
+      setReferenceImages([]);
+      setSelectedCameraAngle('');
       
       // TODO: Refresh media library to show new image
     } catch (error: any) {
@@ -118,35 +357,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
   };
 
-  const selectedModelInfo = models.find(m => m.id === selectedModel);
-
   return (
     <div className={cn("h-full flex flex-col bg-[#0A0A0A] p-4 md:p-6", className)}>
-      {/* Category Tabs */}
-      <div className="flex-shrink-0 mb-6">
-        <div className="flex gap-2 flex-wrap">
-          {categories.map((category) => {
-            const Icon = category.icon;
-            const isActive = activeCategory === category.id;
-            return (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-cinema-red text-white"
-                    : "bg-[#1F1F1F] text-[#808080] hover:text-white hover:bg-[#2A2A2A]"
-                )}
-                title={category.description}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{category.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Generation Form */}
       <div className="flex-1 flex flex-col gap-6">
@@ -155,15 +367,106 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           <label className="block text-sm font-medium text-white mb-2">
             Prompt
           </label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={`Describe the ${categories.find(c => c.id === activeCategory)?.label.toLowerCase()} you want to generate...`}
-            className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent resize-none"
-            rows={4}
-            disabled={isGenerating}
-          />
+          <div className="relative">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={selectedModel ? getModelHints(selectedModel).promptHint : 'Describe what you want to generate...'}
+              className={cn(
+                "w-full px-4 py-3 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white",
+                "focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent resize-none",
+                "placeholder:text-[#4A4A4A]"
+              )}
+              rows={4}
+              disabled={isGenerating}
+            />
+          </div>
+          {selectedModel && (
+            <p className="mt-1.5 text-xs text-[#808080]">
+              💡 Model-specific hint: {getModelHints(selectedModel).promptHint}
+            </p>
+          )}
         </div>
+
+        {/* Reference Image Upload */}
+        {supportsReferenceImages && (
+          <div className="flex-shrink-0">
+            <label className="block text-sm font-medium text-white mb-2">
+              Reference Images (Optional)
+              <span className="ml-2 text-xs text-[#808080]">
+                {referenceImages.length}/{getReferenceLimit()} images
+              </span>
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleReferenceImageUpload}
+              className="hidden"
+              disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
+            />
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
+                className={cn(
+                  "w-full px-4 py-3 border-2 border-dashed rounded-lg",
+                  "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
+                  isUploading || isGenerating || referenceImages.length >= getReferenceLimit()
+                    ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
+                    : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
+                )}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Reference Images</span>
+                  </>
+                )}
+              </button>
+
+              {/* Reference Image Previews */}
+              {referenceImages.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {referenceImages.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={img.preview}
+                        alt={`Reference ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-[#3F3F46]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeReferenceImage(index)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mt-1.5 space-y-1">
+              <p className="text-xs text-[#808080]">
+                Upload reference images to guide generation. Supported by: {selectedModelInfo?.label || selectedModelInfo?.id}
+              </p>
+              {selectedModel && (
+                <div className="text-xs text-[#4A4A4A] bg-[#1A1A1A] p-2 rounded border border-[#2A2A2A]">
+                  <p className="font-medium text-[#808080] mb-1">📋 Best Practices:</p>
+                  <p className="text-[#4A4A4A]">{getModelHints(selectedModel).referenceHint}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Model Selection */}
         <div className="flex-shrink-0">
@@ -192,6 +495,30 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           {selectedModelInfo && (
             <p className="mt-1.5 text-xs text-[#808080]">
               Cost: {selectedModelInfo.creditsPerImage} credits • Provider: {selectedModelInfo.provider}
+            </p>
+          )}
+        </div>
+
+        {/* Camera Angle Selection */}
+        <div className="flex-shrink-0">
+          <label className="block text-sm font-medium text-white mb-2">
+            Camera Angle (Optional)
+          </label>
+          <select
+            value={selectedCameraAngle}
+            onChange={(e) => setSelectedCameraAngle(e.target.value)}
+            className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+            disabled={isGenerating}
+          >
+            {cameraAngles.map((angle) => (
+              <option key={angle.id} value={angle.id}>
+                {angle.label} {angle.description ? `- ${angle.description}` : ''}
+              </option>
+            ))}
+          </select>
+          {selectedCameraAngle && (
+            <p className="mt-1.5 text-xs text-[#808080]">
+              Will add: "{cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText}"
             </p>
           )}
         </div>
