@@ -388,7 +388,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
         {/* Generation Form */}
         <div className="flex flex-col gap-6 pb-6">
-        {/* Prompt Input */}
+          {/* Prompt Input */}
         <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
             Prompt
