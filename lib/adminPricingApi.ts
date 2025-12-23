@@ -465,3 +465,48 @@ export async function getAllProviders(token?: string): Promise<{
   }
 }
 
+/**
+ * Get comprehensive pricing statistics from config files
+ */
+export async function getPricingStats(token?: string): Promise<{
+  success: boolean
+  stats?: {
+    total_providers: number
+    by_category: {
+      video: number
+      image: number
+      audio: number
+      llm: number
+    }
+    average_margin: number
+    pending_approvals: number
+    needs_verification: number
+  }
+  error?: string
+}> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch('/api/admin/pricing/stats', {
+      method: 'GET',
+      headers,
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return { success: true, stats: data.stats }
+  } catch (error: any) {
+    console.error('Error fetching pricing stats:', error)
+    return { success: false, error: error.message }
+  }
+}
+

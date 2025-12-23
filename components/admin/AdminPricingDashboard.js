@@ -42,6 +42,12 @@ export default function AdminPricingDashboard() {
     notes: ''
   });
   const [saving, setSaving] = useState(false);
+  const [stats, setStats] = useState({
+    total_providers: 0,
+    average_margin: 0,
+    pending_approvals: 0,
+    needs_verification: 0
+  });
 
   useEffect(() => {
     if (getToken) {
@@ -57,6 +63,12 @@ export default function AdminPricingDashboard() {
       if (!token) {
         alert('Authentication required. Please refresh the page.');
         return;
+      }
+
+      // Fetch pricing stats (from config files)
+      const statsResult = await adminPricingApi.getPricingStats(token);
+      if (statsResult.success && statsResult.stats) {
+        setStats(statsResult.stats);
       }
 
       // Fetch price registry
@@ -218,15 +230,7 @@ export default function AdminPricingDashboard() {
     });
   }
 
-  // Calculate stats
-  const totalProviders = priceRegistry.length;
-  const avgMargin = priceRegistry.length > 0 
-    ? priceRegistry.reduce((sum, p) => sum + (p.margin_percent || 0), 0) / priceRegistry.length 
-    : 0;
-  const needsVerification = priceRegistry.filter(p => {
-    const lastVerified = p.last_verified || p.verified_at || 0;
-    return Date.now() - lastVerified > 30 * 24 * 60 * 60 * 1000;
-  }).length;
+  // Stats are now fetched from backend (based on config files, not just registry)
 
   return (
     <div className="space-y-6">
@@ -235,7 +239,7 @@ export default function AdminPricingDashboard() {
         <div className="card bg-base-200 shadow">
           <div className="card-body">
             <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">{totalProviders}</div>
+              <div className="text-3xl font-bold">{stats.total_providers}</div>
               <DollarSign className="w-8 h-8 text-primary" />
             </div>
             <div className="text-sm opacity-70">API Providers Tracked</div>
@@ -245,7 +249,7 @@ export default function AdminPricingDashboard() {
         <div className="card bg-base-200 shadow">
           <div className="card-body">
             <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">{pendingChanges.length}</div>
+              <div className="text-3xl font-bold">{stats.pending_approvals}</div>
               <Clock className="w-8 h-8 text-warning" />
             </div>
             <div className="text-sm opacity-70">Pending Approvals</div>
@@ -255,7 +259,7 @@ export default function AdminPricingDashboard() {
         <div className="card bg-base-200 shadow">
           <div className="card-body">
             <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">{avgMargin.toFixed(1)}%</div>
+              <div className="text-3xl font-bold">{stats.average_margin.toFixed(1)}%</div>
               <TrendingUp className="w-8 h-8 text-success" />
             </div>
             <div className="text-sm opacity-70">Average Margin</div>
@@ -265,7 +269,7 @@ export default function AdminPricingDashboard() {
         <div className="card bg-base-200 shadow">
           <div className="card-body">
             <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">{needsVerification}</div>
+              <div className="text-3xl font-bold">{stats.needs_verification}</div>
               <AlertCircle className="w-8 h-8 text-error" />
             </div>
             <div className="text-sm opacity-70">Needs Verification</div>
