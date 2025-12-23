@@ -461,7 +461,7 @@ export function LocationDetailModal({
             </div>
 
             {/* Tabs */}
-            <div className="flex-shrink-0 px-6 py-3 border-b border-[#3F3F46] bg-[#141414] flex gap-2">
+            <div className="flex-shrink-0 px-6 py-3 border-b border-[#3F3F46] bg-[#141414] flex items-center gap-2">
               <button
                 onClick={() => setActiveTab('gallery')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -495,6 +495,18 @@ export function LocationDetailModal({
                 <Box className="w-4 h-4 inline mr-2" />
                 References ({allImages.length})
               </button>
+              
+              {/* Generate Angle Package Button - Always visible */}
+              <div className="ml-auto">
+                <button
+                  onClick={handleGenerateAngles}
+                  disabled={isGeneratingAngles}
+                  className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {isGeneratingAngles ? 'Generating...' : 'Generate Angle Package'}
+                </button>
+              </div>
             </div>
 
             {/* Content */}
@@ -560,19 +572,6 @@ export function LocationDetailModal({
                       <p className="text-xs text-[#6B7280]">Upload images in the Creation section</p>
                     </div>
                   )}
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-3 items-center">
-                    <button
-                      onClick={handleGenerateAngles}
-                      disabled={isGeneratingAngles}
-                      className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      {isGeneratingAngles ? 'Generating...' : 'Generate Angle Package'}
-                    </button>
-                    
-                  </div>
                 </div>
               )}
 
