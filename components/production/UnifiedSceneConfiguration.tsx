@@ -629,8 +629,10 @@ export function UnifiedSceneConfiguration({
                   }
                   
                   // Determine max selection based on pronoun types detected
-                  // For singular pronouns: 1 character per unique pronoun (e.g., "She argues with him" = 2 pronouns = max 2)
-                  // For plural pronouns: up to 5 characters (e.g., "They exchange a look" = max 5)
+                  // Goal: Each unique pronoun should align with a character reference
+                  // - Each unique singular pronoun = 1 character (e.g., "she", "him", "her" = 3 characters)
+                  // - Plural pronouns = can be multiple, but may refer to same people as singular pronouns
+                  // - If both singular and plural: base = singular count, add 1-2 for potential additional people in "they"
                   const singularPronouns = ['she', 'her', 'hers', 'he', 'him', 'his'];
                   const pluralPronouns = ['they', 'them', 'their', 'theirs'];
                   
@@ -638,9 +640,24 @@ export function UnifiedSceneConfiguration({
                   const hasPlural = uniquePronouns.some(p => pluralPronouns.includes(p));
                   const uniqueSingularCount = uniquePronouns.filter(p => singularPronouns.includes(p)).length;
                   
-                  // If plural pronouns detected, allow up to 5
-                  // If only singular pronouns, allow 1 per unique pronoun (max 5)
-                  const maxSelection = hasPlural ? 5 : Math.min(uniqueSingularCount, 5);
+                  // Logic:
+                  // - If only singular pronouns: exactly 1 per unique pronoun (e.g., "She argues with him" = 2)
+                  // - If only plural pronouns: up to 5 (e.g., "They exchange a look" = up to 5)
+                  // - If both: singular count + 1-2 additional for potential extra people in "they" (max 5)
+                  //   Example: "She argues with him and her while they watch" = 3 singular + 1-2 for "they" = 4-5 max
+                  let maxSelection: number;
+                  if (hasPlural && uniqueSingularCount > 0) {
+                    // Mixed: singular pronouns + plural
+                    // Base = singular count (each needs 1 character)
+                    // Add 1-2 for potential additional people in "they" (in case "they" includes extras)
+                    maxSelection = Math.min(uniqueSingularCount + 2, 5);
+                  } else if (hasPlural) {
+                    // Only plural pronouns
+                    maxSelection = 5;
+                  } else {
+                    // Only singular pronouns: exactly 1 per unique pronoun
+                    maxSelection = Math.min(uniqueSingularCount, 5);
+                  }
                   
                   return (
                     <div className="mt-3 pt-3 border-t border-[#3F3F46] space-y-3">
