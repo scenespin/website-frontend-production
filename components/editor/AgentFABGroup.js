@@ -11,7 +11,6 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit3, MessageSquare, Sparkles, Film } from 'lucide-react';
 
 export default function AgentFABGroup({
   onLaunchScreenwriter,
@@ -82,7 +81,7 @@ export default function AgentFABGroup({
             title="Rewrite & Polish: Improve selected text with AI. Quick actions: Make concise, expand detail, more dramatic, polish dialogue, fix grammar"
             aria-label="Launch Rewrite Agent"
           >
-            <Sparkles className={iconSize} />
+            <span className="text-2xl">💫</span>
           </motion.button>
         )}
 
@@ -113,7 +112,7 @@ export default function AgentFABGroup({
           title="Launch Dialogue Agent"
           aria-label="Launch Dialogue Agent"
         >
-          <MessageSquare className={iconSize} />
+          <span className="text-2xl">💬</span>
         </motion.button>
 
         {/* Director FAB */}
@@ -140,7 +139,7 @@ export default function AgentFABGroup({
             title="Launch Director Agent: Generate complete scenes with scene headings"
             aria-label="Launch Director Agent"
           >
-            <Film className={iconSize} />
+            <span className="text-2xl">🎬</span>
           </motion.button>
         )}
 
@@ -171,7 +170,7 @@ export default function AgentFABGroup({
           title="Launch Screenwriter Agent"
           aria-label="Launch Screenwriter Agent"
         >
-          <Edit3 className={iconSize} />
+          <span className="text-2xl">✍️</span>
         </motion.button>
       </div>
     </AnimatePresence>

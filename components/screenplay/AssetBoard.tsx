@@ -167,7 +167,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
     };
 
     return (
-        <div className="flex flex-col h-full" style={{ backgroundColor: '#1C1C1E' }}>
+        <div className="flex flex-col h-full" style={{ backgroundColor: '#0A0A0A' }}>
             {/* Loading State */}
             {isLoading && (
                 <div className="flex items-center justify-center h-64">
@@ -186,10 +186,10 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                         <div className="p-4 pl-16 sm:pl-4 border-b flex items-center justify-between" style={{ borderColor: '#2C2C2E' }}>
                             <div>
                                 <h2 className="text-xl sm:text-2xl font-bold" style={{ color: '#E5E7EB' }}>
-                                    Props & Assets Board
+                                    Props Board
                                 </h2>
                                 <p className="text-xs sm:text-sm mt-1" style={{ color: '#9CA3AF' }}>
-                                    View and manage all props and assets from your screenplay
+                                    View and manage all props from your screenplay
                                 </p>
                             </div>
                             {canEditScript ? (
@@ -253,7 +253,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                     </div>
 
                                     {/* Assets List */}
-                                    <div className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200 border-2" style={{ backgroundColor: '#0A0A0A', borderColor: '#1C1C1E' }}>
+                                    <div className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200 border-2" style={{ backgroundColor: '#0A0A0A', borderColor: '#0A0A0A' }}>
                                         {/* Empty State */}
                                         {column.assets.length === 0 && (
                                             <div className="flex flex-col items-center justify-center h-full py-12 px-4">
@@ -536,8 +536,8 @@ function AssetCardContent({
         <div
             className="mb-2 p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
             style={{
-                backgroundColor: '#1C1C1E',
-                borderColor: '#3F3F46',
+                backgroundColor: '#0A0A0A',
+                borderColor: '#1C1C1E',
             }}
         >
             {/* Asset Info */}
