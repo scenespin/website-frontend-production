@@ -360,26 +360,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                     
-                    <div className="tooltip tooltip-bottom" data-tip="Dialogue • Ex: I need to finish this script.">
-                        <button
-                            onClick={() => formatCurrentLine('dialogue')}
-                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-base">💬</span>
-                            <span className="text-[9px] hidden sm:inline">TALK</span>
-                        </button>
-                    </div>
-                    
-                    <div className="tooltip tooltip-bottom" data-tip="Action/Description • Enter • Ex: Sarah enters the room.">
-                        <button
-                            onClick={() => formatCurrentLine('action')}
-                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-base">⚡</span>
-                            <span className="text-[9px] hidden sm:inline">ACT</span>
-                        </button>
-                    </div>
-                    
                     <div className="tooltip tooltip-bottom" data-tip="Parenthetical/Wryly • Ex: (nervous)">
                         <button
                             onClick={() => formatCurrentLine('parenthetical')}
