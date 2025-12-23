@@ -144,6 +144,22 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     return 0;
   };
 
+  // Camera angles for image generation
+  const cameraAngles: CameraAngle[] = [
+    { id: '', label: 'None', description: 'No specific camera angle', promptText: '' },
+    { id: 'wide-shot', label: 'Wide Shot', description: 'Establishing shot, shows full scene', promptText: 'wide shot, establishing shot, full scene visible' },
+    { id: 'medium-shot', label: 'Medium Shot', description: 'Medium framing, shows subject and surroundings', promptText: 'medium shot, shows subject and surroundings' },
+    { id: 'close-up', label: 'Close-Up', description: 'Tight framing on subject', promptText: 'close-up shot, tight framing on subject' },
+    { id: 'extreme-close-up', label: 'Extreme Close-Up', description: 'Very tight framing, detail focus', promptText: 'extreme close-up, very tight framing, detail focus' },
+    { id: 'low-angle', label: 'Low Angle', description: 'Camera looking up at subject', promptText: 'low angle shot, camera looking up at subject' },
+    { id: 'high-angle', label: 'High Angle', description: 'Camera looking down at subject', promptText: 'high angle shot, camera looking down at subject' },
+    { id: 'bird-eye', label: 'Bird\'s Eye View', description: 'Aerial view from above', promptText: 'bird\'s eye view, aerial shot from above' },
+    { id: 'dutch-angle', label: 'Dutch Angle', description: 'Tilted camera, dynamic composition', promptText: 'dutch angle, tilted camera, dynamic composition' },
+    { id: 'over-the-shoulder', label: 'Over-the-Shoulder', description: 'Shot from behind subject', promptText: 'over-the-shoulder shot, camera positioned behind subject' },
+    { id: 'two-shot', label: 'Two-Shot', description: 'Frames two subjects together', promptText: 'two-shot, frames two subjects together' },
+    { id: 'point-of-view', label: 'Point of View', description: 'First-person perspective', promptText: 'point of view shot, first-person perspective' },
+  ];
+
   // Format camera angle for model-specific prompts
   const formatCameraAngleForModel = (angleId: string, modelId: string): string => {
     if (!angleId) return '';
