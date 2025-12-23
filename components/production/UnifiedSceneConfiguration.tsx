@@ -628,11 +628,19 @@ export function UnifiedSceneConfiguration({
                     return null;
                   }
                   
-                  // Allow multiple selections for any pronoun detection
-                  // Context like "She argues with him" requires multiple characters
-                  // Users can use their judgment to select the appropriate number
-                  // Default to 5 max, but users typically select 1-2 for singular pronouns
-                  const maxSelection = 5;
+                  // Determine max selection based on pronoun types detected
+                  // For singular pronouns: 1 character per unique pronoun (e.g., "She argues with him" = 2 pronouns = max 2)
+                  // For plural pronouns: up to 5 characters (e.g., "They exchange a look" = max 5)
+                  const singularPronouns = ['she', 'her', 'hers', 'he', 'him', 'his'];
+                  const pluralPronouns = ['they', 'them', 'their', 'theirs'];
+                  
+                  const uniquePronouns = pronounInfo.pronouns.map(p => p.toLowerCase());
+                  const hasPlural = uniquePronouns.some(p => pluralPronouns.includes(p));
+                  const uniqueSingularCount = uniquePronouns.filter(p => singularPronouns.includes(p)).length;
+                  
+                  // If plural pronouns detected, allow up to 5
+                  // If only singular pronouns, allow 1 per unique pronoun (max 5)
+                  const maxSelection = hasPlural ? 5 : Math.min(uniqueSingularCount, 5);
                   
                   return (
                     <div className="mt-3 pt-3 border-t border-[#3F3F46] space-y-3">
