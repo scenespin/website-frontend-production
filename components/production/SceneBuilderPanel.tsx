@@ -1930,12 +1930,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('[SceneBuilderPanel] ❌ Workflow execution request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData.error || errorData.message,
+          fullError: errorData
+        });
         throw new Error(errorData.error || errorData.message || `Workflow execution failed: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
       
       if (data.success && data.executionId) {
+        console.log('[SceneBuilderPanel] ✅ Workflow execution started:', data.executionId);
         setWorkflowExecutionId(data.executionId);
         
         // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
