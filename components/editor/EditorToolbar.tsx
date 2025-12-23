@@ -415,9 +415,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
                         <button
                             onClick={handleOpenImport}
-                            className="px-2 py-2 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                         >
                             <span className="text-base">📄</span>
+                            <span className="text-[9px] hidden sm:inline">IMPORT</span>
                         </button>
                     </div>
                 )}
@@ -428,12 +429,15 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         <button
                             onClick={handleRescan}
                             disabled={isRescanning || !state.content.trim()}
-                            className="px-2 py-2 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             {isRescanning ? (
                                 <span className="loading loading-spinner loading-xs"></span>
                             ) : (
-                                <span className="text-base">🔄</span>
+                                <>
+                                    <span className="text-base">🔄</span>
+                                    <span className="text-[9px] hidden sm:inline">SCAN</span>
+                                </>
                             )}
                         </button>
                     </div>
@@ -445,16 +449,22 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
-                            className={`px-2 py-2 rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-all ${
+                            className={`px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-all ${
                                 isSaving
                                     ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 cursor-wait'
-                                    : 'bg-[#0A0A0A] hover:bg-[#1A1A1A]'
+                                    : 'bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C]'
                             }`}
                         >
                             {isSaving ? (
-                                <span className="text-base animate-spin">💾</span>
+                                <>
+                                    <span className="text-base animate-spin">💾</span>
+                                    <span className="text-[9px] hidden sm:inline">SAVE</span>
+                                </>
                             ) : (
-                                <span className="text-base">💾</span>
+                                <>
+                                    <span className="text-base">💾</span>
+                                    <span className="text-[9px] hidden sm:inline">SAVE</span>
+                                </>
                             )}
                         </button>
                     </div>
@@ -498,9 +508,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 toast.error('Export failed: ' + (error.message || 'Unknown error'));
                             }
                         }}
-                        className="px-2 py-2 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                        className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                     >
                         <span className="text-base">😈</span>
+                        <span className="text-[9px] hidden sm:inline">GITHUB</span>
                     </button>
                 </div>
                 
@@ -521,9 +532,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             document.body.removeChild(a);
                             URL.revokeObjectURL(url);
                         }}
-                        className="px-2 py-2 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                        className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                     >
-                        <span className="text-base">☁️</span>
+                        <span className="text-base">⛲</span>
+                        <span className="text-[9px] hidden sm:inline">FOUNTAIN</span>
                     </button>
                 </div>
                 
@@ -532,9 +544,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     <div className="tooltip tooltip-bottom" data-tip="Export PDF • Industry-standard format • Cmd+P">
                         <button
                             onClick={onExportPDF}
-                            className="px-2 py-2 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                         >
-                            <span className="text-base">📄⬇️</span>
+                            <span className="text-base">⬇️</span>
+                            <span className="text-[9px] hidden sm:inline">PDF</span>
                         </button>
                     </div>
                 )}
@@ -544,9 +557,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     <div className="tooltip tooltip-bottom" data-tip="Read Screenplay • Generate audio with character voices">
                         <button
                             onClick={onReadScreenplay}
-                            className="px-2 py-2 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                         >
                             <span className="text-base">🔊</span>
+                            <span className="text-[9px] hidden sm:inline">READ</span>
                         </button>
                     </div>
                 )}
@@ -565,16 +579,22 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 window.dispatchEvent(new CustomEvent('toggleEditorFullscreen'));
                             }
                         }}
-                        className={`px-2 py-2 rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors ${
+                        className={`px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors ${
                             isEditorFullscreen
                                 ? 'bg-[#DC143C] hover:bg-[#DC143C]/90 text-white'
-                                : 'bg-[#0A0A0A] hover:bg-[#1A1A1A]'
+                                : 'bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C]'
                         }`}
                     >
                         {isEditorFullscreen ? (
-                            <span className="text-base">✕</span>
+                            <>
+                                <span className="text-base">✕</span>
+                                <span className="text-[9px] hidden sm:inline">EXIT</span>
+                            </>
                         ) : (
-                            <span className="text-base">⛶</span>
+                            <>
+                                <span className="text-base">⛶</span>
+                                <span className="text-[9px] hidden sm:inline">FULL</span>
+                            </>
                         )}
                     </button>
                 </div>
