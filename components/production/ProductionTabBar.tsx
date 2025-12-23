@@ -6,16 +6,16 @@
  * Horizontal tab navigation with expandable sub-tabs
  * - Top level: References | AI Studio | Jobs | Media | Playground
  * - References expands to: Characters | Locations | Props
- * - AI Studio expands to: Scene Manifest | Video | Audio
+ * - AI Studio expands to: Scene Manifest | Scenes | Video | Audio
  * 
  * Feature: Production Hub Redesign - Sub-navigation Groups
  */
 
 import React from 'react';
-import { Film, Clapperboard, BriefcaseBusiness, Users, MapPin, Package, FolderOpen, Library, Video } from 'lucide-react';
+import { Film, Clapperboard, BriefcaseBusiness, Users, MapPin, Package, FolderOpen, Library, Video, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'audio' | 'jobs' | 'media' | 'playground';
+export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'video' | 'audio' | 'jobs' | 'media' | 'playground';
 
 type TabGroup = 'assets' | 'studio';
 
@@ -65,16 +65,24 @@ const STUDIO_SUBTABS = [
   },
   {
     id: 'scenes' as ProductionTab,
-    label: 'Video',
+    label: 'Scenes',
     icon: Film,
-    description: 'Scene videos & storyboard',
+    description: 'Stitched scene videos & storyboard',
     color: 'text-purple-500',
     activeColor: 'text-purple-600 dark:text-purple-400',
   },
   {
+    id: 'video' as ProductionTab,
+    label: 'Video',
+    icon: Video,
+    description: 'Playground videos & manual uploads',
+    color: 'text-yellow-500',
+    activeColor: 'text-yellow-600 dark:text-yellow-400',
+  },
+  {
     id: 'audio' as ProductionTab,
     label: 'Audio',
-    icon: Video,
+    icon: Volume2,
     description: 'Audio files & recordings',
     color: 'text-green-500',
     activeColor: 'text-green-600 dark:text-green-400',
@@ -124,7 +132,7 @@ export function ProductionTabBar({
 }: ProductionTabBarProps) {
   // Determine which group is active (if any)
   const isAssetsActive = ['characters', 'locations', 'assets'].includes(activeTab);
-  const isStudioActive = ['scene-builder', 'scenes', 'audio'].includes(activeTab);
+  const isStudioActive = ['scene-builder', 'scenes', 'video', 'audio'].includes(activeTab);
   
   // Get active sub-tab for each group
   const activeAssetsSubTab = isAssetsActive ? activeTab : null;

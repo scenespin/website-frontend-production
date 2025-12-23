@@ -50,6 +50,7 @@ import CreativePossibilitiesGallery from './CreativePossibilitiesGallery';
 // Existing components
 import { SceneBuilderPanel } from './SceneBuilderPanel';
 import { ScenesPanel } from './ScenesPanel';
+import { VideoPanel } from './VideoPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { LocationBankPanel } from './LocationBankPanel';
 import AssetBankPanel from './AssetBankPanel';
@@ -66,7 +67,8 @@ type ProductionTab =
   | 'locations'     // Location Bank
   | 'assets'        // Asset Bank
   | 'scene-builder' // Screenplay-driven scene generation
-  | 'scenes'        // Scene videos & storyboard (Feature 0170)
+  | 'scenes'        // Stitched scene videos & storyboard (Feature 0170)
+  | 'video'         // Standalone videos from Playground & uploads
   | 'audio'         // Audio files & recordings
   | 'jobs'          // Job Monitoring
   | 'media'         // Media Library + Style Analyzer
@@ -121,7 +123,7 @@ export function ProductionHub({}: ProductionHubProps) {
     
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
     
-    if (tabFromUrl && ['characters', 'locations', 'assets', 'scene-builder', 'scenes', 'jobs', 'media', 'playground'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['characters', 'locations', 'assets', 'scene-builder', 'scenes', 'video', 'audio', 'jobs', 'media', 'playground'].includes(tabFromUrl)) {
       // Only update if different to prevent React error #300 (circular updates)
       setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
     } else {
@@ -496,6 +498,14 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'scenes' && (
             <div className="h-full overflow-y-auto">
               <ScenesPanel
+                className="h-full"
+              />
+            </div>
+          )}
+
+          {activeTab === 'video' && (
+            <div className="h-full overflow-y-auto">
+              <VideoPanel
                 className="h-full"
               />
             </div>
