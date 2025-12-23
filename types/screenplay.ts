@@ -637,14 +637,20 @@ export interface SceneAnalysisResult {
         totalShots: number;
         shots: Array<{
             slot: number;
-            type: 'establishing' | 'character' | 'vfx' | 'broll' | 'dialogue';
+            type: 'establishing' | 'character' | 'vfx' | 'broll' | 'dialogue' | 'action';
             workflow: string;
             description: string;
             characterId?: string;
             credits: number;
+            // Feature 0165: Shot Segmentation fields
+            dialogueBlock?: any;  // For dialogue shots
+            narrationBlock?: any;  // For action shots
+            lineNumber?: number;  // For chronological sequencing
+            needsFirstFrame?: boolean;  // Whether this shot needs a first frame generated
         }>;
         totalCredits: number;
         estimatedTime: string; // e.g., "~12 minutes"
+        sequential?: boolean;  // Feature 0165: Indicates shots must be generated in order
     };
     
     // Visual style analysis
