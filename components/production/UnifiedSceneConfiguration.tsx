@@ -147,35 +147,148 @@ export function UnifiedSceneConfiguration({
     return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
   };
 
+  // Helper to find the last mentioned character in previous shots
+  // This helps resolve pronouns (she/her) that refer to previously mentioned characters
+  const findLastMentionedCharacter = (currentShotSlot: number): any => {
+    if (!sceneAnalysisResult?.shotBreakdown?.shots || !sceneAnalysisResult?.characters) {
+      return null;
+    }
+    
+    const shots = sceneAnalysisResult.shotBreakdown.shots;
+    const currentIndex = shots.findIndex((s: any) => s.slot === currentShotSlot);
+    
+    if (currentIndex === -1) return null;
+    
+    // Look backwards through previous shots to find the last character mention
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const prevShot = shots[i];
+      
+      // Check dialogue shots (they always have a character)
+      if (prevShot.type === 'dialogue' && prevShot.characterId) {
+        return sceneAnalysisResult.characters.find((c: any) => c.id === prevShot.characterId) || null;
+      }
+      
+      // Check action shots for character name mentions (ALL CAPS or regular case)
+      if (prevShot.type === 'action' && prevShot.description) {
+        const prevDescription = prevShot.description;
+        for (const char of sceneAnalysisResult.characters) {
+          if (!char.name) continue;
+          const charName = char.name;
+          // Check for ALL CAPS mention (e.g., "SARAH enters")
+          if (prevDescription.includes(charName.toUpperCase())) {
+            return char;
+          }
+          // Check for regular case mention (e.g., "Sarah walks")
+          if (prevDescription.includes(charName)) {
+            return char;
+          }
+        }
+      }
+    }
+    
+    return null;
+  };
+
   // Helper to detect if a character name is mentioned in action shot description
+  // Now handles: ALL CAPS names, regular case names, and pronouns (she/her/he/him)
   const actionShotHasCharacter = (shot: any): boolean => {
     if (shot.type !== 'action' || !shot.description || !sceneAnalysisResult?.characters) {
       return false;
     }
     
     const description = shot.description.toLowerCase();
-    // Check if any character name appears in the action description
-    return sceneAnalysisResult.characters.some((char: any) => {
+    const characters = sceneAnalysisResult.characters;
+    
+    // 1. Check for explicit character name mentions (ALL CAPS or regular case)
+    const hasExplicitName = characters.some((char: any) => {
       if (!char.name) return false;
       const charName = char.name.toLowerCase();
-      // Check if character name appears in description (word boundary matching)
-      return description.includes(charName);
+      // Check if character name appears in description
+      // Handle both "Sarah" and "Sarah's" (possessive)
+      return description.includes(charName) || description.includes(charName + "'s");
     });
+    
+    if (hasExplicitName) return true;
+    
+    // 2. Check for pronouns - only if we have context from previous shots
+    // Pronouns to check: she, her, he, him, his, hers
+    const pronounPatterns = [
+      /\b(she|her|hers)\b/,
+      /\b(he|him|his)\b/
+    ];
+    
+    const hasPronoun = pronounPatterns.some(pattern => pattern.test(description));
+    
+    if (!hasPronoun) return false;
+    
+    // 3. Resolve pronouns by looking at previous shots
+    // If single character scene, any pronoun refers to that character
+    if (characters.length === 1) {
+      return true; // Single character = any pronoun refers to them
+    }
+    
+    // Multiple characters: check if we can resolve the pronoun
+    const lastMentioned = findLastMentionedCharacter(shot.slot);
+    return lastMentioned !== null;
   };
 
   // Get character mentioned in action shot (if any)
+  // Now handles: ALL CAPS names, regular case names, and pronouns
   const getCharacterFromActionShot = (shot: any) => {
     if (shot.type !== 'action' || !shot.description || !sceneAnalysisResult?.characters) {
       return null;
     }
     
     const description = shot.description.toLowerCase();
-    // Find first character whose name appears in the action description
-    return sceneAnalysisResult.characters.find((char: any) => {
-      if (!char.name) return false;
+    const characters = sceneAnalysisResult.characters;
+    
+    // 1. Check for explicit character name mentions (ALL CAPS or regular case)
+    // Prefer regular case matches first (more specific), then ALL CAPS
+    for (const char of characters) {
+      if (!char.name) continue;
       const charName = char.name.toLowerCase();
-      return description.includes(charName);
-    }) || null;
+      // Check for regular case name (e.g., "Sarah walks" or "Sarah's hand")
+      if (description.includes(charName) || description.includes(charName + "'s")) {
+        return char;
+      }
+    }
+    
+    // Check for ALL CAPS mentions
+    const originalDescription = shot.description;
+    for (const char of characters) {
+      if (!char.name) continue;
+      if (originalDescription.includes(char.name.toUpperCase())) {
+        return char;
+      }
+    }
+    
+    // 2. Check for pronouns and resolve using previous shots
+    const pronounPatterns = {
+      female: /\b(she|her|hers)\b/,
+      male: /\b(he|him|his)\b/
+    };
+    
+    const hasFemalePronoun = pronounPatterns.female.test(description);
+    const hasMalePronoun = pronounPatterns.male.test(description);
+    
+    if (!hasFemalePronoun && !hasMalePronoun) {
+      return null; // No pronouns found
+    }
+    
+    // Single character scene: pronoun must refer to that character
+    if (characters.length === 1) {
+      return characters[0];
+    }
+    
+    // Multiple characters: resolve pronoun by looking at previous shots
+    const lastMentioned = findLastMentionedCharacter(shot.slot);
+    if (lastMentioned) {
+      // Verify pronoun gender matches (basic check - could be enhanced with character gender data)
+      // For now, if we found a last mentioned character, use it
+      return lastMentioned;
+    }
+    
+    return null;
   };
 
   // Check if shot type needs reference selection
