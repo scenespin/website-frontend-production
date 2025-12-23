@@ -238,8 +238,9 @@ export function UnifiedSceneConfiguration({
                       {shot.description}
                     </p>
 
-                    {/* Expandable Reference Selection (Phase 1: Dialogue shots only) */}
-                    {needsReferenceSelection(shot) && character && (
+                    {/* Expandable Reference Selection */}
+                    {/* Show expander for dialogue shots (character headshots) OR shots that need location angles */}
+                    {(needsReferenceSelection(shot) && character) || (needsLocationAngle(shot) && sceneAnalysisResult?.location?.id) ? (
                       <button
                         onClick={() => toggleShotExpansion(shot.slot)}
                         className="flex items-center gap-1 text-xs text-[#808080] hover:text-[#FFFFFF] transition-colors"
@@ -251,7 +252,7 @@ export function UnifiedSceneConfiguration({
                           <ChevronDown className="w-3 h-3" />
                         )}
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
