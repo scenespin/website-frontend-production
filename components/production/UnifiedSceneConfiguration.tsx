@@ -377,7 +377,23 @@ export function UnifiedSceneConfiguration({
                     })()}
                     
                     {/* Phase 2: Location Angle Selection */}
-                    {needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange && (
+                    {(() => {
+                      const shouldShow = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
+                      if (shouldShow) {
+                        console.log(`[UnifiedSceneConfig] Showing location angle selector for shot ${shot.slot} (${shot.type}):`, {
+                          locationId: sceneAnalysisResult.location.id,
+                          hasAngleVariations: !!sceneAnalysisResult.location.angleVariations,
+                          angleVariationsCount: sceneAnalysisResult.location.angleVariations?.length || 0
+                        });
+                      } else {
+                        console.log(`[UnifiedSceneConfig] NOT showing location angle selector for shot ${shot.slot} (${shot.type}):`, {
+                          needsLocationAngle: needsLocationAngle(shot),
+                          hasLocationId: !!sceneAnalysisResult?.location?.id,
+                          hasOnLocationAngleChange: !!onLocationAngleChange
+                        });
+                      }
+                      return shouldShow;
+                    })() && (
                       <div className="mt-3 pt-3 border-t border-[#3F3F46]">
                         <LocationAngleSelector
                           locationId={sceneAnalysisResult.location.id}
