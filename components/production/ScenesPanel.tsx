@@ -113,22 +113,6 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
 
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46]">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <Film className="w-5 h-5 text-[#DC143C]" />
-            <h2 className="text-lg font-semibold text-[#FFFFFF]">Scenes</h2>
-          </div>
-          <div className="text-xs text-[#808080]">
-            {scenesWithVideos.length} {scenesWithVideos.length === 1 ? 'scene' : 'scenes'}
-          </div>
-        </div>
-        <p className="text-xs text-[#808080]">
-          Storyboard view of generated scene videos
-        </p>
-      </div>
-
       {/* Content */}
       {scenesWithVideos.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-5 text-center">

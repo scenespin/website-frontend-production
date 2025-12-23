@@ -4,9 +4,9 @@
  * Production Tab Bar Component
  * 
  * Horizontal tab navigation with expandable sub-tabs
- * - Top level: Assets | Studio | Jobs | Media | Playground
- * - Assets expands to: Characters | Locations | Props
- * - Studio expands to: Action | Scenes
+ * - Top level: References | AI Studio | Jobs | Media | Playground
+ * - References expands to: Characters | Locations | Props
+ * - AI Studio expands to: Scene Manifest | Video | Audio
  * 
  * Feature: Production Hub Redesign - Sub-navigation Groups
  */
@@ -57,7 +57,7 @@ const ASSETS_SUBTABS = [
 const STUDIO_SUBTABS = [
   {
     id: 'scene-builder' as ProductionTab,
-    label: 'Scenes',
+    label: 'Scene Manifest',
     icon: Clapperboard,
     description: 'Script-based scene generation',
     color: 'text-blue-500',
@@ -85,16 +85,16 @@ const STUDIO_SUBTABS = [
 const TOP_LEVEL_TABS = [
   {
     id: 'assets' as TabGroup,
-    label: 'Assets',
+    label: 'References',
     icon: Library,
-    description: 'Character, location & prop banks',
+    description: 'Character, location & prop reference banks',
     subTabs: ASSETS_SUBTABS,
   },
   {
     id: 'studio' as TabGroup,
-    label: 'Studio',
+    label: 'AI Studio',
     icon: Video,
-    description: 'Scene generation & videos',
+    description: 'AI scene generation & videos',
     subTabs: STUDIO_SUBTABS,
   },
   {
