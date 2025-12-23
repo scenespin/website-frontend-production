@@ -157,7 +157,7 @@ export function LocationAngleSelector({
         )}
       </div>
       
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-8 gap-1.5">
         {allAngles.map((angle, idx) => {
           const selected = isSelected(angle);
           const isRec = isRecommended(angle);
