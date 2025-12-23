@@ -611,8 +611,19 @@ export interface SceneAnalysisResult {
     location: {
         id: string | null;
         name: string | null;
-        reference: string | null; // 0-1 image URL from Location Bank
+        reference: string | null; // 0-1 image URL from Location Bank (backward compatibility)
         hasReference: boolean;
+        // Phase 2: Location angle variations for user selection
+        baseReference?: { s3Key: string; imageUrl: string; angle: string };
+        angleVariations?: Array<{
+            angleId?: string;
+            angle: string;
+            s3Key: string;
+            imageUrl: string;
+            timeOfDay?: string;
+            weather?: string;
+        }>;
+        recommended?: { angleId?: string; reason: string };
     };
     assets: Array<{
         id: string;

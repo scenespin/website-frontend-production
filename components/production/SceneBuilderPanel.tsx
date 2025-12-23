@@ -144,6 +144,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Feature 0163 Phase 1: Character headshot selection state
   const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>({});
+  
+  // Phase 2: Location angle selection per shot
+  const [selectedLocationReferences, setSelectedLocationReferences] = useState<Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>>({});
   const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>>({});
   const [loadingHeadshots, setLoadingHeadshots] = useState<Record<string, boolean>>({});
   
@@ -1865,6 +1868,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             : sceneAnalysisResult.shotBreakdown.totalCredits
         } : undefined, // NEW: Pass filtered shot breakdown (only enabled shots)
         selectedCharacterReferences: Object.keys(selectedCharacterReferences).length > 0 ? selectedCharacterReferences : undefined, // Feature 0163 Phase 1: Per-character selected references
+        selectedLocationReferences: Object.keys(selectedLocationReferences).length > 0 ? selectedLocationReferences : undefined, // Phase 2: Per-shot location angle selection
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
@@ -2757,6 +2761,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       setCharacterOutfits(prev => ({
                         ...prev,
                         [characterId]: outfitName || undefined
+                      }));
+                    }}
+                    selectedLocationReferences={selectedLocationReferences}
+                    onLocationAngleChange={(shotSlot, locationId, angle) => {
+                      setSelectedLocationReferences(prev => ({
+                        ...prev,
+                        [shotSlot]: angle
                       }));
                     }}
                     enabledShots={enabledShots}

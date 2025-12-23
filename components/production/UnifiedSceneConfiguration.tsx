@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, Sparkles, Coins, Clock, ChevronDown, ChevronUp, Film } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
+import { LocationAngleSelector } from './LocationAngleSelector';
 
 interface UnifiedSceneConfigurationProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
@@ -36,6 +37,9 @@ interface UnifiedSceneConfigurationProps {
   loadingHeadshots: Record<string, boolean>;
   characterOutfits: Record<string, string>;
   onCharacterOutfitChange: (characterId: string, outfitName: string | undefined) => void;
+  // Phase 2: Location angle selection
+  selectedLocationReferences?: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>;
+  onLocationAngleChange?: (shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   enabledShots: number[];
   onEnabledShotsChange: (enabledShots: number[]) => void;
   onGenerate: () => void;
@@ -54,6 +58,8 @@ export function UnifiedSceneConfiguration({
   loadingHeadshots,
   characterOutfits,
   onCharacterOutfitChange,
+  selectedLocationReferences = {},
+  onLocationAngleChange,
   enabledShots,
   onEnabledShotsChange,
   onGenerate,
@@ -130,9 +136,27 @@ export function UnifiedSceneConfiguration({
     return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
   };
 
-  // Check if shot type needs reference selection (Phase 1: dialogue only)
+  // Check if shot type needs reference selection
+  // Phase 1: dialogue shots (character headshots)
+  // Phase 2: establishing/action/dialogue shots (location angles)
   const needsReferenceSelection = (shot: any): boolean => {
-    return shot.type === 'dialogue' && !!shot.characterId;
+    const needsCharacter = shot.type === 'dialogue' && !!shot.characterId;
+    const needsLocation = shot.type === 'establishing' || 
+                         (shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
+                         (shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
+    return needsCharacter || needsLocation;
+  };
+  
+  // Check if shot needs location angle selection
+  const needsLocationAngle = (shot: any): boolean => {
+    return shot.type === 'establishing' || 
+           (shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
+           (shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
+  };
+  
+  // Check if location angle is required for this shot
+  const isLocationAngleRequired = (shot: any): boolean => {
+    return shot.type === 'establishing';
   };
 
   // Get character for dialogue shot
@@ -351,6 +375,24 @@ export function UnifiedSceneConfiguration({
                         </div>
                       );
                     })()}
+                    
+                    {/* Phase 2: Location Angle Selection */}
+                    {needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && sceneAnalysisResult?.location?.angleVariations && onLocationAngleChange && (
+                      <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                        <LocationAngleSelector
+                          locationId={sceneAnalysisResult.location.id}
+                          locationName={sceneAnalysisResult.location.name || 'Location'}
+                          angleVariations={sceneAnalysisResult.location.angleVariations}
+                          baseReference={sceneAnalysisResult.location.baseReference}
+                          selectedAngle={selectedLocationReferences[shot.slot]}
+                          onAngleChange={(locationId, angle) => {
+                            onLocationAngleChange(shot.slot, locationId, angle);
+                          }}
+                          isRequired={isLocationAngleRequired(shot)}
+                          recommended={sceneAnalysisResult.location.recommended}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
