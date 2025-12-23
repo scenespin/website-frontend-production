@@ -687,10 +687,27 @@ export default function PoseGenerationModal({
                     </div>
                   )}
 
+                  {/* Additional Prompt */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <label className="text-sm font-semibold text-base-content mb-2 block">
+                      <Wand2 className="w-4 h-4 inline mr-2" />
+                      Additional Prompt (Optional)
+                    </label>
+                    <textarea
+                      value={additionalPrompt}
+                      onChange={(e) => setAdditionalPrompt(e.target.value)}
+                      placeholder="Add special instructions, color codes (#FF0000), or time-sensitive keywords for real-time search. Nano Banana Pro and FLUX.2 [max] support grounding search. FLUX.2 [max] supports explicit hex codes."
+                      className="w-full h-24 bg-base-200 border border-base-content/20 rounded-lg p-3 text-base-content placeholder-base-content/50 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]"
+                    />
+                    <p className="text-xs text-base-content/50 mt-2">
+                      Example: "Current winter 2025 fashion trends, brand colors #FF0000 #000000"
+                    </p>
+                  </div>
+                  
                   {/* Package Selection */}
                   <div>
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      {supportsClothing ? 'Step 5' : 'Step 4'}: Select Package
+                      {supportsClothing ? 'Step 6' : 'Step 5'}: Select Package
                     </h3>
                     <PosePackageSelector
                       characterName={characterName}
@@ -698,6 +715,7 @@ export default function PoseGenerationModal({
                         setSelectedPackageId(packageId);
                       }}
                       selectedPackageId={selectedPackageId}
+                      creditsPerImage={selectedModel?.credits || 20} // 🔥 NEW: Pass selected model's credits
                     />
                   </div>
                   

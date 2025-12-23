@@ -6,7 +6,7 @@
  * Part of Feature 0098: Complete Character & Location Consistency System
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Zap, Star, Crown, MessageCircle } from 'lucide-react';
 
@@ -26,6 +26,7 @@ interface PosePackageSelectorProps {
   onSelectPackage: (packageId: string) => void;
   selectedPackageId?: string;
   disabled?: boolean;
+  creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
@@ -50,15 +51,21 @@ export default function PosePackageSelector({
   characterName,
   onSelectPackage,
   selectedPackageId,
-  disabled = false
+  disabled = false,
+  creditsPerImage = 20 // 🔥 NEW: Default to 20 credits if not provided
 }: PosePackageSelectorProps) {
+  
+  // 🔥 NEW: Calculate credits dynamically based on selected model
+  const calculatePackageCredits = (poseCount: number): number => {
+    return poseCount * creditsPerImage;
+  };
   
   const [packages, setPackages] = useState<PosePackage[]>([
     {
       id: 'basic',
       name: 'Basic Package',
       poses: ['front-facing', 'three-quarter-left', 'close-up'],
-      credits: 60,
+      credits: calculatePackageCredits(3), // 🔥 DYNAMIC: 3 poses × creditsPerImage
       consistencyRating: 75,
       description: 'Essential 3 poses for quick tests (includes headshot for dialogue)',
       bestFor: ['Quick tests', 'Simple scenes', 'Dialogue scenes', 'Single locations'],
@@ -68,7 +75,7 @@ export default function PosePackageSelector({
       id: 'standard',
       name: 'Standard Package',
       poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'full-body-front', 'full-body-three-quarter', 'close-up', 'back-view-upper'],
-      credits: 140,
+      credits: calculatePackageCredits(7), // 🔥 DYNAMIC: 7 poses × creditsPerImage
       consistencyRating: 87,
       description: '7 essential angles for multi-scene films',
       bestFor: ['Multiple scenes', 'Dialogue', 'Standard coverage'],
@@ -78,7 +85,7 @@ export default function PosePackageSelector({
       id: 'premium',
       name: 'Premium Package',
       poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'full-body-front', 'full-body-three-quarter', 'back-view-full-body', 'walking-forward', 'standing-casual', 'close-up', 'neutral-expression'],
-      credits: 220,
+      credits: calculatePackageCredits(11), // 🔥 DYNAMIC: 11 poses × creditsPerImage
       consistencyRating: 93,
       description: '11 poses for professional productions',
       bestFor: ['Professional films', 'Complex scenes', 'Action sequences'],
@@ -88,7 +95,7 @@ export default function PosePackageSelector({
       id: 'cinematic',
       name: 'Cinematic Package',
       poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'back-view', 'back-view-full-body', 'three-quarter-back', 'full-body-front', 'full-body-three-quarter', 'full-body-side', 'walking-forward', 'running', 'sitting', 'standing-confident', 'high-angle', 'low-angle', 'close-up'],
-      credits: 360,
+      credits: calculatePackageCredits(18), // 🔥 DYNAMIC: 18 poses × creditsPerImage
       consistencyRating: 98,
       description: '18 poses for high-end productions (includes headshot for dialogue)',
       bestFor: ['High-end films', 'Multiple angles', 'Dialogue scenes', 'Camera variety'],
@@ -98,7 +105,7 @@ export default function PosePackageSelector({
       id: 'master',
       name: 'Master Package',
       poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'back-view', 'back-view-full-body', 'back-view-upper', 'three-quarter-back', 'full-body-front', 'full-body-three-quarter', 'full-body-side', 'walking-forward', 'running', 'sitting', 'standing-casual', 'standing-confident', 'neutral-expression', 'smiling', 'serious', 'determined', 'high-angle', 'low-angle', 'close-up', 'extreme-close-up', 'close-up-three-quarter'],
-      credits: 540,
+      credits: calculatePackageCredits(27), // 🔥 DYNAMIC: 27 poses × creditsPerImage
       consistencyRating: 99,
       description: 'Complete 27-pose set for maximum coverage (includes dialogue variations)',
       bestFor: ['Feature films', 'Complete coverage', 'Professional studios', 'Dialogue scenes'],
@@ -108,13 +115,24 @@ export default function PosePackageSelector({
       id: 'dialogue',
       name: 'Dialogue Package',
       poses: ['close-up', 'extreme-close-up', 'extreme-close-up-mouth', 'close-up-three-quarter', 'front-facing', 'close-up-profile'],
-      credits: 120,
+      credits: calculatePackageCredits(6), // 🔥 DYNAMIC: 6 poses × creditsPerImage
       consistencyRating: 96,
       description: '6 headshot variations optimized for dialogue and lip sync scenes',
       bestFor: ['Dialogue scenes', 'Lip sync', 'Talking head videos', 'Voice-over work', 'Dramatic mouth focus'],
       discount: 0
     }
   ]);
+  
+  // 🔥 NEW: Update package credits when creditsPerImage changes
+  useEffect(() => {
+    const calculateCredits = (poseCount: number): number => {
+      return poseCount * creditsPerImage;
+    };
+    setPackages(prev => prev.map(pkg => ({
+      ...pkg,
+      credits: calculateCredits(pkg.poses.length)
+    })));
+  }, [creditsPerImage]);
   
   return (
     <div className="space-y-6">

@@ -6,7 +6,7 @@
  * Similar to LocationAnglePackageSelector but for assets
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Zap, Star, Package } from 'lucide-react';
 
@@ -28,6 +28,7 @@ interface AssetAnglePackageSelectorProps {
   selectedPackageId?: string;
   disabled?: boolean;
   quality?: 'standard' | 'high-quality'; // Quality tier affects pricing
+  creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
@@ -47,16 +48,22 @@ export default function AssetAnglePackageSelector({
   onSelectPackage,
   selectedPackageId,
   disabled = false,
-  quality = 'standard'
+  quality = 'standard',
+  creditsPerImage = 20 // 🔥 NEW: Default to 20 credits if not provided
 }: AssetAnglePackageSelectorProps) {
+  
+  // 🔥 NEW: Calculate credits dynamically based on selected model
+  const calculatePackageCredits = (angleCount: number): number => {
+    return angleCount * creditsPerImage;
+  };
   
   const [packages, setPackages] = useState<AssetAnglePackage[]>([
     {
       id: 'basic',
       name: 'Basic Package',
       angles: ['front', 'side', 'top'],
-      credits: 60, // 3 angles × 20 credits (1080p)
-      credits4K: 120, // 3 angles × 40 credits (4K)
+      credits: calculatePackageCredits(3), // 🔥 DYNAMIC: 3 angles × creditsPerImage
+      credits4K: calculatePackageCredits(3), // Will be updated dynamically
       consistencyRating: 85,
       description: 'Essential 3 angles for quick tests',
       bestFor: ['Quick tests', 'Simple props', 'Single scenes'],
@@ -66,8 +73,8 @@ export default function AssetAnglePackageSelector({
       id: 'standard',
       name: 'Standard Package',
       angles: ['front', 'side', 'top', 'back', 'detail', 'context'],
-      credits: 120, // 6 angles × 20 credits (1080p)
-      credits4K: 240, // 6 angles × 40 credits (4K)
+      credits: calculatePackageCredits(6), // 🔥 DYNAMIC: 6 angles × creditsPerImage
+      credits4K: calculatePackageCredits(6), // Will be updated dynamically
       consistencyRating: 88,
       description: '6 essential angles for multi-scene films',
       bestFor: ['Multiple scenes', 'Dialogue', 'Standard coverage'],
@@ -77,14 +84,26 @@ export default function AssetAnglePackageSelector({
       id: 'premium',
       name: 'Premium Package',
       angles: ['front', 'side', 'top', 'back', 'detail', 'context', 'close-up', 'lighting-variation', 'context-variation', 'aerial'],
-      credits: 200, // 10 angles × 20 credits (1080p)
-      credits4K: 400, // 10 angles × 40 credits (4K)
+      credits: calculatePackageCredits(10), // 🔥 DYNAMIC: 10 angles × creditsPerImage
+      credits4K: calculatePackageCredits(10), // Will be updated dynamically
       consistencyRating: 90,
       description: '10 angles for professional productions',
       bestFor: ['Professional films', 'Complex scenes', 'Action sequences'],
       discount: 0
     }
   ]);
+  
+  // 🔥 NEW: Update package credits when creditsPerImage changes
+  useEffect(() => {
+    const calculateCredits = (angleCount: number): number => {
+      return angleCount * creditsPerImage;
+    };
+    setPackages(prev => prev.map(pkg => ({
+      ...pkg,
+      credits: calculateCredits(pkg.angles.length),
+      credits4K: calculateCredits(pkg.angles.length) // Same calculation for both tiers now
+    })));
+  }, [creditsPerImage]);
   
   return (
     <div className="space-y-6">
@@ -102,7 +121,7 @@ export default function AssetAnglePackageSelector({
           const Icon = PACKAGE_ICONS[pkg.id];
           const isSelected = selectedPackageId === pkg.id;
           const isRecommended = pkg.id === 'standard';
-          const displayCredits = quality === 'high-quality' ? pkg.credits4K : pkg.credits;
+          const displayCredits = pkg.credits; // 🔥 DYNAMIC: Now uses calculated credits
           
           return (
             <motion.div

@@ -6,7 +6,7 @@
  * Part of Feature 0098: Complete Character & Location Consistency System
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Zap, Star, MapPin } from 'lucide-react';
 
@@ -26,6 +26,7 @@ interface LocationAnglePackageSelectorProps {
   onSelectPackage: (packageId: string) => void;
   selectedPackageId?: string;
   disabled?: boolean;
+  creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
@@ -44,15 +45,21 @@ export default function LocationAnglePackageSelector({
   locationName,
   onSelectPackage,
   selectedPackageId,
-  disabled = false
+  disabled = false,
+  creditsPerImage = 20 // 🔥 NEW: Default to 20 credits if not provided
 }: LocationAnglePackageSelectorProps) {
+  
+  // 🔥 NEW: Calculate credits dynamically based on selected model
+  const calculatePackageCredits = (angleCount: number): number => {
+    return angleCount * creditsPerImage;
+  };
   
   const [packages, setPackages] = useState<LocationAnglePackage[]>([
     {
       id: 'basic',
       name: 'Basic Package',
       angles: ['front', 'corner', 'wide'],
-      credits: 60,
+      credits: calculatePackageCredits(3), // 🔥 DYNAMIC: 3 angles × creditsPerImage
       consistencyRating: 70,
       description: 'Essential 3 angles for quick tests',
       bestFor: ['Quick tests', 'Simple scenes', 'Single locations'],
@@ -62,7 +69,7 @@ export default function LocationAnglePackageSelector({
       id: 'standard',
       name: 'Standard Package',
       angles: ['front', 'corner', 'wide', 'low-angle', 'entrance', 'foreground-framing'],
-      credits: 120,
+      credits: calculatePackageCredits(6), // 🔥 DYNAMIC: 6 angles × creditsPerImage
       consistencyRating: 85,
       description: '6 cinematic angles for multi-scene films',
       bestFor: ['Multiple scenes', 'Dialogue', 'Standard coverage'],
@@ -72,13 +79,24 @@ export default function LocationAnglePackageSelector({
       id: 'premium',
       name: 'Premium Package',
       angles: ['front', 'corner', 'wide', 'low-angle', 'entrance', 'foreground-framing', 'aerial', 'pov', 'detail', 'atmospheric', 'golden-hour'],
-      credits: 220,
+      credits: calculatePackageCredits(11), // 🔥 DYNAMIC: 11 angles × creditsPerImage
       consistencyRating: 92,
       description: '11 cinematic angles for professional productions',
       bestFor: ['Professional films', 'Complex scenes', 'Action sequences'],
       discount: 0
     }
   ]);
+  
+  // 🔥 NEW: Update package credits when creditsPerImage changes
+  useEffect(() => {
+    const calculateCredits = (angleCount: number): number => {
+      return angleCount * creditsPerImage;
+    };
+    setPackages(prev => prev.map(pkg => ({
+      ...pkg,
+      credits: calculateCredits(pkg.angles.length)
+    })));
+  }, [creditsPerImage]);
   
   return (
     <div className="space-y-6">

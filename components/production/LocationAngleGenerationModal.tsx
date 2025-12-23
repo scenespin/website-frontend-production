@@ -397,6 +397,7 @@ export default function LocationAngleGenerationModal({
                         setSelectedPackageId(packageId);
                       }}
                       selectedPackageId={selectedPackageId}
+                      creditsPerImage={models.find(m => m.id === providerId)?.credits || 20} // 🔥 NEW: Pass selected model's credits
                     />
                   </div>
                   

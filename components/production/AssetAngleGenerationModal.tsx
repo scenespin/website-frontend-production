@@ -363,6 +363,7 @@ export default function AssetAngleGenerationModal({
                       }}
                       selectedPackageId={selectedPackageId}
                       quality={quality}
+                      creditsPerImage={models.find(m => m.id === providerId)?.credits || 20} // 🔥 NEW: Pass selected model's credits
                     />
                   </div>
                   
