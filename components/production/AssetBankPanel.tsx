@@ -153,7 +153,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
               : 'bg-[#141414] text-[#B3B3B3] hover:bg-[#1F1F1F] border border-[#3F3F46]'
           }`}
         >
-          All Assets
+          All Props
         </button>
         {(['prop', 'vehicle', 'furniture', 'other'] as AssetCategory[]).map((cat) => {
           const Icon = getCategoryIcon(cat);
