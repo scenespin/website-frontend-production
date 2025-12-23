@@ -92,12 +92,8 @@ export default function AgentFABGroup({
             isMobile ? 'shadow-2xl' : 'shadow-lg'
           }`}
           style={{
-            // Option 1: Electric Blue (AI/Tech accent, matches theme)
-            background: 'linear-gradient(135deg, #00D9FF 0%, #0099CC 100%)',
-            // Option 2: Premium Gold (premium feature feel)
-            // background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-            // Option 3: Pink (current, distinct)
-            // background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+            // Bright purple - high contrast on dark backgrounds
+            background: 'linear-gradient(135deg, #9333EA 0%, #7C3AED 100%)',
           }}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -123,8 +119,8 @@ export default function AgentFABGroup({
               isMobile ? 'shadow-2xl' : 'shadow-lg'
             }`}
             style={{
-              // Pink gradient (matches Director modal theme)
-              background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+              // Vibrant orange - high contrast, energetic
+              background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
             }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -150,12 +146,8 @@ export default function AgentFABGroup({
             isMobile ? 'shadow-2xl' : 'shadow-lg'
           }`}
           style={{
-            // Option 1: Premium Gold (matches premium gold theme)
-            background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-            // Option 2: Purple (current, matches MODE_CONFIG)
-            // background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-            // Option 3: Electric Blue variant (lighter)
-            // background: 'linear-gradient(135deg, #4DDBFF 0%, #00D9FF 100%)',
+            // Indigo - distinct, professional
+            background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
           }}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
