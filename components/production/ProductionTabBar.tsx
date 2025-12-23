@@ -6,7 +6,8 @@
  * Horizontal tab navigation with expandable sub-tabs
  * - Top level: References | AI Studio | Jobs | Media | Playground
  * - References expands to: Characters | Locations | Props
- * - AI Studio expands to: Scene Manifest | Scenes | Video | Audio
+ * - AI Studio expands to: Scene Manifest | Scenes | Images | Video | Audio
+ * - Playground is a standalone top-level tab (not under AI Studio)
  * 
  * Feature: Production Hub Redesign - Sub-navigation Groups
  */

@@ -537,6 +537,14 @@ export function ProductionHub({}: ProductionHubProps) {
               </div>
             </div>
           )}
+
+          {activeTab === 'playground' && (
+            <div className="h-full overflow-hidden">
+              <ProductionErrorBoundary componentName="Playground">
+                <PlaygroundPanel className="h-full" />
+              </ProductionErrorBoundary>
+            </div>
+          )}
       </div>
     </div>
   );
