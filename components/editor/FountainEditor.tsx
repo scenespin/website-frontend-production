@@ -478,14 +478,6 @@ export default function FountainEditor({
                 }
             `}</style>
             
-            {/* Editor Header */}
-            <EditorHeader
-                currentLine={state.currentLine}
-                isDirty={state.isDirty}
-                wordCount={wordCount}
-                duration={duration}
-            />
-            
             {/* Main Textarea Editor */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
                 <textarea

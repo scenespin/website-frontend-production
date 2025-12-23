@@ -20,7 +20,7 @@ export default function EditorHeader({
     duration
 }: EditorHeaderProps) {
     return (
-        <div className="border-b border-base-300 bg-base-200 px-4 py-2 flex items-center justify-between flex-shrink-0">
+        <div className="border-b border-white/10 bg-[#0A0A0A] px-4 py-2 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold uppercase text-base-content/60">
                     Screenplay

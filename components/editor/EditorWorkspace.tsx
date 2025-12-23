@@ -153,11 +153,14 @@ export default function EditorWorkspace() {
         }
     };
     
-    // Calculate word count
-    const wordCount = state.content.split(/\s+/).filter(Boolean).length;
     
-    // Calculate duration (1 page ≈ 1 minute of screen time, roughly 250 words per page)
-    const duration = `${Math.ceil(wordCount / 250)} min`;
+    // Calculate word count and duration (using accurate screenplay calculation)
+    const displayContent = state.content; // Could strip tags if needed, but for now use raw content
+    const lines = displayContent.split('\n').filter(l => l.trim().length > 0);
+    const approximatePages = lines.length / 55; // Industry standard: ~55 lines per page
+    const minutes = Math.round(approximatePages);
+    const duration = minutes < 1 ? '<1 min' : minutes < 60 ? `~${minutes} min` : `~${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+    const wordCount = state.content.split(/\s+/).filter(Boolean).length;
     
     // Keyboard shortcut: Ctrl+S / Cmd+S to save
     useEffect(() => {
@@ -361,14 +364,6 @@ export default function EditorWorkspace() {
     
     return (
         <div className="h-screen flex flex-col bg-base-100">
-            {/* Header */}
-            <EditorHeader
-                currentLine={state.currentLine}
-                isDirty={state.isDirty}
-                wordCount={wordCount}
-                duration={duration}
-            />
-            
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Scene Navigator Sidebar */}
@@ -407,6 +402,14 @@ export default function EditorWorkspace() {
                         onOpenCollaboration={() => setShowCollaborationModal(true)}
                         onSave={handleManualSave}
                         onReadScreenplay={() => setIsReadingModalOpen(true)}
+                    />
+                    
+                    {/* Word Count & Duration - Below Toolbar */}
+                    <EditorHeader
+                        currentLine={state.currentLine}
+                        isDirty={state.isDirty}
+                        wordCount={wordCount}
+                        duration={duration}
                     />
                     
                     {/* Editor */}
