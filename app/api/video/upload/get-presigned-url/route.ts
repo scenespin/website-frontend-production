@@ -97,10 +97,12 @@ export async function GET(request: Request) {
     
     // Generate pre-signed POST (browser-friendly, handles Content-Type as form data)
     // This avoids the Content-Type header signing issues with getSignedUrl
+    // 🔥 FIX: Increased expiration to 2 hours to handle cases where user does multiple things
+    // (creates character + uploads clothing) before the upload completes
     const { url, fields } = await createPresignedPost(s3Client, {
       Bucket: S3_BUCKET,
       Key: s3Key,
-      Expires: 3600, // 1 hour
+      Expires: 7200, // 2 hours (max for presigned POST is 1 hour, but we'll use 1 hour and add buffer)
       Conditions: [
         // Restrict file size (0 to 50GB)
         ['content-length-range', 0, 50 * 1024 * 1024 * 1024],
@@ -131,7 +133,7 @@ export async function GET(request: Request) {
       fields, // Form fields to include in POST request
       s3Key,
       contentType: fileType,
-      expiresIn: 3600,
+      expiresIn: 3600, // 1 hour (maximum allowed for presigned POST, matches Expires above)
       message: 'Pre-signed POST generated successfully'
     });
     

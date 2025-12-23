@@ -260,7 +260,48 @@ export default function PoseGenerationModal({
           });
           s3FormData.append('file', file);
 
-          const s3Response = await fetch(url, { method: 'POST', body: s3FormData });
+          // 🔥 FIX: Retry upload if presigned URL expires (Policy expired error)
+          let s3Response = await fetch(url, { method: 'POST', body: s3FormData });
+          
+          // If upload fails with 403 (Policy expired), regenerate presigned URL and retry once
+          if (!s3Response.ok && s3Response.status === 403) {
+            const errorText = await s3Response.text();
+            if (errorText.includes('Policy expired') || errorText.includes('AccessDenied')) {
+              console.warn(`[PoseGenerationModal] ⚠️ Presigned URL expired, regenerating and retrying...`);
+              
+              // Regenerate presigned URL
+              const retryPresignedResponse = await fetch(
+                `/api/video/upload/get-presigned-url?` +
+                `fileName=${encodeURIComponent(file.name)}` +
+                `&fileType=${encodeURIComponent(file.type)}` +
+                `&fileSize=${file.size}` +
+                `&projectId=${encodeURIComponent(projectId)}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+              
+              if (retryPresignedResponse.ok) {
+                const { url: retryUrl, fields: retryFields, s3Key: retryS3Key } = await retryPresignedResponse.json();
+                s3Key = retryS3Key;
+                
+                // Retry upload with new presigned URL
+                const retryFormData = new FormData();
+                Object.entries(retryFields).forEach(([key, value]) => {
+                  if (key.toLowerCase() !== 'bucket') {
+                    retryFormData.append(key, value as string);
+                  }
+                });
+                retryFormData.append('file', file);
+                
+                s3Response = await fetch(retryUrl, { method: 'POST', body: retryFormData });
+              }
+            }
+          }
+          
           if (s3Response.ok) {
             console.log(`[PoseGenerationModal] ✅ Successfully uploaded clothing image to S3: ${s3Key}`);
             
@@ -306,6 +347,7 @@ export default function PoseGenerationModal({
           } else {
             const errorText = await s3Response.text();
             console.error(`[PoseGenerationModal] ❌ Failed to upload clothing image to S3: ${s3Response.status} - ${errorText}`);
+            throw new Error(`Failed to upload clothing image: ${s3Response.status === 403 ? 'Upload URL expired. Please try selecting the file again.' : errorText}`);
           }
         }
 
