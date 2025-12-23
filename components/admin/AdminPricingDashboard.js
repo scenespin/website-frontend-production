@@ -696,8 +696,14 @@ export default function AdminPricingDashboard() {
                           <tr>
                             <th>Provider ID</th>
                             <th>Label</th>
-                            <th className="text-right">Config Cost (USD)</th>
-                            <th className="text-right">Registry Cost (USD)</th>
+                            <th className="text-right">
+                              Config Cost (USD)
+                              {selectedCategory === 'llm' && <span className="text-xs font-normal opacity-70 block">per 1M tokens</span>}
+                            </th>
+                            <th className="text-right">
+                              Registry Cost (USD)
+                              {selectedCategory === 'llm' && <span className="text-xs font-normal opacity-70 block">per 1M tokens</span>}
+                            </th>
                             <th className="text-right">Config Credits</th>
                             <th className="text-right">Registry Credits</th>
                             <th className="text-right">Config Margin</th>
@@ -726,12 +732,26 @@ export default function AdminPricingDashboard() {
                                     <div className="text-xs opacity-70">{provider.description}</div>
                                   </td>
                                   <td className="text-right font-mono">
-                                    ${(provider.config_cost_usd || 0).toFixed(4)}
+                                    {provider.is_llm ? (
+                                      <span>
+                                        ${(provider.config_cost_usd || 0).toFixed(2)}
+                                        <span className="text-xs opacity-70 ml-1">/1M tokens</span>
+                                      </span>
+                                    ) : (
+                                      `$${(provider.config_cost_usd || 0).toFixed(4)}`
+                                    )}
                                   </td>
                                   <td className="text-right font-mono">
                                     {provider.registry_cost_usd !== null ? (
                                       <span className={costDiff && Math.abs(costDiff) > 5 ? 'text-warning' : ''}>
-                                        ${(provider.registry_cost_usd || 0).toFixed(4)}
+                                        {provider.is_llm ? (
+                                          <span>
+                                            ${(provider.registry_cost_usd || 0).toFixed(2)}
+                                            <span className="text-xs opacity-70 ml-1">/1M tokens</span>
+                                          </span>
+                                        ) : (
+                                          `$${(provider.registry_cost_usd || 0).toFixed(4)}`
+                                        )}
                                       </span>
                                     ) : (
                                       <span className="text-error">Not in registry</span>
@@ -860,13 +880,29 @@ export default function AdminPricingDashboard() {
                                 <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                                   <div>
                                     <p className="opacity-70 text-xs mb-1">Config Cost</p>
-                                    <p className="font-mono">${(provider.config_cost_usd || 0).toFixed(4)}</p>
+                                    <p className="font-mono">
+                                      {provider.is_llm ? (
+                                        <span>
+                                          ${(provider.config_cost_usd || 0).toFixed(2)}
+                                          <span className="text-xs opacity-70 ml-1">/1M tokens</span>
+                                        </span>
+                                      ) : (
+                                        `$${(provider.config_cost_usd || 0).toFixed(4)}`
+                                      )}
+                                    </p>
                                   </div>
                                   <div>
                                     <p className="opacity-70 text-xs mb-1">Registry Cost</p>
                                     {provider.registry_cost_usd !== null ? (
                                       <p className={`font-mono ${costDiff && Math.abs(costDiff) > 5 ? 'text-warning' : ''}`}>
-                                        ${(provider.registry_cost_usd || 0).toFixed(4)}
+                                        {provider.is_llm ? (
+                                          <span>
+                                            ${(provider.registry_cost_usd || 0).toFixed(2)}
+                                            <span className="text-xs opacity-70 ml-1">/1M tokens</span>
+                                          </span>
+                                        ) : (
+                                          `$${(provider.registry_cost_usd || 0).toFixed(4)}`
+                                        )}
                                       </p>
                                     ) : (
                                       <p className="text-error text-xs">Not in registry</p>
