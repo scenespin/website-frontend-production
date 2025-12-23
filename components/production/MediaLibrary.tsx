@@ -1784,47 +1784,41 @@ export default function MediaLibrary({
           </div>
         )}
 
-        {/* Phase 2: Selection Mode Toggle & Bulk Actions - Always show, persist across navigation */}
-        <div className="flex items-center justify-between mt-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
+        {/* Phase 2: Selection Mode Bulk Actions - Only show when selection mode is active and items are selected */}
+        {selectionMode && (selectedFiles.size > 0 || selectedFolders.size > 0) && (
+          <div className="flex items-center justify-between mt-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
             <div className="flex items-center gap-3">
-              {selectionMode && (selectedFiles.size > 0 || selectedFolders.size > 0) && (
-                <span className="text-sm text-[#808080]">
-                  {selectedFiles.size + selectedFolders.size} selected
-                </span>
-              )}
+              <span className="text-sm text-[#808080]">
+                {selectedFiles.size + selectedFolders.size} selected
+              </span>
             </div>
-            {selectionMode && (
-              <div className="flex items-center gap-2">
-                {(selectedFiles.size > 0 || selectedFolders.size > 0) && (
-                  <>
-                    <button
-                      onClick={() => {
-                        const allFilesSelected = selectedFiles.size === filteredFiles.length;
-                        const allFoldersSelected = selectedFolders.size === filteredFolders.length;
-                        if (allFilesSelected && allFoldersSelected) {
-                          setSelectedFiles(new Set());
-                          setSelectedFolders(new Set());
-                        } else {
-                          setSelectedFiles(new Set(filteredFiles.map(f => f.id)));
-                          setSelectedFolders(new Set(filteredFolders.map(f => f.id)));
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#808080] hover:text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
-                    >
-                      {selectedFiles.size === filteredFiles.length && selectedFolders.size === filteredFolders.length ? 'Deselect All' : 'Select All'}
-                    </button>
-                    <button
-                      onClick={() => setShowBulkDeleteConfirm(true)}
-                      className="flex items-center gap-2 px-4 py-1.5 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete Selected ({selectedFiles.size + selectedFolders.size})
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const allFilesSelected = selectedFiles.size === filteredFiles.length;
+                  const allFoldersSelected = selectedFolders.size === filteredFolders.length;
+                  if (allFilesSelected && allFoldersSelected) {
+                    setSelectedFiles(new Set());
+                    setSelectedFolders(new Set());
+                  } else {
+                    setSelectedFiles(new Set(filteredFiles.map(f => f.id)));
+                    setSelectedFolders(new Set(filteredFolders.map(f => f.id)));
+                  }
+                }}
+                className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#808080] hover:text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+              >
+                {selectedFiles.size === filteredFiles.length && selectedFolders.size === filteredFolders.length ? 'Deselect All' : 'Select All'}
+              </button>
+              <button
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                className="flex items-center gap-2 px-4 py-1.5 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Selected ({selectedFiles.size + selectedFolders.size})
+              </button>
+            </div>
           </div>
+        )}
 
         {/* Search & Filter */}
         <div className="flex gap-3 mt-4">
