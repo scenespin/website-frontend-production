@@ -378,7 +378,7 @@ export default function EditorWorkspace() {
             <div className="flex-1 flex overflow-hidden">
                 {/* Scene Navigator Sidebar - Hidden in editor fullscreen */}
                 {isSceneNavVisible && !isEditorFullscreen && (
-                    <div className="w-72 border-r border-base-300 flex-shrink-0 hidden lg:block">
+                    <div className="w-72 border-r border-[#3F3F46] flex-shrink-0 hidden lg:block">
                         <div className="h-full flex flex-col">
                             <div className="p-3 border-b border-white/10 bg-[#0A0A0A]">
                                 <h2 className="text-sm font-semibold text-base-content flex items-center justify-between">
