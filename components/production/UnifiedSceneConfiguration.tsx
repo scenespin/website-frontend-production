@@ -37,6 +37,7 @@ interface UnifiedSceneConfigurationProps {
   // Pronoun detection: Multi-character selection per shot (for pronouns like "they", "she", etc.)
   selectedCharactersForShots?: Record<number, string[]>; // Per-shot: array of character IDs
   onCharactersForShotChange?: (shotSlot: number, characterIds: string[]) => void;
+  allCharacters?: any[]; // All characters from character bank (for pronoun detection selector)
   characterHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots: Record<string, boolean>;
   characterOutfits: Record<string, string>;
@@ -66,6 +67,7 @@ export function UnifiedSceneConfiguration({
   onLocationAngleChange,
   selectedCharactersForShots = {},
   onCharactersForShotChange,
+  allCharacters = [],
   enabledShots,
   onEnabledShotsChange,
   onGenerate,
@@ -629,7 +631,7 @@ export function UnifiedSceneConfiguration({
                   return (
                     <div className="mt-3 pt-3 border-t border-[#3F3F46] space-y-3">
                       <CharacterSelector
-                        characters={sceneAnalysisResult.characters}
+                        characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
                         selectedCharacterIds={selectedCharIds}
                         onSelectionChange={(characterIds) => {
                           if (onCharactersForShotChange) {

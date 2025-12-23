@@ -502,7 +502,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     }
   }, [sceneDescription, characters, selectedCharacterId]);
   
-  // Load characters for dialogue selection
+  // Load characters for dialogue selection AND pronoun detection character selector
+  const [allCharacters, setAllCharacters] = useState<any[]>([]);
+  
   useEffect(() => {
     async function loadCharacters() {
       if (!projectId) return;
@@ -521,7 +523,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           // 🔥 FIX: Defer state update to prevent React error #300
           setTimeout(() => {
             startTransition(() => {
-              setCharacters(data.characters || []);
+              const characters = data.characters || data.data?.characters || [];
+              setCharacters(characters);
+              setAllCharacters(characters); // Store for pronoun detection selector
             });
           }, 0);
         }
@@ -574,10 +578,17 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       // Combine all shots that need character headshots
       const allShotsNeedingHeadshots = [...dialogueShots, ...actionShotsWithCharacters];
-      if (allShotsNeedingHeadshots.length === 0) return;
+      
+      // Also include characters selected via pronoun detection
+      const pronounSelectedCharacterIds = Object.values(selectedCharactersForShots).flat();
       
       // Extract unique character IDs
-      const characterIds = [...new Set(allShotsNeedingHeadshots.map((shot: any) => shot.characterId).filter(Boolean))];
+      const characterIds = [...new Set([
+        ...allShotsNeedingHeadshots.map((shot: any) => shot.characterId).filter(Boolean),
+        ...pronounSelectedCharacterIds
+      ])];
+      
+      if (characterIds.length === 0) return;
       
       for (const characterId of characterIds) {
         if (characterHeadshots[characterId] || loadingHeadshots[characterId]) continue; // Already loaded or loading
@@ -744,7 +755,99 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     fetchHeadshotsForDialogueShots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, sceneAnalysisResult?.shotBreakdown?.shots]);
+  }, [projectId, sceneAnalysisResult?.shotBreakdown?.shots, selectedCharactersForShots]);
+  
+  // Fetch headshots for characters selected via pronoun detection
+  useEffect(() => {
+    async function fetchHeadshotsForPronounSelectedCharacters() {
+      if (!projectId || !selectedCharactersForShots) return;
+      
+      // Get all unique character IDs from pronoun-selected characters
+      const pronounSelectedCharacterIds = [...new Set(Object.values(selectedCharactersForShots).flat())];
+      
+      for (const characterId of pronounSelectedCharacterIds) {
+        // Skip if already loaded or loading
+        if (characterHeadshots[characterId] || loadingHeadshots[characterId]) continue;
+        
+        setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
+        
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) continue;
+          
+          // Fetch character profile with all pose references
+          const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(projectId)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const responseData = await response.json();
+            const character = responseData.data?.character || responseData.character;
+            
+            if (!character) continue;
+            
+            // Filter to only headshot poses (same logic as above)
+            const seenRefs = new Set<string>();
+            const allPoseReferences: any[] = [];
+            
+            if (character?.poseReferences) {
+              for (const ref of character.poseReferences) {
+                const key = ref.s3Key || ref.poseId || ref.metadata?.poseId || JSON.stringify(ref);
+                if (!seenRefs.has(key)) {
+                  seenRefs.add(key);
+                  allPoseReferences.push(ref);
+                }
+              }
+            }
+            
+            // Filter to headshot poses only
+            const headshotPoses = allPoseReferences.filter((ref: any) => {
+              const poseType = ref.poseType || ref.metadata?.poseType || ref.type;
+              return poseType === 'headshot' || poseType === 'portrait' || !poseType; // Include if no type specified
+            });
+            
+            // Transform to headshot format
+            const headshots = headshotPoses.map((ref: any) => ({
+              poseId: ref.poseId || ref.metadata?.poseId,
+              s3Key: ref.s3Key || ref.imageUrl?.split('/').pop(),
+              imageUrl: ref.imageUrl || (ref.s3Key ? `https://s3.amazonaws.com/${ref.s3Key}` : ''),
+              label: ref.label || ref.metadata?.label,
+              priority: ref.priority || ref.metadata?.priority,
+              outfitName: ref.outfitName || ref.metadata?.outfitName
+            })).filter((h: any) => h.imageUrl || h.s3Key);
+            
+            if (headshots.length > 0) {
+              setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
+              
+              // Auto-select highest priority headshot for the first shot that uses this character
+              const bestHeadshot = headshots.reduce((best: any, current: any) => 
+                (current.priority || 999) < (best.priority || 999) ? current : best
+              );
+              
+              // Find the first shot slot that selected this character
+              const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
+              if (shotSlot && !selectedCharacterReferences[Number(shotSlot)]) {
+                setSelectedCharacterReferences(prev => ({
+                  ...prev,
+                  [Number(shotSlot)]: {
+                    poseId: bestHeadshot.poseId,
+                    s3Key: bestHeadshot.s3Key,
+                    imageUrl: bestHeadshot.imageUrl
+                  }
+                }));
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`[SceneBuilderPanel] Failed to fetch headshots for pronoun-selected character ${characterId}:`, error);
+        } finally {
+          setLoadingHeadshots(prev => ({ ...prev, [characterId]: false }));
+        }
+      }
+    }
+    
+    fetchHeadshotsForPronounSelectedCharacters();
+  }, [projectId, selectedCharactersForShots, characterHeadshots, loadingHeadshots, selectedCharacterReferences, getToken]);
   
   // Check voice profile when character is selected
   useEffect(() => {
@@ -2842,6 +2945,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         [shotSlot]: characterIds
                       }));
                     }}
+                    allCharacters={allCharacters}
                     enabledShots={enabledShots}
                     onEnabledShotsChange={setEnabledShots}
                     onGenerate={handleGenerate}
