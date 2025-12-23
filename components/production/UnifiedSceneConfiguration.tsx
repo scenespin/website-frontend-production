@@ -650,6 +650,7 @@ export function UnifiedSceneConfiguration({
                     // Mixed: singular pronouns + plural
                     // Base = singular count (each needs 1 character)
                     // Add 1-2 for potential additional people in "they" (in case "they" includes extras)
+                    // User maps: each singular pronoun = 1 character, plural pronoun = remaining characters (up to 5 total)
                     maxSelection = Math.min(uniqueSingularCount + 2, 5);
                   } else if (hasPlural) {
                     // Only plural pronouns
