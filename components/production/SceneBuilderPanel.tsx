@@ -145,6 +145,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Feature 0163 Phase 1: Character headshot selection state (per-shot for dialogue shots)
   const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>>({});
   
+  // Pronoun Detection: Multi-character selection per shot (for pronouns like "they", "she", etc.)
+  const [selectedCharactersForShots, setSelectedCharactersForShots] = useState<Record<number, string[]>>({});
+  
   // Phase 2: Location angle selection per shot
   const [selectedLocationReferences, setSelectedLocationReferences] = useState<Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>>({});
   const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>>({});
@@ -1923,6 +1926,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         } : undefined, // NEW: Pass filtered shot breakdown (only enabled shots) with per-shot character references
         selectedCharacterReferences: Object.keys(selectedCharacterReferences).length > 0 ? selectedCharacterReferences : undefined, // Feature 0163 Phase 1: Per-shot selected references (fallback for backend Priority 3)
         selectedLocationReferences: Object.keys(selectedLocationReferences).length > 0 ? selectedLocationReferences : undefined, // Phase 2: Per-shot location angle selection
+        selectedCharactersForShots: Object.keys(selectedCharactersForShots).length > 0 ? selectedCharactersForShots : undefined, // Pronoun Detection: Multi-character selection per shot
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
@@ -2829,6 +2833,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       setSelectedLocationReferences(prev => ({
                         ...prev,
                         [shotSlot]: angle
+                      }));
+                    }}
+                    selectedCharactersForShots={selectedCharactersForShots}
+                    onCharactersForShotChange={(shotSlot, characterIds) => {
+                      setSelectedCharactersForShots(prev => ({
+                        ...prev,
+                        [shotSlot]: characterIds
                       }));
                     }}
                     enabledShots={enabledShots}

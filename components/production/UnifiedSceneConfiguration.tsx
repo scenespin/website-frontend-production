@@ -26,13 +26,17 @@ import { Check, Sparkles, Coins, Clock, ChevronDown, ChevronUp, Film } from 'luc
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { LocationAngleSelector } from './LocationAngleSelector';
+import { CharacterSelector } from './CharacterSelector';
 
 interface UnifiedSceneConfigurationProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
   qualityTier: 'professional' | 'premium';
   onQualityTierChange: (tier: 'professional' | 'premium') => void;
-  selectedCharacterReferences: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>; // Per-shot selection
+  selectedCharacterReferences: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>; // Per-shot selection (single character)
   onCharacterReferenceChange: (shotSlot: number, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
+  // Pronoun detection: Multi-character selection per shot (for pronouns like "they", "she", etc.)
+  selectedCharactersForShots?: Record<number, string[]>; // Per-shot: array of character IDs
+  onCharactersForShotChange?: (shotSlot: number, characterIds: string[]) => void;
   characterHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots: Record<string, boolean>;
   characterOutfits: Record<string, string>;
@@ -60,6 +64,8 @@ export function UnifiedSceneConfiguration({
   onCharacterOutfitChange,
   selectedLocationReferences = {},
   onLocationAngleChange,
+  selectedCharactersForShots = {},
+  onCharactersForShotChange,
   enabledShots,
   onEnabledShotsChange,
   onGenerate,
@@ -86,8 +92,11 @@ export function UnifiedSceneConfiguration({
         if (shot.type === 'dialogue' && shot.characterId) {
           // Dialogue shots need character headshot selection
           expanded[shot.slot] = true;
-        } else if (shot.type === 'action' && actionShotHasCharacter(shot)) {
-          // Action shots with character mentions need character headshot selection
+        } else if (shot.type === 'action' && actionShotHasExplicitCharacter(shot)) {
+          // Action shots with explicit character mentions need character headshot selection
+          expanded[shot.slot] = true;
+        } else if (shot.type === 'action' && actionShotHasPronouns(shot).hasPronouns) {
+          // Action shots with pronouns need character selector
           expanded[shot.slot] = true;
         } else if (shot.type === 'establishing') {
           // Establishing shots require location angle selection
@@ -204,10 +213,8 @@ export function UnifiedSceneConfiguration({
     return null;
   };
 
-  // Helper to detect if a character name is mentioned in action shot description
-  // Now handles: ALL CAPS names, regular case names, and pronouns (she/her/he/him)
-  // Uses full text from narrationBlock if available (not truncated description)
-  const actionShotHasCharacter = (shot: any): boolean => {
+  // Simplified: Detect explicit character names only (no auto-resolution of pronouns)
+  const actionShotHasExplicitCharacter = (shot: any): boolean => {
     if (shot.type !== 'action' || !sceneAnalysisResult?.characters) {
       return false;
     }
@@ -217,44 +224,63 @@ export function UnifiedSceneConfiguration({
     if (!fullText) return false;
     
     const textLower = fullText.toLowerCase();
+    const originalText = fullText;
     const characters = sceneAnalysisResult.characters;
     
-    // 1. Check for explicit character name mentions (ALL CAPS or regular case)
-    const hasExplicitName = characters.some((char: any) => {
+    // Check for explicit character name mentions (ALL CAPS or regular case)
+    return characters.some((char: any) => {
       if (!char.name) return false;
       const charName = char.name.toLowerCase();
-      // Check if character name appears in full text
-      // Handle both "Sarah" and "Sarah's" (possessive)
-      return textLower.includes(charName) || textLower.includes(charName + "'s");
+      // Check for regular case name (e.g., "Sarah walks" or "Sarah's desk")
+      if (textLower.includes(charName) || textLower.includes(charName + "'s")) {
+        return true;
+      }
+      // Check for ALL CAPS mention (e.g., "SARAH enters")
+      if (originalText.includes(char.name.toUpperCase())) {
+        return true;
+      }
+      return false;
     });
-    
-    if (hasExplicitName) return true;
-    
-    // 2. Check for pronouns - only if we have context from previous shots
-    // Pronouns to check: she, her, he, him, his, hers
-    const pronounPatterns = [
-      /\b(she|her|hers)\b/,
-      /\b(he|him|his)\b/
-    ];
-    
-    const hasPronoun = pronounPatterns.some(pattern => pattern.test(textLower));
-    
-    if (!hasPronoun) return false;
-    
-    // 3. Resolve pronouns by looking at previous shots
-    // If single character scene, any pronoun refers to that character
-    if (characters.length === 1) {
-      return true; // Single character = any pronoun refers to them
-    }
-    
-    // Multiple characters: check if we can resolve the pronoun
-    const lastMentioned = findLastMentionedCharacter(shot.slot);
-    return lastMentioned !== null;
   };
 
-  // Get character mentioned in action shot (if any)
-  // Now handles: ALL CAPS names, regular case names, and pronouns
-  // Uses full text from narrationBlock if available (not truncated description)
+  // Detect pronouns in action shot (does NOT auto-resolve, just flags them)
+  const actionShotHasPronouns = (shot: any): { hasPronouns: boolean; pronouns: string[] } => {
+    if (shot.type !== 'action') {
+      return { hasPronouns: false, pronouns: [] };
+    }
+    
+    const fullText = getFullShotText(shot);
+    if (!fullText) return { hasPronouns: false, pronouns: [] };
+    
+    const textLower = fullText.toLowerCase();
+    const detectedPronouns: string[] = [];
+    
+    // Detect pronouns
+    const pronounPatterns = {
+      singular: /\b(she|her|hers|he|him|his)\b/g,
+      plural: /\b(they|them|their|theirs)\b/g
+    };
+    
+    let match;
+    while ((match = pronounPatterns.singular.exec(textLower)) !== null) {
+      if (!detectedPronouns.includes(match[0])) {
+        detectedPronouns.push(match[0]);
+      }
+    }
+    
+    while ((match = pronounPatterns.plural.exec(textLower)) !== null) {
+      if (!detectedPronouns.includes(match[0])) {
+        detectedPronouns.push(match[0]);
+      }
+    }
+    
+    return {
+      hasPronouns: detectedPronouns.length > 0,
+      pronouns: detectedPronouns
+    };
+  };
+
+  // Get character mentioned in action shot (explicit names only, no pronoun resolution)
   const getCharacterFromActionShot = (shot: any) => {
     if (shot.type !== 'action' || !sceneAnalysisResult?.characters) {
       return null;
@@ -265,15 +291,15 @@ export function UnifiedSceneConfiguration({
     if (!fullText) return null;
     
     const textLower = fullText.toLowerCase();
-    const originalText = fullText; // Keep original for ALL CAPS check
+    const originalText = fullText;
     const characters = sceneAnalysisResult.characters;
     
-    // 1. Check for explicit character name mentions (ALL CAPS or regular case)
+    // Check for explicit character name mentions (ALL CAPS or regular case)
     // Prefer regular case matches first (more specific), then ALL CAPS
     for (const char of characters) {
       if (!char.name) continue;
       const charName = char.name.toLowerCase();
-      // Check for regular case name (e.g., "Sarah walks" or "Sarah's hand")
+      // Check for regular case name (e.g., "Sarah walks" or "Sarah's desk")
       if (textLower.includes(charName) || textLower.includes(charName + "'s")) {
         return char;
       }
@@ -287,42 +313,16 @@ export function UnifiedSceneConfiguration({
       }
     }
     
-    // 2. Check for pronouns and resolve using previous shots
-    const pronounPatterns = {
-      female: /\b(she|her|hers)\b/,
-      male: /\b(he|him|his)\b/
-    };
-    
-    const hasFemalePronoun = pronounPatterns.female.test(textLower);
-    const hasMalePronoun = pronounPatterns.male.test(textLower);
-    
-    if (!hasFemalePronoun && !hasMalePronoun) {
-      return null; // No pronouns found
-    }
-    
-    // Single character scene: pronoun must refer to that character
-    if (characters.length === 1) {
-      return characters[0];
-    }
-    
-    // Multiple characters: resolve pronoun by looking at previous shots
-    const lastMentioned = findLastMentionedCharacter(shot.slot);
-    if (lastMentioned) {
-      // Verify pronoun gender matches (basic check - could be enhanced with character gender data)
-      // For now, if we found a last mentioned character, use it
-      return lastMentioned;
-    }
-    
     return null;
   };
 
   // Check if shot type needs reference selection
   // Phase 1: dialogue shots (character headshots)
-  // Phase 2: action shots with character mentions (character headshots)
+  // Phase 2: action shots with explicit character mentions (character headshots)
   // Phase 3: establishing/action/dialogue shots (location angles)
   const needsReferenceSelection = (shot: any): boolean => {
     const needsCharacter = (shot.type === 'dialogue' && !!shot.characterId) || 
-                          (shot.type === 'action' && actionShotHasCharacter(shot));
+                          (shot.type === 'action' && actionShotHasExplicitCharacter(shot));
     const needsLocation = shot.type === 'establishing' || 
                          !!(shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
                          !!(shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
@@ -609,6 +609,132 @@ export function UnifiedSceneConfiguration({
                     />
                   </div>
                 )}
+
+                {/* Pronoun Detection: Action Shots with Pronouns */}
+                {isExpanded && shot.type === 'action' && (() => {
+                  const pronounInfo = actionShotHasPronouns(shot);
+                  if (!pronounInfo.hasPronouns || !onCharactersForShotChange || !sceneAnalysisResult?.characters) {
+                    return null;
+                  }
+                  
+                  const selectedCharIds = selectedCharactersForShots[shot.slot] || [];
+                  const hasExplicitCharacter = actionShotHasExplicitCharacter(shot);
+                  
+                  // Only show if pronouns detected AND no explicit character name found
+                  // (if explicit name found, we already show character selector above)
+                  if (hasExplicitCharacter) {
+                    return null;
+                  }
+                  
+                  return (
+                    <div className="mt-3 pt-3 border-t border-[#3F3F46] space-y-3">
+                      <CharacterSelector
+                        characters={sceneAnalysisResult.characters}
+                        selectedCharacterIds={selectedCharIds}
+                        onSelectionChange={(characterIds) => {
+                          if (onCharactersForShotChange) {
+                            onCharactersForShotChange(shot.slot, characterIds);
+                          }
+                        }}
+                        maxSelection={5}
+                        isRequired={false}
+                        warningMessage={`Pronouns detected: "${pronounInfo.pronouns.join('", "')}". Please select which character(s) these pronouns refer to.`}
+                      />
+                      
+                      {/* Show headshots and outfit selectors for selected characters */}
+                      {selectedCharIds.length > 0 && (
+                        <div className="space-y-3">
+                          {selectedCharIds.map((charId) => {
+                            const char = sceneAnalysisResult.characters.find((c: any) => c.id === charId);
+                            if (!char) return null;
+                            
+                            const headshots = characterHeadshots[charId] || [];
+                            const selectedHeadshot = selectedCharacterReferences[shot.slot];
+                            const selectedOutfit = characterOutfits[charId];
+                            
+                            return (
+                              <div key={charId} className="space-y-2 pt-2 border-t border-[#3F3F46]">
+                                <div className="text-xs font-medium text-[#808080]">
+                                  Character Headshot ({char.name})
+                                </div>
+                                
+                                {loadingHeadshots[charId] ? (
+                                  <div className="text-xs text-[#808080]">Loading headshots...</div>
+                                ) : headshots.length > 0 ? (
+                                  <div>
+                                    {selectedOutfit && selectedOutfit !== 'default' && (
+                                      <div className="text-xs text-[#808080] mb-2">
+                                        Showing headshots for outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
+                                      </div>
+                                    )}
+                                    <div className="grid grid-cols-8 gap-1.5">
+                                      {headshots.map((headshot, idx) => {
+                                        const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
+                                        const isSelected = selectedHeadshot && (
+                                          (headshot.s3Key && selectedHeadshot.s3Key === headshot.s3Key) ||
+                                          (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
+                                          (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
+                                        );
+                                        
+                                        return (
+                                          <button
+                                            key={uniqueKey}
+                                            onClick={() => {
+                                              const newRef = isSelected ? undefined : {
+                                                poseId: headshot.poseId,
+                                                s3Key: headshot.s3Key,
+                                                imageUrl: headshot.imageUrl
+                                              };
+                                              onCharacterReferenceChange(shot.slot, newRef);
+                                            }}
+                                            className={`relative aspect-square rounded border-2 transition-all ${
+                                              isSelected
+                                                ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                                : 'border-[#3F3F46] hover:border-[#808080]'
+                                            }`}
+                                          >
+                                            {headshot.imageUrl && (
+                                              <img
+                                                src={headshot.imageUrl}
+                                                alt={headshot.label || `Headshot ${idx + 1}`}
+                                                className="w-full h-full object-cover rounded"
+                                              />
+                                            )}
+                                            {isSelected && (
+                                              <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                                                <Check className="w-4 h-4 text-[#DC143C]" />
+                                              </div>
+                                            )}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-[#808080]">
+                                    No headshots available - using automatic selection
+                                  </div>
+                                )}
+                                
+                                {/* Outfit Selector */}
+                                <CharacterOutfitSelector
+                                  characterId={char.id}
+                                  characterName={char.name}
+                                  availableOutfits={char.availableOutfits || []}
+                                  defaultOutfit={char.defaultOutfit}
+                                  selectedOutfit={selectedOutfit}
+                                  onOutfitChange={(charId, outfitName) => {
+                                    onCharacterOutfitChange(charId, outfitName || undefined);
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
