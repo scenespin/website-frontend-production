@@ -829,7 +829,7 @@ export function CharacterDetailModal({
                     }}
                     className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 text-sm font-medium"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <span className="text-base">🤖</span>
                     Generate Pose Package
                     <span className="px-1 py-0 rounded text-[9px] font-medium bg-[#DC143C] text-white ml-1">NEW</span>
                   </button>
