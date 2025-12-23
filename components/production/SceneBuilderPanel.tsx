@@ -530,15 +530,51 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     loadCharacters();
   }, [projectId, getToken]);
   
-  // Feature 0163 Phase 1: Fetch character headshots for dialogue shots
+  // Feature 0163 Phase 1: Fetch character headshots for dialogue shots and action shots with characters
   useEffect(() => {
     async function fetchHeadshotsForDialogueShots() {
-      if (!projectId || !sceneAnalysisResult?.shotBreakdown?.shots) return;
+      if (!projectId || !sceneAnalysisResult?.shotBreakdown?.shots || !sceneAnalysisResult?.characters) return;
       
+      // Helper to detect if action shot mentions a character
+      const actionShotHasCharacter = (shot: any): { hasCharacter: boolean; characterId?: string } => {
+        if (shot.type !== 'action' || !shot.description) {
+          return { hasCharacter: false };
+        }
+        
+        const description = shot.description.toLowerCase();
+        // Find first character whose name appears in the action description
+        const mentionedCharacter = sceneAnalysisResult.characters.find((char: any) => {
+          if (!char.name) return false;
+          const charName = char.name.toLowerCase();
+          return description.includes(charName);
+        });
+        
+        return mentionedCharacter 
+          ? { hasCharacter: true, characterId: mentionedCharacter.id }
+          : { hasCharacter: false };
+      };
+      
+      // Get dialogue shots with characterId
       const dialogueShots = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => shot.type === 'dialogue' && shot.characterId);
-      if (dialogueShots.length === 0) return;
       
-      const characterIds = [...new Set(dialogueShots.map((shot: any) => shot.characterId))];
+      // Get action shots that mention characters
+      const actionShotsWithCharacters = sceneAnalysisResult.shotBreakdown.shots
+        .filter((shot: any) => {
+          const result = actionShotHasCharacter(shot);
+          if (result.hasCharacter && result.characterId) {
+            // Attach characterId to shot for later use
+            shot.characterId = result.characterId;
+            return true;
+          }
+          return false;
+        });
+      
+      // Combine all shots that need character headshots
+      const allShotsNeedingHeadshots = [...dialogueShots, ...actionShotsWithCharacters];
+      if (allShotsNeedingHeadshots.length === 0) return;
+      
+      // Extract unique character IDs
+      const characterIds = [...new Set(allShotsNeedingHeadshots.map((shot: any) => shot.characterId).filter(Boolean))];
       
       for (const characterId of characterIds) {
         if (characterHeadshots[characterId] || loadingHeadshots[characterId]) continue; // Already loaded or loading
@@ -670,14 +706,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               
               // Ensure we store s3Key and imageUrl for precise matching (not just poseId)
               
-              // Store per-shot (not per-character) so each dialogue shot can have its own selection
-              // Find all dialogue shots for this character and auto-select the same headshot
-              const dialogueShots = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
-                s.type === 'dialogue' && s.characterId === characterId
+              // Store per-shot (not per-character) so each shot can have its own selection
+              // Find all shots (dialogue or action) for this character and auto-select the same headshot
+              const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
+                s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
               ) || [];
               
               const newSelections: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }> = {};
-              dialogueShots.forEach((shot: any) => {
+              shotsForCharacter.forEach((shot: any) => {
                 newSelections[shot.slot] = {
                   poseId: bestHeadshot.poseId,
                   s3Key: bestHeadshot.s3Key,

@@ -79,11 +79,15 @@ export function UnifiedSceneConfiguration({
       
       // Auto-expand shots that need configuration:
       // 1. Dialogue shots (to show character headshots)
-      // 2. Establishing shots (to show location angle selection - REQUIRED)
+      // 2. Action shots with character mentions (to show character headshots)
+      // 3. Establishing shots (to show location angle selection - REQUIRED)
       const expanded: Record<number, boolean> = {};
       sceneAnalysisResult.shotBreakdown.shots.forEach((shot: any) => {
         if (shot.type === 'dialogue' && shot.characterId) {
           // Dialogue shots need character headshot selection
+          expanded[shot.slot] = true;
+        } else if (shot.type === 'action' && actionShotHasCharacter(shot)) {
+          // Action shots with character mentions need character headshot selection
           expanded[shot.slot] = true;
         } else if (shot.type === 'establishing') {
           // Establishing shots require location angle selection
@@ -143,11 +147,44 @@ export function UnifiedSceneConfiguration({
     return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
   };
 
+  // Helper to detect if a character name is mentioned in action shot description
+  const actionShotHasCharacter = (shot: any): boolean => {
+    if (shot.type !== 'action' || !shot.description || !sceneAnalysisResult?.characters) {
+      return false;
+    }
+    
+    const description = shot.description.toLowerCase();
+    // Check if any character name appears in the action description
+    return sceneAnalysisResult.characters.some((char: any) => {
+      if (!char.name) return false;
+      const charName = char.name.toLowerCase();
+      // Check if character name appears in description (word boundary matching)
+      return description.includes(charName);
+    });
+  };
+
+  // Get character mentioned in action shot (if any)
+  const getCharacterFromActionShot = (shot: any) => {
+    if (shot.type !== 'action' || !shot.description || !sceneAnalysisResult?.characters) {
+      return null;
+    }
+    
+    const description = shot.description.toLowerCase();
+    // Find first character whose name appears in the action description
+    return sceneAnalysisResult.characters.find((char: any) => {
+      if (!char.name) return false;
+      const charName = char.name.toLowerCase();
+      return description.includes(charName);
+    }) || null;
+  };
+
   // Check if shot type needs reference selection
   // Phase 1: dialogue shots (character headshots)
-  // Phase 2: establishing/action/dialogue shots (location angles)
+  // Phase 2: action shots with character mentions (character headshots)
+  // Phase 3: establishing/action/dialogue shots (location angles)
   const needsReferenceSelection = (shot: any): boolean => {
-    const needsCharacter = shot.type === 'dialogue' && !!shot.characterId;
+    const needsCharacter = (shot.type === 'dialogue' && !!shot.characterId) || 
+                          (shot.type === 'action' && actionShotHasCharacter(shot));
     const needsLocation = shot.type === 'establishing' || 
                          !!(shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
                          !!(shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
@@ -166,10 +203,19 @@ export function UnifiedSceneConfiguration({
     return shot.type === 'establishing';
   };
 
-  // Get character for dialogue shot
+  // Get character for shot (dialogue or action with character mention)
   const getCharacterForShot = (shot: any) => {
-    if (!shot.characterId || !sceneAnalysisResult?.characters) return null;
-    return sceneAnalysisResult.characters.find((c: any) => c.id === shot.characterId);
+    // Dialogue shot: use characterId
+    if (shot.type === 'dialogue' && shot.characterId && sceneAnalysisResult?.characters) {
+      return sceneAnalysisResult.characters.find((c: any) => c.id === shot.characterId);
+    }
+    
+    // Action shot: detect character from description
+    if (shot.type === 'action') {
+      return getCharacterFromActionShot(shot);
+    }
+    
+    return null;
   };
 
   return (
@@ -191,8 +237,12 @@ export function UnifiedSceneConfiguration({
             const isExpanded = expandedShots[shot.slot] || false;
             const character = getCharacterForShot(shot);
             const isDialogue = shot.type === 'dialogue';
-            const allHeadshots = isDialogue && shot.characterId ? characterHeadshots[shot.characterId] || [] : [];
-            const selectedOutfit = isDialogue && shot.characterId ? characterOutfits[shot.characterId] : undefined;
+            const isActionWithCharacter = shot.type === 'action' && !!character;
+            const hasCharacter = (isDialogue && shot.characterId) || isActionWithCharacter;
+            const characterId = character?.id;
+            
+            const allHeadshots = hasCharacter && characterId ? characterHeadshots[characterId] || [] : [];
+            const selectedOutfit = hasCharacter && characterId ? characterOutfits[characterId] : undefined;
             
             // Filter headshots by selected outfit (if outfit is selected)
             const headshots = selectedOutfit && selectedOutfit !== 'default' 
@@ -202,8 +252,8 @@ export function UnifiedSceneConfiguration({
                 })
               : allHeadshots; // Show all headshots if no outfit selected or using default
             
-            const isLoadingHeadshots = isDialogue && shot.characterId ? loadingHeadshots[shot.characterId] : false;
-            const selectedHeadshot = isDialogue && shot.characterId ? selectedCharacterReferences[shot.slot] : undefined;
+            const isLoadingHeadshots = hasCharacter && characterId ? loadingHeadshots[characterId] : false;
+            const selectedHeadshot = hasCharacter ? selectedCharacterReferences[shot.slot] : undefined;
 
             return (
               <div
