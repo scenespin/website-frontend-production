@@ -628,6 +628,14 @@ export function UnifiedSceneConfiguration({
                     return null;
                   }
                   
+                  // Determine max selection based on pronoun type
+                  // Plural pronouns (they, them, their) → allow multiple (up to 5)
+                  // Singular pronouns (she, her, he, him) → limit to 1
+                  const hasPluralPronoun = pronounInfo.pronouns.some(p => 
+                    ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase())
+                  );
+                  const maxSelection = hasPluralPronoun ? 5 : 1;
+                  
                   return (
                     <div className="mt-3 pt-3 border-t border-[#3F3F46] space-y-3">
                       <CharacterSelector
@@ -638,7 +646,7 @@ export function UnifiedSceneConfiguration({
                             onCharactersForShotChange(shot.slot, characterIds);
                           }
                         }}
-                        maxSelection={5}
+                        maxSelection={maxSelection}
                         isRequired={false}
                         warningMessage={`Pronouns detected: "${pronounInfo.pronouns.join('", "')}". Please select which character(s) these pronouns refer to.`}
                       />
