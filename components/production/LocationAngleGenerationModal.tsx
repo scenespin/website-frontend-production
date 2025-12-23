@@ -114,28 +114,29 @@ export default function LocationAngleGenerationModal({
   const packageToAngles: Record<string, Array<{ angle: string }>> = {
     basic: [
       { angle: 'front' },
-      { angle: 'side' },
+      { angle: 'corner' },
       { angle: 'wide' }
     ],
     standard: [
       { angle: 'front' },
-      { angle: 'side' },
-      { angle: 'aerial' },
+      { angle: 'corner' },
       { angle: 'wide' },
-      { angle: 'detail' },
-      { angle: 'interior' }
+      { angle: 'low-angle' },
+      { angle: 'entrance' },
+      { angle: 'foreground-framing' }
     ],
     premium: [
       { angle: 'front' },
-      { angle: 'side' },
-      { angle: 'aerial' },
+      { angle: 'corner' },
       { angle: 'wide' },
+      { angle: 'low-angle' },
+      { angle: 'entrance' },
+      { angle: 'foreground-framing' },
+      { angle: 'aerial' },
+      { angle: 'pov' },
       { angle: 'detail' },
-      { angle: 'interior' },
-      { angle: 'exterior' },
-      { angle: 'back-view' },
-      { angle: 'close-up' },
-      { angle: 'establishing' }
+      { angle: 'atmospheric' },
+      { angle: 'golden-hour' }
     ]
   };
   
