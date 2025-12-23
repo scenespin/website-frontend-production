@@ -56,17 +56,17 @@ export default function AdminSettingsDashboard() {
       const healthData = await response.json();
       
       // Transform the backend response to match component expectations
-      const primaryTable = healthData.database?.[0] || {};
-      const isHealthy = healthData.database && healthData.database.length > 0;
+      const tables = healthData.database || [];
+      const isHealthy = tables.length > 0 && tables.some(t => t.item_count >= 0);
       
       setSystemStatus({
         status: isHealthy ? 'healthy' : 'unhealthy',
         database: {
           status: isHealthy ? 'healthy' : 'down',
           region: process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1',
-          tableName: primaryTable.table_name || 'N/A',
-          itemCount: primaryTable.item_count || 0,
-          sizeBytes: primaryTable.size_bytes || 0
+          tables: tables, // Store all tables
+          totalItems: tables.reduce((sum, t) => sum + (t.item_count || 0), 0),
+          totalSize: tables.reduce((sum, t) => sum + (t.size_bytes || 0), 0)
         },
         jobQueues: healthData.job_queues || {},
         apiPerformance: healthData.api_performance || {},
@@ -82,9 +82,9 @@ export default function AdminSettingsDashboard() {
         database: {
           status: 'down',
           region: 'N/A',
-          tableName: 'N/A',
-          itemCount: 0,
-          sizeBytes: 0
+          tables: [],
+          totalItems: 0,
+          totalSize: 0
         },
         error: error.message
       });
@@ -178,29 +178,48 @@ export default function AdminSettingsDashboard() {
       <div className="card bg-base-200 shadow-lg">
         <div className="card-body">
           <h2 className="card-title mb-4">Database Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-base-content/40">Region</p>
               <p className="font-bold">{systemStatus?.database?.region || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-base-content/40">Primary Table</p>
-              <p className="font-bold">{systemStatus?.database?.tableName || 'N/A'}</p>
-              {systemStatus?.database?.itemCount !== undefined && (
-                <p className="text-xs opacity-70 mt-1">
-                  {systemStatus.database.itemCount.toLocaleString()} items
-                </p>
-              )}
             </div>
             <div>
               <p className="text-sm text-base-content/40">Connection Status</p>
               <StatusBadge status={systemStatus?.database?.status} />
             </div>
             <div>
-              <p className="text-sm text-base-content/40">Last Checked</p>
-              <p className="font-bold">{new Date().toLocaleTimeString()}</p>
+              <p className="text-sm text-base-content/40">Total Items</p>
+              <p className="font-bold">{systemStatus?.database?.totalItems?.toLocaleString() || '0'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-base-content/40">Total Size</p>
+              <p className="font-bold">
+                {systemStatus?.database?.totalSize 
+                  ? `${(systemStatus.database.totalSize / 1024 / 1024).toFixed(2)} MB`
+                  : 'N/A'}
+              </p>
             </div>
           </div>
+          
+          {/* Tables List */}
+          {systemStatus?.database?.tables && systemStatus.database.tables.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm text-base-content/40 mb-2">Monitored Tables</p>
+              <div className="space-y-2">
+                {systemStatus.database.tables.map((table, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-base-300 rounded">
+                    <div>
+                      <p className="font-mono text-sm font-bold">{table.table_name}</p>
+                      <p className="text-xs opacity-70">
+                        {table.item_count?.toLocaleString() || 0} items
+                        {table.size_bytes ? ` • ${(table.size_bytes / 1024 / 1024).toFixed(2)} MB` : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
