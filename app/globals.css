@@ -278,3 +278,30 @@ progress::-webkit-progress-value {
   animation: shimmer 1.5s infinite;
   pointer-events: none; /* Allow clicks to pass through */
 }
+
+/* ===== GLOBAL BLACK SCROLLBAR ===== */
+/* Style scrollbars globally to match black theme */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3F3F46;
+  border-radius: 6px;
+  border: 2px solid #0A0A0A;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525B;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3F3F46 #0A0A0A;
+}

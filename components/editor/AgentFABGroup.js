@@ -46,16 +46,12 @@ export default function AgentFABGroup({
         {hasSelection && selectedText && selectedText.trim().length > 0 && (
           <motion.button
             onClick={onLaunchRewrite}
-            className={`${buttonSize} rounded-full flex items-center justify-center text-white ${
+            className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-md border border-white/20 ${
               isMobile ? 'shadow-2xl' : 'shadow-lg'
             }`}
             style={{
-              // Option 1: Cinema Red (matches brand primary)
-              background: 'linear-gradient(135deg, #DC143C 0%, #8B0000 100%)',
-              // Option 2: Electric Blue (AI/Tech accent) - uncomment to use
-              // background: 'linear-gradient(135deg, #00D9FF 0%, #0099CC 100%)',
-              // Option 3: Teal (current, distinct from other agents)
-              // background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+              // Glassmorphic effect: gradient background with glass overlay
+              background: 'linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(139, 0, 0, 0.9) 100%)',
             }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ 
@@ -81,19 +77,21 @@ export default function AgentFABGroup({
             title="Rewrite & Polish: Improve selected text with AI. Quick actions: Make concise, expand detail, more dramatic, polish dialogue, fix grammar"
             aria-label="Launch Rewrite Agent"
           >
-            <span className="text-2xl">💫</span>
+            {/* Glass overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent pointer-events-none" />
+            <span className="text-2xl relative z-10">💫</span>
           </motion.button>
         )}
 
         {/* Dialogue FAB */}
         <motion.button
           onClick={onLaunchDialogue}
-          className={`${buttonSize} rounded-full flex items-center justify-center text-white ${
+          className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-md border border-white/20 ${
             isMobile ? 'shadow-2xl' : 'shadow-lg'
           }`}
           style={{
-            // Bright purple - high contrast on dark backgrounds
-            background: 'linear-gradient(135deg, #9333EA 0%, #7C3AED 100%)',
+            // Glassmorphic effect: gradient background with glass overlay
+            background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.9) 0%, rgba(124, 58, 237, 0.9) 100%)',
           }}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -108,19 +106,21 @@ export default function AgentFABGroup({
           title="Launch Dialogue Agent"
           aria-label="Launch Dialogue Agent"
         >
-          <span className="text-2xl">💬</span>
+          {/* Glass overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent pointer-events-none" />
+          <span className="text-2xl relative z-10">💬</span>
         </motion.button>
 
         {/* Director FAB */}
         {onLaunchDirector && (
           <motion.button
             onClick={onLaunchDirector}
-            className={`${buttonSize} rounded-full flex items-center justify-center text-white ${
+            className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-md border border-white/20 ${
               isMobile ? 'shadow-2xl' : 'shadow-lg'
             }`}
             style={{
-              // Vibrant orange - high contrast, energetic
-              background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+              // Glassmorphic effect: gradient background with glass overlay
+              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.9) 0%, rgba(234, 88, 12, 0.9) 100%)',
             }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -135,19 +135,21 @@ export default function AgentFABGroup({
             title="Launch Director Agent: Generate complete scenes with scene headings"
             aria-label="Launch Director Agent"
           >
-            <span className="text-2xl">🎬</span>
+            {/* Glass overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent pointer-events-none" />
+            <span className="text-2xl relative z-10">🎬</span>
           </motion.button>
         )}
 
         {/* Screenwriter FAB */}
         <motion.button
           onClick={onLaunchScreenwriter}
-          className={`${buttonSize} rounded-full flex items-center justify-center text-white ${
+          className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-md border border-white/20 ${
             isMobile ? 'shadow-2xl' : 'shadow-lg'
           }`}
           style={{
-            // Indigo - distinct, professional
-            background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+            // Glassmorphic effect: gradient background with glass overlay
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%)',
           }}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -162,7 +164,9 @@ export default function AgentFABGroup({
           title="Launch Screenwriter Agent"
           aria-label="Launch Screenwriter Agent"
         >
-          <span className="text-2xl">✍️</span>
+          {/* Glass overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent pointer-events-none" />
+          <span className="text-2xl relative z-10">✍️</span>
         </motion.button>
       </div>
     </AnimatePresence>
