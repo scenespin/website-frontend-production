@@ -12,10 +12,10 @@
  */
 
 import React from 'react';
-import { Film, Clapperboard, BriefcaseBusiness, Users, MapPin, Package, FolderOpen, Library, Video, Volume2 } from 'lucide-react';
+import { Film, Clapperboard, BriefcaseBusiness, Users, MapPin, Package, FolderOpen, Library, Video, Volume2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'video' | 'audio' | 'jobs' | 'media' | 'playground';
+export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'images' | 'video' | 'audio' | 'jobs' | 'media' | 'playground';
 
 type TabGroup = 'assets' | 'studio';
 
@@ -70,6 +70,14 @@ const STUDIO_SUBTABS = [
     description: 'Stitched scene videos & storyboard',
     color: 'text-purple-500',
     activeColor: 'text-purple-600 dark:text-purple-400',
+  },
+  {
+    id: 'images' as ProductionTab,
+    label: 'Images',
+    icon: ImageIcon,
+    description: 'Generated images & references',
+    color: 'text-cyan-500',
+    activeColor: 'text-cyan-600 dark:text-cyan-400',
   },
   {
     id: 'video' as ProductionTab,
@@ -132,7 +140,7 @@ export function ProductionTabBar({
 }: ProductionTabBarProps) {
   // Determine which group is active (if any)
   const isAssetsActive = ['characters', 'locations', 'assets'].includes(activeTab);
-  const isStudioActive = ['scene-builder', 'scenes', 'video', 'audio'].includes(activeTab);
+  const isStudioActive = ['scene-builder', 'scenes', 'images', 'video', 'audio'].includes(activeTab);
   
   // Get active sub-tab for each group
   const activeAssetsSubTab = isAssetsActive ? activeTab : null;

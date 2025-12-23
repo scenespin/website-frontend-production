@@ -51,12 +51,14 @@ import CreativePossibilitiesGallery from './CreativePossibilitiesGallery';
 import { SceneBuilderPanel } from './SceneBuilderPanel';
 import { ScenesPanel } from './ScenesPanel';
 import { VideoPanel } from './VideoPanel';
+import { ImagesPanel } from './ImagesPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { LocationBankPanel } from './LocationBankPanel';
 import AssetBankPanel from './AssetBankPanel';
 import { ProductionJobsPanel } from './ProductionJobsPanel';
 import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 import { ProductionTabBar } from './ProductionTabBar';
+import { PlaygroundPanel } from './PlaygroundPanel';
 
 // ============================================================================
 // TYPES
@@ -68,6 +70,7 @@ type ProductionTab =
   | 'assets'        // Asset Bank
   | 'scene-builder' // Screenplay-driven scene generation
   | 'scenes'        // Stitched scene videos & storyboard (Feature 0170)
+  | 'images'        // Standalone images from Playground & uploads
   | 'video'         // Standalone videos from Playground & uploads
   | 'audio'         // Audio files & recordings
   | 'jobs'          // Job Monitoring
@@ -375,11 +378,10 @@ export function ProductionHub({}: ProductionHubProps) {
           )}
 
           {activeTab === 'playground' && (
-            <div className="h-full overflow-y-auto p-4">
-              <CreativePossibilitiesGallery
-                onStartExample={handleStartExample}
-                className="rounded-xl overflow-hidden"
-              />
+            <div className="h-full overflow-hidden">
+              <ProductionErrorBoundary componentName="Playground">
+                <PlaygroundPanel className="h-full" />
+              </ProductionErrorBoundary>
             </div>
           )}
         </div>
@@ -498,6 +500,14 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'scenes' && (
             <div className="h-full overflow-y-auto">
               <ScenesPanel
+                className="h-full"
+              />
+            </div>
+          )}
+
+          {activeTab === 'images' && (
+            <div className="h-full overflow-y-auto">
+              <ImagesPanel
                 className="h-full"
               />
             </div>
