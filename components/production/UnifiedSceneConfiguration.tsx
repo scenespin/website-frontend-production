@@ -77,11 +77,18 @@ export function UnifiedSceneConfiguration({
         onEnabledShotsChange(allShotSlots);
       }
       
-      // Auto-expand dialogue shots to show headshots by default
-      const dialogueShots = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => shot.type === 'dialogue' && shot.characterId);
+      // Auto-expand shots that need configuration:
+      // 1. Dialogue shots (to show character headshots)
+      // 2. Establishing shots (to show location angle selection - REQUIRED)
       const expanded: Record<number, boolean> = {};
-      dialogueShots.forEach((shot: any) => {
-        expanded[shot.slot] = true;
+      sceneAnalysisResult.shotBreakdown.shots.forEach((shot: any) => {
+        if (shot.type === 'dialogue' && shot.characterId) {
+          // Dialogue shots need character headshot selection
+          expanded[shot.slot] = true;
+        } else if (shot.type === 'establishing') {
+          // Establishing shots require location angle selection
+          expanded[shot.slot] = true;
+        }
       });
       setExpandedShots(expanded);
     }
@@ -375,40 +382,41 @@ export function UnifiedSceneConfiguration({
                         </div>
                       );
                     })()}
-                    
-                    {/* Phase 2: Location Angle Selection */}
-                    {(() => {
-                      const shouldShow = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
-                      if (shouldShow) {
-                        console.log(`[UnifiedSceneConfig] Showing location angle selector for shot ${shot.slot} (${shot.type}):`, {
-                          locationId: sceneAnalysisResult.location.id,
-                          hasAngleVariations: !!sceneAnalysisResult.location.angleVariations,
-                          angleVariationsCount: sceneAnalysisResult.location.angleVariations?.length || 0
-                        });
-                      } else {
-                        console.log(`[UnifiedSceneConfig] NOT showing location angle selector for shot ${shot.slot} (${shot.type}):`, {
-                          needsLocationAngle: needsLocationAngle(shot),
-                          hasLocationId: !!sceneAnalysisResult?.location?.id,
-                          hasOnLocationAngleChange: !!onLocationAngleChange
-                        });
-                      }
-                      return shouldShow;
-                    })() && (
-                      <div className="mt-3 pt-3 border-t border-[#3F3F46]">
-                        <LocationAngleSelector
-                          locationId={sceneAnalysisResult.location.id}
-                          locationName={sceneAnalysisResult.location.name || 'Location'}
-                          angleVariations={sceneAnalysisResult.location.angleVariations || []}
-                          baseReference={sceneAnalysisResult.location.baseReference}
-                          selectedAngle={selectedLocationReferences[shot.slot]}
-                          onAngleChange={(locationId, angle) => {
-                            onLocationAngleChange(shot.slot, locationId, angle);
-                          }}
-                          isRequired={isLocationAngleRequired(shot)}
-                          recommended={sceneAnalysisResult.location.recommended}
-                        />
-                      </div>
-                    )}
+                  </div>
+                )}
+
+                {/* Phase 2: Location Angle Selection (All Shot Types) */}
+                {isExpanded && (() => {
+                  const shouldShow = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
+                  if (shouldShow) {
+                    console.log(`[UnifiedSceneConfig] Showing location angle selector for shot ${shot.slot} (${shot.type}):`, {
+                      locationId: sceneAnalysisResult.location.id,
+                      hasAngleVariations: !!sceneAnalysisResult.location.angleVariations,
+                      angleVariationsCount: sceneAnalysisResult.location.angleVariations?.length || 0
+                    });
+                  } else {
+                    console.log(`[UnifiedSceneConfig] NOT showing location angle selector for shot ${shot.slot} (${shot.type}):`, {
+                      needsLocationAngle: needsLocationAngle(shot),
+                      hasLocationId: !!sceneAnalysisResult?.location?.id,
+                      hasOnLocationAngleChange: !!onLocationAngleChange,
+                      isExpanded: isExpanded
+                    });
+                  }
+                  return shouldShow;
+                })() && (
+                  <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                    <LocationAngleSelector
+                      locationId={sceneAnalysisResult.location.id}
+                      locationName={sceneAnalysisResult.location.name || 'Location'}
+                      angleVariations={sceneAnalysisResult.location.angleVariations || []}
+                      baseReference={sceneAnalysisResult.location.baseReference}
+                      selectedAngle={selectedLocationReferences[shot.slot]}
+                      onAngleChange={(locationId, angle) => {
+                        onLocationAngleChange(shot.slot, locationId, angle);
+                      }}
+                      isRequired={isLocationAngleRequired(shot)}
+                      recommended={sceneAnalysisResult.location.recommended}
+                    />
                   </div>
                 )}
               </div>
