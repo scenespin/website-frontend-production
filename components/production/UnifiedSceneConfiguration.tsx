@@ -147,6 +147,20 @@ export function UnifiedSceneConfiguration({
     return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
   };
 
+  // Helper to get full text from a shot (uses narrationBlock/dialogueBlock if available, falls back to description)
+  const getFullShotText = (shot: any): string => {
+    // For action shots, use narrationBlock.text if available (full text, not truncated)
+    if (shot.type === 'action' && shot.narrationBlock?.text) {
+      return shot.narrationBlock.text;
+    }
+    // For dialogue shots, use dialogueBlock.dialogue if available
+    if (shot.type === 'dialogue' && shot.dialogueBlock?.dialogue) {
+      return shot.dialogueBlock.dialogue;
+    }
+    // Fall back to description (may be truncated)
+    return shot.description || '';
+  };
+
   // Helper to find the last mentioned character in previous shots
   // This helps resolve pronouns (she/her) that refer to previously mentioned characters
   const findLastMentionedCharacter = (currentShotSlot: number): any => {
@@ -169,17 +183,18 @@ export function UnifiedSceneConfiguration({
       }
       
       // Check action shots for character name mentions (ALL CAPS or regular case)
-      if (prevShot.type === 'action' && prevShot.description) {
-        const prevDescription = prevShot.description;
+      // Use full text from narrationBlock if available
+      const prevText = getFullShotText(prevShot);
+      if (prevShot.type === 'action' && prevText) {
         for (const char of sceneAnalysisResult.characters) {
           if (!char.name) continue;
           const charName = char.name;
           // Check for ALL CAPS mention (e.g., "SARAH enters")
-          if (prevDescription.includes(charName.toUpperCase())) {
+          if (prevText.includes(charName.toUpperCase())) {
             return char;
           }
-          // Check for regular case mention (e.g., "Sarah walks")
-          if (prevDescription.includes(charName)) {
+          // Check for regular case mention (e.g., "Sarah walks" or "Sarah's desk")
+          if (prevText.includes(charName) || prevText.includes(charName + "'s")) {
             return char;
           }
         }
@@ -191,21 +206,26 @@ export function UnifiedSceneConfiguration({
 
   // Helper to detect if a character name is mentioned in action shot description
   // Now handles: ALL CAPS names, regular case names, and pronouns (she/her/he/him)
+  // Uses full text from narrationBlock if available (not truncated description)
   const actionShotHasCharacter = (shot: any): boolean => {
-    if (shot.type !== 'action' || !shot.description || !sceneAnalysisResult?.characters) {
+    if (shot.type !== 'action' || !sceneAnalysisResult?.characters) {
       return false;
     }
     
-    const description = shot.description.toLowerCase();
+    // Get full text (uses narrationBlock.text if available, falls back to description)
+    const fullText = getFullShotText(shot);
+    if (!fullText) return false;
+    
+    const textLower = fullText.toLowerCase();
     const characters = sceneAnalysisResult.characters;
     
     // 1. Check for explicit character name mentions (ALL CAPS or regular case)
     const hasExplicitName = characters.some((char: any) => {
       if (!char.name) return false;
       const charName = char.name.toLowerCase();
-      // Check if character name appears in description
+      // Check if character name appears in full text
       // Handle both "Sarah" and "Sarah's" (possessive)
-      return description.includes(charName) || description.includes(charName + "'s");
+      return textLower.includes(charName) || textLower.includes(charName + "'s");
     });
     
     if (hasExplicitName) return true;
@@ -217,7 +237,7 @@ export function UnifiedSceneConfiguration({
       /\b(he|him|his)\b/
     ];
     
-    const hasPronoun = pronounPatterns.some(pattern => pattern.test(description));
+    const hasPronoun = pronounPatterns.some(pattern => pattern.test(textLower));
     
     if (!hasPronoun) return false;
     
@@ -234,12 +254,18 @@ export function UnifiedSceneConfiguration({
 
   // Get character mentioned in action shot (if any)
   // Now handles: ALL CAPS names, regular case names, and pronouns
+  // Uses full text from narrationBlock if available (not truncated description)
   const getCharacterFromActionShot = (shot: any) => {
-    if (shot.type !== 'action' || !shot.description || !sceneAnalysisResult?.characters) {
+    if (shot.type !== 'action' || !sceneAnalysisResult?.characters) {
       return null;
     }
     
-    const description = shot.description.toLowerCase();
+    // Get full text (uses narrationBlock.text if available, falls back to description)
+    const fullText = getFullShotText(shot);
+    if (!fullText) return null;
+    
+    const textLower = fullText.toLowerCase();
+    const originalText = fullText; // Keep original for ALL CAPS check
     const characters = sceneAnalysisResult.characters;
     
     // 1. Check for explicit character name mentions (ALL CAPS or regular case)
@@ -248,16 +274,15 @@ export function UnifiedSceneConfiguration({
       if (!char.name) continue;
       const charName = char.name.toLowerCase();
       // Check for regular case name (e.g., "Sarah walks" or "Sarah's hand")
-      if (description.includes(charName) || description.includes(charName + "'s")) {
+      if (textLower.includes(charName) || textLower.includes(charName + "'s")) {
         return char;
       }
     }
     
     // Check for ALL CAPS mentions
-    const originalDescription = shot.description;
     for (const char of characters) {
       if (!char.name) continue;
-      if (originalDescription.includes(char.name.toUpperCase())) {
+      if (originalText.includes(char.name.toUpperCase())) {
         return char;
       }
     }
@@ -268,8 +293,8 @@ export function UnifiedSceneConfiguration({
       male: /\b(he|him|his)\b/
     };
     
-    const hasFemalePronoun = pronounPatterns.female.test(description);
-    const hasMalePronoun = pronounPatterns.male.test(description);
+    const hasFemalePronoun = pronounPatterns.female.test(textLower);
+    const hasMalePronoun = pronounPatterns.male.test(textLower);
     
     if (!hasFemalePronoun && !hasMalePronoun) {
       return null; // No pronouns found
