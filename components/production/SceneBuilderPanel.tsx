@@ -2511,12 +2511,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           </div>
         )}
         
-        {/* Screenplay Connection Banner - Scrollable */}
-        <ScreenplayStatusBanner
-          onViewEditor={() => {
-            window.location.href = '/write';
-          }}
-        />
         
         {/* Content */}
         <div className="space-y-3">

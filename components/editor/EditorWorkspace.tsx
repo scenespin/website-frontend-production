@@ -39,6 +39,7 @@ export default function EditorWorkspace() {
     const [showExportModal, setShowExportModal] = useState(false);
     const [showCollaborationModal, setShowCollaborationModal] = useState(false);
     const [isSceneNavVisible, setIsSceneNavVisible] = useState(true);
+    const [isEditorFullscreen, setIsEditorFullscreen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
     // Mobile detection and selection state for FABs
@@ -175,6 +176,16 @@ export default function EditorWorkspace() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleManualSave]);
+    
+    // Listen for editor fullscreen toggle event
+    useEffect(() => {
+        const handleToggleEditorFullscreen = () => {
+            setIsEditorFullscreen(prev => !prev);
+        };
+        
+        window.addEventListener('toggleEditorFullscreen', handleToggleEditorFullscreen as EventListener);
+        return () => window.removeEventListener('toggleEditorFullscreen', handleToggleEditorFullscreen as EventListener);
+    }, []);
     
     // Handle scene navigation
     const handleSceneClick = (scene: Scene) => {
@@ -366,8 +377,8 @@ export default function EditorWorkspace() {
         <div className="h-screen flex flex-col bg-base-100">
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
-                {/* Scene Navigator Sidebar */}
-                {isSceneNavVisible && (
+                {/* Scene Navigator Sidebar - Hidden in editor fullscreen */}
+                {isSceneNavVisible && !isEditorFullscreen && (
                     <div className="w-72 border-r border-base-300 flex-shrink-0 hidden lg:block">
                         <div className="h-full flex flex-col">
                             <div className="p-3 border-b border-white/10 bg-[#0A0A0A]">
@@ -402,6 +413,8 @@ export default function EditorWorkspace() {
                         onOpenCollaboration={() => setShowCollaborationModal(true)}
                         onSave={handleManualSave}
                         onReadScreenplay={() => setIsReadingModalOpen(true)}
+                        isEditorFullscreen={isEditorFullscreen}
+                        onToggleEditorFullscreen={() => setIsEditorFullscreen(prev => !prev)}
                     />
                     
                     {/* Word Count & Duration - Below Toolbar */}

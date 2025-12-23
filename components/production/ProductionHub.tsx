@@ -67,6 +67,7 @@ type ProductionTab =
   | 'assets'        // Asset Bank
   | 'scene-builder' // Screenplay-driven scene generation
   | 'scenes'        // Scene videos & storyboard (Feature 0170)
+  | 'audio'         // Audio files & recordings
   | 'jobs'          // Job Monitoring
   | 'media'         // Media Library + Style Analyzer
   | 'playground';   // Playground (Creative Possibilities)
@@ -500,6 +501,14 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
+          {activeTab === 'audio' && (
+            <div className="h-full overflow-y-auto p-4">
+              <div className="text-center text-base-content/60 py-12">
+                <p className="text-lg font-medium mb-2">Audio Library</p>
+                <p className="text-sm">Audio files and recordings will appear here</p>
+              </div>
+            </div>
+          )}
 
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto">

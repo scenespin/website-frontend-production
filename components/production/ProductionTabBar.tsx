@@ -4,20 +4,20 @@
  * Production Tab Bar Component
  * 
  * Horizontal tab navigation with expandable sub-tabs
- * - Top level: Library | Studio | Jobs | Media | Playground
- * - Library expands to: Characters | Locations | Assets
+ * - Top level: Assets | Studio | Jobs | Media | Playground
+ * - Assets expands to: Characters | Locations | Props
  * - Studio expands to: Action | Scenes
  * 
  * Feature: Production Hub Redesign - Sub-navigation Groups
  */
 
 import React from 'react';
-import { Film, Clapperboard, BriefcaseBusiness, Sparkles, Users, MapPin, Package, FolderOpen, Library, Video } from 'lucide-react';
+import { Film, Clapperboard, BriefcaseBusiness, Users, MapPin, Package, FolderOpen, Library, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'jobs' | 'media' | 'playground';
+export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'audio' | 'jobs' | 'media' | 'playground';
 
-type TabGroup = 'library' | 'studio';
+type TabGroup = 'assets' | 'studio';
 
 interface ProductionTabBarProps {
   activeTab: ProductionTab;
@@ -25,8 +25,8 @@ interface ProductionTabBarProps {
   jobCount?: number; // Badge for active jobs
 }
 
-// Sub-tabs for Library group (matching Create section colors)
-const LIBRARY_SUBTABS = [
+// Sub-tabs for Assets group (matching Create section colors)
+const ASSETS_SUBTABS = [
   {
     id: 'characters' as ProductionTab,
     label: 'Characters',
@@ -45,7 +45,7 @@ const LIBRARY_SUBTABS = [
   },
   {
     id: 'assets' as ProductionTab,
-    label: 'Assets',
+    label: 'Props',
     icon: Package,
     description: 'Props, vehicles & furniture',
     color: 'text-orange-500',
@@ -57,7 +57,7 @@ const LIBRARY_SUBTABS = [
 const STUDIO_SUBTABS = [
   {
     id: 'scene-builder' as ProductionTab,
-    label: 'Action',
+    label: 'Scenes',
     icon: Clapperboard,
     description: 'Script-based scene generation',
     color: 'text-blue-500',
@@ -65,22 +65,30 @@ const STUDIO_SUBTABS = [
   },
   {
     id: 'scenes' as ProductionTab,
-    label: 'Scenes',
+    label: 'Video',
     icon: Film,
     description: 'Scene videos & storyboard',
     color: 'text-purple-500',
     activeColor: 'text-purple-600 dark:text-purple-400',
+  },
+  {
+    id: 'audio' as ProductionTab,
+    label: 'Audio',
+    icon: Video,
+    description: 'Audio files & recordings',
+    color: 'text-green-500',
+    activeColor: 'text-green-600 dark:text-green-400',
   },
 ] as const;
 
 // Top-level tabs
 const TOP_LEVEL_TABS = [
   {
-    id: 'library' as TabGroup,
-    label: 'Library',
+    id: 'assets' as TabGroup,
+    label: 'Assets',
     icon: Library,
-    description: 'Character, location & asset banks',
-    subTabs: LIBRARY_SUBTABS,
+    description: 'Character, location & prop banks',
+    subTabs: ASSETS_SUBTABS,
   },
   {
     id: 'studio' as TabGroup,
@@ -104,7 +112,7 @@ const TOP_LEVEL_TABS = [
   {
     id: 'playground' as ProductionTab,
     label: 'Playground',
-    icon: Sparkles,
+    icon: undefined,
     description: 'Creative possibilities & workflows',
   },
 ] as const;
@@ -115,11 +123,11 @@ export function ProductionTabBar({
   jobCount = 0
 }: ProductionTabBarProps) {
   // Determine which group is active (if any)
-  const isLibraryActive = ['characters', 'locations', 'assets'].includes(activeTab);
-  const isStudioActive = ['scene-builder', 'scenes'].includes(activeTab);
+  const isAssetsActive = ['characters', 'locations', 'assets'].includes(activeTab);
+  const isStudioActive = ['scene-builder', 'scenes', 'audio'].includes(activeTab);
   
   // Get active sub-tab for each group
-  const activeLibrarySubTab = isLibraryActive ? activeTab : null;
+  const activeAssetsSubTab = isAssetsActive ? activeTab : null;
   const activeStudioSubTab = isStudioActive ? activeTab : null;
 
   return (
@@ -128,9 +136,9 @@ export function ProductionTabBar({
         {/* Top-level tabs */}
         <div className="flex flex-wrap gap-1 px-4">
           {TOP_LEVEL_TABS.map((tab) => {
-            // Handle group tabs (library, studio)
+            // Handle group tabs (assets, studio)
             if ('subTabs' in tab) {
-              const isGroupActive = tab.id === 'library' ? isLibraryActive : isStudioActive;
+              const isGroupActive = tab.id === 'assets' ? isAssetsActive : isStudioActive;
               const Icon = tab.icon;
 
   return (
@@ -200,7 +208,7 @@ export function ProductionTabBar({
                 aria-current={isActive ? 'page' : undefined}
                 title={tab.description}
               >
-                <Icon className="w-4 h-4" />
+                {Icon && <Icon className="w-4 h-4" />}
                 <span>{tab.label}</span>
 
                 {/* Badge for Jobs count */}
@@ -219,11 +227,11 @@ export function ProductionTabBar({
           })}
         </div>
 
-        {/* Sub-tabs for Library group */}
-        {isLibraryActive && (
+        {/* Sub-tabs for Assets group */}
+        {isAssetsActive && (
           <div className="border-t border-white/10 bg-[#0A0A0A]">
             <div className="flex flex-wrap gap-1 px-4">
-              {LIBRARY_SUBTABS.map((subTab) => {
+              {ASSETS_SUBTABS.map((subTab) => {
                 const Icon = subTab.icon;
                 const isActive = activeTab === subTab.id;
 

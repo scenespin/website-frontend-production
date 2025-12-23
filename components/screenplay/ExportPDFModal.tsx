@@ -44,10 +44,29 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
       return;
     }
     
-    // Convert to base64
+    // Convert to base64 - ensure PNG format for PDF compatibility
     const reader = new FileReader();
     reader.onload = (event) => {
-      setWatermarkImage(event.target?.result as string);
+      const result = event.target?.result as string;
+      // If image is not PNG, convert it
+      if (result.startsWith('data:image/') && !result.startsWith('data:image/png')) {
+        // Convert to PNG using canvas
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const pngDataUrl = canvas.toDataURL('image/png');
+            setWatermarkImage(pngDataUrl);
+          }
+        };
+        img.src = result;
+      } else {
+        setWatermarkImage(result);
+      }
     };
     reader.readAsDataURL(file);
   };
