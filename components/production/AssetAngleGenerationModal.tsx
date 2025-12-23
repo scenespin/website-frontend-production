@@ -41,6 +41,7 @@ export default function AssetAngleGenerationModal({
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard');
   const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
+  const [additionalPrompt, setAdditionalPrompt] = useState<string>(''); // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
@@ -131,6 +132,7 @@ export default function AssetAngleGenerationModal({
         packageId: selectedPackageId,
         quality: quality,
         providerId: providerId, // Required - no fallback
+        additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
       };
       
       console.log('[AssetAngleGeneration] Calling API:', apiUrl);
@@ -204,6 +206,7 @@ export default function AssetAngleGenerationModal({
     setStep('package');
     setSelectedPackageId('standard');
     setQuality('standard');
+    setAdditionalPrompt(''); // 🔥 NEW: Reset additional prompt
     setGenerationResult(null);
     setError('');
     setIsGenerating(false);
@@ -375,6 +378,22 @@ export default function AssetAngleGenerationModal({
                       </div>
                       <Package className="w-8 h-8 text-base-content/40" />
                     </div>
+                  </div>
+                  
+                  {/* Additional Prompt */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                      Step 4: Additional Prompt (Optional)
+                    </h3>
+                    <textarea
+                      value={additionalPrompt}
+                      onChange={(e) => setAdditionalPrompt(e.target.value)}
+                      placeholder="Add special instructions, color codes (#FF0000), or time-sensitive keywords for real-time search. Nano Banana Pro and FLUX.2 [max] support grounding search. FLUX.2 [max] supports explicit hex codes."
+                      className="w-full h-24 bg-base-200 border border-base-content/20 rounded-lg p-3 text-base-content placeholder-base-content/50 focus:outline-none focus:border-[#DC143C] resize-none"
+                    />
+                    <p className="text-xs text-base-content/50 mt-2">
+                      Example: "Latest iPhone model, brand colors #000000 #FFFFFF"
+                    </p>
                   </div>
                   
                   {/* Generate Button */}

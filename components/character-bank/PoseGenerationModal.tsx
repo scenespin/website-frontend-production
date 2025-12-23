@@ -54,6 +54,7 @@ export default function PoseGenerationModal({
   const [headshotPreview, setHeadshotPreview] = useState<string>('');
   const [screenplayContent, setScreenplayContent] = useState<string>('');
   const [manualDescription, setManualDescription] = useState<string>('');
+  const [additionalPrompt, setAdditionalPrompt] = useState<string>(''); // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
   
   // Fetch character's default outfit and load models on mount
   useEffect(() => {
@@ -392,6 +393,7 @@ export default function PoseGenerationModal({
         manualDescription: manualDescription || undefined,
         typicalClothing: typicalClothing,
         clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined, // 🔥 NEW: Clothing references
+        additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
       };
       
       console.log('[PoseGeneration] 🔥 Calling API:', apiUrl);
@@ -487,6 +489,7 @@ export default function PoseGenerationModal({
     setHeadshotPreview('');
     setScreenplayContent('');
     setManualDescription('');
+    setAdditionalPrompt(''); // 🔥 NEW: Reset additional prompt
     setGenerationResult(null);
     setError('');
     setIsGenerating(false); // Reset generating state
@@ -550,7 +553,7 @@ export default function PoseGenerationModal({
                       showDefaultOption={true}
                     />
                     <p className="text-xs text-base-content/50 mt-2">
-                      All poses in the package will be generated wearing the selected outfit. If you choose "Custom...", you can provide a detailed description that will guide the character's appearance, style, and outfit.
+                      All poses in the package will be generated wearing the selected outfit.
                     </p>
                   </div>
                   
@@ -804,6 +807,24 @@ export default function PoseGenerationModal({
                       placeholder="Add any additional details about the character..."
                       className="w-full h-24 bg-base-300 border border-base-content/20 rounded-lg p-3 text-gray-100 placeholder-base-content/50 focus:outline-none focus:border-blue-500"
                     />
+                  </div>
+                  
+                  {/* Additional Prompt */}
+                  <div className="space-y-4">
+                    <label className="block text-sm font-semibold text-base-content/70">
+                      <Wand2 className="w-4 h-4 inline mr-2" />
+                      Additional Prompt (Optional)
+                    </label>
+                    
+                    <textarea
+                      value={additionalPrompt}
+                      onChange={(e) => setAdditionalPrompt(e.target.value)}
+                      placeholder="Add special instructions, color codes (#FF0000), or time-sensitive keywords for real-time search. Nano Banana Pro and FLUX.2 [max] support grounding search. FLUX.2 [max] supports explicit hex codes."
+                      className="w-full h-24 bg-base-300 border border-base-content/20 rounded-lg p-3 text-gray-100 placeholder-base-content/50 focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-xs text-base-content/50">
+                      Example: "Current winter 2025 fashion trends, brand colors #FF0000 #000000"
+                    </p>
                   </div>
                   
                   {/* Actions */}

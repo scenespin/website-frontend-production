@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export default function WriteLayout({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
-  const { state: editorState, insertText, replaceSelection } = useEditor();
+  const { state: editorState, insertText, replaceSelection, isEditorFullscreen } = useEditor();
 
   useEffect(() => {
     if (isLoaded && !userId) {
@@ -40,7 +40,7 @@ export default function WriteLayout({ children }) {
   // DO NOT wrap with duplicate providers here as it creates duplicate contexts
   return (
     <div className="min-h-screen bg-base-100">
-      <Navigation />
+      {!isEditorFullscreen && <Navigation />}
       {children}
       <AgentDrawer>
         <UnifiedChatPanel 

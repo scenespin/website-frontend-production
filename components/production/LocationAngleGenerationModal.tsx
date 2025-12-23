@@ -43,6 +43,7 @@ export default function LocationAngleGenerationModal({
   const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>(''); // 🔥 NEW: Time of day
   const [weather, setWeather] = useState<'sunny' | 'cloudy' | 'rainy' | 'snowy' | ''>(''); // 🔥 NEW: Weather
+  const [additionalPrompt, setAdditionalPrompt] = useState<string>(''); // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
@@ -172,6 +173,7 @@ export default function LocationAngleGenerationModal({
         packageId: selectedPackageId,
         quality: quality,
         providerId: providerId, // Required - no fallback
+        additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
         // Apply timeOfDay and weather to all angles in the package (with defaults)
         angles: packageToAngles[selectedPackageId].map(angle => ({
           angle: angle.angle,
@@ -254,6 +256,7 @@ export default function LocationAngleGenerationModal({
     setQuality('standard'); // Reset quality
     setTimeOfDay(''); // Reset timeOfDay
     setWeather(''); // Reset weather
+    setAdditionalPrompt(''); // 🔥 NEW: Reset additional prompt
     setGenerationResult(null);
     setError('');
     setIsGenerating(false);
@@ -436,6 +439,22 @@ export default function LocationAngleGenerationModal({
                         </select>
                       </div>
                     </div>
+                  </div>
+                  
+                  {/* Additional Prompt */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                      Step 5: Additional Prompt (Optional)
+                    </h3>
+                    <textarea
+                      value={additionalPrompt}
+                      onChange={(e) => setAdditionalPrompt(e.target.value)}
+                      placeholder="Add special instructions, color codes (#FF0000), or time-sensitive keywords for real-time search. Nano Banana Pro and FLUX.2 [max] support grounding search. FLUX.2 [max] supports explicit hex codes."
+                      className="w-full h-24 bg-base-200 border border-base-content/20 rounded-lg p-3 text-base-content placeholder-base-content/50 focus:outline-none focus:border-[#DC143C] resize-none"
+                    />
+                    <p className="text-xs text-base-content/50 mt-2">
+                      Example: "Current weather in Freiburg, Germany, brand colors #00704A"
+                    </p>
                   </div>
                   
                   {/* Generate Button */}

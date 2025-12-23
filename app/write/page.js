@@ -11,11 +11,13 @@ import { useSearchParams } from 'next/navigation';
 import EditorWorkspace from '@/components/editor/EditorWorkspace';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import GitHubOAuthHandler from '@/components/editor/GitHubOAuthHandler';
+import { useEditor } from '@/contexts/EditorContext';
 
 function WritePageContent() {
   const searchParams = useSearchParams();
   // Feature 0130: Use screenplayId (URL param name stays as 'project' for compatibility)
   const screenplayId = searchParams?.get('project');
+  const { isEditorFullscreen } = useEditor();
 
   // Feature 0111: No GitHub gate - screenplay saves to DynamoDB automatically
   // GitHub OAuth handler processes callback if user connects GitHub (optional)
@@ -23,7 +25,7 @@ function WritePageContent() {
     <>
       <GitHubOAuthHandler />
       <div className="bg-slate-900">
-        <EditorSubNav activeTab="write" screenplayId={screenplayId} />
+        {!isEditorFullscreen && <EditorSubNav activeTab="write" screenplayId={screenplayId} />}
         <EditorWorkspace />
       </div>
     </>

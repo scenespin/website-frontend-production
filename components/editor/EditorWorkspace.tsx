@@ -32,14 +32,13 @@ import type { Scene } from '../../types/screenplay';
  */
 export default function EditorWorkspace() {
     const router = useRouter();
-    const { state, setContent, setCurrentLine, replaceSelection, insertText } = useEditor();
+    const { state, setContent, setCurrentLine, replaceSelection, insertText, isEditorFullscreen, setIsEditorFullscreen } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
     const [showExportModal, setShowExportModal] = useState(false);
     const [showCollaborationModal, setShowCollaborationModal] = useState(false);
     const [isSceneNavVisible, setIsSceneNavVisible] = useState(true);
-    const [isEditorFullscreen, setIsEditorFullscreen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
     // Mobile detection and selection state for FABs
@@ -185,7 +184,7 @@ export default function EditorWorkspace() {
         
         window.addEventListener('toggleEditorFullscreen', handleToggleEditorFullscreen as EventListener);
         return () => window.removeEventListener('toggleEditorFullscreen', handleToggleEditorFullscreen as EventListener);
-    }, []);
+    }, [setIsEditorFullscreen]);
     
     // Handle scene navigation
     const handleSceneClick = (scene: Scene) => {
@@ -414,7 +413,7 @@ export default function EditorWorkspace() {
                         onSave={handleManualSave}
                         onReadScreenplay={() => setIsReadingModalOpen(true)}
                         isEditorFullscreen={isEditorFullscreen}
-                        onToggleEditorFullscreen={() => setIsEditorFullscreen(prev => !prev)}
+                        onToggleEditorFullscreen={() => setIsEditorFullscreen(!isEditorFullscreen)}
                     />
                     
                     {/* Word Count & Duration - Below Toolbar */}

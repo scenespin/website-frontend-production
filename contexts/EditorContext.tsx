@@ -98,6 +98,10 @@ interface EditorContextType {
     // Feature 0134: Last synced content from server (for cursor position calculations)
     // This is separate from state.content which includes unsaved local changes
     lastSyncedContent: string;
+    
+    // Editor fullscreen mode (hides navigation)
+    isEditorFullscreen: boolean;
+    setIsEditorFullscreen: (value: boolean) => void;
 }
 
 const defaultState: EditorState = {
@@ -126,6 +130,7 @@ export const EditorContext = createContext<EditorContextType | undefined>(undefi
 // Inner component that uses useSearchParams (must be wrapped in Suspense)
 function EditorProviderInner({ children, projectId }: { children: ReactNode; projectId: string | null }) {
     const [state, setState] = useState<EditorState>(defaultState);
+    const [isEditorFullscreen, setIsEditorFullscreen] = useState(false);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
@@ -1013,6 +1018,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         toggleLineNumbers,
         setFontSize,
         setHighlightRange,
+        isEditorFullscreen,
+        setIsEditorFullscreen,
         clearHighlight,
         reset,
         hasUnsavedChanges,
@@ -2346,7 +2353,9 @@ const createMinimalContextValue = (): EditorContextType => ({
     clearHighlight: () => {},
     reset: () => {},
     otherUsersCursors: [], // Feature 0134: Empty array for minimal context
-    lastSyncedContent: '' // Feature 0134: Empty string for minimal context
+    lastSyncedContent: '', // Feature 0134: Empty string for minimal context
+    isEditorFullscreen: false,
+    setIsEditorFullscreen: () => {},
 });
 
 // Public EditorProvider that wraps the search params logic in Suspense

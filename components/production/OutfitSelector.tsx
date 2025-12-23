@@ -16,8 +16,7 @@ const OUTFIT_OPTIONS = [
   { value: 'formal', label: 'Formal' },
   { value: 'casual', label: 'Casual' },
   { value: 'athletic', label: 'Athletic/Sportswear' },
-  { value: 'formal-evening', label: 'Formal Evening' },
-  { value: 'custom', label: 'Custom...' }
+  { value: 'formal-evening', label: 'Formal Evening' }
 ];
 
 export function OutfitSelector({
@@ -29,7 +28,6 @@ export function OutfitSelector({
   showDefaultOption = true
 }: OutfitSelectorProps) {
   const [selectedOutfit, setSelectedOutfit] = useState<string>(value || 'default');
-  const [customOutfit, setCustomOutfit] = useState<string>('');
   const isManualChangeRef = useRef(false);
 
   // Initialize with value or default
@@ -42,27 +40,19 @@ export function OutfitSelector({
     
     if (value !== undefined) {
       // If value is provided and matches a preset, use it
-      // Otherwise, it's a custom outfit
       const isPreset = OUTFIT_OPTIONS.some(opt => opt.value === value);
       if (isPreset) {
         setSelectedOutfit(value);
-        setCustomOutfit('');
-      } else if (value && value !== 'default') {
-        setSelectedOutfit('custom');
-        setCustomOutfit(value);
       } else {
         setSelectedOutfit('default');
-        setCustomOutfit('');
       }
     } else if (defaultValue) {
       // Use character's default outfit
       const isPreset = OUTFIT_OPTIONS.some(opt => opt.value === defaultValue);
       if (isPreset) {
         setSelectedOutfit(defaultValue);
-        setCustomOutfit('');
       } else {
-        setSelectedOutfit('custom');
-        setCustomOutfit(defaultValue);
+        setSelectedOutfit('default');
       }
     }
   }, [value, defaultValue]);
@@ -79,19 +69,10 @@ export function OutfitSelector({
     if (newValue === 'default') {
       // Use character's default outfit (undefined means use default)
       onChange(undefined);
-    } else if (newValue === 'custom') {
-      // Don't call onChange yet - wait for user to type in custom field
-      // This prevents the parent from resetting the value
-      // The custom input field will call onChange when user types
     } else {
       // Use preset outfit
       onChange(newValue);
     }
-  };
-
-  const handleCustomChange = (newValue: string) => {
-    setCustomOutfit(newValue);
-    onChange(newValue);
   };
 
   return (
@@ -117,22 +98,7 @@ export function OutfitSelector({
         ))}
       </select>
 
-      {selectedOutfit === 'custom' && (
-        <input
-          type="text"
-          placeholder="Describe the outfit (e.g., 'red evening gown', 'military uniform', 'casual jeans and t-shirt')"
-          value={customOutfit}
-          onChange={(e) => handleCustomChange(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg text-sm border transition-colors"
-          style={{
-            backgroundColor: '#1C1C1E',
-            borderColor: '#3F3F46',
-            color: '#E5E7EB'
-          }}
-        />
-      )}
-
-      {selectedOutfit !== 'default' && selectedOutfit !== 'custom' && (
+      {selectedOutfit !== 'default' && (
         <p className="text-xs" style={{ color: '#6B7280' }}>
           All poses will be generated wearing: <span className="font-medium" style={{ color: '#9CA3AF' }}>{OUTFIT_OPTIONS.find(opt => opt.value === selectedOutfit)?.label}</span>
         </p>
