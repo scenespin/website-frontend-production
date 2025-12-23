@@ -179,12 +179,12 @@ export default function EditorWorkspace() {
     // Listen for editor fullscreen toggle event
     useEffect(() => {
         const handleToggleEditorFullscreen = () => {
-            setIsEditorFullscreen(prev => !prev);
+            setIsEditorFullscreen(!isEditorFullscreen);
         };
         
         window.addEventListener('toggleEditorFullscreen', handleToggleEditorFullscreen as EventListener);
         return () => window.removeEventListener('toggleEditorFullscreen', handleToggleEditorFullscreen as EventListener);
-    }, [setIsEditorFullscreen]);
+    }, [isEditorFullscreen, setIsEditorFullscreen]);
     
     // Handle scene navigation
     const handleSceneClick = (scene: Scene) => {
