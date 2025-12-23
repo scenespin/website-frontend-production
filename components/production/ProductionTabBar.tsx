@@ -4,7 +4,7 @@
  * Production Tab Bar Component
  * 
  * Horizontal tab navigation with expandable sub-tabs
- * - Top level: References | AI Studio | Jobs | Media | Playground
+ * - Top level: References | AI Studio | Playground | Jobs | Media
  * - References expands to: Characters | Locations | Props
  * - AI Studio expands to: Scene Manifest | Scenes | Images | Video | Audio
  * - Playground is a standalone top-level tab (not under AI Studio)
@@ -115,6 +115,12 @@ const TOP_LEVEL_TABS = [
     subTabs: STUDIO_SUBTABS,
   },
   {
+    id: 'playground' as ProductionTab,
+    label: 'Playground',
+    icon: undefined,
+    description: 'Creative possibilities & workflows',
+  },
+  {
     id: 'jobs' as ProductionTab,
     label: 'Jobs',
     icon: BriefcaseBusiness,
@@ -125,12 +131,6 @@ const TOP_LEVEL_TABS = [
     label: 'Media',
     icon: FolderOpen,
     description: 'Media Library & uploads',
-  },
-  {
-    id: 'playground' as ProductionTab,
-    label: 'Playground',
-    icon: undefined,
-    description: 'Creative possibilities & workflows',
   },
 ] as const;
 
