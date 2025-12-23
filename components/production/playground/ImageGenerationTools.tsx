@@ -389,7 +389,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         {/* Generation Form */}
         <div className="flex flex-col gap-6 pb-6">
           {/* Prompt Input */}
-        <div className="flex-shrink-0">
+          <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
             Prompt
           </label>
@@ -412,90 +412,90 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               💡 Model-specific hint: {getModelHints(selectedModel).promptHint}
             </p>
           )}
-        </div>
-
-        {/* Reference Image Upload */}
-        {supportsReferenceImages && (
-          <div className="flex-shrink-0">
-            <label className="block text-sm font-medium text-white mb-2">
-              Reference Images (Optional)
-              <span className="ml-2 text-xs text-[#808080]">
-                {referenceImages.length}/{getReferenceLimit()} images
-              </span>
-            </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleReferenceImageUpload}
-              className="hidden"
-              disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
-            />
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
-                className={cn(
-                  "w-full px-4 py-3 border-2 border-dashed rounded-lg",
-                  "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
-                  isUploading || isGenerating || referenceImages.length >= getReferenceLimit()
-                    ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
-                    : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
-                )}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Uploading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    <span>Upload Reference Images</span>
-                  </>
-                )}
-              </button>
-
-              {/* Reference Image Previews */}
-              {referenceImages.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {referenceImages.map((img, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={img.preview}
-                        alt={`Reference ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border border-[#3F3F46]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeReferenceImage(index)}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="mt-1.5 space-y-1">
-              <p className="text-xs text-[#808080]">
-                Upload reference images to guide generation. Supported by: {selectedModelInfo?.label || selectedModelInfo?.id}
-              </p>
-              {selectedModel && (
-                <div className="text-xs text-[#4A4A4A] bg-[#1A1A1A] p-2 rounded border border-[#2A2A2A]">
-                  <p className="font-medium text-[#808080] mb-1">📋 Best Practices:</p>
-                  <p className="text-[#4A4A4A]">{getModelHints(selectedModel).referenceHint}</p>
-                </div>
-              )}
-            </div>
           </div>
-        )}
 
-        {/* Model Selection */}
-        <div className="flex-shrink-0">
+          {/* Reference Image Upload */}
+          {supportsReferenceImages && (
+            <div className="flex-shrink-0">
+              <label className="block text-sm font-medium text-white mb-2">
+                Reference Images (Optional)
+                <span className="ml-2 text-xs text-[#808080]">
+                  {referenceImages.length}/{getReferenceLimit()} images
+                </span>
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleReferenceImageUpload}
+                className="hidden"
+                disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
+              />
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
+                  className={cn(
+                    "w-full px-4 py-3 border-2 border-dashed rounded-lg",
+                    "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
+                    isUploading || isGenerating || referenceImages.length >= getReferenceLimit()
+                      ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
+                      : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
+                  )}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Reference Images</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Reference Image Previews */}
+                {referenceImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {referenceImages.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={img.preview}
+                          alt={`Reference ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-[#3F3F46]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeReferenceImage(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="mt-1.5 space-y-1">
+                <p className="text-xs text-[#808080]">
+                  Upload reference images to guide generation. Supported by: {selectedModelInfo?.label || selectedModelInfo?.id}
+                </p>
+                {selectedModel && (
+                  <div className="text-xs text-[#4A4A4A] bg-[#1A1A1A] p-2 rounded border border-[#2A2A2A]">
+                    <p className="font-medium text-[#808080] mb-1">📋 Best Practices:</p>
+                    <p className="text-[#4A4A4A]">{getModelHints(selectedModel).referenceHint}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Model Selection */}
+          <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
             Image Model
           </label>
@@ -522,11 +522,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             <p className="mt-1.5 text-xs text-[#808080]">
               Cost: {selectedModelInfo.creditsPerImage} credits • Provider: {selectedModelInfo.provider}
             </p>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Camera Angle Selection */}
-        <div className="flex-shrink-0">
+          {/* Camera Angle Selection */}
+          <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
             Camera Angle (Optional)
           </label>
@@ -546,11 +546,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             <p className="mt-1.5 text-xs text-[#808080]">
               Will add: "{cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText}"
             </p>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Options */}
-        <div className="flex-shrink-0 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Options */}
+          <div className="flex-shrink-0 grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Aspect Ratio */}
           <div>
             <label className="block text-sm font-medium text-white mb-2">
@@ -583,11 +583,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             <label htmlFor="transparency" className="text-sm text-white cursor-pointer">
               Generate with transparency (PNG alpha channel)
             </label>
+            </div>
           </div>
-        </div>
 
-        {/* Generate Button */}
-        <div className="flex-shrink-0">
+          {/* Generate Button */}
+          <div className="flex-shrink-0">
           <button
             onClick={handleGenerate}
             disabled={!prompt.trim() || isGenerating || !selectedModel}
@@ -609,6 +609,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               </>
             )}
           </button>
+          </div>
         </div>
       </div>
     </div>
