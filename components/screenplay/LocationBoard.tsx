@@ -200,15 +200,16 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                 <>
                     {/* Header - Optional */}
                     {showHeader && (
-                        <div className="p-4 pl-16 sm:pl-4 border-b flex items-center justify-between" style={{ borderColor: '#2C2C2E' }}>
-                            <div>
-                        <h2 className="text-xl sm:text-2xl font-bold" style={{ color: '#E5E7EB' }}>
-                            Location Board
-                        </h2>
-                        <p className="text-xs sm:text-sm mt-1" style={{ color: '#9CA3AF' }}>
-                            View and manage all locations from your screenplay
-                        </p>
-                    </div>
+                        <div className="mb-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
+                                        Location Board
+                                    </h2>
+                                    <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
+                                        View and manage all locations from your screenplay
+                                    </p>
+                                </div>
                     {canEditScript ? (
                         <button
                             onClick={() => {
@@ -223,15 +224,16 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                         >
                             <Plus size={18} />
                             <span className="hidden sm:inline">Add Location</span>
-                            <span className="sm:hidden">Add</span>
-                        </button>
-                    ) : (
-                        <span className="text-sm text-base-content/50">
-                            Read-only access
-                        </span>
+                                <span className="sm:hidden">Add</span>
+                            </button>
+                        ) : (
+                            <span className="text-sm text-base-content/50">
+                                Read-only access
+                            </span>
+                        )}
+                            </div>
+                        </div>
                     )}
-                </div>
-            )}
 
             {/* Board - SIMPLIFIED (No Drag) */}
             <div className="flex-1 overflow-x-auto p-6">

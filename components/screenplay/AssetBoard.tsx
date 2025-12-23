@@ -183,15 +183,16 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                 <>
                     {/* Header */}
                     {showHeader && (
-                        <div className="p-4 pl-16 sm:pl-4 border-b flex items-center justify-between" style={{ borderColor: '#2C2C2E' }}>
-                            <div>
-                                <h2 className="text-xl sm:text-2xl font-bold" style={{ color: '#E5E7EB' }}>
-                                    Props Board
-                                </h2>
-                                <p className="text-xs sm:text-sm mt-1" style={{ color: '#9CA3AF' }}>
-                                    View and manage all props from your screenplay
-                                </p>
-                            </div>
+                        <div className="mb-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
+                                        Props Board
+                                    </h2>
+                                    <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
+                                        View and manage all props from your screenplay
+                                    </p>
+                                </div>
                             {canEditScript ? (
                                 <button
                                     onClick={() => {
@@ -213,6 +214,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                     Read-only access
                                 </span>
                             )}
+                            </div>
                         </div>
                     )}
 
