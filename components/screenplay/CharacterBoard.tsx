@@ -461,8 +461,8 @@ function CharacterCardContent({
         <div
             className="p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]"
             style={{
-                backgroundColor: '#1C1C1E',
-                borderColor: '#3F3F46',
+                backgroundColor: '#0A0A0A',
+                borderColor: '#1C1C1E',
             }}
             onClick={onClick}
         >
