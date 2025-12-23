@@ -35,13 +35,59 @@ export default function AdminSettingsDashboard() {
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      if (!token) {
+        console.error('[Admin Settings] No auth token available');
+        setLoading(false);
+        return;
+      }
       
-      const response = await fetch('/api/health', { headers });
-      const data = await response.json();
-      setSystemStatus(data);
+      const headers = { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      
+      // Fetch detailed system health from admin endpoint
+      const response = await fetch('/api/admin/health', { headers });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const healthData = await response.json();
+      
+      // Transform the backend response to match component expectations
+      const primaryTable = healthData.database?.[0] || {};
+      const isHealthy = healthData.database && healthData.database.length > 0;
+      
+      setSystemStatus({
+        status: isHealthy ? 'healthy' : 'unhealthy',
+        database: {
+          status: isHealthy ? 'healthy' : 'down',
+          region: process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1',
+          tableName: primaryTable.table_name || 'N/A',
+          itemCount: primaryTable.item_count || 0,
+          sizeBytes: primaryTable.size_bytes || 0
+        },
+        jobQueues: healthData.job_queues || {},
+        apiPerformance: healthData.api_performance || {},
+        environment: process.env.NODE_ENV || 'production',
+        nodeVersion: process.version,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       console.error('[Admin Settings] Failed to fetch system status:', error);
+      // Set error state
+      setSystemStatus({
+        status: 'down',
+        database: {
+          status: 'down',
+          region: 'N/A',
+          tableName: 'N/A',
+          itemCount: 0,
+          sizeBytes: 0
+        },
+        error: error.message
+      });
     } finally {
       setLoading(false);
     }
@@ -135,11 +181,16 @@ export default function AdminSettingsDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-base-content/40">Region</p>
-              <p className="font-bold">{systemStatus?.database?.region || 'us-east-1'}</p>
+              <p className="font-bold">{systemStatus?.database?.region || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm text-base-content/40">Table Name</p>
-              <p className="font-bold">{systemStatus?.database?.tableName || 'ISE_Users'}</p>
+              <p className="text-sm text-base-content/40">Primary Table</p>
+              <p className="font-bold">{systemStatus?.database?.tableName || 'N/A'}</p>
+              {systemStatus?.database?.itemCount !== undefined && (
+                <p className="text-xs opacity-70 mt-1">
+                  {systemStatus.database.itemCount.toLocaleString()} items
+                </p>
+              )}
             </div>
             <div>
               <p className="text-sm text-base-content/40">Connection Status</p>
@@ -167,12 +218,20 @@ export default function AdminSettingsDashboard() {
               <p className="font-bold">{systemStatus?.nodeVersion || process.version}</p>
             </div>
             <div>
-              <p className="text-sm text-base-content/40">Uptime</p>
-              <p className="font-bold">{systemStatus?.uptime || 'N/A'}</p>
+              <p className="text-sm text-base-content/40">API Response Time</p>
+              <p className="font-bold">
+                {systemStatus?.apiPerformance?.avg_response_time_ms 
+                  ? `${systemStatus.apiPerformance.avg_response_time_ms}ms` 
+                  : 'N/A'}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-base-content/40">Last Deploy</p>
-              <p className="font-bold">{systemStatus?.lastDeploy || 'Oct 31, 2025'}</p>
+              <p className="text-sm text-base-content/40">Last Checked</p>
+              <p className="font-bold">
+                {systemStatus?.timestamp 
+                  ? new Date(systemStatus.timestamp).toLocaleString() 
+                  : new Date().toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
