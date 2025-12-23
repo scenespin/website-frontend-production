@@ -493,26 +493,26 @@ export function UnifiedSceneConfiguration({
                                     imageUrl: headshot.imageUrl
                                   });
                                 }}
-                                className={`relative aspect-square rounded border-2 overflow-hidden transition-all ${
+                                className={`relative aspect-square rounded border-2 transition-all ${
                                   isSelected
                                     ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                                    : 'border-[#3F3F46] hover:border-[#DC143C]'
+                                    : 'border-[#3F3F46] hover:border-[#808080]'
                                 }`}
                               >
                                 {headshot.imageUrl ? (
                                   <img
                                     src={headshot.imageUrl}
                                     alt={headshot.label || 'Headshot'}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover rounded"
                                   />
                                 ) : (
-                                  <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080]">
+                                  <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] rounded">
                                     {headshot.label || 'Headshot'}
                                   </div>
                                 )}
                                 {isSelected && (
-                                  <div className="absolute top-1 right-1 w-4 h-4 bg-[#DC143C] rounded-full flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-white" />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                                    <Check className="w-4 h-4 text-[#DC143C]" />
                                   </div>
                                 )}
                                 {idx === 0 && !isSelected && (

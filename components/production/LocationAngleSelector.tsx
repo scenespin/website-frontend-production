@@ -172,10 +172,10 @@ export function LocationAngleSelector({
                   imageUrl: angle.imageUrl
                 });
               }}
-              className={`relative aspect-square rounded border-2 overflow-hidden transition-all ${
+              className={`relative aspect-square rounded border-2 transition-all ${
                 selected
                   ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                  : 'border-[#3F3F46] hover:border-[#DC143C]'
+                  : 'border-[#3F3F46] hover:border-[#808080]'
               }`}
               title={`${getAngleLabel(angle.angle)}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}`}
             >
@@ -183,17 +183,17 @@ export function LocationAngleSelector({
                 <img
                   src={angle.imageUrl}
                   alt={angle.label || getAngleLabel(angle.angle)}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded"
                 />
               ) : (
-                <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center">
+                <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
                   {angle.label || getAngleLabel(angle.angle)}
                 </div>
               )}
               
               {selected && (
-                <div className="absolute top-1 right-1 w-4 h-4 bg-[#DC143C] rounded-full flex items-center justify-center">
-                  <Check className="w-3 h-3 text-white" />
+                <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                  <Check className="w-4 h-4 text-[#DC143C]" />
                 </div>
               )}
               
