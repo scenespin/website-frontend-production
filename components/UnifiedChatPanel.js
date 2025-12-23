@@ -16,7 +16,7 @@ import { SceneVisualizerModePanel } from './modes/SceneVisualizerModePanel';
 import { TryOnModePanel } from './modes/TryOnModePanel';
 import { AudioModePanel } from './modes/AudioModePanel';
 import { CloudSavePrompt } from './CloudSavePrompt';
-import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Sparkles, Paperclip, User, Building2, Info } from 'lucide-react';
+import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Paperclip, User, Building2, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildRewritePrompt } from '@/utils/promptBuilders';
@@ -125,12 +125,12 @@ function ModeSelector() {
         <span className="text-xs font-medium hidden sm:inline">{MODE_CONFIG[state.activeMode]?.label || 'Screenwriter'}</span>
         <ChevronDown className="w-3.5 h-3.5" />
       </label>
-      <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-64 mb-2 border border-base-300 max-h-[80vh] overflow-y-auto">
+      <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-[#1F1F1F] rounded-box w-64 mb-2 border border-[#3F3F46] max-h-[80vh] overflow-y-auto">
         {/* AI AGENTS Section */}
         {agents.length > 0 && (
           <>
             <li className="menu-title">
-              <span className="text-xs font-bold text-base-content/70">AI Agents</span>
+              <span className="text-xs font-bold text-[#9CA3AF]">AI Agents</span>
             </li>
             {agents.map((mode) => {
               const config = MODE_CONFIG[mode];
@@ -157,7 +157,7 @@ function ModeSelector() {
         {features.length > 0 && (
           <>
             <li className="menu-title mt-2">
-              <span className="text-xs font-bold text-base-content/70">Generation</span>
+              <span className="text-xs font-bold text-[#9CA3AF]">Generation</span>
             </li>
             {features.map((mode) => {
               const config = MODE_CONFIG[mode];
@@ -205,24 +205,24 @@ function LLMModelSelector() {
   
   return (
     <div className="dropdown dropdown-top">
-      <label tabIndex={0} className="btn btn-sm btn-ghost gap-1 text-base-content/80 hover:text-base-content">
+      <label tabIndex={0} className="btn btn-sm btn-ghost gap-1 text-[#E5E7EB] hover:text-[#FFFFFF]">
         <span className="text-xs font-medium">{currentModel.name}</span>
         <ChevronDown className="w-3.5 h-3.5" />
       </label>
-      <ul tabIndex={0} className="dropdown-content menu p-1 shadow-lg bg-base-200 rounded-box w-56 mb-2 border border-base-300 max-h-80 overflow-y-auto overflow-x-hidden">
+      <ul tabIndex={0} className="dropdown-content menu p-1 shadow-lg bg-[#1F1F1F] rounded-box w-56 mb-2 border border-[#3F3F46] max-h-80 overflow-y-auto overflow-x-hidden">
         {/* Group by provider - Users choose their preferred AI style */}
         {['Anthropic', 'OpenAI', 'Google'].map(provider => {
           const providerModels = LLM_MODELS.filter(m => m.provider === provider);
           return (
             <li key={provider} className="w-full">
               <div className="px-2 py-1">
-                <span className="text-[10px] font-semibold text-base-content/60 uppercase tracking-wide">{provider}</span>
+                <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide">{provider}</span>
               </div>
               {providerModels.map(model => (
                 <button
                   key={model.id}
                   onClick={() => handleModelChange(model.id)}
-                  className={`flex items-center justify-between gap-1.5 py-1 px-2 w-full hover:bg-base-300 rounded text-left ${
+                  className={`flex items-center justify-between gap-1.5 py-1 px-2 w-full hover:bg-[#2A2A2A] rounded text-left ${
                     selectedModel === model.id ? 'bg-cinema-red/10' : ''
                   }`}
                 >
@@ -1161,11 +1161,11 @@ function UnifiedChatPanelInner({
       <div className="flex flex-col h-full bg-base-100 items-center justify-center p-6">
         <div className="text-center max-w-md">
           <MessageSquare className="w-16 h-16 text-base-content/30 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">AI Access Required</h3>
-          <p className="text-base-content/70 mb-4">
+          <h3 className="text-lg font-semibold mb-2 text-[#E5E7EB]">AI Access Required</h3>
+          <p className="text-[#9CA3AF] mb-4">
             You need Writer or Director role to use AI chat for script work.
           </p>
-          <p className="text-sm text-base-content/50">
+          <p className="text-sm text-[#6B7280]">
             Contact the screenplay owner to request access.
           </p>
         </div>
@@ -1217,35 +1217,35 @@ function UnifiedChatPanelInner({
 
   return (
     <div 
-      className="flex flex-col h-full bg-base-100" 
+      className="flex flex-col h-full bg-[#0A0A0A]" 
       onClick={handleContainerClick}
     >
 
       {/* Selected Text Context Banner - Shows rewrite context */}
       {state.selectedTextContext && (
-        <div className="px-4 py-2.5 bg-purple-500/10 border-b border-purple-500/20 flex items-center justify-between">
+        <div className="px-4 py-2.5 bg-[#0A0A0A] border-b border-[#3F3F46] flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <FileText className="w-4 h-4 text-purple-500 flex-shrink-0" />
+            <FileText className="w-4 h-4 text-[#9333EA] flex-shrink-0" />
             <div className="flex flex-col min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-sm text-base-content">
+                <span className="font-medium text-sm text-[#E5E7EB]">
                   Rewrite Mode
                 </span>
                 <div className="group relative">
-                  <Info className="w-3.5 h-3.5 text-purple-500/70 cursor-help" />
-                  <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64 p-2 bg-base-200 border border-base-300 rounded-md shadow-lg text-xs text-base-content/80">
+                  <Info className="w-3.5 h-3.5 text-[#9333EA]/70 cursor-help" />
+                  <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64 p-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md shadow-lg text-xs text-[#E5E7EB]/80">
                     Selected text will be rewritten. Use quick action buttons below or type custom instructions like "make this more dramatic" or "polish the dialogue".
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-base-content/60 truncate mt-0.5">
+              <div className="text-xs text-[#9CA3AF] truncate mt-0.5">
                 {state.selectedTextContext.substring(0, 60)}...
               </div>
             </div>
           </div>
           <button
             onClick={() => clearContext()}
-            className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0"
+            className="p-1 rounded hover:bg-[#1F1F1F] text-[#9CA3AF] hover:text-[#E5E7EB] flex-shrink-0"
             title="Clear selection"
           >
             <X className="w-4 h-4" />
@@ -1255,17 +1255,16 @@ function UnifiedChatPanelInner({
 
       {/* Entity Context Banner - Shows what entity you're creating for */}
       {state.entityContextBanner && (
-        <div className="px-4 py-2 bg-cinema-gold/10 border-b border-cinema-gold/20 flex items-center justify-between">
+        <div className="px-4 py-2 bg-[#0A0A0A] border-b border-[#3F3F46] flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Sparkles className="w-4 h-4 text-cinema-gold flex-shrink-0" />
-            <span className="text-sm text-base-content">
+            <span className="text-sm text-[#E5E7EB]">
               {state.entityContextBanner.workflow === 'interview' ? 'AI Interview: ' : 'Creating for: '}
               <strong>{state.entityContextBanner.name}</strong> ({state.entityContextBanner.type})
             </span>
           </div>
           <button
             onClick={() => setEntityContextBanner(null)}
-            className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0"
+            className="p-1 rounded hover:bg-[#1F1F1F] text-[#9CA3AF] hover:text-[#E5E7EB] flex-shrink-0"
             title="Clear entity context"
           >
             <X className="w-4 h-4" />
@@ -1281,14 +1280,14 @@ function UnifiedChatPanelInner({
 
       {/* Chat Input - Modern AI Chat Style */}
       {/* Always show input - Character/Location panels use this input but handle sending themselves */}
-      <div className="flex-shrink-0 border-t border-base-300/50 bg-base-100">
+      <div className="flex-shrink-0 border-t border-[#3F3F46] bg-[#0A0A0A]">
           {/* Attached Files Display */}
           {attachedFiles.length > 0 && (
             <div className="max-w-3xl mx-auto px-4 md:px-6 pt-3 flex flex-wrap gap-2">
               {attachedFiles.map((file, index) => (
-                <div key={index} className="inline-flex items-center gap-2 px-3 py-1.5 bg-base-200 rounded-lg text-sm">
-                  <Paperclip className="w-3 h-3 text-base-content/60" />
-                  <span className="text-xs font-medium text-base-content">{file.name}</span>
+                <div key={index} className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1F1F1F] rounded-lg text-sm">
+                  <Paperclip className="w-3 h-3 text-[#9CA3AF]" />
+                  <span className="text-xs font-medium text-[#E5E7EB]">{file.name}</span>
                   <button
                     onClick={() => removeAttachedFile(index)}
                     className="hover:text-error transition-colors"
@@ -1302,7 +1301,7 @@ function UnifiedChatPanelInner({
           
           {/* Main Input Area - Compact ChatGPT/Claude Style */}
           <div className="w-full px-2 sm:px-3 md:px-4 py-2">
-            <div className="relative bg-base-200 rounded-lg sm:rounded-xl border border-base-300 focus-within:border-cinema-red/50 focus-within:ring-1 focus-within:ring-cinema-red/20 transition-all">
+            <div className="relative bg-[#1F1F1F] rounded-lg sm:rounded-xl border border-[#3F3F46] focus-within:border-[#DC143C]/50 focus-within:ring-1 focus-within:ring-[#DC143C]/20 transition-all">
               <textarea
                 value={state.input}
                 onChange={(e) => setInput(e.target.value)}
@@ -1314,7 +1313,7 @@ function UnifiedChatPanelInner({
                 }}
                 placeholder={state.inputPlaceholder}
                 disabled={state.isStreaming || isUploading}
-                className="w-full min-h-[44px] sm:min-h-[48px] max-h-[160px] sm:max-h-[200px] resize-none bg-transparent text-base-content placeholder:text-base-content/40 focus:outline-none px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 text-xs sm:text-sm leading-relaxed tracking-normal pr-20 sm:pr-24"
+                className="w-full min-h-[44px] sm:min-h-[48px] max-h-[160px] sm:max-h-[200px] resize-none bg-transparent text-[#E5E7EB] placeholder:text-[#9CA3AF] focus:outline-none px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 text-xs sm:text-sm leading-relaxed tracking-normal pr-20 sm:pr-24"
                 rows={1}
                 style={{ 
                   border: 'none',
@@ -1325,7 +1324,7 @@ function UnifiedChatPanelInner({
               <div className="absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5">
                 <button
                   onClick={handleAttachment}
-                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isUploading ? 'opacity-50' : ''}`}
+                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#2A2A2A] text-[#9CA3AF] hover:text-[#E5E7EB] transition-all duration-200 ${isUploading ? 'opacity-50' : ''}`}
                   disabled={state.isStreaming || isUploading}
                   title="Attach files"
                 >
@@ -1337,19 +1336,19 @@ function UnifiedChatPanelInner({
                 </button>
                 <button
                   onClick={handleVoiceInput}
-                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isRecording ? 'bg-cinema-red/20 text-cinema-red animate-pulse' : ''}`}
+                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#2A2A2A] text-[#9CA3AF] hover:text-[#E5E7EB] transition-all duration-200 ${isRecording ? 'bg-[#DC143C]/20 text-[#DC143C] animate-pulse' : ''}`}
                   disabled={state.isStreaming || isUploading}
                   title={isRecording ? "Stop recording" : "Voice input"}
                 >
-                  <Mic className={`w-4 h-4 sm:w-5 sm:h-5 ${isRecording ? 'text-cinema-red' : ''}`} />
+                  <Mic className={`w-4 h-4 sm:w-5 sm:h-5 ${isRecording ? 'text-[#DC143C]' : ''}`} />
                 </button>
                 <button
                   onClick={() => handleSend(state.input)}
                   disabled={!state.input.trim() || state.isStreaming || isUploading}
                   className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg transition-all duration-200 ${
                     state.input.trim() && !state.isStreaming && !isUploading
-                      ? 'bg-cinema-red hover:bg-cinema-red/90 text-base-content shadow-sm'
-                      : 'bg-base-300 text-base-content/30 cursor-not-allowed'
+                      ? 'bg-[#DC143C] hover:bg-[#DC143C]/90 text-white shadow-sm'
+                      : 'bg-[#1F1F1F] text-[#6B7280] cursor-not-allowed'
                   }`}
                   title="Send message"
                 >
