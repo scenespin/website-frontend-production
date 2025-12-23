@@ -8,30 +8,31 @@
  */
 
 import React from 'react';
-import { Video as VideoIcon, Upload, Info } from 'lucide-react';
-import { useMediaLibrary } from '@/hooks/useMediaLibrary';
-import { useAuth } from '@clerk/nextjs';
+import { Video, Upload, Info } from 'lucide-react';
+import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 interface VideoPanelProps {
   className?: string;
 }
 
 export function VideoPanel({ className = '' }: VideoPanelProps) {
-  const { userId } = useAuth();
-  const { data: mediaFiles = [], isLoading } = useMediaLibrary(userId || '');
+  const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId;
+  const { data: mediaFiles = [], isLoading } = useMediaFiles(screenplayId || '', undefined, !!screenplayId);
 
   // Filter for video files that are NOT part of scenes
   // Scene videos typically have metadata.sceneId or are in specific S3 prefixes
   const standaloneVideos = React.useMemo(() => {
     return mediaFiles.filter(file => {
       // Only include video files
-      if (!file.type.startsWith('video/')) return false;
+      if (file.fileType !== 'video') return false;
       
       // Exclude scene-generated videos (they have scene metadata or are in scene-specific paths)
       const isSceneVideo = file.metadata?.sceneId || 
                           file.metadata?.isSceneVideo ||
-                          file.url?.includes('/scenes/') ||
-                          file.url?.includes('/scene-');
+                          file.s3Key?.includes('/scenes/') ||
+                          file.s3Key?.includes('/scene-');
       
       return !isSceneVideo;
     });
@@ -86,18 +87,18 @@ export function VideoPanel({ className = '' }: VideoPanelProps) {
                   className="relative aspect-video bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden group hover:border-[#DC143C]/50 transition-colors"
                 >
                   <video
-                    src={video.url}
+                    src={video.s3Key ? `https://${process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-media'}.s3.amazonaws.com/${video.s3Key}` : undefined}
                     className="w-full h-full object-cover"
                     preload="metadata"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="absolute bottom-0 left-0 right-0 p-3">
                       <p className="text-xs text-white font-medium truncate">
-                        {video.name || 'Untitled Video'}
+                        {video.fileName || 'Untitled Video'}
                       </p>
-                      {video.createdAt && (
+                      {video.uploadedAt && (
                         <p className="text-xs text-white/60 mt-1">
-                          {new Date(video.createdAt).toLocaleDateString()}
+                          {new Date(video.uploadedAt).toLocaleDateString()}
                         </p>
                       )}
                     </div>
