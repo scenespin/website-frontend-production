@@ -546,35 +546,60 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     async function fetchHeadshotsForDialogueShots() {
       if (!projectId || !sceneAnalysisResult?.shotBreakdown?.shots || !sceneAnalysisResult?.characters) return;
       
-      // Helper to detect if action shot mentions a character
-      const actionShotHasCharacter = (shot: any): { hasCharacter: boolean; characterId?: string } => {
-        if (shot.type !== 'action' || !shot.description) {
-          return { hasCharacter: false };
+      // Helper to detect if action shot mentions characters (returns all mentioned characters)
+      const actionShotHasCharacters = (shot: any): { hasCharacters: boolean; characterIds: string[] } => {
+        if (shot.type !== 'action') {
+          return { hasCharacters: false, characterIds: [] };
         }
         
-        const description = shot.description.toLowerCase();
-        // Find first character whose name appears in the action description
-        const mentionedCharacter = sceneAnalysisResult.characters.find((char: any) => {
-          if (!char.name) return false;
-          const charName = char.name.toLowerCase();
-          return description.includes(charName);
-        });
+        // Get full text (narrationBlock.text if available, otherwise description)
+        const fullText = shot.narrationBlock?.text || shot.description || '';
+        if (!fullText) {
+          return { hasCharacters: false, characterIds: [] };
+        }
         
-        return mentionedCharacter 
-          ? { hasCharacter: true, characterId: mentionedCharacter.id }
-          : { hasCharacter: false };
+        const textLower = fullText.toLowerCase();
+        const originalText = fullText;
+        const mentionedCharacterIds: string[] = [];
+        const foundCharIds = new Set<string>();
+        
+        // Check for regular case character names first
+        for (const char of sceneAnalysisResult.characters) {
+          if (!char.name || foundCharIds.has(char.id)) continue;
+          const charName = char.name.toLowerCase();
+          if (textLower.includes(charName) || textLower.includes(charName + "'s")) {
+            mentionedCharacterIds.push(char.id);
+            foundCharIds.add(char.id);
+          }
+        }
+        
+        // Check for ALL CAPS character names (if not already found)
+        for (const char of sceneAnalysisResult.characters) {
+          if (!char.name || foundCharIds.has(char.id)) continue;
+          if (originalText.includes(char.name.toUpperCase())) {
+            mentionedCharacterIds.push(char.id);
+            foundCharIds.add(char.id);
+          }
+        }
+        
+        return {
+          hasCharacters: mentionedCharacterIds.length > 0,
+          characterIds: mentionedCharacterIds
+        };
       };
       
       // Get dialogue shots with characterId
       const dialogueShots = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => shot.type === 'dialogue' && shot.characterId);
       
-      // Get action shots that mention characters
+      // Get action shots that mention characters (can have multiple characters)
       const actionShotsWithCharacters = sceneAnalysisResult.shotBreakdown.shots
         .filter((shot: any) => {
-          const result = actionShotHasCharacter(shot);
-          if (result.hasCharacter && result.characterId) {
-            // Attach characterId to shot for later use
-            shot.characterId = result.characterId;
+          const result = actionShotHasCharacters(shot);
+          if (result.hasCharacters && result.characterIds.length > 0) {
+            // Store all mentioned character IDs for later use
+            shot.mentionedCharacterIds = result.characterIds;
+            // For backward compatibility, also set characterId to first character
+            shot.characterId = result.characterIds[0];
             return true;
           }
           return false;

@@ -303,40 +303,50 @@ export function UnifiedSceneConfiguration({
     };
   };
 
-  // Get character mentioned in action shot (explicit names only, no pronoun resolution)
-  const getCharacterFromActionShot = (shot: any) => {
+  // Get all characters mentioned in action shot (explicit names only, no pronoun resolution)
+  const getCharactersFromActionShot = (shot: any): any[] => {
     if (shot.type !== 'action' || !sceneAnalysisResult?.characters) {
-      return null;
+      return [];
     }
     
     // Get full text (uses narrationBlock.text if available, falls back to description)
     const fullText = getFullShotText(shot);
-    if (!fullText) return null;
+    if (!fullText) return [];
     
     const textLower = fullText.toLowerCase();
     const originalText = fullText;
     const characters = sceneAnalysisResult.characters;
+    const foundCharacters: any[] = [];
+    const foundCharIds = new Set<string>();
     
     // Check for explicit character name mentions (ALL CAPS or regular case)
     // Prefer regular case matches first (more specific), then ALL CAPS
     for (const char of characters) {
-      if (!char.name) continue;
+      if (!char.name || foundCharIds.has(char.id)) continue;
       const charName = char.name.toLowerCase();
       // Check for regular case name (e.g., "Sarah walks" or "Sarah's desk")
       if (textLower.includes(charName) || textLower.includes(charName + "'s")) {
-        return char;
+        foundCharacters.push(char);
+        foundCharIds.add(char.id);
       }
     }
     
-    // Check for ALL CAPS mentions
+    // Check for ALL CAPS mentions (if not already found)
     for (const char of characters) {
-      if (!char.name) continue;
+      if (!char.name || foundCharIds.has(char.id)) continue;
       if (originalText.includes(char.name.toUpperCase())) {
-        return char;
+        foundCharacters.push(char);
+        foundCharIds.add(char.id);
       }
     }
     
-    return null;
+    return foundCharacters;
+  };
+
+  // Legacy function for backward compatibility (returns first character)
+  const getCharacterFromActionShot = (shot: any) => {
+    const chars = getCharactersFromActionShot(shot);
+    return chars.length > 0 ? chars[0] : null;
   };
 
   // Check if shot type needs reference selection
@@ -457,12 +467,22 @@ export function UnifiedSceneConfiguration({
     return sceneAnalysisResult.characters.find((c: any) => c.id === shot.characterId);
     }
     
-    // Action shot: detect character from description
+    // Action shot: detect character from description (returns first character for backward compatibility)
     if (shot.type === 'action') {
       return getCharacterFromActionShot(shot);
     }
     
     return null;
+  };
+
+  // Get all characters for shot (for action shots with multiple characters)
+  const getCharactersForShot = (shot: any): any[] => {
+    if (shot.type === 'action') {
+      return getCharactersFromActionShot(shot);
+    }
+    // For dialogue shots, return single character
+    const char = getCharacterForShot(shot);
+    return char ? [char] : [];
   };
 
   return (
@@ -830,11 +850,15 @@ export function UnifiedSceneConfiguration({
                                   </button>
                                   <button
                                     onClick={() => {
-                                      // User can manually map later via badges
+                                      // "Change" button: Remove the auto-mapping and let user select via badges or character selector
+                                      if (onPronounMappingChange) {
+                                        // Remove the mapping so user can select manually
+                                        onPronounMappingChange(shot.slot, pronoun.toLowerCase(), undefined);
+                                      }
                                     }}
-                                    className="px-2 py-1 text-[10px] bg-[#3F3F46] hover:bg-[#4F4F56] text-[#808080] rounded transition-colors"
+                                    className="px-2 py-1 text-[10px] bg-[#3F3F46] hover:bg-[#DC143C] hover:text-white text-[#808080] rounded transition-colors"
                                   >
-                                    Dismiss
+                                    Change
                                   </button>
                                 </div>
                               </div>
