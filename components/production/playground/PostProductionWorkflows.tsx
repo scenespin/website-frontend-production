@@ -52,7 +52,7 @@ export function PostProductionWorkflows({ className = '', screenplayId }: PostPr
     }
 
     // Navigate to workflow selector with this workflow pre-selected
-    router.push(`/production/${screenplayId}?tab=workflows&workflowId=${workflow.id}`);
+    router.push(`/production?projectId=${screenplayId}&tab=workflows&workflowId=${workflow.id}`);
   };
 
   if (isLoading) {

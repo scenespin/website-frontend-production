@@ -94,7 +94,7 @@ export function PreProductionPanel({ className = '', screenplayId }: PreProducti
       </div>
 
       {/* Section Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden">
         {activeSection === 'images' && (
           <ImageGenerationTools className="h-full" />
         )}

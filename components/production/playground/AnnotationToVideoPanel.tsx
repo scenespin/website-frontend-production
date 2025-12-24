@@ -7,8 +7,8 @@
  * Uses existing VisualAnnotationPanel and VisualAnnotationCanvas components.
  */
 
-import React, { useState, useRef } from 'react';
-import { Video, Upload, Loader2, Sparkles, X, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Video, Upload, Loader2, X, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -26,22 +26,71 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('luma-ray-flash-2');
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [modelsLoading, setModelsLoading] = useState(true);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageS3Key, setImageS3Key] = useState<string | null>(null);
   const [annotations, setAnnotations] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Video models (unwrapped - users see actual model names)
-  const videoModels = [
-    { id: 'runway-gen4-turbo', label: 'Runway Gen-4 Turbo', provider: 'runway', credits: 50, duration: '5s', resolution: '1080p' },
-    { id: 'runway-gen4-aleph', label: 'Runway Gen-4 Aleph', provider: 'runway', credits: 150, duration: '5s', resolution: '1080p' },
-    { id: 'luma-ray-flash-2', label: 'Luma Ray Flash 2', provider: 'luma-ray-flash-2', credits: 75, duration: '5s', resolution: '1080p' },
-    { id: 'luma-ray-2', label: 'Luma Ray 2', provider: 'luma-ray-2', credits: 172, duration: '5s', resolution: '1080p' }, // ⚠️ 1080p only, NOT 4K
-    { id: 'veo-3.1', label: 'Google Veo 3.1', provider: 'veo-3.1', credits: 50, duration: '5s', resolution: '1080p' },
-    { id: 'veo-3.1-fast', label: 'Google Veo 3.1 Fast', provider: 'veo-3.1', credits: 40, duration: '5s', resolution: '1080p' },
-    { id: 'sora-2-pro', label: 'OpenAI Sora 2 Pro', provider: 'sora-2-pro', credits: 480, duration: '8s', resolution: '720p' }, // ⚠️ 720p, not 1080p
-  ];
+  // Video models (fetched from API)
+  interface VideoModel {
+    id: string;
+    label: string;
+    provider: string;
+    durations: number[];
+    creditsMap: Record<number, number>;
+  }
+
+  const [videoModels, setVideoModels] = useState<VideoModel[]>([]);
+
+  // Fetch video models from API
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        setModelsLoading(true);
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          console.error('Authentication required');
+          return;
+        }
+
+        const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
+        setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+
+        const response = await apiModule.video.getModels();
+        console.log('[AnnotationToVideoPanel] API Response:', response);
+        
+        // Handle different response structures
+        let modelsData = [];
+        if (response?.data?.models) {
+          modelsData = response.data.models;
+        } else if (response?.data?.data?.models) {
+          modelsData = response.data.data.models;
+        } else if (Array.isArray(response?.data)) {
+          modelsData = response.data;
+        } else if (response?.models) {
+          modelsData = response.models;
+        }
+        
+        console.log('[AnnotationToVideoPanel] Parsed models:', modelsData);
+        setVideoModels(modelsData);
+        
+        // Set default model (first recommended or first in list)
+        if (modelsData.length > 0 && !selectedModel) {
+          const defaultModel = modelsData.find((m: VideoModel) => m.recommended) || modelsData[0];
+          setSelectedModel(defaultModel.id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch video models:', error);
+        toast.error('Failed to load video models');
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, [getToken]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -201,7 +250,7 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
   };
 
   return (
-    <div className={cn("h-full flex flex-col bg-[#0A0A0A] p-4 md:p-6 overflow-y-auto", className)}>
+    <div className={cn("h-full flex flex-col bg-[#0A0A0A] p-4 md:p-6", className)}>
       <div className="flex-shrink-0 mb-6">
         <div className="flex items-center gap-3 mb-2">
           <Video className="w-6 h-6 text-cinema-red" />
@@ -218,18 +267,36 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
           <label className="block text-sm font-medium text-white mb-2">
             Video Model (Direct Selection)
           </label>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating || isUploading}
-          >
-            {videoModels.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.label} - {model.duration} {model.resolution} ({model.credits} credits)
-              </option>
-            ))}
-          </select>
+          {modelsLoading ? (
+            <div className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#808080] flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Loading models...</span>
+            </div>
+          ) : (
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+              disabled={isGenerating || isUploading}
+            >
+              {videoModels.length === 0 ? (
+                <option value="">No models available</option>
+              ) : (
+                <>
+                  <option value="">Select a video model...</option>
+                  {videoModels.map((model) => {
+                    const defaultDuration = model.durations?.[0] || 5;
+                    const defaultCredits = model.creditsMap?.[defaultDuration] || 50;
+                    return (
+                      <option key={model.id} value={model.id}>
+                        {model.label} ({defaultCredits} credits)
+                      </option>
+                    );
+                  })}
+                </>
+              )}
+            </select>
+          )}
           <p className="mt-1.5 text-xs text-[#808080]">
             💡 In Playground, you can choose specific models. Workflows use wrapped quality tiers.
           </p>
@@ -317,7 +384,7 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5" />
+                <Video className="w-5 h-5" />
                 <span>Generate Video</span>
               </>
             )}

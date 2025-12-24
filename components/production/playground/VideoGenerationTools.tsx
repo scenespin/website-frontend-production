@@ -77,8 +77,21 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
 
         const response = await apiModule.video.getModels();
-        const modelsData = response.data?.models || response.data?.data?.models || [];
+        console.log('[VideoGenerationTools] API Response:', response);
         
+        // Handle different response structures
+        let modelsData = [];
+        if (response?.data?.models) {
+          modelsData = response.data.models;
+        } else if (response?.data?.data?.models) {
+          modelsData = response.data.data.models;
+        } else if (Array.isArray(response?.data)) {
+          modelsData = response.data;
+        } else if (response?.models) {
+          modelsData = response.models;
+        }
+        
+        console.log('[VideoGenerationTools] Parsed models:', modelsData);
         setVideoModels(modelsData);
         
         // Set default model (first recommended or first in list)
@@ -640,15 +653,22 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
                 className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
                 disabled={isGenerating}
               >
-                {videoModels.map((model) => {
-                  const defaultDuration = model.durations?.[0] || 5;
-                  const defaultCredits = model.creditsMap?.[defaultDuration] || 50;
-                  return (
-                    <option key={model.id} value={model.id}>
-                      {model.label} ({defaultCredits} credits)
-                    </option>
-                  );
-                })}
+                {videoModels.length === 0 ? (
+                  <option value="">No models available</option>
+                ) : (
+                  <>
+                    <option value="">Select a video model...</option>
+                    {videoModels.map((model) => {
+                      const defaultDuration = model.durations?.[0] || 5;
+                      const defaultCredits = model.creditsMap?.[defaultDuration] || 50;
+                      return (
+                        <option key={model.id} value={model.id}>
+                          {model.label} ({defaultCredits} credits)
+                        </option>
+                      );
+                    })}
+                  </>
+                )}
               </select>
               {selectedModel && (
                 <p className="mt-1.5 text-xs text-[#808080]">

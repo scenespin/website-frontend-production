@@ -20,7 +20,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   ChevronDown,
   ChevronUp,
-  Sparkles,
   CheckCircle,
   Info
 } from 'lucide-react';
@@ -138,13 +137,10 @@ export function VisualAnnotationPanel({
         disabled={disabled}
       >
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
           <div className="text-left">
             <h3 className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              Add Motion & Actions
-              <Badge variant="outline" className="text-xs font-normal">
+              Motion & Actions
+              <Badge variant="outline" className="text-xs font-normal text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600">
                 Optional
               </Badge>
               {annotations.length > 0 && (
