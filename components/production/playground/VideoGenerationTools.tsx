@@ -633,7 +633,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
             <option value={10}>10 seconds</option>
           </select>
         </div>
-
+        </div>
         </div>
         
         {/* Generate Button - Fixed at bottom */}
