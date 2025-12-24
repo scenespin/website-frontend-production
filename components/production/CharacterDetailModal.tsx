@@ -35,6 +35,7 @@ import { VoiceAssignmentTab } from './VoiceAssignmentTab';
 import { VoiceBrowserModal } from './VoiceBrowserModal';
 import { CustomVoiceForm } from './CustomVoiceForm';
 import { CharacterPoseCropModal } from './CharacterPoseCropModal';
+import { ModernGallery, type GalleryImage } from './Gallery/ModernGallery';
 
 /**
  * Get display label for provider ID
@@ -524,6 +525,30 @@ export function CharacterDetailModal({
   // 🔥 FIX: Memoize allImages to prevent unnecessary recalculations
   const allImages = useMemo(() => [...userReferences, ...poseReferences], [userReferences, poseReferences]);
   
+  // Convert to GalleryImage format for ModernGallery
+  const galleryImages: GalleryImage[] = useMemo(() => {
+    return allImages.map((img) => ({
+      id: img.id,
+      imageUrl: img.imageUrl,
+      thumbnailUrl: img.imageUrl, // Use same URL for thumbnail (can optimize later)
+      label: img.label,
+      outfitName: (img as any).outfitName || 'default',
+      isBase: img.isBase || false,
+      source: img.isPose ? 'pose-generation' : 'user-upload',
+      width: 4, // Default aspect ratio (can detect from image later)
+      height: 3
+    }));
+  }, [allImages]);
+  
+  // Filter gallery images by outfit
+  const filteredGalleryImages = useMemo(() => {
+    if (!selectedOutfitGallery) return galleryImages;
+    return galleryImages.filter(img => {
+      const imgOutfit = img.outfitName || 'default';
+      return imgOutfit === selectedOutfitGallery;
+    });
+  }, [galleryImages, selectedOutfitGallery]);
+  
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
     return null;
@@ -841,201 +866,63 @@ export function CharacterDetailModal({
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
               {activeTab === 'gallery' && (
                 <div className="p-6">
-                  {allImages.length > 0 ? (
-                    <div className="flex gap-6">
-                      {/* Thumbnails on left */}
-                      <div className="flex-shrink-0 w-32 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
-                        {allImages.map((img, idx) => (
-                          <button
-                            key={img.id}
-                            onClick={() => setSelectedImageIndex(idx)}
-                            className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                              selectedImageIndex === idx
-                                ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
-                                : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-                            }`}
-                          >
-                            <img
-                              src={img.imageUrl}
-                              alt={img.label}
-                              className="w-full h-full object-cover"
-                            />
-                            {img.isBase && (
-                              <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
-                                Base
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      {/* Main image on right */}
-                      <div className="flex-1">
-                        <div className="relative bg-[#1F1F1F] rounded-lg overflow-hidden border border-[#3F3F46] aspect-video max-h-[600px]">
-                          <img
-                            src={allImages[selectedImageIndex]?.imageUrl}
-                            alt={allImages[selectedImageIndex]?.label}
-                            className="w-full h-full object-contain"
-                          />
-                          {allImages[selectedImageIndex]?.isBase && (
-                            <div className="absolute top-4 left-4 px-3 py-1 bg-[#DC143C]/20 text-[#DC143C] rounded-full text-xs font-medium">
-                              Base Reference
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                  {/* Action Bar with Outfit Filter */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold text-white">Character References</h3>
+                      <span className="text-sm text-[#808080]">
+                        {filteredGalleryImages.length} {filteredGalleryImages.length === 1 ? 'image' : 'images'}
+                      </span>
                     </div>
-                  ) : null}
-                  
-                  {/* User Uploaded Reference Images Section */}
-                  {userReferences.length > 0 && (
-                    <div className="mb-8 p-4 bg-[#0F0F0F] rounded-lg border border-[#3F3F46]">
-                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#3F3F46]">
-                        <div>
-                          <h3 className="text-sm font-semibold text-white mb-1">
-                            User Uploaded Reference ({userReferences.length})
-                          </h3>
-                          <p className="text-xs text-[#6B7280]">Uploaded in Creation section - delete there</p>
-                        </div>
-                      </div>
-                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                        {userReferences.map((img, idx) => {
-                          const globalIndex = allImages.findIndex(i => i.id === img.id);
-                          return (
-                            <div key={img.id} className="relative group">
-                            <button
-                                onClick={() => setSelectedImageIndex(globalIndex)}
-                                className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                                  selectedImageIndex === globalIndex
-                                  ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
-                                  : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-                              }`}
-                            >
-                              <img
-                                src={img.imageUrl}
-                                alt={img.label}
-                                className="w-full h-full object-cover"
-                              />
-                              {img.isBase && (
-                                <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
-                                  Base
-                                </div>
-                              )}
-                            </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* AI Generated Reference/Poses Section - Organized by Outfit */}
-                  {poseReferences.length > 0 && (
-                    <div className="mb-8 p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
-                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
-                        <div>
-                          <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
-                            AI Generated Reference/Poses ({poseReferences.length})
-                          </h3>
-                          <p className="text-xs text-[#6B7280]">Organized by outfit - Generated in Production Hub</p>
-                        </div>
-                      </div>
-                      
-                      {/* Outfit Dropdown Selector - Same as References tab */}
-                      {outfitNames.length > 1 && (
-                        <div className="mb-4">
-                          <label className="text-xs text-[#808080] mb-2 block">Filter by outfit:</label>
-                          <select
-                            value={selectedOutfitGallery || ''}
-                            onChange={(e) => {
-                              const newValue = e.target.value || null;
-                              setSelectedOutfitGallery(newValue);
-                              // 🔥 FIX: Reset selected image when changing outfit filter
-                              setSelectedImageId(null);
-                            }}
-                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#8B5CF6] focus:outline-none"
-                          >
-                            <option value="">All Outfits ({poseReferences.length})</option>
-                            {outfitNames.map((outfitName) => {
-                              const outfitPoses = posesByOutfit[outfitName] || [];
-                              let outfitDisplayName: string;
-                              if (outfitName === 'default') {
-                                outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
-                                  ? displayPhysicalAttributes.typicalClothing
-                                  : 'Default Outfit';
-                              } else {
-                                outfitDisplayName = outfitName
-                                  .split('-')
-                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                  .join(' ');
-                              }
-                              return (
-                                <option key={outfitName} value={outfitName}>
-                                  {outfitDisplayName} ({outfitPoses.length})
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                      )}
-                      
-                      {/* Poses Grid - Filtered by selected outfit */}
-                      {/* 🔥 FIX: Limit to 3 rows with scrolling for better navigation (approximately 24 images at 8 cols) */}
-                      <div className="max-h-[400px] overflow-y-auto pr-2">
-                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                          {(selectedOutfitGallery ? posesByOutfit[selectedOutfitGallery] || [] : poseReferences).map((img, idx) => {
-                            // 🔥 FIX: Use image ID for selection instead of index to prevent multiple highlights
-                            const isSelected = selectedImageId === img.id;
-                            const globalIndex = allImages.findIndex(i => i.id === img.id);
+                    
+                    {/* Outfit Filter */}
+                    {outfitNames.length > 1 && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-[#808080]">Filter by Outfit:</label>
+                        <select
+                          value={selectedOutfitGallery || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value || null;
+                            setSelectedOutfitGallery(newValue);
+                            setSelectedImageId(null);
+                          }}
+                          className="px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-sm focus:border-[#DC143C] focus:outline-none"
+                        >
+                          <option value="">All Outfits ({galleryImages.length})</option>
+                          {outfitNames.map((outfitName) => {
+                            const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === outfitName).length;
+                            let outfitDisplayName: string;
+                            if (outfitName === 'default') {
+                              outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
+                                ? displayPhysicalAttributes.typicalClothing
+                                : 'Default Outfit';
+                            } else {
+                              outfitDisplayName = outfitName
+                                .split('-')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ');
+                            }
                             return (
-                              <div key={img.id} className="relative group">
-                                <button
-                                  onClick={() => {
-                                    setSelectedImageId(img.id);
-                                    if (globalIndex >= 0) {
-                                      setSelectedImageIndex(globalIndex);
-                                    }
-                                  }}
-                                  className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                                    isSelected
-                                      ? 'border-[#8B5CF6] ring-2 ring-[#8B5CF6]/20'
-                                      : img.isRegenerated
-                                      ? 'border-[#DC143C]/50 hover:border-[#DC143C]'
-                                      : 'border-[#3F3F46] hover:border-[#8B5CF6]/50'
-                                  }`}
-                                >
-                                  <img
-                                    src={img.imageUrl}
-                                    alt={img.label}
-                                    className={`w-full h-full object-cover ${
-                                      regeneratingS3Key && (
-                                        regeneratingS3Key.trim() === (img.s3Key || '').trim() ||
-                                        regeneratingS3Key.trim() === (img.regeneratedFrom || '').trim()
-                                      )
-                                        ? 'animate-pulse opacity-75'
-                                        : ''
-                                    }`}
-                                  />
-                                  {/* Shimmer overlay for regenerating images */}
-                                  {/* 🔥 FIX: Compare against regeneratedFrom metadata instead of just s3Key
-                                      After refetch, the NEW image has regeneratedFrom set to the OLD s3Key,
-                                      so we can match it even though s3Key changed */}
-                                  {regeneratingS3Key && (
-                                    regeneratingS3Key.trim() === (img.s3Key || '').trim() ||
-                                    regeneratingS3Key.trim() === (img.regeneratedFrom || '').trim()
-                                  ) && (
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-                                  )}
-                                </button>
-                              </div>
+                              <option key={outfitName} value={outfitName}>
+                                {outfitDisplayName} ({outfitCount})
+                              </option>
                             );
                           })}
-                        </div>
+                        </select>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                   
-                  {allImages.length === 0 && (
+                  {/* Modern Gallery */}
+                  {filteredGalleryImages.length > 0 ? (
+                    <ModernGallery
+                      images={filteredGalleryImages}
+                      outfitFilter={selectedOutfitGallery || undefined}
+                      onOutfitFilterChange={(outfit) => setSelectedOutfitGallery(outfit)}
+                      availableOutfits={outfitNames}
+                      entityName={character.name}
+                    />
+                  ) : galleryImages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
                       <p className="text-[#808080] mb-4">No images yet</p>
@@ -1058,28 +945,40 @@ export function CharacterDetailModal({
                         ))}
                       </div>
                     </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
+                      <p className="text-[#808080] mb-2">No images found</p>
+                      {selectedOutfitGallery && (
+                        <p className="text-sm text-[#6B7280]">
+                          No images for outfit "{selectedOutfitGallery}"
+                        </p>
+                      )}
+                    </div>
                   )}
-
+                  
                   {/* Action Buttons - Compact, all on one or two rows */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {/* Specific Upload Buttons - Matching Create section */}
-                    {headshotAngles.map(angle => (
-                      <label
-                        key={angle.value}
-                        className="px-2.5 py-1 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded cursor-pointer transition-colors inline-flex items-center gap-1 text-xs"
-                      >
-                        <Upload className="w-3 h-3" />
-                        {isUploading ? 'Uploading...' : angle.label}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileUpload(e, angle.value)}
-                          className="hidden"
-                          disabled={isUploading}
-                        />
-                      </label>
-                    ))}
-                  </div>
+                  {galleryImages.length > 0 && (
+                    <div className="mt-6 flex flex-wrap items-center gap-1.5">
+                      {/* Specific Upload Buttons - Matching Create section */}
+                      {headshotAngles.map(angle => (
+                        <label
+                          key={angle.value}
+                          className="px-2.5 py-1 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded cursor-pointer transition-colors inline-flex items-center gap-1 text-xs"
+                        >
+                          <Upload className="w-3 h-3" />
+                          {isUploading ? 'Uploading...' : angle.label}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleFileUpload(e, angle.value)}
+                            className="hidden"
+                            disabled={isUploading}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Performance Controls - Compact, only if advanced features available */}
                   {hasAdvancedFeatures && performanceSettings && onPerformanceSettingsChange && (
