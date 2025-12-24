@@ -281,9 +281,8 @@ export function GenerateCoverageTab({
         }
       }
 
-      const apiUrl = `/api/character-bank/${characterId}/generate-pose-package`;
+      const apiUrl = `/api/projects/${screenplayId}/characters/${characterId}/generate-poses`;
       const requestBody = {
-        characterName,
         packageId: selectedPackageId,
         quality: quality,
         providerId: providerId || undefined,
