@@ -30,13 +30,11 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   
   const [activeMode, setActiveMode] = useState<VideoMode>('starting-frame');
   const [prompt, setPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState<string>('');
   const [selectedDuration, setSelectedDuration] = useState<number>(5);
-  const [qualityTier, setQualityTier] = useState<'full-hd' | '4k'>('full-hd');
+  const [qualityTier, setQualityTier] = useState<'professional' | 'premium'>('professional');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
-  const [modelsLoading, setModelsLoading] = useState(true);
 
   // Starting Frame mode
   const [startImage, setStartImage] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
@@ -48,111 +46,13 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   const frame1InputRef = useRef<HTMLInputElement>(null);
   const frame2InputRef = useRef<HTMLInputElement>(null);
 
-  // Video models with duration options (fetched from API)
-  interface VideoModel {
-    id: string;
-    label: string;
-    provider: string;
-    durations: number[]; // Available durations in seconds
-    creditsMap: Record<number, number>; // Duration -> credits mapping
-    speed?: string;
-    quality?: string;
-    recommended?: boolean;
-  }
-
-  const [videoModels, setVideoModels] = useState<VideoModel[]>([]);
-
-  // Fetch video models from API
-  useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        setModelsLoading(true);
-        const token = await getToken({ template: 'wryda-backend' });
-        if (!token) {
-          console.error('Authentication required');
-          return;
-        }
-
-        const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
-        setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
-
-        const response = await apiModule.video.getModels();
-        console.log('[VideoGenerationTools] API Response:', response);
-        
-        // Handle different response structures
-        let modelsData = [];
-        if (response?.data?.models) {
-          modelsData = response.data.models;
-        } else if (response?.data?.data?.models) {
-          modelsData = response.data.data.models;
-        } else if (Array.isArray(response?.data)) {
-          modelsData = response.data;
-        } else if (response?.data?.data && Array.isArray(response.data.data)) {
-          modelsData = response.data.data;
-        }
-        
-        console.log('[VideoGenerationTools] Parsed models:', modelsData);
-        setVideoModels(modelsData);
-        
-        // Set default model (first recommended or first in list)
-        if (modelsData.length > 0 && !selectedModel) {
-          const defaultModel = modelsData.find((m: VideoModel) => m.recommended) || modelsData[0];
-          setSelectedModel(defaultModel.id);
-          if (defaultModel.durations && defaultModel.durations.length > 0) {
-            setSelectedDuration(defaultModel.durations[0]);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch video models:', error);
-        toast.error('Failed to load video models');
-      } finally {
-        setModelsLoading(false);
-      }
-    };
-
-    fetchModels();
-  }, [getToken]);
-
-  // Modify Models removed - use Post-Production Workflows instead
-  // Workflows handle video modification with wrapped pricing:
-  // - Element Eraser (Runway Gen-4 Aleph)
-  // - Scene Transformer (Runway Gen-4)
-  // - Other post-production workflows
-
-  // Get available durations for selected model
-  const getAvailableDurations = (modelId: string): number[] => {
-    const model = videoModels.find(m => m.id === modelId);
-    return model?.durations || [5];
-  };
-
-  // Get credits for selected model and duration
-  const getCreditsForModel = (modelId: string, duration: number): number => {
-    const model = videoModels.find(m => m.id === modelId);
-    if (!model || !model.creditsMap) return 50;
-    
-    // Use creditsMap for duration-based pricing
-    return model.creditsMap[duration] || model.creditsMap[Object.keys(model.creditsMap)[0] as unknown as number] || 50;
-  };
-
-  // Get upscale cost (Runway upscaler: 25 credits for 5s, 50 credits for 10s+)
-  const getUpscaleCost = (): number => {
-    return selectedDuration <= 5 ? 25 : 50;
-  };
-
-  // Get total credits (base generation + upscale if 4K)
+  // Simple credits calculation based on quality tier and duration
   const getTotalCredits = (): number => {
-    const baseCredits = getCreditsForModel(selectedModel, selectedDuration);
-    const upscaleCredits = qualityTier === '4k' ? getUpscaleCost() : 0;
-    return baseCredits + upscaleCredits;
-  };
-
-  // Update duration when model changes
-  useEffect(() => {
-    const availableDurations = getAvailableDurations(selectedModel);
-    if (availableDurations.length > 0 && !availableDurations.includes(selectedDuration)) {
-      setSelectedDuration(availableDurations[0]);
+    if (qualityTier === 'premium') {
+      return selectedDuration === 5 ? 75 : 150;
     }
-  }, [selectedModel, selectedDuration]);
+    return selectedDuration === 5 ? 50 : 100;
+  };
 
   // Camera angles for video generation (with motion descriptions)
   const cameraAngles = [
@@ -176,26 +76,12 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
     { id: 'handheld', label: 'Handheld', description: 'Handheld camera movement', promptText: 'handheld camera, documentary style movement' },
   ];
 
-  // Format camera angle for model-specific video prompts
-  const formatCameraAngleForVideo = (angleId: string, modelId: string): string => {
+  // Format camera angle for video prompts
+  const formatCameraAngleForVideo = (angleId: string): string => {
     if (!angleId) return '';
     const angle = cameraAngles.find(a => a.id === angleId);
     if (!angle) return '';
-
-    // Model-specific formatting for video
-    if (modelId.includes('veo-3.1')) {
-      // Veo 3.1: Front-load cinematography (best practice)
-      return `[Cinematography] ${angle.promptText}. `;
-    }
-    if (modelId.includes('runway')) {
-      // Runway: Simple, direct, motion-focused
-      return `${angle.promptText}, `;
-    }
-    if (modelId.includes('luma')) {
-      // Luma: Descriptive, cinematic
-      return `${angle.promptText}, cinematic movement, `;
-    }
-    // Default
+    // Simple, direct formatting (backend handles model-specific optimization)
     return `${angle.promptText}, `;
   };
 
@@ -270,7 +156,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating || !selectedModel) {
+    if (!prompt.trim() || isGenerating) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -298,43 +184,37 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         return;
       }
 
-      const selectedModelInfo = videoModels.find(m => m.id === selectedModel);
-      
       // Build final prompt with camera angle
       let finalPrompt = prompt.trim();
       if (selectedCameraAngle) {
-        const angleText = formatCameraAngleForVideo(selectedCameraAngle, selectedModel);
+        const angleText = formatCameraAngleForVideo(selectedCameraAngle);
         finalPrompt = angleText + finalPrompt;
       }
 
+      // Build request body
       const requestBody: any = {
-        prompts: [{
-          segmentIndex: 0,
-          startTime: 0,
-          endTime: selectedDuration,
-          duration: selectedDuration,
-          prompt: finalPrompt,
-        }],
-        provider: selectedModelInfo?.provider || selectedModel,
+        prompt: finalPrompt,
+        videoMode: activeMode === 'starting-frame' ? 'image-start' : 'image-interpolation',
+        qualityTier: qualityTier, // 'professional' | 'premium'
         duration: `${selectedDuration}s`,
+        aspectRatio: '16:9',
+        cameraMotion: selectedCameraAngle ? cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText || 'none' : 'none',
         sceneId: `playground_${Date.now()}`,
         sceneName: `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
-        useVideoExtension: false,
-        // Quality tier for 4K upscaling (will be handled after generation)
-        qualityTier: qualityTier === '4k' ? 'premium' : 'professional',
       };
 
+      // Add image URLs based on mode
       if (activeMode === 'starting-frame' && startImage?.s3Key) {
-        requestBody.startImageS3Key = startImage.s3Key;
+        requestBody.startImageUrl = startImage.s3Key;
       }
 
       if (activeMode === 'frame-to-frame' && frame1?.s3Key && frame2?.s3Key) {
-        requestBody.startImageS3Key = frame1.s3Key;
-        requestBody.endImageS3Key = frame2.s3Key;
-        requestBody.prompts[0].prompt = `Transition from first frame to second frame: ${prompt.trim()}`;
+        requestBody.startImageUrl = frame1.s3Key;
+        requestBody.endImageUrl = frame2.s3Key;
+        requestBody.prompt = `Transition from first frame to second frame: ${finalPrompt}`;
       }
 
-      const response = await fetch('/api/video/generate', {
+      const response = await fetch('/api/video/generate-async', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -350,12 +230,11 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
 
       const result = await response.json();
       
-      // If 4K quality selected, backend should handle upscaling automatically
-      // The qualityTier parameter in requestBody will trigger upscaling
-      if (qualityTier === '4k') {
-        toast.success('Video generation started! 4K upscaling will be applied automatically.');
+      // Backend handles upscaling automatically for premium tier
+      if (qualityTier === 'premium') {
+        toast.success('Premium 4K video generation started! Check your Media Library.');
       } else {
-        toast.success('Video generation started! Check your Media Library.');
+        toast.success('Professional video generation started! Check your Media Library.');
       }
       
       // Reset form
@@ -635,51 +514,57 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           />
         </div>
 
-        {/* Model Selection */}
+        {/* Quality Tier Selection */}
         <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
-            Video Model
+            Video Quality
           </label>
-          {modelsLoading ? (
-            <div className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#808080] flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Loading models...</span>
-            </div>
-          ) : (
-            <>
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-                disabled={isGenerating}
-              >
-                {videoModels.length === 0 ? (
-                  <option value="">No models available</option>
-                ) : (
-                  <>
-                    <option value="">Select a video model...</option>
-                    {videoModels.map((model) => {
-                      const defaultDuration = model.durations?.[0] || 5;
-                      const defaultCredits = model.creditsMap?.[defaultDuration] || 50;
-                      return (
-                        <option key={model.id} value={model.id}>
-                          {model.label} ({defaultCredits} credits)
-                        </option>
-                      );
-                    })}
-                  </>
-                )}
-              </select>
-              {selectedModel && (
-                <p className="mt-1.5 text-xs text-[#808080]">
-                  Cost: {getTotalCredits()} credits • Provider: {videoModels.find(m => m.id === selectedModel)?.provider || 'Unknown'}
-                </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setQualityTier('professional')}
+              disabled={isGenerating}
+              className={cn(
+                "px-4 py-4 rounded-lg border-2 font-medium text-sm transition-colors text-left",
+                qualityTier === 'professional'
+                  ? "border-cinema-red bg-cinema-red/10 text-white"
+                  : "border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#4A4A4A] hover:text-white"
               )}
-              <p className="mt-1.5 text-xs text-[#4A4A4A]">
-                💡 For video modification (remove objects, transform scenes), use <strong>Post-Production Workflows</strong> tab
-              </p>
-            </>
-          )}
+            >
+              <div className="font-semibold mb-1">🎬 Professional</div>
+              <div className="text-xs opacity-80">
+                1080p HD
+              </div>
+              <div className="text-xs opacity-80 mt-1">
+                {selectedDuration === 5 ? '50' : '100'} credits
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setQualityTier('premium')}
+              disabled={isGenerating}
+              className={cn(
+                "px-4 py-4 rounded-lg border-2 font-medium text-sm transition-colors text-left",
+                qualityTier === 'premium'
+                  ? "border-cinema-red bg-cinema-red/10 text-white"
+                  : "border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#4A4A4A] hover:text-white"
+              )}
+            >
+              <div className="font-semibold mb-1">🎥 Premium 4K</div>
+              <div className="text-xs opacity-80">
+                4K upscaled
+              </div>
+              <div className="text-xs opacity-80 mt-1">
+                {selectedDuration === 5 ? '75' : '150'} credits
+              </div>
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-[#808080]">
+            Total cost: <strong className="text-white">{getTotalCredits()} credits</strong>
+          </p>
+          <p className="mt-1.5 text-xs text-[#4A4A4A]">
+            💡 For video modification (remove objects, transform scenes), use <strong>Post-Production Workflows</strong> tab
+          </p>
         </div>
 
         {/* Duration Selection */}
@@ -691,66 +576,18 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
             value={selectedDuration}
             onChange={(e) => setSelectedDuration(Number(e.target.value))}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating || modelsLoading}
+            disabled={isGenerating}
           >
-            {getAvailableDurations(selectedModel).map((duration) => (
-              <option key={duration} value={duration}>
-                {duration} seconds
-              </option>
-            ))}
+            <option value={5}>5 seconds</option>
+            <option value={10}>10 seconds</option>
           </select>
-        </div>
-
-        {/* Quality Tier Selection */}
-        <div className="flex-shrink-0">
-          <label className="block text-sm font-medium text-white mb-2">
-            Quality
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setQualityTier('full-hd')}
-              disabled={isGenerating}
-              className={cn(
-                "px-4 py-3 rounded-lg border-2 font-medium text-sm transition-colors",
-                qualityTier === 'full-hd'
-                  ? "border-cinema-red bg-cinema-red/10 text-white"
-                  : "border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#4A4A4A] hover:text-white"
-              )}
-            >
-              Full HD
-            </button>
-            <button
-              type="button"
-              onClick={() => setQualityTier('4k')}
-              disabled={isGenerating}
-              className={cn(
-                "px-4 py-3 rounded-lg border-2 font-medium text-sm transition-colors",
-                qualityTier === '4k'
-                  ? "border-cinema-red bg-cinema-red/10 text-white"
-                  : "border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#4A4A4A] hover:text-white"
-              )}
-            >
-              4K
-              {qualityTier === '4k' && (
-                <span className="ml-1 text-xs text-[#808080]">
-                  (+{getUpscaleCost()} credits)
-                </span>
-              )}
-            </button>
-          </div>
-          {qualityTier === '4k' && (
-            <p className="mt-1.5 text-xs text-[#808080]">
-              Video will be upscaled to 4K using Runway upscaler after generation
-            </p>
-          )}
         </div>
 
         {/* Generate Button */}
         <div className="flex-shrink-0">
           <button
             onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating || !selectedModel || 
+            disabled={!prompt.trim() || isGenerating || 
               (activeMode === 'starting-frame' && !startImage) ||
               (activeMode === 'frame-to-frame' && (!frame1 || !frame2))}
             className={cn(
