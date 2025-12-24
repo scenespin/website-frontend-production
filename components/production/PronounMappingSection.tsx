@@ -137,8 +137,11 @@ export function PronounMappingSection({
               const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
               const availableChars = getAvailableCharacters(mapping);
               
+              const mappedChar = mappedCharacterId ? characters.find(c => c.id === mappedCharacterId) : null;
+              const selectedOutfit = mappedCharacterId && characterOutfits ? characterOutfits[mappedCharacterId] : undefined;
+              
               return (
-                <div key={pronoun} className="space-y-2">
+                <div key={pronoun} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
                   <div className="flex items-center gap-3">
                     <label className="text-xs text-[#808080] min-w-[60px]">
                       "{pronoun}"
@@ -159,14 +162,28 @@ export function PronounMappingSection({
                         </option>
                       ))}
                     </select>
-                    {mappedCharacterId && (
-                      <span className="text-[10px] text-[#808080]">
-                        ✓ {characters.find(c => c.id === mappedCharacterId)?.name}
-                      </span>
-                    )}
                   </div>
                   
-                  {/* Character images for singular pronouns are shown in the right column */}
+                  {/* Show character name and outfit selector when mapped */}
+                  {mappedChar && (
+                    <div className="ml-[76px] space-y-2 pt-2">
+                      <div className="text-xs font-medium text-[#FFFFFF]">
+                        {mappedChar.name}
+                      </div>
+                      {onCharacterOutfitChange && (
+                        <CharacterOutfitSelector
+                          characterId={mappedChar.id}
+                          characterName={mappedChar.name}
+                          availableOutfits={mappedChar.availableOutfits || []}
+                          defaultOutfit={mappedChar.defaultOutfit}
+                          selectedOutfit={selectedOutfit}
+                          onOutfitChange={(charId, outfitName) => {
+                            onCharacterOutfitChange(charId, outfitName || undefined);
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -190,7 +207,7 @@ export function PronounMappingSection({
               const remainingSlots = maxTotalCharacters - otherMappedIds.length;
               
               return (
-                <div key={pronoun} className="space-y-1.5">
+                <div key={pronoun} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
                   <div className="flex items-center gap-3">
                     <label className="text-xs text-[#808080] min-w-[60px]">
                       "{pronoun}"
@@ -269,6 +286,37 @@ export function PronounMappingSection({
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Show character names and outfit selectors when mapped */}
+                  {mappedCharacterIds.length > 0 && (
+                    <div className="ml-[76px] space-y-2 pt-2">
+                      {mappedCharacterIds.map((charId) => {
+                        const char = characters.find(c => c.id === charId);
+                        if (!char) return null;
+                        const charOutfit = characterOutfits ? characterOutfits[charId] : undefined;
+                        
+                        return (
+                          <div key={charId} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
+                            <div className="text-xs font-medium text-[#FFFFFF]">
+                              {char.name}
+                            </div>
+                            {onCharacterOutfitChange && (
+                              <CharacterOutfitSelector
+                                characterId={char.id}
+                                characterName={char.name}
+                                availableOutfits={char.availableOutfits || []}
+                                defaultOutfit={char.defaultOutfit}
+                                selectedOutfit={charOutfit}
+                                onOutfitChange={(charId, outfitName) => {
+                                  onCharacterOutfitChange(charId, outfitName || undefined);
+                                }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
