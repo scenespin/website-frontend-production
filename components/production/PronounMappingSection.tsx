@@ -7,6 +7,8 @@ import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 interface Character {
   id: string;
   name: string;
+  availableOutfits?: string[];
+  defaultOutfit?: string;
 }
 
 interface PronounMappingSectionProps {
