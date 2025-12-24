@@ -823,35 +823,6 @@ export function UnifiedSceneConfiguration({
                   
                   return (
                     <div className="mt-3 space-y-4">
-                      {/* Pronoun Mapping Section (full width, only for action shots with pronouns) */}
-                      {hasPronouns && (
-                        <div className="pb-3 border-b border-[#3F3F46]">
-                          <PronounMappingSection
-                            pronouns={pronounInfo.pronouns}
-                            characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
-                            selectedCharacters={selectedCharactersForShots[shot.slot] || []}
-                            pronounMappings={shotMappings}
-                            onPronounMappingChange={(pronoun, characterIdOrIds) => {
-                              if (onPronounMappingChange) {
-                                onPronounMappingChange(shot.slot, pronoun, characterIdOrIds);
-                              }
-                            }}
-                            onCharacterSelectionChange={(characterIds) => {
-                              if (onCharactersForShotChange) {
-                                onCharactersForShotChange(shot.slot, characterIds);
-                              }
-                            }}
-                            shotSlot={shot.slot}
-                            characterHeadshots={characterHeadshots}
-                            loadingHeadshots={loadingHeadshots}
-                            selectedCharacterReferences={selectedCharacterReferences}
-                            characterOutfits={characterOutfits}
-                            onCharacterReferenceChange={onCharacterReferenceChange}
-                            onCharacterOutfitChange={onCharacterOutfitChange}
-                          />
-                        </div>
-                      )}
-                      
                       {/* Location Section: Label on left, Images on right */}
                       {shouldShowLocation && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
@@ -939,7 +910,7 @@ export function UnifiedSceneConfiguration({
                       
                       {/* Plural Pronoun(s) Section: Controls on left, Images on right */}
                       {pluralPronounCharacters.length > 0 && (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
                           {/* Left: Labels & Controls */}
                           <div>
                             <div className="text-xs font-medium text-[#FFFFFF] mb-2">
@@ -955,6 +926,35 @@ export function UnifiedSceneConfiguration({
                               return renderCharacterImagesOnly(charId, shot.slot);
                             })}
                           </div>
+                        </div>
+                      )}
+                      
+                      {/* Pronoun Mapping Section (full width, moved to bottom) */}
+                      {hasPronouns && (
+                        <div className="pt-3 border-t border-[#3F3F46]">
+                          <PronounMappingSection
+                            pronouns={pronounInfo.pronouns}
+                            characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                            selectedCharacters={selectedCharactersForShots[shot.slot] || []}
+                            pronounMappings={shotMappings}
+                            onPronounMappingChange={(pronoun, characterIdOrIds) => {
+                              if (onPronounMappingChange) {
+                                onPronounMappingChange(shot.slot, pronoun, characterIdOrIds);
+                              }
+                            }}
+                            onCharacterSelectionChange={(characterIds) => {
+                              if (onCharactersForShotChange) {
+                                onCharactersForShotChange(shot.slot, characterIds);
+                              }
+                            }}
+                            shotSlot={shot.slot}
+                            characterHeadshots={characterHeadshots}
+                            loadingHeadshots={loadingHeadshots}
+                            selectedCharacterReferences={selectedCharacterReferences}
+                            characterOutfits={characterOutfits}
+                            onCharacterReferenceChange={onCharacterReferenceChange}
+                            onCharacterOutfitChange={onCharacterOutfitChange}
+                          />
                         </div>
                       )}
                     </div>
