@@ -40,6 +40,7 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
     provider: string;
     durations: number[];
     creditsMap: Record<number, number>;
+    recommended?: boolean;
   }
 
   const [videoModels, setVideoModels] = useState<VideoModel[]>([]);
