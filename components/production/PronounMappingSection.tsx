@@ -54,22 +54,13 @@ export function PronounMappingSection({
     // First, try to find character in allCharactersWithOutfits (should have outfit data from sceneAnalysisResult)
     if (allCharactersWithOutfits && allCharactersWithOutfits.length > 0) {
       const charWithOutfits = allCharactersWithOutfits.find((c: any) => c.id === characterId);
-      // If found and has outfit data, use it
-      if (charWithOutfits && (charWithOutfits.availableOutfits?.length > 0 || charWithOutfits.defaultOutfit)) {
+      if (charWithOutfits) {
+        // Always prefer allCharactersWithOutfits if found (has most complete data)
         return charWithOutfits;
       }
     }
-    // Fallback to characters prop (might have outfit data)
-    const charFromProp = characters.find(c => c.id === characterId);
-    if (charFromProp && (charFromProp.availableOutfits?.length > 0 || charFromProp.defaultOutfit)) {
-      return charFromProp;
-    }
-    // If no outfit data found, still return the character (for display purposes)
-    if (allCharactersWithOutfits && allCharactersWithOutfits.length > 0) {
-      const charWithOutfits = allCharactersWithOutfits.find((c: any) => c.id === characterId);
-      if (charWithOutfits) return charWithOutfits;
-    }
-    return charFromProp || null;
+    // Fallback to characters prop
+    return characters.find(c => c.id === characterId) || null;
   };
   // Plural pronouns that can map to multiple characters
   const pluralPronouns = ['they', 'them', 'their', 'theirs'];
@@ -206,25 +197,39 @@ export function PronounMappingSection({
                   </div>
                   
                   {/* Show character name and outfit selector when mapped */}
-                  {mappedChar && (
-                    <div className="ml-[76px] space-y-2 pt-2">
-                      <div className="text-xs font-medium text-[#FFFFFF]">
-                        {mappedChar.name}
+                  {mappedChar && (() => {
+                    const hasMultipleOutfits = (mappedChar.availableOutfits?.length || 0) > 1;
+                    return (
+                      <div className="ml-[76px] pt-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="text-xs font-medium text-[#FFFFFF]">
+                            {mappedChar.name}
+                          </div>
+                          {/* Outfit Selector - inline with character name when multiple outfits */}
+                          {onCharacterOutfitChange && hasMultipleOutfits && (
+                            <CharacterOutfitSelector
+                              characterId={mappedChar.id}
+                              characterName={mappedChar.name}
+                              availableOutfits={mappedChar.availableOutfits || []}
+                              defaultOutfit={mappedChar.defaultOutfit}
+                              selectedOutfit={selectedOutfit}
+                              onOutfitChange={(charId, outfitName) => {
+                                onCharacterOutfitChange(charId, outfitName || undefined);
+                              }}
+                              compact={true}
+                              hideLabel={true}
+                            />
+                          )}
+                        </div>
+                        {/* Show outfit as text (not dropdown) when only one outfit or default */}
+                        {!hasMultipleOutfits && (mappedChar.availableOutfits?.length === 1 || mappedChar.defaultOutfit) && (
+                          <div className="text-[10px] text-[#808080] mt-1">
+                            {selectedOutfit || mappedChar.defaultOutfit || mappedChar.availableOutfits?.[0] || 'default'}
+                          </div>
+                        )}
                       </div>
-                      {onCharacterOutfitChange && (
-                        <CharacterOutfitSelector
-                          characterId={mappedChar.id}
-                          characterName={mappedChar.name}
-                          availableOutfits={mappedChar.availableOutfits || []}
-                          defaultOutfit={mappedChar.defaultOutfit}
-                          selectedOutfit={selectedOutfit}
-                          onOutfitChange={(charId, outfitName) => {
-                            onCharacterOutfitChange(charId, outfitName || undefined);
-                          }}
-                        />
-                      )}
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -337,22 +342,34 @@ export function PronounMappingSection({
                         if (!char) return null;
                         const charOutfit = characterOutfits ? characterOutfits[charId] : undefined;
                         
+                        const hasMultipleOutfits = (char.availableOutfits?.length || 0) > 1;
                         return (
-                          <div key={charId} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
-                            <div className="text-xs font-medium text-[#FFFFFF]">
-                              {char.name}
+                          <div key={charId} className="pb-2 border-b border-[#3F3F46] last:border-b-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="text-xs font-medium text-[#FFFFFF]">
+                                {char.name}
+                              </div>
+                              {/* Outfit Selector - inline with character name when multiple outfits */}
+                              {onCharacterOutfitChange && hasMultipleOutfits && (
+                                <CharacterOutfitSelector
+                                  characterId={char.id}
+                                  characterName={char.name}
+                                  availableOutfits={char.availableOutfits || []}
+                                  defaultOutfit={char.defaultOutfit}
+                                  selectedOutfit={charOutfit}
+                                  onOutfitChange={(charId, outfitName) => {
+                                    onCharacterOutfitChange(charId, outfitName || undefined);
+                                  }}
+                                  compact={true}
+                                  hideLabel={true}
+                                />
+                              )}
                             </div>
-                            {onCharacterOutfitChange && (
-                              <CharacterOutfitSelector
-                                characterId={char.id}
-                                characterName={char.name}
-                                availableOutfits={char.availableOutfits || []}
-                                defaultOutfit={char.defaultOutfit}
-                                selectedOutfit={charOutfit}
-                                onOutfitChange={(charId, outfitName) => {
-                                  onCharacterOutfitChange(charId, outfitName || undefined);
-                                }}
-                              />
+                            {/* Show outfit as text (not dropdown) when only one outfit or default */}
+                            {!hasMultipleOutfits && (char.availableOutfits?.length === 1 || char.defaultOutfit) && (
+                              <div className="text-[10px] text-[#808080] mt-1">
+                                {charOutfit || char.defaultOutfit || char.availableOutfits?.[0] || 'default'}
+                              </div>
                             )}
                           </div>
                         );

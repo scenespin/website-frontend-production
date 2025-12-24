@@ -436,11 +436,13 @@ export function UnifiedSceneConfiguration({
     hasPronouns: boolean,
     category: 'explicit' | 'singular' | 'plural'
   ) => {
+    // Prefer sceneAnalysisResult.characters (has outfit data) over allCharacters
     const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
                allCharacters.find((c: any) => c.id === charId);
     if (!char) return null;
     
     const selectedOutfit = characterOutfits[charId];
+    const hasMultipleOutfits = (char.availableOutfits?.length || 0) > 1;
     
     // Get which pronouns map to this character
     const pronounsForThisChar = hasPronouns ? Object.entries(shotMappings)
@@ -454,7 +456,7 @@ export function UnifiedSceneConfiguration({
     
     return (
       <div key={charId} className="space-y-1.5">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="text-xs font-medium text-[#FFFFFF]">
             {char.name}
           </div>
@@ -463,8 +465,8 @@ export function UnifiedSceneConfiguration({
               ({pronounsForThisChar.join(', ')})
             </div>
           )}
-          {/* Outfit Selector - inline on same line */}
-          <div className="flex-1">
+          {/* Outfit Selector - inline with character name when multiple outfits */}
+          {hasMultipleOutfits && (
             <CharacterOutfitSelector
               characterId={char.id}
               characterName={char.name}
@@ -474,11 +476,18 @@ export function UnifiedSceneConfiguration({
               onOutfitChange={(charId, outfitName) => {
                 onCharacterOutfitChange(charId, outfitName || undefined);
               }}
-              hideLabel={true}
               compact={true}
+              hideLabel={true}
             />
-          </div>
+          )}
         </div>
+        
+        {/* Show outfit as text (not dropdown) when only one outfit or default */}
+        {!hasMultipleOutfits && (char.availableOutfits?.length === 1 || char.defaultOutfit) && (
+          <div className="text-[10px] text-[#808080]">
+            {selectedOutfit || char.defaultOutfit || char.availableOutfits?.[0] || 'default'}
+          </div>
+        )}
       </div>
     );
   };
