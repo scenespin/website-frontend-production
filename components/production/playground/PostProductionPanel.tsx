@@ -13,9 +13,10 @@ import React, { useState } from 'react';
 import { Music, Video, Workflow } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Sub-components (to be created)
+// Sub-components
 import { AudioGenerationPanel } from './AudioGenerationPanel';
 import { AnnotationToVideoPanel } from './AnnotationToVideoPanel';
+import { VideoGenerationTools } from './VideoGenerationTools';
 import { PostProductionWorkflows } from './PostProductionWorkflows';
 
 interface PostProductionPanelProps {
@@ -23,7 +24,7 @@ interface PostProductionPanelProps {
   screenplayId?: string;
 }
 
-type PostProductionSection = 'audio' | 'video' | 'workflows';
+type PostProductionSection = 'audio' | 'video-generation' | 'annotation-to-video' | 'workflows';
 
 export function PostProductionPanel({ className = '', screenplayId }: PostProductionPanelProps) {
   const [activeSection, setActiveSection] = useState<PostProductionSection>('audio');
@@ -48,11 +49,25 @@ export function PostProductionPanel({ className = '', screenplayId }: PostProduc
           </button>
 
           <button
-            onClick={() => setActiveSection('video')}
+            onClick={() => setActiveSection('video-generation')}
             className={cn(
               "flex items-center gap-2 px-4 py-2.5 text-sm font-medium",
               "transition-colors",
-              activeSection === 'video'
+              activeSection === 'video-generation'
+                ? "text-white border-b-2 border-cinema-red -mb-[2px]"
+                : "text-[#808080] hover:text-white"
+            )}
+          >
+            <Video className="w-4 h-4" />
+            <span>Video Generation</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSection('annotation-to-video')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium",
+              "transition-colors",
+              activeSection === 'annotation-to-video'
                 ? "text-white border-b-2 border-cinema-red -mb-[2px]"
                 : "text-[#808080] hover:text-white"
             )}
@@ -83,7 +98,11 @@ export function PostProductionPanel({ className = '', screenplayId }: PostProduc
           <AudioGenerationPanel className="h-full" />
         )}
 
-        {activeSection === 'video' && (
+        {activeSection === 'video-generation' && (
+          <VideoGenerationTools className="h-full" screenplayId={screenplayId} />
+        )}
+
+        {activeSection === 'annotation-to-video' && (
           <AnnotationToVideoPanel className="h-full" />
         )}
 

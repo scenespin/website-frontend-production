@@ -368,8 +368,8 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   return (
     <div className={cn("h-full flex flex-col bg-[#0A0A0A] overflow-y-auto", className)}>
       <div className="flex flex-col gap-6 p-4 md:p-6">
-      {/* Mode Tabs */}
-      <div className="flex-shrink-0 mb-6">
+        {/* Mode Tabs */}
+        <div className="flex-shrink-0 mb-6">
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setActiveMode('starting-frame')}
@@ -397,10 +397,10 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
             <span>Frame to Frame</span>
           </button>
         </div>
-      </div>
+        </div>
 
-      {/* Generation Form */}
-      <div className="flex-1 flex flex-col gap-6">
+        {/* Generation Form */}
+        <div className="flex-1 flex flex-col gap-6">
         {/* Image Upload Section */}
         {activeMode === 'starting-frame' ? (
           <div className="flex-shrink-0">
