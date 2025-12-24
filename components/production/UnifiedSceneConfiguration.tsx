@@ -938,18 +938,37 @@ export function UnifiedSceneConfiguration({
                             {/* Singular Pronoun Characters Section */}
                             {singularPronounCharacters.length > 0 && (
                               <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
-                                {singularPronounCharacters
-                                  .filter(charId => !explicitCharacters.includes(charId))
-                                  .map((charId) => {
-                                    // Get ALL pronouns (singular + plural) that map to this character
-                                    const allPronounsForChar = Object.entries(shotMappings)
-                                      .filter(([_, mappedIdOrIds]) => {
-                                        if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
-                                        return mappedIdOrIds === charId;
-                                      })
-                                      .map(([pronoun]) => `"${pronoun}"`);
-                                    return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
-                                  })}
+                                {singularPronounCharacters.map((charId) => {
+                                  const isAlreadyShown = explicitCharacters.includes(charId);
+                                  const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+                                             allCharacters.find((c: any) => c.id === charId);
+                                  
+                                  // Get ALL pronouns (singular + plural) that map to this character
+                                  const allPronounsForChar = Object.entries(shotMappings)
+                                    .filter(([_, mappedIdOrIds]) => {
+                                      if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                                      return mappedIdOrIds === charId;
+                                    })
+                                    .map(([pronoun]) => `"${pronoun}"`);
+                                  
+                                  if (isAlreadyShown) {
+                                    // Show placeholder indicating character is already shown above
+                                    return (
+                                      <div key={charId} className="space-y-2">
+                                        {allPronounsForChar.length > 0 && (
+                                          <div className="text-[10px] text-[#808080] mb-1">
+                                            ({allPronounsForChar.join(', ')})
+                                          </div>
+                                        )}
+                                        <div className="text-[10px] text-[#808080] italic border border-[#3F3F46] rounded p-2 bg-[#1A1A1A]">
+                                          {char?.name || 'Character'} already shown in Character(s) section above
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
+                                })}
                               </div>
                             )}
                             
@@ -957,8 +976,12 @@ export function UnifiedSceneConfiguration({
                             {pluralPronounCharacters.length > 0 && (
                               <div className="space-y-2">
                                 {pluralPronounCharacters
-                                  .filter(charId => !explicitCharacters.includes(charId) && !singularPronounCharacters.includes(charId))
+                                  .filter(charId => !singularPronounCharacters.includes(charId))
                                   .map((charId) => {
+                                    const isAlreadyShown = explicitCharacters.includes(charId);
+                                    const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+                                               allCharacters.find((c: any) => c.id === charId);
+                                    
                                     // Get which plural pronouns map to this character
                                     const pronounsForChar = Object.entries(shotMappings)
                                       .filter(([pronoun, mappedIdOrIds]) => {
@@ -969,6 +992,23 @@ export function UnifiedSceneConfiguration({
                                         return mappedIdOrIds === charId;
                                       })
                                       .map(([pronoun]) => `"${pronoun}"`);
+                                    
+                                    if (isAlreadyShown) {
+                                      // Show placeholder indicating character is already shown above
+                                      return (
+                                        <div key={charId} className="space-y-2">
+                                          {pronounsForChar.length > 0 && (
+                                            <div className="text-[10px] text-[#808080] mb-1">
+                                              ({pronounsForChar.join(', ')})
+                                            </div>
+                                          )}
+                                          <div className="text-[10px] text-[#808080] italic border border-[#3F3F46] rounded p-2 bg-[#1A1A1A]">
+                                            {char?.name || 'Character'} already shown in Character(s) section above
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                    
                                     return renderCharacterImagesOnly(charId, shot.slot, pronounsForChar);
                                   })}
                               </div>
