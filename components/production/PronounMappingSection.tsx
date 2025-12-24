@@ -111,7 +111,9 @@ export function PronounMappingSection({
           const mappedCharacterIds = Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []);
           const availableChars = getAvailableCharacters(mapping);
           const allMappedIds = getAllMappedCharacterIds();
-          const remainingSlots = maxTotalCharacters - allMappedIds.length + mappedCharacterIds.length;
+          // Calculate remaining slots: total allowed minus all other mapped characters (excluding this pronoun's current mappings)
+          const otherMappedIds = allMappedIds.filter(id => !mappedCharacterIds.includes(id));
+          const remainingSlots = maxTotalCharacters - otherMappedIds.length;
 
           return (
             <div key={pronoun} className="space-y-1.5">
