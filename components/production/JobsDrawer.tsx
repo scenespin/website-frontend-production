@@ -648,26 +648,24 @@ export function JobsDrawer({ isOpen, onClose, onToggle, autoOpen = false, compac
     return date.toLocaleDateString();
   };
 
-  // Don't render if not open
-  if (!isOpen) return null;
-
   // Determine z-index based on chat drawer state
   const zIndex = isChatDrawerOpen ? Z_INDEX.JOBS_DRAWER : Z_INDEX.JOBS_DRAWER;
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Always render for smooth transition */}
       <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
+        className="fixed inset-0 bg-black/50 transition-opacity duration-300 ease-in-out"
         style={{
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? 'auto' : 'none',
           zIndex: zIndex - 1,
+          visibility: isOpen ? 'visible' : 'hidden',
         }}
         onClick={onClose}
       />
 
-      {/* Drawer */}
+      {/* Drawer - Always render for smooth slide animation */}
       <div
         className="fixed right-0 top-0 bottom-0 bg-[#0A0A0A] border-l border-[#3F3F46] flex flex-col transition-transform duration-300 ease-in-out"
         style={{
@@ -675,6 +673,7 @@ export function JobsDrawer({ isOpen, onClose, onToggle, autoOpen = false, compac
           maxWidth: '90vw',
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           zIndex: zIndex,
+          visibility: isOpen ? 'visible' : 'hidden',
         }}
       >
         {/* Header */}
