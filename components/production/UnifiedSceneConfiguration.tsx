@@ -755,9 +755,9 @@ export function UnifiedSceneConfiguration({
                         characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
                         selectedCharacters={selectedCharIds}
                         pronounMappings={shotMappings}
-                        onPronounMappingChange={(pronoun, characterId) => {
+                        onPronounMappingChange={(pronoun, characterIdOrIds) => {
                           if (onPronounMappingChange) {
-                            onPronounMappingChange(shot.slot, pronoun, characterId);
+                            onPronounMappingChange(shot.slot, pronoun, characterIdOrIds);
                           }
                         }}
                         onCharacterSelectionChange={(characterIds) => {
