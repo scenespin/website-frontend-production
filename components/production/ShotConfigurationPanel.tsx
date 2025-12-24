@@ -166,21 +166,8 @@ export function ShotConfigurationPanel({
                     })
                     .map(([pronoun]) => `"${pronoun}"`);
                   
-                  if (isAlreadyShown) {
-                    return (
-                      <div key={charId} className="space-y-2">
-                        {allPronounsForChar.length > 0 && (
-                          <div className="text-[10px] text-[#808080] mb-1">
-                            ({allPronounsForChar.join(', ')})
-                          </div>
-                        )}
-                        <div className="text-[10px] text-[#808080] italic border border-[#3F3F46] rounded p-2 bg-[#1A1A1A]">
-                          {char?.name || 'Character'} already shown in Character(s) section above
-                        </div>
-                      </div>
-                    );
-                  }
-                  
+                  // With per-shot outfit selection, allow image selection even if already shown
+                  // (character can have different outfit/image per mention)
                   return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
                 })}
               </div>
@@ -202,21 +189,8 @@ export function ShotConfigurationPanel({
                     })
                     .map(([pronoun]) => `"${pronoun}"`);
                   
-                  if (isAlreadyShownInExplicit || isAlreadyShownInSingular) {
-                    return (
-                      <div key={charId} className="space-y-2">
-                        {allPronounsForChar.length > 0 && (
-                          <div className="text-[10px] text-[#808080] mb-1">
-                            ({allPronounsForChar.join(', ')})
-                          </div>
-                        )}
-                        <div className="text-[10px] text-[#808080] italic border border-[#3F3F46] rounded p-2 bg-[#1A1A1A]">
-                          {char?.name || 'Character'} already shown {isAlreadyShownInExplicit ? 'in Character(s) section above' : 'in Singular Pronoun(s) section above'}
-                        </div>
-                      </div>
-                    );
-                  }
-                  
+                  // With per-shot outfit selection, allow image selection even if already shown
+                  // (character can have different outfit/image per mention)
                   return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
                 })}
               </div>
