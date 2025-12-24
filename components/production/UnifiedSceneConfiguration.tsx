@@ -372,6 +372,34 @@ export function UnifiedSceneConfiguration({
     return char ? [char] : [];
   };
   
+  // Helper to extract outfits from headshots if not available in character data
+  const getCharacterWithExtractedOutfits = (charId: string, char: any): any => {
+    // If character has availableOutfits, use them
+    if (char.availableOutfits && char.availableOutfits.length > 0) {
+      return char;
+    }
+    
+    // Otherwise, extract outfits from headshots
+    const headshots = characterHeadshots[charId] || [];
+    const outfitSet = new Set<string>();
+    headshots.forEach((headshot: any) => {
+      const outfitName = headshot.outfitName || headshot.metadata?.outfitName;
+      if (outfitName && outfitName !== 'default') {
+        outfitSet.add(outfitName);
+      }
+    });
+    const extractedOutfits = Array.from(outfitSet).sort();
+    
+    if (extractedOutfits.length > 0) {
+      return {
+        ...char,
+        availableOutfits: extractedOutfits
+      };
+    }
+    
+    return char;
+  };
+
   // Render character controls only (left column): name, outfit selector
   const renderCharacterControlsOnly = (
     charId: string,
@@ -381,10 +409,12 @@ export function UnifiedSceneConfiguration({
     category: 'explicit' | 'singular' | 'plural'
   ) => {
     // Prefer sceneAnalysisResult.characters (has outfit data) over allCharacters
-    const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+    const baseChar = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
                allCharacters.find((c: any) => c.id === charId);
-    if (!char) return null;
+    if (!baseChar) return null;
     
+    // Extract outfits from headshots if not in character data
+    const char = getCharacterWithExtractedOutfits(charId, baseChar);
     const selectedOutfit = characterOutfits[charId];
     const hasMultipleOutfits = (char.availableOutfits?.length || 0) > 1;
     
@@ -446,9 +476,17 @@ export function UnifiedSceneConfiguration({
                allCharacters.find((c: any) => c.id === charId);
     if (!char) return null;
     
-    const headshots = characterHeadshots[charId] || [];
+    const allHeadshots = characterHeadshots[charId] || [];
     const selectedHeadshot = selectedCharacterReferences[shotSlot]?.[charId];
     const selectedOutfit = characterOutfits[charId];
+    
+    // Filter headshots by selected outfit (if outfit is selected)
+    const headshots = selectedOutfit && selectedOutfit !== 'default' 
+      ? allHeadshots.filter((h: any) => {
+          const headshotOutfit = h.outfitName || h.metadata?.outfitName;
+          return headshotOutfit === selectedOutfit;
+        })
+      : allHeadshots; // Show all headshots if no outfit selected or using default
     
     return (
       <div key={charId} className="space-y-2">

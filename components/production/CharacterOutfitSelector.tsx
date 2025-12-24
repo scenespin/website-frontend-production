@@ -87,8 +87,9 @@ export function CharacterOutfitSelector({
   const hasMultipleOutfits = outfitsArray.length > 1;
   const hasAnyOutfits = outfitsArray.length > 0 || !!defaultOutfit;
   
-  // Force dropdown if we have multiple outfits (even if defaultOutfit exists)
-  const shouldShowDropdown = hasMultipleOutfits && hasAnyOutfits;
+  // Show dropdown if we have any outfits (allows switching between outfits, including "All")
+  // Always show dropdown when outfits exist, even if just one (allows "All" option)
+  const shouldShowDropdown = hasAnyOutfits;
   
   // Debug logging
   useEffect(() => {
@@ -132,11 +133,14 @@ export function CharacterOutfitSelector({
               onChange={(e) => handleOutfitChange(e.target.value)}
               className="flex-1 px-2 py-1 bg-[#141414] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
             >
-              {defaultOutfit ? (
+              <option value="default">
+                All Outfits
+              </option>
+              {defaultOutfit && (
                 <option value="default">
                   Use Default ({defaultOutfit})
                 </option>
-              ) : null}
+              )}
               {outfitsArray.map((outfit) => (
                 <option key={outfit} value={outfit}>
                   {outfit}
@@ -178,11 +182,14 @@ export function CharacterOutfitSelector({
             onChange={(e) => handleOutfitChange(e.target.value)}
             className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
           >
-            {defaultOutfit ? (
+            <option value="default">
+              All Outfits
+            </option>
+            {defaultOutfit && (
               <option value="default">
                 Use Default ({defaultOutfit})
               </option>
-            ) : null}
+            )}
             {outfitsArray.map((outfit) => (
               <option key={outfit} value={outfit}>
                 {outfit}

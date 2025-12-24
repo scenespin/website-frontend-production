@@ -52,15 +52,36 @@ export function PronounMappingSection({
   // Helper to get character with outfit data (prefer characters with outfit data)
   const getCharacterWithOutfits = (characterId: string): Character | null => {
     // First, try to find character in allCharactersWithOutfits (should have outfit data from sceneAnalysisResult)
+    let char: any = null;
     if (allCharactersWithOutfits && allCharactersWithOutfits.length > 0) {
-      const charWithOutfits = allCharactersWithOutfits.find((c: any) => c.id === characterId);
-      if (charWithOutfits) {
-        // Always prefer allCharactersWithOutfits if found (has most complete data)
-        return charWithOutfits;
+      char = allCharactersWithOutfits.find((c: any) => c.id === characterId);
+    }
+    if (!char) {
+      char = characters.find(c => c.id === characterId);
+    }
+    
+    if (!char) return null;
+    
+    // If character doesn't have availableOutfits but has headshots, extract outfits from headshots
+    if ((!char.availableOutfits || char.availableOutfits.length === 0) && characterHeadshots[characterId]) {
+      const headshots = characterHeadshots[characterId] || [];
+      const outfitSet = new Set<string>();
+      headshots.forEach((headshot: any) => {
+        const outfitName = headshot.outfitName || headshot.metadata?.outfitName;
+        if (outfitName && outfitName !== 'default') {
+          outfitSet.add(outfitName);
+        }
+      });
+      const extractedOutfits = Array.from(outfitSet).sort();
+      if (extractedOutfits.length > 0) {
+        return {
+          ...char,
+          availableOutfits: extractedOutfits
+        };
       }
     }
-    // Fallback to characters prop
-    return characters.find(c => c.id === characterId) || null;
+    
+    return char;
   };
   // Plural pronouns that can map to multiple characters
   const pluralPronouns = ['they', 'them', 'their', 'theirs'];
