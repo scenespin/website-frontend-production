@@ -118,47 +118,7 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
         className
       )}>
         <div className="px-4">
-          <div className="flex items-center justify-between gap-3 py-2 border-b border-base-300">
-            <EditableScreenplayTitle />
-            <div className="flex items-center gap-2">
-              {/* Show role badge if we have a role, or show loading indicator while permissions load */}
-              {currentUserRole ? (
-                <RoleBadge role={currentUserRole} size="sm" />
-              ) : permissionsLoading ? (
-                <div className="px-2 py-1 rounded border border-base-300 text-xs text-base-content/60">
-                  Loading...
-                </div>
-              ) : null}
-              {/* Show collaboration button if user is owner (permissions are loaded) */}
-              {/* Only hide if we're certain user is NOT owner (permissions loaded and isOwner is false) */}
-              {currentScreenplayId && (isOwner || currentUserRole === 'director') && (
-                <button
-                  onClick={() => setIsCollaborationPanelOpen(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-300 rounded transition-colors"
-                  title="Manage collaborators"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Collaborate</span>
-                  {collaborators.length > 0 && (
-                    <span className="px-1.5 py-0.5 text-xs bg-primary text-primary-content rounded-full">
-                      {collaborators.length}
-                    </span>
-                  )}
-                </button>
-              )}
-              {/* Show change history button for all users with access */}
-              {currentScreenplayId && currentUserRole && (
-                <button
-                  onClick={() => setIsChangeHistoryPanelOpen(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-300 rounded transition-colors"
-                  title="View change history"
-                >
-                  <History className="w-4 h-4" />
-                  <span className="hidden sm:inline">History</span>
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Tabs - Now first, directly below main navigation */}
           <div className="flex gap-1">
             {TABS.map((tab) => {
               const Icon = tab.icon;
@@ -199,6 +159,48 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
                 </Link>
               );
             })}
+          </div>
+          {/* Title and Action Buttons - Now underneath tabs */}
+          <div className="flex items-center justify-between gap-3 py-2 border-t border-base-300">
+            <EditableScreenplayTitle />
+            <div className="flex items-center gap-2">
+              {/* Show role badge if we have a role, or show loading indicator while permissions load */}
+              {currentUserRole ? (
+                <RoleBadge role={currentUserRole} size="sm" />
+              ) : permissionsLoading ? (
+                <div className="px-2 py-1 rounded border border-base-300 text-xs text-base-content/60">
+                  Loading...
+                </div>
+              ) : null}
+              {/* Show collaboration button if user is owner (permissions are loaded) */}
+              {/* Only hide if we're certain user is NOT owner (permissions loaded and isOwner is false) */}
+              {currentScreenplayId && (isOwner || currentUserRole === 'director') && (
+                <button
+                  onClick={() => setIsCollaborationPanelOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-300 rounded transition-colors"
+                  title="Manage collaborators"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Collaborate</span>
+                  {collaborators.length > 0 && (
+                    <span className="px-1.5 py-0.5 text-xs bg-primary text-primary-content rounded-full">
+                      {collaborators.length}
+                    </span>
+                  )}
+                </button>
+              )}
+              {/* Show change history button for all users with access */}
+              {currentScreenplayId && currentUserRole && (
+                <button
+                  onClick={() => setIsChangeHistoryPanelOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-300 rounded transition-colors"
+                  title="View change history"
+                >
+                  <History className="w-4 h-4" />
+                  <span className="hidden sm:inline">History</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
