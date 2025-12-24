@@ -283,6 +283,7 @@ export function GenerateCoverageTab({
 
       const apiUrl = `/api/projects/${screenplayId}/characters/${characterId}/generate-poses`;
       const requestBody = {
+        characterName, // Match original modal exactly (even if backend doesn't use it)
         packageId: selectedPackageId,
         quality: quality,
         providerId: providerId || undefined,
@@ -290,6 +291,8 @@ export function GenerateCoverageTab({
         typicalClothing: finalOutfitName,
         clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined,
         additionalPrompt: finalPrompt || undefined,
+        // Note: headshotUrl, screenplayContent, manualDescription are auto-handled by backend
+        // (removed from UI per user request - backend populates automatically)
       };
 
       const response = await fetch(apiUrl, {
