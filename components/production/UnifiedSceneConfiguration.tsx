@@ -638,11 +638,12 @@ export function UnifiedSceneConfiguration({
                   const selectedCharIds = selectedCharactersForShots[shot.slot] || [];
                   const hasExplicitCharacter = actionShotHasExplicitCharacter(shot);
                   
-                  // Only show if pronouns detected AND no explicit character name found
-                  // (if explicit name found, we already show character selector above)
-                  if (hasExplicitCharacter) {
-                    return null;
-                  }
+                  // Show CharacterSelector when pronouns are detected
+                  // Even if there's an explicit character, pronouns may refer to other characters
+                  // Example: "She glances at it, then back at her editor, he is not really listening"
+                  // - "She" and "her" refer to Sarah
+                  // - "he" refers to the editor
+                  // User needs to map pronouns to characters
                   
                   // Determine max selection based on pronoun types detected
                   // Goal: Each unique pronoun should align with a character reference
