@@ -2982,12 +2982,12 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       }));
                     }}
                     pronounMappingsForShots={pronounMappingsForShots}
-                    onPronounMappingChange={(shotSlot, pronoun, characterId) => {
+                    onPronounMappingChange={(shotSlot, pronoun, characterIdOrIds) => {
                       setPronounMappingsForShots(prev => {
                         const shotMappings = prev[shotSlot] || {};
                         const newMappings = { ...shotMappings };
-                        if (characterId) {
-                          newMappings[pronoun] = characterId;
+                        if (characterIdOrIds) {
+                          newMappings[pronoun] = characterIdOrIds; // Can be string or string[]
                         } else {
                           delete newMappings[pronoun];
                         }
