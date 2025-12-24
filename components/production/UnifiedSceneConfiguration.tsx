@@ -40,7 +40,7 @@ interface UnifiedSceneConfigurationProps {
   onCharactersForShotChange?: (shotSlot: number, characterIds: string[]) => void;
   // Pronoun-to-character mapping: shot slot -> pronoun -> characterId
   pronounMappingsForShots?: Record<number, Record<string, string | string[]>>; // e.g., { 18: { "she": "char-123", "they": ["char-123", "char-456"] } }
-  onPronounMappingChange?: (shotSlot: number, pronoun: string, characterId: string | undefined) => void;
+  onPronounMappingChange?: (shotSlot: number, pronoun: string, characterId: string | string[] | undefined) => void;
   allCharacters?: any[]; // All characters from character bank (for pronoun detection selector)
   characterHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots: Record<string, boolean>;
