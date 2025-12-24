@@ -798,7 +798,6 @@ export function CharacterDetailModal({
                     : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
                 }`}
               >
-                <Sparkles className="w-4 h-4 inline mr-2" />
                 Character Studio
               </button>
               <button
