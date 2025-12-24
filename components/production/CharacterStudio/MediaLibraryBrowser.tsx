@@ -95,11 +95,12 @@ export function MediaLibraryBrowser({
 }: MediaLibraryBrowserProps) {
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   
-  // Load media files
+  // Load media files - include all folders for Storage browser
   const { data: mediaFiles = [], isLoading } = useMediaFiles(
     screenplayId,
-    undefined, // folderId - can filter by folder if needed
-    true
+    undefined, // folderId - show all files
+    true, // enabled
+    true // includeAllFolders - show files from all folders, not just root
   );
 
   // Filter to images only

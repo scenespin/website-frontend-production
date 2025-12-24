@@ -51,12 +51,13 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
 /**
  * Query hook for fetching media files list
  * Feature 0128: Added optional folderId parameter for folder filtering
+ * Feature: Added includeAllFolders parameter to show all files regardless of folder
  */
-export function useMediaFiles(screenplayId: string, folderId?: string, enabled: boolean = true) {
+export function useMediaFiles(screenplayId: string, folderId?: string, enabled: boolean = true, includeAllFolders: boolean = false) {
   const { getToken } = useAuth();
 
   return useQuery<MediaFile[], Error>({
-    queryKey: ['media', 'files', screenplayId, folderId || 'root'],
+    queryKey: ['media', 'files', screenplayId, folderId || 'root', includeAllFolders ? 'all' : 'filtered'],
     queryFn: async () => {
       const token = await getAuthToken(getToken);
       if (!token) {
@@ -68,6 +69,9 @@ export function useMediaFiles(screenplayId: string, folderId?: string, enabled: 
       });
       if (folderId) {
         params.append('folderId', folderId);
+      }
+      if (includeAllFolders) {
+        params.append('includeAllFolders', 'true');
       }
 
       const response = await fetch(`${BACKEND_API_URL}/api/media/list?${params.toString()}`, {
