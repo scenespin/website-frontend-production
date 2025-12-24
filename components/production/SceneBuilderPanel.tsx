@@ -707,25 +707,28 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               
               // Ensure we store s3Key and imageUrl for precise matching (not just poseId)
               
-              // Store per-shot (not per-character) so each shot can have its own selection
+              // Store per-shot, per-character so each character in each shot can have its own selection
               // Find all shots (dialogue or action) for this character and auto-select the same headshot
               const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
                 s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
               ) || [];
               
-              const newSelections: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }> = {};
-              shotsForCharacter.forEach((shot: any) => {
-                newSelections[shot.slot] = {
-                  poseId: bestHeadshot.poseId,
-                  s3Key: bestHeadshot.s3Key,
-                  imageUrl: bestHeadshot.imageUrl
-                };
+              // Update references for each shot, preserving existing character references
+              setSelectedCharacterReferences(prev => {
+                const updated = { ...prev };
+                shotsForCharacter.forEach((shot: any) => {
+                  const shotRefs = updated[shot.slot] || {};
+                  updated[shot.slot] = {
+                    ...shotRefs,
+                    [characterId]: {
+                      poseId: bestHeadshot.poseId,
+                      s3Key: bestHeadshot.s3Key,
+                      imageUrl: bestHeadshot.imageUrl
+                    }
+                  };
+                });
+                return updated;
               });
-              
-              setSelectedCharacterReferences(prev => ({
-                ...prev,
-                ...newSelections
-              }));
             } else {
               console.warn(`[SceneBuilderPanel] No headshots found for character ${characterId} after filtering`);
             }
