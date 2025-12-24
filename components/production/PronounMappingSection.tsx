@@ -218,7 +218,7 @@ export function PronounMappingSection({
                       className="flex-1 px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
                     >
                       <option value="">-- Select character --</option>
-                      <option value="__ignore__">-- Skip mapping (use original text) --</option>
+                      <option value="__ignore__">-- Skip mapping --</option>
                       {availableChars.map((char) => (
                         <option key={char.id} value={char.id}>
                           {char.name}
@@ -231,7 +231,7 @@ export function PronounMappingSection({
                   {isIgnored && (
                     <div className="ml-[76px] pt-2">
                       <div className="text-[10px] text-[#808080] italic">
-                        This pronoun will remain in the prompt (e.g., "they" stays as "they"). The AI will generate these characters without specific reference images.
+                        This pronoun will be handled automatically by the AI.
                       </div>
                     </div>
                   )}
@@ -309,7 +309,7 @@ export function PronounMappingSection({
                             : 'bg-[#1A1A1A] border-[#3F3F46] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
                         }`}
                       >
-                        {mapping === '__ignore__' ? '✓ Skip mapping (use original text)' : 'Skip mapping (use original text)'}
+                        {mapping === '__ignore__' ? '✓ Skip mapping' : 'Skip mapping'}
                       </button>
                       
                       <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-2 space-y-1.5 max-h-32 overflow-y-auto">
