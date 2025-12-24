@@ -5,18 +5,15 @@
  * 
  * Everything that happens AFTER principal photography:
  * - Audio generation (Background Music, Sound Effects, Soundtracks)
- * - Annotation-to-Video
- * - Post-Production workflows (12 workflows)
+ * - Post-Production workflows (video enhancement, editing, VFX, etc.)
  */
 
 import React, { useState } from 'react';
-import { Music, Video, Workflow } from 'lucide-react';
+import { Music, Workflow } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Sub-components
 import { AudioGenerationPanel } from './AudioGenerationPanel';
-import { AnnotationToVideoPanel } from './AnnotationToVideoPanel';
-import { VideoGenerationTools } from './VideoGenerationTools';
 import { PostProductionWorkflows } from './PostProductionWorkflows';
 
 interface PostProductionPanelProps {
@@ -24,7 +21,7 @@ interface PostProductionPanelProps {
   screenplayId?: string;
 }
 
-type PostProductionSection = 'audio' | 'video-generation' | 'annotation-to-video' | 'workflows';
+type PostProductionSection = 'audio' | 'workflows';
 
 export function PostProductionPanel({ className = '', screenplayId }: PostProductionPanelProps) {
   const [activeSection, setActiveSection] = useState<PostProductionSection>('audio');
@@ -49,34 +46,6 @@ export function PostProductionPanel({ className = '', screenplayId }: PostProduc
           </button>
 
           <button
-            onClick={() => setActiveSection('video-generation')}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium",
-              "transition-colors",
-              activeSection === 'video-generation'
-                ? "text-white border-b-2 border-cinema-red -mb-[2px]"
-                : "text-[#808080] hover:text-white"
-            )}
-          >
-            <Video className="w-4 h-4" />
-            <span>Video Generation</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSection('annotation-to-video')}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium",
-              "transition-colors",
-              activeSection === 'annotation-to-video'
-                ? "text-white border-b-2 border-cinema-red -mb-[2px]"
-                : "text-[#808080] hover:text-white"
-            )}
-          >
-            <Video className="w-4 h-4" />
-            <span>Annotation-to-Video</span>
-          </button>
-
-          <button
             onClick={() => setActiveSection('workflows')}
             className={cn(
               "flex items-center gap-2 px-4 py-2.5 text-sm font-medium",
@@ -96,14 +65,6 @@ export function PostProductionPanel({ className = '', screenplayId }: PostProduc
       <div className="flex-1 overflow-y-auto">
         {activeSection === 'audio' && (
           <AudioGenerationPanel className="h-full" />
-        )}
-
-        {activeSection === 'video-generation' && (
-          <VideoGenerationTools className="h-full" screenplayId={screenplayId} />
-        )}
-
-        {activeSection === 'annotation-to-video' && (
-          <AnnotationToVideoPanel className="h-full" />
         )}
 
         {activeSection === 'workflows' && (

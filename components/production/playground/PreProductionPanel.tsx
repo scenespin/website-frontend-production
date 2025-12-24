@@ -5,15 +5,19 @@
  * 
  * Everything that happens BEFORE principal photography:
  * - Image generation (Character, Location, Asset, First Frame)
+ * - Video generation (Starting Frame, Frame to Frame) - Pre-visualization
+ * - Annotation-to-Video - Storyboarding and pre-visualization
  * - Pre-Production workflows (47 workflows)
  */
 
 import React, { useState } from 'react';
-import { Image, Users, MapPin, Package, Film, Workflow, Loader2 } from 'lucide-react';
+import { Image, Video, Workflow } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Sub-components (to be created)
+// Sub-components
 import { ImageGenerationTools } from './ImageGenerationTools';
+import { VideoGenerationTools } from './VideoGenerationTools';
+import { AnnotationToVideoPanel } from './AnnotationToVideoPanel';
 import { PreProductionWorkflows } from './PreProductionWorkflows';
 
 interface PreProductionPanelProps {
@@ -21,7 +25,7 @@ interface PreProductionPanelProps {
   screenplayId?: string;
 }
 
-type PreProductionSection = 'images' | 'workflows';
+type PreProductionSection = 'images' | 'video-generation' | 'annotation-to-video' | 'workflows';
 
 export function PreProductionPanel({ className = '', screenplayId }: PreProductionPanelProps) {
   const [activeSection, setActiveSection] = useState<PreProductionSection>('images');
@@ -46,6 +50,34 @@ export function PreProductionPanel({ className = '', screenplayId }: PreProducti
           </button>
 
           <button
+            onClick={() => setActiveSection('video-generation')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium",
+              "transition-colors",
+              activeSection === 'video-generation'
+                ? "text-white border-b-2 border-cinema-red -mb-[2px]"
+                : "text-[#808080] hover:text-white"
+            )}
+          >
+            <Video className="w-4 h-4" />
+            <span>Video Generation</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSection('annotation-to-video')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium",
+              "transition-colors",
+              activeSection === 'annotation-to-video'
+                ? "text-white border-b-2 border-cinema-red -mb-[2px]"
+                : "text-[#808080] hover:text-white"
+            )}
+          >
+            <Video className="w-4 h-4" />
+            <span>Annotation-to-Video</span>
+          </button>
+
+          <button
             onClick={() => setActiveSection('workflows')}
             className={cn(
               "flex items-center gap-2 px-4 py-2.5 text-sm font-medium",
@@ -65,6 +97,14 @@ export function PreProductionPanel({ className = '', screenplayId }: PreProducti
       <div className="flex-1 overflow-y-auto">
         {activeSection === 'images' && (
           <ImageGenerationTools className="h-full" />
+        )}
+
+        {activeSection === 'video-generation' && (
+          <VideoGenerationTools className="h-full" screenplayId={screenplayId} />
+        )}
+
+        {activeSection === 'annotation-to-video' && (
+          <AnnotationToVideoPanel className="h-full" />
         )}
 
         {activeSection === 'workflows' && (
