@@ -694,57 +694,107 @@ export function UnifiedSceneConfiguration({
                   
                   return (
                     <div className="mt-3">
-                      {/* Two-column layout: Pronoun mapping on left, References on right */}
+                      {/* Two-column layout: Controls on left, Images on right */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* Left Column: Pronoun Mapping (only for action shots with pronouns) */}
-                        {hasPronouns ? (
-                          <div className="space-y-3">
-                            <PronounMappingSection
-                              pronouns={pronounInfo.pronouns}
-                              characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
-                              selectedCharacters={selectedCharactersForShots[shot.slot] || []}
-                              pronounMappings={shotMappings}
-                              onPronounMappingChange={(pronoun, characterIdOrIds) => {
-                                if (onPronounMappingChange) {
-                                  onPronounMappingChange(shot.slot, pronoun, characterIdOrIds);
-                                }
-                              }}
-                              onCharacterSelectionChange={(characterIds) => {
-                                if (onCharactersForShotChange) {
-                                  onCharactersForShotChange(shot.slot, characterIds);
-                                }
-                              }}
-                              shotSlot={shot.slot}
-                              characterHeadshots={characterHeadshots}
-                              loadingHeadshots={loadingHeadshots}
-                              selectedCharacterReferences={selectedCharacterReferences}
-                              characterOutfits={characterOutfits}
-                              onCharacterReferenceChange={onCharacterReferenceChange}
-                              onCharacterOutfitChange={onCharacterOutfitChange}
-                            />
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {/* Placeholder for non-pronoun shots - keeps layout balanced */}
-                            <div className="text-xs text-[#808080]">
-                              {hasCharacter ? 'Character reference selection' : 'Reference selection'}
+                        {/* Left Column: Pronoun Mapping + Character Controls */}
+                        <div className="space-y-4">
+                          {/* Pronoun Mapping (only for action shots with pronouns) */}
+                          {hasPronouns ? (
+                            <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
+                              <PronounMappingSection
+                                pronouns={pronounInfo.pronouns}
+                                characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                                selectedCharacters={selectedCharactersForShots[shot.slot] || []}
+                                pronounMappings={shotMappings}
+                                onPronounMappingChange={(pronoun, characterIdOrIds) => {
+                                  if (onPronounMappingChange) {
+                                    onPronounMappingChange(shot.slot, pronoun, characterIdOrIds);
+                                  }
+                                }}
+                                onCharacterSelectionChange={(characterIds) => {
+                                  if (onCharactersForShotChange) {
+                                    onCharactersForShotChange(shot.slot, characterIds);
+                                  }
+                                }}
+                                shotSlot={shot.slot}
+                                characterHeadshots={characterHeadshots}
+                                loadingHeadshots={loadingHeadshots}
+                                selectedCharacterReferences={selectedCharacterReferences}
+                                characterOutfits={characterOutfits}
+                                onCharacterReferenceChange={onCharacterReferenceChange}
+                                onCharacterOutfitChange={onCharacterOutfitChange}
+                              />
+                            </div>
+                          ) : null}
+                          
+                          {/* Location Label */}
+                          {shouldShowLocation && (
+                            <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                              <div className="text-xs font-medium text-[#FFFFFF]">
+                                Location
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Props Label */}
+                          <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                            <div className="text-xs font-medium text-[#808080]">
+                              Props
                             </div>
                           </div>
-                        )}
+                          
+                          {/* Character Labels & Controls - Organized by category */}
+                          {charactersToShow.length > 0 && (
+                            <div className="space-y-3">
+                              {/* Explicit Characters from Action Lines */}
+                              {explicitCharacters.length > 0 && (
+                                <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                                  <div className="text-xs font-medium text-[#FFFFFF] mb-2">
+                                    Character(s)
+                                  </div>
+                                  {explicitCharacters.map((charId) => {
+                                    return renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit');
+                                  })}
+                                </div>
+                              )}
+                              
+                              {/* Singular Pronoun Characters */}
+                              {singularPronounCharacters.length > 0 && (
+                                <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                                  <div className="text-xs font-medium text-[#FFFFFF] mb-2">
+                                    Singular Pronoun(s)
+                                  </div>
+                                  {singularPronounCharacters.map((charId) => {
+                                    return renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'singular');
+                                  })}
+                                </div>
+                              )}
+                              
+                              {/* Plural Pronoun Characters */}
+                              {pluralPronounCharacters.length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="text-xs font-medium text-[#FFFFFF] mb-2">
+                                    Plural Pronoun(s)
+                                  </div>
+                                  {pluralPronounCharacters.map((charId) => {
+                                    return renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'plural');
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         
-                        {/* Right Column: Location, Props, Characters (ordered) */}
+                        {/* Right Column: Images only */}
                         {(charactersToShow.length > 0 || shouldShowLocation) && (
                           <div className="space-y-4 border-l border-[#3F3F46] pl-4">
                             <div className="text-xs font-medium text-[#FFFFFF] mb-2">
                               References
                             </div>
                             
-                            {/* Location Angle Selector - Always at top */}
+                            {/* Location Angle Images - Always at top */}
                             {shouldShowLocation && (
                               <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
-                                <div className="text-xs font-medium text-[#FFFFFF] mb-2">
-                                  Location
-                                </div>
                                 <LocationAngleSelector
                                   locationId={sceneAnalysisResult.location.id}
                                   locationName={sceneAnalysisResult.location.name || 'Location'}
@@ -762,25 +812,19 @@ export function UnifiedSceneConfiguration({
                             
                             {/* Props - Placeholder for next phase */}
                             <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
-                              <div className="text-xs font-medium text-[#808080] mb-2">
-                                Props
-                              </div>
                               <div className="text-[10px] text-[#808080] italic">
                                 Coming in next phase
                               </div>
                             </div>
                             
-                            {/* Character Headshots & Outfits - Organized by category */}
+                            {/* Character Images - Organized by category */}
                             {charactersToShow.length > 0 && (
                               <div className="space-y-3">
                                 {/* Explicit Characters from Action Lines */}
                                 {explicitCharacters.length > 0 && (
                                   <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
-                                    <div className="text-xs font-medium text-[#FFFFFF] mb-2">
-                                      Character(s)
-                                    </div>
                                     {explicitCharacters.map((charId) => {
-                                      return renderCharacterSection(charId, shot.slot, shotMappings, hasPronouns, 'explicit');
+                                      return renderCharacterImagesOnly(charId, shot.slot);
                                     })}
                                   </div>
                                 )}
@@ -788,11 +832,8 @@ export function UnifiedSceneConfiguration({
                                 {/* Singular Pronoun Characters */}
                                 {singularPronounCharacters.length > 0 && (
                                   <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
-                                    <div className="text-xs font-medium text-[#FFFFFF] mb-2">
-                                      Singular Pronoun(s)
-                                    </div>
                                     {singularPronounCharacters.map((charId) => {
-                                      return renderCharacterSection(charId, shot.slot, shotMappings, hasPronouns, 'singular');
+                                      return renderCharacterImagesOnly(charId, shot.slot);
                                     })}
                                   </div>
                                 )}
@@ -800,11 +841,8 @@ export function UnifiedSceneConfiguration({
                                 {/* Plural Pronoun Characters */}
                                 {pluralPronounCharacters.length > 0 && (
                                   <div className="space-y-2">
-                                    <div className="text-xs font-medium text-[#FFFFFF] mb-2">
-                                      Plural Pronoun(s)
-                                    </div>
                                     {pluralPronounCharacters.map((charId) => {
-                                      return renderCharacterSection(charId, shot.slot, shotMappings, hasPronouns, 'plural');
+                                      return renderCharacterImagesOnly(charId, shot.slot);
                                     })}
                                   </div>
                                 )}
