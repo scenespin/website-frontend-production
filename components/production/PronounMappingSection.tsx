@@ -49,14 +49,27 @@ export function PronounMappingSection({
   allCharactersWithOutfits = []
 }: PronounMappingSectionProps) {
   
-  // Helper to get character with outfit data (prefer allCharactersWithOutfits if available)
+  // Helper to get character with outfit data (prefer characters with outfit data)
   const getCharacterWithOutfits = (characterId: string): Character | null => {
+    // First, try to find character in allCharactersWithOutfits (should have outfit data from sceneAnalysisResult)
+    if (allCharactersWithOutfits && allCharactersWithOutfits.length > 0) {
+      const charWithOutfits = allCharactersWithOutfits.find((c: any) => c.id === characterId);
+      // If found and has outfit data, use it
+      if (charWithOutfits && (charWithOutfits.availableOutfits?.length > 0 || charWithOutfits.defaultOutfit)) {
+        return charWithOutfits;
+      }
+    }
+    // Fallback to characters prop (might have outfit data)
+    const charFromProp = characters.find(c => c.id === characterId);
+    if (charFromProp && (charFromProp.availableOutfits?.length > 0 || charFromProp.defaultOutfit)) {
+      return charFromProp;
+    }
+    // If no outfit data found, still return the character (for display purposes)
     if (allCharactersWithOutfits && allCharactersWithOutfits.length > 0) {
       const charWithOutfits = allCharactersWithOutfits.find((c: any) => c.id === characterId);
       if (charWithOutfits) return charWithOutfits;
     }
-    // Fallback to characters prop
-    return characters.find(c => c.id === characterId) || null;
+    return charFromProp || null;
   };
   // Plural pronouns that can map to multiple characters
   const pluralPronouns = ['they', 'them', 'their', 'theirs'];

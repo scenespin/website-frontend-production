@@ -932,7 +932,7 @@ export function UnifiedSceneConfiguration({
                               characterOutfits={characterOutfits}
                               onCharacterReferenceChange={onCharacterReferenceChange}
                               onCharacterOutfitChange={onCharacterOutfitChange}
-                              allCharactersWithOutfits={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                              allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
                             />
                           </div>
                           {/* Right: Character Images for Pronoun-mapped characters */}
