@@ -534,47 +534,50 @@ export function UnifiedSceneConfiguration({
                     return null;
                   }
                   
-                  // Get character IDs for display
-                  let charactersToShow: string[] = [];
+                  // Organize characters by category for proper ordering
+                  let explicitCharacters: string[] = []; // Characters from action lines (e.g., "Sarah")
+                  let singularPronounCharacters: string[] = []; // Characters mapped via singular pronouns
+                  let pluralPronounCharacters: string[] = []; // Characters mapped via plural pronouns
                   let shotMappings: Record<string, string | string[]> = {};
                   
-                  if (hasPronouns) {
-                    // Action shot with pronouns
-                    const selectedCharIds = selectedCharactersForShots[shot.slot] || [];
-                    shotMappings = pronounMappingsForShots[shot.slot] || {};
-                    
-                    // Get all characters from pronoun mappings (including singular pronouns)
-                    const getAllMappedCharacterIds = (): string[] => {
-                      const allIds = new Set<string>();
-                      Object.values(shotMappings).forEach(value => {
-                        if (Array.isArray(value)) {
-                          value.forEach(id => allIds.add(id));
-                        } else if (value) {
-                          allIds.add(value);
-                        }
-                      });
-                      return Array.from(allIds);
-                    };
-                    
-                    const allMappedCharIds = getAllMappedCharacterIds();
-                    charactersToShow = allMappedCharIds.length > 0 ? allMappedCharIds : selectedCharIds;
-                    
-                    // Also include singular pronouns' mapped characters explicitly
-                    const singularPronouns = ['she', 'her', 'hers', 'he', 'him', 'his'];
-                    Object.entries(shotMappings).forEach(([pronoun, mappedIdOrIds]) => {
-                      if (singularPronouns.includes(pronoun.toLowerCase()) && !Array.isArray(mappedIdOrIds) && mappedIdOrIds) {
-                        if (!charactersToShow.includes(mappedIdOrIds)) {
-                          charactersToShow.push(mappedIdOrIds);
-                        }
-                      }
-                    });
-                  } else if (hasCharacter) {
-                    // Dialogue shot or action shot with explicit character
+                  // Always get explicit characters from action lines (if any)
+                  if (shot.type === 'action') {
+                    const explicitChars = getCharactersFromActionShot(shot);
+                    explicitCharacters = explicitChars.map((c: any) => c.id);
+                  } else if (hasCharacter && shot.type === 'dialogue') {
+                    // Dialogue shots have explicit character
                     const char = getCharacterForShot(shot);
                     if (char?.id) {
-                      charactersToShow = [char.id];
+                      explicitCharacters = [char.id];
                     }
                   }
+                  
+                  // Get pronoun mappings if pronouns are present
+                  if (hasPronouns) {
+                    shotMappings = pronounMappingsForShots[shot.slot] || {};
+                    const singularPronouns = ['she', 'her', 'hers', 'he', 'him', 'his'];
+                    const pluralPronouns = ['they', 'them', 'their', 'theirs'];
+                    
+                    // Separate singular and plural pronoun characters
+                    Object.entries(shotMappings).forEach(([pronoun, mappedIdOrIds]) => {
+                      const pronounLower = pronoun.toLowerCase();
+                      if (singularPronouns.includes(pronounLower) && !Array.isArray(mappedIdOrIds) && mappedIdOrIds) {
+                        if (!singularPronounCharacters.includes(mappedIdOrIds)) {
+                          singularPronounCharacters.push(mappedIdOrIds);
+                        }
+                      } else if (pluralPronouns.includes(pronounLower) && Array.isArray(mappedIdOrIds)) {
+                        mappedIdOrIds.forEach(id => {
+                          if (!pluralPronounCharacters.includes(id)) {
+                            pluralPronounCharacters.push(id);
+                          }
+                        });
+                      }
+                    });
+                  }
+                  
+                  // Remove duplicates (explicit characters take precedence)
+                  const allCharIds = new Set([...explicitCharacters, ...singularPronounCharacters, ...pluralPronounCharacters]);
+                  const charactersToShow = Array.from(allCharIds);
                   
                   return (
                     <div className="mt-3">
@@ -616,7 +619,7 @@ export function UnifiedSceneConfiguration({
                           </div>
                         )}
                         
-                        {/* Right Column: Location, Character References */}
+                        {/* Right Column: Location, Props, Characters (ordered) */}
                         {(charactersToShow.length > 0 || shouldShowLocation) && (
                           <div className="space-y-4 border-l border-[#3F3F46] pl-4">
                             <div className="text-xs font-medium text-[#FFFFFF] mb-2">
@@ -626,8 +629,8 @@ export function UnifiedSceneConfiguration({
                             {/* Location Angle Selector - Always at top */}
                             {shouldShowLocation && (
                               <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
-                                <div className="text-xs font-medium text-[#FFFFFF]">
-                                  Location Angle
+                                <div className="text-xs font-medium text-[#FFFFFF] mb-2">
+                                  Location
                                 </div>
                                 <LocationAngleSelector
                                   locationId={sceneAnalysisResult.location.id}
@@ -644,115 +647,54 @@ export function UnifiedSceneConfiguration({
                               </div>
                             )}
                             
-                            {/* Character Headshots & Outfits */}
+                            {/* Props - Placeholder for next phase */}
+                            <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                              <div className="text-xs font-medium text-[#808080] mb-2">
+                                Props
+                              </div>
+                              <div className="text-[10px] text-[#808080] italic">
+                                Coming in next phase
+                              </div>
+                            </div>
+                            
+                            {/* Character Headshots & Outfits - Organized by category */}
                             {charactersToShow.length > 0 && (
                               <div className="space-y-3">
-                                {charactersToShow.map((charId) => {
-                                  const char = sceneAnalysisResult.characters.find((c: any) => c.id === charId) ||
-                                             allCharacters.find((c: any) => c.id === charId) ||
-                                             (hasCharacter ? getCharacterForShot(shot) : null);
-                                  if (!char) return null;
-                                  
-                                  const headshots = characterHeadshots[charId] || [];
-                                  const selectedHeadshot = selectedCharacterReferences[shot.slot];
-                                  const selectedOutfit = characterOutfits[charId];
-                                  
-                                  // Get which pronouns map to this character
-                                  const pronounsForThisChar = hasPronouns ? Object.entries(shotMappings)
-                                    .filter(([_, mappedIdOrIds]) => {
-                                      if (Array.isArray(mappedIdOrIds)) {
-                                        return mappedIdOrIds.includes(charId);
-                                      }
-                                      return mappedIdOrIds === charId;
-                                    })
-                                    .map(([pronoun]) => pronoun) : [];
-                                  
-                                  return (
-                                    <div key={charId} className="space-y-2 pb-3 border-b border-[#3F3F46] last:border-b-0">
-                                      <div className="flex items-center justify-between">
-                                        <div className="text-xs font-medium text-[#FFFFFF]">
-                                          {char.name}
-                                        </div>
-                                        {pronounsForThisChar.length > 0 && (
-                                          <div className="text-[10px] text-[#808080]">
-                                            ({pronounsForThisChar.join(', ')})
-                                          </div>
-                                        )}
-                                      </div>
-                                      
-                                      {/* Outfit Selector */}
-                                      <CharacterOutfitSelector
-                                        characterId={char.id}
-                                        characterName={char.name}
-                                        availableOutfits={char.availableOutfits || []}
-                                        defaultOutfit={char.defaultOutfit}
-                                        selectedOutfit={selectedOutfit}
-                                        onOutfitChange={(charId, outfitName) => {
-                                          onCharacterOutfitChange(charId, outfitName || undefined);
-                                        }}
-                                      />
-                                      
-                                      {/* Headshots */}
-                                      {loadingHeadshots[charId] ? (
-                                        <div className="text-[10px] text-[#808080]">Loading headshots...</div>
-                                      ) : headshots.length > 0 ? (
-                                        <div>
-                                          {selectedOutfit && selectedOutfit !== 'default' && (
-                                            <div className="text-[10px] text-[#808080] mb-1.5">
-                                              Outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
-                                            </div>
-                                          )}
-                                          <div className="grid grid-cols-6 gap-1.5">
-                                            {headshots.map((headshot, idx) => {
-                                              const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
-                                              const isSelected = selectedHeadshot && (
-                                                (headshot.s3Key && selectedHeadshot.s3Key === headshot.s3Key) ||
-                                                (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
-                                                (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
-                                              );
-                                              
-                                              return (
-                                                <button
-                                                  key={uniqueKey}
-                                                  onClick={() => {
-                                                    const newRef = isSelected ? undefined : {
-                                                      poseId: headshot.poseId,
-                                                      s3Key: headshot.s3Key,
-                                                      imageUrl: headshot.imageUrl
-                                                    };
-                                                    onCharacterReferenceChange(shot.slot, newRef);
-                                                  }}
-                                                  className={`relative aspect-square rounded border-2 transition-all ${
-                                                    isSelected
-                                                      ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                                                      : 'border-[#3F3F46] hover:border-[#808080]'
-                                                  }`}
-                                                >
-                                                  {headshot.imageUrl && (
-                                                    <img
-                                                      src={headshot.imageUrl}
-                                                      alt={headshot.label || `Headshot ${idx + 1}`}
-                                                      className="w-full h-full object-cover rounded"
-                                                    />
-                                                  )}
-                                                  {isSelected && (
-                                                    <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
-                                                      <Check className="w-3 h-3 text-[#DC143C]" />
-                                                    </div>
-                                                  )}
-                                                </button>
-                                              );
-                                            })}
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="text-[10px] text-[#808080]">
-                                          No headshots available
-                                        </div>
-                                      )}
+                                {/* Explicit Characters from Action Lines */}
+                                {explicitCharacters.length > 0 && (
+                                  <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                                    <div className="text-xs font-medium text-[#FFFFFF] mb-2">
+                                      Character(s)
                                     </div>
-                                  );
-                                })}
+                                    {explicitCharacters.map((charId) => {
+                                      return renderCharacterSection(charId, shot.slot, shotMappings, hasPronouns, 'explicit');
+                                    })}
+                                  </div>
+                                )}
+                                
+                                {/* Singular Pronoun Characters */}
+                                {singularPronounCharacters.length > 0 && (
+                                  <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                                    <div className="text-xs font-medium text-[#FFFFFF] mb-2">
+                                      Singular Pronoun(s)
+                                    </div>
+                                    {singularPronounCharacters.map((charId) => {
+                                      return renderCharacterSection(charId, shot.slot, shotMappings, hasPronouns, 'singular');
+                                    })}
+                                  </div>
+                                )}
+                                
+                                {/* Plural Pronoun Characters */}
+                                {pluralPronounCharacters.length > 0 && (
+                                  <div className="space-y-2">
+                                    <div className="text-xs font-medium text-[#FFFFFF] mb-2">
+                                      Plural Pronoun(s)
+                                    </div>
+                                    {pluralPronounCharacters.map((charId) => {
+                                      return renderCharacterSection(charId, shot.slot, shotMappings, hasPronouns, 'plural');
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
