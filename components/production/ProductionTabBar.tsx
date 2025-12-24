@@ -23,6 +23,7 @@ type TabGroup = 'assets' | 'studio';
 interface ProductionTabBarProps {
   activeTab: ProductionTab;
   onTabChange: (tab: ProductionTab) => void;
+  jobCount?: number;
 }
 
 // Sub-tabs for Assets group (matching Create section colors)
