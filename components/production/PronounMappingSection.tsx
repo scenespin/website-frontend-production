@@ -102,19 +102,29 @@ export function PronounMappingSection({
   });
   
   // Get available characters for selection (excluding already selected ones, up to maxTotalCharacters)
-  const getAvailableCharacters = (currentMapping: string | string[] | undefined): Character[] => {
-    const allMappedIds = getAllMappedCharacterIds();
+  // For singular pronouns: allow same character for multiple pronouns (e.g., "she" and "her" can both map to SARAH)
+  // For plural pronouns: respect the 5 unique character limit
+  const getAvailableCharacters = (currentMapping: string | string[] | undefined, isSingular: boolean = false): Character[] => {
+    const allMappedIds = getAllMappedCharacterIds(); // Unique character IDs across all pronouns
     const currentIds = Array.isArray(currentMapping) ? currentMapping : (currentMapping ? [currentMapping] : []);
     
-    // Calculate how many characters are already mapped (excluding current pronoun's mapping)
+    // Calculate how many unique characters are already mapped (excluding current pronoun's mapping)
     const otherMappedIds = allMappedIds.filter(id => !currentIds.includes(id));
     const remainingSlots = maxTotalCharacters - otherMappedIds.length;
     
-    // Filter out characters that are already mapped (unless they're in the current mapping)
+    // Filter characters based on pronoun type
     return characters.filter(char => {
       // Always show characters that are in the current mapping
       if (currentIds.includes(char.id)) return true;
-      // Show available characters if we have remaining slots
+      
+      // For singular pronouns: allow selecting characters already mapped to other singular pronouns
+      // (multiple singular pronouns can refer to the same character)
+      if (isSingular) {
+        // Still respect the 5 unique character limit
+        return remainingSlots > 0 || otherMappedIds.includes(char.id);
+      }
+      
+      // For plural pronouns: only show available characters if we have remaining slots
       return !otherMappedIds.includes(char.id) && remainingSlots > 0;
     });
   };
@@ -150,7 +160,7 @@ export function PronounMappingSection({
               const pronounLower = pronoun.toLowerCase();
               const mapping = pronounMappings[pronounLower];
               const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
-              const availableChars = getAvailableCharacters(mapping);
+              const availableChars = getAvailableCharacters(mapping, true); // true = isSingular
               
               // Get character with outfit data from the enriched source
               const mappedChar = mappedCharacterId ? getCharacterWithOutfits(mappedCharacterId) : null;
