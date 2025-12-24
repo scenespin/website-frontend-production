@@ -69,8 +69,8 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
           modelsData = response.data.data.models;
         } else if (Array.isArray(response?.data)) {
           modelsData = response.data;
-        } else if (response?.models) {
-          modelsData = response.models;
+        } else if (response?.data?.data && Array.isArray(response.data.data)) {
+          modelsData = response.data.data;
         }
         
         console.log('[AnnotationToVideoPanel] Parsed models:', modelsData);

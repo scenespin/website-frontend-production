@@ -87,8 +87,8 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           modelsData = response.data.data.models;
         } else if (Array.isArray(response?.data)) {
           modelsData = response.data;
-        } else if (response?.models) {
-          modelsData = response.models;
+        } else if (response?.data?.data && Array.isArray(response.data.data)) {
+          modelsData = response.data.data;
         }
         
         console.log('[VideoGenerationTools] Parsed models:', modelsData);
