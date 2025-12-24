@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { GenerationPreview } from './GenerationPreview';
+import { ExamplesSection } from './ExamplesSection';
 
 interface ImageGenerationToolsProps {
   className?: string;

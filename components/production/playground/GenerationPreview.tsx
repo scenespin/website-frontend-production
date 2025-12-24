@@ -64,7 +64,7 @@ export function GenerationPreview({
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 p-4 min-h-[600px]">
+      <div className="flex-1 p-4 min-h-[600px] overflow-visible">
         {isGenerating && !hasResult && (
           <div className="h-full flex flex-col items-center justify-center">
             <div className="text-center space-y-4">
