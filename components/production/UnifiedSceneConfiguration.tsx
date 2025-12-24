@@ -736,8 +736,8 @@ export function UnifiedSceneConfiguration({
                         {shot.credits} credits
                       </Badge>
                     </div>
-                    <p className="text-xs text-[#808080] mb-2">
-                      {shot.description}
+                    <p className="text-xs text-[#808080] mb-2 break-words whitespace-pre-wrap max-h-32 overflow-y-auto">
+                      {getFullShotText(shot) || shot.description}
                     </p>
 
                     {/* Expandable Reference Selection */}
@@ -859,7 +859,7 @@ export function UnifiedSceneConfiguration({
                               {explicitCharacters.map((charId) => {
                                 return renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit');
                               })}
-                            </div>
+                      </div>
                           )}
                           
                           {/* Pronoun Mapping Section: Integrated with character selection */}
@@ -957,10 +957,10 @@ export function UnifiedSceneConfiguration({
                             )}
                           </div>
                         )}
-                      </div>
-                    </div>
-                  );
-                })()}
+                        </div>
+                        </div>
+                      );
+                    })()}
 
                 {/* REMOVED: Old pronoun detection section - now handled in unified layout above */}
               </div>
