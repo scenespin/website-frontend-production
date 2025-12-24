@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { VisualAnnotationPanel } from '../VisualAnnotationPanel';
+import { GenerationPreview } from './GenerationPreview';
 
 interface AnnotationToVideoPanelProps {
   className?: string;
@@ -31,6 +32,8 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageS3Key, setImageS3Key] = useState<string | null>(null);
   const [annotations, setAnnotations] = useState<any>(null);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Video models (fetched from API)
@@ -182,6 +185,10 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
     }
 
     setIsGenerating(true);
+    setGeneratedVideoUrl(null);
+    setGenerationTime(undefined);
+    const startTime = Date.now();
+
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
@@ -230,15 +237,45 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
       }
 
       const data = await response.json();
-      toast.success('Video generation started! Check Jobs panel for progress.');
       
-      // Reset form
-      setImageUrl(null);
-      setImageS3Key(null);
-      setAnnotations(null);
+      // Calculate generation time
+      const elapsed = (Date.now() - startTime) / 1000;
+      setGenerationTime(elapsed);
+
+      // Extract video URL from response (if available immediately)
+      const videoUrl = data.data?.videoUrl || data.data?.url || data.data?.s3Url;
+      if (videoUrl) {
+        setGeneratedVideoUrl(videoUrl);
+        toast.success('Video generated!');
+      } else {
+        // For async jobs, we might get a job ID - show message
+        const jobId = data.data?.jobId || data.jobId;
+        if (jobId) {
+          toast.success('Video generation started! Check Jobs panel for progress.');
+        } else {
+          // Try to construct from S3 key if available
+          const s3Key = data.data?.s3Key || data.data?.key;
+          if (s3Key) {
+            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+            setGeneratedVideoUrl(`https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`);
+            toast.success('Video generated!');
+          } else {
+            toast.success('Video generation started! Check Jobs panel for progress.');
+          }
+        }
+      }
+      
+      // Reset form (but keep generated video visible if available)
+      if (!videoUrl && !data.data?.jobId) {
+        setImageUrl(null);
+        setImageS3Key(null);
+        setAnnotations(null);
+      }
     } catch (error: any) {
       console.error('Video generation failed:', error);
       toast.error(error.message || 'Failed to generate video');
+      setGeneratedVideoUrl(null);
     } finally {
       setIsGenerating(false);
     }
@@ -250,19 +287,31 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
     setAnnotations(null);
   };
 
-  return (
-    <div className={cn("h-full flex flex-col bg-[#0A0A0A] p-4 md:p-6", className)}>
-      <div className="flex-shrink-0 mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Video className="w-6 h-6 text-cinema-red" />
-          <h2 className="text-xl font-semibold text-white">Annotation-to-Video</h2>
-        </div>
-        <p className="text-sm text-[#808080]">
-          Upload a first frame image, add annotations for camera motion, and generate video with your chosen model.
-        </p>
-      </div>
+  const handleDownload = () => {
+    if (generatedVideoUrl) {
+      const link = document.createElement('a');
+      link.href = generatedVideoUrl;
+      link.download = `generated-video-${Date.now()}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
-      <div className="flex-1 flex flex-col gap-6">
+  return (
+    <div className={cn("h-full flex bg-[#0A0A0A] overflow-hidden", className)}>
+      {/* Left Panel - Form Controls */}
+      <div className="w-1/2 flex flex-col border-r border-white/10 overflow-y-auto">
+        <div className="flex flex-col gap-6 p-4 md:p-6">
+          <div className="flex-shrink-0">
+            <div className="flex items-center gap-3 mb-2">
+              <Video className="w-6 h-6 text-cinema-red" />
+              <h2 className="text-xl font-semibold text-white">Annotation-to-Video</h2>
+            </div>
+            <p className="text-sm text-[#808080]">
+              Upload a first frame image, add annotations for camera motion, and generate video with your chosen model.
+            </p>
+          </div>
         {/* Model Selection */}
         <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
@@ -367,8 +416,10 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
           </div>
         )}
 
-        {/* Generate Button */}
-        <div className="flex-shrink-0">
+        </div>
+        
+        {/* Generate Button - Fixed at bottom */}
+        <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
           <button
             onClick={handleGenerate}
             disabled={isGenerating || !imageS3Key || isUploading}
@@ -391,6 +442,16 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
             )}
           </button>
         </div>
+      </div>
+
+      {/* Right Panel - Preview */}
+      <div className="w-1/2">
+        <GenerationPreview
+          isGenerating={isGenerating}
+          generatedVideoUrl={generatedVideoUrl}
+          generationTime={generationTime}
+          onDownload={handleDownload}
+        />
       </div>
     </div>
   );

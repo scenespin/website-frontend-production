@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
+import { GenerationPreview } from './GenerationPreview';
 
 interface ImageGenerationToolsProps {
   className?: string;
@@ -55,6 +56,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available models
@@ -325,6 +328,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (!prompt.trim() || isGenerating || !selectedModel) return;
 
     setIsGenerating(true);
+    setGeneratedImageUrl(null);
+    setGenerationTime(undefined);
+    const startTime = Date.now();
+
     try {
       const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
@@ -365,26 +372,57 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
 
       const response = await apiModule.image.generate(requestBody);
-
-      toast.success('Image generated! Saving to Playground...');
       
-      // Reset form
+      // Calculate generation time
+      const elapsed = (Date.now() - startTime) / 1000;
+      setGenerationTime(elapsed);
+
+      // Extract image URL from response
+      const imageUrl = response.data?.imageUrl || response.data?.url || response.data?.s3Url;
+      if (imageUrl) {
+        setGeneratedImageUrl(imageUrl);
+      } else {
+        // Try to construct from S3 key if available
+        const s3Key = response.data?.s3Key || response.data?.key;
+        if (s3Key) {
+          const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+          const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+          setGeneratedImageUrl(`https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`);
+        }
+      }
+
+      toast.success('Image generated!');
+      
+      // Reset form (but keep generated image visible)
       setPrompt('');
       setReferenceImages([]);
       setSelectedCameraAngle('');
       
-      // TODO: Refresh media library to show new image
     } catch (error: any) {
       console.error('Image generation failed:', error);
       toast.error(error.response?.data?.message || 'Failed to generate image');
+      setGeneratedImageUrl(null);
     } finally {
       setIsGenerating(false);
     }
   };
 
+  const handleDownload = () => {
+    if (generatedImageUrl) {
+      const link = document.createElement('a');
+      link.href = generatedImageUrl;
+      link.download = `generated-image-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
-    <div className={cn("h-full flex flex-col bg-[#0A0A0A] overflow-y-auto", className)}>
-      <div className="flex flex-col gap-6 p-4 md:p-6">
+    <div className={cn("h-full flex bg-[#0A0A0A] overflow-hidden", className)}>
+      {/* Left Panel - Form Controls */}
+      <div className="w-1/2 flex flex-col border-r border-white/10 overflow-y-auto">
+        <div className="flex flex-col gap-6 p-4 md:p-6">
           {/* Prompt Input */}
           <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
@@ -583,8 +621,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             </div>
           </div>
 
-          {/* Generate Button */}
-          <div className="flex-shrink-0">
+        </div>
+        
+        {/* Generate Button - Fixed at bottom */}
+        <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
           <button
             onClick={handleGenerate}
             disabled={!prompt.trim() || isGenerating || !selectedModel}
@@ -606,8 +646,18 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               </>
             )}
           </button>
-           </div>
         </div>
+      </div>
+
+      {/* Right Panel - Preview */}
+      <div className="w-1/2">
+        <GenerationPreview
+          isGenerating={isGenerating}
+          generatedImageUrl={generatedImageUrl}
+          generationTime={generationTime}
+          onDownload={handleDownload}
+        />
+      </div>
     </div>
   );
 }

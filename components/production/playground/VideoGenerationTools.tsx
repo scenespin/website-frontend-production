@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
+import { GenerationPreview } from './GenerationPreview';
 
 interface VideoGenerationToolsProps {
   className?: string;
@@ -45,6 +46,10 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   const [frame2, setFrame2] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
   const frame1InputRef = useRef<HTMLInputElement>(null);
   const frame2InputRef = useRef<HTMLInputElement>(null);
+
+  // Generated video state
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
 
   // Simple credits calculation based on quality tier and duration
   const getTotalCredits = (): number => {
@@ -177,6 +182,10 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
     }
 
     setIsGenerating(true);
+    setGeneratedVideoUrl(null);
+    setGenerationTime(undefined);
+    const startTime = Date.now();
+
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
@@ -230,14 +239,42 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
 
       const result = await response.json();
       
-      // Backend handles upscaling automatically for premium tier
-      if (qualityTier === 'premium') {
-        toast.success('Premium 4K video generation started! Check your Media Library.');
+      // Calculate generation time
+      const elapsed = (Date.now() - startTime) / 1000;
+      setGenerationTime(elapsed);
+
+      // Extract video URL from response (if available immediately)
+      const videoUrl = result.data?.videoUrl || result.data?.url || result.data?.s3Url;
+      if (videoUrl) {
+        setGeneratedVideoUrl(videoUrl);
       } else {
-        toast.success('Professional video generation started! Check your Media Library.');
+        // For async jobs, we might get a job ID - show message
+        const jobId = result.data?.jobId || result.jobId;
+        if (jobId) {
+          toast.success('Video generation started! Check Jobs panel for progress.');
+        } else {
+          // Try to construct from S3 key if available
+          const s3Key = result.data?.s3Key || result.data?.key;
+          if (s3Key) {
+            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+            setGeneratedVideoUrl(`https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`);
+          }
+        }
       }
       
-      // Reset form
+      // Backend handles upscaling automatically for premium tier
+      if (qualityTier === 'premium') {
+        if (!videoUrl && !result.data?.jobId) {
+          toast.success('Premium 4K video generation started! Check your Media Library.');
+        }
+      } else {
+        if (!videoUrl && !result.data?.jobId) {
+          toast.success('Professional video generation started! Check your Media Library.');
+        }
+      }
+      
+      // Reset form (but keep generated video visible if available)
       setPrompt('');
       setSelectedCameraAngle('');
       if (activeMode === 'starting-frame') {
@@ -252,14 +289,28 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
     } catch (error: any) {
       console.error('Video generation failed:', error);
       toast.error(error.message || 'Failed to generate video');
+      setGeneratedVideoUrl(null);
     } finally {
       setIsGenerating(false);
     }
   };
 
+  const handleDownload = () => {
+    if (generatedVideoUrl) {
+      const link = document.createElement('a');
+      link.href = generatedVideoUrl;
+      link.download = `generated-video-${Date.now()}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
-    <div className={cn("h-full flex flex-col bg-[#0A0A0A] overflow-y-auto", className)}>
-      <div className="flex flex-col gap-6 p-4 md:p-6">
+    <div className={cn("h-full flex bg-[#0A0A0A] overflow-hidden", className)}>
+      {/* Left Panel - Form Controls */}
+      <div className="w-1/2 flex flex-col border-r border-white/10 overflow-y-auto">
+        <div className="flex flex-col gap-6 p-4 md:p-6">
         {/* Mode Tabs */}
         <div className="flex-shrink-0 mb-6">
         <div className="flex gap-2 flex-wrap">
@@ -583,8 +634,10 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           </select>
         </div>
 
-        {/* Generate Button */}
-        <div className="flex-shrink-0">
+        </div>
+        
+        {/* Generate Button - Fixed at bottom */}
+        <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
           <button
             onClick={handleGenerate}
             disabled={!prompt.trim() || isGenerating || 
@@ -610,6 +663,15 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           </button>
         </div>
       </div>
+
+      {/* Right Panel - Preview */}
+      <div className="w-1/2">
+        <GenerationPreview
+          isGenerating={isGenerating}
+          generatedVideoUrl={generatedVideoUrl}
+          generationTime={generationTime}
+          onDownload={handleDownload}
+        />
       </div>
     </div>
   );
