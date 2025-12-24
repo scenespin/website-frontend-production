@@ -70,6 +70,8 @@ export function UnifiedSceneConfiguration({
   onLocationAngleChange,
   selectedCharactersForShots = {},
   onCharactersForShotChange,
+  pronounMappingsForShots = {},
+  onPronounMappingChange,
   allCharacters = [],
   enabledShots,
   onEnabledShotsChange,
