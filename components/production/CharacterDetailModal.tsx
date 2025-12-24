@@ -36,7 +36,8 @@ import { VoiceBrowserModal } from './VoiceBrowserModal';
 import { CustomVoiceForm } from './CustomVoiceForm';
 import { CharacterPoseCropModal } from './CharacterPoseCropModal';
 import { ModernGallery, type GalleryImage } from './Gallery/ModernGallery';
-import { CharacterStudioModal } from './CharacterStudio/CharacterStudioModal';
+import { UploadCoverageTab } from './Coverage/UploadCoverageTab';
+import { GenerateCoverageTab } from './Coverage/GenerateCoverageTab';
 
 /**
  * Get display label for provider ID
@@ -110,7 +111,8 @@ export function CharacterDetailModal({
     return contextCharacter ? isEntityInScript(editorState.content, contextCharacter.name, 'character') : false;
   }, [contextCharacter, editorState.content, isEntityInScript]);
   
-  const [activeTab, setActiveTab] = useState<'character-studio' | 'gallery' | 'info' | 'references' | 'voice'>('character-studio');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'voice'>('gallery');
+  const [coverageTab, setCoverageTab] = useState<'upload' | 'generate' | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null); // 🔥 NEW: Track selected image by ID for Gallery section
   const [isUploading, setIsUploading] = useState(false);
@@ -133,8 +135,6 @@ export function CharacterDetailModal({
   const [showCustomVoiceForm, setShowCustomVoiceForm] = useState(false);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [prefilledVoiceId, setPrefilledVoiceId] = useState<string | undefined>(undefined);
-  // Character Studio modal state (Phase 2)
-  const [showCharacterStudio, setShowCharacterStudio] = useState(false);
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -791,20 +791,14 @@ export function CharacterDetailModal({
 
             {/* Tabs */}
             <div className="flex-shrink-0 px-6 py-3 border-b border-[#3F3F46] bg-[#141414] flex items-center gap-2">
+              {/* Left side: Standard tabs */}
               <button
-                onClick={() => setActiveTab('character-studio')}
+                onClick={() => {
+                  setActiveTab('gallery');
+                  setCoverageTab(null);
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'character-studio'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                Character Studio
-              </button>
-              <button
-                onClick={() => setActiveTab('gallery')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'gallery'
+                  activeTab === 'gallery' && !coverageTab
                     ? 'bg-[#DC143C] text-white'
                     : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
                 }`}
@@ -813,9 +807,12 @@ export function CharacterDetailModal({
                 Gallery
               </button>
               <button
-                onClick={() => setActiveTab('info')}
+                onClick={() => {
+                  setActiveTab('info');
+                  setCoverageTab(null);
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'info'
+                  activeTab === 'info' && !coverageTab
                     ? 'bg-[#DC143C] text-white'
                     : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
                 }`}
@@ -824,9 +821,12 @@ export function CharacterDetailModal({
                 Info
               </button>
               <button
-                onClick={() => setActiveTab('references')}
+                onClick={() => {
+                  setActiveTab('references');
+                  setCoverageTab(null);
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'references'
+                  activeTab === 'references' && !coverageTab
                     ? 'bg-[#DC143C] text-white'
                     : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
                 }`}
@@ -837,12 +837,13 @@ export function CharacterDetailModal({
               <button
                 onClick={() => {
                   setActiveTab('voice');
+                  setCoverageTab(null);
                   if (!voiceProfile && !isLoadingVoice) {
                     fetchVoiceProfile();
                   }
                 }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'voice'
+                  activeTab === 'voice' && !coverageTab
                     ? 'bg-[#DC143C] text-white'
                     : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
                 }`}
@@ -850,66 +851,81 @@ export function CharacterDetailModal({
                 <Volume2 className="w-4 h-4 inline mr-2" />
                 Voice
                 {voiceProfile && (
-                  <span className={`ml-2 text-xs ${activeTab === 'voice' ? 'opacity-75' : 'text-green-400'}`}>●</span>
+                  <span className={`ml-2 text-xs ${activeTab === 'voice' && !coverageTab ? 'opacity-75' : 'text-green-400'}`}>●</span>
                 )}
               </button>
               
-              {/* Generate Pose Package Button - Always visible */}
-              {onGeneratePosePackage && (
-                <div className="ml-auto">
+              {/* Right side: Coverage buttons */}
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setCoverageTab('upload');
+                    setActiveTab('gallery'); // Keep gallery as active tab for context
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    coverageTab === 'upload'
+                      ? 'bg-[#DC143C] text-white'
+                      : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                  }`}
+                >
+                  <Upload className="w-4 h-4 inline mr-2" />
+                  Upload Coverage
+                </button>
+                {onGeneratePosePackage && (
                   <button
                     onClick={() => {
-                      if (onGeneratePosePackage) {
-                        onGeneratePosePackage(character.id);
-                      } else {
-                        toast.error('Generate pose package function not available');
-                      }
+                      setCoverageTab('generate');
+                      setActiveTab('gallery'); // Keep gallery as active tab for context
                     }}
-                    className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 text-sm font-medium"
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      coverageTab === 'generate'
+                        ? 'bg-[#DC143C] text-white'
+                        : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                    }`}
                   >
                     <span className="text-base">🤖</span>
-                    Generate Pose Package
-                    <span className="px-1 py-0 rounded text-[9px] font-medium bg-[#DC143C] text-white ml-1">NEW</span>
+                    Generate Coverage
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
-              {activeTab === 'character-studio' && (
-                <div className="p-6">
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-white mb-2">Character Studio</h3>
-                    <p className="text-sm text-[#808080] mb-4">
-                      Upload custom character images and organize them by outfit for use in video generation.
-                    </p>
-                    <button
-                      onClick={() => setShowCharacterStudio(true)}
-                      className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded-lg transition-colors font-medium text-sm"
-                    >
-                      Open Character Studio
-                    </button>
-                  </div>
-                  
-                  {/* Placeholder content */}
-                  <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
-                    <p className="text-[#808080] mb-4">
-                      Character Studio will allow you to:
-                    </p>
-                    <ul className="list-disc list-inside space-y-2 text-sm text-[#808080]">
-                      <li>Upload custom character images</li>
-                      <li>Browse and select images from Media Library</li>
-                      <li>Organize images by outfit/style</li>
-                      <li>Get guidance on recommended poses and angles</li>
-                      <li>Use images as references in video generation</li>
-                    </ul>
-                    <p className="text-sm text-[#6B7280] mt-4">
-                      Full implementation coming in Phase 3...
-                    </p>
-                  </div>
-                </div>
+              {/* Coverage Tabs (Upload or Generate) */}
+              {coverageTab === 'upload' && (
+                <UploadCoverageTab
+                  characterId={character.id}
+                  characterName={character.name}
+                  screenplayId={screenplayId || ''}
+                  existingReferences={[...(latestCharacter.references || []), ...(latestCharacter.poseReferences || [])]}
+                  onComplete={async (result) => {
+                    queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                    await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    toast.success(`Successfully added ${result.images.length} image(s) to ${result.outfitName}`);
+                    setCoverageTab(null); // Close coverage tab after completion
+                  }}
+                />
               )}
+              
+              {coverageTab === 'generate' && onGeneratePosePackage && (
+                <GenerateCoverageTab
+                  characterId={character.id}
+                  characterName={character.name}
+                  screenplayId={screenplayId || ''}
+                  baseReferenceS3Key={latestCharacter.baseReference?.s3Key}
+                  onClose={() => setCoverageTab(null)}
+                  onComplete={async (result) => {
+                    queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    setCoverageTab(null); // Close coverage tab after completion
+                  }}
+                />
+              )}
+              
+              {/* Standard Tabs (only show if no coverage tab active) */}
+              {!coverageTab && (
               
               {activeTab === 'gallery' && (
                 <div className="p-6">
@@ -1729,6 +1745,7 @@ export function CharacterDetailModal({
                   )}
                 </div>
               )}
+              )}
             </div>
           </motion.div>
 
@@ -1753,22 +1770,6 @@ export function CharacterDetailModal({
             prefilledVoiceId={prefilledVoiceId}
           />
 
-          {/* Character Studio Modal */}
-          <CharacterStudioModal
-            isOpen={showCharacterStudio}
-            onClose={() => setShowCharacterStudio(false)}
-            characterId={character.id}
-            characterName={character.name}
-            screenplayId={screenplayId || ''}
-            existingReferences={[...(latestCharacter.references || []), ...(latestCharacter.poseReferences || [])]}
-            onComplete={async (result) => {
-              // Refresh character data after upload
-              queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-              queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-              await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-              toast.success(`Successfully added ${result.images.length} image(s) to ${result.outfitName}`);
-            }}
-          />
         </>
       )}
       
