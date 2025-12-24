@@ -20,6 +20,8 @@ interface CharacterOutfitSelectorProps {
   selectedOutfit?: string;
   onOutfitChange: (characterId: string, outfitName: string | undefined) => void;
   className?: string;
+  hideLabel?: boolean; // If true, don't show the character name label
+  compact?: boolean; // If true, use compact inline layout
 }
 
 export function CharacterOutfitSelector({
@@ -29,7 +31,9 @@ export function CharacterOutfitSelector({
   defaultOutfit,
   selectedOutfit,
   onOutfitChange,
-  className = ''
+  className = '',
+  hideLabel = false,
+  compact = false
 }: CharacterOutfitSelectorProps) {
   const [localSelectedOutfit, setLocalSelectedOutfit] = useState<string>(selectedOutfit || 'default');
 
@@ -112,15 +116,59 @@ export function CharacterOutfitSelector({
     }
   }, [characterName, hasAnyOutfits, hasMultipleOutfits, outfitsArray.length]);
 
+  // Compact inline layout (name + selector on same line)
+  if (compact) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        {!hideLabel && (
+          <span className="text-xs font-medium text-[#FFFFFF] whitespace-nowrap">
+            {characterName}
+          </span>
+        )}
+        {hasAnyOutfits ? (
+          shouldShowDropdown ? (
+            <select
+              value={localSelectedOutfit}
+              onChange={(e) => handleOutfitChange(e.target.value)}
+              className="flex-1 px-2 py-1 bg-[#141414] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+            >
+              {defaultOutfit ? (
+                <option value="default">
+                  Use Default ({defaultOutfit})
+                </option>
+              ) : null}
+              {outfitsArray.map((outfit) => (
+                <option key={outfit} value={outfit}>
+                  {outfit}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-xs text-[#808080]">
+              {defaultOutfit || outfitsArray[0] || 'No outfit set'}
+            </span>
+          )
+        ) : (
+          <span className="text-xs text-[#808080] italic">
+            No outfits available
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // Default layout (label above selector)
   return (
     <div className={`space-y-2 ${className}`}>
-      <Label className="text-xs font-medium text-[#808080] flex items-center gap-1.5">
-        <Users className="w-3 h-3" />
-        <span>{characterName}</span>
-        {defaultOutfit && (
-          <span className="text-[10px] text-[#3F3F46]">(Default: {defaultOutfit})</span>
-        )}
-      </Label>
+      {!hideLabel && (
+        <Label className="text-xs font-medium text-[#808080] flex items-center gap-1.5">
+          <Users className="w-3 h-3" />
+          <span>{characterName}</span>
+          {defaultOutfit && (
+            <span className="text-[10px] text-[#3F3F46]">(Default: {defaultOutfit})</span>
+          )}
+        </Label>
+      )}
       
       {hasAnyOutfits ? (
         shouldShowDropdown ? (

@@ -453,8 +453,8 @@ export function UnifiedSceneConfiguration({
       .map(([pronoun]) => pronoun) : [];
     
     return (
-      <div key={charId} className="space-y-2">
-        <div className="flex items-center justify-between">
+      <div key={charId} className="space-y-1.5">
+        <div className="flex items-center gap-2">
           <div className="text-xs font-medium text-[#FFFFFF]">
             {char.name}
           </div>
@@ -463,19 +463,22 @@ export function UnifiedSceneConfiguration({
               ({pronounsForThisChar.join(', ')})
             </div>
           )}
+          {/* Outfit Selector - inline on same line */}
+          <div className="flex-1">
+            <CharacterOutfitSelector
+              characterId={char.id}
+              characterName={char.name}
+              availableOutfits={char.availableOutfits || []}
+              defaultOutfit={char.defaultOutfit}
+              selectedOutfit={selectedOutfit}
+              onOutfitChange={(charId, outfitName) => {
+                onCharacterOutfitChange(charId, outfitName || undefined);
+              }}
+              hideLabel={true}
+              compact={true}
+            />
+          </div>
         </div>
-        
-        {/* Outfit Selector */}
-        <CharacterOutfitSelector
-          characterId={char.id}
-          characterName={char.name}
-          availableOutfits={char.availableOutfits || []}
-          defaultOutfit={char.defaultOutfit}
-          selectedOutfit={selectedOutfit}
-          onOutfitChange={(charId, outfitName) => {
-            onCharacterOutfitChange(charId, outfitName || undefined);
-          }}
-        />
       </div>
     );
   };
