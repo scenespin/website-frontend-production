@@ -178,12 +178,21 @@ export default function Navigation() {
     const currentPath = pathname?.split('?')[0];
     const linkPath = href?.split('?')[0];
     const currentTab = searchParams?.get('tab');
+    const hrefTab = href.includes('tab=') ? new URLSearchParams(href.split('?')[1] || '').get('tab') : null;
     
-    // Special handling: Production should not be active when Playground is active
-    if (linkPath === '/production' && currentTab === 'playground') {
-      return false;
+    // Special handling for Production vs Playground
+    if (linkPath === '/production') {
+      // If this is the Playground link
+      if (hrefTab === 'playground') {
+        return currentTab === 'playground';
+      }
+      // If this is the Production link (no tab param)
+      if (!hrefTab) {
+        return currentPath === '/production' && currentTab !== 'playground';
+      }
     }
     
+    // Default behavior for other routes
     return currentPath === linkPath || pathname === href;
   };
 
