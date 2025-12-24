@@ -169,7 +169,7 @@ export default function Navigation() {
     {
       name: 'Playground',
       icon: Zap,
-      href: '/production?tab=playground',
+      href: '/playground',
       description: 'Creative possibilities & workflows'
     },
   ];
@@ -177,22 +177,8 @@ export default function Navigation() {
   const isActive = (href) => {
     const currentPath = pathname?.split('?')[0];
     const linkPath = href?.split('?')[0];
-    const currentTab = searchParams?.get('tab');
-    const hrefTab = href.includes('tab=') ? new URLSearchParams(href.split('?')[1] || '').get('tab') : null;
     
-    // Special handling for Production vs Playground
-    if (linkPath === '/production') {
-      // If this is the Playground link
-      if (hrefTab === 'playground') {
-        return currentTab === 'playground';
-      }
-      // If this is the Production link (no tab param)
-      if (!hrefTab) {
-        return currentPath === '/production' && currentTab !== 'playground';
-      }
-    }
-    
-    // Default behavior for other routes
+    // Simple path matching - each route is independent
     return currentPath === linkPath || pathname === href;
   };
 

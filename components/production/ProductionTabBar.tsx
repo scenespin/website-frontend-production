@@ -16,7 +16,7 @@ import React from 'react';
 import { Film, Clapperboard, BriefcaseBusiness, Users, MapPin, Package, FolderOpen, Library, Video, Volume2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'images' | 'video' | 'audio' | 'storage' | 'playground';
+export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'images' | 'video' | 'audio' | 'storage';
 
 type TabGroup = 'assets' | 'studio';
 

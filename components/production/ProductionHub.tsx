@@ -58,7 +58,6 @@ import AssetBankPanel from './AssetBankPanel';
 // ProductionJobsPanel removed - functionality moved to JobsDrawer (Phase 2)
 import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 import { ProductionTabBar } from './ProductionTabBar';
-import { PlaygroundPanel } from './PlaygroundPanel';
 import { JobsDrawer } from './JobsDrawer';
 
 // ============================================================================
@@ -74,8 +73,7 @@ type ProductionTab =
   | 'images'        // Standalone images from Playground & uploads
   | 'video'         // Standalone videos from Playground & uploads
   | 'audio'         // Audio files & recordings
-  | 'storage'       // Media Library + Style Analyzer (renamed from media)
-  | 'playground';   // Playground (Creative Possibilities) - accessible via primary nav
+  | 'storage';      // Media Library + Style Analyzer (renamed from media)
   // Note: AI Chat is now a drawer (not a tab) - triggered from various buttons
   // Note: Jobs tab removed - functionality moved to JobsDrawer component
 
@@ -128,7 +126,7 @@ export function ProductionHub({}: ProductionHubProps) {
     
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
     
-    if (tabFromUrl && ['characters', 'locations', 'assets', 'scene-builder', 'scenes', 'images', 'video', 'audio', 'storage', 'playground'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['characters', 'locations', 'assets', 'scene-builder', 'scenes', 'images', 'video', 'audio', 'storage'].includes(tabFromUrl)) {
       // Only update if different to prevent React error #300 (circular updates)
       setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
     } else {
@@ -308,14 +306,12 @@ export function ProductionHub({}: ProductionHubProps) {
           </div>
         )}
 
-        {/* Mobile Tab Navigation - Hide when Playground is active */}
-        {activeTab !== 'playground' && (
-          <ProductionTabBar
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            jobCount={activeJobs}
-          />
-        )}
+        {/* Mobile Tab Navigation */}
+        <ProductionTabBar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          jobCount={activeJobs}
+        />
 
         {/* Mobile Content */}
         <div className="flex-1 overflow-hidden">
@@ -381,13 +377,6 @@ export function ProductionHub({}: ProductionHubProps) {
 
 
 
-          {activeTab === 'playground' && (
-            <div className="h-full overflow-hidden">
-              <ProductionErrorBoundary componentName="Playground">
-                <PlaygroundPanel className="h-full" />
-              </ProductionErrorBoundary>
-            </div>
-          )}
         </div>
 
         {/* Jobs Drawer */}
@@ -407,14 +396,12 @@ export function ProductionHub({}: ProductionHubProps) {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
-      {/* Horizontal Tab Navigation - Hide when Playground is active */}
-      {activeTab !== 'playground' && (
-        <ProductionTabBar
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          jobCount={activeJobs}
-        />
-      )}
+      {/* Horizontal Tab Navigation */}
+      <ProductionTabBar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        jobCount={activeJobs}
+      />
 
         {/* Active Jobs Banner */}
         {activeJobs > 0 && showJobsBanner && (
@@ -544,13 +531,6 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'playground' && (
-            <div className="h-full overflow-hidden">
-              <ProductionErrorBoundary componentName="Playground">
-                <PlaygroundPanel className="h-full" />
-              </ProductionErrorBoundary>
-            </div>
-          )}
       </div>
 
       {/* Jobs Drawer */}
@@ -563,6 +543,4 @@ export function ProductionHub({}: ProductionHubProps) {
     </div>
   );
 }
-
-// OverviewTab component removed - Playground tab now shows only Creative Possibilities Gallery
 
