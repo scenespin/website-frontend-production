@@ -410,7 +410,9 @@ export function JobsDrawer({ isOpen, onClose, onToggle, autoOpen = false, compac
   }, [screenplayId, statusFilter, isOpen]);
 
   /**
-   * Poll running jobs every 3 seconds when drawer is open
+   * Poll running jobs when drawer is open
+   * - Poll every 5 seconds when jobs are running (for real-time updates)
+   * - Poll every 15 seconds when no jobs (to save resources)
    */
   useEffect(() => {
     if (!isOpen) {
@@ -420,12 +422,23 @@ export function JobsDrawer({ isOpen, onClose, onToggle, autoOpen = false, compac
     
     const hasRunningJobs = jobs.some(job => job.status === 'running' || job.status === 'queued');
     
-    setIsPolling(true);
-    const interval = setInterval(() => {
-      loadJobs(false);
-    }, 3000);
+    // Only poll frequently when there are actually running jobs
+    if (hasRunningJobs) {
+      setIsPolling(true);
+      const interval = setInterval(() => {
+        loadJobs(false);
+      }, 5000); // 5 seconds when jobs are running
 
-    return () => clearInterval(interval);
+      return () => clearInterval(interval);
+    } else {
+      // Poll less frequently when no running jobs
+      setIsPolling(false);
+      const interval = setInterval(() => {
+        loadJobs(false);
+      }, 15000); // 15 seconds when no jobs
+
+      return () => clearInterval(interval);
+    }
   }, [jobs.length, isOpen]);
 
   /**

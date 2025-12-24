@@ -191,8 +191,9 @@ export function ProductionHub({}: ProductionHubProps) {
     // Initial fetch
     fetchActiveJobs();
 
-    // Poll more frequently (every 3 seconds) to catch new jobs quickly
-    const interval = setInterval(fetchActiveJobs, 3000);
+    // Poll every 10 seconds - good balance between responsiveness and resource usage
+    // When jobs are running, JobsDrawer will handle more frequent polling (3 seconds)
+    const interval = setInterval(fetchActiveJobs, 10000);
     
     return () => clearInterval(interval);
   }, [screenplayId, getToken, isJobsDrawerOpen]);
