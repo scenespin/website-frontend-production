@@ -974,31 +974,35 @@ export function JobsDrawer({ isOpen, onClose, onToggle, autoOpen = false, compac
                           </>
                         )}
 
-                        {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (
-                          <>
-                            <button
-                              onClick={async () => {
-                                const reading = job.results!.screenplayReading!;
-                                const filename = 'Screenplay Reading.mp3';
-                                await downloadAudioAsBlob(reading.audioUrl, filename, reading.s3Key);
-                              }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-                            >
-                              <Download className="w-2.5 h-2.5" />
-                              Download
-                            </button>
-                            {reading.subtitleS3Key && (
+                        {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (() => {
+                          const reading = job.results!.screenplayReading!;
+                          return (
+                            <>
                               <button
                                 onClick={async () => {
-                                  // Download subtitle logic
-                                  toast.info('Subtitle download coming soon');
+                                  const filename = 'Screenplay Reading.mp3';
+                                  await downloadAudioAsBlob(reading.audioUrl, filename, reading.s3Key);
                                 }}
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
                               >
                                 <Download className="w-2.5 h-2.5" />
-                                Subtitles
+                                Download
                               </button>
-                            )}
+                              {reading.subtitleS3Key && (
+                                <button
+                                  onClick={async () => {
+                                    // Download subtitle logic
+                                    toast.info('Subtitle download coming soon');
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                                >
+                                  <Download className="w-2.5 h-2.5" />
+                                  Subtitles
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                             <button
                               onClick={() => {
                                 const reading = job.results!.screenplayReading!;
