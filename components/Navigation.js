@@ -167,26 +167,10 @@ export default function Navigation() {
       ]
     },
     {
-      name: 'Composition',
-      icon: Layout,
-      href: '/composition'
-    },
-    {
-      name: 'Timeline',
-      icon: Clock,
-      href: '/timeline'
-    },
-    {
-      name: 'Library',
-      icon: FolderOpen,
-      href: '/assets',
-      // Mobile-only sub-items (for accordion)
-      subItems: [
-        { name: 'Projects', href: '/dashboard', icon: FileText, description: 'Your projects' },
-        { name: 'Videos', href: '/assets?type=video', icon: Video, description: 'Generated clips' },
-        { name: 'Music', href: '/assets?type=audio', icon: Music, description: 'Audio library' },
-        { name: 'Assets', href: '/assets', icon: Image, description: 'All media files' },
-      ]
+      name: 'Playground',
+      icon: Zap,
+      href: '/production?tab=playground',
+      description: 'Creative possibilities & workflows'
     },
   ];
 

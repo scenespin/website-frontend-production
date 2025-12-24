@@ -55,10 +55,11 @@ import { ImagesPanel } from './ImagesPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { LocationBankPanel } from './LocationBankPanel';
 import AssetBankPanel from './AssetBankPanel';
-import { ProductionJobsPanel } from './ProductionJobsPanel';
+// ProductionJobsPanel removed - functionality moved to JobsDrawer (Phase 2)
 import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 import { ProductionTabBar } from './ProductionTabBar';
 import { PlaygroundPanel } from './PlaygroundPanel';
+import { JobsDrawer } from './JobsDrawer';
 
 // ============================================================================
 // TYPES
@@ -73,10 +74,10 @@ type ProductionTab =
   | 'images'        // Standalone images from Playground & uploads
   | 'video'         // Standalone videos from Playground & uploads
   | 'audio'         // Audio files & recordings
-  | 'jobs'          // Job Monitoring
-  | 'media'         // Media Library + Style Analyzer
-  | 'playground';   // Playground (Creative Possibilities)
+  | 'storage'       // Media Library + Style Analyzer (renamed from media)
+  | 'playground';   // Playground (Creative Possibilities) - accessible via primary nav
   // Note: AI Chat is now a drawer (not a tab) - triggered from various buttons
+  // Note: Jobs tab removed - functionality moved to JobsDrawer component
 
 interface ProductionHubProps {
   // Removed projectId prop - screenplayId comes from ScreenplayContext
@@ -111,6 +112,7 @@ export function ProductionHub({}: ProductionHubProps) {
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
+  const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false);
   
   // 🔥 FIX: Use ref to prevent circular updates when we programmatically change the tab
   const isUpdatingTabRef = useRef(false);
@@ -126,7 +128,7 @@ export function ProductionHub({}: ProductionHubProps) {
     
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
     
-    if (tabFromUrl && ['characters', 'locations', 'assets', 'scene-builder', 'scenes', 'video', 'audio', 'jobs', 'media', 'playground'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['characters', 'locations', 'assets', 'scene-builder', 'scenes', 'images', 'video', 'audio', 'storage', 'playground'].includes(tabFromUrl)) {
       // Only update if different to prevent React error #300 (circular updates)
       setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
     } else {
@@ -170,6 +172,13 @@ export function ProductionHub({}: ProductionHubProps) {
             job.status === 'running' || job.status === 'queued'
           ).length;
           setActiveJobs(runningCount);
+          
+          // Auto-open drawer when jobs are running (if not already open)
+          if (runningCount > 0 && !isJobsDrawerOpen) {
+            setIsJobsDrawerOpen(true);
+          }
+        } else {
+          setActiveJobs(0);
         }
       } catch (error) {
         console.error('[ProductionHub] Failed to fetch active jobs:', error);
@@ -183,7 +192,7 @@ export function ProductionHub({}: ProductionHubProps) {
     const interval = setInterval(fetchActiveJobs, 10000);
     
     return () => clearInterval(interval);
-  }, [screenplayId, getToken]);
+  }, [screenplayId, getToken, isJobsDrawerOpen]);
   
   // 🔥 CRITICAL: Early return AFTER all hooks are called
   if (!screenplayId) {
@@ -283,7 +292,7 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleTabChange('jobs')}
+                onClick={() => setIsJobsDrawerOpen(true)}
                 className="text-xs px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded-md transition-colors flex items-center gap-1"
               >
                 View
@@ -342,7 +351,7 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'media' && (
+          {activeTab === 'storage' && (
             <div className="h-full overflow-y-auto p-4">
               <MediaLibrary
                 projectId={screenplayId}
@@ -369,13 +378,6 @@ export function ProductionHub({}: ProductionHubProps) {
           )}
 
 
-          {activeTab === 'jobs' && (
-            <div className="h-full overflow-y-auto p-4">
-              <ProductionErrorBoundary componentName="Production Jobs">
-                <ProductionJobsPanel />
-              </ProductionErrorBoundary>
-            </div>
-          )}
 
           {activeTab === 'playground' && (
             <div className="h-full overflow-hidden">
@@ -385,6 +387,14 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
         </div>
+
+        {/* Jobs Drawer */}
+        <JobsDrawer
+          isOpen={isJobsDrawerOpen}
+          onClose={() => setIsJobsDrawerOpen(false)}
+          autoOpen={true}
+          compact={isMobile}
+        />
       </div>
     );
   }
@@ -415,7 +425,7 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleTabChange('jobs')}
+                onClick={() => setIsJobsDrawerOpen(true)}
               className="text-xs px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded transition-colors flex items-center gap-1"
               >
               View
@@ -467,7 +477,7 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'media' && (
+          {activeTab === 'storage' && (
             <div className="h-full overflow-y-auto">
               <div className="p-4 md:p-5">
                 <MediaLibrary
@@ -530,14 +540,6 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'jobs' && (
-            <div className="h-full overflow-y-auto">
-              <div className="p-4 md:p-5">
-                <ProductionJobsPanel />
-              </div>
-            </div>
-          )}
-
           {activeTab === 'playground' && (
             <div className="h-full overflow-hidden">
               <ProductionErrorBoundary componentName="Playground">
@@ -546,6 +548,14 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
       </div>
+
+      {/* Jobs Drawer */}
+      <JobsDrawer
+        isOpen={isJobsDrawerOpen}
+        onClose={() => setIsJobsDrawerOpen(false)}
+        autoOpen={true}
+        compact={isMobile}
+      />
     </div>
   );
 }

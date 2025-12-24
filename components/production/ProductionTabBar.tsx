@@ -4,10 +4,10 @@
  * Production Tab Bar Component
  * 
  * Horizontal tab navigation with expandable sub-tabs
- * - Top level: References | AI Studio | Playground | Jobs | Media
+ * - Top level: References | AI Studio | Storage
  * - References expands to: Characters | Locations | Props
  * - AI Studio expands to: Scene Manifest | Scenes | Images | Video | Audio
- * - Playground is a standalone top-level tab (not under AI Studio)
+ * - Playground is accessible via primary navigation (not in Production Hub tabs)
  * 
  * Feature: Production Hub Redesign - Sub-navigation Groups
  */
@@ -16,14 +16,13 @@ import React from 'react';
 import { Film, Clapperboard, BriefcaseBusiness, Users, MapPin, Package, FolderOpen, Library, Video, Volume2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'images' | 'video' | 'audio' | 'jobs' | 'media' | 'playground';
+export type ProductionTab = 'characters' | 'locations' | 'assets' | 'scene-builder' | 'scenes' | 'images' | 'video' | 'audio' | 'storage' | 'playground';
 
 type TabGroup = 'assets' | 'studio';
 
 interface ProductionTabBarProps {
   activeTab: ProductionTab;
   onTabChange: (tab: ProductionTab) => void;
-  jobCount?: number; // Badge for active jobs
 }
 
 // Sub-tabs for Assets group (matching Create section colors)
@@ -115,20 +114,8 @@ const TOP_LEVEL_TABS = [
     subTabs: STUDIO_SUBTABS,
   },
   {
-    id: 'playground' as ProductionTab,
-    label: 'Playground',
-    icon: undefined,
-    description: 'Creative possibilities & workflows',
-  },
-  {
-    id: 'jobs' as ProductionTab,
-    label: 'Jobs',
-    icon: BriefcaseBusiness,
-    description: 'Workflow history',
-  },
-  {
-    id: 'media' as ProductionTab,
-    label: 'Media',
+    id: 'storage' as ProductionTab,
+    label: 'Storage',
     icon: FolderOpen,
     description: 'Media Library & uploads',
   },
@@ -195,10 +182,9 @@ export function ProductionTabBar({
               );
             }
             
-            // Handle regular tabs (jobs, media, playground)
+            // Handle regular tabs (storage)
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            const showBadge = tab.id === 'jobs' && jobCount > 0;
 
             return (
               <button
@@ -227,18 +213,6 @@ export function ProductionTabBar({
               >
                 {Icon && <Icon className="w-4 h-4" />}
                 <span>{tab.label}</span>
-
-                {/* Badge for Jobs count */}
-                {showBadge && (
-                  <span className={cn(
-                    "ml-1 px-1.5 py-0.5 rounded-full",
-                    "text-xs font-bold",
-                    "bg-cinema-red text-white",
-                    "min-w-[18px] text-center"
-                  )}>
-                    {jobCount > 99 ? '99+' : jobCount}
-                  </span>
-                )}
               </button>
             );
           })}

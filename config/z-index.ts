@@ -27,10 +27,12 @@ export const Z_INDEX = {
   
   // Drawers and panels
   DRAWER: 50,
+  JOBS_DRAWER: 50, // Jobs drawer (below chat drawer)
   SIDEBAR: 45,
   
   // Overlays
   DROPDOWN: 60,
+  CHAT_DRAWER: 60, // Chat drawer (above jobs drawer)
   POPOVER: 70,
   
   // Modals
