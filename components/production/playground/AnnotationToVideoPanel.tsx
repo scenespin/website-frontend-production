@@ -35,12 +35,12 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
   // Video models (unwrapped - users see actual model names)
   const videoModels = [
     { id: 'runway-gen4-turbo', label: 'Runway Gen-4 Turbo', provider: 'runway', credits: 50, duration: '5s', resolution: '1080p' },
-    { id: 'runway-gen4-aleph', label: 'Runway Gen-4 Aleph', provider: 'runway', credits: 75, duration: '5s', resolution: '1080p' },
-    { id: 'luma-ray-flash-2', label: 'Luma Ray Flash 2', provider: 'luma-ray-flash-2', credits: 50, duration: '5s', resolution: '1080p' },
-    { id: 'luma-ray-2', label: 'Luma Ray 2', provider: 'luma-ray-2', credits: 200, duration: '10s', resolution: '4K' },
+    { id: 'runway-gen4-aleph', label: 'Runway Gen-4 Aleph', provider: 'runway', credits: 150, duration: '5s', resolution: '1080p' },
+    { id: 'luma-ray-flash-2', label: 'Luma Ray Flash 2', provider: 'luma-ray-flash-2', credits: 75, duration: '5s', resolution: '1080p' },
+    { id: 'luma-ray-2', label: 'Luma Ray 2', provider: 'luma-ray-2', credits: 172, duration: '5s', resolution: '1080p' }, // ⚠️ 1080p only, NOT 4K
     { id: 'veo-3.1', label: 'Google Veo 3.1', provider: 'veo-3.1', credits: 50, duration: '5s', resolution: '1080p' },
     { id: 'veo-3.1-fast', label: 'Google Veo 3.1 Fast', provider: 'veo-3.1', credits: 40, duration: '5s', resolution: '1080p' },
-    { id: 'sora-2-pro', label: 'OpenAI Sora 2 Pro', provider: 'sora-2-pro', credits: 100, duration: '8s', resolution: '1080p' },
+    { id: 'sora-2-pro', label: 'OpenAI Sora 2 Pro', provider: 'sora-2-pro', credits: 480, duration: '8s', resolution: '720p' }, // ⚠️ 720p, not 1080p
   ];
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

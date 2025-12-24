@@ -30,92 +30,75 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   
   const [activeMode, setActiveMode] = useState<VideoMode>('starting-frame');
   const [prompt, setPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState<string>('luma-ray-flash-2');
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [selectedDuration, setSelectedDuration] = useState<number>(5);
+  const [qualityTier, setQualityTier] = useState<'full-hd' | '4k'>('full-hd');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
-  
+  const [modelsLoading, setModelsLoading] = useState(true);
+
   // Starting Frame mode
   const [startImage, setStartImage] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
   const startImageInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Frame to Frame mode
   const [frame1, setFrame1] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
   const [frame2, setFrame2] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
   const frame1InputRef = useRef<HTMLInputElement>(null);
   const frame2InputRef = useRef<HTMLInputElement>(null);
 
-  // Video models with duration options
+  // Video models with duration options (fetched from API)
   interface VideoModel {
     id: string;
     label: string;
     provider: string;
-    baseCredits: number;
-    resolution: string;
     durations: number[]; // Available durations in seconds
-    creditsPerSecond?: number; // Optional: credits per second (for variable pricing)
+    creditsMap: Record<number, number>; // Duration -> credits mapping
+    speed?: string;
+    quality?: string;
+    recommended?: boolean;
   }
 
-  const videoModels: VideoModel[] = [
-    // Generate Models
-    { 
-      id: 'runway-gen4-turbo', 
-      label: 'Runway Gen-4 Turbo', 
-      provider: 'runway', 
-      baseCredits: 50, 
-      resolution: '1080p',
-      durations: [5, 10] 
-    },
-    { 
-      id: 'luma-ray-flash-2', 
-      label: 'Luma Ray Flash 2', 
-      provider: 'luma-ray-flash-2', 
-      baseCredits: 50, 
-      resolution: '1080p',
-      durations: [5, 10] 
-    },
-    { 
-      id: 'luma-ray-2', 
-      label: 'Luma Ray 2', 
-      provider: 'luma-ray-2', 
-      baseCredits: 200, 
-      resolution: '4K',
-      durations: [10] 
-    },
-    { 
-      id: 'veo-3.1', 
-      label: 'Google Veo 3.1', 
-      provider: 'veo-3.1', 
-      baseCredits: 50, 
-      resolution: '1080p',
-      durations: [4, 6, 8] 
-    },
-    { 
-      id: 'veo-3.1-fast', 
-      label: 'Google Veo 3.1 Fast', 
-      provider: 'veo-3.1', 
-      baseCredits: 40, 
-      resolution: '1080p',
-      durations: [4, 6, 8] 
-    },
-    { 
-      id: 'sora-2', 
-      label: 'OpenAI Sora 2', 
-      provider: 'openai', 
-      baseCredits: 100, 
-      resolution: '1080p',
-      durations: [4, 8, 12] 
-    },
-    { 
-      id: 'sora-2-pro', 
-      label: 'OpenAI Sora 2 Pro', 
-      provider: 'openai', 
-      baseCredits: 150, 
-      resolution: '1080p',
-      durations: [4, 8, 12] 
-    },
-  ];
+  const [videoModels, setVideoModels] = useState<VideoModel[]>([]);
+
+  // Fetch video models from API
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        setModelsLoading(true);
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          console.error('Authentication required');
+          return;
+        }
+
+        const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
+        setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+
+        const response = await apiModule.video.getModels();
+        const modelsData = response.data?.models || response.data?.data?.models || [];
+        
+        setVideoModels(modelsData);
+        
+        // Set default model (first recommended or first in list)
+        if (modelsData.length > 0 && !selectedModel) {
+          const defaultModel = modelsData.find((m: VideoModel) => m.recommended) || modelsData[0];
+          setSelectedModel(defaultModel.id);
+          if (defaultModel.durations && defaultModel.durations.length > 0) {
+            setSelectedDuration(defaultModel.durations[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch video models:', error);
+        toast.error('Failed to load video models');
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, [getToken]);
 
   // Modify Models removed - use Post-Production Workflows instead
   // Workflows handle video modification with wrapped pricing:
@@ -132,16 +115,22 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   // Get credits for selected model and duration
   const getCreditsForModel = (modelId: string, duration: number): number => {
     const model = videoModels.find(m => m.id === modelId);
-    if (!model) return 50;
+    if (!model || !model.creditsMap) return 50;
     
-    // If model has creditsPerSecond, calculate dynamically
-    if (model.creditsPerSecond) {
-      return model.creditsPerSecond * duration;
-    }
-    
-    // Otherwise use base credits (may need adjustment based on duration)
-    // For now, return base credits (backend will handle duration pricing)
-    return model.baseCredits;
+    // Use creditsMap for duration-based pricing
+    return model.creditsMap[duration] || model.creditsMap[Object.keys(model.creditsMap)[0] as unknown as number] || 50;
+  };
+
+  // Get upscale cost (Runway upscaler: 25 credits for 5s, 50 credits for 10s+)
+  const getUpscaleCost = (): number => {
+    return selectedDuration <= 5 ? 25 : 50;
+  };
+
+  // Get total credits (base generation + upscale if 4K)
+  const getTotalCredits = (): number => {
+    const baseCredits = getCreditsForModel(selectedModel, selectedDuration);
+    const upscaleCredits = qualityTier === '4k' ? getUpscaleCost() : 0;
+    return baseCredits + upscaleCredits;
   };
 
   // Update duration when model changes
@@ -314,10 +303,12 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           prompt: finalPrompt,
         }],
         provider: selectedModelInfo?.provider || selectedModel,
-        resolution: selectedModelInfo?.resolution || '1080p',
+        duration: `${selectedDuration}s`,
         sceneId: `playground_${Date.now()}`,
         sceneName: `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
-        useVideoExtension: false
+        useVideoExtension: false,
+        // Quality tier for 4K upscaling (will be handled after generation)
+        qualityTier: qualityTier === '4k' ? 'premium' : 'professional',
       };
 
       if (activeMode === 'starting-frame' && startImage?.s3Key) {
@@ -345,7 +336,14 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
       }
 
       const result = await response.json();
-      toast.success('Video generation started! Check your Media Library.');
+      
+      // If 4K quality selected, backend should handle upscaling automatically
+      // The qualityTier parameter in requestBody will trigger upscaling
+      if (qualityTier === '4k') {
+        toast.success('Video generation started! 4K upscaling will be applied automatically.');
+      } else {
+        toast.success('Video generation started! Check your Media Library.');
+      }
       
       // Reset form
       setPrompt('');
@@ -368,7 +366,8 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   };
 
   return (
-    <div className={cn("h-full flex flex-col bg-[#0A0A0A] p-4 md:p-6 overflow-y-auto", className)}>
+    <div className={cn("h-full flex flex-col bg-[#0A0A0A] overflow-y-auto", className)}>
+      <div className="flex flex-col gap-6 p-4 md:p-6">
       {/* Mode Tabs */}
       <div className="flex-shrink-0 mb-6">
         <div className="flex gap-2 flex-wrap">
@@ -628,26 +627,39 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           <label className="block text-sm font-medium text-white mb-2">
             Video Model
           </label>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating}
-          >
-            {videoModels.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.label} ({model.baseCredits} credits, {model.resolution})
-              </option>
-            ))}
-          </select>
-          {selectedModel && (
-            <p className="mt-1.5 text-xs text-[#808080]">
-              Cost: {getCreditsForModel(selectedModel, selectedDuration)} credits • Provider: {videoModels.find(m => m.id === selectedModel)?.provider || 'Unknown'}
-            </p>
+          {modelsLoading ? (
+            <div className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#808080] flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Loading models...</span>
+            </div>
+          ) : (
+            <>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+                disabled={isGenerating}
+              >
+                {videoModels.map((model) => {
+                  const defaultDuration = model.durations?.[0] || 5;
+                  const defaultCredits = model.creditsMap?.[defaultDuration] || 50;
+                  return (
+                    <option key={model.id} value={model.id}>
+                      {model.label} ({defaultCredits} credits)
+                    </option>
+                  );
+                })}
+              </select>
+              {selectedModel && (
+                <p className="mt-1.5 text-xs text-[#808080]">
+                  Cost: {getTotalCredits()} credits • Provider: {videoModels.find(m => m.id === selectedModel)?.provider || 'Unknown'}
+                </p>
+              )}
+              <p className="mt-1.5 text-xs text-[#4A4A4A]">
+                💡 For video modification (remove objects, transform scenes), use <strong>Post-Production Workflows</strong> tab
+              </p>
+            </>
           )}
-          <p className="mt-1.5 text-xs text-[#4A4A4A]">
-            💡 For video modification (remove objects, transform scenes), use <strong>Post-Production Workflows</strong> tab
-          </p>
         </div>
 
         {/* Duration Selection */}
@@ -659,7 +671,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
             value={selectedDuration}
             onChange={(e) => setSelectedDuration(Number(e.target.value))}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating}
+            disabled={isGenerating || modelsLoading}
           >
             {getAvailableDurations(selectedModel).map((duration) => (
               <option key={duration} value={duration}>
@@ -667,6 +679,51 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Quality Tier Selection */}
+        <div className="flex-shrink-0">
+          <label className="block text-sm font-medium text-white mb-2">
+            Quality
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setQualityTier('full-hd')}
+              disabled={isGenerating}
+              className={cn(
+                "px-4 py-3 rounded-lg border-2 font-medium text-sm transition-colors",
+                qualityTier === 'full-hd'
+                  ? "border-cinema-red bg-cinema-red/10 text-white"
+                  : "border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#4A4A4A] hover:text-white"
+              )}
+            >
+              Full HD
+            </button>
+            <button
+              type="button"
+              onClick={() => setQualityTier('4k')}
+              disabled={isGenerating}
+              className={cn(
+                "px-4 py-3 rounded-lg border-2 font-medium text-sm transition-colors",
+                qualityTier === '4k'
+                  ? "border-cinema-red bg-cinema-red/10 text-white"
+                  : "border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#4A4A4A] hover:text-white"
+              )}
+            >
+              4K
+              {qualityTier === '4k' && (
+                <span className="ml-1 text-xs text-[#808080]">
+                  (+{getUpscaleCost()} credits)
+                </span>
+              )}
+            </button>
+          </div>
+          {qualityTier === '4k' && (
+            <p className="mt-1.5 text-xs text-[#808080]">
+              Video will be upscaled to 4K using Runway upscaler after generation
+            </p>
+          )}
         </div>
 
         {/* Generate Button */}
