@@ -653,8 +653,34 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   // Determine z-index based on chat drawer state
   const zIndex = isChatDrawerOpen ? Z_INDEX.JOBS_DRAWER : Z_INDEX.JOBS_DRAWER;
 
+  // Check if there are any jobs (running, completed, or failed) to show the tab
+  const hasJobs = jobs.length > 0;
+
   return (
     <>
+      {/* Persistent Tab/Handle - Always visible when jobs exist, positioned on left edge of drawer area */}
+      {hasJobs && !isOpen && (
+        <button
+          onClick={onOpen}
+          className="fixed top-1/2 -translate-y-1/2 z-40 bg-[#0A0A0A] border-r border-t border-b border-[#3F3F46] rounded-r-lg px-3 py-4 shadow-lg hover:bg-[#141414] transition-all duration-200 group"
+          style={{
+            right: compact ? '0' : '400px', // Position at left edge of where drawer would be (400px from right)
+            transform: 'translateY(-50%)',
+            zIndex: zIndex + 1,
+          }}
+          title="View jobs"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <Clock className="w-4 h-4 text-[#E5E7EB] group-hover:text-[#DC143C] transition-colors" />
+            {jobCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#DC143C] text-white min-w-[18px] text-center">
+                {jobCount > 99 ? '99+' : jobCount}
+              </span>
+            )}
+          </div>
+        </button>
+      )}
+
       {/* Backdrop - Always render for smooth transition */}
       <div
         className="fixed inset-0 bg-black/50 transition-opacity duration-300 ease-in-out"
