@@ -483,7 +483,8 @@ export function UnifiedSceneConfiguration({
   // Render character images only (right column): headshots with click handlers
   const renderCharacterImagesOnly = (
     charId: string,
-    shotSlot: number
+    shotSlot: number,
+    pronounsForChar?: string[] // Optional: pronouns that map to this character
   ) => {
     const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
                allCharacters.find((c: any) => c.id === charId);
@@ -495,6 +496,12 @@ export function UnifiedSceneConfiguration({
     
     return (
       <div key={charId} className="space-y-2">
+        {/* Show which pronouns map to this character if provided */}
+        {pronounsForChar && pronounsForChar.length > 0 && (
+          <div className="text-[10px] text-[#808080] mb-1">
+            ({pronounsForChar.join(', ')})
+          </div>
+        )}
         {/* Headshots - CLICKABLE/SELECTABLE */}
         {loadingHeadshots[charId] ? (
           <div className="text-[10px] text-[#808080]">Loading headshots...</div>
@@ -835,7 +842,7 @@ export function UnifiedSceneConfiguration({
                       {shouldShowLocation && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
                           {/* Left: Label */}
-                          <div>
+                    <div>
                             <div className="text-xs font-medium text-[#FFFFFF]">
                               Location
                             </div>
@@ -854,9 +861,9 @@ export function UnifiedSceneConfiguration({
                               isRequired={isLocationAngleRequired(shot)}
                               recommended={sceneAnalysisResult.location.recommended}
                             />
-                          </div>
-                        </div>
-                      )}
+                                  </div>
+                                  </div>
+                                )}
                       
                       {/* Props Section: Full width with border spanning both columns */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
@@ -899,7 +906,7 @@ export function UnifiedSceneConfiguration({
                       {hasPronouns && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-3 border-t border-[#3F3F46]">
                           {/* Left: Pronoun Mapping Controls */}
-                          <div>
+                        <div>
                             <PronounMappingSection
                               pronouns={pronounInfo.pronouns}
                               characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
@@ -926,21 +933,75 @@ export function UnifiedSceneConfiguration({
                             />
                           </div>
                           {/* Right: Character Images for Pronoun-mapped characters */}
-                          {/* Use deduplicated list to avoid showing same character twice if mapped to multiple pronouns */}
-                          {allImageCharacterIds.length > 0 && (
-                            <div className="border-l border-[#3F3F46] pl-4 space-y-3">
-                              {/* Filter out explicit characters (already shown above) */}
-                              {allImageCharacterIds
-                                .filter(charId => !explicitCharacters.includes(charId))
-                                .map((charId) => {
-                                  return renderCharacterImagesOnly(charId, shot.slot);
-                                })}
-                            </div>
-                          )}
+                          {/* Organized by singular and plural pronouns with proper sections */}
+                          <div className="border-l border-[#3F3F46] pl-4 space-y-3">
+                            {/* Singular Pronoun Characters Section */}
+                            {singularPronounCharacters.length > 0 && (
+                              <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                                {singularPronounCharacters
+                                  .filter(charId => !explicitCharacters.includes(charId))
+                                  .map((charId) => {
+                                    // Get which singular pronouns map to this character
+                                    const pronounsForChar = Object.entries(shotMappings)
+                                      .filter(([pronoun, mappedIdOrIds]) => {
+                                        const pronounLower = pronoun.toLowerCase();
+                                        const singularPronouns = ['she', 'her', 'hers', 'he', 'him', 'his'];
+                                        if (!singularPronouns.includes(pronounLower)) return false;
+                                        if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                                        return mappedIdOrIds === charId;
+                                      })
+                                      .map(([pronoun]) => `"${pronoun}"`);
+                                    return renderCharacterImagesOnly(charId, shot.slot, pronounsForChar);
+                                  })}
+                              </div>
+                            )}
+                            
+                            {/* Plural Pronoun Characters Section */}
+                            {pluralPronounCharacters.length > 0 && (
+                              <div className="space-y-2">
+                                {pluralPronounCharacters
+                                  .filter(charId => !explicitCharacters.includes(charId) && !singularPronounCharacters.includes(charId))
+                                  .map((charId) => {
+                                    // Get which plural pronouns map to this character
+                                    const pronounsForChar = Object.entries(shotMappings)
+                                      .filter(([pronoun, mappedIdOrIds]) => {
+                                        const pronounLower = pronoun.toLowerCase();
+                                        const pluralPronouns = ['they', 'them', 'their', 'theirs'];
+                                        if (!pluralPronouns.includes(pronounLower)) return false;
+                                        if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                                        return mappedIdOrIds === charId;
+                                      })
+                                      .map(([pronoun]) => `"${pronoun}"`);
+                                    return renderCharacterImagesOnly(charId, shot.slot, pronounsForChar);
+                                  })}
+                              </div>
+                            )}
+                            
+                            {/* Show characters that appear in both singular and plural (with all their pronouns) */}
+                            {singularPronounCharacters.filter(charId => pluralPronounCharacters.includes(charId) && !explicitCharacters.includes(charId)).length > 0 && (
+                              <div className="space-y-2 pt-3 border-t border-[#3F3F46]">
+                                <div className="text-[10px] text-[#808080] mb-2">
+                                  Characters used in multiple pronouns:
+                                </div>
+                                {singularPronounCharacters
+                                  .filter(charId => pluralPronounCharacters.includes(charId) && !explicitCharacters.includes(charId))
+                                  .map((charId) => {
+                                    // Get ALL pronouns (both singular and plural) that map to this character
+                                    const allPronounsForChar = Object.entries(shotMappings)
+                                      .filter(([_, mappedIdOrIds]) => {
+                                        if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                                        return mappedIdOrIds === charId;
+                                      })
+                                      .map(([pronoun]) => `"${pronoun}"`);
+                                    return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
+                                  })}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
-                    </div>
-                  );
+                        </div>
+                      );
                     })()}
 
                 {/* REMOVED: Old pronoun detection section - now handled in unified layout above */}
