@@ -746,7 +746,6 @@ export function UnifiedSceneConfiguration({
                 })()}
 
                 {/* REMOVED: Old pronoun detection section - now handled in unified layout above */}
-                {false && isExpanded && shot.type === 'action' && (() => {
                   const pronounInfo = actionShotHasPronouns(shot);
                   if (!pronounInfo.hasPronouns || !onCharactersForShotChange || !sceneAnalysisResult?.characters) {
                     return null;
