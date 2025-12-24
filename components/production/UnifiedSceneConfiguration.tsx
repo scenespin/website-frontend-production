@@ -22,7 +22,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Coins, Clock, ChevronDown, ChevronUp, Film } from 'lucide-react';
+import { Check, Coins, Clock, ChevronDown, ChevronUp, Film, Sparkles } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { LocationAngleSelector } from './LocationAngleSelector';
