@@ -299,7 +299,7 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
   };
 
   return (
-    <div className={cn("h-full flex bg-[#0A0A0A] overflow-y-auto", className)}>
+    <div className={cn("h-full flex bg-[#0A0A0A]", className)}>
       {/* Left Panel - Form Controls */}
       <div className="w-1/2 flex flex-col">
         <div className="flex flex-col gap-6 p-4 md:p-6">

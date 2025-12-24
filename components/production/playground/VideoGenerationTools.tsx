@@ -317,7 +317,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   };
 
   return (
-    <div className={cn("h-full flex bg-[#0A0A0A] overflow-y-auto", className)}>
+    <div className={cn("h-full flex bg-[#0A0A0A]", className)}>
       {/* Left Panel - Form Controls */}
       <div className="w-1/2 flex flex-col">
         {/* Examples Section */}

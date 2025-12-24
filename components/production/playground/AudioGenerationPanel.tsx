@@ -29,7 +29,7 @@ export function AudioGenerationPanel({ className = '' }: AudioGenerationPanelPro
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1">
         <AudioModePanel onInsert={null} />
       </div>
     </div>

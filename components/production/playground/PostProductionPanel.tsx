@@ -62,7 +62,7 @@ export function PostProductionPanel({ className = '', screenplayId }: PostProduc
       </div>
 
       {/* Section Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         {activeSection === 'audio' && (
           <AudioGenerationPanel className="h-full" />
         )}

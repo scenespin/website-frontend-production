@@ -69,7 +69,7 @@ export function PreProductionWorkflows({ className = '', screenplayId }: PreProd
   }
 
   return (
-    <div className={cn("h-full overflow-y-auto p-4 md:p-6", className)}>
+    <div className={cn("h-full p-4 md:p-6", className)}>
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <Workflow className="w-6 h-6 text-cinema-red" />
