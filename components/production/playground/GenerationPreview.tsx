@@ -57,14 +57,14 @@ export function GenerationPreview({
   const hasResult = generatedImageUrl || generatedVideoUrl;
 
   return (
-    <div className={cn("h-full flex flex-col bg-[#141414] border-l border-white/10", className)}>
+    <div className={cn("h-full flex flex-col bg-[#141414]", className)}>
       {/* Header */}
       <div className="flex-shrink-0 border-b border-white/10 px-4 py-3">
         <h3 className="text-sm font-medium text-base-content">Output</h3>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 p-4 min-h-[600px]">
         {isGenerating && !hasResult && (
           <div className="h-full flex flex-col items-center justify-center">
             <div className="text-center space-y-4">

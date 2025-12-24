@@ -299,9 +299,9 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
   };
 
   return (
-    <div className={cn("h-full flex bg-[#0A0A0A] overflow-hidden", className)}>
+    <div className={cn("h-full flex bg-[#0A0A0A] overflow-y-auto", className)}>
       {/* Left Panel - Form Controls */}
-      <div className="w-1/2 flex flex-col border-r border-white/10 overflow-y-auto">
+      <div className="w-1/2 flex flex-col">
         <div className="flex flex-col gap-6 p-4 md:p-6">
           <div className="flex-shrink-0">
             <div className="flex items-center gap-3 mb-2">
@@ -418,7 +418,7 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
 
         </div>
         
-        {/* Generate Button - Fixed at bottom */}
+        {/* Generate Button */}
         <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
           <button
             onClick={handleGenerate}
@@ -444,8 +444,11 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
         </div>
       </div>
 
+      {/* Divider */}
+      <div className="w-px bg-white/10 flex-shrink-0"></div>
+
       {/* Right Panel - Preview */}
-      <div className="w-1/2">
+      <div className="w-1/2 flex flex-col">
         <GenerationPreview
           isGenerating={isGenerating}
           generatedVideoUrl={generatedVideoUrl}
