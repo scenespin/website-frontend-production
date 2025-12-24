@@ -1539,9 +1539,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         if (detectedPronouns.length === 0) continue;
         
-        // Check if pronouns are mapped
+        // Check if pronouns are mapped (handle both string and string[] values)
         const shotMappings = pronounMappingsForShots[shot.slot] || {};
-        const unmappedPronouns = detectedPronouns.filter(p => !shotMappings[p.toLowerCase()]);
+        const unmappedPronouns = detectedPronouns.filter(p => {
+          const mapping = shotMappings[p.toLowerCase()];
+          return !mapping || (Array.isArray(mapping) && mapping.length === 0);
+        });
         
         // Require all pronouns to be mapped
         if (unmappedPronouns.length > 0) {
