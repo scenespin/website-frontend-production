@@ -926,8 +926,8 @@ export function CharacterDetailModal({
               
               {/* Standard Tabs (only show if no coverage tab active) */}
               {!coverageTab && (
-              
-              {activeTab === 'gallery' && (
+                <>
+                  {activeTab === 'gallery' && (
                 <div className="p-6">
                   {/* Action Bar with Character Studio Button and Outfit Filter */}
                   <div className="flex items-center justify-between mb-6">
@@ -1745,6 +1745,7 @@ export function CharacterDetailModal({
                   )}
                 </div>
               )}
+                </>
               )}
             </div>
           </motion.div>
