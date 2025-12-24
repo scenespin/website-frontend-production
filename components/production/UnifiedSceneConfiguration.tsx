@@ -543,7 +543,7 @@ export function UnifiedSceneConfiguration({
                     const selectedCharIds = selectedCharactersForShots[shot.slot] || [];
                     shotMappings = pronounMappingsForShots[shot.slot] || {};
                     
-                    // Get all characters from pronoun mappings
+                    // Get all characters from pronoun mappings (including singular pronouns)
                     const getAllMappedCharacterIds = (): string[] => {
                       const allIds = new Set<string>();
                       Object.values(shotMappings).forEach(value => {
@@ -558,6 +558,16 @@ export function UnifiedSceneConfiguration({
                     
                     const allMappedCharIds = getAllMappedCharacterIds();
                     charactersToShow = allMappedCharIds.length > 0 ? allMappedCharIds : selectedCharIds;
+                    
+                    // Also include singular pronouns' mapped characters explicitly
+                    const singularPronouns = ['she', 'her', 'hers', 'he', 'him', 'his'];
+                    Object.entries(shotMappings).forEach(([pronoun, mappedIdOrIds]) => {
+                      if (singularPronouns.includes(pronoun.toLowerCase()) && !Array.isArray(mappedIdOrIds) && mappedIdOrIds) {
+                        if (!charactersToShow.includes(mappedIdOrIds)) {
+                          charactersToShow.push(mappedIdOrIds);
+                        }
+                      }
+                    });
                   } else if (hasCharacter) {
                     // Dialogue shot or action shot with explicit character
                     const char = getCharacterForShot(shot);
