@@ -377,7 +377,9 @@ export function PronounMappingSection({
                                   defaultOutfit={char.defaultOutfit}
                                   selectedOutfit={charOutfit}
                                   onOutfitChange={(charId, outfitName) => {
-                                    onCharacterOutfitChange(charId, outfitName || undefined);
+                                    if (onCharacterOutfitChange && shotSlot !== undefined) {
+                                      onCharacterOutfitChange(shotSlot, charId, outfitName || undefined);
+                                    }
                                   }}
                                   compact={true}
                                   hideLabel={true}
