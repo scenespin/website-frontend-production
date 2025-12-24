@@ -86,32 +86,6 @@ export function CharacterOutfitSelector({
   // Show dropdown if we have any outfits (allows switching between outfits, including "All")
   // Always show dropdown when outfits exist, even if just one (allows "All" option)
   const shouldShowDropdown = hasAnyOutfits;
-  
-  // Debug logging
-  useEffect(() => {
-    console.log(`[CharacterOutfitSelector] ${characterName}:`, {
-      availableOutfits,
-      availableOutfitsProp: availableOutfits, // Show actual prop value
-      outfitsArray,
-      outfitsArrayLength: outfitsArray.length,
-      defaultOutfit,
-      hasMultipleOutfits,
-      hasAnyOutfits,
-      willShowDropdown: hasAnyOutfits && hasMultipleOutfits,
-      willShowNoOutfits: !hasAnyOutfits
-    });
-  }, [characterName, availableOutfits, defaultOutfit, hasMultipleOutfits, hasAnyOutfits, outfitsArray]);
-
-  // Log what will be rendered
-  useEffect(() => {
-    if (hasAnyOutfits && hasMultipleOutfits) {
-      console.log(`[CharacterOutfitSelector] ${characterName} RENDERING: Dropdown with ${outfitsArray.length} outfits`);
-    } else if (hasAnyOutfits && !hasMultipleOutfits) {
-      console.log(`[CharacterOutfitSelector] ${characterName} RENDERING: Single outfit display`);
-    } else {
-      console.warn(`[CharacterOutfitSelector] ${characterName} RENDERING: "No outfits available" message (hasAnyOutfits=${hasAnyOutfits}, outfitsArray.length=${outfitsArray.length})`);
-    }
-  }, [characterName, hasAnyOutfits, hasMultipleOutfits, outfitsArray.length]);
 
   // Compact inline layout (name + selector on same line)
   if (compact) {
