@@ -317,6 +317,8 @@ export function ProductionHub({}: ProductionHubProps) {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           jobCount={activeJobs}
+          onToggleJobsDrawer={() => setIsJobsDrawerOpen(!isJobsDrawerOpen)}
+          isJobsDrawerOpen={isJobsDrawerOpen}
         />
 
         {/* Mobile Content */}
