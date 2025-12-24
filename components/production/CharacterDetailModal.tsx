@@ -109,7 +109,7 @@ export function CharacterDetailModal({
     return contextCharacter ? isEntityInScript(editorState.content, contextCharacter.name, 'character') : false;
   }, [contextCharacter, editorState.content, isEntityInScript]);
   
-  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'voice'>('gallery');
+  const [activeTab, setActiveTab] = useState<'character-studio' | 'gallery' | 'info' | 'references' | 'voice'>('character-studio');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null); // 🔥 NEW: Track selected image by ID for Gallery section
   const [isUploading, setIsUploading] = useState(false);
@@ -791,6 +791,17 @@ export function CharacterDetailModal({
             {/* Tabs */}
             <div className="flex-shrink-0 px-6 py-3 border-b border-[#3F3F46] bg-[#141414] flex items-center gap-2">
               <button
+                onClick={() => setActiveTab('character-studio')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'character-studio'
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 inline mr-2" />
+                Character Studio
+              </button>
+              <button
                 onClick={() => setActiveTab('gallery')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === 'gallery'
@@ -866,6 +877,40 @@ export function CharacterDetailModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
+              {activeTab === 'character-studio' && (
+                <div className="p-6">
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-white mb-2">Character Studio</h3>
+                    <p className="text-sm text-[#808080] mb-4">
+                      Upload custom character images and organize them by outfit for use in video generation.
+                    </p>
+                    <button
+                      onClick={() => setShowCharacterStudio(true)}
+                      className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded-lg transition-colors font-medium text-sm"
+                    >
+                      Open Character Studio
+                    </button>
+                  </div>
+                  
+                  {/* Placeholder content */}
+                  <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
+                    <p className="text-[#808080] mb-4">
+                      Character Studio will allow you to:
+                    </p>
+                    <ul className="list-disc list-inside space-y-2 text-sm text-[#808080]">
+                      <li>Upload custom character images</li>
+                      <li>Browse and select images from Media Library</li>
+                      <li>Organize images by outfit/style</li>
+                      <li>Get guidance on recommended poses and angles</li>
+                      <li>Use images as references in video generation</li>
+                    </ul>
+                    <p className="text-sm text-[#6B7280] mt-4">
+                      Full implementation coming in Phase 3...
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               {activeTab === 'gallery' && (
                 <div className="p-6">
                   {/* Action Bar with Character Studio Button and Outfit Filter */}
@@ -878,14 +923,6 @@ export function CharacterDetailModal({
                     </div>
                     
                     <div className="flex items-center gap-4">
-                      {/* Character Studio Button */}
-                      <button
-                        onClick={() => setShowCharacterStudio(true)}
-                        className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded-lg transition-colors font-medium text-sm"
-                      >
-                        Character Studio
-                      </button>
-                      
                       {/* Outfit Filter */}
                       {outfitNames.length > 1 && (
                         <div className="flex items-center gap-2">
