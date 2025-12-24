@@ -975,45 +975,53 @@ export function UnifiedSceneConfiguration({
                               </div>
                             )}
                             
-                            {/* Plural Pronoun Characters Section - only show characters NOT in singular section */}
+                            {/* Plural Pronoun Characters Section - show all characters, including those in singular section */}
                             {pluralPronounCharacters.length > 0 && (
                               <div className="space-y-2">
-                                {pluralPronounCharacters
-                                  .filter(charId => !singularPronounCharacters.includes(charId))
-                                  .map((charId) => {
-                                    const isAlreadyShown = explicitCharacters.includes(charId);
-                                    const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
-                                               allCharacters.find((c: any) => c.id === charId);
+                                {pluralPronounCharacters.map((charId) => {
+                                  const isAlreadyShownInExplicit = explicitCharacters.includes(charId);
+                                  const isAlreadyShownInSingular = singularPronounCharacters.includes(charId);
+                                  const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+                                             allCharacters.find((c: any) => c.id === charId);
                                     
-                                    // Get which plural pronouns map to this character
-                                    const pronounsForChar = Object.entries(shotMappings)
-                                      .filter(([pronoun, mappedIdOrIds]) => {
-                                        const pronounLower = pronoun.toLowerCase();
-                                        const pluralPronouns = ['they', 'them', 'their', 'theirs'];
-                                        if (!pluralPronouns.includes(pronounLower)) return false;
-                                        if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
-                                        return mappedIdOrIds === charId;
-                                      })
-                                      .map(([pronoun]) => `"${pronoun}"`);
-                                    
-                                    if (isAlreadyShown) {
-                                      // Show placeholder indicating character is already shown above
-                                      return (
-                                        <div key={charId} className="space-y-2">
-                                          {pronounsForChar.length > 0 && (
-                                            <div className="text-[10px] text-[#808080] mb-1">
-                                              ({pronounsForChar.join(', ')})
-                                            </div>
-                                          )}
-                                          <div className="text-[10px] text-[#808080] italic border border-[#3F3F46] rounded p-2 bg-[#1A1A1A]">
-                                            {char?.name || 'Character'} already shown in Character(s) section above
+                                  // Get which plural pronouns map to this character
+                                  const pluralPronounsForChar = Object.entries(shotMappings)
+                                    .filter(([pronoun, mappedIdOrIds]) => {
+                                      const pronounLower = pronoun.toLowerCase();
+                                      const pluralPronouns = ['they', 'them', 'their', 'theirs'];
+                                      if (!pluralPronouns.includes(pronounLower)) return false;
+                                      if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                                      return mappedIdOrIds === charId;
+                                    })
+                                    .map(([pronoun]) => `"${pronoun}"`);
+                                  
+                                  // Get ALL pronouns (singular + plural) that map to this character for display
+                                  const allPronounsForChar = Object.entries(shotMappings)
+                                    .filter(([_, mappedIdOrIds]) => {
+                                      if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                                      return mappedIdOrIds === charId;
+                                    })
+                                    .map(([pronoun]) => `"${pronoun}"`);
+                                  
+                                  // If already shown in explicit or singular section, show placeholder
+                                  if (isAlreadyShownInExplicit || isAlreadyShownInSingular) {
+                                    return (
+                                      <div key={charId} className="space-y-2">
+                                        {allPronounsForChar.length > 0 && (
+                                          <div className="text-[10px] text-[#808080] mb-1">
+                                            ({allPronounsForChar.join(', ')})
                                           </div>
+                                        )}
+                                        <div className="text-[10px] text-[#808080] italic border border-[#3F3F46] rounded p-2 bg-[#1A1A1A]">
+                                          {char?.name || 'Character'} already shown {isAlreadyShownInExplicit ? 'in Character(s) section above' : 'in Singular Pronoun(s) section above'}
                                         </div>
-                                      );
-                                    }
-                                    
-                                    return renderCharacterImagesOnly(charId, shot.slot, pronounsForChar);
-                                  })}
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  // Show images for characters only in plural pronouns
+                                  return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
+                                })}
                               </div>
                             )}
                           </div>

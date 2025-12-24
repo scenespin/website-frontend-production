@@ -124,8 +124,10 @@ export function PronounMappingSection({
         return remainingSlots > 0 || otherMappedIds.includes(char.id);
       }
       
-      // For plural pronouns: only show available characters if we have remaining slots
-      return !otherMappedIds.includes(char.id) && remainingSlots > 0;
+      // For plural pronouns: allow selecting characters already in singular pronouns
+      // (same character can be in both singular and plural pronouns, e.g., "her" → SARAH, "they" → [SARAH, RIVERA])
+      // Still respect the 5 unique character limit
+      return remainingSlots > 0 || otherMappedIds.includes(char.id);
     });
   };
 
