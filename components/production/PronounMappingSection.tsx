@@ -132,103 +132,20 @@ export function PronounMappingSection({
               Singular Pronouns
             </div>
             {singularPronouns.map((pronoun) => {
-          const pronounLower = pronoun.toLowerCase();
-          const isPlural = pluralPronouns.includes(pronounLower);
-          const mapping = pronounMappings[pronounLower];
-          const mappedCharacterIds = Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []);
-          const availableChars = getAvailableCharacters(mapping);
-          const allMappedIds = getAllMappedCharacterIds();
-          // Calculate remaining slots: total allowed minus all other mapped characters (excluding this pronoun's current mappings)
-          const otherMappedIds = allMappedIds.filter(id => !mappedCharacterIds.includes(id));
-          const remainingSlots = maxTotalCharacters - otherMappedIds.length;
-
-          return (
-            <div key={pronoun} className="space-y-1.5">
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-[#808080] min-w-[60px]">
-                  "{pronoun}"
-                  {isPlural && (
-                    <span className="text-[10px] text-[#DC143C] ml-1">(plural)</span>
-                  )}
-                </label>
-                {isPlural ? (
-                  // Checkbox-based multi-select for plural pronouns (much easier to use)
-                  <div className="flex-1 space-y-2">
-                    <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-2 space-y-1.5 max-h-32 overflow-y-auto">
-                      {availableChars.length > 0 ? (
-                        availableChars.map((char) => {
-                          const isSelected = mappedCharacterIds.includes(char.id);
-                          const canSelect = isSelected || remainingSlots > 0;
-                          
-                          return (
-                            <label
-                              key={char.id}
-                              className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${
-                                canSelect
-                                  ? 'hover:bg-[#3F3F46]'
-                                  : 'opacity-50 cursor-not-allowed'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                disabled={!canSelect}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    // Add character - only if we have remaining slots
-                                    if (remainingSlots > 0) {
-                                      const newIds = [...mappedCharacterIds, char.id];
-                                      // Double-check we're not exceeding the limit
-                                      const otherMappedIds = allMappedIds.filter(id => !mappedCharacterIds.includes(id));
-                                      const totalAfterAdd = otherMappedIds.length + newIds.length;
-                                      if (totalAfterAdd <= maxTotalCharacters) {
-                                        onPronounMappingChange(pronounLower, newIds);
-                                      }
-                                    }
-                                  } else {
-                                    // Remove character - always allowed
-                                    const newIds = mappedCharacterIds.filter(id => id !== char.id);
-                                    onPronounMappingChange(pronounLower, newIds.length > 0 ? newIds : undefined);
-                                  }
-                                }}
-                                className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer disabled:cursor-not-allowed"
-                              />
-                              <span className="text-xs text-[#FFFFFF] flex-1">{char.name}</span>
-                              {isSelected && (
-                                <span className="text-[10px] text-[#DC143C]">✓</span>
-                              )}
-                            </label>
-                          );
-                        })
-                      ) : (
-                        <div className="text-xs text-[#808080] px-2 py-1">
-                          No available characters (max {maxTotalCharacters} reached)
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-[#808080] flex items-center justify-between">
-                      <span>
-                        {mappedCharacterIds.length > 0 ? (
-                          <>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</>
-                        ) : (
-                          <>Select one or more characters</>
-                        )}
-                      </span>
-                      {remainingSlots > 0 && (
-                        <span className="text-[#DC143C]">
-                          {remainingSlots} slot{remainingSlots !== 1 ? 's' : ''} remaining
-                        </span>
-                      )}
-                      {remainingSlots <= 0 && allMappedIds.length >= maxTotalCharacters && (
-                        <span className="text-yellow-500">Max {maxTotalCharacters} characters reached</span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  // Single-select for singular pronouns
-                  <>
+              const pronounLower = pronoun.toLowerCase();
+              const mapping = pronounMappings[pronounLower];
+              const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+              const availableChars = getAvailableCharacters(mapping);
+              
+              return (
+                <div key={pronoun} className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-[#808080] min-w-[60px]">
+                      "{pronoun}"
+                    </label>
+                    {/* Single-select dropdown for singular pronouns */}
                     <select
-                      value={mappedCharacterIds[0] || ''}
+                      value={mappedCharacterId || ''}
                       onChange={(e) => {
                         const characterId = e.target.value || undefined;
                         onPronounMappingChange(pronounLower, characterId);
@@ -242,17 +159,210 @@ export function PronounMappingSection({
                         </option>
                       ))}
                     </select>
-                    {mappedCharacterIds[0] && (
+                    {mappedCharacterId && (
                       <span className="text-[10px] text-[#808080]">
-                        ✓ {characters.find(c => c.id === mappedCharacterIds[0])?.name}
+                        ✓ {characters.find(c => c.id === mappedCharacterId)?.name}
                       </span>
                     )}
-                  </>
-                )}
-              </div>
+                  </div>
+                  
+                  {/* Show character images for singular pronouns when mapped */}
+                  {mappedCharacterId && shotSlot !== undefined && onCharacterReferenceChange && (
+                    <div className="ml-[76px] space-y-2 pt-2 border-t border-[#3F3F46]">
+                      {(() => {
+                        const char = characters.find(c => c.id === mappedCharacterId);
+                        if (!char) return null;
+                        
+                        const headshots = characterHeadshots[mappedCharacterId] || [];
+                        const selectedHeadshot = selectedCharacterReferences[shotSlot];
+                        const selectedOutfit = characterOutfits[mappedCharacterId];
+                        
+                        return (
+                          <>
+                            {/* Outfit Selector */}
+                            {onCharacterOutfitChange && (
+                              <CharacterOutfitSelector
+                                characterId={char.id}
+                                characterName={char.name}
+                                availableOutfits={char.availableOutfits || []}
+                                defaultOutfit={char.defaultOutfit}
+                                selectedOutfit={selectedOutfit}
+                                onOutfitChange={(charId, outfitName) => {
+                                  onCharacterOutfitChange(charId, outfitName || undefined);
+                                }}
+                              />
+                            )}
+                            
+                            {/* Headshots */}
+                            {loadingHeadshots[mappedCharacterId] ? (
+                              <div className="text-[10px] text-[#808080]">Loading headshots...</div>
+                            ) : headshots.length > 0 ? (
+                              <div>
+                                {selectedOutfit && selectedOutfit !== 'default' && (
+                                  <div className="text-[10px] text-[#808080] mb-1.5">
+                                    Outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
+                                  </div>
+                                )}
+                                <div className="grid grid-cols-6 gap-1.5">
+                                  {headshots.map((headshot, idx) => {
+                                    const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
+                                    const isSelected = selectedHeadshot && (
+                                      (headshot.s3Key && selectedHeadshot.s3Key === headshot.s3Key) ||
+                                      (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
+                                      (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
+                                    );
+                                    
+                                    return (
+                                      <button
+                                        key={uniqueKey}
+                                        onClick={() => {
+                                          const newRef = isSelected ? undefined : {
+                                            poseId: headshot.poseId,
+                                            s3Key: headshot.s3Key,
+                                            imageUrl: headshot.imageUrl
+                                          };
+                                          onCharacterReferenceChange(shotSlot, newRef);
+                                        }}
+                                        className={`relative aspect-square rounded border-2 transition-all ${
+                                          isSelected
+                                            ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                            : 'border-[#3F3F46] hover:border-[#808080]'
+                                        }`}
+                                      >
+                                        {headshot.imageUrl && (
+                                          <img
+                                            src={headshot.imageUrl}
+                                            alt={headshot.label || `Headshot ${idx + 1}`}
+                                            className="w-full h-full object-cover rounded"
+                                          />
+                                        )}
+                                        {isSelected && (
+                                          <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                                            <Check className="w-3 h-3 text-[#DC143C]" />
+                                          </div>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-[#808080]">
+                                No headshots available
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        
+        {/* Plural Pronouns Section */}
+        {pluralPronounsList.length > 0 && (
+          <div className="space-y-3">
+            <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
+              Plural Pronouns
             </div>
-          );
-        })}
+            {pluralPronounsList.map((pronoun) => {
+              const pronounLower = pronoun.toLowerCase();
+              const mapping = pronounMappings[pronounLower];
+              const mappedCharacterIds = Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []);
+              const availableChars = getAvailableCharacters(mapping);
+              const allMappedIds = getAllMappedCharacterIds();
+              // Calculate remaining slots: total allowed minus all other mapped characters (excluding this pronoun's current mappings)
+              const otherMappedIds = allMappedIds.filter(id => !mappedCharacterIds.includes(id));
+              const remainingSlots = maxTotalCharacters - otherMappedIds.length;
+              
+              return (
+                <div key={pronoun} className="space-y-1.5">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-[#808080] min-w-[60px]">
+                      "{pronoun}"
+                      <span className="text-[10px] text-[#DC143C] ml-1">(plural)</span>
+                    </label>
+                    {/* Checkbox-based multi-select for plural pronouns */}
+                    <div className="flex-1 space-y-2">
+                      <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-2 space-y-1.5 max-h-32 overflow-y-auto">
+                        {availableChars.length > 0 ? (
+                          availableChars.map((char) => {
+                            const isSelected = mappedCharacterIds.includes(char.id);
+                            const canSelect = isSelected || remainingSlots > 0;
+                            
+                            return (
+                              <label
+                                key={char.id}
+                                className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${
+                                  canSelect
+                                    ? 'hover:bg-[#3F3F46]'
+                                    : 'opacity-50 cursor-not-allowed'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  disabled={!canSelect}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      // Add character - only if we have remaining slots
+                                      if (remainingSlots > 0) {
+                                        const newIds = [...mappedCharacterIds, char.id];
+                                        // Double-check we're not exceeding the limit
+                                        const otherMappedIds = allMappedIds.filter(id => !mappedCharacterIds.includes(id));
+                                        const totalAfterAdd = otherMappedIds.length + newIds.length;
+                                        if (totalAfterAdd <= maxTotalCharacters) {
+                                          onPronounMappingChange(pronounLower, newIds);
+                                        }
+                                      }
+                                    } else {
+                                      // Remove character - always allowed
+                                      const newIds = mappedCharacterIds.filter(id => id !== char.id);
+                                      onPronounMappingChange(pronounLower, newIds.length > 0 ? newIds : undefined);
+                                    }
+                                  }}
+                                  className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer disabled:cursor-not-allowed"
+                                />
+                                <span className="text-xs text-[#FFFFFF] flex-1">{char.name}</span>
+                                {isSelected && (
+                                  <span className="text-[10px] text-[#DC143C]">✓</span>
+                                )}
+                              </label>
+                            );
+                          })
+                        ) : (
+                          <div className="text-xs text-[#808080] px-2 py-1">
+                            No available characters (max {maxTotalCharacters} reached)
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-[#808080] flex items-center justify-between">
+                        <span>
+                          {mappedCharacterIds.length > 0 ? (
+                            <>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</>
+                          ) : (
+                            <>Select one or more characters</>
+                          )}
+                        </span>
+                        {remainingSlots > 0 && (
+                          <span className="text-[#DC143C]">
+                            {remainingSlots} slot{remainingSlots !== 1 ? 's' : ''} remaining
+                          </span>
+                        )}
+                        {remainingSlots <= 0 && allMappedIds.length >= maxTotalCharacters && (
+                          <span className="text-yellow-500">Max {maxTotalCharacters} characters reached</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Completion Status */}
