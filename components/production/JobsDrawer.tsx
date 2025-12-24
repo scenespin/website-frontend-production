@@ -1000,32 +1000,29 @@ export function JobsDrawer({ isOpen, onClose, onToggle, autoOpen = false, compac
                                   Subtitles
                                 </button>
                               )}
+                              <button
+                                onClick={() => {
+                                  setSelectedAsset({
+                                    url: reading.audioUrl,
+                                    s3Key: reading.s3Key,
+                                    name: 'Screenplay Reading - Complete',
+                                    type: 'audio',
+                                    metadata: {
+                                      screenplayId: job.metadata?.inputs?.screenplayId,
+                                      scenesProcessed: reading.scenesProcessed,
+                                      sceneAudios: reading.sceneAudios
+                                    }
+                                  });
+                                  setShowStorageModal(true);
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#8B5CF6] text-white hover:bg-[#7C4DCC] transition-colors"
+                              >
+                                <Save className="w-2.5 h-2.5" />
+                                Save
+                              </button>
                             </>
                           );
                         })()}
-                            <button
-                              onClick={() => {
-                                const reading = job.results!.screenplayReading!;
-                                setSelectedAsset({
-                                  url: reading.audioUrl,
-                                  s3Key: reading.s3Key,
-                                  name: 'Screenplay Reading - Complete',
-                                  type: 'audio',
-                                  metadata: {
-                                    screenplayId: job.metadata?.inputs?.screenplayId,
-                                    scenesProcessed: reading.scenesProcessed,
-                                    sceneAudios: reading.sceneAudios
-                                  }
-                                });
-                                setShowStorageModal(true);
-                              }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#8B5CF6] text-white hover:bg-[#7C4DCC] transition-colors"
-                            >
-                              <Save className="w-2.5 h-2.5" />
-                              Save
-                            </button>
-                          </>
-                        )}
                       </div>
                     </div>
                   )}
