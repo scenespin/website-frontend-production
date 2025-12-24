@@ -753,6 +753,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           </button>
         </div>
       </div>
+      </div>
     </div>
   );
 }
