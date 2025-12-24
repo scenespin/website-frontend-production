@@ -218,7 +218,7 @@ export function PronounMappingSection({
                       className="flex-1 px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
                     >
                       <option value="">-- Select character --</option>
-                      <option value="__ignore__">-- Ignore (not a character) --</option>
+                      <option value="__ignore__">-- Skip mapping (use original text) --</option>
                       {availableChars.map((char) => (
                         <option key={char.id} value={char.id}>
                           {char.name}
@@ -227,11 +227,11 @@ export function PronounMappingSection({
                     </select>
                   </div>
                   
-                  {/* Show "Ignored" message if user chose to ignore */}
+                  {/* Show "Skipped mapping" message if user chose to skip */}
                   {isIgnored && (
                     <div className="ml-[76px] pt-2">
                       <div className="text-[10px] text-[#808080] italic">
-                        This pronoun refers to non-characters (e.g., "two interns"). The AI will use the original text.
+                        This pronoun will remain in the prompt (e.g., "they" stays as "they"). The AI will generate these characters without specific reference images.
                       </div>
                     </div>
                   )}
@@ -300,7 +300,7 @@ export function PronounMappingSection({
                       <button
                         type="button"
                         onClick={() => {
-                          // Set to "__ignore__" to mark as ignored
+                          // Set to "__ignore__" to mark as skipped mapping
                           onPronounMappingChange(pronounLower, '__ignore__');
                         }}
                         className={`w-full px-3 py-1.5 text-xs rounded border transition-colors ${
@@ -309,7 +309,7 @@ export function PronounMappingSection({
                             : 'bg-[#1A1A1A] border-[#3F3F46] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
                         }`}
                       >
-                        {mapping === '__ignore__' ? '✓ Ignored (not characters)' : 'Ignore (not characters)'}
+                        {mapping === '__ignore__' ? '✓ Skip mapping (use original text)' : 'Skip mapping (use original text)'}
                       </button>
                       
                       <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-2 space-y-1.5 max-h-32 overflow-y-auto">
@@ -367,11 +367,11 @@ export function PronounMappingSection({
                       <div className="text-[10px] text-[#808080] flex items-center justify-between">
                         <span>
                           {isIgnored ? (
-                            <>✓ Ignored (not characters) - AI will use original text</>
+                            <>✓ Skipped mapping - pronoun will remain in prompt</>
                           ) : mappedCharacterIds.length > 0 ? (
                             <>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</>
                           ) : (
-                            <>Select one or more characters, or click "Ignore"</>
+                            <>Select one or more characters, or skip mapping</>
                           )}
                         </span>
                         {remainingSlots > 0 && (
