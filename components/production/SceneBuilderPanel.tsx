@@ -150,6 +150,57 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Pronoun Detection: Multi-character selection per shot (for pronouns like "they", "she", etc.)
   const [selectedCharactersForShots, setSelectedCharactersForShots] = useState<Record<number, string[]>>({});
   
+  // Pronoun-to-character mapping: shot slot -> pronoun -> characterId
+  // e.g., { 18: { "she": "char-123", "he": "char-456" } }
+  const [pronounMappingsForShots, setPronounMappingsForShots] = useState<Record<number, Record<string, string>>>({});
+  
+  // Auto-resolution confirmations: track which suggestions have been shown/confirmed
+  const [autoResolvedPronouns, setAutoResolvedPronouns] = useState<Record<number, Set<string>>>({});
+  
+  // Helper function for auto-resolution (used in validation)
+  const autoResolvePronounsForShot = (shot: any, pronouns: string[], selectedCharIds: string[]): Record<string, string> => {
+    const suggestions: Record<string, string> = {};
+    if (!sceneAnalysisResult?.characters || pronouns.length === 0 || selectedCharIds.length === 0) return suggestions;
+    
+    const fullText = shot.narrationBlock?.text || shot.description || '';
+    if (!fullText) return suggestions;
+    
+    const textLower = fullText.toLowerCase();
+    const characters = sceneAnalysisResult.characters;
+    
+    // Strategy 1: Character name appears before pronoun in same shot
+    for (const pronoun of pronouns) {
+      const pronounIndex = textLower.indexOf(pronoun);
+      if (pronounIndex === -1) continue;
+      
+      const textBeforePronoun = fullText.substring(0, pronounIndex);
+      const textBeforePronounLower = textBeforePronoun.toLowerCase();
+      
+      for (const charId of selectedCharIds) {
+        const char = characters.find((c: any) => c.id === charId);
+        if (!char?.name) continue;
+        
+        const charName = char.name.toLowerCase();
+        if (textBeforePronounLower.includes(charName) || textBeforePronounLower.includes(charName + "'s")) {
+          const lastMentionIndex = Math.max(
+            textBeforePronounLower.lastIndexOf(charName),
+            textBeforePronounLower.lastIndexOf(charName + "'s")
+          );
+          
+          if (lastMentionIndex !== -1) {
+            const wordsBetween = textBeforePronoun.substring(lastMentionIndex).split(/\s+/).length;
+            if (wordsBetween < 50) {
+              suggestions[pronoun.toLowerCase()] = charId;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    return suggestions;
+  };
+  
   // Phase 2: Location angle selection per shot
   const [selectedLocationReferences, setSelectedLocationReferences] = useState<Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>>({});
   const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>>({});
@@ -1470,6 +1521,71 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       return;
     }
     
+    // Validate pronoun mappings for action shots with pronouns
+    if (sceneAnalysisResult?.shotBreakdown) {
+      const shots = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => enabledShots.includes(shot.slot));
+      const validationErrors: string[] = [];
+      
+      for (const shot of shots) {
+        if (shot.type !== 'action') continue;
+        
+        // Detect pronouns
+        const fullText = shot.narrationBlock?.text || shot.description || '';
+        if (!fullText) continue;
+        
+        const textLower = fullText.toLowerCase();
+        const detectedPronouns: string[] = [];
+        const pronounPatterns = {
+          singular: /\b(she|her|hers|he|him|his)\b/g,
+          plural: /\b(they|them|their|theirs)\b/g
+        };
+        
+        let match;
+        while ((match = pronounPatterns.singular.exec(textLower)) !== null) {
+          if (!detectedPronouns.includes(match[0])) {
+            detectedPronouns.push(match[0]);
+          }
+        }
+        pronounPatterns.singular.lastIndex = 0;
+        
+        while ((match = pronounPatterns.plural.exec(textLower)) !== null) {
+          if (!detectedPronouns.includes(match[0])) {
+            detectedPronouns.push(match[0]);
+          }
+        }
+        
+        if (detectedPronouns.length === 0) continue;
+        
+        // Check if pronouns are mapped
+        const shotMappings = pronounMappingsForShots[shot.slot] || {};
+        const unmappedPronouns = detectedPronouns.filter(p => !shotMappings[p.toLowerCase()]);
+        const selectedCharIds = selectedCharactersForShots[shot.slot] || [];
+        
+        if (unmappedPronouns.length > 0 && selectedCharIds.length > 0) {
+          // Try auto-resolution as fallback
+          const suggestions = autoResolvePronounsForShot(shot, unmappedPronouns, selectedCharIds);
+          const stillUnmapped = unmappedPronouns.filter(p => !suggestions[p.toLowerCase()]);
+          
+          if (stillUnmapped.length > 0) {
+            validationErrors.push(
+              `Shot ${shot.slot}: ${stillUnmapped.length === 1 
+                ? `Pronoun "${stillUnmapped[0]}" is not mapped to a character`
+                : `Pronouns "${stillUnmapped.join('", "')}" are not mapped to characters`
+              }`
+            );
+          }
+        }
+      }
+      
+      if (validationErrors.length > 0) {
+        toast.error('Please map all pronouns to characters', {
+          description: validationErrors.join('. ') + '. Use the pronoun badges to map pronouns to characters.',
+          duration: 8000
+        });
+        return;
+      }
+    }
+    
     // PRIORITY 0: If shot breakdown exists, ALWAYS use workflow generation (shot-based generation)
     // This is the new system that supports shot-based generation with media organization
     if (sceneAnalysisResult?.shotBreakdown && sceneAnalysisResult.shotBreakdown.shots.length > 0) {
@@ -1983,6 +2099,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         selectedCharacterReferences: Object.keys(selectedCharacterReferences).length > 0 ? selectedCharacterReferences : undefined, // Feature 0163 Phase 1: Per-shot selected references (fallback for backend Priority 3)
         selectedLocationReferences: Object.keys(selectedLocationReferences).length > 0 ? selectedLocationReferences : undefined, // Phase 2: Per-shot location angle selection
         selectedCharactersForShots: Object.keys(selectedCharactersForShots).length > 0 ? selectedCharactersForShots : undefined, // Pronoun Detection: Multi-character selection per shot
+        pronounMappingsForShots: Object.keys(pronounMappingsForShots).length > 0 ? pronounMappingsForShots : undefined, // Pronoun-to-character mappings: { shotSlot: { pronoun: characterId } }
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
@@ -2886,6 +3003,22 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         ...prev,
                         [shotSlot]: characterIds
                       }));
+                    }}
+                    pronounMappingsForShots={pronounMappingsForShots}
+                    onPronounMappingChange={(shotSlot, pronoun, characterId) => {
+                      setPronounMappingsForShots(prev => {
+                        const shotMappings = prev[shotSlot] || {};
+                        const newMappings = { ...shotMappings };
+                        if (characterId) {
+                          newMappings[pronoun] = characterId;
+                        } else {
+                          delete newMappings[pronoun];
+                        }
+                        return {
+                          ...prev,
+                          [shotSlot]: Object.keys(newMappings).length > 0 ? newMappings : undefined
+                        };
+                      });
                     }}
                     allCharacters={allCharacters}
                     enabledShots={enabledShots}
