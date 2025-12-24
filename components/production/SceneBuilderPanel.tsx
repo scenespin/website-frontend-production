@@ -117,6 +117,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Get screenplay context (for scene data from database)
   const screenplay = useScreenplay();
   
+  // Get context store (only for setting context when navigating TO editor, not for reading FROM editor)
+  const contextStore = useContextStore();
+  
   // Form state
   const [sceneDescription, setSceneDescription] = useState('');
   const [referenceImages, setReferenceImages] = useState<(File | null)[]>([null, null, null]);
