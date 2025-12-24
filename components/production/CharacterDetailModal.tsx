@@ -132,6 +132,8 @@ export function CharacterDetailModal({
   const [showCustomVoiceForm, setShowCustomVoiceForm] = useState(false);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [prefilledVoiceId, setPrefilledVoiceId] = useState<string | undefined>(undefined);
+  // Character Studio modal state (Phase 2)
+  const [showCharacterStudio, setShowCharacterStudio] = useState(false);
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -866,7 +868,7 @@ export function CharacterDetailModal({
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
               {activeTab === 'gallery' && (
                 <div className="p-6">
-                  {/* Action Bar with Outfit Filter */}
+                  {/* Action Bar with Character Studio Button and Outfit Filter */}
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                       <h3 className="text-lg font-semibold text-white">Character References</h3>
@@ -875,42 +877,53 @@ export function CharacterDetailModal({
                       </span>
                     </div>
                     
-                    {/* Outfit Filter */}
-                    {outfitNames.length > 1 && (
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm text-[#808080]">Filter by Outfit:</label>
-                        <select
-                          value={selectedOutfitGallery || ''}
-                          onChange={(e) => {
-                            const newValue = e.target.value || null;
-                            setSelectedOutfitGallery(newValue);
-                            setSelectedImageId(null);
-                          }}
-                          className="px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-sm focus:border-[#DC143C] focus:outline-none"
-                        >
-                          <option value="">All Outfits ({galleryImages.length})</option>
-                          {outfitNames.map((outfitName) => {
-                            const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === outfitName).length;
-                            let outfitDisplayName: string;
-                            if (outfitName === 'default') {
-                              outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
-                                ? displayPhysicalAttributes.typicalClothing
-                                : 'Default Outfit';
-                            } else {
-                              outfitDisplayName = outfitName
-                                .split('-')
-                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                .join(' ');
-                            }
-                            return (
-                              <option key={outfitName} value={outfitName}>
-                                {outfitDisplayName} ({outfitCount})
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-4">
+                      {/* Character Studio Button */}
+                      <button
+                        onClick={() => setShowCharacterStudio(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded-lg transition-colors font-medium text-sm"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Character Studio
+                      </button>
+                      
+                      {/* Outfit Filter */}
+                      {outfitNames.length > 1 && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-[#808080]">Filter by Outfit:</label>
+                          <select
+                            value={selectedOutfitGallery || ''}
+                            onChange={(e) => {
+                              const newValue = e.target.value || null;
+                              setSelectedOutfitGallery(newValue);
+                              setSelectedImageId(null);
+                            }}
+                            className="px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-sm focus:border-[#DC143C] focus:outline-none"
+                          >
+                            <option value="">All Outfits ({galleryImages.length})</option>
+                            {outfitNames.map((outfitName) => {
+                              const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === outfitName).length;
+                              let outfitDisplayName: string;
+                              if (outfitName === 'default') {
+                                outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
+                                  ? displayPhysicalAttributes.typicalClothing
+                                  : 'Default Outfit';
+                              } else {
+                                outfitDisplayName = outfitName
+                                  .split('-')
+                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(' ');
+                              }
+                              return (
+                                <option key={outfitName} value={outfitName}>
+                                  {outfitDisplayName} ({outfitCount})
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Modern Gallery */}
@@ -1703,6 +1716,34 @@ export function CharacterDetailModal({
             screenplayId={screenplayId || ''}
             prefilledVoiceId={prefilledVoiceId}
           />
+
+          {/* Character Studio Modal (Phase 2 - Placeholder, Phase 3 will implement full modal) */}
+          {showCharacterStudio && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="relative w-full max-w-2xl bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-xl">
+                <div className="flex items-center justify-between p-6 border-b border-[#3F3F46]">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-5 h-5 text-[#DC143C]" />
+                    <h2 className="text-xl font-semibold text-white">Character Studio</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowCharacterStudio(false)}
+                    className="text-[#808080] hover:text-white transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-6">
+                  <p className="text-[#808080] mb-4">
+                    Character Studio will allow you to upload custom character images and organize them by outfit.
+                  </p>
+                  <p className="text-sm text-[#6B7280]">
+                    Full implementation coming in Phase 3...
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
       
