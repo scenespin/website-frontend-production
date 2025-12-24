@@ -719,16 +719,7 @@ export function UnifiedSceneConfiguration({
                     ? mentionedCharacters.map((c: any) => c.id)
                     : [];
                   
-                  // Auto-select mentioned characters when shot breakdown loads (only once)
-                  React.useEffect(() => {
-                    if (mentionedCharacterIds.length > 0 && 
-                        (!selectedCharIds.length || !mentionedCharacterIds.every(id => selectedCharIds.includes(id))) &&
-                        onCharactersForShotChange) {
-                      // Merge with existing selection
-                      const merged = [...new Set([...selectedCharIds, ...mentionedCharacterIds])];
-                      onCharactersForShotChange(shot.slot, merged);
-                    }
-                  }, [sceneAnalysisResult?.shotBreakdown?.shots?.length]); // Only run when shot breakdown first loads
+                  // Auto-select mentioned characters (handled via useEffect at component level)
                   
                   return (
                     <div className="mt-3 pt-3 border-t border-[#3F3F46] space-y-3">
