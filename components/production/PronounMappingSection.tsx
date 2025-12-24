@@ -123,34 +123,70 @@ export function PronounMappingSection({
                   )}
                 </label>
                 {isPlural ? (
-                  // Multi-select for plural pronouns
-                  <div className="flex-1 space-y-1.5">
-                    <select
-                      multiple
-                      size={Math.min(availableChars.length + 1, 4)}
-                      value={mappedCharacterIds}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, option => option.value);
-                        // Limit to remaining slots
-                        const limited = selected.slice(0, remainingSlots);
-                        onPronounMappingChange(pronounLower, limited.length > 0 ? limited : undefined);
-                      }}
-                      className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-                    >
-                      {availableChars.map((char) => (
-                        <option key={char.id} value={char.id}>
-                          {char.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="text-[10px] text-[#808080]">
-                      {mappedCharacterIds.length > 0 ? (
-                        <span>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</span>
+                  // Checkbox-based multi-select for plural pronouns (much easier to use)
+                  <div className="flex-1 space-y-2">
+                    <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-2 space-y-1.5 max-h-32 overflow-y-auto">
+                      {availableChars.length > 0 ? (
+                        availableChars.map((char) => {
+                          const isSelected = mappedCharacterIds.includes(char.id);
+                          const canSelect = isSelected || remainingSlots > 0;
+                          
+                          return (
+                            <label
+                              key={char.id}
+                              className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${
+                                canSelect
+                                  ? 'hover:bg-[#3F3F46]'
+                                  : 'opacity-50 cursor-not-allowed'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                disabled={!canSelect}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    // Add character
+                                    if (remainingSlots > 0) {
+                                      const newIds = [...mappedCharacterIds, char.id];
+                                      onPronounMappingChange(pronounLower, newIds);
+                                    }
+                                  } else {
+                                    // Remove character
+                                    const newIds = mappedCharacterIds.filter(id => id !== char.id);
+                                    onPronounMappingChange(pronounLower, newIds.length > 0 ? newIds : undefined);
+                                  }
+                                }}
+                                className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer disabled:cursor-not-allowed"
+                              />
+                              <span className="text-xs text-[#FFFFFF] flex-1">{char.name}</span>
+                              {isSelected && (
+                                <span className="text-[10px] text-[#DC143C]">✓</span>
+                              )}
+                            </label>
+                          );
+                        })
                       ) : (
-                        <span>Hold Ctrl/Cmd to select multiple characters</span>
+                        <div className="text-xs text-[#808080] px-2 py-1">
+                          No available characters (max {maxTotalCharacters} reached)
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-[#808080] flex items-center justify-between">
+                      <span>
+                        {mappedCharacterIds.length > 0 ? (
+                          <>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</>
+                        ) : (
+                          <>Select one or more characters</>
+                        )}
+                      </span>
+                      {remainingSlots > 0 && (
+                        <span className="text-[#DC143C]">
+                          {remainingSlots} slot{remainingSlots !== 1 ? 's' : ''} remaining
+                        </span>
                       )}
                       {remainingSlots <= 0 && allMappedIds.length >= maxTotalCharacters && (
-                        <span className="text-yellow-500 ml-2">(Max {maxTotalCharacters} characters reached)</span>
+                        <span className="text-yellow-500">Max {maxTotalCharacters} characters reached</span>
                       )}
                     </div>
                   </div>
