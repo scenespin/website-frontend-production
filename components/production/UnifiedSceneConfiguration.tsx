@@ -941,22 +941,19 @@ export function UnifiedSceneConfiguration({
                                 {singularPronounCharacters
                                   .filter(charId => !explicitCharacters.includes(charId))
                                   .map((charId) => {
-                                    // Get which singular pronouns map to this character
-                                    const pronounsForChar = Object.entries(shotMappings)
-                                      .filter(([pronoun, mappedIdOrIds]) => {
-                                        const pronounLower = pronoun.toLowerCase();
-                                        const singularPronouns = ['she', 'her', 'hers', 'he', 'him', 'his'];
-                                        if (!singularPronouns.includes(pronounLower)) return false;
+                                    // Get ALL pronouns (singular + plural) that map to this character
+                                    const allPronounsForChar = Object.entries(shotMappings)
+                                      .filter(([_, mappedIdOrIds]) => {
                                         if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
                                         return mappedIdOrIds === charId;
                                       })
                                       .map(([pronoun]) => `"${pronoun}"`);
-                                    return renderCharacterImagesOnly(charId, shot.slot, pronounsForChar);
+                                    return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
                                   })}
                               </div>
                             )}
                             
-                            {/* Plural Pronoun Characters Section */}
+                            {/* Plural Pronoun Characters Section - only show characters NOT in singular section */}
                             {pluralPronounCharacters.length > 0 && (
                               <div className="space-y-2">
                                 {pluralPronounCharacters
@@ -973,27 +970,6 @@ export function UnifiedSceneConfiguration({
                                       })
                                       .map(([pronoun]) => `"${pronoun}"`);
                                     return renderCharacterImagesOnly(charId, shot.slot, pronounsForChar);
-                                  })}
-                              </div>
-                            )}
-                            
-                            {/* Show characters that appear in both singular and plural (with all their pronouns) */}
-                            {singularPronounCharacters.filter(charId => pluralPronounCharacters.includes(charId) && !explicitCharacters.includes(charId)).length > 0 && (
-                              <div className="space-y-2 pt-3 border-t border-[#3F3F46]">
-                                <div className="text-[10px] text-[#808080] mb-2">
-                                  Characters used in multiple pronouns:
-                                </div>
-                                {singularPronounCharacters
-                                  .filter(charId => pluralPronounCharacters.includes(charId) && !explicitCharacters.includes(charId))
-                                  .map((charId) => {
-                                    // Get ALL pronouns (both singular and plural) that map to this character
-                                    const allPronounsForChar = Object.entries(shotMappings)
-                                      .filter(([_, mappedIdOrIds]) => {
-                                        if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
-                                        return mappedIdOrIds === charId;
-                                      })
-                                      .map(([pronoun]) => `"${pronoun}"`);
-                                    return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
                                   })}
                               </div>
                             )}
