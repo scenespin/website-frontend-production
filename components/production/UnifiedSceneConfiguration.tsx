@@ -926,25 +926,15 @@ export function UnifiedSceneConfiguration({
                             />
                           </div>
                           {/* Right: Character Images for Pronoun-mapped characters */}
-                          {(singularPronounCharacters.length > 0 || pluralPronounCharacters.length > 0) && (
+                          {/* Use deduplicated list to avoid showing same character twice if mapped to multiple pronouns */}
+                          {allImageCharacterIds.length > 0 && (
                             <div className="border-l border-[#3F3F46] pl-4 space-y-3">
-                              {/* Singular Pronoun Characters */}
-                              {singularPronounCharacters.length > 0 && (
-                                <div className="space-y-2">
-                                  {singularPronounCharacters.map((charId) => {
-                                    return renderCharacterImagesOnly(charId, shot.slot);
-                                  })}
-                                </div>
-                              )}
-                              
-                              {/* Plural Pronoun Characters */}
-                              {pluralPronounCharacters.length > 0 && (
-                                <div className="space-y-2">
-                                  {pluralPronounCharacters.map((charId) => {
-                                    return renderCharacterImagesOnly(charId, shot.slot);
-                                  })}
-                                </div>
-                              )}
+                              {/* Filter out explicit characters (already shown above) */}
+                              {allImageCharacterIds
+                                .filter(charId => !explicitCharacters.includes(charId))
+                                .map((charId) => {
+                                  return renderCharacterImagesOnly(charId, shot.slot);
+                                })}
                             </div>
                           )}
                         </div>
