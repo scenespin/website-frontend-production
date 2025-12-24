@@ -152,7 +152,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Pronoun-to-character mapping: shot slot -> pronoun -> characterId
   // e.g., { 18: { "she": "char-123", "he": "char-456" } }
-  const [pronounMappingsForShots, setPronounMappingsForShots] = useState<Record<number, Record<string, string>>>({});
+  const [pronounMappingsForShots, setPronounMappingsForShots] = useState<Record<number, Record<string, string | string[]>>>({});
   
   // Auto-resolution confirmations: track which suggestions have been shown/confirmed
   const [autoResolvedPronouns, setAutoResolvedPronouns] = useState<Record<number, Set<string>>>({});

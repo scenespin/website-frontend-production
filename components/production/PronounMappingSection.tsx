@@ -12,9 +12,10 @@ interface PronounMappingSectionProps {
   pronouns: string[];
   characters: Character[];
   selectedCharacters?: string[]; // Pre-selected characters (e.g., from auto-detection)
-  pronounMappings: Record<string, string>; // { "she": "char-123", "he": "char-456" }
-  onPronounMappingChange: (pronoun: string, characterId: string | undefined) => void;
+  pronounMappings: Record<string, string | string[]>; // { "she": "char-123", "they": ["char-123", "char-456"] }
+  onPronounMappingChange: (pronoun: string, characterId: string | string[] | undefined) => void;
   onCharacterSelectionChange?: (characterIds: string[]) => void; // Optional: to auto-select characters when mapped
+  maxTotalCharacters?: number; // Maximum total characters allowed (default: 5)
 }
 
 export function PronounMappingSection({
@@ -23,16 +24,32 @@ export function PronounMappingSection({
   selectedCharacters = [],
   pronounMappings,
   onPronounMappingChange,
-  onCharacterSelectionChange
+  onCharacterSelectionChange,
+  maxTotalCharacters = 5
 }: PronounMappingSectionProps) {
+  // Plural pronouns that can map to multiple characters
+  const pluralPronouns = ['they', 'them', 'their', 'theirs'];
+  
+  // Get all mapped character IDs (flattening arrays for plural pronouns)
+  const getAllMappedCharacterIds = (): string[] => {
+    const allIds = new Set<string>();
+    Object.values(pronounMappings).forEach(value => {
+      if (Array.isArray(value)) {
+        value.forEach(id => allIds.add(id));
+      } else if (value) {
+        allIds.add(value);
+      }
+    });
+    return Array.from(allIds);
+  };
+  
   // Auto-select characters when they're mapped via dropdowns (if callback provided)
   React.useEffect(() => {
     if (onCharacterSelectionChange) {
-      const mappedCharacterIds = new Set(Object.values(pronounMappings).filter(Boolean));
-      if (mappedCharacterIds.size > 0) {
-        const newSelection = Array.from(mappedCharacterIds);
+      const mappedCharacterIds = getAllMappedCharacterIds();
+      if (mappedCharacterIds.length > 0) {
         // Merge with pre-selected characters (e.g., from auto-detection of mentioned characters)
-        const merged = [...new Set([...selectedCharacters, ...newSelection])];
+        const merged = [...new Set([...selectedCharacters, ...mappedCharacterIds])];
         // Only update if selection changed
         const currentSelection = selectedCharacters || [];
         if (merged.length !== currentSelection.length || 
@@ -42,9 +59,30 @@ export function PronounMappingSection({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [Object.keys(pronounMappings).join(','), Object.values(pronounMappings).join(',')]); // Trigger when mappings change
+  }, [Object.keys(pronounMappings).join(','), Object.values(pronounMappings).map(v => Array.isArray(v) ? v.join(',') : v).join(',')]); // Trigger when mappings change
 
-  const allMapped = pronouns.every(p => pronounMappings[p.toLowerCase()]);
+  const allMapped = pronouns.every(p => {
+    const mapping = pronounMappings[p.toLowerCase()];
+    return mapping && (Array.isArray(mapping) ? mapping.length > 0 : true);
+  });
+  
+  // Get available characters for selection (excluding already selected ones, up to maxTotalCharacters)
+  const getAvailableCharacters = (currentMapping: string | string[] | undefined): Character[] => {
+    const allMappedIds = getAllMappedCharacterIds();
+    const currentIds = Array.isArray(currentMapping) ? currentMapping : (currentMapping ? [currentMapping] : []);
+    
+    // Calculate how many characters are already mapped (excluding current pronoun's mapping)
+    const otherMappedIds = allMappedIds.filter(id => !currentIds.includes(id));
+    const remainingSlots = maxTotalCharacters - otherMappedIds.length;
+    
+    // Filter out characters that are already mapped (unless they're in the current mapping)
+    return characters.filter(char => {
+      // Always show characters that are in the current mapping
+      if (currentIds.includes(char.id)) return true;
+      // Show available characters if we have remaining slots
+      return !otherMappedIds.includes(char.id) && remainingSlots > 0;
+    });
+  };
 
   return (
     <div className="space-y-3">
@@ -64,39 +102,84 @@ export function PronounMappingSection({
       {/* Pronoun Mapping Dropdowns */}
       <div className="space-y-2">
         <div className="text-xs font-medium text-[#FFFFFF] mb-2">
-          Map Pronouns to Characters
+          Map Pronouns to Characters (up to {maxTotalCharacters} total)
         </div>
         {pronouns.map((pronoun) => {
-          const mappedCharacterId = pronounMappings[pronoun.toLowerCase()];
-          const mappedCharacter = mappedCharacterId 
-            ? characters.find(c => c.id === mappedCharacterId)
-            : null;
+          const pronounLower = pronoun.toLowerCase();
+          const isPlural = pluralPronouns.includes(pronounLower);
+          const mapping = pronounMappings[pronounLower];
+          const mappedCharacterIds = Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []);
+          const availableChars = getAvailableCharacters(mapping);
+          const allMappedIds = getAllMappedCharacterIds();
+          const remainingSlots = maxTotalCharacters - allMappedIds.length + mappedCharacterIds.length;
 
           return (
-            <div key={pronoun} className="flex items-center gap-3">
-              <label className="text-xs text-[#808080] min-w-[60px]">
-                "{pronoun}"
-              </label>
-              <select
-                value={mappedCharacterId || ''}
-                onChange={(e) => {
-                  const characterId = e.target.value || undefined;
-                  onPronounMappingChange(pronoun.toLowerCase(), characterId);
-                }}
-                className="flex-1 px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-              >
-                <option value="">-- Select character --</option>
-                {characters.map((char) => (
-                  <option key={char.id} value={char.id}>
-                    {char.name}
-                  </option>
-                ))}
-              </select>
-              {mappedCharacter && (
-                <span className="text-[10px] text-[#808080]">
-                  ✓ {mappedCharacter.name}
-                </span>
-              )}
+            <div key={pronoun} className="space-y-1.5">
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-[#808080] min-w-[60px]">
+                  "{pronoun}"
+                  {isPlural && (
+                    <span className="text-[10px] text-[#DC143C] ml-1">(plural)</span>
+                  )}
+                </label>
+                {isPlural ? (
+                  // Multi-select for plural pronouns
+                  <div className="flex-1 space-y-1.5">
+                    <select
+                      multiple
+                      size={Math.min(availableChars.length + 1, 4)}
+                      value={mappedCharacterIds}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                        // Limit to remaining slots
+                        const limited = selected.slice(0, remainingSlots);
+                        onPronounMappingChange(pronounLower, limited.length > 0 ? limited : undefined);
+                      }}
+                      className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+                    >
+                      {availableChars.map((char) => (
+                        <option key={char.id} value={char.id}>
+                          {char.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="text-[10px] text-[#808080]">
+                      {mappedCharacterIds.length > 0 ? (
+                        <span>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</span>
+                      ) : (
+                        <span>Hold Ctrl/Cmd to select multiple characters</span>
+                      )}
+                      {remainingSlots <= 0 && allMappedIds.length >= maxTotalCharacters && (
+                        <span className="text-yellow-500 ml-2">(Max {maxTotalCharacters} characters reached)</span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  // Single-select for singular pronouns
+                  <>
+                    <select
+                      value={mappedCharacterIds[0] || ''}
+                      onChange={(e) => {
+                        const characterId = e.target.value || undefined;
+                        onPronounMappingChange(pronounLower, characterId);
+                      }}
+                      className="flex-1 px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+                    >
+                      <option value="">-- Select character --</option>
+                      {availableChars.map((char) => (
+                        <option key={char.id} value={char.id}>
+                          {char.name}
+                        </option>
+                      ))}
+                    </select>
+                    {mappedCharacterIds[0] && (
+                      <span className="text-[10px] text-[#808080]">
+                        ✓ {characters.find(c => c.id === mappedCharacterIds[0])?.name}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           );
         })}
