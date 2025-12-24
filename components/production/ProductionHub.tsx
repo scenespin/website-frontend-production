@@ -476,7 +476,7 @@ export function ProductionHub({}: ProductionHubProps) {
 
           {activeTab === 'storage' && (
             <div className="h-full overflow-y-auto">
-              <div className="p-4 md:p-5">
+              <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-5">
                 <MediaLibrary
                   projectId={screenplayId}
                   onSelectFile={handleMediaSelect}

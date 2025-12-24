@@ -37,7 +37,8 @@ export function PlaygroundPanel({ className = '' }: PlaygroundPanelProps) {
     <div className={cn("h-full flex flex-col bg-[#0A0A0A]", className)}>
       {/* Tab Navigation - Match ProductionTabBar styling */}
       <div className="flex-shrink-0 border-b border-white/10 bg-[#0A0A0A] w-full">
-        <div className="flex gap-1 px-4">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
+          <div className="flex gap-1">
           <button
             onClick={() => setActiveTab('pre-production')}
             className={cn(
@@ -89,11 +90,13 @@ export function PlaygroundPanel({ className = '' }: PlaygroundPanelProps) {
             <Scissors className="w-4 h-4" />
             <span>Post-Production</span>
           </button>
+          </div>
         </div>
       </div>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 h-full">
         {activeTab === 'pre-production' && (
           <PreProductionPanel className="h-full" screenplayId={screenplayId} />
         )}
@@ -101,6 +104,7 @@ export function PlaygroundPanel({ className = '' }: PlaygroundPanelProps) {
         {activeTab === 'post-production' && (
           <PostProductionPanel className="h-full" screenplayId={screenplayId} />
         )}
+        </div>
       </div>
     </div>
   );
