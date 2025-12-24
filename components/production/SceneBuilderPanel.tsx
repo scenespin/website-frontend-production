@@ -157,49 +157,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Auto-resolution confirmations: track which suggestions have been shown/confirmed
   const [autoResolvedPronouns, setAutoResolvedPronouns] = useState<Record<number, Set<string>>>({});
   
-  // Helper function for auto-resolution (used in validation)
-  const autoResolvePronounsForShot = (shot: any, pronouns: string[], selectedCharIds: string[]): Record<string, string> => {
-    const suggestions: Record<string, string> = {};
-    if (!sceneAnalysisResult?.characters || pronouns.length === 0 || selectedCharIds.length === 0) return suggestions;
-    
-    const fullText = shot.narrationBlock?.text || shot.description || '';
-    if (!fullText) return suggestions;
-    
-    const textLower = fullText.toLowerCase();
-    const characters = sceneAnalysisResult.characters;
-    
-    // Strategy 1: Character name appears before pronoun in same shot
-    for (const pronoun of pronouns) {
-      const pronounIndex = textLower.indexOf(pronoun);
-      if (pronounIndex === -1) continue;
-      
-      const textBeforePronoun = fullText.substring(0, pronounIndex);
-      const textBeforePronounLower = textBeforePronoun.toLowerCase();
-      
-      for (const charId of selectedCharIds) {
-        const char = characters.find((c: any) => c.id === charId);
-        if (!char?.name) continue;
-        
-        const charName = char.name.toLowerCase();
-        if (textBeforePronounLower.includes(charName) || textBeforePronounLower.includes(charName + "'s")) {
-          const lastMentionIndex = Math.max(
-            textBeforePronounLower.lastIndexOf(charName),
-            textBeforePronounLower.lastIndexOf(charName + "'s")
-          );
-          
-          if (lastMentionIndex !== -1) {
-            const wordsBetween = textBeforePronoun.substring(lastMentionIndex).split(/\s+/).length;
-            if (wordsBetween < 50) {
-              suggestions[pronoun.toLowerCase()] = charId;
-              break;
-            }
-          }
-        }
-      }
-    }
-    
-    return suggestions;
-  };
+  // REMOVED: autoResolvePronounsForShot - no longer needed with dropdown mapping UI
   
   // Phase 2: Location angle selection per shot
   const [selectedLocationReferences, setSelectedLocationReferences] = useState<Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>>({});
@@ -1584,27 +1542,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         // Check if pronouns are mapped
         const shotMappings = pronounMappingsForShots[shot.slot] || {};
         const unmappedPronouns = detectedPronouns.filter(p => !shotMappings[p.toLowerCase()]);
-        const selectedCharIds = selectedCharactersForShots[shot.slot] || [];
         
-        if (unmappedPronouns.length > 0 && selectedCharIds.length > 0) {
-          // Try auto-resolution as fallback
-          const suggestions = autoResolvePronounsForShot(shot, unmappedPronouns, selectedCharIds);
-          const stillUnmapped = unmappedPronouns.filter(p => !suggestions[p.toLowerCase()]);
-          
-          if (stillUnmapped.length > 0) {
-            validationErrors.push(
-              `Shot ${shot.slot}: ${stillUnmapped.length === 1 
-                ? `Pronoun "${stillUnmapped[0]}" is not mapped to a character`
-                : `Pronouns "${stillUnmapped.join('", "')}" are not mapped to characters`
-              }`
-            );
-          }
+        // Require all pronouns to be mapped
+        if (unmappedPronouns.length > 0) {
+          validationErrors.push(
+            `Shot ${shot.slot}: ${unmappedPronouns.length === 1 
+              ? `Pronoun "${unmappedPronouns[0]}" is not mapped to a character`
+              : `Pronouns "${unmappedPronouns.join('", "')}" are not mapped to characters`
+            }`
+          );
         }
       }
       
       if (validationErrors.length > 0) {
         toast.error('Please map all pronouns to characters', {
-          description: validationErrors.join('. ') + '. Use the pronoun badges to map pronouns to characters.',
+          description: validationErrors.join('. ') + '. Use the dropdown menus to map each pronoun to a character.',
           duration: 8000
         });
         return;
