@@ -35,7 +35,7 @@ export default function PlaygroundPageClient() {
   
   return (
     <QueryClientProvider>
-      <div className="h-screen flex flex-col overflow-hidden bg-[#0A0A0A]">
+      <div className="h-screen flex flex-col overflow-hidden">
         <Suspense fallback={
           <div className="min-h-screen bg-gray-950 flex items-center justify-center">
             <div className="text-center">
