@@ -25,21 +25,24 @@ export function PronounMappingSection({
   onPronounMappingChange,
   onCharacterSelectionChange
 }: PronounMappingSectionProps) {
-  // Auto-select characters when they're mapped (if callback provided)
+  // Auto-select characters when they're mapped via dropdowns (if callback provided)
   React.useEffect(() => {
     if (onCharacterSelectionChange) {
       const mappedCharacterIds = new Set(Object.values(pronounMappings).filter(Boolean));
       if (mappedCharacterIds.size > 0) {
         const newSelection = Array.from(mappedCharacterIds);
+        // Merge with pre-selected characters (e.g., from auto-detection of mentioned characters)
+        const merged = [...new Set([...selectedCharacters, ...newSelection])];
         // Only update if selection changed
         const currentSelection = selectedCharacters || [];
-        if (newSelection.length !== currentSelection.length || 
-            !newSelection.every(id => currentSelection.includes(id))) {
-          onCharacterSelectionChange(newSelection);
+        if (merged.length !== currentSelection.length || 
+            !merged.every(id => currentSelection.includes(id))) {
+          onCharacterSelectionChange(merged);
         }
       }
     }
-  }, [pronounMappings, onCharacterSelectionChange, selectedCharacters]); // Trigger when mappings change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Object.keys(pronounMappings).join(','), Object.values(pronounMappings).join(',')]); // Trigger when mappings change
 
   const allMapped = pronouns.every(p => pronounMappings[p.toLowerCase()]);
 
