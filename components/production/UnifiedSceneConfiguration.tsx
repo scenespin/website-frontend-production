@@ -633,7 +633,7 @@ export function UnifiedSceneConfiguration({
                 {isExpanded && (() => {
                   // Check if this is an action shot with pronouns
                   const pronounInfo = shot.type === 'action' ? actionShotHasPronouns(shot) : { hasPronouns: false, pronouns: [] };
-                  const hasPronouns = pronounInfo.hasPronouns && onCharactersForShotChange && sceneAnalysisResult?.characters;
+                  const hasPronouns = !!(pronounInfo.hasPronouns && onCharactersForShotChange && sceneAnalysisResult?.characters);
                   
                   // Check if this is a dialogue shot or action shot with character
                   const hasCharacter = (shot.type === 'dialogue' && shot.characterId) || 
