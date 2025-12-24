@@ -416,7 +416,7 @@ export function UnifiedSceneConfiguration({
     // Extract outfits from headshots if not in character data
     const char = getCharacterWithExtractedOutfits(charId, baseChar);
     const selectedOutfit = characterOutfits[charId];
-    const hasMultipleOutfits = (char.availableOutfits?.length || 0) > 1;
+    const hasAnyOutfits = (char.availableOutfits?.length || 0) > 0 || !!char.defaultOutfit;
     
     // Get which pronouns map to this character
     const pronounsForThisChar = hasPronouns ? Object.entries(shotMappings)
@@ -439,8 +439,8 @@ export function UnifiedSceneConfiguration({
               ({pronounsForThisChar.join(', ')})
             </div>
           )}
-          {/* Outfit Selector - inline with character name when multiple outfits */}
-          {hasMultipleOutfits && (
+          {/* Outfit Selector - inline with character name when outfits exist */}
+          {hasAnyOutfits && (
             <CharacterOutfitSelector
               characterId={char.id}
               characterName={char.name}
@@ -455,13 +455,6 @@ export function UnifiedSceneConfiguration({
             />
           )}
         </div>
-        
-        {/* Show outfit as text (not dropdown) when only one outfit or default */}
-        {!hasMultipleOutfits && (char.availableOutfits?.length === 1 || char.defaultOutfit) && (
-          <div className="text-[10px] text-[#808080]">
-            {selectedOutfit || char.defaultOutfit || char.availableOutfits?.[0] || 'default'}
-          </div>
-        )}
       </div>
     );
   };

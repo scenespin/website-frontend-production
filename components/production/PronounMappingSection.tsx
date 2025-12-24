@@ -219,15 +219,15 @@ export function PronounMappingSection({
                   
                   {/* Show character name and outfit selector when mapped */}
                   {mappedChar && (() => {
-                    const hasMultipleOutfits = (mappedChar.availableOutfits?.length || 0) > 1;
+                    const hasAnyOutfits = (mappedChar.availableOutfits?.length || 0) > 0 || !!mappedChar.defaultOutfit;
                     return (
                       <div className="ml-[76px] pt-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="text-xs font-medium text-[#FFFFFF]">
                             {mappedChar.name}
                           </div>
-                          {/* Outfit Selector - inline with character name when multiple outfits */}
-                          {onCharacterOutfitChange && hasMultipleOutfits && (
+                          {/* Outfit Selector - inline with character name when outfits exist */}
+                          {onCharacterOutfitChange && hasAnyOutfits && (
                             <CharacterOutfitSelector
                               characterId={mappedChar.id}
                               characterName={mappedChar.name}
@@ -242,12 +242,6 @@ export function PronounMappingSection({
                             />
                           )}
                         </div>
-                        {/* Show outfit as text (not dropdown) when only one outfit or default */}
-                        {!hasMultipleOutfits && (mappedChar.availableOutfits?.length === 1 || mappedChar.defaultOutfit) && (
-                          <div className="text-[10px] text-[#808080] mt-1">
-                            {selectedOutfit || mappedChar.defaultOutfit || mappedChar.availableOutfits?.[0] || 'default'}
-                          </div>
-                        )}
                       </div>
                     );
                   })()}
