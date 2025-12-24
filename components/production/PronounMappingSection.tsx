@@ -357,15 +357,15 @@ export function PronounMappingSection({
                         if (!char) return null;
                         const charOutfit = characterOutfits ? characterOutfits[charId] : undefined;
                         
-                        const hasMultipleOutfits = (char.availableOutfits?.length || 0) > 1;
+                        const hasAnyOutfits = (char.availableOutfits?.length || 0) > 0 || !!char.defaultOutfit;
                         return (
                           <div key={charId} className="pb-2 border-b border-[#3F3F46] last:border-b-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <div className="text-xs font-medium text-[#FFFFFF]">
                                 {char.name}
                               </div>
-                              {/* Outfit Selector - inline with character name when multiple outfits */}
-                              {onCharacterOutfitChange && hasMultipleOutfits && (
+                              {/* Outfit Selector - inline with character name when outfits exist */}
+                              {onCharacterOutfitChange && hasAnyOutfits && (
                                 <CharacterOutfitSelector
                                   characterId={char.id}
                                   characterName={char.name}
@@ -380,12 +380,6 @@ export function PronounMappingSection({
                                 />
                               )}
                             </div>
-                            {/* Show outfit as text (not dropdown) when only one outfit or default */}
-                            {!hasMultipleOutfits && (char.availableOutfits?.length === 1 || char.defaultOutfit) && (
-                              <div className="text-[10px] text-[#808080] mt-1">
-                                {charOutfit || char.defaultOutfit || char.availableOutfits?.[0] || 'default'}
-                              </div>
-                            )}
                           </div>
                         );
                       })}
