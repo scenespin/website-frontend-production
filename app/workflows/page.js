@@ -2,7 +2,7 @@
 
 /**
  * /workflows Page
- * Redirects to /production with workflows tab active
+ * Redirects to /produce with workflows tab active
  * This maintains URL compatibility while centralizing workflow access
  */
 
@@ -14,7 +14,7 @@ export default function WorkflowsPage() {
   
   useEffect(() => {
     // Redirect to production page with workflows tab
-    router.replace('/production?tab=workflows');
+    router.replace('/produce?tab=workflows');
   }, [router]);
   
   return (

@@ -50,7 +50,7 @@ const MODE_ORDER = ['chat', 'character', 'location', 'audio', 'workflows', 'try-
 
 /**
  * Get available agents based on current page
- * @param {string} pathname - Current page path (e.g., '/write', '/production')
+ * @param {string} pathname - Current page path (e.g., '/write', '/produce')
  * @returns {string[]} - Array of available mode keys
  */
 function getAvailableModesForPage(pathname) {
@@ -62,8 +62,8 @@ function getAvailableModesForPage(pathname) {
     return ['chat', 'character', 'location'];
   }
   
-  // /production page - Production agents ONLY (workflows first as default)
-  if (pathname.includes('/production')) {
+  // /produce page - Production agents ONLY (workflows first as default)
+  if (pathname.includes('/produce')) {
     return ['workflows', 'image', 'quick-video', 'audio', 'try-on', 'character', 'location'];
   }
   

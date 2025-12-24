@@ -355,7 +355,7 @@ export default function ScreenplayReadingModal({
           
           // Close modal and redirect to jobs tab
           onClose();
-          router.push(`/production?tab=jobs&jobId=${data.jobId}`);
+          router.push(`/produce?tab=jobs&jobId=${data.jobId}`);
         } else if (data.result) {
           // Synchronous result - show immediately
           setResult(data.result);
@@ -758,7 +758,7 @@ export default function ScreenplayReadingModal({
                               Recent Completed Jobs
                             </h3>
                             <button
-                              onClick={() => router.push('/production?tab=jobs')}
+                              onClick={() => router.push('/produce?tab=jobs')}
                               className="text-sm text-primary hover:underline flex items-center gap-1"
                             >
                               View All
@@ -769,7 +769,7 @@ export default function ScreenplayReadingModal({
                             {completedJobs.slice(0, 3).map((job) => (
                               <div
                                 key={job.jobId}
-                                onClick={() => router.push(`/production?tab=jobs&jobId=${job.jobId}`)}
+                                onClick={() => router.push(`/produce?tab=jobs&jobId=${job.jobId}`)}
                                 className="p-3 bg-base-100 rounded cursor-pointer hover:bg-base-300 transition-colors"
                               >
                                 <div className="flex items-center justify-between">
@@ -804,7 +804,7 @@ export default function ScreenplayReadingModal({
                           </p>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => router.push(`/production?tab=jobs&jobId=${jobId}`)}
+                              onClick={() => router.push(`/produce?tab=jobs&jobId=${jobId}`)}
                               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
                             >
                               View Job Progress

@@ -22,7 +22,8 @@ import {
   Clock,
   Music,
   Image,
-  Plus
+  Plus,
+  Clapperboard
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -157,20 +158,30 @@ export default function Navigation() {
       ]
     },
     {
-      name: 'Production',
+      name: 'Produce',
       icon: Video,
-      href: '/production',
+      href: '/produce',
       // Mobile-only sub-items (for accordion)
       subItems: [
-        { name: 'Production Studio', href: '/production', icon: Video, description: 'AI video & audio' },
+        { name: 'Produce Studio', href: '/produce', icon: Video, description: 'Character, location & prop banks' },
         { name: 'Workflows', href: '/workflows', icon: Zap, description: 'Guided production' },
       ]
     },
     {
-      name: 'Playground',
-      icon: Zap,
-      href: '/playground',
-      description: 'Creative possibilities & workflows'
+      name: 'Direct',
+      icon: Film,
+      href: '/direct',
+      // Mobile-only sub-items (for accordion)
+      subItems: [
+        { name: 'Scene Builder', href: '/direct?tab=scene-builder', icon: Clapperboard, description: 'Script-based scene generation' },
+        { name: 'Storyboard', href: '/direct?tab=storyboard', icon: Film, description: 'Stitched scene videos & storyboard' },
+      ]
+    },
+    {
+      name: 'Storage',
+      icon: FolderOpen,
+      href: '/storage',
+      description: 'Media Library & uploads'
     },
   ];
 
@@ -229,22 +240,25 @@ export default function Navigation() {
               </nav>
             </div>
 
-            {/* Right Side: New Project + Credits + Buy Credits + User Button */}
+            {/* Right Side: Playground + Credits (clickable) + User Button */}
             <div className="flex items-center gap-3">
               {user && (
                 <>
-                  {/* New Project Button */}
-                  <button
-                    onClick={() => setShowCreateModal(true)}
+                  {/* Playground Button */}
+                  <Link
+                    href="/playground"
                     className="flex items-center gap-2 px-3 py-1.5 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors font-medium text-sm"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>New Project</span>
-                  </button>
+                    <Zap className="w-4 h-4" />
+                    <span>Playground</span>
+                  </Link>
 
-                  {/* Credit Balance Display */}
+                  {/* Credit Balance Display - Clickable */}
                   {user && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300">
+                    <Link
+                      href="/buy-credits"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors cursor-pointer"
+                    >
                       <Coins className="w-4 h-4 text-cinema-gold" />
                       <span className="text-sm font-semibold">
                         {loadingCredits ? (
@@ -254,17 +268,8 @@ export default function Navigation() {
                         )}
                       </span>
                       <span className="text-xs text-base-content/60">credits</span>
-                    </div>
+                    </Link>
                   )}
-                  
-                  {/* Buy Credits Button */}
-                  <Link 
-                    href="/buy-credits" 
-                    className="btn btn-sm gap-2 bg-cinema-red hover:opacity-90 text-base-content border-none"
-                  >
-                    <Zap className="w-4 h-4" />
-                    <span>Buy Credits</span>
-                  </Link>
                 </>
               )}
               <UserButton afterSignOutUrl="/" />
@@ -367,10 +372,24 @@ export default function Navigation() {
               </div>
             ))}
             
-            {/* Mobile Credit Balance & Buy Button */}
+            {/* Mobile Credit Balance (Clickable) & Playground Button */}
             <div className="pt-2 border-t border-base-300 space-y-2">
-              {/* Credit Balance */}
-              <div className="flex items-center justify-center gap-2 px-4 py-2 bg-base-100 rounded-lg border border-base-300">
+              {/* Playground Button */}
+              <Link
+                href="/playground"
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn btn-block gap-2 bg-cinema-red hover:opacity-90 text-base-content border-none"
+              >
+                <Zap className="w-4 h-4" />
+                Playground
+              </Link>
+              
+              {/* Credit Balance - Clickable */}
+              <Link
+                href="/buy-credits"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors"
+              >
                 <Coins className="w-4 h-4 text-cinema-gold" />
                 <span className="text-sm font-semibold">
                   {loadingCredits ? (
@@ -380,16 +399,6 @@ export default function Navigation() {
                   )}
                 </span>
                 <span className="text-xs text-base-content/60">credits</span>
-              </div>
-              
-              {/* Buy Credits Button */}
-              <Link
-                href="/buy-credits"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn btn-block gap-2 bg-cinema-red hover:opacity-90 text-base-content border-none"
-              >
-                <Zap className="w-4 h-4" />
-                Buy Credits
               </Link>
             </div>
 

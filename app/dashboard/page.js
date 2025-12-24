@@ -774,7 +774,7 @@ export default function Dashboard() {
             </Link>
             
             <Link 
-              href="/production" 
+              href="/produce" 
               className="group relative overflow-hidden rounded-xl bg-base-200 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-cinema-red/5 rounded-full -mr-12 -mt-12"></div>

@@ -30,7 +30,7 @@ const nextConfig = {
     return [
       {
         source: '/workflows',
-        destination: '/production?tab=workflows',
+        destination: '/produce?tab=workflows',
         permanent: true, // 301 redirect
       },
     ];

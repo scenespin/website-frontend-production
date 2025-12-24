@@ -41,17 +41,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-// Phase 2 Components (Feature 0109)
-// Note: AIInterviewChat is now rendered in layout drawer, not as a tab
-import StyleAnalyzer from './StyleAnalyzer';
-import MediaLibrary from './MediaLibrary';
-import CreativePossibilitiesGallery from './CreativePossibilitiesGallery';
-
 // Existing components
-import { SceneBuilderPanel } from './SceneBuilderPanel';
-import { ScenesPanel } from './ScenesPanel';
-import { VideoPanel } from './VideoPanel';
-import { ImagesPanel } from './ImagesPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { LocationBankPanel } from './LocationBankPanel';
 import AssetBankPanel from './AssetBankPanel';
@@ -67,13 +57,10 @@ import { JobsDrawer } from './JobsDrawer';
 type ProductionTab = 
   | 'characters'    // Character Bank
   | 'locations'     // Location Bank
-  | 'assets'        // Asset Bank
-  | 'scene-builder' // Screenplay-driven scene generation
-  | 'scenes'        // Stitched scene videos & storyboard (Feature 0170)
-  | 'images'        // Standalone images from Playground & uploads
-  | 'video'         // Standalone videos from Playground & uploads
-  | 'audio'         // Audio files & recordings
-  | 'storage';      // Media Library + Style Analyzer (renamed from media)
+  | 'assets';       // Asset Bank (Props)
+  // Note: Scene Builder and Storyboard moved to /direct
+  // Note: Images, Video, Audio removed (use Media Library in /storage)
+  // Note: Storage moved to /storage route
   // Note: AI Chat is now a drawer (not a tab) - triggered from various buttons
   // Note: Jobs tab removed - functionality moved to JobsDrawer component
 
@@ -107,7 +94,6 @@ export function ProductionHub({}: ProductionHubProps) {
   // 🔥 FIX: Initialize with default, then sync from URL in useEffect to prevent React error #300
   const [activeTab, setActiveTab] = useState<ProductionTab>('characters');
   const [isMobile, setIsMobile] = useState(false);
-  const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
   const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false);
@@ -126,7 +112,7 @@ export function ProductionHub({}: ProductionHubProps) {
     
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
     
-    if (tabFromUrl && ['characters', 'locations', 'assets', 'scene-builder', 'scenes', 'images', 'video', 'audio', 'storage'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['characters', 'locations', 'assets'].includes(tabFromUrl)) {
       // Only update if different to prevent React error #300 (circular updates)
       setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
     } else {
@@ -254,17 +240,6 @@ export function ProductionHub({}: ProductionHubProps) {
     console.log('[ProductionHub] Opening AI drawer with Workflows agent for example:', example);
   };
 
-  const handleStyleAnalysisComplete = (profile: any) => {
-    console.log('[ProductionHub] Style analysis complete:', profile);
-    setShowStyleAnalyzer(false);
-    // Could auto-navigate to scene builder or chat with style profile context
-  };
-
-  const handleMediaSelect = (file: any) => {
-    console.log('[ProductionHub] Media selected:', file);
-    // Could open in composition or timeline
-  };
-
   // ============================================================================
   // RENDER: MOBILE LAYOUT
   // ============================================================================
@@ -347,41 +322,6 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'scene-builder' && (
-            <div className="h-full overflow-y-auto">
-              <SceneBuilderPanel
-                projectId={screenplayId}
-                isMobile={true}
-                simplified={true}
-              />
-            </div>
-          )}
-
-          {activeTab === 'storage' && (
-            <div className="h-full overflow-y-auto p-4">
-              <MediaLibrary
-                projectId={screenplayId}
-                onSelectFile={handleMediaSelect}
-                className="mb-4"
-              />
-              
-              <button
-                onClick={() => setShowStyleAnalyzer(!showStyleAnalyzer)}
-                className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors mt-4"
-              >
-                {showStyleAnalyzer ? 'Hide' : 'Show'} Style Analyzer
-              </button>
-
-              {showStyleAnalyzer && (
-                <div className="mt-4">
-                  <StyleAnalyzer
-                    projectId={screenplayId}
-                    onAnalysisComplete={handleStyleAnalysisComplete}
-                  />
-                </div>
-              )}
-            </div>
-          )}
 
 
 
@@ -468,78 +408,6 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-          {activeTab === 'scene-builder' && (
-            <div className="h-full overflow-y-auto">
-              <SceneBuilderPanel
-                projectId={screenplayId}
-                isMobile={false}
-                simplified={false}
-              />
-            </div>
-          )}
-
-          {activeTab === 'storage' && (
-            <div className="h-full overflow-y-auto">
-              <div className="p-4 md:p-5">
-                <MediaLibrary
-                  projectId={screenplayId}
-                  onSelectFile={handleMediaSelect}
-                  className="mb-4 md:mb-5"
-                />
-
-                {showStyleAnalyzer && (
-                  <div className="mt-4 md:mt-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg md:text-xl font-semibold text-white">Style Analyzer</h3>
-                      <button
-                        onClick={() => setShowStyleAnalyzer(false)}
-                        className="p-1.5 text-gray-400 hover:text-white transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <StyleAnalyzer
-                      projectId={screenplayId}
-                      onAnalysisComplete={handleStyleAnalysisComplete}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'scenes' && (
-            <div className="h-full overflow-y-auto">
-              <ScenesPanel
-                className="h-full"
-              />
-            </div>
-          )}
-
-          {activeTab === 'images' && (
-            <div className="h-full overflow-y-auto">
-              <ImagesPanel
-                className="h-full"
-              />
-            </div>
-          )}
-
-          {activeTab === 'video' && (
-            <div className="h-full overflow-y-auto">
-              <VideoPanel
-                className="h-full"
-              />
-            </div>
-          )}
-
-          {activeTab === 'audio' && (
-            <div className="h-full overflow-y-auto p-4">
-              <div className="text-center text-base-content/60 py-12">
-                <p className="text-lg font-medium mb-2">Audio Library</p>
-                <p className="text-sm">Audio files and recordings will appear here</p>
-              </div>
-            </div>
-          )}
 
       </div>
 
