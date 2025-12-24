@@ -881,9 +881,8 @@ export function CharacterDetailModal({
                       {/* Character Studio Button */}
                       <button
                         onClick={() => setShowCharacterStudio(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded-lg transition-colors font-medium text-sm"
+                        className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded-lg transition-colors font-medium text-sm"
                       >
-                        <Sparkles className="w-4 h-4" />
                         Character Studio
                       </button>
                       
