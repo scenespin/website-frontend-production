@@ -36,6 +36,7 @@ import { VoiceBrowserModal } from './VoiceBrowserModal';
 import { CustomVoiceForm } from './CustomVoiceForm';
 import { CharacterPoseCropModal } from './CharacterPoseCropModal';
 import { ModernGallery, type GalleryImage } from './Gallery/ModernGallery';
+import { CharacterStudioModal } from './CharacterStudio/CharacterStudioModal';
 
 /**
  * Get display label for provider ID
@@ -1752,33 +1753,22 @@ export function CharacterDetailModal({
             prefilledVoiceId={prefilledVoiceId}
           />
 
-          {/* Character Studio Modal (Phase 2 - Placeholder, Phase 3 will implement full modal) */}
-          {showCharacterStudio && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="relative w-full max-w-2xl bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-xl">
-                <div className="flex items-center justify-between p-6 border-b border-[#3F3F46]">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-[#DC143C]" />
-                    <h2 className="text-xl font-semibold text-white">Character Studio</h2>
-                  </div>
-                  <button
-                    onClick={() => setShowCharacterStudio(false)}
-                    className="text-[#808080] hover:text-white transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="p-6">
-                  <p className="text-[#808080] mb-4">
-                    Character Studio will allow you to upload custom character images and organize them by outfit.
-                  </p>
-                  <p className="text-sm text-[#6B7280]">
-                    Full implementation coming in Phase 3...
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Character Studio Modal */}
+          <CharacterStudioModal
+            isOpen={showCharacterStudio}
+            onClose={() => setShowCharacterStudio(false)}
+            characterId={character.id}
+            characterName={character.name}
+            screenplayId={screenplayId || ''}
+            existingReferences={[...(latestCharacter.references || []), ...(latestCharacter.poseReferences || [])]}
+            onComplete={async (result) => {
+              // Refresh character data after upload
+              queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+              queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+              await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+              toast.success(`Successfully added ${result.images.length} image(s) to ${result.outfitName}`);
+            }}
+          />
         </>
       )}
       
