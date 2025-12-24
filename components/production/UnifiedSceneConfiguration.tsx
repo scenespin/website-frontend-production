@@ -102,7 +102,7 @@ export function UnifiedSceneConfiguration({
           expanded[shot.slot] = true;
         } else if (shot.type === 'establishing') {
           // Establishing shots require location angle selection
-          expanded[shot.slot] = true;
+        expanded[shot.slot] = true;
         }
       });
       setExpandedShots(expanded);
@@ -252,6 +252,17 @@ export function UnifiedSceneConfiguration({
     }
     
     const fullText = getFullShotText(shot);
+    
+    // Debug logging to diagnose truncation issues
+    console.log(`[UnifiedSceneConfig] Shot ${shot.slot} pronoun detection:`, {
+      shotType: shot.type,
+      hasNarrationBlock: !!shot.narrationBlock,
+      narrationBlockText: shot.narrationBlock?.text?.substring(0, 100),
+      description: shot.description?.substring(0, 100),
+      fullText: fullText?.substring(0, 100),
+      fullTextLength: fullText?.length
+    });
+    
     if (!fullText) return { hasPronouns: false, pronouns: [] };
     
     const textLower = fullText.toLowerCase();
@@ -270,11 +281,16 @@ export function UnifiedSceneConfiguration({
       }
     }
     
+    // Reset regex lastIndex for next pattern
+    pronounPatterns.singular.lastIndex = 0;
+    
     while ((match = pronounPatterns.plural.exec(textLower)) !== null) {
       if (!detectedPronouns.includes(match[0])) {
         detectedPronouns.push(match[0]);
       }
     }
+    
+    console.log(`[UnifiedSceneConfig] Shot ${shot.slot} detected pronouns:`, detectedPronouns);
     
     return {
       hasPronouns: detectedPronouns.length > 0,
@@ -347,7 +363,7 @@ export function UnifiedSceneConfiguration({
   const getCharacterForShot = (shot: any) => {
     // Dialogue shot: use characterId
     if (shot.type === 'dialogue' && shot.characterId && sceneAnalysisResult?.characters) {
-      return sceneAnalysisResult.characters.find((c: any) => c.id === shot.characterId);
+    return sceneAnalysisResult.characters.find((c: any) => c.id === shot.characterId);
     }
     
     // Action shot: detect character from description
