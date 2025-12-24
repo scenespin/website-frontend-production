@@ -427,6 +427,119 @@ export function UnifiedSceneConfiguration({
     const char = getCharacterForShot(shot);
     return char ? [char] : [];
   };
+  
+  // Render character section with headshots and outfit selector
+  const renderCharacterSection = (
+    charId: string,
+    shotSlot: number,
+    shotMappings: Record<string, string | string[]>,
+    hasPronouns: boolean,
+    category: 'explicit' | 'singular' | 'plural'
+  ) => {
+    const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+               allCharacters.find((c: any) => c.id === charId);
+    if (!char) return null;
+    
+    const headshots = characterHeadshots[charId] || [];
+    const selectedHeadshot = selectedCharacterReferences[shotSlot];
+    const selectedOutfit = characterOutfits[charId];
+    
+    // Get which pronouns map to this character
+    const pronounsForThisChar = hasPronouns ? Object.entries(shotMappings)
+      .filter(([_, mappedIdOrIds]) => {
+        if (Array.isArray(mappedIdOrIds)) {
+          return mappedIdOrIds.includes(charId);
+        }
+        return mappedIdOrIds === charId;
+      })
+      .map(([pronoun]) => pronoun) : [];
+    
+    return (
+      <div key={charId} className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-medium text-[#FFFFFF]">
+            {char.name}
+          </div>
+          {pronounsForThisChar.length > 0 && (
+            <div className="text-[10px] text-[#808080]">
+              ({pronounsForThisChar.join(', ')})
+            </div>
+          )}
+        </div>
+        
+        {/* Outfit Selector */}
+        <CharacterOutfitSelector
+          characterId={char.id}
+          characterName={char.name}
+          availableOutfits={char.availableOutfits || []}
+          defaultOutfit={char.defaultOutfit}
+          selectedOutfit={selectedOutfit}
+          onOutfitChange={(charId, outfitName) => {
+            onCharacterOutfitChange(charId, outfitName || undefined);
+          }}
+        />
+        
+        {/* Headshots */}
+        {loadingHeadshots[charId] ? (
+          <div className="text-[10px] text-[#808080]">Loading headshots...</div>
+        ) : headshots.length > 0 ? (
+          <div>
+            {selectedOutfit && selectedOutfit !== 'default' && (
+              <div className="text-[10px] text-[#808080] mb-1.5">
+                Outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
+              </div>
+            )}
+            <div className="grid grid-cols-6 gap-1.5">
+              {headshots.map((headshot, idx) => {
+                const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
+                const isSelected = selectedHeadshot && (
+                  (headshot.s3Key && selectedHeadshot.s3Key === headshot.s3Key) ||
+                  (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
+                  (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
+                );
+                
+                return (
+                  <button
+                    key={uniqueKey}
+                    onClick={() => {
+                      const newRef = isSelected ? undefined : {
+                        poseId: headshot.poseId,
+                        s3Key: headshot.s3Key,
+                        imageUrl: headshot.imageUrl
+                      };
+                      onCharacterReferenceChange(shotSlot, newRef);
+                    }}
+                    className={`relative aspect-square rounded border-2 transition-all ${
+                      isSelected
+                        ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                        : 'border-[#3F3F46] hover:border-[#808080]'
+                    }`}
+                  >
+                    {headshot.imageUrl && (
+                      <img
+                        src={headshot.imageUrl}
+                        alt={headshot.label || `Headshot ${idx + 1}`}
+                        className="w-full h-full object-cover rounded"
+                      />
+                    )}
+                    {isSelected && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                        <Check className="w-3 h-3 text-[#DC143C]" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="text-[10px] text-[#808080]">
+            No headshots available
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Card className="bg-[#141414] border-[#3F3F46]">
