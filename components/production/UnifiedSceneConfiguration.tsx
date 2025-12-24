@@ -747,117 +747,160 @@ export function UnifiedSceneConfiguration({
                   
                   // Auto-select mentioned characters (handled via useEffect at component level)
                   
+                  // Get all characters from pronoun mappings (including plural pronouns with arrays)
+                  const getAllMappedCharacterIds = (): string[] => {
+                    const allIds = new Set<string>();
+                    Object.values(shotMappings).forEach(value => {
+                      if (Array.isArray(value)) {
+                        value.forEach(id => allIds.add(id));
+                      } else if (value) {
+                        allIds.add(value);
+                      }
+                    });
+                    return Array.from(allIds);
+                  };
+                  
+                  const allMappedCharIds = getAllMappedCharacterIds();
+                  const charactersToShow = allMappedCharIds.length > 0 ? allMappedCharIds : selectedCharIds;
+                  
                   return (
-                    <div className="mt-3 pt-3 border-t border-[#3F3F46] space-y-3">
-                      {/* Pronoun Mapping Section - Show immediately when pronouns detected */}
-                      <PronounMappingSection
-                        pronouns={pronounInfo.pronouns}
-                        characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
-                        selectedCharacters={selectedCharIds}
-                        pronounMappings={shotMappings}
-                        onPronounMappingChange={(pronoun, characterIdOrIds) => {
-                          if (onPronounMappingChange) {
-                            onPronounMappingChange(shot.slot, pronoun, characterIdOrIds);
-                          }
-                        }}
-                        onCharacterSelectionChange={(characterIds) => {
-                          if (onCharactersForShotChange) {
-                            onCharactersForShotChange(shot.slot, characterIds);
-                          }
-                        }}
-                      />
-                      
-                      {/* Show headshots and outfit selectors for selected characters */}
-                      {selectedCharIds.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                      {/* Two-column layout: Pronoun mapping on left, Image selection on right */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Left Column: Pronoun Mapping */}
                         <div className="space-y-3">
-                          {selectedCharIds.map((charId) => {
-                            const char = sceneAnalysisResult.characters.find((c: any) => c.id === charId);
-                            if (!char) return null;
-                            
-                            const headshots = characterHeadshots[charId] || [];
-                            const selectedHeadshot = selectedCharacterReferences[shot.slot];
-                            const selectedOutfit = characterOutfits[charId];
-                            
-                            return (
-                              <div key={charId} className="space-y-2 pt-2 border-t border-[#3F3F46]">
-                                <div className="text-xs font-medium text-[#808080]">
-                                  Character Headshot ({char.name})
-                                </div>
-                                
-                                {loadingHeadshots[charId] ? (
-                                  <div className="text-xs text-[#808080]">Loading headshots...</div>
-                                ) : headshots.length > 0 ? (
-                                  <div>
-                                    {selectedOutfit && selectedOutfit !== 'default' && (
-                                      <div className="text-xs text-[#808080] mb-2">
-                                        Showing headshots for outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
+                          <PronounMappingSection
+                            pronouns={pronounInfo.pronouns}
+                            characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                            selectedCharacters={selectedCharIds}
+                            pronounMappings={shotMappings}
+                            onPronounMappingChange={(pronoun, characterIdOrIds) => {
+                              if (onPronounMappingChange) {
+                                onPronounMappingChange(shot.slot, pronoun, characterIdOrIds);
+                              }
+                            }}
+                            onCharacterSelectionChange={(characterIds) => {
+                              if (onCharactersForShotChange) {
+                                onCharactersForShotChange(shot.slot, characterIds);
+                              }
+                            }}
+                          />
+                        </div>
+                        
+                        {/* Right Column: Character Headshots & Outfits */}
+                        {charactersToShow.length > 0 && (
+                          <div className="space-y-4 border-l border-[#3F3F46] pl-4">
+                            <div className="text-xs font-medium text-[#FFFFFF] mb-2">
+                              Character References
+                            </div>
+                            {charactersToShow.map((charId) => {
+                              const char = sceneAnalysisResult.characters.find((c: any) => c.id === charId) ||
+                                         allCharacters.find((c: any) => c.id === charId);
+                              if (!char) return null;
+                              
+                              const headshots = characterHeadshots[charId] || [];
+                              const selectedHeadshot = selectedCharacterReferences[shot.slot];
+                              const selectedOutfit = characterOutfits[charId];
+                              
+                              // Get which pronouns map to this character
+                              const pronounsForThisChar = Object.entries(shotMappings)
+                                .filter(([_, mappedIdOrIds]) => {
+                                  if (Array.isArray(mappedIdOrIds)) {
+                                    return mappedIdOrIds.includes(charId);
+                                  }
+                                  return mappedIdOrIds === charId;
+                                })
+                                .map(([pronoun]) => pronoun);
+                              
+                              return (
+                                <div key={charId} className="space-y-2 pb-3 border-b border-[#3F3F46] last:border-b-0">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-xs font-medium text-[#FFFFFF]">
+                                      {char.name}
+                                    </div>
+                                    {pronounsForThisChar.length > 0 && (
+                                      <div className="text-[10px] text-[#808080]">
+                                        ({pronounsForThisChar.join(', ')})
                                       </div>
                                     )}
-                                    <div className="grid grid-cols-8 gap-1.5">
-                                      {headshots.map((headshot, idx) => {
-                                        const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
-                                        const isSelected = selectedHeadshot && (
-                                          (headshot.s3Key && selectedHeadshot.s3Key === headshot.s3Key) ||
-                                          (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
-                                          (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
-                                        );
-                                        
-                                        return (
-                                          <button
-                                            key={uniqueKey}
-                                            onClick={() => {
-                                              const newRef = isSelected ? undefined : {
-                                                poseId: headshot.poseId,
-                                                s3Key: headshot.s3Key,
-                                                imageUrl: headshot.imageUrl
-                                              };
-                                              onCharacterReferenceChange(shot.slot, newRef);
-                                            }}
-                                            className={`relative aspect-square rounded border-2 transition-all ${
-                                              isSelected
-                                                ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                                                : 'border-[#3F3F46] hover:border-[#808080]'
-                                            }`}
-                                          >
-                                            {headshot.imageUrl && (
-                                              <img
-                                                src={headshot.imageUrl}
-                                                alt={headshot.label || `Headshot ${idx + 1}`}
-                                                className="w-full h-full object-cover rounded"
-                                              />
-                                            )}
-                                            {isSelected && (
-                                              <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
-                                                <Check className="w-4 h-4 text-[#DC143C]" />
-                                              </div>
-                                            )}
-                                          </button>
-                                        );
-                                      })}
+                                  </div>
+                                  
+                                  {/* Outfit Selector */}
+                                  <CharacterOutfitSelector
+                                    characterId={char.id}
+                                    characterName={char.name}
+                                    availableOutfits={char.availableOutfits || []}
+                                    defaultOutfit={char.defaultOutfit}
+                                    selectedOutfit={selectedOutfit}
+                                    onOutfitChange={(charId, outfitName) => {
+                                      onCharacterOutfitChange(charId, outfitName || undefined);
+                                    }}
+                                  />
+                                  
+                                  {/* Headshots */}
+                                  {loadingHeadshots[charId] ? (
+                                    <div className="text-xs text-[#808080]">Loading headshots...</div>
+                                  ) : headshots.length > 0 ? (
+                                    <div>
+                                      {selectedOutfit && selectedOutfit !== 'default' && (
+                                        <div className="text-[10px] text-[#808080] mb-1.5">
+                                          Outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
+                                        </div>
+                                      )}
+                                      <div className="grid grid-cols-6 gap-1.5">
+                                        {headshots.map((headshot, idx) => {
+                                          const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
+                                          const isSelected = selectedHeadshot && (
+                                            (headshot.s3Key && selectedHeadshot.s3Key === headshot.s3Key) ||
+                                            (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
+                                            (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
+                                          );
+                                          
+                                          return (
+                                            <button
+                                              key={uniqueKey}
+                                              onClick={() => {
+                                                const newRef = isSelected ? undefined : {
+                                                  poseId: headshot.poseId,
+                                                  s3Key: headshot.s3Key,
+                                                  imageUrl: headshot.imageUrl
+                                                };
+                                                onCharacterReferenceChange(shot.slot, newRef);
+                                              }}
+                                              className={`relative aspect-square rounded border-2 transition-all ${
+                                                isSelected
+                                                  ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                                  : 'border-[#3F3F46] hover:border-[#808080]'
+                                              }`}
+                                            >
+                                              {headshot.imageUrl && (
+                                                <img
+                                                  src={headshot.imageUrl}
+                                                  alt={headshot.label || `Headshot ${idx + 1}`}
+                                                  className="w-full h-full object-cover rounded"
+                                                />
+                                              )}
+                                              {isSelected && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                                                  <Check className="w-3 h-3 text-[#DC143C]" />
+                                                </div>
+                                              )}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-[#808080]">
-                                    No headshots available - using automatic selection
-                                  </div>
-                                )}
-                                
-                                {/* Outfit Selector */}
-                                <CharacterOutfitSelector
-                                  characterId={char.id}
-                                  characterName={char.name}
-                                  availableOutfits={char.availableOutfits || []}
-                                  defaultOutfit={char.defaultOutfit}
-                                  selectedOutfit={selectedOutfit}
-                                  onOutfitChange={(charId, outfitName) => {
-                                    onCharacterOutfitChange(charId, outfitName || undefined);
-                                  }}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                                  ) : (
+                                    <div className="text-[10px] text-[#808080]">
+                                      No headshots available
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
