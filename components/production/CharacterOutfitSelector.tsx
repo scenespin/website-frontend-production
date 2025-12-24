@@ -136,11 +136,6 @@ export function CharacterOutfitSelector({
               <option value="default">
                 All Outfits
               </option>
-              {defaultOutfit && (
-                <option value="default">
-                  Use Default ({defaultOutfit})
-                </option>
-              )}
               {outfitsArray.map((outfit) => (
                 <option key={outfit} value={outfit}>
                   {outfit}
@@ -185,11 +180,6 @@ export function CharacterOutfitSelector({
             <option value="default">
               All Outfits
             </option>
-            {defaultOutfit && (
-              <option value="default">
-                Use Default ({defaultOutfit})
-              </option>
-            )}
             {outfitsArray.map((outfit) => (
               <option key={outfit} value={outfit}>
                 {outfit}
