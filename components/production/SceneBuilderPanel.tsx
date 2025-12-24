@@ -57,6 +57,7 @@ import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { SceneSelector } from './SceneSelector';
 import { ManualSceneEntry } from './ManualSceneEntry';
+import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
