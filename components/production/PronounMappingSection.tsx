@@ -193,9 +193,12 @@ export function PronounMappingSection({
               const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
               const availableChars = getAvailableCharacters(mapping, true); // true = isSingular
               
+              // Check if pronoun is ignored
+              const isIgnored = mappedCharacterId === '__ignore__';
+              
               // Get character with outfit data from the enriched source
-              const mappedChar = mappedCharacterId ? getCharacterWithOutfits(mappedCharacterId) : null;
-              const selectedOutfit = mappedCharacterId ? getOutfitForCharacter(mappedCharacterId) : undefined;
+              const mappedChar = mappedCharacterId && !isIgnored ? getCharacterWithOutfits(mappedCharacterId) : null;
+              const selectedOutfit = mappedCharacterId && !isIgnored ? getOutfitForCharacter(mappedCharacterId) : undefined;
               
               return (
                 <div key={pronoun} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
@@ -207,12 +210,15 @@ export function PronounMappingSection({
                     <select
                       value={mappedCharacterId || ''}
                       onChange={(e) => {
-                        const characterId = e.target.value || undefined;
+                        const value = e.target.value;
+                        // Special value "__ignore__" means user wants to ignore this pronoun
+                        const characterId = value === '__ignore__' ? '__ignore__' : (value || undefined);
                         onPronounMappingChange(pronounLower, characterId);
                       }}
                       className="flex-1 px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
                     >
                       <option value="">-- Select character --</option>
+                      <option value="__ignore__">-- Ignore (not a character) --</option>
                       {availableChars.map((char) => (
                         <option key={char.id} value={char.id}>
                           {char.name}
@@ -220,6 +226,15 @@ export function PronounMappingSection({
                       ))}
                     </select>
                   </div>
+                  
+                  {/* Show "Ignored" message if user chose to ignore */}
+                  {isIgnored && (
+                    <div className="ml-[76px] pt-2">
+                      <div className="text-[10px] text-[#808080] italic">
+                        This pronoun refers to non-characters (e.g., "two interns"). The AI will use the original text.
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Show character name and outfit selector when mapped */}
                   {mappedChar && (() => {
@@ -264,7 +279,8 @@ export function PronounMappingSection({
             {pluralPronounsList.map((pronoun) => {
               const pronounLower = pronoun.toLowerCase();
               const mapping = pronounMappings[pronounLower];
-              const mappedCharacterIds = Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []);
+              const isIgnored = mapping === '__ignore__';
+              const mappedCharacterIds = isIgnored ? [] : (Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []));
               const availableChars = getAvailableCharacters(mapping);
               const allMappedIds = getAllMappedCharacterIds();
               // Calculate remaining slots: total allowed minus all other mapped characters (excluding this pronoun's current mappings)
@@ -280,6 +296,22 @@ export function PronounMappingSection({
                     </label>
                     {/* Checkbox-based multi-select for plural pronouns */}
                     <div className="flex-1 space-y-2">
+                      {/* Ignore button for plural pronouns */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Set to "__ignore__" to mark as ignored
+                          onPronounMappingChange(pronounLower, '__ignore__');
+                        }}
+                        className={`w-full px-3 py-1.5 text-xs rounded border transition-colors ${
+                          mapping === '__ignore__'
+                            ? 'bg-[#3F3F46] border-[#DC143C] text-[#DC143C]'
+                            : 'bg-[#1A1A1A] border-[#3F3F46] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
+                        }`}
+                      >
+                        {mapping === '__ignore__' ? '✓ Ignored (not characters)' : 'Ignore (not characters)'}
+                      </button>
+                      
                       <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-2 space-y-1.5 max-h-32 overflow-y-auto">
                         {availableChars.length > 0 ? (
                           availableChars.map((char) => {
@@ -334,10 +366,12 @@ export function PronounMappingSection({
                       </div>
                       <div className="text-[10px] text-[#808080] flex items-center justify-between">
                         <span>
-                          {mappedCharacterIds.length > 0 ? (
+                          {isIgnored ? (
+                            <>✓ Ignored (not characters) - AI will use original text</>
+                          ) : mappedCharacterIds.length > 0 ? (
                             <>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</>
                           ) : (
-                            <>Select one or more characters</>
+                            <>Select one or more characters, or click "Ignore"</>
                           )}
                         </span>
                         {remainingSlots > 0 && (
@@ -352,8 +386,8 @@ export function PronounMappingSection({
                     </div>
                   </div>
                   
-                  {/* Show character names and outfit selectors when mapped */}
-                  {mappedCharacterIds.length > 0 && (
+                  {/* Show character names and outfit selectors when mapped (not ignored) */}
+                  {!isIgnored && mappedCharacterIds.length > 0 && (
                     <div className="ml-[76px] space-y-2 pt-2">
                       {mappedCharacterIds.map((charId) => {
                         // Get character with outfit data from the enriched source

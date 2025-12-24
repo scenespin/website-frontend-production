@@ -1546,22 +1546,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         if (detectedPronouns.length === 0) continue;
         
-        // Check if pronouns are mapped (handle both string and string[] values)
-        const shotMappings = pronounMappingsForShots[shot.slot] || {};
-        const unmappedPronouns = detectedPronouns.filter(p => {
-          const mapping = shotMappings[p.toLowerCase()];
-          return !mapping || (Array.isArray(mapping) && mapping.length === 0);
-        });
-        
-        // Require all pronouns to be mapped
-        if (unmappedPronouns.length > 0) {
-          validationErrors.push(
-            `Shot ${shot.slot}: ${unmappedPronouns.length === 1 
-              ? `Pronoun "${unmappedPronouns[0]}" is not mapped to a character`
-              : `Pronouns "${unmappedPronouns.join('", "')}" are not mapped to characters`
-            }`
-          );
-        }
+        // NOTE: We allow users to leave pronouns unmapped - backend will use original text
+        // This is intentional for edge cases where pronouns refer to non-characters
+        // Users can choose to map some, all, or no pronouns
+        // - Mapped pronouns → replaced with character names (for reference image alignment)
+        // - Unmapped/ignored pronouns → stay as original pronouns in prompt
+        // Less pronouns mapped = less character consistency, but acceptable for edge cases
+        // No validation needed - backend handles unmapped pronouns gracefully
       }
       
       if (validationErrors.length > 0) {
@@ -1842,6 +1833,27 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       }
       
       const data = await response.json();
+      
+      // Check if awaiting input (safety fallback)
+      if (data.status === 'awaiting_input' && data.requiresAction) {
+        toast.warning('⚠️ Additional Input Required', {
+          description: 'Your video generation needs a driving video to continue. Check the Jobs panel to upload.',
+          duration: 10000,
+          action: {
+            label: 'View Jobs',
+            onClick: () => {
+              // Scroll to jobs panel or open it
+              const jobsPanel = document.querySelector('[data-jobs-panel]');
+              if (jobsPanel) {
+                jobsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }
+          }
+        });
+        
+        // Don't throw error - user can continue via jobs panel
+        return;
+      }
       
       if (data.success && data.result) {
         toast.success('🎬 Dialogue video generated!', {
