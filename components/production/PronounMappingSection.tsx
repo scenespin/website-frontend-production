@@ -24,9 +24,9 @@ interface PronounMappingSectionProps {
   characterHeadshots?: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots?: Record<string, boolean>;
   selectedCharacterReferences?: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>;
-  characterOutfits?: Record<string, string>;
+  characterOutfits?: Record<number, Record<string, string>>; // Per-shot, per-character: shotSlot -> characterId -> outfitName
   onCharacterReferenceChange?: (shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
-  onCharacterOutfitChange?: (characterId: string, outfitName: string | undefined) => void;
+  onCharacterOutfitChange?: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
   // Additional character sources with full data (including outfits)
   allCharactersWithOutfits?: any[]; // Characters from sceneAnalysisResult or allCharacters with outfit data
 }
@@ -48,6 +48,10 @@ export function PronounMappingSection({
   onCharacterOutfitChange,
   allCharactersWithOutfits = []
 }: PronounMappingSectionProps) {
+  // Get outfit for a character in this shot
+  const getOutfitForCharacter = (charId: string): string | undefined => {
+    return characterOutfits[shotSlot]?.[charId];
+  };
   
   // Helper to get character with outfit data (prefer characters with outfit data)
   const getCharacterWithOutfits = (characterId: string): Character | null => {
@@ -191,7 +195,7 @@ export function PronounMappingSection({
               
               // Get character with outfit data from the enriched source
               const mappedChar = mappedCharacterId ? getCharacterWithOutfits(mappedCharacterId) : null;
-              const selectedOutfit = mappedCharacterId && characterOutfits ? characterOutfits[mappedCharacterId] : undefined;
+              const selectedOutfit = mappedCharacterId ? getOutfitForCharacter(mappedCharacterId) : undefined;
               
               return (
                 <div key={pronoun} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
@@ -235,7 +239,7 @@ export function PronounMappingSection({
                               defaultOutfit={mappedChar.defaultOutfit}
                               selectedOutfit={selectedOutfit}
                               onOutfitChange={(charId, outfitName) => {
-                                onCharacterOutfitChange(charId, outfitName || undefined);
+                                onCharacterOutfitChange(shotSlot, charId, outfitName || undefined);
                               }}
                               compact={true}
                               hideLabel={true}
@@ -355,7 +359,7 @@ export function PronounMappingSection({
                         // Get character with outfit data from the enriched source
                         const char = getCharacterWithOutfits(charId);
                         if (!char) return null;
-                        const charOutfit = characterOutfits ? characterOutfits[charId] : undefined;
+                        const charOutfit = getOutfitForCharacter(charId);
                         
                         const hasAnyOutfits = (char.availableOutfits?.length || 0) > 0 || !!char.defaultOutfit;
                         return (

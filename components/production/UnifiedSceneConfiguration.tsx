@@ -43,8 +43,8 @@ interface UnifiedSceneConfigurationProps {
   allCharacters?: any[]; // All characters from character bank (for pronoun detection selector)
   characterHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots: Record<string, boolean>;
-  characterOutfits: Record<string, string>;
-  onCharacterOutfitChange: (characterId: string, outfitName: string | undefined) => void;
+  characterOutfits: Record<number, Record<string, string>>; // Per-shot, per-character: shotSlot -> characterId -> outfitName
+  onCharacterOutfitChange: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
   // Phase 2: Location angle selection
   selectedLocationReferences?: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>;
   onLocationAngleChange?: (shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
@@ -415,7 +415,7 @@ export function UnifiedSceneConfiguration({
     
     // Extract outfits from headshots if not in character data
     const char = getCharacterWithExtractedOutfits(charId, baseChar);
-    const selectedOutfit = characterOutfits[charId];
+    const selectedOutfit = characterOutfits[shotSlot]?.[charId];
     const hasAnyOutfits = (char.availableOutfits?.length || 0) > 0 || !!char.defaultOutfit;
     
     // Get which pronouns map to this character
@@ -448,7 +448,7 @@ export function UnifiedSceneConfiguration({
               defaultOutfit={char.defaultOutfit}
               selectedOutfit={selectedOutfit}
               onOutfitChange={(charId, outfitName) => {
-                onCharacterOutfitChange(charId, outfitName || undefined);
+                onCharacterOutfitChange(shotSlot, charId, outfitName || undefined);
               }}
               compact={true}
               hideLabel={true}
@@ -471,7 +471,7 @@ export function UnifiedSceneConfiguration({
     
     const allHeadshots = characterHeadshots[charId] || [];
     const selectedHeadshot = selectedCharacterReferences[shotSlot]?.[charId];
-    const selectedOutfit = characterOutfits[charId];
+    const selectedOutfit = characterOutfits[shotSlot]?.[charId];
     
     // Filter headshots by selected outfit (if outfit is selected)
     const headshots = selectedOutfit && selectedOutfit !== 'default' 
@@ -576,7 +576,7 @@ export function UnifiedSceneConfiguration({
             const characterId = character?.id;
             
             const allHeadshots = hasCharacter && characterId ? characterHeadshots[characterId] || [] : [];
-            const selectedOutfit = hasCharacter && characterId ? characterOutfits[characterId] : undefined;
+            const selectedOutfit = hasCharacter && characterId ? characterOutfits[shot.slot]?.[characterId] : undefined;
             
             // Filter headshots by selected outfit (if outfit is selected)
             const headshots = selectedOutfit && selectedOutfit !== 'default' 

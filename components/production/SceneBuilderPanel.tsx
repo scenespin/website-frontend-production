@@ -141,8 +141,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [drivingVideoUrl, setDrivingVideoUrl] = useState<string | null>(null);
   const [useNewWorkflow, setUseNewWorkflow] = useState(false); // Toggle for testing new VEO workflow
   
-  // Per-character outfit selection state (NEW: Phase 3 - Outfit Integration)
-  const [characterOutfits, setCharacterOutfits] = useState<Record<string, string>>({});
+  // Per-shot, per-character outfit selection state (NEW: Per-shot outfit selection for maximum flexibility)
+  // Structure: shotSlot -> characterId -> outfitName
+  const [characterOutfits, setCharacterOutfits] = useState<Record<number, Record<string, string>>>({});
   
   // Feature 0163 Phase 1: Character headshot selection state (per-shot for dialogue shots)
   const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>>({});
@@ -262,18 +263,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       setAnalysisError(null);
       
       try {
-        // Build characterOutfits mapping (only include defined outfits, not undefined)
-        const characterOutfitsToSend: Record<string, string> = {};
-        Object.entries(characterOutfits).forEach(([charId, outfit]) => {
-          if (outfit) {
-            characterOutfitsToSend[charId] = outfit;
-          }
-        });
-        
+        // Note: characterOutfits is now per-shot, so we don't send it to scene analyzer
+        // (analyzer doesn't need outfit info, it just analyzes the scene)
         const result = await api.sceneAnalyzer.analyze({
           screenplayId: projectId,
-          sceneId: selectedSceneId,
-          characterOutfits: Object.keys(characterOutfitsToSend).length > 0 ? characterOutfitsToSend : undefined
+          sceneId: selectedSceneId
         });
         
         if (result.success && result.data) {
@@ -884,30 +878,34 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     checkVoiceProfile();
   }, [selectedCharacterId, projectId, getToken]);
   
-  // Initialize character outfits when analysis result is received
+  // Initialize character outfits per-shot when analysis result is received
   useEffect(() => {
-    if (sceneAnalysisResult?.characters) {
+    if (sceneAnalysisResult?.shotBreakdown?.shots && sceneAnalysisResult?.characters) {
       setCharacterOutfits(prev => {
-        const updated: Record<string, string> = { ...prev };
+        const updated: Record<number, Record<string, string>> = { ...prev };
         let hasChanges = false;
         
-        sceneAnalysisResult.characters.forEach(char => {
-          // Only set if character doesn't have an outfit selected yet
-          if (!prev[char.id]) {
-            if (char.defaultOutfit) {
-              // Use default outfit if set
-              updated[char.id] = char.defaultOutfit;
-              hasChanges = true;
-            } else if (char.availableOutfits && char.availableOutfits.length > 0) {
-              // Auto-select first outfit if no default is set
-              updated[char.id] = char.availableOutfits[0];
-              hasChanges = true;
-            } else {
-              // No outfits available - mark as using default (undefined)
-              updated[char.id] = undefined as any;
-              hasChanges = true;
-            }
+        sceneAnalysisResult.shotBreakdown.shots.forEach((shot: any) => {
+          const shotSlot = shot.slot;
+          if (!updated[shotSlot]) {
+            updated[shotSlot] = {};
           }
+          
+          // Initialize outfits for characters in this shot
+          sceneAnalysisResult.characters.forEach(char => {
+            // Only set if character doesn't have an outfit selected for this shot yet
+            if (!updated[shotSlot][char.id]) {
+              if (char.defaultOutfit) {
+                // Use default outfit if set
+                updated[shotSlot][char.id] = char.defaultOutfit;
+                hasChanges = true;
+              } else if (char.availableOutfits && char.availableOutfits.length > 0) {
+                // Auto-select first outfit if no default is set
+                updated[shotSlot][char.id] = char.availableOutfits[0];
+                hasChanges = true;
+              }
+            }
+          });
         });
         
         return hasChanges ? updated : prev;
@@ -2984,11 +2982,18 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     characterHeadshots={characterHeadshots}
                     loadingHeadshots={loadingHeadshots}
                     characterOutfits={characterOutfits}
-                    onCharacterOutfitChange={(characterId, outfitName) => {
-                      setCharacterOutfits(prev => ({
-                        ...prev,
-                        [characterId]: outfitName || undefined
-                      }));
+                    onCharacterOutfitChange={(shotSlot, characterId, outfitName) => {
+                      setCharacterOutfits(prev => {
+                        const updated = { ...prev };
+                        if (!updated[shotSlot]) {
+                          updated[shotSlot] = {};
+                        }
+                        updated[shotSlot] = {
+                          ...updated[shotSlot],
+                          [characterId]: outfitName || undefined
+                        };
+                        return updated;
+                      });
                     }}
                     selectedLocationReferences={selectedLocationReferences}
                     onLocationAngleChange={(shotSlot, locationId, angle) => {

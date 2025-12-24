@@ -40,9 +40,9 @@ interface ShotConfigurationPanelProps {
   characterHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots: Record<string, boolean>;
   selectedCharacterReferences: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>;
-  characterOutfits: Record<string, string>;
+  characterOutfits: Record<number, Record<string, string>>; // Per-shot, per-character: shotSlot -> characterId -> outfitName
   onCharacterReferenceChange: (shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
-  onCharacterOutfitChange: (characterId: string, outfitName: string | undefined) => void;
+  onCharacterOutfitChange: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
 }
 
 export function ShotConfigurationPanel({
