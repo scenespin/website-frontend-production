@@ -567,7 +567,7 @@ export function UnifiedSceneConfiguration({
                   }
                   
                   return (
-                    <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                    <div className="mt-3">
                       {/* Two-column layout: Pronoun mapping on left, References on right */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {/* Left Column: Pronoun Mapping (only for action shots with pronouns) */}
@@ -588,6 +588,13 @@ export function UnifiedSceneConfiguration({
                                   onCharactersForShotChange(shot.slot, characterIds);
                                 }
                               }}
+                              shotSlot={shot.slot}
+                              characterHeadshots={characterHeadshots}
+                              loadingHeadshots={loadingHeadshots}
+                              selectedCharacterReferences={selectedCharacterReferences}
+                              characterOutfits={characterOutfits}
+                              onCharacterReferenceChange={onCharacterReferenceChange}
+                              onCharacterOutfitChange={onCharacterOutfitChange}
                             />
                           </div>
                         ) : (
@@ -599,12 +606,33 @@ export function UnifiedSceneConfiguration({
                           </div>
                         )}
                         
-                        {/* Right Column: Character References & Location */}
+                        {/* Right Column: Location, Character References */}
                         {(charactersToShow.length > 0 || shouldShowLocation) && (
                           <div className="space-y-4 border-l border-[#3F3F46] pl-4">
                             <div className="text-xs font-medium text-[#FFFFFF] mb-2">
                               References
                             </div>
+                            
+                            {/* Location Angle Selector - Always at top */}
+                            {shouldShowLocation && (
+                              <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+                                <div className="text-xs font-medium text-[#FFFFFF]">
+                                  Location Angle
+                                </div>
+                                <LocationAngleSelector
+                                  locationId={sceneAnalysisResult.location.id}
+                                  locationName={sceneAnalysisResult.location.name || 'Location'}
+                                  angleVariations={sceneAnalysisResult.location.angleVariations || []}
+                                  baseReference={sceneAnalysisResult.location.baseReference}
+                                  selectedAngle={selectedLocationReferences[shot.slot]}
+                                  onAngleChange={(locationId, angle) => {
+                                    onLocationAngleChange(shot.slot, locationId, angle);
+                                  }}
+                                  isRequired={isLocationAngleRequired(shot)}
+                                  recommended={sceneAnalysisResult.location.recommended}
+                                />
+                              </div>
+                            )}
                             
                             {/* Character Headshots & Outfits */}
                             {charactersToShow.length > 0 && (
@@ -715,27 +743,6 @@ export function UnifiedSceneConfiguration({
                                     </div>
                                   );
                                 })}
-                              </div>
-                            )}
-                            
-                            {/* Location Angle Selector */}
-                            {shouldShowLocation && (
-                              <div className={`pt-3 ${charactersToShow.length > 0 ? 'border-t border-[#3F3F46]' : ''}`}>
-                                <div className="text-xs font-medium text-[#FFFFFF] mb-2">
-                                  Location Angle
-                                </div>
-                                <LocationAngleSelector
-                                  locationId={sceneAnalysisResult.location.id}
-                                  locationName={sceneAnalysisResult.location.name || 'Location'}
-                                  angleVariations={sceneAnalysisResult.location.angleVariations || []}
-                                  baseReference={sceneAnalysisResult.location.baseReference}
-                                  selectedAngle={selectedLocationReferences[shot.slot]}
-                                  onAngleChange={(locationId, angle) => {
-                                    onLocationAngleChange(shot.slot, locationId, angle);
-                                  }}
-                                  isRequired={isLocationAngleRequired(shot)}
-                                  recommended={sceneAnalysisResult.location.recommended}
-                                />
                               </div>
                             )}
                           </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
+import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 
 interface Character {
   id: string;
@@ -16,6 +17,14 @@ interface PronounMappingSectionProps {
   onPronounMappingChange: (pronoun: string, characterId: string | string[] | undefined) => void;
   onCharacterSelectionChange?: (characterIds: string[]) => void; // Optional: to auto-select characters when mapped
   maxTotalCharacters?: number; // Maximum total characters allowed (default: 5)
+  // Props for showing character images for singular pronouns
+  shotSlot?: number;
+  characterHeadshots?: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
+  loadingHeadshots?: Record<string, boolean>;
+  selectedCharacterReferences?: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>;
+  characterOutfits?: Record<string, string>;
+  onCharacterReferenceChange?: (shotSlot: number, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
+  onCharacterOutfitChange?: (characterId: string, outfitName: string | undefined) => void;
 }
 
 export function PronounMappingSection({
@@ -25,10 +34,21 @@ export function PronounMappingSection({
   pronounMappings,
   onPronounMappingChange,
   onCharacterSelectionChange,
-  maxTotalCharacters = 5
+  maxTotalCharacters = 5,
+  shotSlot,
+  characterHeadshots = {},
+  loadingHeadshots = {},
+  selectedCharacterReferences = {},
+  characterOutfits = {},
+  onCharacterReferenceChange,
+  onCharacterOutfitChange
 }: PronounMappingSectionProps) {
   // Plural pronouns that can map to multiple characters
   const pluralPronouns = ['they', 'them', 'their', 'theirs'];
+  
+  // Separate singular and plural pronouns
+  const singularPronouns = pronouns.filter(p => !pluralPronouns.includes(p.toLowerCase()));
+  const pluralPronounsList = pronouns.filter(p => pluralPronouns.includes(p.toLowerCase()));
   
   // Get all mapped character IDs (flattening arrays for plural pronouns)
   const getAllMappedCharacterIds = (): string[] => {
@@ -100,11 +120,18 @@ export function PronounMappingSection({
       </div>
 
       {/* Pronoun Mapping Dropdowns */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="text-xs font-medium text-[#FFFFFF] mb-2">
           Map Pronouns to Characters (up to {maxTotalCharacters} total)
         </div>
-        {pronouns.map((pronoun) => {
+        
+        {/* Singular Pronouns Section */}
+        {singularPronouns.length > 0 && (
+          <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
+            <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
+              Singular Pronouns
+            </div>
+            {singularPronouns.map((pronoun) => {
           const pronounLower = pronoun.toLowerCase();
           const isPlural = pluralPronouns.includes(pronounLower);
           const mapping = pronounMappings[pronounLower];
