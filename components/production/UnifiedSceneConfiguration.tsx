@@ -33,8 +33,8 @@ interface UnifiedSceneConfigurationProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
   qualityTier: 'professional' | 'premium';
   onQualityTierChange: (tier: 'professional' | 'premium') => void;
-  selectedCharacterReferences: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>; // Per-shot selection (single character)
-  onCharacterReferenceChange: (shotSlot: number, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
+  selectedCharacterReferences: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>; // Per-shot, per-character selection: shotSlot -> characterId -> reference
+  onCharacterReferenceChange: (shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   // Pronoun detection: Multi-character selection per shot (for pronouns like "they", "she", etc.)
   selectedCharactersForShots?: Record<number, string[]>; // Per-shot: array of character IDs
   onCharactersForShotChange?: (shotSlot: number, characterIds: string[]) => void;
@@ -490,7 +490,7 @@ export function UnifiedSceneConfiguration({
     if (!char) return null;
     
     const headshots = characterHeadshots[charId] || [];
-    const selectedHeadshot = selectedCharacterReferences[shotSlot];
+    const selectedHeadshot = selectedCharacterReferences[shotSlot]?.[charId];
     const selectedOutfit = characterOutfits[charId];
     
     return (
@@ -523,7 +523,7 @@ export function UnifiedSceneConfiguration({
                         s3Key: headshot.s3Key,
                         imageUrl: headshot.imageUrl
                       };
-                      onCharacterReferenceChange(shotSlot, newRef);
+                      onCharacterReferenceChange(shotSlot, charId, newRef);
                     }}
                     className={`relative aspect-square rounded border-2 transition-all ${
                       isSelected
@@ -570,7 +570,7 @@ export function UnifiedSceneConfiguration({
     if (!char) return null;
     
     const headshots = characterHeadshots[charId] || [];
-    const selectedHeadshot = selectedCharacterReferences[shotSlot];
+    const selectedHeadshot = selectedCharacterReferences[shotSlot]?.[charId];
     const selectedOutfit = characterOutfits[charId];
     
     // Get which pronouns map to this character
@@ -636,7 +636,7 @@ export function UnifiedSceneConfiguration({
                         s3Key: headshot.s3Key,
                         imageUrl: headshot.imageUrl
                       };
-                      onCharacterReferenceChange(shotSlot, newRef);
+                      onCharacterReferenceChange(shotSlot, charId, newRef);
                     }}
                     className={`relative aspect-square rounded border-2 transition-all ${
                       isSelected
@@ -705,7 +705,8 @@ export function UnifiedSceneConfiguration({
               : allHeadshots; // Show all headshots if no outfit selected or using default
             
             const isLoadingHeadshots = hasCharacter && characterId ? loadingHeadshots[characterId] : false;
-            const selectedHeadshot = hasCharacter ? selectedCharacterReferences[shot.slot] : undefined;
+            // For dialogue shots, get the character's reference (backward compatibility)
+            const selectedHeadshot = hasCharacter && characterId ? selectedCharacterReferences[shot.slot]?.[characterId] : undefined;
 
             return (
               <div

@@ -145,7 +145,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [characterOutfits, setCharacterOutfits] = useState<Record<string, string>>({});
   
   // Feature 0163 Phase 1: Character headshot selection state (per-shot for dialogue shots)
-  const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>>({});
+  const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>>({});
   
   // Pronoun Detection: Multi-character selection per shot (for pronouns like "they", "she", etc.)
   const [selectedCharactersForShots, setSelectedCharactersForShots] = useState<Record<number, string[]>>({});
@@ -813,15 +813,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               
               // Find the first shot slot that selected this character
               const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
-              if (shotSlot && !selectedCharacterReferences[Number(shotSlot)]) {
-                setSelectedCharacterReferences(prev => ({
-                  ...prev,
-                  [Number(shotSlot)]: {
-                    poseId: bestHeadshot.poseId,
-                    s3Key: bestHeadshot.s3Key,
-                    imageUrl: bestHeadshot.imageUrl
-                  }
-                }));
+              if (shotSlot && characterId && !selectedCharacterReferences[Number(shotSlot)]?.[characterId]) {
+                setSelectedCharacterReferences(prev => {
+                  const shotRefs = prev[Number(shotSlot)] || {};
+                  return {
+                    ...prev,
+                    [Number(shotSlot)]: {
+                      ...shotRefs,
+                      [characterId]: {
+                        poseId: bestHeadshot.poseId,
+                        s3Key: bestHeadshot.s3Key,
+                        imageUrl: bestHeadshot.imageUrl
+                      }
+                    }
+                  };
+                });
               }
             }
           }
@@ -2065,8 +2071,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           ).map((shot: any) => ({
             ...shot,
             // Add per-shot character reference if selected (backend Priority 1)
-            selectedCharacterReference: shot.type === 'dialogue' && selectedCharacterReferences[shot.slot] 
-              ? selectedCharacterReferences[shot.slot] 
+            // For dialogue shots, get the reference for the shot's characterId
+            selectedCharacterReference: shot.type === 'dialogue' && shot.characterId && selectedCharacterReferences[shot.slot]?.[shot.characterId]
+              ? selectedCharacterReferences[shot.slot][shot.characterId]
               : undefined
           })),
           totalShots: enabledShots.length > 0 ? enabledShots.length : sceneAnalysisResult.shotBreakdown.totalShots,
@@ -2955,11 +2962,21 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     qualityTier={qualityTier}
                     onQualityTierChange={setQualityTier}
                     selectedCharacterReferences={selectedCharacterReferences}
-                    onCharacterReferenceChange={(shotSlot, reference) => {
-                      setSelectedCharacterReferences(prev => ({
-                        ...prev,
-                        [shotSlot]: reference
-                      }));
+                    onCharacterReferenceChange={(shotSlot, characterId, reference) => {
+                      setSelectedCharacterReferences(prev => {
+                        const shotRefs = prev[shotSlot] || {};
+                        const updatedShotRefs = reference 
+                          ? { ...shotRefs, [characterId]: reference }
+                          : { ...shotRefs };
+                        // Remove characterId key if reference is undefined
+                        if (!reference) {
+                          delete updatedShotRefs[characterId];
+                        }
+                        return {
+                          ...prev,
+                          [shotSlot]: Object.keys(updatedShotRefs).length > 0 ? updatedShotRefs : undefined
+                        };
+                      });
                     }}
                     characterHeadshots={characterHeadshots}
                     loadingHeadshots={loadingHeadshots}

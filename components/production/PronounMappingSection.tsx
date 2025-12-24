@@ -23,9 +23,9 @@ interface PronounMappingSectionProps {
   shotSlot?: number;
   characterHeadshots?: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots?: Record<string, boolean>;
-  selectedCharacterReferences?: Record<number, { poseId?: string; s3Key?: string; imageUrl?: string }>;
+  selectedCharacterReferences?: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>;
   characterOutfits?: Record<string, string>;
-  onCharacterReferenceChange?: (shotSlot: number, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
+  onCharacterReferenceChange?: (shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   onCharacterOutfitChange?: (characterId: string, outfitName: string | undefined) => void;
   // Additional character sources with full data (including outfits)
   allCharactersWithOutfits?: any[]; // Characters from sceneAnalysisResult or allCharacters with outfit data
