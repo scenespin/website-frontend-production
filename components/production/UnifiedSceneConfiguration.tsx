@@ -83,6 +83,32 @@ export function UnifiedSceneConfiguration({
 }: UnifiedSceneConfigurationProps) {
   const [expandedShots, setExpandedShots] = useState<Record<number, boolean>>({});
 
+  // Auto-select characters mentioned in action shots when shot breakdown loads
+  useEffect(() => {
+    if (!sceneAnalysisResult?.shotBreakdown?.shots || !onCharactersForShotChange) return;
+    
+    const shots = sceneAnalysisResult.shotBreakdown.shots;
+    
+    for (const shot of shots) {
+      if (shot.type !== 'action') continue;
+      
+      // Skip if already has selected characters (user may have manually selected)
+      const currentSelection = selectedCharactersForShots[shot.slot] || [];
+      if (currentSelection.length > 0) continue;
+      
+      // Get characters mentioned in the text
+      const mentionedCharacters = getCharactersFromActionShot(shot);
+      const mentionedCharacterIds = mentionedCharacters.length > 0 
+        ? mentionedCharacters.map((c: any) => c.id)
+        : [];
+      
+      // Auto-select mentioned characters
+      if (mentionedCharacterIds.length > 0) {
+        onCharactersForShotChange(shot.slot, mentionedCharacterIds);
+      }
+    }
+  }, [sceneAnalysisResult?.shotBreakdown?.shots?.length, onCharactersForShotChange, selectedCharactersForShots]); // Only run when shot breakdown first loads
+
   // Auto-select all shots on mount if sceneAnalysisResult changes
   useEffect(() => {
     if (sceneAnalysisResult?.shotBreakdown?.shots) {
