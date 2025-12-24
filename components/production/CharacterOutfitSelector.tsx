@@ -69,15 +69,11 @@ export function CharacterOutfitSelector({
 
   const handleOutfitChange = (value: string) => {
     setLocalSelectedOutfit(value);
-    console.log(`[CharacterOutfitSelector] Outfit changed for ${characterName}:`, {
-      newValue: value,
-      characterId,
-      willCallOnOutfitChange: true
-    });
+    // "default" or "All Outfits" means show all outfits (undefined)
     if (value === 'default') {
-      onOutfitChange(characterId, undefined); // undefined means use default
+      onOutfitChange(characterId, undefined); // undefined means show all outfits
     } else {
-      onOutfitChange(characterId, value);
+      onOutfitChange(characterId, value); // specific outfit name
     }
   };
 
