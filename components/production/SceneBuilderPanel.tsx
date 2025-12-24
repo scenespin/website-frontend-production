@@ -55,10 +55,8 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
-import { EditorContextBanner } from './EditorContextBanner';
 import { SceneSelector } from './SceneSelector';
 import { ManualSceneEntry } from './ManualSceneEntry';
-import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
@@ -165,11 +163,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Phase 2: Scene selection state
   const [inputMethod, setInputMethod] = useState<'database' | 'manual'>('database');
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
-  const [showEditorContextBanner, setShowEditorContextBanner] = useState(false);
-  const [editorContextSceneName, setEditorContextSceneName] = useState<string | null>(null);
-  
-  // Get editor context for auto-select
-  const contextStore = useContextStore();
   
   // Style matching state (Feature 0109)
   const [selectedStyleProfile, setSelectedStyleProfile] = useState<string | null>(null);
@@ -237,52 +230,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     }
   }, [sceneDescription, currentStep]);
 
-  // Phase 2: Auto-select scene from editor context
-  useEffect(() => {
-    const editorSceneId = contextStore.context.currentSceneId;
-    const editorProjectId = contextStore.context.projectId;
-    
-    // Only auto-select if:
-    // 1. Context has a scene ID
-    // 2. Project IDs match (or context has no project ID)
-    // 3. Scenes are loaded
-    // 4. Scene exists in database
-    if (
-      editorSceneId && 
-      screenplay.scenes && 
-      screenplay.scenes.length > 0 &&
-      (!editorProjectId || editorProjectId === projectId)
-    ) {
-      const sceneFromContext = screenplay.scenes.find(s => s.id === editorSceneId);
-      
-      if (sceneFromContext) {
-        // Auto-select this scene
-        setSelectedSceneId(sceneFromContext.id);
-        setInputMethod('database'); // Force database mode
-        
-        // Load scene content
-        const sceneText = sceneFromContext.synopsis || 
-          `${sceneFromContext.heading || ''}\n\n${sceneFromContext.synopsis || ''}`.trim();
-        setSceneDescription(sceneText);
-        
-        // Show banner
-        setEditorContextSceneName(sceneFromContext.heading || sceneFromContext.synopsis || 'Current Scene');
-        setShowEditorContextBanner(true);
-        
-        console.log('[SceneBuilderPanel] Auto-selected scene from editor context:', {
-          sceneId: sceneFromContext.id,
-          heading: sceneFromContext.heading,
-          foundInDatabase: true
-        });
-      } else {
-        console.warn('[SceneBuilderPanel] ⚠️ Scene from editor context not found in database:', {
-          editorSceneId,
-          availableSceneIds: screenplay.scenes?.map(s => s.id).slice(0, 5),
-          totalScenes: screenplay.scenes?.length || 0
-        });
-      }
-    }
-  }, [contextStore.context.currentSceneId, contextStore.context.projectId, screenplay.scenes, projectId]);
+  // Removed: Auto-select scene from editor context
+  // Users can now freely select any scene in Production Hub without being forced into editor context
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   useEffect(() => {
@@ -1687,9 +1636,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         return;
       }
       
-      // Get sceneId - try selectedSceneId first, then fallback to editor context
+      // Get sceneId - use selectedSceneId only (no editor context fallback)
       // sceneId is required for single source of truth enforcement
-      const sceneId = selectedSceneId || contextStore.context.currentSceneId;
+      const sceneId = selectedSceneId;
       
       // Validate sceneId is required (single source of truth enforcement)
       if (!sceneId) {
@@ -2042,8 +1991,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       }
       
       // Add scene information for media organization (Feature 0170)
-      // Priority: sceneAnalysisResult.sceneId > selectedSceneId > contextStore.currentSceneId
-      const sceneId = sceneAnalysisResult?.sceneId || selectedSceneId || contextStore.context.currentSceneId;
+      // Priority: sceneAnalysisResult.sceneId > selectedSceneId (no editor context fallback)
+      const sceneId = sceneAnalysisResult?.sceneId || selectedSceneId;
       if (sceneId) {
         workflowRequest.sceneId = sceneId;
       }
@@ -2673,17 +2622,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   return (
     <div className="h-full overflow-auto bg-[#0A0A0A]">
       <div className="p-3 md:p-4 space-y-3">
-        {/* Sticky Editor Context Banner (when scene auto-selected) */}
-        {showEditorContextBanner && editorContextSceneName && (
-          <div className="sticky top-0 z-10 -mx-3 md:-mx-4 px-3 md:px-4 pt-3 md:pt-4 pb-1.5 bg-[#0A0A0A]">
-            <EditorContextBanner
-              sceneName={editorContextSceneName}
-              onDismiss={() => setShowEditorContextBanner(false)}
-            />
-          </div>
-        )}
-        
-        
         {/* Content */}
         <div className="space-y-3">
         {/* Step Indicator */}
