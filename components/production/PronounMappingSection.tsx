@@ -148,13 +148,18 @@ export function PronounMappingSection({
                                 disabled={!canSelect}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    // Add character
+                                    // Add character - only if we have remaining slots
                                     if (remainingSlots > 0) {
                                       const newIds = [...mappedCharacterIds, char.id];
-                                      onPronounMappingChange(pronounLower, newIds);
+                                      // Double-check we're not exceeding the limit
+                                      const otherMappedIds = allMappedIds.filter(id => !mappedCharacterIds.includes(id));
+                                      const totalAfterAdd = otherMappedIds.length + newIds.length;
+                                      if (totalAfterAdd <= maxTotalCharacters) {
+                                        onPronounMappingChange(pronounLower, newIds);
+                                      }
                                     }
                                   } else {
-                                    // Remove character
+                                    // Remove character - always allowed
                                     const newIds = mappedCharacterIds.filter(id => id !== char.id);
                                     onPronounMappingChange(pronounLower, newIds.length > 0 ? newIds : undefined);
                                   }
