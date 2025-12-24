@@ -24,6 +24,7 @@ interface GenerateCoverageTabProps {
   characterName: string;
   screenplayId: string;
   baseReferenceS3Key?: string;
+  existingReferences?: Array<{ metadata?: { outfitName?: string } }>;
   onClose: () => void;
   onComplete?: (result: any) => void;
 }
@@ -42,6 +43,7 @@ export function GenerateCoverageTab({
   characterName,
   screenplayId,
   baseReferenceS3Key,
+  existingReferences = [],
   onClose,
   onComplete
 }: GenerateCoverageTabProps) {
@@ -85,6 +87,18 @@ export function GenerateCoverageTab({
     const seconds = String(now.getSeconds()).padStart(2, '0');
     return `Outfit_${year}${month}${day}_${hours}${minutes}${seconds}`;
   };
+
+  // Extract existing outfit names
+  const existingOutfits = useMemo(() => {
+    const outfits = new Set<string>();
+    existingReferences.forEach(ref => {
+      const outfit = ref.metadata?.outfitName || 'default';
+      if (outfit !== 'default') {
+        outfits.add(outfit);
+      }
+    });
+    return Array.from(outfits).sort();
+  }, [existingReferences]);
 
   // Get final outfit name
   const finalOutfitName = useMemo(() => {
@@ -386,14 +400,22 @@ export function GenerateCoverageTab({
           {outfitMode === 'existing' && (
             <div className="space-y-2">
               <label className="block text-sm font-medium text-white">Select Existing Outfit</label>
-              <select
-                value={selectedExistingOutfit}
-                onChange={(e) => setSelectedExistingOutfit(e.target.value)}
-                className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-              >
-                <option value="">Select an outfit...</option>
-                {/* TODO: Load existing outfits */}
-              </select>
+              {existingOutfits.length > 0 ? (
+                <select
+                  value={selectedExistingOutfit}
+                  onChange={(e) => setSelectedExistingOutfit(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                >
+                  <option value="">Select an outfit...</option>
+                  {existingOutfits.map(outfit => (
+                    <option key={outfit} value={outfit}>{outfit}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-[#808080]">
+                  No existing outfits. Create a new one instead.
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -508,8 +530,10 @@ export function GenerateCoverageTab({
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Step 4: Pose Package Selection</h3>
         <PosePackageSelector
+          characterName={characterName}
           selectedPackageId={selectedPackageId}
-          onPackageSelect={setSelectedPackageId}
+          onSelectPackage={setSelectedPackageId}
+          creditsPerImage={selectedModel?.credits}
         />
       </div>
 

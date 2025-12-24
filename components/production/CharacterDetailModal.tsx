@@ -915,6 +915,7 @@ export function CharacterDetailModal({
                   characterName={character.name}
                   screenplayId={screenplayId || ''}
                   baseReferenceS3Key={latestCharacter.baseReference?.s3Key}
+                  existingReferences={[...(latestCharacter.references || []), ...(latestCharacter.poseReferences || [])]}
                   onClose={() => setCoverageTab(null)}
                   onComplete={async (result) => {
                     queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
