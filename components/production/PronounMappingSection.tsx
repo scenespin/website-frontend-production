@@ -27,6 +27,8 @@ interface PronounMappingSectionProps {
   characterOutfits?: Record<string, string>;
   onCharacterReferenceChange?: (shotSlot: number, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   onCharacterOutfitChange?: (characterId: string, outfitName: string | undefined) => void;
+  // Additional character sources with full data (including outfits)
+  allCharactersWithOutfits?: any[]; // Characters from sceneAnalysisResult or allCharacters with outfit data
 }
 
 export function PronounMappingSection({
@@ -43,8 +45,19 @@ export function PronounMappingSection({
   selectedCharacterReferences = {},
   characterOutfits = {},
   onCharacterReferenceChange,
-  onCharacterOutfitChange
+  onCharacterOutfitChange,
+  allCharactersWithOutfits = []
 }: PronounMappingSectionProps) {
+  
+  // Helper to get character with outfit data (prefer allCharactersWithOutfits if available)
+  const getCharacterWithOutfits = (characterId: string): Character | null => {
+    if (allCharactersWithOutfits && allCharactersWithOutfits.length > 0) {
+      const charWithOutfits = allCharactersWithOutfits.find((c: any) => c.id === characterId);
+      if (charWithOutfits) return charWithOutfits;
+    }
+    // Fallback to characters prop
+    return characters.find(c => c.id === characterId) || null;
+  };
   // Plural pronouns that can map to multiple characters
   const pluralPronouns = ['they', 'them', 'their', 'theirs'];
   
@@ -139,7 +152,8 @@ export function PronounMappingSection({
               const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
               const availableChars = getAvailableCharacters(mapping);
               
-              const mappedChar = mappedCharacterId ? characters.find(c => c.id === mappedCharacterId) : null;
+              // Get character with outfit data from the enriched source
+              const mappedChar = mappedCharacterId ? getCharacterWithOutfits(mappedCharacterId) : null;
               const selectedOutfit = mappedCharacterId && characterOutfits ? characterOutfits[mappedCharacterId] : undefined;
               
               return (
@@ -293,7 +307,8 @@ export function PronounMappingSection({
                   {mappedCharacterIds.length > 0 && (
                     <div className="ml-[76px] space-y-2 pt-2">
                       {mappedCharacterIds.map((charId) => {
-                        const char = characters.find(c => c.id === charId);
+                        // Get character with outfit data from the enriched source
+                        const char = getCharacterWithOutfits(charId);
                         if (!char) return null;
                         const charOutfit = characterOutfits ? characterOutfits[charId] : undefined;
                         
