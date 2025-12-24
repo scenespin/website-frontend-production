@@ -165,14 +165,19 @@ export function ProductionHub({}: ProductionHubProps) {
         });
         const data = await response.json();
         
-        if (data.success && data.jobs) {
-          const runningCount = data.jobs.filter((job: any) => 
+        // Backend uses sendSuccess which wraps in { success: true, data: { jobs: [...] } }
+        // But also check for direct jobs property for backwards compatibility
+        const jobList = data.data?.jobs || data.jobs || [];
+        
+        if (data.success) {
+          const runningCount = jobList.filter((job: any) => 
             job.status === 'running' || job.status === 'queued'
           ).length;
           setActiveJobs(runningCount);
           
           // Auto-open drawer when jobs are running (if not already open)
           if (runningCount > 0 && !isJobsDrawerOpen) {
+            console.log('[ProductionHub] Auto-opening JobsDrawer -', runningCount, 'job(s) running');
             setIsJobsDrawerOpen(true);
           }
         } else {
@@ -186,8 +191,8 @@ export function ProductionHub({}: ProductionHubProps) {
     // Initial fetch
     fetchActiveJobs();
 
-    // Poll every 10 seconds if there are active jobs
-    const interval = setInterval(fetchActiveJobs, 10000);
+    // Poll more frequently (every 3 seconds) to catch new jobs quickly
+    const interval = setInterval(fetchActiveJobs, 3000);
     
     return () => clearInterval(interval);
   }, [screenplayId, getToken, isJobsDrawerOpen]);
