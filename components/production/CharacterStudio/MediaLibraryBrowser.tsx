@@ -137,7 +137,7 @@ export function MediaLibraryBrowser({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">Select Images from Media Library</h3>
+          <h3 className="text-sm font-semibold text-white">Select Images from Storage</h3>
           <p className="text-xs text-[#808080]">
             {selectedImages.size} of {maxSelections} selected
           </p>
@@ -169,9 +169,9 @@ export function MediaLibraryBrowser({
       ) : imageFiles.length === 0 ? (
         <div className="text-center py-12">
           <FolderOpen className="w-12 h-12 text-[#808080] mx-auto mb-4" />
-          <p className="text-[#808080] mb-2">No images in Media Library</p>
+          <p className="text-[#808080] mb-2">No images in Storage</p>
           <p className="text-xs text-[#6B7280]">
-            Upload images to Media Library first, or use the Upload tab
+            Upload images to Storage first, or use the Upload button
           </p>
         </div>
       ) : (

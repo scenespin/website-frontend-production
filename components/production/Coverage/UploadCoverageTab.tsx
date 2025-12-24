@@ -11,9 +11,9 @@
  * - Progress tracking
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FolderOpen, Loader2, X, Check, AlertCircle, Plus } from 'lucide-react';
+import { Upload, FolderOpen, Loader2, X, Check, AlertCircle, Plus, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import type { CharacterReference } from '../types';
@@ -50,6 +50,9 @@ export function UploadCoverageTab({
   const [imageSource, setImageSource] = useState<'upload' | 'browse'>('upload');
   const [uploadingImages, setUploadingImages] = useState<UploadingImage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPoseGuidance, setShowPoseGuidance] = useState(false);
+  const [showMediaLibrary, setShowMediaLibrary] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Extract existing outfit names
   const existingOutfits = useMemo(() => {
@@ -84,9 +87,12 @@ export function UploadCoverageTab({
     }
   }, [outfitMode, newOutfitName, selectedExistingOutfit]);
 
-  // Handle file drop (upload)
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newImages: UploadingImage[] = acceptedFiles.map(file => ({
+  // Handle file selection (direct upload)
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    const newImages: UploadingImage[] = files.map(file => ({
       file,
       preview: URL.createObjectURL(file),
       progress: 0
@@ -94,18 +100,13 @@ export function UploadCoverageTab({
     setUploadingImages(prev => [...prev, ...newImages]);
     
     // Start upload
-    handleImageUpload(acceptedFiles);
-  }, [finalOutfitName]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.jpg', '.jpeg', '.png', '.webp']
-    },
-    maxFiles: 10,
-    maxSize: 10 * 1024 * 1024, // 10MB
-    disabled: isProcessing
-  });
+    handleImageUpload(files);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // Handle direct upload
   const handleImageUpload = async (files: File[]) => {
@@ -287,86 +288,68 @@ export function UploadCoverageTab({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-4">
       {/* Step 1: Create or Select Outfit */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Step 1: Create or Select Outfit</h3>
+      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Step 1: Create or Select Outfit</h3>
         
-        <div className="space-y-4">
-          {/* Mode Selection */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setOutfitMode('create')}
-              className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
-                outfitMode === 'create'
-                  ? 'bg-[#DC143C] text-white'
-                  : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A]'
-              }`}
-            >
-              <Plus className="w-4 h-4 inline mr-2" />
-              Create New Outfit
-            </button>
-            <button
-              onClick={() => setOutfitMode('existing')}
-              className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
-                outfitMode === 'existing'
-                  ? 'bg-[#DC143C] text-white'
-                  : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A]'
-              }`}
-            >
-              Add to Existing Outfit
-            </button>
+        <div className="space-y-3">
+          {/* Mode Selection - Radio Buttons */}
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="outfitMode"
+                checked={outfitMode === 'create'}
+                onChange={() => setOutfitMode('create')}
+                className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+              />
+              <span className="text-sm text-white">Create New Outfit</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="outfitMode"
+                checked={outfitMode === 'existing'}
+                onChange={() => setOutfitMode('existing')}
+                className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+              />
+              <span className="text-sm text-white">Add to Existing Outfit</span>
+            </label>
           </div>
 
           {/* Create New Outfit */}
           {outfitMode === 'create' && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-white">
-                Outfit Name
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newOutfitName}
-                  onChange={(e) => setNewOutfitName(e.target.value)}
-                  placeholder="Enter outfit name (e.g., Casual, Formal)"
-                  className="flex-1 px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-                />
-                <button
-                  onClick={() => {
-                    if (!newOutfitName.trim()) {
-                      const autoName = generateOutfitName();
-                      setNewOutfitName(autoName);
-                      toast.info(`Auto-generated outfit name: ${autoName}`);
-                    } else {
-                      toast.success(`Outfit "${newOutfitName}" ready`);
-                    }
-                  }}
-                  className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded-lg transition-colors font-medium"
-                >
-                  Create
-                </button>
-              </div>
-              <p className="text-xs text-[#808080]">
-                {newOutfitName.trim() 
-                  ? `Will create outfit: "${newOutfitName}"`
-                  : `Leave empty to auto-generate: ${generateOutfitName()}`
-                }
-              </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newOutfitName}
+                onChange={(e) => setNewOutfitName(e.target.value)}
+                placeholder="Enter outfit name (e.g., Casual, Formal)"
+                className="flex-1 px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+              />
+              <button
+                onClick={() => {
+                  if (!newOutfitName.trim()) {
+                    const autoName = generateOutfitName();
+                    setNewOutfitName(autoName);
+                  }
+                }}
+                className="px-3 py-1.5 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded text-sm transition-colors"
+              >
+                Create
+              </button>
             </div>
           )}
 
           {/* Select Existing Outfit */}
           {outfitMode === 'existing' && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-white">
-                Select Existing Outfit
-              </label>
+            <div>
               {existingOutfits.length > 0 ? (
                 <select
                   value={selectedExistingOutfit}
                   onChange={(e) => setSelectedExistingOutfit(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                  className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
                 >
                   <option value="">Select an outfit...</option>
                   {existingOutfits.map(outfit => (
@@ -374,7 +357,7 @@ export function UploadCoverageTab({
                   ))}
                 </select>
               ) : (
-                <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-[#808080]">
+                <div className="px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#808080]">
                   No existing outfits. Create a new one instead.
                 </div>
               )}
@@ -383,97 +366,66 @@ export function UploadCoverageTab({
         </div>
       </div>
 
-      {/* Step 2: Upload Method */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Step 2: Add Images</h3>
+      {/* Step 2: Add Images */}
+      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Step 2: Add Images</h3>
         
-        {/* Toggle between Upload and Browse */}
-        <div className="flex gap-2 mb-6">
+        {/* Action Buttons - Direct Actions */}
+        <div className="flex gap-2 mb-3">
           <button
-            onClick={() => setImageSource('upload')}
+            onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
-            className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
-              imageSource === 'upload'
-                ? 'bg-[#DC143C] text-white'
-                : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A]'
-            } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className="flex-1 px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
-            <Upload className="w-4 h-4 inline mr-2" />
+            <Upload className="w-4 h-4" />
             Upload New Images
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
           <button
-            onClick={() => setImageSource('browse')}
+            onClick={() => setShowMediaLibrary(!showMediaLibrary)}
             disabled={isProcessing}
-            className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
-              imageSource === 'browse'
-                ? 'bg-[#DC143C] text-white'
-                : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A]'
-            } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className="flex-1 px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-white border border-[#3F3F46] rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
-            <FolderOpen className="w-4 h-4 inline mr-2" />
-            Browse Media Library
+            <FolderOpen className="w-4 h-4" />
+            Browse Storage
           </button>
         </div>
 
-        {/* Pose Guidance */}
-        <PoseGuidanceSection
-          existingReferences={existingReferences}
-          outfitName={finalOutfitName}
-        />
-
-        {/* Conditional Content Based on Selection */}
-        {imageSource === 'upload' ? (
-          <div className="mt-6">
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                isDragActive
-                  ? 'border-[#DC143C] bg-[#DC143C]/10'
-                  : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-              } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <input {...getInputProps()} />
-              <Upload className="w-12 h-12 text-[#808080] mx-auto mb-4" />
-              <p className="text-white mb-2">
-                {isDragActive ? 'Drop images here' : 'Drag & drop images or click to browse'}
-              </p>
-              <p className="text-sm text-[#808080]">
-                Max 10 images, JPG/PNG/WebP, up to 10MB each
-              </p>
-            </div>
-
-            {/* Upload Progress */}
-            {uploadingImages.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {uploadingImages.map((img, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-[#0A0A0A] rounded">
-                    <img src={img.preview} alt={img.file.name} className="w-16 h-16 object-cover rounded" />
-                    <div className="flex-1">
-                      <p className="text-sm text-white">{img.file.name}</p>
-                      {img.error ? (
-                        <p className="text-xs text-[#DC143C] mt-1">{img.error}</p>
-                      ) : (
-                        <div className="w-full bg-[#3F3F46] rounded-full h-2 mt-1">
-                          <div
-                            className="bg-[#DC143C] h-2 rounded-full transition-all"
-                            style={{ width: `${img.progress}%` }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    {img.progress === 100 && (
-                      <Check className="w-5 h-5 text-green-400" />
-                    )}
-                    {img.error && (
-                      <AlertCircle className="w-5 h-5 text-[#DC143C]" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* Collapsible Pose Guidance */}
+        <button
+          onClick={() => setShowPoseGuidance(!showPoseGuidance)}
+          className="w-full flex items-center justify-between p-2 hover:bg-[#0A0A0A] rounded text-left transition-colors"
+        >
+          <div className="flex items-center gap-2 text-xs text-[#808080]">
+            <Info className="w-4 h-4" />
+            <span>Pose Guidance (Click to expand)</span>
           </div>
-        ) : (
-          <div className="mt-6">
+          {showPoseGuidance ? (
+            <ChevronUp className="w-4 h-4 text-[#808080]" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-[#808080]" />
+          )}
+        </button>
+        
+        {showPoseGuidance && (
+          <div className="mt-2">
+            <PoseGuidanceSection
+              existingReferences={existingReferences}
+              outfitName={finalOutfitName}
+            />
+          </div>
+        )}
+
+        {/* Media Library Browser (shown when Browse Storage is clicked) */}
+        {showMediaLibrary && (
+          <div className="mt-3">
             <MediaLibraryBrowser
               screenplayId={screenplayId}
               onSelectImages={handleSelectFromMediaLibrary}
@@ -481,7 +433,38 @@ export function UploadCoverageTab({
               allowMultiSelect={true}
               maxSelections={10}
               selectedFolderPath={['Characters', characterName]}
+              onCancel={() => setShowMediaLibrary(false)}
             />
+          </div>
+        )}
+
+        {/* Upload Progress */}
+        {uploadingImages.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {uploadingImages.map((img, index) => (
+              <div key={index} className="flex items-center gap-3 p-2 bg-[#0A0A0A] rounded">
+                <img src={img.preview} alt={img.file.name} className="w-12 h-12 object-cover rounded" />
+                <div className="flex-1">
+                  <p className="text-xs text-white truncate">{img.file.name}</p>
+                  {img.error ? (
+                    <p className="text-xs text-[#DC143C] mt-0.5">{img.error}</p>
+                  ) : (
+                    <div className="w-full bg-[#3F3F46] rounded-full h-1.5 mt-1">
+                      <div
+                        className="bg-[#DC143C] h-1.5 rounded-full transition-all"
+                        style={{ width: `${img.progress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+                {img.progress === 100 && (
+                  <Check className="w-4 h-4 text-green-400" />
+                )}
+                {img.error && (
+                  <AlertCircle className="w-4 h-4 text-[#DC143C]" />
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

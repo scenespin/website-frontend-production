@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Upload, Loader2, X, Plus, Wand2 } from 'lucide-react';
+import { Upload, Loader2, X, Plus, Wand2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import PosePackageSelector from '../../character-bank/PosePackageSelector';
@@ -75,6 +75,7 @@ export function GenerateCoverageTab({
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>('');
+  const [showPosePackageDetails, setShowPosePackageDetails] = useState(false);
 
   // Auto-generate outfit name helper
   const generateOutfitName = () => {
@@ -334,77 +335,66 @@ export function GenerateCoverageTab({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-4">
       {/* Step 1: Create or Select Outfit */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Step 1: Create or Select Outfit (Required)</h3>
+      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Step 1: Create or Select Outfit (Required)</h3>
         
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setOutfitMode('create')}
-              className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
-                outfitMode === 'create'
-                  ? 'bg-[#DC143C] text-white'
-                  : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A]'
-              }`}
-            >
-              <Plus className="w-4 h-4 inline mr-2" />
-              Create New Outfit
-            </button>
-            <button
-              onClick={() => setOutfitMode('existing')}
-              className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
-                outfitMode === 'existing'
-                  ? 'bg-[#DC143C] text-white'
-                  : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A]'
-              }`}
-            >
-              Add to Existing Outfit
-            </button>
+        <div className="space-y-3">
+          {/* Radio Buttons */}
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="outfitMode"
+                checked={outfitMode === 'create'}
+                onChange={() => setOutfitMode('create')}
+                className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+              />
+              <span className="text-sm text-white">Create New Outfit</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="outfitMode"
+                checked={outfitMode === 'existing'}
+                onChange={() => setOutfitMode('existing')}
+                className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+              />
+              <span className="text-sm text-white">Add to Existing Outfit</span>
+            </label>
           </div>
 
           {outfitMode === 'create' && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-white">Outfit Name</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newOutfitName}
-                  onChange={(e) => setNewOutfitName(e.target.value)}
-                  placeholder="Enter outfit name (e.g., Casual, Formal)"
-                  className="flex-1 px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-                />
-                <button
-                  onClick={() => {
-                    if (!newOutfitName.trim()) {
-                      const autoName = generateOutfitName();
-                      setNewOutfitName(autoName);
-                      toast.info(`Auto-generated outfit name: ${autoName}`);
-                    }
-                  }}
-                  className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded-lg transition-colors font-medium"
-                >
-                  Create
-                </button>
-              </div>
-              <p className="text-xs text-[#808080]">
-                {newOutfitName.trim() 
-                  ? `Will create outfit: "${newOutfitName}"`
-                  : `Leave empty to auto-generate: ${generateOutfitName()}`
-                }
-              </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newOutfitName}
+                onChange={(e) => setNewOutfitName(e.target.value)}
+                placeholder="Enter outfit name (e.g., Casual, Formal)"
+                className="flex-1 px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+              />
+              <button
+                onClick={() => {
+                  if (!newOutfitName.trim()) {
+                    const autoName = generateOutfitName();
+                    setNewOutfitName(autoName);
+                  }
+                }}
+                className="px-3 py-1.5 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded text-sm transition-colors"
+              >
+                Create
+              </button>
             </div>
           )}
 
           {outfitMode === 'existing' && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-white">Select Existing Outfit</label>
+            <div>
               {existingOutfits.length > 0 ? (
                 <select
                   value={selectedExistingOutfit}
                   onChange={(e) => setSelectedExistingOutfit(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                  className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
                 >
                   <option value="">Select an outfit...</option>
                   {existingOutfits.map(outfit => (
@@ -412,7 +402,7 @@ export function GenerateCoverageTab({
                   ))}
                 </select>
               ) : (
-                <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-[#808080]">
+                <div className="px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#808080]">
                   No existing outfits. Create a new one instead.
                 </div>
               )}
@@ -422,55 +412,53 @@ export function GenerateCoverageTab({
       </div>
 
       {/* Step 2: Quality/Model Selection */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Step 2: Quality & Model Selection</h3>
+      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Step 2: Quality & Model Selection</h3>
         
-        <div className="space-y-4">
-          {/* Quality Selection */}
+        <div className="space-y-3">
+          {/* Quality Selection - Radio Buttons */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Quality</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setQuality('standard')}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  quality === 'standard'
-                    ? 'border-[#DC143C] bg-[#DC143C]/10'
-                    : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-                }`}
-              >
-                <div className="font-semibold text-white mb-1">Standard (1080p)</div>
-                <div className="text-xs text-[#808080] mb-2">20 credits per image</div>
-              </button>
-              <button
-                onClick={() => setQuality('high-quality')}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  quality === 'high-quality'
-                    ? 'border-[#DC143C] bg-[#DC143C]/10'
-                    : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-                }`}
-              >
-                <div className="font-semibold text-white mb-1">High Quality (4K)</div>
-                <div className="text-xs text-[#808080] mb-2">40 credits per image</div>
-              </button>
+            <label className="block text-xs text-[#808080] mb-2">Quality</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="quality"
+                  checked={quality === 'standard'}
+                  onChange={() => setQuality('standard')}
+                  className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                />
+                <span className="text-sm text-white">Standard (1080p) - 20 credits</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="quality"
+                  checked={quality === 'high-quality'}
+                  onChange={() => setQuality('high-quality')}
+                  className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                />
+                <span className="text-sm text-white">High Quality (4K) - 40 credits</span>
+              </label>
             </div>
           </div>
 
           {/* Model Selection */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Model</label>
+            <label className="block text-xs text-[#808080] mb-2">Model</label>
             {isLoadingModels ? (
-              <div className="px-4 py-3 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-[#808080] text-sm">
+              <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080] text-sm">
                 Loading models...
               </div>
             ) : models.length === 0 ? (
-              <div className="px-4 py-3 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-[#808080] text-sm">
+              <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080] text-sm">
                 No models available for this quality tier
               </div>
             ) : (
               <select
                 value={providerId}
                 onChange={(e) => setProviderId(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
               >
                 {models.map((model) => (
                   <option key={model.id} value={model.id}>
@@ -480,7 +468,7 @@ export function GenerateCoverageTab({
               </select>
             )}
             {selectedModel && (
-              <p className="mt-2 text-xs text-[#808080]">
+              <p className="mt-1 text-xs text-[#808080]">
                 {selectedModel.credits} credits per image
                 {supportsClothing && ` • Supports clothing/outfit images`}
               </p>
@@ -490,16 +478,16 @@ export function GenerateCoverageTab({
       </div>
 
       {/* Step 3: Style Template + Custom Prompt */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Step 3: Style Template & Custom Prompt (Optional)</h3>
+      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Step 3: Style Template & Custom Prompt (Optional)</h3>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Style Template</label>
+            <label className="block text-xs text-[#808080] mb-1.5">Style Template</label>
             <select
               value={selectedStyleTemplate}
               onChange={(e) => setSelectedStyleTemplate(e.target.value)}
-              className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+              className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
             >
               <option value="none">None - Custom Prompt Only</option>
               {DEFAULT_OUTFIT_STYLES.map(style => (
@@ -509,49 +497,69 @@ export function GenerateCoverageTab({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              <Wand2 className="w-4 h-4 inline mr-2" />
+            <label className="block text-xs text-[#808080] mb-1.5">
               Custom Prompt (Optional)
             </label>
             <textarea
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder="Add specific styling details, color codes (#FF0000), or time-sensitive keywords for real-time search..."
-              className="w-full h-24 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-3 text-white placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+              placeholder="Add specific styling details, color codes (#FF0000)..."
+              className="w-full h-20 bg-[#0A0A0A] border border-[#3F3F46] rounded p-2 text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
             />
-            <p className="text-xs text-[#808080] mt-1">
-              Example: "Current winter 2025 fashion trends, brand colors #FF0000 #000000"
-            </p>
           </div>
         </div>
       </div>
 
       {/* Step 4: Pose Package Selection */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Step 4: Pose Package Selection</h3>
-        <PosePackageSelector
-          characterName={characterName}
-          selectedPackageId={selectedPackageId}
-          onSelectPackage={setSelectedPackageId}
-          creditsPerImage={selectedModel?.credits}
-        />
+      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-white">Step 4: Pose Package Selection</h3>
+          <button
+            onClick={() => setShowPosePackageDetails(!showPosePackageDetails)}
+            className="text-xs text-[#808080] hover:text-white flex items-center gap-1"
+          >
+            {showPosePackageDetails ? (
+              <>
+                <ChevronUp className="w-3 h-3" />
+                Hide Details
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3 h-3" />
+                Show Details
+              </>
+            )}
+          </button>
+        </div>
+        {showPosePackageDetails ? (
+          <PosePackageSelector
+            characterName={characterName}
+            selectedPackageId={selectedPackageId}
+            onSelectPackage={setSelectedPackageId}
+            creditsPerImage={selectedModel?.credits}
+          />
+        ) : (
+          <div className="text-xs text-[#808080]">
+            Selected: {selectedPackageId.charAt(0).toUpperCase() + selectedPackageId.slice(1)} Package
+          </div>
+        )}
       </div>
 
       {/* Step 5: Clothing Images (Virtual Try-On) */}
       {supportsClothing && selectedModel && (
-        <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">
+        <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-white mb-3">
             Step 5: Clothing Images (Virtual Try-On)
             <span className="ml-2 text-xs font-normal text-[#808080]">
               ({clothingImages.length}/{Math.min((selectedModel?.referenceLimit || 3) - 1, 3)})
             </span>
           </h3>
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             <button
               onClick={() => clothingFileInputRef.current?.click()}
               disabled={isUploadingClothing || clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3)}
-              className="w-full px-4 py-2.5 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm hover:border-[#DC143C]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white hover:border-[#DC143C]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Upload className="w-4 h-4" />
               {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
@@ -567,19 +575,19 @@ export function GenerateCoverageTab({
 
             {/* Preview Grid */}
             {clothingImages.length > 0 && (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-2">
                 {clothingImages.map((img, index) => (
                   <div key={index} className="relative">
                     <img
                       src={img.presignedUrl || img.preview}
                       alt={`Clothing ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg"
+                      className="w-full h-24 object-cover rounded"
                     />
                     <button
                       onClick={() => setClothingImages(prev => prev.filter((_, i) => i !== index))}
-                      className="absolute top-2 right-2 p-1 bg-red-500 hover:bg-red-600 rounded-full"
+                      className="absolute top-1 right-1 p-0.5 bg-red-500 hover:bg-red-600 rounded-full"
                     >
-                      <X className="w-4 h-4 text-white" />
+                      <X className="w-3 h-3 text-white" />
                     </button>
                   </div>
                 ))}
@@ -590,10 +598,10 @@ export function GenerateCoverageTab({
       )}
 
       {/* Generate Button */}
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-end gap-2">
         <button
           onClick={onClose}
-          className="px-6 py-3 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-white rounded-lg font-semibold transition-colors"
+          className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-white rounded text-sm font-medium transition-colors"
           disabled={isGenerating}
         >
           Cancel
@@ -601,7 +609,7 @@ export function GenerateCoverageTab({
         <button
           onClick={handleGenerate}
           disabled={isGenerating || !finalOutfitName}
-          className="px-6 py-3 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
         >
           {isGenerating ? (
             <>
