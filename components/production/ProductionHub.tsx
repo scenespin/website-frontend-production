@@ -308,12 +308,14 @@ export function ProductionHub({}: ProductionHubProps) {
           </div>
         )}
 
-        {/* Mobile Tab Navigation */}
-        <ProductionTabBar
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          jobCount={activeJobs}
-        />
+        {/* Mobile Tab Navigation - Hide when Playground is active */}
+        {activeTab !== 'playground' && (
+          <ProductionTabBar
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            jobCount={activeJobs}
+          />
+        )}
 
         {/* Mobile Content */}
         <div className="flex-1 overflow-hidden">
@@ -405,12 +407,14 @@ export function ProductionHub({}: ProductionHubProps) {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
-      {/* Horizontal Tab Navigation */}
-      <ProductionTabBar
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        jobCount={activeJobs}
-      />
+      {/* Horizontal Tab Navigation - Hide when Playground is active */}
+      {activeTab !== 'playground' && (
+        <ProductionTabBar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          jobCount={activeJobs}
+        />
+      )}
 
         {/* Active Jobs Banner */}
         {activeJobs > 0 && showJobsBanner && (

@@ -177,6 +177,13 @@ export default function Navigation() {
   const isActive = (href) => {
     const currentPath = pathname?.split('?')[0];
     const linkPath = href?.split('?')[0];
+    const currentTab = searchParams?.get('tab');
+    
+    // Special handling: Production should not be active when Playground is active
+    if (linkPath === '/production' && currentTab === 'playground') {
+      return false;
+    }
+    
     return currentPath === linkPath || pathname === href;
   };
 
