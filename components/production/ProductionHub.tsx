@@ -291,9 +291,6 @@ export function ProductionHub({}: ProductionHubProps) {
         <ProductionTabBar
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          jobCount={activeJobs}
-          onToggleJobsDrawer={() => setIsJobsDrawerOpen(!isJobsDrawerOpen)}
-          isJobsDrawerOpen={isJobsDrawerOpen}
         />
 
         {/* Mobile Content */}
@@ -348,9 +345,6 @@ export function ProductionHub({}: ProductionHubProps) {
       <ProductionTabBar
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        jobCount={activeJobs}
-        onToggleJobsDrawer={() => setIsJobsDrawerOpen(!isJobsDrawerOpen)}
-        isJobsDrawerOpen={isJobsDrawerOpen}
       />
 
         {/* Active Jobs Banner */}

@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import { Users, MapPin, Package, Clock } from 'lucide-react';
+import { Users, MapPin, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type ProductionTab = 'characters' | 'locations' | 'assets';
@@ -21,9 +21,6 @@ export type ProductionTab = 'characters' | 'locations' | 'assets';
 interface ProductionTabBarProps {
   activeTab: ProductionTab;
   onTabChange: (tab: ProductionTab) => void;
-  jobCount?: number;
-  onToggleJobsDrawer?: () => void;
-  isJobsDrawerOpen?: boolean;
 }
 
 // Produce tabs: Characters | Locations | Props
@@ -56,10 +53,7 @@ const PRODUCE_TABS = [
 
 export function ProductionTabBar({
   activeTab,
-  onTabChange,
-  jobCount = 0,
-  onToggleJobsDrawer,
-  isJobsDrawerOpen = false
+  onTabChange
 }: ProductionTabBarProps) {
   return (
     <div className="border-b border-white/10 bg-[#0A0A0A] w-full">
@@ -101,47 +95,6 @@ export function ProductionTabBar({
             </button>
           );
         })}
-        
-        {/* Jobs Drawer Toggle Button */}
-        {onToggleJobsDrawer && (
-          <div className="ml-auto flex items-center">
-            <button
-              onClick={onToggleJobsDrawer}
-              className={cn(
-                "relative flex items-center gap-2 px-4 py-3 font-medium text-sm",
-                "transition-colors duration-200",
-                "border-b-2 -mb-[2px]",
-                "whitespace-nowrap",
-                isJobsDrawerOpen
-                  ? cn(
-                      "border-cinema-red",
-                      "bg-base-100",
-                      "text-base-content"
-                    )
-                  : cn(
-                      "border-transparent",
-                      "text-base-content/60",
-                      "hover:text-base-content",
-                      "hover:bg-base-100/50"
-                    )
-              )}
-              title="View jobs and workflow history"
-            >
-              <Clock className="w-4 h-4" />
-              <span>Jobs</span>
-              {jobCount > 0 && (
-                <span className={cn(
-                  "ml-1 px-1.5 py-0.5 rounded-full",
-                  "text-xs font-bold",
-                  "bg-cinema-red text-white",
-                  "min-w-[18px] text-center"
-                )}>
-                  {jobCount > 99 ? '99+' : jobCount}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

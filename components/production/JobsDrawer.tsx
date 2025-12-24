@@ -135,9 +135,11 @@ interface WorkflowJob {
 interface JobsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpen: () => void;
   onToggle?: () => void;
   autoOpen?: boolean; // Auto-open when jobs are running
   compact?: boolean; // Compact mode for smaller screens
+  jobCount?: number; // Number of active jobs for tab badge
 }
 
 type StatusFilter = 'all' | 'running' | 'completed' | 'failed';
@@ -214,7 +216,7 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
   );
 }
 
-export function JobsDrawer({ isOpen, onClose, onToggle, autoOpen = false, compact = false }: JobsDrawerProps) {
+export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0 }: JobsDrawerProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   const { getToken, userId } = useAuth();
