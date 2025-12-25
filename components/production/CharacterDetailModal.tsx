@@ -1619,13 +1619,27 @@ export function CharacterDetailModal({
                                           );
                                           
                                           if (!deleteResponse.ok) {
-                                            const errorData = await deleteResponse.json().catch(() => ({}));
-                                            const errorMessage = errorData.error || errorData.message || `Failed to delete reference: ${deleteResponse.status}`;
-                                            console.error('[CharacterDetailModal] Delete failed', {
-                                              referenceId,
-                                              status: deleteResponse.status,
-                                              errorData
-                                            });
+                                            let errorMessage = `Failed to delete reference: ${deleteResponse.status}`;
+                                            try {
+                                              const errorData = await deleteResponse.json();
+                                              // Try multiple possible error message fields
+                                              errorMessage = errorData.error || errorData.message || errorData.details || errorMessage;
+                                              console.error('[CharacterDetailModal] Delete failed', {
+                                                referenceId,
+                                                status: deleteResponse.status,
+                                                errorData,
+                                                fullError: JSON.stringify(errorData, null, 2)
+                                              });
+                                            } catch (parseError) {
+                                              // If JSON parsing fails, try to get text response
+                                              const textResponse = await deleteResponse.text().catch(() => '');
+                                              errorMessage = textResponse || errorMessage;
+                                              console.error('[CharacterDetailModal] Delete failed (non-JSON response)', {
+                                                referenceId,
+                                                status: deleteResponse.status,
+                                                textResponse
+                                              });
+                                            }
                                             throw new Error(errorMessage);
                                           }
                                           
