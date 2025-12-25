@@ -308,14 +308,14 @@ export function ModernGallery({
           className="lg:col-span-1"
         >
           <div
-            className="relative group cursor-pointer h-full min-h-[400px]"
+            className="relative group cursor-pointer"
             onClick={handleFeaturedClick}
           >
-            <div className="relative w-full h-full rounded-xl overflow-hidden border-2 border-[#3F3F46] group-hover:border-[#DC143C] transition-all duration-200 shadow-2xl">
+            <div className="relative w-full rounded-xl overflow-hidden border-2 border-[#3F3F46] group-hover:border-[#DC143C] transition-all duration-200 shadow-2xl bg-[#1F1F1F] flex items-center justify-center" style={{ minHeight: '400px', maxHeight: '600px' }}>
               <img
                 src={featuredImage.imageUrl}
                 alt={featuredImage.label}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                className="w-full h-auto max-h-[600px] object-contain transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"
               />
               
