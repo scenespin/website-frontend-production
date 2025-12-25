@@ -17,7 +17,9 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import Gallery from 'react-photo-gallery';
 import Lightbox from 'yet-another-react-lightbox';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/zoom.css';
 import { motion } from 'framer-motion';
 import { Sparkles, Upload as UploadIcon, ZoomIn } from 'lucide-react';
 
@@ -265,12 +267,24 @@ export function ModernGallery({
           </div>
         </motion.div>
 
-        {/* Lightbox */}
+        {/* Lightbox with Zoom */}
         <Lightbox
           open={lightboxIndex >= 0}
           close={closeLightbox}
           index={lightboxIndex}
           slides={slides}
+          plugins={[Zoom]}
+          zoom={{
+            maxZoomPixelRatio: 3,
+            zoomInMultiplier: 2,
+            doubleTapDelay: 300,
+            doubleClickDelay: 300,
+            doubleClickMaxStops: 2,
+            keyboardMoveDistance: 50,
+            wheelZoomDistanceFactor: 100,
+            pinchZoomDistanceFactor: 100,
+            scrollToZoom: true,
+          }}
           render={{
             buttonPrev: () => null,
             buttonNext: () => null,
@@ -367,12 +381,24 @@ export function ModernGallery({
         </motion.div>
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox with Zoom */}
       <Lightbox
         open={lightboxIndex >= 0}
         close={closeLightbox}
         index={lightboxIndex}
         slides={slides}
+        plugins={[Zoom]}
+        zoom={{
+          maxZoomPixelRatio: 3,
+          zoomInMultiplier: 2,
+          doubleTapDelay: 300,
+          doubleClickDelay: 300,
+          doubleClickMaxStops: 2,
+          keyboardMoveDistance: 50,
+          wheelZoomDistanceFactor: 100,
+          pinchZoomDistanceFactor: 100,
+          scrollToZoom: true,
+        }}
         render={{
           buttonPrev: () => null,
           buttonNext: () => null,
