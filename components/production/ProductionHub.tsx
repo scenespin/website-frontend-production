@@ -411,8 +411,10 @@ export function ProductionHub({}: ProductionHubProps) {
       <JobsDrawer
         isOpen={isJobsDrawerOpen}
         onClose={() => setIsJobsDrawerOpen(false)}
+        onOpen={() => setIsJobsDrawerOpen(true)}
         autoOpen={true}
         compact={isMobile}
+        jobCount={activeJobs}
       />
     </div>
   );
