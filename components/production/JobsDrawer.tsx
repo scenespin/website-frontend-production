@@ -21,7 +21,7 @@ import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
-  Sparkles, AlertCircle, Image, Save, X
+  Sparkles, AlertCircle, Image, Save, X, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
@@ -645,69 +645,61 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
   return (
     <>
-      {/* Persistent Tab/Handle - Show when there are active/pending jobs */}
+      {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style */}
       {jobCount > 0 && !isOpen && (
         <button
           onClick={onOpen}
-          className="fixed top-1/2 -translate-y-1/2 z-40 bg-[#0A0A0A] border-r border-t border-b border-[#3F3F46] rounded-r-lg px-3 py-4 shadow-lg hover:bg-[#141414] transition-all duration-200 group"
-          style={{
-            right: compact ? '0' : '400px', // Position at left edge of where drawer would be (400px from right)
-            transform: 'translateY(-50%)',
-            zIndex: zIndex + 1,
+          className="fixed top-24 right-0 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300 relative"
+          style={{ 
+            writingMode: 'vertical-rl', 
+            textOrientation: 'mixed',
+            animation: 'pulse-subtle 3s ease-in-out infinite'
           }}
-          title="View jobs"
+          title={`${jobCount} job${jobCount !== 1 ? 's' : ''} running`}
         >
-          <div className="flex flex-col items-center gap-1">
-            <Clock className="w-4 h-4 text-[#E5E7EB] group-hover:text-[#DC143C] transition-colors" />
-            {jobCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#DC143C] text-white min-w-[18px] text-center">
-                {jobCount > 99 ? '99+' : jobCount}
-              </span>
-            )}
-          </div>
+          JOBS
+          {jobCount > 0 && (
+            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-blue-600 min-w-[18px] text-center">
+              {jobCount > 99 ? '99+' : jobCount}
+            </span>
+          )}
         </button>
       )}
 
-      {/* Backdrop - Always render for smooth transition */}
-      <div
-        className="fixed inset-0 bg-black/50 transition-opacity duration-300 ease-in-out"
-        style={{
-          opacity: isOpen ? 1 : 0,
-          pointerEvents: isOpen ? 'auto' : 'none',
-          zIndex: zIndex - 1,
-          visibility: isOpen ? 'visible' : 'hidden',
-        }}
-        onClick={onClose}
-      />
+      {/* Backdrop - Only render when open (matches AgentDrawer) */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-30 transition-opacity hidden md:block"
+          onClick={onClose}
+        />
+      )}
 
-      {/* Drawer - Always render for smooth slide animation */}
+      {/* Drawer - Always render for smooth slide animation (matches AgentDrawer) */}
       <div
-        className="fixed right-0 top-0 bottom-0 bg-[#0A0A0A] border-l border-[#3F3F46] flex flex-col transition-transform duration-300 ease-in-out"
+        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
         style={{
           width: compact ? '100vw' : '400px',
           maxWidth: '90vw',
-          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-          zIndex: zIndex,
-          visibility: isOpen ? 'visible' : 'hidden',
         }}
       >
-        {/* Header */}
-        <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between bg-[#0A0A0A]">
+        {/* Header - Matches AgentDrawer style */}
+        <div className="h-14 flex items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-[#E5E7EB]">Jobs</h2>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+            <h3 className="text-base font-semibold text-[#E5E7EB]">Jobs</h3>
             {isPolling && (
-              <Loader2 className="w-3 h-3 animate-spin text-[#DC143C]" />
+              <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded hover:bg-[#1F1F1F] text-[#808080] hover:text-[#E5E7EB] transition-colors"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="btn btn-sm btn-ghost btn-circle"
+            title="Close"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Content */}
