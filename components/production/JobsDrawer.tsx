@@ -260,6 +260,25 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     entityName?: string;
   } | null>(null);
 
+  // Track deleted job IDs in sessionStorage to persist deletions
+  const [deletedJobIds, setDeletedJobIds] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('deletedJobIds');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    }
+    return new Set();
+  });
+
+  // Save deleted job IDs to sessionStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && deletedJobIds.size > 0) {
+      sessionStorage.setItem('deletedJobIds', JSON.stringify(Array.from(deletedJobIds)));
+    }
+  }, [deletedJobIds]);
+
+  // Filter out deleted jobs - calculate early so it can be used in useEffects
+  const visibleJobs = jobs.filter(job => !deletedJobIds.has(job.jobId));
+
   // Auto-open when jobs are running
   useEffect(() => {
     if (!autoOpen || !isOpen) return;
