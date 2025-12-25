@@ -292,11 +292,16 @@ export function UnifiedSceneConfiguration({
     
     // Check for explicit character name mentions (ALL CAPS or regular case)
     // Prefer regular case matches first (more specific), then ALL CAPS
+    // Use word boundaries to avoid false matches (e.g., "Sarah" in "Sarah's" or "Sarah walks")
     for (const char of characters) {
       if (!char.name || foundCharIds.has(char.id)) continue;
       const charName = char.name.toLowerCase();
-      // Check for regular case name (e.g., "Sarah walks" or "Sarah's desk")
-      if (textLower.includes(charName) || textLower.includes(charName + "'s")) {
+      // Use word boundary regex for more precise matching
+      // Matches "Sarah" but not "Sarah" as part of another word
+      const charNameRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      const possessiveRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'s\\b`, 'i');
+      
+      if (charNameRegex.test(fullText) || possessiveRegex.test(fullText)) {
         foundCharacters.push(char);
         foundCharIds.add(char.id);
       }
@@ -668,9 +673,9 @@ export function UnifiedSceneConfiguration({
                     shotMappings,
                     getCharactersFromActionShot,
                     getCharacterForShot
-                  );
-                  
-                  return (
+                            );
+                            
+                            return (
                     <ShotConfigurationPanel
                       shot={shot}
                       sceneAnalysisResult={sceneAnalysisResult}
@@ -697,8 +702,8 @@ export function UnifiedSceneConfiguration({
                       onCharacterReferenceChange={onCharacterReferenceChange}
                       onCharacterOutfitChange={onCharacterOutfitChange}
                     />
-                  );
-                })()}
+                      );
+                    })()}
 
                 {/* REMOVED: Old pronoun detection section - now handled in unified layout above */}
               </div>

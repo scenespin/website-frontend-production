@@ -110,91 +110,88 @@ export function ShotConfigurationPanel({
 
       {/* Character(s) Section */}
       {explicitCharacters.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
-          <div>
-            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
-            {explicitCharacters.map((charId) => {
-              return renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit');
-            })}
-          </div>
-          <div className="border-l border-[#3F3F46] pl-4">
-            {explicitCharacters.map((charId) => {
-              return renderCharacterImagesOnly(charId, shot.slot);
-            })}
+        <div className="pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
+          <div className="space-y-4">
+            {explicitCharacters.map((charId) => (
+              <div key={charId} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                </div>
+                <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                  {renderCharacterImagesOnly(charId, shot.slot)}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Pronoun Mapping Section */}
       {hasPronouns && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-3 border-t border-[#3F3F46]">
-          <div>
-            <PronounMappingSection
-              pronouns={pronounInfo.pronouns}
-              characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
-              selectedCharacters={selectedCharactersForShots[shot.slot] || []}
-              pronounMappings={shotMappings}
-              onPronounMappingChange={(pronoun, characterIdOrIds) => {
-                onPronounMappingChange?.(shot.slot, pronoun, characterIdOrIds);
-              }}
-              onCharacterSelectionChange={(characterIds) => {
-                onCharactersForShotChange?.(shot.slot, characterIds);
-              }}
-              shotSlot={shot.slot}
-              characterHeadshots={characterHeadshots}
-              loadingHeadshots={loadingHeadshots}
-              selectedCharacterReferences={selectedCharacterReferences}
-              characterOutfits={characterOutfits}
-              onCharacterReferenceChange={onCharacterReferenceChange}
-              onCharacterOutfitChange={onCharacterOutfitChange}
-              allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
-            />
-          </div>
-          <div className="border-l border-[#3F3F46] pl-4 space-y-3">
-            {/* Singular Pronoun Characters */}
-            {singularPronounCharacters.length > 0 && (
-              <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
-                {singularPronounCharacters.map((charId) => {
-                  const isAlreadyShown = explicitCharacters.includes(charId);
-                  const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
-                             allCharacters.find((c: any) => c.id === charId);
-                  
-                  const allPronounsForChar = Object.entries(shotMappings)
-                    .filter(([_, mappedIdOrIds]) => {
-                      if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
-                      return mappedIdOrIds === charId;
-                    })
-                    .map(([pronoun]) => `"${pronoun}"`);
-                  
-                  // With per-shot outfit selection, allow image selection even if already shown
-                  // (character can have different outfit/image per mention)
-                  return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
-                })}
-              </div>
-            )}
+        <div className="pt-3 border-t border-[#3F3F46]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <PronounMappingSection
+                pronouns={pronounInfo.pronouns}
+                characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                selectedCharacters={selectedCharactersForShots[shot.slot] || []}
+                pronounMappings={shotMappings}
+                onPronounMappingChange={(pronoun, characterIdOrIds) => {
+                  onPronounMappingChange?.(shot.slot, pronoun, characterIdOrIds);
+                }}
+                onCharacterSelectionChange={(characterIds) => {
+                  onCharactersForShotChange?.(shot.slot, characterIds);
+                }}
+                shotSlot={shot.slot}
+                characterHeadshots={characterHeadshots}
+                loadingHeadshots={loadingHeadshots}
+                selectedCharacterReferences={selectedCharacterReferences}
+                characterOutfits={characterOutfits}
+                onCharacterReferenceChange={onCharacterReferenceChange}
+                onCharacterOutfitChange={onCharacterOutfitChange}
+                allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+              />
+            </div>
+            <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4 space-y-4">
+              {/* Singular Pronoun Characters */}
+              {singularPronounCharacters.length > 0 && (
+                <div className="space-y-4 pb-3 border-b border-[#3F3F46]">
+                  {singularPronounCharacters.map((charId) => {
+                    const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+                               allCharacters.find((c: any) => c.id === charId);
+                    
+                    const allPronounsForChar = Object.entries(shotMappings)
+                      .filter(([_, mappedIdOrIds]) => {
+                        if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                        return mappedIdOrIds === charId;
+                      })
+                      .map(([pronoun]) => `"${pronoun}"`);
+                    
+                    return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
+                  })}
+                </div>
+              )}
 
-            {/* Plural Pronoun Characters */}
-            {pluralPronounCharacters.length > 0 && (
-              <div className="space-y-2">
-                {pluralPronounCharacters.map((charId) => {
-                  const isAlreadyShownInExplicit = explicitCharacters.includes(charId);
-                  const isAlreadyShownInSingular = singularPronounCharacters.includes(charId);
-                  const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
-                             allCharacters.find((c: any) => c.id === charId);
-                  
-                  const allPronounsForChar = Object.entries(shotMappings)
-                    .filter(([_, mappedIdOrIds]) => {
-                      if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
-                      return mappedIdOrIds === charId;
-                    })
-                    .map(([pronoun]) => `"${pronoun}"`);
-                  
-                  // With per-shot outfit selection, allow image selection even if already shown
-                  // (character can have different outfit/image per mention)
-                  return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
-                })}
-              </div>
-            )}
+              {/* Plural Pronoun Characters */}
+              {pluralPronounCharacters.length > 0 && (
+                <div className="space-y-4">
+                  {pluralPronounCharacters.map((charId) => {
+                    const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+                               allCharacters.find((c: any) => c.id === charId);
+                    
+                    const allPronounsForChar = Object.entries(shotMappings)
+                      .filter(([_, mappedIdOrIds]) => {
+                        if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                        return mappedIdOrIds === charId;
+                      })
+                      .map(([pronoun]) => `"${pronoun}"`);
+                    
+                    return renderCharacterImagesOnly(charId, shot.slot, allPronounsForChar);
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -516,11 +516,15 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         const mentionedCharacterIds: string[] = [];
         const foundCharIds = new Set<string>();
         
-        // Check for regular case character names first
+        // Check for regular case character names first (use word boundaries for precision)
         for (const char of sceneAnalysisResult.characters) {
           if (!char.name || foundCharIds.has(char.id)) continue;
           const charName = char.name.toLowerCase();
-          if (textLower.includes(charName) || textLower.includes(charName + "'s")) {
+          // Use word boundary regex for more precise matching
+          const charNameRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+          const possessiveRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'s\\b`, 'i');
+          
+          if (charNameRegex.test(fullText) || possessiveRegex.test(fullText)) {
             mentionedCharacterIds.push(char.id);
             foundCharIds.add(char.id);
           }
