@@ -674,6 +674,10 @@ export interface SceneAnalysisResult {
             actionLineBlocks?: Array<{ blockIndex: number; reason: string }>;
         }>;
         needsReview: boolean;
+        // Dialogue workflow type detection (simple keyword-based)
+        workflowType?: 'first-frame-lipsync' | 'off-frame-voiceover' | 'scene-voiceover';
+        workflowTypeReasoning?: string;
+        workflowTypeConfidence?: 'high' | 'medium' | 'low';
     };
     
     // Workflow recommendations (Phase 1.2)
