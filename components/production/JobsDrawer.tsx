@@ -142,7 +142,7 @@ interface JobsDrawerProps {
   jobCount?: number; // Number of active jobs for tab badge
 }
 
-type StatusFilter = 'all' | 'running' | 'completed' | 'failed';
+// StatusFilter removed - showing all jobs per session
 
 /**
  * Helper component to display image thumbnail from S3 key
@@ -171,7 +171,7 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
           },
           body: JSON.stringify({
             s3Key: s3Key,
-            expiresIn: 3600,
+            expiresIn: 3600, // 1 hour
           }),
         });
 
@@ -193,6 +193,14 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
 
     if (!useFallback) {
       fetchPresignedUrl();
+      
+      // Refresh presigned URL every 50 minutes (before 1 hour expiration)
+      const refreshInterval = setInterval(() => {
+        fetchPresignedUrl();
+        console.log('[JobsDrawer] Refreshing presigned URL for', s3Key);
+      }, 50 * 60 * 1000); // 50 minutes
+
+      return () => clearInterval(refreshInterval);
     }
   }, [s3Key, fallbackUrl, useFallback, getToken]);
 
@@ -225,7 +233,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   
@@ -345,8 +352,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         return;
       }
 
-      const statusParam = statusFilter === 'all' ? '' : statusFilter;
-      const url = `/api/workflows/executions?screenplayId=${screenplayId}${statusParam ? `&status=${statusParam}` : ''}&limit=50`;
+      // Load all jobs for this session (no filtering)
+      const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=50`;
       
       const response = await fetch(url, {
         headers: {
@@ -409,7 +416,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     return () => {
       clearInterval(refreshInterval);
     };
-  }, [screenplayId, statusFilter, isOpen]);
+  }, [screenplayId, isOpen]);
 
   /**
    * Poll running jobs when drawer is open
@@ -564,36 +571,14 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   /**
-   * Delete job
+   * Delete job (local only - jobs are session-based, everything saves elsewhere)
    */
   const handleDelete = async (jobId: string) => {
-    if (!confirm('Delete this job? This cannot be undone.')) return;
+    if (!confirm('Remove this job from view? (Results are saved elsewhere)')) return;
 
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        toast.error('Authentication required');
-        return;
-      }
-
-      const response = await fetch(`/api/workflows/delete/${jobId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setJobs(jobs.filter(j => j.jobId !== jobId));
-        toast.success('Job deleted');
-      } else {
-        toast.error('Failed to delete job');
-      }
-    } catch (error) {
-      toast.error('Failed to delete job');
-    }
+    // Just remove from local state - no API call needed since everything saves elsewhere
+    setJobs(jobs.filter(j => j.jobId !== jobId));
+    toast.success('Job removed from view');
   };
 
   /**
@@ -713,17 +698,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             )}
           </div>
           <div className="flex items-center gap-2">
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="text-xs px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#E5E7EB] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
-            >
-              <option value="all">All</option>
-              <option value="running">Running</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-            </select>
             <button
               onClick={onClose}
               className="p-1.5 rounded hover:bg-[#1F1F1F] text-[#808080] hover:text-[#E5E7EB] transition-colors"
@@ -744,9 +718,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             <div className="text-center py-12 px-4">
               <p className="text-sm text-[#808080] font-medium">No jobs found</p>
               <p className="text-xs text-[#6B7280] mt-1">
-                {statusFilter === 'all' 
-                  ? 'Generate a workflow to see it here'
-                  : `No ${statusFilter} jobs`}
+                Generate a workflow to see it here
               </p>
             </div>
           ) : (
