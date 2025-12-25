@@ -401,27 +401,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   /**
-   * Initial load and periodic refresh
+   * Load jobs when drawer opens
    */
   useEffect(() => {
-    if (!isOpen) return; // Only load when drawer is open
+    if (!isOpen) return;
     
     const shouldShowLoading = jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
-    
-    const refreshInterval = setInterval(() => {
-      loadJobs(false);
-    }, 10000);
-
-    return () => {
-      clearInterval(refreshInterval);
-    };
-  }, [screenplayId, isOpen]);
+  }, [screenplayId, isOpen, hasLoadedOnce]);
 
   /**
-   * Poll running jobs when drawer is open
-   * - Poll every 5 seconds when jobs are running (for real-time updates)
-   * - Poll every 15 seconds when no jobs (to save resources)
+   * Adaptive polling: poll frequently when jobs are running, less when idle
    */
   useEffect(() => {
     if (!isOpen) {
@@ -429,26 +419,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       return;
     }
     
-    const hasRunningJobs = jobs.some(job => job.status === 'running' || job.status === 'queued');
+    const hasRunningJobs = visibleJobs.some(job => 
+      job.status === 'running' || job.status === 'queued'
+    );
     
-    // Only poll frequently when there are actually running jobs
-    if (hasRunningJobs) {
-      setIsPolling(true);
-      const interval = setInterval(() => {
-        loadJobs(false);
-      }, 5000); // 5 seconds when jobs are running
+    setIsPolling(hasRunningJobs);
+    const pollInterval = hasRunningJobs ? 5000 : 15000;
+    
+    const interval = setInterval(() => {
+      loadJobs(false);
+    }, pollInterval);
 
-      return () => clearInterval(interval);
-    } else {
-      // Poll less frequently when no running jobs
+    return () => {
+      clearInterval(interval);
       setIsPolling(false);
-      const interval = setInterval(() => {
-        loadJobs(false);
-      }, 15000); // 15 seconds when no jobs
-
-      return () => clearInterval(interval);
-    }
-  }, [jobs.length, isOpen]);
+    };
+  }, [isOpen, visibleJobs.length]);
 
   /**
    * Watch for completed jobs and refresh related data
@@ -456,7 +442,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   useEffect(() => {
     if (!isOpen) return;
     
-    const completedPoseJobs = jobs.filter(job => 
+    const completedPoseJobs = visibleJobs.filter(job => 
       job.status === 'completed' && 
       job.jobType === 'pose-generation' &&
       job.results?.poses && 
@@ -576,8 +562,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const handleDelete = async (jobId: string) => {
     if (!confirm('Remove this job from view? (Results are saved elsewhere)')) return;
 
-    // Just remove from local state - no API call needed since everything saves elsewhere
-    setJobs(jobs.filter(j => j.jobId !== jobId));
+    // Add to deleted set to persist across drawer opens/closes
+    setDeletedJobIds(prev => new Set([...prev, jobId]));
     toast.success('Job removed from view');
   };
 
@@ -638,13 +624,29 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   // Determine z-index based on chat drawer state
   const zIndex = isChatDrawerOpen ? Z_INDEX.JOBS_DRAWER : Z_INDEX.JOBS_DRAWER;
 
-  // Check if there are any jobs (running, completed, or failed) to show the tab
-  const hasJobs = jobs.length > 0;
+  // Track deleted job IDs in sessionStorage to persist deletions
+  const [deletedJobIds, setDeletedJobIds] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('deletedJobIds');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    }
+    return new Set();
+  });
+
+  // Save deleted job IDs to sessionStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && deletedJobIds.size > 0) {
+      sessionStorage.setItem('deletedJobIds', JSON.stringify(Array.from(deletedJobIds)));
+    }
+  }, [deletedJobIds]);
+
+  // Filter out deleted jobs - calculate early so it can be used in useEffects
+  const visibleJobs = jobs.filter(job => !deletedJobIds.has(job.jobId));
 
   return (
     <>
-      {/* Persistent Tab/Handle - Always visible when jobs exist, positioned on left edge of drawer area */}
-      {hasJobs && !isOpen && (
+      {/* Persistent Tab/Handle - Show when there are active/pending jobs */}
+      {jobCount > 0 && !isOpen && (
         <button
           onClick={onOpen}
           className="fixed top-1/2 -translate-y-1/2 z-40 bg-[#0A0A0A] border-r border-t border-b border-[#3F3F46] rounded-r-lg px-3 py-4 shadow-lg hover:bg-[#141414] transition-all duration-200 group"
@@ -714,7 +716,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
             </div>
-          ) : jobs.length === 0 ? (
+          ) : visibleJobs.length === 0 ? (
             <div className="text-center py-12 px-4">
               <p className="text-sm text-[#808080] font-medium">No jobs found</p>
               <p className="text-xs text-[#6B7280] mt-1">
@@ -723,7 +725,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             </div>
           ) : (
             <div className="p-3 space-y-2">
-              {jobs.map((job) => (
+              {visibleJobs.map((job) => (
                 <div
                   key={job.jobId}
                   className="p-3 rounded-lg border border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F] transition-all"
