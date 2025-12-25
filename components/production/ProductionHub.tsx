@@ -247,14 +247,6 @@ export function ProductionHub({}: ProductionHubProps) {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen bg-[#0A0A0A]">
-        {/* Mobile Header */}
-        <div className="bg-gray-900 border-b border-gray-800 p-4">
-          <h1 className="text-xl font-bold text-white">Production Hub</h1>
-          <p className="text-sm text-gray-400">
-            {screenplay.screenplayId ? `${screenplay.scenes?.length || 0} scenes • ${screenplay.characters?.length || 0} characters` : 'No screenplay loaded'}
-          </p>
-        </div>
-
         {/* Active Jobs Banner */}
         {activeJobs > 0 && showJobsBanner && (
           <div className="bg-blue-950 border-b border-blue-800 px-4 py-3 flex items-center justify-between">
