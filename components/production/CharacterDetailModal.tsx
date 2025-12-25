@@ -1591,8 +1591,9 @@ export function CharacterDetailModal({
                                             const token = await getToken({ template: 'wryda-backend' });
                                             if (!token) throw new Error('Not authenticated');
                                             
+                                            // Backend needs screenplayId for new format character IDs
                                             const deleteResponse = await fetch(
-                                              `/api/character-bank/${character.id}/reference/${referenceId}`,
+                                              `/api/character-bank/${character.id}/reference/${referenceId}?screenplayId=${encodeURIComponent(screenplayId)}`,
                                               {
                                                 method: 'DELETE',
                                                 headers: {

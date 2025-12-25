@@ -299,8 +299,8 @@ export function ModernGallery({
   // Multiple images layout - featured + grid
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Featured Image - Left side, smaller (1/5 width) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Featured Image - Left side (1/3 width) */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -308,7 +308,7 @@ export function ModernGallery({
           className="lg:col-span-1"
         >
           <div
-            className="relative group cursor-pointer h-full min-h-[300px] max-h-[400px]"
+            className="relative group cursor-pointer h-full min-h-[400px]"
             onClick={handleFeaturedClick}
           >
             <div className="relative w-full h-full rounded-xl overflow-hidden border-2 border-[#3F3F46] group-hover:border-[#DC143C] transition-all duration-200 shadow-2xl">
@@ -362,12 +362,12 @@ export function ModernGallery({
           </div>
         </motion.div>
 
-        {/* Grid Gallery - Right side (4/5 width) */}
+        {/* Grid Gallery - Right side (2/3 width) */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="lg:col-span-4"
+          className="lg:col-span-2"
         >
           <Gallery
             photos={photos}
