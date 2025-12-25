@@ -42,7 +42,7 @@ export function UploadWardrobeTab({
   screenplayId,
   existingReferences = [],
   onComplete
-}: UploadCoverageTabProps) {
+}: UploadWardrobeTabProps) {
   const { getToken } = useAuth();
   const [outfitMode, setOutfitMode] = useState<'create' | 'existing'>('create');
   const [newOutfitName, setNewOutfitName] = useState<string>('');
