@@ -563,16 +563,17 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       // Also include characters selected via pronoun detection
       const pronounSelectedCharacterIds = Object.values(selectedCharactersForShots).flat();
       
-      // Extract unique character IDs
+      // Extract unique character IDs (filter out '__ignore__' which is not a real character ID)
       const characterIds = [...new Set([
         ...allShotsNeedingHeadshots.map((shot: any) => shot.characterId).filter(Boolean),
         ...pronounSelectedCharacterIds
-      ])];
+      ])].filter(id => id !== '__ignore__'); // Skip '__ignore__' - it's not a character ID
       
       if (characterIds.length === 0) return;
       
       for (const characterId of characterIds) {
-        if (characterHeadshots[characterId] || loadingHeadshots[characterId]) continue; // Already loaded or loading
+        // Double-check: skip '__ignore__' and invalid IDs
+        if (characterId === '__ignore__' || !characterId || characterHeadshots[characterId] || loadingHeadshots[characterId]) continue;
         
         setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
         
@@ -747,11 +748,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       if (!projectId || !selectedCharactersForShots) return;
       
       // Get all unique character IDs from pronoun-selected characters
-      const pronounSelectedCharacterIds = [...new Set(Object.values(selectedCharactersForShots).flat())];
+      const pronounSelectedCharacterIds = [...new Set(Object.values(selectedCharactersForShots).flat())].filter(id => id !== '__ignore__');
       
       for (const characterId of pronounSelectedCharacterIds) {
-        // Skip if already loaded or loading
-        if (characterHeadshots[characterId] || loadingHeadshots[characterId]) continue;
+        // Skip '__ignore__', invalid IDs, or if already loaded or loading
+        if (characterId === '__ignore__' || !characterId || characterHeadshots[characterId] || loadingHeadshots[characterId]) continue;
         
         setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
         

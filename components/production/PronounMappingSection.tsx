@@ -95,12 +95,15 @@ export function PronounMappingSection({
   const pluralPronounsList = pronouns.filter(p => pluralPronouns.includes(p.toLowerCase()));
   
   // Get all mapped character IDs (flattening arrays for plural pronouns)
+  // Exclude '__ignore__' which is not a real character ID
   const getAllMappedCharacterIds = (): string[] => {
     const allIds = new Set<string>();
     Object.values(pronounMappings).forEach(value => {
       if (Array.isArray(value)) {
-        value.forEach(id => allIds.add(id));
-      } else if (value) {
+        value.forEach(id => {
+          if (id !== '__ignore__') allIds.add(id);
+        });
+      } else if (value && value !== '__ignore__') {
         allIds.add(value);
       }
     });
