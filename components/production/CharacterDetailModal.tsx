@@ -1586,12 +1586,13 @@ export function CharacterDetailModal({
                                             }
                                           }
                                           
-                                          // If we have a reference ID, use DELETE endpoint
+                                          // Use DELETE endpoint if we have referenceId (proper cleanup: S3, Media Library, cloud storage)
+                                          // Fallback to PUT/onUpdate only if referenceId is missing (legacy data)
                                           if (referenceId) {
                                             const token = await getToken({ template: 'wryda-backend' });
                                             if (!token) throw new Error('Not authenticated');
                                             
-                                            // Backend needs screenplayId for new format character IDs
+                                            // DELETE endpoint handles full cleanup (S3, Media Library, cloud storage)
                                             const deleteResponse = await fetch(
                                               `/api/character-bank/${character.id}/reference/${referenceId}?screenplayId=${encodeURIComponent(screenplayId)}`,
                                               {
@@ -1611,12 +1612,10 @@ export function CharacterDetailModal({
                                             // Invalidate and refetch
                                             queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                             await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                            
-                                            toast.success('Image deleted');
                                           } else {
-                                            // Fallback: Use update method if no reference ID found
+                                            // Fallback: Use PUT/onUpdate for legacy data without referenceId
+                                            // Note: This only cleans up poseReferences (via updateCharacterWithScreenplay), not regular references
                                             if (isPoseRef) {
-                                              // Delete from poseReferences (AI-generated poses)
                                               const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
                                               const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                                 const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
@@ -1627,7 +1626,6 @@ export function CharacterDetailModal({
                                                 poseReferences: updatedPoseReferences
                                               });
                                             } else {
-                                              // Delete from character.references array (user-uploaded references in Production Hub)
                                               const currentReferences = character.references || [];
                                               const updatedReferences = currentReferences.filter((ref: any) => {
                                                 const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
@@ -1638,15 +1636,7 @@ export function CharacterDetailModal({
                                                 references: updatedReferences 
                                               });
                                             }
-                                            
-                                            toast.success('Image deleted');
                                           }
-                                          
-                                          // 🔥 ONE-WAY SYNC: Only update Production Hub backend
-                                          // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
-                                          
-                                          // 🔥 FIX: Don't invalidate queries here - CharacterBankPanel.updateCharacter already handles refetch
-                                          // The refetch will update the character prop automatically, causing the modal to re-render with updated data
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
