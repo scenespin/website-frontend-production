@@ -1510,14 +1510,13 @@ export function CharacterDetailModal({
                                         }
                                         
                                         try {
-                                          // 🔥 FIX: Extract s3Key from multiple possible locations
-                                          // Check img.s3Key first, then img.metadata.s3Key, then try to extract from poseReferences
+                                          // Extract s3Key from multiple possible locations (same as bulk delete)
                                           let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
                                           
                                           // If still not found, try to find it in character.poseReferences or angleReferences
                                           if (!imgS3Key && img.id) {
-                                            const poseRefs = (character as any).angleReferences || character.poseReferences || [];
-                                            const poseRef = poseRefs.find((ref: any) => {
+                                            const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                            const poseRef = allPoseRefs.find((ref: any) => {
                                               const refId = typeof ref === 'string' ? `pose_${ref}` : ref.id;
                                               return refId === img.id;
                                             });
@@ -1528,31 +1527,15 @@ export function CharacterDetailModal({
                                             }
                                           }
                                           
-                                          // 🔥 FIX: If still not found, try to extract from img.id if it's a string s3Key
+                                          // If still not found, try to extract from img.id if it's a string s3Key
                                           if (!imgS3Key && img.id && typeof img.id === 'string' && img.id.startsWith('pose_')) {
-                                            // img.id might be 'pose_{s3Key}', extract the s3Key
                                             const extractedS3Key = img.id.replace(/^pose_/, '');
                                             if (extractedS3Key && extractedS3Key.length > 0) {
                                               imgS3Key = extractedS3Key;
                                             }
                                           }
                                           
-                                          // 🔥 FIX: Last resort - check if img.id itself is an s3Key (for string refs)
-                                          if (!imgS3Key && img.id && typeof img.id === 'string' && !img.id.startsWith('pose_') && !img.id.startsWith('ref_')) {
-                                            // Might be a direct s3Key
-                                            imgS3Key = img.id;
-                                          }
-                                          
                                           if (!imgS3Key) {
-                                            console.error('[CharacterDetailModal] Missing S3 key for image:', {
-                                              imgId: img.id,
-                                              imgLabel: img.label,
-                                              imgKeys: Object.keys(img),
-                                              imgS3Key: img.s3Key,
-                                              imgMetadata: (img as any).metadata,
-                                              characterPoseRefs: (character as any).angleReferences || character.poseReferences,
-                                              imgFull: img
-                                            });
                                             throw new Error('Missing S3 key for image');
                                           }
                                           
@@ -1563,89 +1546,30 @@ export function CharacterDetailModal({
                                             return poseS3Key === imgS3Key;
                                           });
                                           
-                                          // Find the reference ID for proper deletion
-                                          let referenceId: string | null = null;
-                                          
-                                          // Check poseReferences first
-                                          const poseRef = poseRefs.find((ref: any) => {
-                                            const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                            return refS3Key === imgS3Key;
-                                          });
-                                          
-                                          if (poseRef) {
-                                            referenceId = typeof poseRef === 'string' ? null : (poseRef.id || null);
+                                          // Use the same simple approach as bulk delete - just filter and update
+                                          if (isPoseRef) {
+                                            // Delete from poseReferences (AI-generated poses)
+                                            const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
+                                            const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
+                                              const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                              return refS3Key !== imgS3Key;
+                                            });
+                                            
+                                            await onUpdate(character.id, { 
+                                              poseReferences: updatedPoseReferences
+                                            });
                                           } else {
-                                            // Check regular references
-                                            const allRefs = character.references || [];
-                                            const ref = allRefs.find((r: any) => {
-                                              const refS3Key = typeof r === 'string' ? r : r.s3Key;
-                                              return refS3Key === imgS3Key;
+                                            // Delete from character.references array (user-uploaded references in Production Hub)
+                                            const currentReferences = character.references || [];
+                                            const updatedReferences = currentReferences.filter((ref: any) => {
+                                              const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                              return refS3Key !== imgS3Key;
                                             });
-                                            if (ref) {
-                                              referenceId = typeof ref === 'string' ? null : (ref.id || null);
-                                            }
-                                          }
-                                          
-                                          // Always use DELETE endpoint for proper cleanup (S3, Media Library, cloud storage)
-                                          if (!referenceId) {
-                                            // Debug: Log available reference IDs
-                                            const allRefIds = [
-                                              ...(poseRefs.map((r: any) => typeof r === 'string' ? null : r.id).filter(Boolean)),
-                                              ...((character.references || []).map((r: any) => typeof r === 'string' ? null : r.id).filter(Boolean))
-                                            ];
-                                            console.error('[CharacterDetailModal] Reference ID not found', {
-                                              imgS3Key,
-                                              imgId: img.id,
-                                              availableReferenceIds: allRefIds.slice(0, 10),
-                                              poseRefsCount: poseRefs.length,
-                                              referencesCount: character.references?.length || 0
+                                            
+                                            await onUpdate(character.id, { 
+                                              references: updatedReferences 
                                             });
-                                            throw new Error('Cannot delete: Reference ID not found. This may be legacy data. Please refresh and try again.');
                                           }
-                                          
-                                          const token = await getToken({ template: 'wryda-backend' });
-                                          if (!token) throw new Error('Not authenticated');
-                                          
-                                          // DELETE endpoint handles full cleanup (S3, Media Library, cloud storage)
-                                          const deleteResponse = await fetch(
-                                            `/api/character-bank/${character.id}/reference/${encodeURIComponent(referenceId)}?screenplayId=${encodeURIComponent(screenplayId)}`,
-                                            {
-                                              method: 'DELETE',
-                                              headers: {
-                                                'Authorization': `Bearer ${token}`,
-                                                'Content-Type': 'application/json'
-                                              }
-                                            }
-                                          );
-                                          
-                                          if (!deleteResponse.ok) {
-                                            let errorMessage = `Failed to delete reference: ${deleteResponse.status}`;
-                                            try {
-                                              const errorData = await deleteResponse.json();
-                                              // Try multiple possible error message fields
-                                              errorMessage = errorData.error || errorData.message || errorData.details || errorMessage;
-                                              console.error('[CharacterDetailModal] Delete failed', {
-                                                referenceId,
-                                                status: deleteResponse.status,
-                                                errorData,
-                                                fullError: JSON.stringify(errorData, null, 2)
-                                              });
-                                            } catch (parseError) {
-                                              // If JSON parsing fails, try to get text response
-                                              const textResponse = await deleteResponse.text().catch(() => '');
-                                              errorMessage = textResponse || errorMessage;
-                                              console.error('[CharacterDetailModal] Delete failed (non-JSON response)', {
-                                                referenceId,
-                                                status: deleteResponse.status,
-                                                textResponse
-                                              });
-                                            }
-                                            throw new Error(errorMessage);
-                                          }
-                                          
-                                          // Invalidate and refetch
-                                          queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                          await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
