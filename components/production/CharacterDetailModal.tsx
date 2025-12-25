@@ -886,10 +886,10 @@ export function CharacterDetailModal({
                         ? 'bg-[#DC143C] text-white'
                         : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
                     }`}
-                  >
-                    <span className="text-base">🤖</span>
-                    Generate Wardrobe
-                  </button>
+                    >
+                      <span className="text-base mr-2">🤖</span>
+                      Generate Wardrobe
+                    </button>
                 )}
               </div>
             </div>
@@ -1517,8 +1517,8 @@ export function CharacterDetailModal({
                                           
                                           // If still not found, try to find it in character.poseReferences or angleReferences
                                           if (!imgS3Key && img.id) {
-                                            const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
-                                            const poseRef = allPoseRefs.find((ref: any) => {
+                                            const poseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                            const poseRef = poseRefs.find((ref: any) => {
                                               const refId = typeof ref === 'string' ? `pose_${ref}` : ref.id;
                                               return refId === img.id;
                                             });
@@ -1558,8 +1558,8 @@ export function CharacterDetailModal({
                                           }
                                           
                                           // Check if it's a pose reference (AI-generated) or user reference
-                                          const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
-                                          const isPoseRef = allPoseRefs.some((poseRef: any) => {
+                                          const poseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                          const isPoseRef = poseRefs.some((poseRef: any) => {
                                             const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
                                             return poseS3Key === imgS3Key;
                                           });
@@ -1568,8 +1568,7 @@ export function CharacterDetailModal({
                                           let referenceId: string | null = null;
                                           
                                           // Check poseReferences first
-                                          const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
-                                          const poseRef = allPoseRefs.find((ref: any) => {
+                                          const poseRef = poseRefs.find((ref: any) => {
                                             const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                             return refS3Key === imgS3Key;
                                           });
@@ -1899,8 +1898,8 @@ export function CharacterDetailModal({
                       let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
                       
                       if (!imgS3Key && img.id) {
-                        const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
-                        const poseRef = allPoseRefs.find((ref: any) => {
+                        const poseRefs = (character as any).angleReferences || character.poseReferences || [];
+                        const poseRef = poseRefs.find((ref: any) => {
                           const refId = typeof ref === 'string' ? `pose_${ref}` : ref.id;
                           return refId === img.id;
                         });
