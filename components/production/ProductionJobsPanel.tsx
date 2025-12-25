@@ -12,7 +12,7 @@ import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
-  Sparkles, AlertCircle, Image, Save
+  Sparkles, AlertCircle, Image, Save, Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
@@ -34,8 +34,15 @@ interface WorkflowJob {
   workflowId: string;
   workflowName: string;
   jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading';
-  status: 'queued' | 'running' | 'completed' | 'failed';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'awaiting_input';
   progress: number;
+  requiresAction?: {
+    type: 'driving_video_upload';
+    message: string;
+    instructions: string[];
+    canResume: boolean;
+  };
+  establishingShotFirstFrameUrl?: string; // For resume workflow
   results?: {
     videos?: Array<{
       url: string;
@@ -124,7 +131,237 @@ interface ProductionJobsPanelProps {
   // Removed projectId prop - screenplayId comes from ScreenplayContext
 }
 
-type StatusFilter = 'all' | 'running' | 'completed' | 'failed';
+type StatusFilter = 'all' | 'running' | 'completed' | 'failed' | 'awaiting_input';
+
+/**
+ * Driving Video Upload Component
+ * Handles uploading driving video for safety fallback workflow
+ */
+function DrivingVideoUpload({
+  jobId,
+  screenplayId,
+  characterId,
+  dialogue,
+  sceneId,
+  establishingShotFirstFrameUrl,
+  onUploadComplete
+}: {
+  jobId: string;
+  screenplayId: string;
+  characterId: string;
+  dialogue: string;
+  sceneId?: string;
+  establishingShotFirstFrameUrl?: string;
+  onUploadComplete: () => void;
+}) {
+  const { getToken } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      toast.error('Please select a video file');
+      return;
+    }
+
+    // Validate file size (50GB max)
+    const maxSize = 50 * 1024 * 1024 * 1024; // 50GB
+    if (file.size > maxSize) {
+      toast.error('File too large. Maximum size is 50GB.');
+      return;
+    }
+
+    setVideoFile(file);
+    
+    // Create preview
+    const preview = URL.createObjectURL(file);
+    setVideoPreview(preview);
+  };
+
+  const handleUpload = async () => {
+    if (!videoFile || !establishingShotFirstFrameUrl) {
+      toast.error('Please select a video file');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      // Step 1: Get presigned URL
+      toast.info('Preparing upload...');
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` +
+        `fileName=${encodeURIComponent(videoFile.name)}` +
+        `&fileType=${encodeURIComponent(videoFile.type)}` +
+        `&fileSize=${videoFile.size}` +
+        `&projectId=${encodeURIComponent(screenplayId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!presignedResponse.ok) {
+        const errorData = await presignedResponse.json();
+        throw new Error(errorData.error || 'Failed to get upload URL');
+      }
+
+      const { url, fields, s3Key } = await presignedResponse.json();
+      setUploadProgress(30);
+
+      // Step 2: Upload to S3
+      toast.info('Uploading video...');
+      const formData = new FormData();
+      Object.entries(fields).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+      formData.append('file', videoFile);
+
+      const uploadResponse = await fetch(url, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Upload to S3 failed');
+      }
+
+      setUploadProgress(60);
+
+      // Step 3: Get presigned download URL for the uploaded video
+      const downloadUrlResponse = await fetch('/api/s3/download-url', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          s3Key,
+          expiresIn: 3600
+        }),
+      });
+
+      if (!downloadUrlResponse.ok) {
+        throw new Error('Failed to get video URL');
+      }
+
+      const { downloadUrl: drivingVideoUrl } = await downloadUrlResponse.json();
+      setUploadProgress(80);
+
+      // Step 4: Resume job with driving video
+      toast.info('Resuming generation...');
+      const resumeResponse = await fetch('/api/dialogue/resume-first-frame-lipsync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          characterId,
+          screenplayId,
+          dialogue,
+          sceneId,
+          drivingVideoUrl,
+          establishingShotFirstFrameUrl,
+          duration: 5 // Default duration
+        }),
+      });
+
+      if (!resumeResponse.ok) {
+        const errorData = await resumeResponse.json();
+        throw new Error(errorData.error || 'Failed to resume generation');
+      }
+
+      setUploadProgress(100);
+      onUploadComplete();
+
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <input
+        type="file"
+        accept="video/mp4,video/quicktime,video/webm"
+        onChange={handleFileSelect}
+        className="hidden"
+        id={`driving-video-input-${jobId}`}
+        disabled={uploading}
+      />
+      
+      <label
+        htmlFor={`driving-video-input-${jobId}`}
+        className="block"
+      >
+        <div className="flex items-center gap-2 p-2 rounded border border-amber-700/50 bg-amber-950/30 hover:bg-amber-950/50 cursor-pointer transition-colors">
+          <Upload className="w-4 h-4 text-amber-400" />
+          <span className="text-xs text-amber-300">
+            {videoFile ? videoFile.name : 'Select Driving Video'}
+          </span>
+        </div>
+      </label>
+
+      {videoPreview && (
+        <video
+          src={videoPreview}
+          controls
+          className="w-full rounded border border-amber-800/50"
+          style={{ maxHeight: '200px' }}
+        />
+      )}
+
+      {uploadProgress > 0 && uploading && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-amber-300">Uploading...</span>
+            <span className="text-amber-400">{uploadProgress}%</span>
+          </div>
+          <div className="h-1.5 bg-amber-950/50 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-amber-500 transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={handleUpload}
+        disabled={!videoFile || uploading || !establishingShotFirstFrameUrl}
+        className="w-full px-3 py-2 text-xs font-medium rounded bg-amber-600 hover:bg-amber-700 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white transition-colors flex items-center justify-center gap-2"
+      >
+        {uploading ? (
+          <>
+            <Loader2 className="w-3 h-3 animate-spin" />
+            {uploadProgress < 60 ? 'Uploading...' : 'Resuming...'}
+          </>
+        ) : (
+          'Upload & Continue'
+        )}
+      </button>
+    </div>
+  );
+}
 
 /**
  * Helper component to display image thumbnail from S3 key
@@ -853,6 +1090,51 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-red-300">{job.error}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Awaiting Input - Safety Fallback */}
+              {job.status === 'awaiting_input' && job.requiresAction && (
+                <div className="p-4 rounded-lg bg-amber-900/20 border border-amber-800 mb-3">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-amber-200 mb-1">
+                          Additional Input Required
+                        </p>
+                        <p className="text-xs text-amber-300/80">
+                          {job.requiresAction.message}
+                        </p>
+                      </div>
+                      
+                      {/* Instructions */}
+                      <div className="p-3 rounded bg-amber-950/50 border border-amber-800/50">
+                        <p className="text-xs font-medium text-amber-200 mb-2">
+                          📹 Recording Tips:
+                        </p>
+                        <ul className="text-xs text-amber-300/70 space-y-1 list-disc list-inside">
+                          {job.requiresAction.instructions.map((instruction, idx) => (
+                            <li key={idx}>{instruction}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      {/* Upload UI */}
+                      <DrivingVideoUpload
+                        jobId={job.jobId}
+                        screenplayId={job.inputs?.screenplayId || ''}
+                        characterId={job.inputs?.characterId || ''}
+                        dialogue={job.inputs?.dialogue || ''}
+                        sceneId={job.inputs?.sceneId || ''}
+                        establishingShotFirstFrameUrl={job.establishingShotFirstFrameUrl}
+                        onUploadComplete={() => {
+                          // Job will resume automatically - polling will pick up status change
+                          toast.success('Video uploaded! Generation will continue...');
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
