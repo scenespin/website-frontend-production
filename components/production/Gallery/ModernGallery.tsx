@@ -19,7 +19,6 @@ import Gallery from 'react-photo-gallery';
 import Lightbox from 'yet-another-react-lightbox';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
-import 'yet-another-react-lightbox/plugins/zoom.css';
 import { motion } from 'framer-motion';
 import { Sparkles, Upload as UploadIcon, ZoomIn } from 'lucide-react';
 

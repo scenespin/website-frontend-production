@@ -33,7 +33,6 @@ import { ImageViewer, type ImageItem } from './ImageViewer';
 import Lightbox from 'yet-another-react-lightbox';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
-import 'yet-another-react-lightbox/plugins/zoom.css';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { VoiceAssignmentTab } from './VoiceAssignmentTab';
 import { VoiceBrowserModal } from './VoiceBrowserModal';
