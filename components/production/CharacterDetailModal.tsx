@@ -1588,6 +1588,18 @@ export function CharacterDetailModal({
                                           
                                           // Always use DELETE endpoint for proper cleanup (S3, Media Library, cloud storage)
                                           if (!referenceId) {
+                                            // Debug: Log available reference IDs
+                                            const allRefIds = [
+                                              ...(poseRefs.map((r: any) => typeof r === 'string' ? null : r.id).filter(Boolean)),
+                                              ...((character.references || []).map((r: any) => typeof r === 'string' ? null : r.id).filter(Boolean))
+                                            ];
+                                            console.error('[CharacterDetailModal] Reference ID not found', {
+                                              imgS3Key,
+                                              imgId: img.id,
+                                              availableReferenceIds: allRefIds.slice(0, 10),
+                                              poseRefsCount: poseRefs.length,
+                                              referencesCount: character.references?.length || 0
+                                            });
                                             throw new Error('Cannot delete: Reference ID not found. This may be legacy data. Please refresh and try again.');
                                           }
                                           
@@ -1596,7 +1608,7 @@ export function CharacterDetailModal({
                                           
                                           // DELETE endpoint handles full cleanup (S3, Media Library, cloud storage)
                                           const deleteResponse = await fetch(
-                                            `/api/character-bank/${character.id}/reference/${referenceId}?screenplayId=${encodeURIComponent(screenplayId)}`,
+                                            `/api/character-bank/${character.id}/reference/${encodeURIComponent(referenceId)}?screenplayId=${encodeURIComponent(screenplayId)}`,
                                             {
                                               method: 'DELETE',
                                               headers: {
@@ -1608,7 +1620,13 @@ export function CharacterDetailModal({
                                           
                                           if (!deleteResponse.ok) {
                                             const errorData = await deleteResponse.json().catch(() => ({}));
-                                            throw new Error(errorData.error || `Failed to delete reference: ${deleteResponse.status}`);
+                                            const errorMessage = errorData.error || errorData.message || `Failed to delete reference: ${deleteResponse.status}`;
+                                            console.error('[CharacterDetailModal] Delete failed', {
+                                              referenceId,
+                                              status: deleteResponse.status,
+                                              errorData
+                                            });
+                                            throw new Error(errorMessage);
                                           }
                                           
                                           // Invalidate and refetch
