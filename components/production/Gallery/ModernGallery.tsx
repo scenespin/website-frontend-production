@@ -4,12 +4,14 @@
  * ModernGallery - Professional gallery component using React Photo Gallery
  * 
  * Features:
- * - Masonry layout (no clunky scrolling)
+ * - Masonry layout with larger, more visible thumbnails
+ * - Featured image area (first image displayed prominently)
  * - Lightbox viewing
  * - Outfit filtering
  * - Responsive design
  * - Base image indicators
  * - Source indicators (AI vs User)
+ * - Improved spacing and visibility
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -17,7 +19,7 @@ import Gallery from 'react-photo-gallery';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 import { motion } from 'framer-motion';
-import { Sparkles, Upload as UploadIcon } from 'lucide-react';
+import { Sparkles, Upload as UploadIcon, ZoomIn } from 'lucide-react';
 
 export interface GalleryImage {
   id: string;
@@ -50,6 +52,7 @@ export function ModernGallery({
 }: ModernGalleryProps) {
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [featuredIndex, setFeaturedIndex] = useState<number>(0);
 
   // Filter images by outfit
   const filteredImages = useMemo(() => {
@@ -60,27 +63,58 @@ export function ModernGallery({
     });
   }, [images, outfitFilter]);
 
-  // Convert to react-photo-gallery format
+  // Featured image (first image or selected)
+  const featuredImage = useMemo(() => {
+    return filteredImages[featuredIndex] || filteredImages[0];
+  }, [filteredImages, featuredIndex]);
+
+  // Grid images (all except featured)
+  const gridImages = useMemo(() => {
+    if (filteredImages.length <= 1) return [];
+    return filteredImages.filter((_, index) => index !== featuredIndex);
+  }, [filteredImages, featuredIndex]);
+
+  // Convert to react-photo-gallery format for grid
   const photos = useMemo(() => {
-    return filteredImages.map((img, index) => ({
+    return gridImages.map((img, index) => ({
       src: img.thumbnailUrl || img.imageUrl,
       width: img.width || 4,
       height: img.height || 3,
       alt: img.label,
       key: img.id,
-      // Store original index for lightbox
-      originalIndex: index
+      originalIndex: index + (featuredIndex === 0 ? 1 : 0), // Adjust index for grid
+      actualIndex: filteredImages.findIndex(f => f.id === img.id) // Actual index in full array
     }));
-  }, [filteredImages]);
+  }, [gridImages, filteredImages, featuredIndex]);
 
   // Open lightbox
   const openLightbox = useCallback((event: any, { index }: { index: number }) => {
-    setLightboxIndex(index);
-    setSelectedIndex(index);
+    // Get actual index from photo metadata
+    const photo = photos[index];
+    const actualIndex = photo?.actualIndex ?? index;
+    setLightboxIndex(actualIndex);
+    setSelectedIndex(actualIndex);
     if (onImageClick) {
-      onImageClick(index);
+      onImageClick(actualIndex);
     }
-  }, [onImageClick]);
+  }, [onImageClick, photos]);
+
+  // Handle featured image click
+  const handleFeaturedClick = useCallback(() => {
+    setLightboxIndex(featuredIndex);
+    setSelectedIndex(featuredIndex);
+    if (onImageClick) {
+      onImageClick(featuredIndex);
+    }
+  }, [featuredIndex, onImageClick]);
+
+  // Handle grid image click (also updates featured)
+  const handleGridImageClick = useCallback((event: any, { index }: { index: number }) => {
+    const photo = photos[index];
+    const actualIndex = photo?.actualIndex ?? index;
+    setFeaturedIndex(actualIndex);
+    openLightbox(event, { index });
+  }, [photos, openLightbox]);
 
   // Close lightbox
   const closeLightbox = useCallback(() => {
@@ -88,7 +122,7 @@ export function ModernGallery({
     setSelectedIndex(null);
   }, []);
 
-  // Lightbox slides
+  // Lightbox slides (all images)
   const slides = useMemo(() => {
     return filteredImages.map(img => ({
       src: img.imageUrl,
@@ -97,10 +131,10 @@ export function ModernGallery({
     }));
   }, [filteredImages]);
 
-  // Custom image renderer with badges
+  // Custom image renderer with improved visibility
   const imageRenderer = useCallback(
     ({ photo, margin, onClick }: any) => {
-      const originalImg = filteredImages[photo.originalIndex];
+      const originalImg = gridImages.find(img => img.id === photo.key);
       if (!originalImg) return null;
 
       return (
@@ -108,44 +142,57 @@ export function ModernGallery({
           key={photo.key}
           style={{ margin, width: photo.width, height: photo.height }}
           className="relative group cursor-pointer"
-          onClick={(e) => onClick(e, { index: photo.originalIndex })}
+          onClick={(e) => handleGridImageClick(e, { index: photo.originalIndex })}
         >
-          <img
-            src={photo.src}
-            alt={photo.alt}
-            className="w-full h-full object-cover rounded-lg transition-transform group-hover:scale-105"
-            style={{ width: '100%', height: '100%' }}
-          />
-          
-          {/* Overlay badges */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-start justify-between p-2">
-            {/* Base badge */}
-            {originalImg.isBase && (
-              <div className="px-2 py-1 bg-[#DC143C] text-white text-xs rounded font-medium">
-                Base
-              </div>
-            )}
+          <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-[#3F3F46] group-hover:border-[#DC143C] transition-all duration-200 shadow-lg group-hover:shadow-xl">
+            <img
+              src={photo.src}
+              alt={photo.alt}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              style={{ width: '100%', height: '100%' }}
+              loading="lazy"
+            />
             
-            {/* Source badge */}
-            {originalImg.source && (
-              <div className={`px-2 py-1 text-white text-xs rounded font-medium ${
-                originalImg.source === 'pose-generation' 
-                  ? 'bg-[#8B5CF6]' 
-                  : 'bg-[#3F3F46]'
-              }`}>
-                {originalImg.source === 'pose-generation' ? (
-                  <Sparkles className="w-3 h-3 inline mr-1" />
-                ) : (
-                  <UploadIcon className="w-3 h-3 inline mr-1" />
-                )}
-                {originalImg.source === 'pose-generation' ? 'AI' : 'User'}
-              </div>
-            )}
+            {/* Hover overlay with zoom icon */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 rounded-lg flex items-center justify-center">
+              <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+            </div>
+            
+            {/* Overlay badges - more visible */}
+            <div className="absolute inset-0 flex items-start justify-between p-3 pointer-events-none">
+              {/* Base badge */}
+              {originalImg.isBase && (
+                <div className="px-2.5 py-1 bg-[#DC143C] text-white text-xs font-semibold rounded-md shadow-lg">
+                  Base
+                </div>
+              )}
+              
+              {/* Source badge */}
+              {originalImg.source && (
+                <div className={`px-2.5 py-1 text-white text-xs font-semibold rounded-md shadow-lg ${
+                  originalImg.source === 'pose-generation' 
+                    ? 'bg-[#8B5CF6]' 
+                    : 'bg-[#3F3F46]'
+                }`}>
+                  {originalImg.source === 'pose-generation' ? (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5 inline mr-1" />
+                      AI
+                    </>
+                  ) : (
+                    <>
+                      <UploadIcon className="w-3.5 h-3.5 inline mr-1" />
+                      User
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       );
     },
-    [filteredImages]
+    [gridImages, handleGridImageClick]
   );
 
   if (filteredImages.length === 0) {
@@ -164,22 +211,161 @@ export function ModernGallery({
     );
   }
 
+  // Single image layout - show featured prominently
+  if (filteredImages.length === 1) {
+    return (
+      <div className="w-full">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="relative group cursor-pointer"
+          onClick={handleFeaturedClick}
+        >
+          <div className="relative w-full rounded-xl overflow-hidden border-2 border-[#3F3F46] group-hover:border-[#DC143C] transition-all duration-200 shadow-2xl">
+            <img
+              src={featuredImage.imageUrl}
+              alt={featuredImage.label}
+              className="w-full h-auto object-contain max-h-[600px] mx-auto transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+            
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
+              <ZoomIn className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+            </div>
+            
+            {/* Badges */}
+            <div className="absolute top-4 left-4 flex gap-2">
+              {featuredImage.isBase && (
+                <div className="px-3 py-1.5 bg-[#DC143C] text-white text-sm font-semibold rounded-md shadow-lg">
+                  Base
+                </div>
+              )}
+              {featuredImage.source && (
+                <div className={`px-3 py-1.5 text-white text-sm font-semibold rounded-md shadow-lg ${
+                  featuredImage.source === 'pose-generation' 
+                    ? 'bg-[#8B5CF6]' 
+                    : 'bg-[#3F3F46]'
+                }`}>
+                  {featuredImage.source === 'pose-generation' ? (
+                    <>
+                      <Sparkles className="w-4 h-4 inline mr-1" />
+                      AI
+                    </>
+                  ) : (
+                    <>
+                      <UploadIcon className="w-4 h-4 inline mr-1" />
+                      User
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Lightbox */}
+        <Lightbox
+          open={lightboxIndex >= 0}
+          close={closeLightbox}
+          index={lightboxIndex}
+          slides={slides}
+          render={{
+            buttonPrev: () => null,
+            buttonNext: () => null,
+          }}
+          styles={{
+            container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Multiple images layout - featured + grid
   return (
     <div className="w-full">
-      {/* Gallery */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Gallery
-          photos={photos}
-          onClick={openLightbox}
-          renderImage={imageRenderer}
-          margin={8}
-          direction="row"
-        />
-      </motion.div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Featured Image - Left side, larger */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+          className="lg:col-span-1"
+        >
+          <div
+            className="relative group cursor-pointer h-full min-h-[400px]"
+            onClick={handleFeaturedClick}
+          >
+            <div className="relative w-full h-full rounded-xl overflow-hidden border-2 border-[#3F3F46] group-hover:border-[#DC143C] transition-all duration-200 shadow-2xl">
+              <img
+                src={featuredImage.imageUrl}
+                alt={featuredImage.label}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                loading="lazy"
+              />
+              
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                <ZoomIn className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              </div>
+              
+              {/* Badges */}
+              <div className="absolute top-4 left-4 flex flex-col gap-2">
+                {featuredImage.isBase && (
+                  <div className="px-3 py-1.5 bg-[#DC143C] text-white text-sm font-semibold rounded-md shadow-lg">
+                    Base
+                  </div>
+                )}
+                {featuredImage.source && (
+                  <div className={`px-3 py-1.5 text-white text-sm font-semibold rounded-md shadow-lg ${
+                    featuredImage.source === 'pose-generation' 
+                      ? 'bg-[#8B5CF6]' 
+                      : 'bg-[#3F3F46]'
+                  }`}>
+                    {featuredImage.source === 'pose-generation' ? (
+                      <>
+                        <Sparkles className="w-4 h-4 inline mr-1" />
+                        AI
+                      </>
+                    ) : (
+                      <>
+                        <UploadIcon className="w-4 h-4 inline mr-1" />
+                        User
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Featured label */}
+              <div className="absolute bottom-4 left-4 right-4">
+                <div className="px-3 py-2 bg-black/70 backdrop-blur-sm text-white text-sm font-medium rounded-md">
+                  {featuredImage.label}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Grid Gallery - Right side */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="lg:col-span-2"
+        >
+          <Gallery
+            photos={photos}
+            onClick={handleGridImageClick}
+            renderImage={imageRenderer}
+            margin={12}
+            direction="row"
+            targetRowHeight={200}
+          />
+        </motion.div>
+      </div>
 
       {/* Lightbox */}
       <Lightbox
@@ -198,4 +384,3 @@ export function ModernGallery({
     </div>
   );
 }
-
