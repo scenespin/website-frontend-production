@@ -1560,53 +1560,83 @@ export function CharacterDetailModal({
                                             return poseS3Key === imgS3Key;
                                           });
                                           
-                                          if (isPoseRef) {
-                                            // Delete from poseReferences (AI-generated poses)
-                                            const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
-                                            console.log('[CharacterDetailModal] 🔍 Before deletion:', {
-                                              currentCount: currentPoseReferences.length,
-                                              imgS3Key,
-                                              allS3Keys: currentPoseReferences.map((r: any) => typeof r === 'string' ? r : r.s3Key)
-                                            });
-                                            
-                                            const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
-                                              const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                              return refS3Key !== imgS3Key;
-                                            });
-                                            
-                                            console.log('[CharacterDetailModal] 🔍 After filtering:', {
-                                              updatedCount: updatedPoseReferences.length,
-                                              removed: currentPoseReferences.length - updatedPoseReferences.length
-                                            });
-                                            
-                                            await onUpdate(character.id, { 
-                                              poseReferences: updatedPoseReferences
-                                            });
-                                            
-                                            console.log('[CharacterDetailModal] ✅ Update call completed');
-                                            
-                                            // 🔥 FIX: Close dropdown after deletion
-                                            // The dropdown should close automatically, but we ensure it by waiting for the update
+                                          // Find the reference ID for proper deletion
+                                          let referenceId: string | null = null;
+                                          
+                                          // Check poseReferences first
+                                          const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                          const poseRef = allPoseRefs.find((ref: any) => {
+                                            const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                            return refS3Key === imgS3Key;
+                                          });
+                                          
+                                          if (poseRef) {
+                                            referenceId = typeof poseRef === 'string' ? null : (poseRef.id || null);
                                           } else {
-                                            // Delete from character.references array (user-uploaded references in Production Hub)
-                                            const currentReferences = character.references || [];
-                                            console.log('[CharacterDetailModal] 🔍 Deleting from references:', {
-                                              currentCount: currentReferences.length,
-                                              imgS3Key
+                                            // Check regular references
+                                            const allRefs = character.references || [];
+                                            const ref = allRefs.find((r: any) => {
+                                              const refS3Key = typeof r === 'string' ? r : r.s3Key;
+                                              return refS3Key === imgS3Key;
                                             });
+                                            if (ref) {
+                                              referenceId = typeof ref === 'string' ? null : (ref.id || null);
+                                            }
+                                          }
+                                          
+                                          // If we have a reference ID, use DELETE endpoint
+                                          if (referenceId) {
+                                            const token = await getToken({ template: 'wryda-backend' });
+                                            if (!token) throw new Error('Not authenticated');
                                             
-                                            const updatedReferences = currentReferences.filter((ref: any) => {
-                                              const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                              return refS3Key !== imgS3Key;
-                                            });
+                                            const deleteResponse = await fetch(
+                                              `/api/character-bank/${character.id}/reference/${referenceId}`,
+                                              {
+                                                method: 'DELETE',
+                                                headers: {
+                                                  'Authorization': `Bearer ${token}`,
+                                                  'Content-Type': 'application/json'
+                                                }
+                                              }
+                                            );
                                             
-                                            await onUpdate(character.id, { 
-                                              references: updatedReferences 
-                                            });
+                                            if (!deleteResponse.ok) {
+                                              const errorData = await deleteResponse.json().catch(() => ({}));
+                                              throw new Error(errorData.error || `Failed to delete reference: ${deleteResponse.status}`);
+                                            }
                                             
-                                            console.log('[CharacterDetailModal] ✅ Update call completed');
+                                            // Invalidate and refetch
+                                            queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                            await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                             
-                                            // 🔥 FIX: Close dropdown after deletion
+                                            toast.success('Image deleted');
+                                          } else {
+                                            // Fallback: Use update method if no reference ID found
+                                            if (isPoseRef) {
+                                              // Delete from poseReferences (AI-generated poses)
+                                              const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
+                                              const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
+                                                const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                                return refS3Key !== imgS3Key;
+                                              });
+                                              
+                                              await onUpdate(character.id, { 
+                                                poseReferences: updatedPoseReferences
+                                              });
+                                            } else {
+                                              // Delete from character.references array (user-uploaded references in Production Hub)
+                                              const currentReferences = character.references || [];
+                                              const updatedReferences = currentReferences.filter((ref: any) => {
+                                                const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                                return refS3Key !== imgS3Key;
+                                              });
+                                              
+                                              await onUpdate(character.id, { 
+                                                references: updatedReferences 
+                                              });
+                                            }
+                                            
+                                            toast.success('Image deleted');
                                           }
                                           
                                           // 🔥 ONE-WAY SYNC: Only update Production Hub backend
