@@ -1848,8 +1848,9 @@ export function CharacterDetailModal({
               view: ({ index }) => {
                 const img = currentGroupImages[index];
                 if (img) {
-                  const poseName = img.poseId || (img as any).metadata?.poseId || img.label || 'pose';
-                  const outfitName = img.outfitName || (img as any).metadata?.outfitName || '';
+                  const imgAny = img as any;
+                  const poseName = imgAny.poseId || imgAny.metadata?.poseId || img.label || 'pose';
+                  const outfitName = imgAny.outfitName || imgAny.metadata?.outfitName || '';
                   const outfitPart = outfitName ? `_${outfitName.replace(/[^a-zA-Z0-9]/g, '-')}` : '';
                   const filename = `${character.name}_${poseName.replace(/[^a-zA-Z0-9]/g, '-')}${outfitPart}_${Date.now()}.jpg`;
                   downloadImageAsBlob(img.imageUrl, filename, img.s3Key).catch(() => {
