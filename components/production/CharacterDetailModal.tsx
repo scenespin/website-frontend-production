@@ -1586,57 +1586,34 @@ export function CharacterDetailModal({
                                             }
                                           }
                                           
-                                          // Use DELETE endpoint if we have referenceId (proper cleanup: S3, Media Library, cloud storage)
-                                          // Fallback to PUT/onUpdate only if referenceId is missing (legacy data)
-                                          if (referenceId) {
-                                            const token = await getToken({ template: 'wryda-backend' });
-                                            if (!token) throw new Error('Not authenticated');
-                                            
-                                            // DELETE endpoint handles full cleanup (S3, Media Library, cloud storage)
-                                            const deleteResponse = await fetch(
-                                              `/api/character-bank/${character.id}/reference/${referenceId}?screenplayId=${encodeURIComponent(screenplayId)}`,
-                                              {
-                                                method: 'DELETE',
-                                                headers: {
-                                                  'Authorization': `Bearer ${token}`,
-                                                  'Content-Type': 'application/json'
-                                                }
-                                              }
-                                            );
-                                            
-                                            if (!deleteResponse.ok) {
-                                              const errorData = await deleteResponse.json().catch(() => ({}));
-                                              throw new Error(errorData.error || `Failed to delete reference: ${deleteResponse.status}`);
-                                            }
-                                            
-                                            // Invalidate and refetch
-                                            queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                            await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                          } else {
-                                            // Fallback: Use PUT/onUpdate for legacy data without referenceId
-                                            // Note: This only cleans up poseReferences (via updateCharacterWithScreenplay), not regular references
-                                            if (isPoseRef) {
-                                              const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
-                                              const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
-                                                const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                                return refS3Key !== imgS3Key;
-                                              });
-                                              
-                                              await onUpdate(character.id, { 
-                                                poseReferences: updatedPoseReferences
-                                              });
-                                            } else {
-                                              const currentReferences = character.references || [];
-                                              const updatedReferences = currentReferences.filter((ref: any) => {
-                                                const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                                return refS3Key !== imgS3Key;
-                                              });
-                                              
-                                              await onUpdate(character.id, { 
-                                                references: updatedReferences 
-                                              });
-                                            }
+                                          // Always use DELETE endpoint for proper cleanup (S3, Media Library, cloud storage)
+                                          if (!referenceId) {
+                                            throw new Error('Cannot delete: Reference ID not found. This may be legacy data. Please refresh and try again.');
                                           }
+                                          
+                                          const token = await getToken({ template: 'wryda-backend' });
+                                          if (!token) throw new Error('Not authenticated');
+                                          
+                                          // DELETE endpoint handles full cleanup (S3, Media Library, cloud storage)
+                                          const deleteResponse = await fetch(
+                                            `/api/character-bank/${character.id}/reference/${referenceId}?screenplayId=${encodeURIComponent(screenplayId)}`,
+                                            {
+                                              method: 'DELETE',
+                                              headers: {
+                                                'Authorization': `Bearer ${token}`,
+                                                'Content-Type': 'application/json'
+                                              }
+                                            }
+                                          );
+                                          
+                                          if (!deleteResponse.ok) {
+                                            const errorData = await deleteResponse.json().catch(() => ({}));
+                                            throw new Error(errorData.error || `Failed to delete reference: ${deleteResponse.status}`);
+                                          }
+                                          
+                                          // Invalidate and refetch
+                                          queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                          await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
