@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * GenerateCoverageTab - Generate Coverage tab for Character Detail Modal
+ * GenerateWardrobeTab - Generate Wardrobe tab for Character Detail Modal
  * 
  * Converted from PoseGenerationModal - reorganized steps:
  * Step 1: Create/Select Outfit (REQUIRED)
@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import PosePackageSelector from '../../character-bank/PosePackageSelector';
 
-interface GenerateCoverageTabProps {
+interface GenerateWardrobeTabProps {
   characterId: string;
   characterName: string;
   screenplayId: string;
@@ -38,7 +38,7 @@ const DEFAULT_OUTFIT_STYLES = [
   { value: 'formal-evening', label: 'Formal Evening' },
 ];
 
-export function GenerateCoverageTab({
+export function GenerateWardrobeTab({
   characterId,
   characterName,
   screenplayId,
@@ -46,7 +46,7 @@ export function GenerateCoverageTab({
   existingReferences = [],
   onClose,
   onComplete
-}: GenerateCoverageTabProps) {
+}: GenerateWardrobeTabProps) {
   const { getToken } = useAuth();
   
   // Step 1: Outfit
@@ -148,7 +148,7 @@ export function GenerateCoverageTab({
           setProviderId(enabledModels[0].id);
         }
       } catch (error: any) {
-        console.error('[GenerateCoverageTab] Failed to load models:', error);
+        console.error('[GenerateWardrobeTab] Failed to load models:', error);
         toast.error('Failed to load available models');
       } finally {
         setIsLoadingModels(false);
@@ -236,7 +236,7 @@ export function GenerateCoverageTab({
       setClothingImages(prev => [...prev, ...newImages]);
       toast.success(`Uploaded ${newImages.length} clothing image(s)`);
     } catch (error: any) {
-      console.error('[GenerateCoverageTab] Failed to upload clothing images:', error);
+      console.error('[GenerateWardrobeTab] Failed to upload clothing images:', error);
       toast.error('Failed to upload clothing images');
     } finally {
       setIsUploadingClothing(false);
@@ -260,7 +260,7 @@ export function GenerateCoverageTab({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      toast.loading('Starting coverage generation...', { id: 'coverage-gen-start' });
+      toast.loading('Starting wardrobe generation...', { id: 'wardrobe-gen-start' });
 
       // Prepare clothing references
       const clothingReferences: string[] = [];
@@ -306,13 +306,13 @@ export function GenerateCoverageTab({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to generate coverage');
+        throw new Error(errorData.message || 'Failed to generate wardrobe');
       }
 
       const result = await response.json();
       
-      toast.dismiss('coverage-gen-start');
-      toast.success('Coverage generation started!', {
+      toast.dismiss('wardrobe-gen-start');
+      toast.success('Wardrobe generation started!', {
         description: 'View in Jobs tab to track progress.',
         duration: 5000
       });
@@ -324,10 +324,10 @@ export function GenerateCoverageTab({
       onClose();
 
     } catch (err: any) {
-      console.error('[GenerateCoverageTab] Generation error:', err);
+      console.error('[GenerateWardrobeTab] Generation error:', err);
       setError(err.message || 'An error occurred during generation');
-      toast.dismiss('coverage-gen-start');
-      toast.error('Coverage generation failed!', {
+      toast.dismiss('wardrobe-gen-start');
+      toast.error('Wardrobe generation failed!', {
         description: err.message || 'Please try again.',
         duration: Infinity
       });
@@ -619,7 +619,7 @@ export function GenerateCoverageTab({
               Generating...
             </>
           ) : (
-            'Generate Coverage'
+            'Generate Wardrobe'
           )}
         </button>
       </div>

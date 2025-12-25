@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * UploadCoverageTab - Upload Coverage tab for Character Detail Modal
+ * UploadWardrobeTab - Upload Wardrobe tab for Character Detail Modal
  * 
  * Features:
  * - Create new outfit OR select existing outfit
@@ -21,7 +21,7 @@ import type { MediaFile } from '@/types/media';
 import { PoseGuidanceSection } from '../CharacterStudio/PoseGuidanceSection';
 import { MediaLibraryBrowser } from '../CharacterStudio/MediaLibraryBrowser';
 
-interface UploadCoverageTabProps {
+interface UploadWardrobeTabProps {
   characterId: string;
   characterName: string;
   screenplayId: string;
@@ -36,7 +36,7 @@ interface UploadingImage {
   error?: string;
 }
 
-export function UploadCoverageTab({
+export function UploadWardrobeTab({
   characterId,
   characterName,
   screenplayId,

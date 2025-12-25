@@ -36,8 +36,8 @@ import { VoiceBrowserModal } from './VoiceBrowserModal';
 import { CustomVoiceForm } from './CustomVoiceForm';
 import { CharacterPoseCropModal } from './CharacterPoseCropModal';
 import { ModernGallery, type GalleryImage } from './Gallery/ModernGallery';
-import { UploadCoverageTab } from './Coverage/UploadCoverageTab';
-import { GenerateCoverageTab } from './Coverage/GenerateCoverageTab';
+import { UploadWardrobeTab } from './Coverage/UploadWardrobeTab';
+import { GenerateWardrobeTab } from './Coverage/GenerateWardrobeTab';
 
 /**
  * Get display label for provider ID
@@ -869,7 +869,7 @@ export function CharacterDetailModal({
                   }`}
                 >
                   <Upload className="w-4 h-4 inline mr-2" />
-                  Upload Coverage
+                  Upload Wardrobe
                 </button>
                 {onGeneratePosePackage && (
                   <button
@@ -884,7 +884,7 @@ export function CharacterDetailModal({
                     }`}
                   >
                     <span className="text-base">🤖</span>
-                    Generate Coverage
+                    Generate Wardrobe
                   </button>
                 )}
               </div>
@@ -894,7 +894,7 @@ export function CharacterDetailModal({
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
               {/* Coverage Tabs (Upload or Generate) */}
               {coverageTab === 'upload' && (
-                <UploadCoverageTab
+                <UploadWardrobeTab
                   characterId={character.id}
                   characterName={character.name}
                   screenplayId={screenplayId || ''}
@@ -910,7 +910,7 @@ export function CharacterDetailModal({
               )}
               
               {coverageTab === 'generate' && onGeneratePosePackage && (
-                <GenerateCoverageTab
+                <GenerateWardrobeTab
                   characterId={character.id}
                   characterName={character.name}
                   screenplayId={screenplayId || ''}
