@@ -1804,56 +1804,68 @@ export function CharacterDetailModal({
         />
       )}
       
-      {/* Image Viewer */}
-      {previewImageIndex !== null && (
-        <ImageViewer
-          images={(() => {
-            // Get images for the current group (outfit)
-            if (previewGroupName && posesByOutfit[previewGroupName]) {
-              return posesByOutfit[previewGroupName].map((img): ImageItem => ({
-                id: img.id || img.s3Key || `img_${Date.now()}`,
-                url: img.imageUrl,
-                label: img.label,
-                s3Key: img.s3Key,
-                metadata: img.metadata || { outfitName: img.outfitName, poseId: img.poseId }
-              }));
-            }
-            // Fallback to all images
-            return allImages.map((img): ImageItem => ({
-              id: img.id,
-              url: img.imageUrl,
-              label: img.label,
-              s3Key: img.s3Key,
-              metadata: (img as any).metadata
-            }));
-          })()}
-          allImages={allImages.map((img): ImageItem => ({
-            id: img.id,
-            url: img.imageUrl,
-            label: img.label,
-            s3Key: img.s3Key,
-            metadata: (img as any).metadata
-          }))}
-          currentIndex={previewImageIndex}
-          isOpen={previewImageIndex !== null}
-          onClose={() => {
-            setPreviewImageIndex(null);
-            setPreviewGroupName(null);
-          }}
-          onDownload={async (image) => {
-            try {
-              const poseName = image.metadata?.poseId || image.label || 'pose';
-              const outfitName = image.metadata?.outfitName || '';
-              const outfitPart = outfitName ? `_${outfitName.replace(/[^a-zA-Z0-9]/g, '-')}` : '';
-              const filename = `${character.name}_${poseName.replace(/[^a-zA-Z0-9]/g, '-')}${outfitPart}_${Date.now()}.jpg`;
-              await downloadImageAsBlob(image.url, filename, image.s3Key);
-            } catch (error: any) {
-              toast.error('Failed to download image');
-            }
-          }}
-          groupName={previewGroupName || undefined}
-        />
-      )}
+      {/* Lightbox Viewer (replaces ImageViewer) */}
+      {previewImageIndex !== null && (() => {
+        // Get images for the current group (outfit) or all images
+        const currentGroupImages = previewGroupName && posesByOutfit[previewGroupName]
+          ? posesByOutfit[previewGroupName]
+          : allImages;
+        
+        // Convert to Lightbox slides format
+        const slides = currentGroupImages.map((img) => ({
+          src: img.imageUrl,
+          alt: img.label,
+          title: img.label,
+          // Store metadata for download
+          description: previewGroupName ? `${previewGroupName} • ${img.label}` : img.label
+        }));
+        
+        return (
+          <Lightbox
+            open={previewImageIndex !== null}
+            close={() => {
+              setPreviewImageIndex(null);
+              setPreviewGroupName(null);
+            }}
+            index={previewImageIndex}
+            slides={slides}
+            plugins={[Zoom]}
+            zoom={{
+              maxZoomPixelRatio: 3,
+              zoomInMultiplier: 2,
+              doubleTapDelay: 300,
+              doubleClickDelay: 300,
+              doubleClickMaxStops: 2,
+              keyboardMoveDistance: 50,
+              wheelZoomDistanceFactor: 100,
+              pinchZoomDistanceFactor: 100,
+              scrollToZoom: true,
+            }}
+            render={{
+              buttonPrev: () => null,
+              buttonNext: () => null,
+            }}
+            on={{
+              // Handle download - right-click or add custom button
+              view: ({ index }) => {
+                const img = currentGroupImages[index];
+                if (img) {
+                  const poseName = img.poseId || (img as any).metadata?.poseId || img.label || 'pose';
+                  const outfitName = img.outfitName || (img as any).metadata?.outfitName || '';
+                  const outfitPart = outfitName ? `_${outfitName.replace(/[^a-zA-Z0-9]/g, '-')}` : '';
+                  const filename = `${character.name}_${poseName.replace(/[^a-zA-Z0-9]/g, '-')}${outfitPart}_${Date.now()}.jpg`;
+                  downloadImageAsBlob(img.imageUrl, filename, img.s3Key).catch(() => {
+                    toast.error('Failed to download image');
+                  });
+                }
+              }
+            }}
+            styles={{
+              container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
+            }}
+          />
+        );
+      })()}
 
       {/* Phase 2: Bulk Delete Confirmation Dialog */}
       {showBulkDeleteConfirm && (
