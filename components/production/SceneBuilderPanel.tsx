@@ -62,6 +62,7 @@ import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
 import { UnifiedSceneConfiguration } from './UnifiedSceneConfiguration';
+import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
 
@@ -563,17 +564,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       // Also include characters selected via pronoun detection
       const pronounSelectedCharacterIds = Object.values(selectedCharactersForShots).flat();
       
-      // Extract unique character IDs (filter out '__ignore__' which is not a real character ID)
-      const characterIds = [...new Set([
-        ...allShotsNeedingHeadshots.map((shot: any) => shot.characterId).filter(Boolean),
+      // Extract unique character IDs (filter out invalid IDs like '__ignore__')
+      const characterIds = filterValidCharacterIds([
+        ...allShotsNeedingHeadshots.map((shot: any) => shot.characterId),
         ...pronounSelectedCharacterIds
-      ])].filter(id => id !== '__ignore__'); // Skip '__ignore__' - it's not a character ID
+      ]);
+      const uniqueCharacterIds = [...new Set(characterIds)];
       
-      if (characterIds.length === 0) return;
+      if (uniqueCharacterIds.length === 0) return;
       
-      for (const characterId of characterIds) {
-        // Double-check: skip '__ignore__' and invalid IDs
-        if (characterId === '__ignore__' || !characterId || characterHeadshots[characterId] || loadingHeadshots[characterId]) continue;
+      for (const characterId of uniqueCharacterIds) {
+        // Skip if already loaded or loading
+        if (!isValidCharacterId(characterId) || characterHeadshots[characterId] || loadingHeadshots[characterId]) continue;
         
         setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
         

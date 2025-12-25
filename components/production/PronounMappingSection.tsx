@@ -3,6 +3,7 @@
 import React from 'react';
 import { AlertTriangle, Check } from 'lucide-react';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
+import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 
 interface Character {
   id: string;
@@ -95,15 +96,15 @@ export function PronounMappingSection({
   const pluralPronounsList = pronouns.filter(p => pluralPronouns.includes(p.toLowerCase()));
   
   // Get all mapped character IDs (flattening arrays for plural pronouns)
-  // Exclude '__ignore__' which is not a real character ID
+  // Exclude invalid IDs like '__ignore__'
   const getAllMappedCharacterIds = (): string[] => {
     const allIds = new Set<string>();
     Object.values(pronounMappings).forEach(value => {
       if (Array.isArray(value)) {
         value.forEach(id => {
-          if (id !== '__ignore__') allIds.add(id);
+          if (isValidCharacterId(id)) allIds.add(id);
         });
-      } else if (value && value !== '__ignore__') {
+      } else if (isValidCharacterId(value)) {
         allIds.add(value);
       }
     });
