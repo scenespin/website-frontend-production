@@ -190,7 +190,11 @@ export function UploadCoverageTab({
           }
 
           const result = await registerResponse.json();
-          uploadedS3Keys.push(result.reference.s3Key);
+          // Backend wraps response in { success: true, data: { reference: {...} } }
+          if (!result.data || !result.data.reference) {
+            throw new Error('Invalid response format from server');
+          }
+          uploadedS3Keys.push(result.data.reference.s3Key);
 
           // Update progress to 100%
           setUploadingImages(prev => prev.map(img => 
@@ -266,7 +270,11 @@ export function UploadCoverageTab({
           }
 
           const result = await response.json();
-          uploadedS3Keys.push(result.reference.s3Key);
+          // Backend wraps response in { success: true, data: { reference: {...} } }
+          if (!result.data || !result.data.reference) {
+            throw new Error('Invalid response format from server');
+          }
+          uploadedS3Keys.push(result.data.reference.s3Key);
 
         } catch (error: any) {
           console.error(`Failed to add ${file.fileName}:`, error);
