@@ -1546,18 +1546,31 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         if (detectedPronouns.length === 0) continue;
         
-        // NOTE: We allow users to leave pronouns unmapped - backend will use original text
-        // This is intentional for edge cases where pronouns refer to non-characters
-        // Users can choose to map some, all, or no pronouns
-        // - Mapped pronouns → replaced with character names (for reference image alignment)
-        // - Unmapped/ignored pronouns → stay as original pronouns in prompt
-        // Less pronouns mapped = less character consistency, but acceptable for edge cases
-        // No validation needed - backend handles unmapped pronouns gracefully
+        // Require all pronouns to be mapped OR explicitly skipped
+        // Users must select a character OR "Skip mapping" for each pronoun
+        const shotMappings = pronounMappingsForShots[shot.slot] || {};
+        const unmappedPronouns = detectedPronouns.filter(p => {
+          const mapping = shotMappings[p.toLowerCase()];
+          // Allow "__ignore__" (skip mapping) as a valid mapping
+          if (mapping === '__ignore__') return false;
+          // Empty mapping or empty array means not mapped - require action
+          return !mapping || (Array.isArray(mapping) && mapping.length === 0);
+        });
+        
+        // Require all pronouns to be addressed (mapped to character or skipped)
+        if (unmappedPronouns.length > 0) {
+          validationErrors.push(
+            `Shot ${shot.slot}: ${unmappedPronouns.length === 1 
+              ? `Pronoun "${unmappedPronouns[0]}" must be mapped to a character or skipped`
+              : `Pronouns "${unmappedPronouns.join('", "')}" must be mapped to characters or skipped`
+            }`
+          );
+        }
       }
       
       if (validationErrors.length > 0) {
-        toast.error('Please map all pronouns to characters', {
-          description: validationErrors.join('. ') + '. Use the dropdown menus to map each pronoun to a character.',
+        toast.error('Please map all pronouns', {
+          description: validationErrors.join('. ') + '. Select a character or choose "Skip mapping" for each pronoun.',
           duration: 8000
         });
         return;

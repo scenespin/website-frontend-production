@@ -127,6 +127,10 @@ export function PronounMappingSection({
 
   const allMapped = pronouns.every(p => {
     const mapping = pronounMappings[p.toLowerCase()];
+    // Consider a pronoun mapped if:
+    // 1. It's mapped to a character (string or array with length > 0)
+    // 2. It's explicitly skipped (__ignore__)
+    if (mapping === '__ignore__') return true;
     return mapping && (Array.isArray(mapping) ? mapping.length > 0 : true);
   });
   
@@ -367,7 +371,7 @@ export function PronounMappingSection({
                       <div className="text-[10px] text-[#808080] flex items-center justify-between">
                         <span>
                           {isIgnored ? (
-                            <>✓ Skipped mapping - pronoun will remain in prompt</>
+                            <>This pronoun will be handled automatically by the AI.</>
                           ) : mappedCharacterIds.length > 0 ? (
                             <>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</>
                           ) : (
