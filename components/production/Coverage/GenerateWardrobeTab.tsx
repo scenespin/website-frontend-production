@@ -6,9 +6,9 @@
  * Converted from PoseGenerationModal - reorganized steps:
  * Step 1: Create/Select Outfit (REQUIRED)
  * Step 2: Quality/Model Selection
- * Step 3: Style Template + Custom Prompt (Optional)
- * Step 4: Pose Package Selection
- * Step 5: Clothing Images (Virtual Try-On)
+ * Step 3: Clothing Images (Virtual Try-On)
+ * Step 4: Style Template + Custom Prompt (Optional)
+ * Step 5: Pose Package Selection
  * 
  * Removed: Input step (headshot, screenplay, description - all backend-handled)
  */
@@ -60,15 +60,15 @@ export function GenerateWardrobeTab({
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean; supportsClothingImages?: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
-  // Step 3: Style Template + Custom Prompt
+  // Step 3: Clothing Images (Virtual Try-On)
+  const [clothingImages, setClothingImages] = useState<Array<{ file: File; preview: string; s3Key?: string; presignedUrl?: string }>>([]);
+
+  // Step 4: Style Template + Custom Prompt
   const [selectedStyleTemplate, setSelectedStyleTemplate] = useState<string>('');
   const [customPrompt, setCustomPrompt] = useState<string>('');
-  
-  // Step 4: Pose Package
+
+  // Step 5: Pose Package
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
-  
-  // Step 5: Clothing Images (Virtual Try-On)
-  const [clothingImages, setClothingImages] = useState<Array<{ file: File; preview: string; s3Key?: string; presignedUrl?: string }>>([]);
   const [isUploadingClothing, setIsUploadingClothing] = useState(false);
   const clothingFileInputRef = useRef<HTMLInputElement>(null);
   
@@ -115,7 +115,12 @@ export function GenerateWardrobeTab({
     return models.find(m => m.id === providerId);
   }, [models, providerId]);
   
-  const supportsClothing = selectedModel?.supportsClothingImages ?? false;
+  // Calculate supportsClothing - ensure it updates when model changes
+  // Also check providerId directly to ensure reactivity
+  const supportsClothing = useMemo(() => {
+    if (!providerId || !selectedModel) return false;
+    return selectedModel.supportsClothingImages === true;
+  }, [selectedModel, providerId]);
 
   // Load models when quality changes
   useEffect(() => {
@@ -141,12 +146,14 @@ export function GenerateWardrobeTab({
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: any) => m.enabled);
-        setModels(enabledModels);
         
-        // Auto-select first model
+        // Auto-select first model BEFORE setting models state
+        // This ensures selectedModel memo recalculates correctly
         if (enabledModels.length > 0 && !providerId) {
           setProviderId(enabledModels[0].id);
         }
+        
+        setModels(enabledModels);
       } catch (error: any) {
         console.error('[GenerateWardrobeTab] Failed to load models:', error);
         toast.error('Failed to load available models');
@@ -479,56 +486,11 @@ export function GenerateWardrobeTab({
         </div>
       </div>
 
-      {/* Step 3: Style Template + Custom Prompt */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 3: Style Template & Custom Prompt (Optional)</h3>
-        
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs text-[#808080] mb-1.5">Style Template</label>
-            <select
-              value={selectedStyleTemplate}
-              onChange={(e) => setSelectedStyleTemplate(e.target.value)}
-              className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
-            >
-              <option value="none">None - Custom Prompt Only</option>
-              {DEFAULT_OUTFIT_STYLES.map(style => (
-                <option key={style.value} value={style.value}>{style.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs text-[#808080] mb-1.5">
-              Custom Prompt (Optional)
-            </label>
-            <textarea
-              value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder="Add specific styling details, color codes (#FF0000)..."
-              className="w-full h-20 bg-[#0A0A0A] border border-[#3F3F46] rounded p-2 text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Step 4: Pose Package Selection */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 4: Pose Package Selection</h3>
-        <PosePackageSelector
-          characterName={characterName}
-          selectedPackageId={selectedPackageId}
-          onSelectPackage={setSelectedPackageId}
-          creditsPerImage={selectedModel?.credits}
-          compact={true}
-        />
-      </div>
-
-      {/* Step 5: Clothing Images (Virtual Try-On) */}
+      {/* Step 3: Clothing Images (Virtual Try-On) */}
       {supportsClothing && selectedModel && (
         <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
           <h3 className="text-sm font-semibold text-white mb-3">
-            Step 5: Clothing Images (Virtual Try-On)
+            Step 3: Clothing Images (Virtual Try-On)
             <span className="ml-2 text-xs font-normal text-[#808080]">
               ({clothingImages.length}/{Math.min((selectedModel?.referenceLimit || 3) - 1, 3)})
             </span>
@@ -575,6 +537,51 @@ export function GenerateWardrobeTab({
           </div>
         </div>
       )}
+
+      {/* Step 4: Style Template + Custom Prompt */}
+      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Step 4: Style Template & Custom Prompt (Optional)</h3>
+        
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-[#808080] mb-1.5">Style Template</label>
+            <select
+              value={selectedStyleTemplate}
+              onChange={(e) => setSelectedStyleTemplate(e.target.value)}
+              className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+            >
+              <option value="none">None - Custom Prompt Only</option>
+              {DEFAULT_OUTFIT_STYLES.map(style => (
+                <option key={style.value} value={style.value}>{style.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-[#808080] mb-1.5">
+              Custom Prompt (Optional)
+            </label>
+            <textarea
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              placeholder="Add specific styling details, color codes (#FF0000)..."
+              className="w-full h-20 bg-[#0A0A0A] border border-[#3F3F46] rounded p-2 text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Step 5: Pose Package Selection */}
+      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Step 5: Pose Package Selection</h3>
+        <PosePackageSelector
+          characterName={characterName}
+          selectedPackageId={selectedPackageId}
+          onSelectPackage={setSelectedPackageId}
+          creditsPerImage={selectedModel?.credits}
+          compact={true}
+        />
+      </div>
 
       {/* Generate Button */}
       <div className="flex justify-end gap-2">
