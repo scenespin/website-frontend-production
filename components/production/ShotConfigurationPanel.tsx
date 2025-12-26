@@ -105,8 +105,19 @@ export function ShotConfigurationPanel({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
           <div>
             <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow</div>
+            <select
+              value={currentWorkflow}
+              onChange={(e) => {
+                onDialogueWorkflowChange(shot.slot, e.target.value);
+              }}
+              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+            >
+              <option value="first-frame-lipsync">Dialogue (Lip Sync)</option>
+              <option value="off-frame-voiceover">Off-Frame VoiceOver</option>
+              <option value="scene-voiceover">Scene VoiceOver</option>
+            </select>
             {detectedWorkflowType && !selectedDialogueWorkflow && (
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mt-2">
                 <span className="text-[10px] text-[#808080]">Auto-detected:</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                   workflowConfidence === 'high' ? 'bg-green-500/20 text-green-400' :
@@ -122,25 +133,12 @@ export function ShotConfigurationPanel({
                 )}
               </div>
             )}
-          </div>
-          <div className="border-l border-[#3F3F46] pl-4">
-            <select
-              value={currentWorkflow}
-              onChange={(e) => {
-                onDialogueWorkflowChange(shot.slot, e.target.value);
-              }}
-              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-            >
-              <option value="first-frame-lipsync">Dialogue (Lip Sync)</option>
-              <option value="off-frame-voiceover">Off-Frame VoiceOver</option>
-              <option value="scene-voiceover">Scene VoiceOver</option>
-            </select>
             {selectedDialogueWorkflow && selectedDialogueWorkflow !== detectedWorkflowType && (
               <div className="text-[10px] text-[#808080] italic mt-1">
                 Override: Using selected workflow instead of auto-detected
               </div>
             )}
-            {/* Prompt box for off-frame-voiceover and scene-voiceover overrides */}
+            {/* Prompt box for off-frame-voiceover and scene-voiceover */}
             {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
               <div className="mt-3">
                 <label className="block text-[10px] text-[#808080] mb-1.5">
@@ -164,6 +162,9 @@ export function ShotConfigurationPanel({
                 </div>
               </div>
             )}
+          </div>
+          <div className="border-l border-[#3F3F46] pl-4">
+            {/* Right side content can be added here if needed */}
           </div>
         </div>
       )}

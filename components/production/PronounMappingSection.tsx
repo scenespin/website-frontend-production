@@ -246,25 +246,33 @@ export function PronounMappingSection({
                       <div className="text-[10px] text-[#808080] italic mb-2">
                         This pronoun will be handled automatically by the AI.
                       </div>
-                      {onPronounExtrasPromptChange && (
-                        <div className="mt-2">
-                          <label className="block text-[10px] text-[#808080] mb-1.5">
-                            Describe what "{pronoun}" refers to (extras/background):
-                          </label>
-                          <textarea
-                            value={pronounExtrasPrompts[pronoun] || ''}
-                            onChange={(e) => {
-                              onPronounExtrasPromptChange(pronoun, e.target.value);
-                            }}
-                            placeholder='e.g., "the couple standing in line behind them", "the people walking by", "the squirrels in the tree"'
-                            rows={2}
-                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-                          />
-                          <div className="text-[10px] text-[#808080] italic mt-1">
-                            This description will be used in image and video generation prompts.
+                      {onPronounExtrasPromptChange && (() => {
+                        // Determine if this is a plural pronoun
+                        const pluralPronouns = ['they', 'them', 'their', 'theirs'];
+                        const isPlural = pluralPronouns.includes(pronoun.toLowerCase());
+                        const placeholder = isPlural
+                          ? 'e.g., "the couple standing in line behind them", "the people walking by", "the squirrels in the tree"'
+                          : 'e.g., "the person standing in the corner", "the woman at the counter", "the man walking past"';
+                        return (
+                          <div className="mt-2">
+                            <label className="block text-[10px] text-[#808080] mb-1.5">
+                              Describe what "{pronoun}" refers to (extras/background):
+                            </label>
+                            <textarea
+                              value={pronounExtrasPrompts[pronoun] || ''}
+                              onChange={(e) => {
+                                onPronounExtrasPromptChange(pronoun, e.target.value);
+                              }}
+                              placeholder={placeholder}
+                              rows={2}
+                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                            />
+                            <div className="text-[10px] text-[#808080] italic mt-1">
+                              This description will be used in image and video generation prompts.
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   )}
                   
