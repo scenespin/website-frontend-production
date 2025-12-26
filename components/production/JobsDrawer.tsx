@@ -152,14 +152,22 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
   const { getToken } = useAuth();
   const [imageUrl, setImageUrl] = useState<string | null>(fallbackUrl || null);
   const [isLoading, setIsLoading] = useState(!fallbackUrl);
-  const [useFallback, setUseFallback] = useState(!!fallbackUrl);
 
   useEffect(() => {
+    if (!s3Key) {
+      setIsLoading(false);
+      return;
+    }
+
     async function fetchPresignedUrl() {
       try {
         const token = await getToken({ template: 'wryda-backend' });
         if (!token) {
           setIsLoading(false);
+          // Use fallback if available and no token
+          if (fallbackUrl && !imageUrl) {
+            setImageUrl(fallbackUrl);
+          }
           return;
         }
 
@@ -180,29 +188,32 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
         }
 
         const data = await response.json();
-        setImageUrl(data.downloadUrl);
-        setIsLoading(false);
+        if (data.downloadUrl) {
+          setImageUrl(data.downloadUrl);
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error('[JobsDrawer] Failed to get presigned URL:', error);
         setIsLoading(false);
-        if (fallbackUrl) {
-          setUseFallback(true);
+        // Use fallback if available and we failed to get presigned URL
+        if (fallbackUrl && !imageUrl) {
+          setImageUrl(fallbackUrl);
         }
       }
     }
 
-    if (!useFallback) {
+    // Always fetch fresh presigned URL on mount
+    fetchPresignedUrl();
+    
+    // Refresh presigned URL every 45 minutes (before 1 hour expiration)
+    // This ensures images stay active for the entire session
+    const refreshInterval = setInterval(() => {
       fetchPresignedUrl();
-      
-      // Refresh presigned URL every 50 minutes (before 1 hour expiration)
-      const refreshInterval = setInterval(() => {
-        fetchPresignedUrl();
-        console.log('[JobsDrawer] Refreshing presigned URL for', s3Key);
-      }, 50 * 60 * 1000); // 50 minutes
+      console.log('[JobsDrawer] Refreshing presigned URL for', s3Key);
+    }, 45 * 60 * 1000); // 45 minutes - refresh before expiration
 
-      return () => clearInterval(refreshInterval);
-    }
-  }, [s3Key, fallbackUrl, useFallback, getToken]);
+    return () => clearInterval(refreshInterval);
+  }, [s3Key, fallbackUrl, getToken, imageUrl]);
 
   if (isLoading) {
     return (
@@ -645,27 +656,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
   return (
     <>
-      {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style */}
-      {jobCount > 0 && !isOpen && (
+      {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
+      {!isOpen && (jobCount > 0 || visibleJobs.length > 0) && (
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            onOpen();
-          }}
-          className="fixed top-24 right-0 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex border-none px-4 py-3 transition-all duration-300 relative"
+          onClick={() => onOpen()}
+          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300 relative"
           style={{ 
             writingMode: 'vertical-rl', 
             textOrientation: 'mixed',
-            animation: 'pulse-subtle 3s ease-in-out infinite',
-            zIndex: Z_INDEX.POPOVER, // High enough to be visible above most elements
+            animation: 'pulse-subtle 3s ease-in-out infinite'
           }}
-          title={`${jobCount} job${jobCount !== 1 ? 's' : ''} running`}
+          title={`${jobCount || visibleJobs.length} job${(jobCount || visibleJobs.length) !== 1 ? 's' : ''} running`}
         >
           JOBS
-          {jobCount > 0 && (
+          {(jobCount > 0 || visibleJobs.length > 0) && (
             <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-blue-600 min-w-[18px] text-center">
-              {jobCount > 99 ? '99+' : jobCount}
+              {(jobCount || visibleJobs.length) > 99 ? '99+' : (jobCount || visibleJobs.length)}
             </span>
           )}
         </button>
