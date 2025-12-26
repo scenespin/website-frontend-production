@@ -1,10 +1,13 @@
 'use client';
 
 /**
- * Storage Hub - Media Library & Style Analyzer
+ * Archive Hub - Media Library & Style Analyzer
+ * 
+ * NOTE: Displayed to users as "Archive" for film industry terminology.
+ * Backend/API still uses "Storage" or "media-library" - component name kept for compatibility.
  * 
  * Contains:
- * - Media Library (upload management)
+ * - Archive (upload management - displayed as "Archive", backend uses "Storage")
  * - Style Analyzer (match existing footage)
  */
 

@@ -1611,8 +1611,9 @@ export default function MediaLibrary({
       <div className="p-4 md:p-5 border-b border-[#3F3F46] flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg md:text-xl font-bold text-[#FFFFFF]">
-            Media Library
+            Archive
           </h2>
+          {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" terminology */}
 
           {/* Storage Quota */}
           {storageQuota && (

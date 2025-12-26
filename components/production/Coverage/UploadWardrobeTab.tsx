@@ -5,7 +5,7 @@
  * 
  * Features:
  * - Create new outfit OR select existing outfit
- * - Upload new images OR browse Media Library
+ * - Upload new images OR browse Archive (displayed as "Archive", backend uses "Storage")
  * - Pose guidance system
  * - Drag & drop upload
  * - Progress tracking
@@ -283,13 +283,13 @@ export function UploadWardrobeTab({
       }
 
       if (uploadedS3Keys.length > 0) {
-        toast.success(`Added ${uploadedS3Keys.length} image(s) from Media Library to ${outfitNameToUse}`);
+        toast.success(`Added ${uploadedS3Keys.length} image(s) from Archive to ${outfitNameToUse}`);
         onComplete({ outfitName: outfitNameToUse, images: uploadedS3Keys });
       }
 
     } catch (error: any) {
-      console.error('Failed to add images from Media Library:', error);
-      toast.error(error.message || 'Failed to add images from Media Library');
+      console.error('Failed to add images from Archive:', error);
+      toast.error(error.message || 'Failed to add images from Archive');
     } finally {
       setIsProcessing(false);
     }
@@ -402,7 +402,7 @@ export function UploadWardrobeTab({
             className="flex-1 px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-white border border-[#3F3F46] rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <FolderOpen className="w-4 h-4" />
-            Browse Storage
+            Browse Archive
           </button>
         </div>
 
@@ -431,7 +431,8 @@ export function UploadWardrobeTab({
           </div>
         )}
 
-        {/* Media Library Browser (shown when Browse Storage is clicked) */}
+        {/* Archive Browser (shown when Browse Archive is clicked) */}
+        {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" */}
         {showMediaLibrary && (
           <div className="mt-3">
             <MediaLibraryBrowser

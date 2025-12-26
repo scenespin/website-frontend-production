@@ -1,10 +1,13 @@
 'use client';
 
 /**
- * MediaLibraryBrowser - Browse and select images from Media Library
+ * MediaLibraryBrowser - Browse and select images from Archive
+ * 
+ * NOTE: Displayed to users as "Archive" for film industry terminology.
+ * Backend/API still uses "Storage" or "media-library" - component name kept for compatibility.
  * 
  * Features:
- * - Browse Media Library folders
+ * - Browse Archive folders (displayed as "Archive", backend uses "Storage")
  * - Multi-select images
  * - Filter by image type
  * - Show selected count
@@ -138,7 +141,8 @@ export function MediaLibraryBrowser({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">Select Images from Storage</h3>
+          <h3 className="text-sm font-semibold text-white">Select Images from Archive</h3>
+          {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" */}
           <p className="text-xs text-[#808080]">
             {selectedImages.size} of {maxSelections} selected
           </p>
@@ -162,7 +166,7 @@ export function MediaLibraryBrowser({
         </div>
       </div>
 
-      {/* Media Library Grid */}
+      {/* Archive Grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
@@ -170,9 +174,9 @@ export function MediaLibraryBrowser({
       ) : imageFiles.length === 0 ? (
         <div className="text-center py-12">
           <FolderOpen className="w-12 h-12 text-[#808080] mx-auto mb-4" />
-          <p className="text-[#808080] mb-2">No images in Storage</p>
+          <p className="text-[#808080] mb-2">No images in Archive</p>
           <p className="text-xs text-[#6B7280]">
-            Upload images to Storage first, or use the Upload button
+            Upload images to Archive first, or use the Upload button
           </p>
         </div>
       ) : (

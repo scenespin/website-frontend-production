@@ -6,9 +6,11 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { QueryClientProvider } from '@/providers/QueryClientProvider';
 import { ProductionErrorBoundary } from '@/components/production/ProductionErrorBoundary';
 
+// NOTE: Component name "StorageHub" kept for backend compatibility
+// Displayed to users as "Archive" - see StorageHub component
 function StorageHubWrapper() {
   return (
-    <ProductionErrorBoundary componentName="Storage Hub">
+    <ProductionErrorBoundary componentName="Archive">
       <StorageHub />
     </ProductionErrorBoundary>
   );
@@ -27,7 +29,7 @@ export default function StoragePageClient() {
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading Storage...</p>
+          <p className="text-gray-400">Loading Archive...</p>
         </div>
       </div>
     );
@@ -39,7 +41,7 @@ export default function StoragePageClient() {
         <div className="min-h-screen bg-gray-950 flex items-center justify-center">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading Storage...</p>
+            <p className="text-gray-400">Loading Archive...</p>
           </div>
         </div>
       }>
