@@ -206,9 +206,17 @@ export function ShotConfigurationPanel({
       {explicitCharacters.length > 0 && (
         <div className="pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
+          {/* Show message for scene-voiceover and off-frame-voiceover */}
+          {(currentWorkflow === 'scene-voiceover' || currentWorkflow === 'off-frame-voiceover') && (
+            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+              {currentWorkflow === 'scene-voiceover' 
+                ? 'Character will not be visible (narrator voice only). Character images are disabled for this workflow.'
+                : 'Character will not be visible (speaking off-screen). Character images are disabled for this workflow.'}
+            </div>
+          )}
           <div className="space-y-4">
             {explicitCharacters.map((charId) => (
-              <div key={charId} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div key={charId} className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${(currentWorkflow === 'scene-voiceover' || currentWorkflow === 'off-frame-voiceover') ? 'opacity-40 pointer-events-none' : ''}`}>
                 <div>
                   {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
                 </div>
@@ -272,7 +280,7 @@ export function ShotConfigurationPanel({
                         </div>
                         {/* Images - only show if character is mapped */}
                         {char && (
-                          <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                          <div className={`lg:border-l lg:border-[#3F3F46] lg:pl-4 ${(currentWorkflow === 'scene-voiceover' || currentWorkflow === 'off-frame-voiceover') ? 'opacity-40 pointer-events-none' : ''}`}>
                             {renderCharacterImagesOnly(char.id, shot.slot, [`"${pronoun}"`])}
                           </div>
                         )}
