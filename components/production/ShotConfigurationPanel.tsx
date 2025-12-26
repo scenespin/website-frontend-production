@@ -349,13 +349,13 @@ export function ShotConfigurationPanel({
                 }}
                 className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
               >
-                <option value={globalResolution}>Using default: {globalResolution}</option>
-                <option value="1080p">1080p</option>
+                <option value={globalResolution}>Using default: {globalResolution === '1080p' ? 'HD' : globalResolution}</option>
+                <option value="1080p">HD</option>
                 <option value="4k">4K</option>
               </select>
               {shotResolution && shotResolution !== globalResolution && (
                 <div className="text-[10px] text-[#808080] italic mt-1">
-                  Override: Using {shotResolution} instead of default ({globalResolution})
+                  Override: Using {shotResolution === '1080p' ? 'HD' : shotResolution} instead of default ({globalResolution === '1080p' ? 'HD' : globalResolution})
                 </div>
               )}
             </div>
