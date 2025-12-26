@@ -46,7 +46,8 @@ interface ShotConfigurationPanelProps {
   // Dialogue workflow selection (per-shot)
   selectedDialogueWorkflow?: string; // Selected workflow for this shot (overrides auto-detection)
   onDialogueWorkflowChange?: (shotSlot: number, workflowType: string) => void;
-  // Dialogue workflow override prompts (for off-frame-voiceover and scene-voiceover)
+  // Dialogue workflow override prompts (for Hidden Mouth Dialogue and Narrate Shot)
+  // Note: Backend identifiers are 'off-frame-voiceover' and 'scene-voiceover'
   dialogueWorkflowPrompt?: string; // User-provided description of alternate action
   onDialogueWorkflowPromptChange?: (shotSlot: number, prompt: string) => void;
   // Pronoun extras prompts (for skipped pronouns)
@@ -115,9 +116,12 @@ export function ShotConfigurationPanel({
               }}
               className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
             >
+              {/* Note: Display labels differ from backend identifiers for better UX
+                  Backend identifiers: 'off-frame-voiceover', 'scene-voiceover'
+                  Display labels: 'Hidden Mouth Dialogue', 'Narrate Shot' */}
               <option value="first-frame-lipsync">Dialogue (Lip Sync)</option>
-              <option value="off-frame-voiceover">Off-Frame VoiceOver</option>
-              <option value="scene-voiceover">Scene VoiceOver</option>
+              <option value="off-frame-voiceover">Hidden Mouth Dialogue</option>
+              <option value="scene-voiceover">Narrate Shot</option>
             </select>
             {detectedWorkflowType && !selectedDialogueWorkflow && (
               <div className="flex items-center gap-2 mt-2">
@@ -141,7 +145,8 @@ export function ShotConfigurationPanel({
                 Override: Using selected workflow instead of auto-detected
               </div>
             )}
-            {/* Prompt box for off-frame-voiceover and scene-voiceover */}
+            {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover)
+                Note: Using backend identifiers 'off-frame-voiceover' and 'scene-voiceover' for logic */}
             {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
               <div className="mt-3">
                 <label className="block text-[10px] text-[#808080] mb-1.5">
@@ -166,7 +171,8 @@ export function ShotConfigurationPanel({
               </div>
             )}
             
-            {/* Additional Characters Section for scene-voiceover - placed below prompt box */}
+            {/* Additional Characters Section for Narrate Shot (scene-voiceover) - placed below prompt box
+                Note: Using backend identifier 'scene-voiceover' for logic */}
             {currentWorkflow === 'scene-voiceover' && shot.type === 'dialogue' && onCharactersForShotChange && (
               <div className="mt-4">
                 <div className="mb-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
@@ -264,12 +270,13 @@ export function ShotConfigurationPanel({
       {explicitCharacters.length > 0 && (
         <div className="pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
-          {/* Show message for scene-voiceover */}
+          {/* Show message for Narrate Shot (scene-voiceover) */}
           {currentWorkflow === 'scene-voiceover' && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
               Narrator voice will overlay the scene. The narrator (speaking character) is greyed out below. To add the narrator to the scene, select them in the "Additional Characters" section below.
             </div>
           )}
+          {/* Show message for Hidden Mouth Dialogue (off-frame-voiceover) */}
           {currentWorkflow === 'off-frame-voiceover' && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
               Character will not be visible (speaking off-screen). Character images are still needed for voice generation.
@@ -277,7 +284,7 @@ export function ShotConfigurationPanel({
           )}
           <div className="space-y-4">
             {explicitCharacters.map((charId) => {
-              // Grey out narrator when scene-voiceover is selected (they're the narrator)
+              // Grey out narrator when Narrate Shot (scene-voiceover) is selected (they're the narrator)
               const isNarrator = currentWorkflow === 'scene-voiceover' && charId === speakingCharacterId;
               // Check if narrator is also manually selected (will show normally in that section)
               const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
@@ -304,7 +311,7 @@ export function ShotConfigurationPanel({
       {/* Pronoun Mapping Section */}
       {hasPronouns && (
         <div className="pt-3 border-t border-[#3F3F46]">
-          {/* Show message for scene-voiceover about adding characters */}
+          {/* Show message for Narrate Shot (scene-voiceover) about adding characters */}
           {currentWorkflow === 'scene-voiceover' && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
               Map pronouns to characters that will appear in the scene. The narrator can also appear in the scene if selected.
