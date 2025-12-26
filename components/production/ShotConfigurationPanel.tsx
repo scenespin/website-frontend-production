@@ -97,6 +97,9 @@ export function ShotConfigurationPanel({
   
   // Use selected workflow if available, otherwise use detected
   const currentWorkflow = selectedDialogueWorkflow || detectedWorkflowType || 'first-frame-lipsync';
+  
+  // For dialogue shots, get the speaking character ID
+  const speakingCharacterId = shot.type === 'dialogue' ? shot.characterId : undefined;
 
   return (
     <div className="mt-3 space-y-4">
@@ -152,7 +155,7 @@ export function ShotConfigurationPanel({
                   placeholder={
                     currentWorkflow === 'off-frame-voiceover'
                       ? 'e.g., Character speaking from off-screen, back turned, or side profile...'
-                      : 'e.g., Narrator voice describing the scene while characters are visible...'
+                      : 'e.g., Narrator voice describing the scene. The narrator can appear in the scene or just narrate over it...'
                   }
                   rows={3}
                   className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
@@ -206,25 +209,39 @@ export function ShotConfigurationPanel({
       {explicitCharacters.length > 0 && (
         <div className="pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
-          {/* Show message for scene-voiceover and off-frame-voiceover */}
-          {(currentWorkflow === 'scene-voiceover' || currentWorkflow === 'off-frame-voiceover') && (
+          {/* Show message for scene-voiceover */}
+          {currentWorkflow === 'scene-voiceover' && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-              {currentWorkflow === 'scene-voiceover' 
-                ? 'Character will not be visible (narrator voice only). Character images are disabled for this workflow.'
-                : 'Character will not be visible (speaking off-screen). Character images are disabled for this workflow.'}
+              Narrator voice will overlay the scene. The narrator (speaking character) is greyed out below. To add the narrator to the scene, select them in the "Additional Characters" section below.
+            </div>
+          )}
+          {currentWorkflow === 'off-frame-voiceover' && (
+            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+              Character will not be visible (speaking off-screen). Character images are still needed for voice generation.
             </div>
           )}
           <div className="space-y-4">
-            {explicitCharacters.map((charId) => (
-              <div key={charId} className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${(currentWorkflow === 'scene-voiceover' || currentWorkflow === 'off-frame-voiceover') ? 'opacity-40 pointer-events-none' : ''}`}>
-                <div>
-                  {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+            {explicitCharacters.map((charId) => {
+              // Grey out narrator when scene-voiceover is selected (they're the narrator)
+              const isNarrator = currentWorkflow === 'scene-voiceover' && charId === speakingCharacterId;
+              // Check if narrator is also manually selected (will show normally in that section)
+              const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
+              return (
+                <div key={charId} className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${isNarrator ? 'opacity-50' : ''}`}>
+                  <div>
+                    {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                    {isNarrator && (
+                      <div className="mt-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                        Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                    {renderCharacterImagesOnly(charId, shot.slot)}
+                  </div>
                 </div>
-                <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
-                  {renderCharacterImagesOnly(charId, shot.slot)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -232,6 +249,12 @@ export function ShotConfigurationPanel({
       {/* Pronoun Mapping Section */}
       {hasPronouns && (
         <div className="pt-3 border-t border-[#3F3F46]">
+          {/* Show message for scene-voiceover about adding characters */}
+          {currentWorkflow === 'scene-voiceover' && (
+            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+              Map pronouns to characters that will appear in the scene. The narrator can also appear in the scene if selected.
+            </div>
+          )}
           {/* Singular Pronouns Section */}
           {pronounInfo.pronouns.filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase())).length > 0 && (
             <div className="space-y-4 pb-3 border-b border-[#3F3F46]">
@@ -280,7 +303,7 @@ export function ShotConfigurationPanel({
                         </div>
                         {/* Images - only show if character is mapped */}
                         {char && (
-                          <div className={`lg:border-l lg:border-[#3F3F46] lg:pl-4 ${(currentWorkflow === 'scene-voiceover' || currentWorkflow === 'off-frame-voiceover') ? 'opacity-40 pointer-events-none' : ''}`}>
+                          <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
                             {renderCharacterImagesOnly(char.id, shot.slot, [`"${pronoun}"`])}
                           </div>
                         )}
@@ -347,6 +370,53 @@ export function ShotConfigurationPanel({
                     </div>
                   );
                 })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Characters Section for scene-voiceover when no pronouns */}
+      {!hasPronouns && currentWorkflow === 'scene-voiceover' && shot.type === 'dialogue' && onCharactersForShotChange && (
+        <div className="pt-3 border-t border-[#3F3F46]">
+          <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+            Add characters that will appear in the scene. The narrator can also appear in the scene if selected. Use the prompt box above to describe the scene.
+          </div>
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Additional Characters</div>
+          <select
+            multiple
+            value={selectedCharactersForShots[shot.slot] || []}
+            onChange={(e) => {
+              const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
+              onCharactersForShotChange(shot.slot, selectedIds);
+            }}
+            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+            size={Math.min((allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).length, 5)}
+          >
+            {(allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).map((char: any) => (
+              <option key={char.id} value={char.id}>
+                {char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}
+              </option>
+            ))}
+          </select>
+          <div className="text-[10px] text-[#808080] italic mt-1">
+            Hold Ctrl (Windows) or Cmd (Mac) to select multiple characters
+          </div>
+          {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
+            <div className="mt-4 space-y-4">
+              {selectedCharactersForShots[shot.slot].map((charId: string) => {
+                const char = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).find((c: any) => c.id === charId);
+                if (!char) return null;
+                return (
+                  <div key={charId} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div>
+                      {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                    </div>
+                    <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                      {renderCharacterImagesOnly(charId, shot.slot)}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
