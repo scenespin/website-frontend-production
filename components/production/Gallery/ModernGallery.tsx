@@ -485,16 +485,8 @@ export function ModernGallery({
                           : 'border-[#3F3F46] hover:border-[#DC143C]/50'
                       }`}
                       onClick={(e) => {
-                        // Open lightbox directly for grid-only, update featured for other layouts
-                        if (layout === 'grid-only') {
-                          setLightboxIndex(actualIndex);
-                          setSelectedIndex(actualIndex);
-                          if (onImageClick) {
-                            onImageClick(actualIndex);
-                          }
-                        } else {
-                          setFeaturedIndex(actualIndex);
-                        }
+                        // Update featured image for top layout
+                        setFeaturedIndex(actualIndex);
                       }}
                     >
                     <img
