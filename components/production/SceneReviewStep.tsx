@@ -29,6 +29,7 @@ interface SceneReviewStepProps {
   // Global settings
   globalStyle: ModelStyle;
   globalResolution: Resolution;
+  onGlobalResolutionChange: (resolution: Resolution) => void;
   // Per-shot overrides (no resolution - global only, set in review step)
   shotStyles?: Record<number, ModelStyle>;
   shotCameraAngles?: Record<number, CameraAngle>;
