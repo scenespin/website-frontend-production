@@ -979,13 +979,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                                 {img.s3Key ? (
                                   <ImageThumbnailFromS3Key 
                                     s3Key={img.s3Key} 
-                                    alt={img.name || `Image ${index + 1}`}
+                                    alt={img.label || `Image ${index + 1}`}
                                     fallbackUrl={img.imageUrl}
                                   />
                                 ) : img.imageUrl ? (
                                   <img
                                     src={img.imageUrl}
-                                    alt={img.name || `Image ${index + 1}`}
+                                    alt={img.label || `Image ${index + 1}`}
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
