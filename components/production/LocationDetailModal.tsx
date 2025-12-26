@@ -532,11 +532,7 @@ export function LocationDetailModal({
                           ? 'pose-generation' 
                           : 'user-upload'
                       }))}
-                      layout="top"
-                      aspectRatio={allImages[selectedImageIndex]?.metadata?.aspectRatio === '21:9' ? '21:9' : '16:9'}
-                      onImageClick={(index) => {
-                        setSelectedImageIndex(index);
-                      }}
+                      layout="grid-only"
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">

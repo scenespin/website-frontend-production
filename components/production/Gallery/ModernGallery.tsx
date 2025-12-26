@@ -41,7 +41,7 @@ interface ModernGalleryProps {
   availableOutfits?: string[];
   entityName?: string;
   onImageClick?: (index: number) => void;
-  layout?: 'left' | 'top'; // 'left' for character gallery, 'top' for location gallery
+  layout?: 'left' | 'top' | 'grid-only'; // 'left' for character gallery, 'top' for location gallery, 'grid-only' for thumbnail grid only
   aspectRatio?: '16:9' | '21:9'; // For top layout
 }
 
@@ -73,24 +73,28 @@ export function ModernGallery({
     return filteredImages[featuredIndex] || filteredImages[0];
   }, [filteredImages, featuredIndex]);
 
-  // Grid images (all except featured)
+  // Grid images (all except featured, or all if grid-only layout)
   const gridImages = useMemo(() => {
+    if (layout === 'grid-only') {
+      return filteredImages; // Show all images in grid
+    }
     if (filteredImages.length <= 1) return [];
     return filteredImages.filter((_, index) => index !== featuredIndex);
-  }, [filteredImages, featuredIndex]);
+  }, [filteredImages, featuredIndex, layout]);
 
   // Convert to react-photo-gallery format for grid
   const photos = useMemo(() => {
-    return gridImages.map((img, index) => ({
+    const imagesToUse = layout === 'grid-only' ? filteredImages : gridImages;
+    return imagesToUse.map((img, index) => ({
       src: img.thumbnailUrl || img.imageUrl,
       width: img.width || 4,
       height: img.height || 3,
       alt: img.label,
       key: img.id,
-      originalIndex: index + (featuredIndex === 0 ? 1 : 0), // Adjust index for grid
+      originalIndex: layout === 'grid-only' ? index : index + (featuredIndex === 0 ? 1 : 0), // Adjust index for grid
       actualIndex: filteredImages.findIndex(f => f.id === img.id) // Actual index in full array
     }));
-  }, [gridImages, filteredImages, featuredIndex]);
+  }, [gridImages, filteredImages, featuredIndex, layout]);
 
   // Open lightbox
   const openLightbox = useCallback((event: any, { index }: { index: number }) => {
@@ -113,13 +117,23 @@ export function ModernGallery({
     }
   }, [featuredIndex, onImageClick]);
 
-  // Handle grid image click (only updates featured, no lightbox)
+  // Handle grid image click (opens lightbox directly for grid-only, updates featured for other layouts)
   const handleGridImageClick = useCallback((event: any, { index }: { index: number }) => {
     const photo = photos[index];
     const actualIndex = photo?.actualIndex ?? index;
-    setFeaturedIndex(actualIndex);
-    // Don't open lightbox automatically - user can click featured image to open lightbox
-  }, [photos]);
+    
+    if (layout === 'grid-only') {
+      // Open lightbox directly for grid-only layout
+      setLightboxIndex(actualIndex);
+      setSelectedIndex(actualIndex);
+      if (onImageClick) {
+        onImageClick(actualIndex);
+      }
+    } else {
+      // Update featured image for other layouts
+      setFeaturedIndex(actualIndex);
+    }
+  }, [photos, layout, onImageClick]);
 
   // Close lightbox
   const closeLightbox = useCallback(() => {
@@ -300,6 +314,83 @@ export function ModernGallery({
     );
   }
 
+  // Grid-only layout - no featured image, just thumbnails
+  if (layout === 'grid-only') {
+    return (
+      <div className="w-full">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {filteredImages.map((img, index) => {
+              return (
+                <div
+                  key={img.id}
+                  className="relative group cursor-pointer aspect-square rounded-lg overflow-hidden border-2 border-[#3F3F46] hover:border-[#DC143C]/50 transition-all"
+                  onClick={() => {
+                    setLightboxIndex(index);
+                    setSelectedIndex(index);
+                    if (onImageClick) {
+                      onImageClick(index);
+                    }
+                  }}
+                >
+                  <img
+                    src={img.thumbnailUrl || img.imageUrl}
+                    alt={img.label}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                  
+                  {/* Badges */}
+                  <div className="absolute top-2 right-2 flex flex-col gap-1">
+                    {img.isBase && (
+                      <div className="px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
+                        Base
+                      </div>
+                    )}
+                    {img.source && (
+                      <div className={`px-1.5 py-0.5 text-white text-[10px] rounded ${
+                        img.source === 'pose-generation' 
+                          ? 'bg-[#8B5CF6]' 
+                          : 'bg-[#3F3F46]'
+                      }`}>
+                        {img.source === 'pose-generation' ? 'AI' : 'User'}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                    <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* Lightbox with Zoom */}
+        <Lightbox
+          open={lightboxIndex >= 0}
+          close={closeLightbox}
+          index={lightboxIndex}
+          slides={slides}
+          plugins={[Zoom]}
+          render={{
+            buttonPrev: () => null,
+            buttonNext: () => null,
+          }}
+          styles={{
+            container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
+          }}
+        />
+      </div>
+    );
+  }
+
   // Multiple images layout - featured + grid
   return (
     <div className="w-full">
@@ -394,8 +485,16 @@ export function ModernGallery({
                           : 'border-[#3F3F46] hover:border-[#DC143C]/50'
                       }`}
                       onClick={(e) => {
-                        // Set this image as the featured image
-                        setFeaturedIndex(actualIndex);
+                        // Open lightbox directly for grid-only, update featured for other layouts
+                        if (layout === 'grid-only') {
+                          setLightboxIndex(actualIndex);
+                          setSelectedIndex(actualIndex);
+                          if (onImageClick) {
+                            onImageClick(actualIndex);
+                          }
+                        } else {
+                          setFeaturedIndex(actualIndex);
+                        }
                       }}
                     >
                     <img

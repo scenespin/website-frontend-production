@@ -990,8 +990,7 @@ export function CharacterDetailModal({
                       onOutfitFilterChange={(outfit) => setSelectedOutfitGallery(outfit)}
                       availableOutfits={outfitNames}
                       entityName={character.name}
-                      layout="top"
-                      aspectRatio="16:9"
+                      layout="grid-only"
                     />
                   ) : galleryImages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
