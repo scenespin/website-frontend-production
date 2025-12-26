@@ -55,7 +55,7 @@ export function GenerateWardrobeTab({
   const [selectedExistingOutfit, setSelectedExistingOutfit] = useState<string>('');
   
   // Step 2: Quality/Model
-  const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard');
+  const [quality, setQuality] = useState<'standard' | 'high-quality'>('high-quality');
   const [providerId, setProviderId] = useState<string>('');
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean; supportsClothingImages?: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
