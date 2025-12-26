@@ -3078,6 +3078,32 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         [shotSlot]: workflowType
                       }));
                     }}
+                    dialogueWorkflowPrompts={dialogueWorkflowPrompts}
+                    onDialogueWorkflowPromptChange={(shotSlot, prompt) => {
+                      setDialogueWorkflowPrompts(prev => ({
+                        ...prev,
+                        [shotSlot]: prompt
+                      }));
+                    }}
+                    pronounExtrasPrompts={pronounExtrasPrompts}
+                    onPronounExtrasPromptChange={(shotSlot, pronoun, prompt) => {
+                      setPronounExtrasPrompts(prev => {
+                        const shotPrompts = prev[shotSlot] || {};
+                        const updated = { ...prev };
+                        updated[shotSlot] = {
+                          ...shotPrompts,
+                          [pronoun]: prompt
+                        };
+                        // Remove empty prompts
+                        if (!prompt || prompt.trim() === '') {
+                          delete updated[shotSlot][pronoun];
+                          if (Object.keys(updated[shotSlot]).length === 0) {
+                            delete updated[shotSlot];
+                          }
+                        }
+                        return updated;
+                      });
+                    }}
                     enabledShots={enabledShots}
                     onEnabledShotsChange={setEnabledShots}
                     onGenerate={handleGenerate}
