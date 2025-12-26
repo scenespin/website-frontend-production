@@ -3549,7 +3549,8 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
 
             {/* Legacy: Step 2: Unified Scene Configuration (fallback if not using wizard) */}
             {currentStep === 2 && wizardStep !== 'shot-config' && wizardStep !== 'review' && selectedSceneId && sceneAnalysisResult && (
-                  <UnifiedSceneConfiguration
+              <>
+                <UnifiedSceneConfiguration
                     sceneAnalysisResult={sceneAnalysisResult}
                     qualityTier={qualityTier}
                     onQualityTierChange={setQualityTier}
