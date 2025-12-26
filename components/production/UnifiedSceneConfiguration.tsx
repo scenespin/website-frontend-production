@@ -48,6 +48,9 @@ interface UnifiedSceneConfigurationProps {
   // Phase 2: Location angle selection
   selectedLocationReferences?: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>;
   onLocationAngleChange?: (shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
+  // Dialogue workflow selection (per-shot)
+  selectedDialogueWorkflows?: Record<number, string>; // Per-shot: shotSlot -> workflowType
+  onDialogueWorkflowChange?: (shotSlot: number, workflowType: string) => void;
   enabledShots: number[];
   onEnabledShotsChange: (enabledShots: number[]) => void;
   onGenerate: () => void;
@@ -73,6 +76,8 @@ export function UnifiedSceneConfiguration({
   pronounMappingsForShots = {},
   onPronounMappingChange,
   allCharacters = [],
+  selectedDialogueWorkflows = {},
+  onDialogueWorkflowChange,
   enabledShots,
   onEnabledShotsChange,
   onGenerate,
@@ -701,6 +706,8 @@ export function UnifiedSceneConfiguration({
                       characterOutfits={characterOutfits}
                       onCharacterReferenceChange={onCharacterReferenceChange}
                       onCharacterOutfitChange={onCharacterOutfitChange}
+                      selectedDialogueWorkflow={selectedDialogueWorkflows[shot.slot]}
+                      onDialogueWorkflowChange={onDialogueWorkflowChange}
                     />
                       );
                     })()}

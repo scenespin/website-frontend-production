@@ -146,6 +146,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Structure: shotSlot -> characterId -> outfitName
   const [characterOutfits, setCharacterOutfits] = useState<Record<number, Record<string, string>>>({});
   
+  // Per-shot dialogue workflow selection (overrides auto-detection)
+  const [selectedDialogueWorkflows, setSelectedDialogueWorkflows] = useState<Record<number, string>>({});
+  
   // Feature 0163 Phase 1: Character headshot selection state (per-shot for dialogue shots)
   const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>>({});
   
@@ -2121,6 +2124,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         selectedCharactersForShots: Object.keys(selectedCharactersForShots).length > 0 ? selectedCharactersForShots : undefined, // Pronoun Detection: Multi-character selection per shot
         pronounMappingsForShots: Object.keys(pronounMappingsForShots).length > 0 ? pronounMappingsForShots : undefined, // Pronoun-to-character mappings: { shotSlot: { pronoun: characterId } }
         characterOutfits: Object.keys(characterOutfits).length > 0 ? characterOutfits : undefined, // Per-shot, per-character outfit selection: { shotSlot: { characterId: outfitName } }
+        selectedDialogueWorkflows: Object.keys(selectedDialogueWorkflows).length > 0 ? selectedDialogueWorkflows : undefined, // Per-shot dialogue workflow selection: { shotSlot: workflowType }
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
@@ -3059,6 +3063,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       });
                     }}
                     allCharacters={allCharacters}
+                    selectedDialogueWorkflows={selectedDialogueWorkflows}
+                    onDialogueWorkflowChange={(shotSlot, workflowType) => {
+                      setSelectedDialogueWorkflows(prev => ({
+                        ...prev,
+                        [shotSlot]: workflowType
+                      }));
+                    }}
                     enabledShots={enabledShots}
                     onEnabledShotsChange={setEnabledShots}
                     onGenerate={handleGenerate}
