@@ -514,44 +514,21 @@ export function GenerateWardrobeTab({
 
       {/* Step 4: Pose Package Selection */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-white">Step 4: Pose Package Selection</h3>
-          <button
-            onClick={() => setShowPosePackageDetails(!showPosePackageDetails)}
-            className="text-xs text-[#808080] hover:text-white flex items-center gap-1"
-          >
-            {showPosePackageDetails ? (
-              <>
-                <ChevronUp className="w-3 h-3" />
-                Hide Details
-              </>
-            ) : (
-              <>
-                <ChevronDown className="w-3 h-3" />
-                Show Details
-              </>
-            )}
-          </button>
-        </div>
-        {showPosePackageDetails ? (
-          <PosePackageSelector
-            characterName={characterName}
-            selectedPackageId={selectedPackageId}
-            onSelectPackage={setSelectedPackageId}
-            creditsPerImage={selectedModel?.credits}
-          />
-        ) : (
-          <div className="text-xs text-[#808080]">
-            Selected: {selectedPackageId.charAt(0).toUpperCase() + selectedPackageId.slice(1)} Package
-          </div>
-        )}
+        <h3 className="text-sm font-semibold text-white mb-3">Step 4: Pose Package Selection</h3>
+        <PosePackageSelector
+          characterName={characterName}
+          selectedPackageId={selectedPackageId}
+          onSelectPackage={setSelectedPackageId}
+          creditsPerImage={selectedModel?.credits}
+          compact={true}
+        />
       </div>
 
-      {/* Step 5: Clothing Images (Virtual Try-On) */}
-      {supportsClothing && selectedModel && (
+      {/* Step 5: Reference Images (Virtual Try-On / Additional References) */}
+      {selectedModel && (
         <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
           <h3 className="text-sm font-semibold text-white mb-3">
-            Step 5: Clothing Images (Virtual Try-On)
+            Step 5: Reference Images {supportsClothing ? '(Virtual Try-On)' : '(Additional References)'}
             <span className="ml-2 text-xs font-normal text-[#808080]">
               ({clothingImages.length}/{Math.min((selectedModel?.referenceLimit || 3) - 1, 3)})
             </span>
@@ -564,7 +541,7 @@ export function GenerateWardrobeTab({
               className="w-full px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white hover:border-[#DC143C]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Upload className="w-4 h-4" />
-              {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
+              {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : supportsClothing ? `Upload Clothing/Outfit Images` : `Upload Reference Images`}
             </button>
             <input
               ref={clothingFileInputRef}

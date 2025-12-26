@@ -27,6 +27,7 @@ interface PosePackageSelectorProps {
   selectedPackageId?: string;
   disabled?: boolean;
   creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
+  compact?: boolean; // 🔥 NEW: Compact mode for smaller display
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
@@ -52,7 +53,8 @@ export default function PosePackageSelector({
   onSelectPackage,
   selectedPackageId,
   disabled = false,
-  creditsPerImage = 20 // 🔥 NEW: Default to 20 credits if not provided
+  creditsPerImage = 20, // 🔥 NEW: Default to 20 credits if not provided
+  compact = false // 🔥 NEW: Compact mode
 }: PosePackageSelectorProps) {
   
   // 🔥 NEW: Calculate credits dynamically based on selected model
@@ -134,6 +136,185 @@ export default function PosePackageSelector({
     })));
   }, [creditsPerImage]);
   
+  if (compact) {
+    // Compact horizontal layout
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-xs text-[#808080] mb-2">
+          <span>More poses = better character consistency</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        {packages.map((pkg) => {
+          const Icon = PACKAGE_ICONS[pkg.id];
+          const isSelected = selectedPackageId === pkg.id;
+          const isRecommended = pkg.id === 'standard';
+          
+          // Compact card design
+          return (
+              <motion.div
+                key={pkg.id}
+                whileHover={!disabled ? { scale: 1.05 } : {}}
+                whileTap={!disabled ? { scale: 0.95 } : {}}
+                className={`
+                  relative rounded-lg border-2 p-3 cursor-pointer transition-all
+                  ${isSelected 
+                    ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                    : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
+                  }
+                  ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+                onClick={() => !disabled && onSelectPackage(pkg.id)}
+              >
+                {/* Recommended Badge */}
+                {isRecommended && (
+                  <div className="absolute -top-1.5 -right-1.5">
+                    <div className="bg-[#DC143C] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                      REC
+                    </div>
+                  </div>
+                )}
+                
+                {/* Package Icon & Name */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`p-1.5 rounded bg-gradient-to-br ${PACKAGE_COLORS[pkg.id]}`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <h3 className="text-xs font-semibold text-white truncate">
+                    {pkg.name.replace(' Package', '')}
+                  </h3>
+                </div>
+                
+                {/* Credits */}
+                <div className="text-sm font-bold text-white mb-1.5">
+                  {pkg.credits} <span className="text-[10px] font-normal text-[#808080]">credits</span>
+                </div>
+                
+                {/* Consistency & Poses */}
+                <div className="space-y-1 mb-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-[#808080]">Consistency</span>
+                    <span className="text-white font-semibold">{pkg.consistencyRating}%</span>
+                  </div>
+                  <div className="w-full bg-[#3F3F46] rounded-full h-1">
+                    <div 
+                      className={`h-1 rounded-full bg-gradient-to-r ${PACKAGE_COLORS[pkg.id]}`}
+                      style={{ width: `${pkg.consistencyRating}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-[#808080]">
+                    {pkg.poses.length} poses
+                  </div>
+                </div>
+                
+                {/* Selected Indicator */}
+                {isSelected && (
+                  <div className="mt-2 py-1 bg-[#DC143C] text-white text-center rounded text-[10px] font-semibold">
+                    ✓ Selected
+                  </div>
+                )}
+              </motion.div>
+            );
+          }
+          
+          // Full card design (original)
+          return (
+            <motion.div
+              key={pkg.id}
+              whileHover={!disabled ? { scale: 1.02 } : {}}
+              whileTap={!disabled ? { scale: 0.98 } : {}}
+              className={`
+                relative rounded-xl border-2 p-6 cursor-pointer transition-all
+                ${isSelected 
+                  ? 'border-blue-500 bg-blue-500/10' 
+                  : 'border-base-content/20 bg-base-300/50 hover:border-base-content/30'
+                }
+                ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+              onClick={() => !disabled && onSelectPackage(pkg.id)}
+            >
+              {/* Recommended Badge */}
+              {isRecommended && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <div className="bg-blue-500 text-base-content text-xs font-bold px-3 py-1 rounded-full">
+                    RECOMMENDED
+                  </div>
+                </div>
+              )}
+              
+              {/* Package Icon */}
+              <div className={`inline-flex p-3 rounded-lg bg-gradient-to-br ${PACKAGE_COLORS[pkg.id]} mb-4`}>
+                <Icon className="w-6 h-6 text-base-content" />
+              </div>
+              
+              {/* Package Name */}
+              <h3 className="text-xl font-bold text-gray-100 mb-2">
+                {pkg.name}
+              </h3>
+              
+              {/* Credits */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-2xl font-bold text-base-content">
+                  {pkg.credits}
+                  <span className="text-sm font-normal text-base-content/60 ml-1">credits</span>
+                </div>
+                {pkg.discount > 0 && (
+                  <div className="bg-green-500/20 text-green-400 text-xs font-bold px-2 py-1 rounded">
+                    {pkg.discount}% OFF
+                  </div>
+                )}
+              </div>
+              
+              {/* Consistency Rating */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-base-content/60">Consistency</span>
+                  <span className="text-base-content font-bold">{pkg.consistencyRating}%</span>
+                </div>
+                <div className="w-full bg-base-content/20 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full bg-gradient-to-r ${PACKAGE_COLORS[pkg.id]}`}
+                    style={{ width: `${pkg.consistencyRating}%` }}
+                  />
+                </div>
+              </div>
+              
+              {/* Description */}
+              <p className="text-base-content/60 text-sm mb-4">
+                {pkg.description}
+              </p>
+              
+              {/* Pose Count */}
+              <div className="text-sm text-base-content/70 mb-4">
+                <strong>{pkg.poses.length} poses</strong> included
+              </div>
+              
+              {/* Best For */}
+              <div className="space-y-1 mb-4">
+                <div className="text-xs font-semibold text-base-content/50 uppercase">Best For:</div>
+                {pkg.bestFor.map((use, idx) => (
+                  <div key={idx} className="flex items-center text-sm text-base-content/60">
+                    <Check className="w-3 h-3 text-green-400 mr-2 flex-shrink-0" />
+                    {use}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Select Button */}
+              {isSelected && (
+                <div className="mt-4 py-2 bg-blue-500 text-base-content text-center rounded-lg font-semibold">
+                  ✓ Selected
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Full layout (original)
   return (
     <div className="space-y-6">
       <div className="text-center">
