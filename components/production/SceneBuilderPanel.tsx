@@ -3332,7 +3332,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               
               // Get pronoun info and mappings for current shot
               const pronounInfo = currentShot.type === 'action' ? actionShotHasPronouns(currentShot) : { hasPronouns: false, pronouns: [] };
-              const hasPronouns = !!(pronounInfo.hasPronouns && onCharactersForShotChange && sceneAnalysisResult?.characters);
+              const hasPronouns = !!(pronounInfo.hasPronouns && sceneAnalysisResult?.characters);
               const shotMappings = hasPronouns ? (pronounMappingsForShots[currentShot.slot] || {}) : {};
               const { explicitCharacters, singularPronounCharacters, pluralPronounCharacters } = categorizeCharacters(
                 currentShot,
