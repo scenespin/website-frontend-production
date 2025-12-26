@@ -67,13 +67,10 @@ interface ShotConfigurationPanelProps {
   // Pronoun extras prompts (for skipped pronouns)
   pronounExtrasPrompts?: Record<string, string>; // { pronoun: prompt text }
   onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
-  // Model Style Selector (per-shot override)
+  // Model Style Selector (per-shot override - resolution is global only, set in review)
   globalStyle?: ModelStyle; // Global style (from Step 1)
-  globalResolution?: Resolution; // Global resolution (from Step 1)
   shotStyle?: ModelStyle; // Per-shot style override
-  shotResolution?: Resolution; // Per-shot resolution override
   onStyleChange?: (shotSlot: number, style: ModelStyle | undefined) => void; // undefined = use global
-  onResolutionChange?: (shotSlot: number, resolution: Resolution | undefined) => void; // undefined = use global
   // Camera Angle (per-shot)
   shotCameraAngle?: CameraAngle; // Per-shot camera angle (defaults to 'auto')
   onCameraAngleChange?: (shotSlot: number, angle: CameraAngle | undefined) => void; // undefined = use 'auto'
@@ -116,11 +113,8 @@ export function ShotConfigurationPanel({
   pronounExtrasPrompts = {},
   onPronounExtrasPromptChange,
   globalStyle = 'auto',
-  globalResolution = '1080p',
   shotStyle,
-  shotResolution,
   onStyleChange,
-  onResolutionChange,
   shotCameraAngle,
   onCameraAngleChange,
   sceneProps = [],
@@ -305,61 +299,32 @@ export function ShotConfigurationPanel({
         </div>
       )}
 
-      {/* Model Style Override Section */}
-      {(onStyleChange || onResolutionChange) && (
+      {/* Model Style Override Section (Resolution is global only, set in review step) */}
+      {onStyleChange && (
         <div className="pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Model Style</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] text-[#808080] mb-1.5">Style</label>
-              <select
-                value={shotStyle || globalStyle}
-                onChange={(e) => {
-                  const style = e.target.value as ModelStyle;
-                  if (style === globalStyle) {
-                    onStyleChange?.(shot.slot, undefined); // Remove override
-                  } else {
-                    onStyleChange?.(shot.slot, style);
-                  }
-                }}
-                className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-              >
-                <option value={globalStyle}>Using default: {globalStyle}</option>
-                <option value="auto">Auto (Content-aware)</option>
-                <option value="cinematic">Cinematic</option>
-                <option value="photorealistic">Photorealistic</option>
-              </select>
-              {shotStyle && shotStyle !== globalStyle && (
-                <div className="text-[10px] text-[#808080] italic mt-1">
-                  Override: Using {shotStyle} instead of default ({globalStyle})
-                </div>
-              )}
+          <select
+            value={shotStyle || globalStyle}
+            onChange={(e) => {
+              const style = e.target.value as ModelStyle;
+              if (style === globalStyle) {
+                onStyleChange(shot.slot, undefined); // Remove override
+              } else {
+                onStyleChange(shot.slot, style);
+              }
+            }}
+            className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+          >
+            <option value={globalStyle}>Using default: {globalStyle}</option>
+            <option value="auto">Auto (Content-aware)</option>
+            <option value="cinematic">Cinematic</option>
+            <option value="photorealistic">Photorealistic</option>
+          </select>
+          {shotStyle && shotStyle !== globalStyle && (
+            <div className="text-[10px] text-[#808080] italic mt-1">
+              Override: Using {shotStyle} instead of default ({globalStyle})
             </div>
-            <div>
-              <label className="block text-[10px] text-[#808080] mb-1.5">Resolution</label>
-              <select
-                value={shotResolution || globalResolution}
-                onChange={(e) => {
-                  const resolution = e.target.value as Resolution;
-                  if (resolution === globalResolution) {
-                    onResolutionChange?.(shot.slot, undefined); // Remove override
-                  } else {
-                    onResolutionChange?.(shot.slot, resolution);
-                  }
-                }}
-                className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-              >
-                <option value={globalResolution}>Using default: {globalResolution === '1080p' ? 'HD' : globalResolution}</option>
-                <option value="1080p">HD</option>
-                <option value="4k">4K</option>
-              </select>
-              {shotResolution && shotResolution !== globalResolution && (
-                <div className="text-[10px] text-[#808080] italic mt-1">
-                  Override: Using {shotResolution === '1080p' ? 'HD' : shotResolution} instead of default ({globalResolution === '1080p' ? 'HD' : globalResolution})
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       )}
 

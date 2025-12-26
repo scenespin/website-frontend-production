@@ -65,6 +65,7 @@ import { UnifiedSceneConfiguration } from './UnifiedSceneConfiguration';
 import { SceneAnalysisStep } from './SceneAnalysisStep';
 import { SceneReviewStep } from './SceneReviewStep';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
+import { categorizeCharacters } from './utils/characterCategorization';
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
 
@@ -192,10 +193,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   
   // Model Style Selector state (global + per-shot overrides)
+  // Resolution is global only, set in review step (not per-shot)
   const [globalStyle, setGlobalStyle] = useState<'cinematic' | 'photorealistic' | 'auto'>('auto');
   const [globalResolution, setGlobalResolution] = useState<'1080p' | '4k'>('1080p');
   const [shotStyles, setShotStyles] = useState<Record<number, 'cinematic' | 'photorealistic' | 'auto'>>({});
-  const [shotResolutions, setShotResolutions] = useState<Record<number, '1080p' | '4k'>>({});
   
   // Camera Angle state (per-shot, defaults to 'auto')
   const [shotCameraAngles, setShotCameraAngles] = useState<Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>>({});
@@ -2196,9 +2197,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         pronounExtrasPrompts: Object.keys(pronounExtrasPrompts).length > 0 ? pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
         // Model Style Selector (global + per-shot overrides)
         globalStyle: globalStyle !== 'auto' ? globalStyle : undefined, // Only send if not 'auto'
-        globalResolution: globalResolution !== '1080p' ? globalResolution : undefined, // Only send if not default
+        globalResolution: globalResolution !== '1080p' ? globalResolution : undefined, // Only send if not default (set in review step)
         shotStyles: Object.keys(shotStyles).length > 0 ? shotStyles : undefined, // Per-shot style overrides: { shotSlot: style }
-        shotResolutions: Object.keys(shotResolutions).length > 0 ? shotResolutions : undefined, // Per-shot resolution overrides: { shotSlot: resolution }
+        // Note: Resolution is global only (no per-shot resolution) - set in review step before generation
         // Camera Angles (per-shot, defaults to 'auto' if not specified)
         shotCameraAngles: Object.keys(shotCameraAngles).length > 0 ? shotCameraAngles : undefined, // Per-shot camera angle overrides: { shotSlot: angle }
         // Props Integration
@@ -3063,26 +3064,491 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                 isAnalyzing={isAnalyzing}
                 globalStyle={globalStyle}
                 onGlobalStyleChange={setGlobalStyle}
-                globalResolution={globalResolution}
-                onGlobalResolutionChange={setGlobalResolution}
                 sceneProps={sceneProps}
                 propsToShots={propsToShots}
                 onPropsToShotsChange={setPropsToShots}
               />
             )}
 
-            {/* Step 2: Unified Scene Configuration */}
-            {currentStep === 2 && (
-              <>
-                {selectedSceneId && !sceneAnalysisResult && !isAnalyzing && !analysisError && (
+            {/* Step 2-N: Individual Shot Configuration (one shot per step) */}
+            {currentStep === 2 && wizardStep === 'shot-config' && selectedSceneId && sceneAnalysisResult && (() => {
+              const shots = sceneAnalysisResult.shotBreakdown?.shots || [];
+              const enabledShotsList = shots.filter((s: any) => enabledShots.includes(s.slot));
+              
+              if (enabledShotsList.length === 0) {
+                return (
                   <Card className="bg-[#141414] border-[#3F3F46]">
                     <CardContent className="p-3">
-                      <div className="text-xs text-[#808080]">No analysis available. Please select a scene.</div>
+                      <div className="text-xs text-[#808080]">No shots selected. Please go back and select shots.</div>
                     </CardContent>
                   </Card>
-                )}
+                );
+              }
+              
+              const currentShot = enabledShotsList[currentShotIndex];
+              if (!currentShot) {
+                // All shots configured, move to review
+                setWizardStep('review');
+                return null;
+              }
+              
+              // Helper functions (copied from UnifiedSceneConfiguration)
+              const getFullShotText = (shot: any): string => {
+                if (shot.type === 'action' && shot.narrationBlock?.text) return shot.narrationBlock.text;
+                if (shot.type === 'dialogue' && shot.dialogueBlock?.dialogue) return shot.dialogueBlock.dialogue;
+                return shot.description || '';
+              };
+              
+              const actionShotHasExplicitCharacter = (shot: any): boolean => {
+                if (shot.type !== 'action' || !sceneAnalysisResult?.characters) return false;
+                const fullText = getFullShotText(shot);
+                if (!fullText) return false;
+                const textLower = fullText.toLowerCase();
+                const originalText = fullText;
+                return sceneAnalysisResult.characters.some((char: any) => {
+                  if (!char.name) return false;
+                  const charName = char.name.toLowerCase();
+                  return textLower.includes(charName) || textLower.includes(charName + "'s") || originalText.includes(char.name.toUpperCase());
+                });
+              };
+              
+              const actionShotHasPronouns = (shot: any): { hasPronouns: boolean; pronouns: string[] } => {
+                if (shot.type !== 'action') return { hasPronouns: false, pronouns: [] };
+                const fullText = getFullShotText(shot);
+                if (!fullText) return { hasPronouns: false, pronouns: [] };
+                const textLower = fullText.toLowerCase();
+                const detectedPronouns: string[] = [];
+                const pronounPatterns = { singular: /\b(she|her|hers|he|him|his)\b/g, plural: /\b(they|them|their|theirs)\b/g };
+                let match;
+                while ((match = pronounPatterns.singular.exec(textLower)) !== null) {
+                  if (!detectedPronouns.includes(match[0])) detectedPronouns.push(match[0]);
+                }
+                pronounPatterns.singular.lastIndex = 0;
+                while ((match = pronounPatterns.plural.exec(textLower)) !== null) {
+                  if (!detectedPronouns.includes(match[0])) detectedPronouns.push(match[0]);
+                }
+                return { hasPronouns: detectedPronouns.length > 0, pronouns: detectedPronouns };
+              };
+              
+              const getCharactersFromActionShot = (shot: any): any[] => {
+                if (shot.type !== 'action' || !sceneAnalysisResult?.characters) return [];
+                const fullText = getFullShotText(shot);
+                if (!fullText) return [];
+                const textLower = fullText.toLowerCase();
+                const originalText = fullText;
+                const foundCharacters: any[] = [];
+                const foundCharIds = new Set<string>();
+                for (const char of sceneAnalysisResult.characters) {
+                  if (!char.name || foundCharIds.has(char.id)) continue;
+                  const charName = char.name.toLowerCase();
+                  const charNameRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                  const possessiveRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'s\\b`, 'i');
+                  if (charNameRegex.test(fullText) || possessiveRegex.test(fullText)) {
+                    foundCharacters.push(char);
+                    foundCharIds.add(char.id);
+                  }
+                }
+                for (const char of sceneAnalysisResult.characters) {
+                  if (!char.name || foundCharIds.has(char.id)) continue;
+                  if (originalText.includes(char.name.toUpperCase())) {
+                    foundCharacters.push(char);
+                    foundCharIds.add(char.id);
+                  }
+                }
+                return foundCharacters;
+              };
+              
+              const getCharacterForShot = (shot: any) => {
+                if (shot.type === 'dialogue' && shot.characterId && sceneAnalysisResult?.characters) {
+                  return sceneAnalysisResult.characters.find((c: any) => c.id === shot.characterId);
+                }
+                if (shot.type === 'action') {
+                  const chars = getCharactersFromActionShot(shot);
+                  return chars.length > 0 ? chars[0] : null;
+                }
+                return null;
+              };
+              
+              const needsLocationAngle = (shot: any): boolean => {
+                return shot.type === 'establishing' || 
+                       !!(shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
+                       !!(shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
+              };
+              
+              const isLocationAngleRequired = (shot: any): boolean => {
+                return shot.type === 'establishing';
+              };
+              
+              const getCharacterWithExtractedOutfits = (charId: string, char: any): any => {
+                if (char.availableOutfits && char.availableOutfits.length > 0) return char;
+                const headshots = characterHeadshots[charId] || [];
+                const outfitSet = new Set<string>();
+                headshots.forEach((headshot: any) => {
+                  const outfitName = headshot.outfitName || headshot.metadata?.outfitName;
+                  if (outfitName && outfitName !== 'default') outfitSet.add(outfitName);
+                });
+                const extractedOutfits = Array.from(outfitSet).sort();
+                if (extractedOutfits.length > 0) {
+                  return { ...char, availableOutfits: extractedOutfits };
+                }
+                return char;
+              };
+              
+              const renderCharacterControlsOnly = (
+                charId: string,
+                shotSlot: number,
+                shotMappings: Record<string, string | string[]>,
+                hasPronouns: boolean,
+                category: 'explicit' | 'singular' | 'plural'
+              ) => {
+                const baseChar = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+                           allCharacters.find((c: any) => c.id === charId);
+                if (!baseChar) return null;
+                const char = getCharacterWithExtractedOutfits(charId, baseChar);
+                const selectedOutfit = characterOutfits[shotSlot]?.[charId];
+                const hasAnyOutfits = (char.availableOutfits?.length || 0) > 0 || !!char.defaultOutfit;
+                const pronounsForThisChar = hasPronouns ? Object.entries(shotMappings)
+                  .filter(([_, mappedIdOrIds]) => {
+                    if (Array.isArray(mappedIdOrIds)) return mappedIdOrIds.includes(charId);
+                    return mappedIdOrIds === charId;
+                  })
+                  .map(([pronoun]) => pronoun) : [];
+                return (
+                  <div key={charId} className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="text-xs font-medium text-[#FFFFFF]">{char.name}</div>
+                      {pronounsForThisChar.length > 0 && (
+                        <div className="text-[10px] text-[#808080]">({pronounsForThisChar.join(', ')})</div>
+                      )}
+                      {hasAnyOutfits && (
+                        <CharacterOutfitSelector
+                          characterId={char.id}
+                          characterName={char.name}
+                          availableOutfits={char.availableOutfits || []}
+                          defaultOutfit={char.defaultOutfit}
+                          selectedOutfit={selectedOutfit}
+                          onOutfitChange={(charId, outfitName) => {
+                            setCharacterOutfits(prev => {
+                              const updated = { ...prev };
+                              if (!updated[shotSlot]) updated[shotSlot] = {};
+                              updated[shotSlot] = { ...updated[shotSlot], [charId]: outfitName || undefined };
+                              return updated;
+                            });
+                          }}
+                          compact={true}
+                          hideLabel={true}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              };
+              
+              const renderCharacterImagesOnly = (charId: string, shotSlot: number, pronounsForChar?: string[]) => {
+                const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
+                           allCharacters.find((c: any) => c.id === charId);
+                if (!char) return null;
+                const allHeadshots = characterHeadshots[charId] || [];
+                const selectedHeadshot = selectedCharacterReferences[shotSlot]?.[charId];
+                const selectedOutfit = characterOutfits[shotSlot]?.[charId];
+                const headshots = selectedOutfit && selectedOutfit !== 'default' 
+                  ? allHeadshots.filter((h: any) => {
+                      const headshotOutfit = h.outfitName || h.metadata?.outfitName;
+                      return headshotOutfit === selectedOutfit;
+                    })
+                  : allHeadshots;
+                return (
+                  <div key={charId} className="space-y-2">
+                    {pronounsForChar && pronounsForChar.length > 0 && (
+                      <div className="text-[10px] text-[#808080] mb-1">({pronounsForChar.join(', ')})</div>
+                    )}
+                    {loadingHeadshots[charId] ? (
+                      <div className="text-[10px] text-[#808080]">Loading headshots...</div>
+                    ) : headshots.length > 0 ? (
+                      <div>
+                        {selectedOutfit && selectedOutfit !== 'default' && (
+                          <div className="text-[10px] text-[#808080] mb-1.5">
+                            Outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-6 gap-1.5">
+                          {headshots.map((headshot: any, idx: number) => {
+                            const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
+                            const isSelected = selectedHeadshot && (
+                              (headshot.s3Key && selectedHeadshot.s3Key === headshot.s3Key) ||
+                              (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
+                              (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
+                            );
+                            return (
+                              <button
+                                key={uniqueKey}
+                                onClick={() => {
+                                  const newRef = isSelected ? undefined : {
+                                    poseId: headshot.poseId,
+                                    s3Key: headshot.s3Key,
+                                    imageUrl: headshot.imageUrl
+                                  };
+                                  setSelectedCharacterReferences(prev => {
+                                    const shotRefs = prev[shotSlot] || {};
+                                    const updatedShotRefs = newRef 
+                                      ? { ...shotRefs, [charId]: newRef }
+                                      : { ...shotRefs };
+                                    if (!newRef) delete updatedShotRefs[charId];
+                                    return {
+                                      ...prev,
+                                      [shotSlot]: Object.keys(updatedShotRefs).length > 0 ? updatedShotRefs : undefined
+                                    };
+                                  });
+                                }}
+                                className={`relative aspect-square rounded border-2 transition-all ${
+                                  isSelected
+                                    ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                    : 'border-[#3F3F46] hover:border-[#808080]'
+                                }`}
+                              >
+                                {headshot.imageUrl && (
+                                  <img
+                                    src={headshot.imageUrl}
+                                    alt={headshot.label || `Headshot ${idx + 1}`}
+                                    className="w-full h-full object-cover rounded"
+                                  />
+                                )}
+                                {isSelected && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                                    <Check className="w-3 h-3 text-[#DC143C]" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-[#808080]">No headshots available</div>
+                    )}
+                  </div>
+                );
+              };
+              
+              // Get pronoun info and mappings for current shot
+              const pronounInfo = currentShot.type === 'action' ? actionShotHasPronouns(currentShot) : { hasPronouns: false, pronouns: [] };
+              const hasPronouns = !!(pronounInfo.hasPronouns && onCharactersForShotChange && sceneAnalysisResult?.characters);
+              const shotMappings = hasPronouns ? (pronounMappingsForShots[currentShot.slot] || {}) : {};
+              const { explicitCharacters, singularPronounCharacters, pluralPronounCharacters } = categorizeCharacters(
+                currentShot,
+                shotMappings,
+                getCharactersFromActionShot,
+                getCharacterForShot
+              );
+              
+              return (
+                <ShotConfigurationStep
+                  shot={currentShot}
+                  sceneAnalysisResult={sceneAnalysisResult}
+                  shotIndex={currentShotIndex}
+                  totalShots={enabledShotsList.length}
+                  explicitCharacters={explicitCharacters}
+                  singularPronounCharacters={singularPronounCharacters}
+                  pluralPronounCharacters={pluralPronounCharacters}
+                  shotMappings={shotMappings}
+                  hasPronouns={hasPronouns}
+                  pronounInfo={pronounInfo}
+                  renderCharacterControlsOnly={renderCharacterControlsOnly}
+                  renderCharacterImagesOnly={renderCharacterImagesOnly}
+                  selectedLocationReferences={selectedLocationReferences}
+                  onLocationAngleChange={(shotSlot, locationId, angle) => {
+                    setSelectedLocationReferences(prev => ({
+                      ...prev,
+                      [shotSlot]: angle
+                    }));
+                  }}
+                  isLocationAngleRequired={isLocationAngleRequired}
+                  needsLocationAngle={needsLocationAngle}
+                  allCharacters={allCharacters}
+                  selectedCharactersForShots={selectedCharactersForShots}
+                  onCharactersForShotChange={(shotSlot, characterIds) => {
+                    setSelectedCharactersForShots(prev => ({
+                      ...prev,
+                      [shotSlot]: characterIds
+                    }));
+                  }}
+                  onPronounMappingChange={(shotSlot, pronoun, characterIdOrIds) => {
+                    setPronounMappingsForShots(prev => {
+                      const shotMappings = prev[shotSlot] || {};
+                      const newMappings = { ...shotMappings };
+                      if (characterIdOrIds) {
+                        newMappings[pronoun] = characterIdOrIds;
+                      } else {
+                        delete newMappings[pronoun];
+                      }
+                      return {
+                        ...prev,
+                        [shotSlot]: Object.keys(newMappings).length > 0 ? newMappings : undefined
+                      };
+                    });
+                  }}
+                  characterHeadshots={characterHeadshots}
+                  loadingHeadshots={loadingHeadshots}
+                  selectedCharacterReferences={selectedCharacterReferences}
+                  characterOutfits={characterOutfits}
+                  onCharacterReferenceChange={(shotSlot, characterId, reference) => {
+                    setSelectedCharacterReferences(prev => {
+                      const shotRefs = prev[shotSlot] || {};
+                      const updatedShotRefs = reference 
+                        ? { ...shotRefs, [characterId]: reference }
+                        : { ...shotRefs };
+                      if (!reference) delete updatedShotRefs[characterId];
+                      return {
+                        ...prev,
+                        [shotSlot]: Object.keys(updatedShotRefs).length > 0 ? updatedShotRefs : undefined
+                      };
+                    });
+                  }}
+                  onCharacterOutfitChange={(shotSlot, characterId, outfitName) => {
+                    setCharacterOutfits(prev => {
+                      const updated = { ...prev };
+                      if (!updated[shotSlot]) updated[shotSlot] = {};
+                      updated[shotSlot] = {
+                        ...updated[shotSlot],
+                        [characterId]: outfitName || undefined
+                      };
+                      return updated;
+                    });
+                  }}
+                  selectedDialogueWorkflow={selectedDialogueWorkflows[currentShot.slot]}
+                  onDialogueWorkflowChange={(shotSlot, workflowType) => {
+                    setSelectedDialogueWorkflows(prev => ({
+                      ...prev,
+                      [shotSlot]: workflowType
+                    }));
+                  }}
+                  dialogueWorkflowPrompt={dialogueWorkflowPrompts[currentShot.slot]}
+                  onDialogueWorkflowPromptChange={(shotSlot, prompt) => {
+                    setDialogueWorkflowPrompts(prev => ({
+                      ...prev,
+                      [shotSlot]: prompt
+                    }));
+                  }}
+                  pronounExtrasPrompts={pronounExtrasPrompts[currentShot.slot] || {}}
+                  onPronounExtrasPromptChange={(pronoun, prompt) => {
+                    setPronounExtrasPrompts(prev => {
+                      const shotPrompts = prev[currentShot.slot] || {};
+                      const updated = { ...prev };
+                      updated[currentShot.slot] = {
+                        ...shotPrompts,
+                        [pronoun]: prompt
+                      };
+                      if (!prompt || prompt.trim() === '') {
+                        delete updated[currentShot.slot][pronoun];
+                        if (Object.keys(updated[currentShot.slot]).length === 0) {
+                          delete updated[currentShot.slot];
+                        }
+                      }
+                      return updated;
+                    });
+                  }}
+                  globalStyle={globalStyle}
+                  shotStyle={shotStyles[currentShot.slot]}
+                  onStyleChange={(shotSlot, style) => {
+                    if (style === undefined) {
+                      setShotStyles(prev => {
+                        const updated = { ...prev };
+                        delete updated[shotSlot];
+                        return updated;
+                      });
+                    } else {
+                      setShotStyles(prev => ({ ...prev, [shotSlot]: style }));
+                    }
+                  }}
+                  shotCameraAngle={shotCameraAngles[currentShot.slot]}
+                  onCameraAngleChange={(shotSlot, angle) => {
+                    if (angle === undefined) {
+                      setShotCameraAngles(prev => {
+                        const updated = { ...prev };
+                        delete updated[shotSlot];
+                        return updated;
+                      });
+                    } else {
+                      setShotCameraAngles(prev => ({ ...prev, [shotSlot]: angle }));
+                    }
+                  }}
+                  sceneProps={sceneProps}
+                  propsToShots={propsToShots}
+                  shotProps={shotProps}
+                  onPropDescriptionChange={(shotSlot, propId, description) => {
+                    setShotProps(prev => {
+                      const shotConfig = prev[shotSlot] || {};
+                      const updated = { ...prev };
+                      updated[shotSlot] = {
+                        ...shotConfig,
+                        [propId]: {
+                          ...shotConfig[propId],
+                          usageDescription: description || undefined
+                        }
+                      };
+                      if (!description || description.trim() === '') {
+                        delete updated[shotSlot][propId];
+                        if (Object.keys(updated[shotSlot]).length === 0) {
+                          delete updated[shotSlot];
+                        }
+                      }
+                      return updated;
+                    });
+                  }}
+                  onPrevious={() => {
+                    if (currentShotIndex > 0) {
+                      setCurrentShotIndex(currentShotIndex - 1);
+                    } else {
+                      setWizardStep('analysis');
+                      setCurrentStep(1);
+                    }
+                  }}
+                  onNext={() => {
+                    if (currentShotIndex < enabledShotsList.length - 1) {
+                      setCurrentShotIndex(currentShotIndex + 1);
+                    } else {
+                      setWizardStep('review');
+                    }
+                  }}
+                />
+              );
+            })()}
 
-                {selectedSceneId && sceneAnalysisResult && (
+            {/* Review Step */}
+            {wizardStep === 'review' && selectedSceneId && sceneAnalysisResult && (
+              <SceneReviewStep
+                sceneAnalysisResult={sceneAnalysisResult}
+                enabledShots={enabledShots}
+                globalStyle={globalStyle}
+                globalResolution={globalResolution}
+                onGlobalResolutionChange={setGlobalResolution}
+                shotStyles={shotStyles}
+                shotCameraAngles={shotCameraAngles}
+                selectedCharacterReferences={selectedCharacterReferences}
+                characterOutfits={characterOutfits}
+                selectedLocationReferences={selectedLocationReferences}
+                selectedDialogueWorkflows={selectedDialogueWorkflows}
+                dialogueWorkflowPrompts={dialogueWorkflowPrompts}
+                pronounMappingsForShots={pronounMappingsForShots}
+                pronounExtrasPrompts={pronounExtrasPrompts}
+                selectedCharactersForShots={selectedCharactersForShots}
+                sceneProps={sceneProps}
+                propsToShots={propsToShots}
+                shotProps={shotProps}
+                onBack={() => {
+                  const shots = sceneAnalysisResult.shotBreakdown?.shots || [];
+                  const enabledShotsList = shots.filter((s: any) => enabledShots.includes(s.slot));
+                  setCurrentShotIndex(enabledShotsList.length - 1);
+                  setWizardStep('shot-config');
+                }}
+                onGenerate={handleGenerate}
+                isGenerating={isGenerating}
+                allCharacters={allCharacters}
+              />
+            )}
+
+            {/* Legacy: Step 2: Unified Scene Configuration (fallback if not using wizard) */}
+            {currentStep === 2 && wizardStep !== 'shot-config' && wizardStep !== 'review' && selectedSceneId && sceneAnalysisResult && (
                   <UnifiedSceneConfiguration
                     sceneAnalysisResult={sceneAnalysisResult}
                     qualityTier={qualityTier}
@@ -3193,7 +3659,6 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     globalStyle={globalStyle}
                     globalResolution={globalResolution}
                     shotStyles={shotStyles}
-                    shotResolutions={shotResolutions}
                     onStyleChange={(shotSlot, style) => {
                       if (style === undefined) {
                         setShotStyles(prev => {
@@ -3203,17 +3668,6 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         });
                       } else {
                         setShotStyles(prev => ({ ...prev, [shotSlot]: style }));
-                      }
-                    }}
-                    onResolutionChange={(shotSlot, resolution) => {
-                      if (resolution === undefined) {
-                        setShotResolutions(prev => {
-                          const updated = { ...prev };
-                          delete updated[shotSlot];
-                          return updated;
-                        });
-                      } else {
-                        setShotResolutions(prev => ({ ...prev, [shotSlot]: resolution }));
                       }
                     }}
                     shotCameraAngles={shotCameraAngles}

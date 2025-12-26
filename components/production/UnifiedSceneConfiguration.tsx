@@ -64,12 +64,11 @@ interface UnifiedSceneConfigurationProps {
   screenplayId?: string;
   getToken: () => Promise<string | null>;
   // Model Style Selector (global + per-shot overrides)
+  // Resolution is global only, set in review step (not per-shot)
   globalStyle?: 'cinematic' | 'photorealistic' | 'auto';
-  globalResolution?: '1080p' | '4k';
+  globalResolution?: '1080p' | '4k'; // Global only, not per-shot
   shotStyles?: Record<number, 'cinematic' | 'photorealistic' | 'auto'>;
-  shotResolutions?: Record<number, '1080p' | '4k'>;
   onStyleChange?: (shotSlot: number, style: 'cinematic' | 'photorealistic' | 'auto' | undefined) => void;
-  onResolutionChange?: (shotSlot: number, resolution: '1080p' | '4k' | undefined) => void;
   // Camera Angle (per-shot)
   shotCameraAngles?: Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>;
   onCameraAngleChange?: (shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => void;
@@ -110,11 +109,9 @@ export function UnifiedSceneConfiguration({
   screenplayId,
   getToken,
   globalStyle = 'auto',
-  globalResolution = '1080p',
+  globalResolution = '1080p', // Global only, not used per-shot
   shotStyles = {},
-  shotResolutions = {},
   onStyleChange,
-  onResolutionChange,
   shotCameraAngles = {},
   onCameraAngleChange,
   sceneProps = [],
@@ -752,11 +749,8 @@ export function UnifiedSceneConfiguration({
                         onPronounExtrasPromptChange?.(shot.slot, pronoun, prompt);
                       }}
                       globalStyle={globalStyle}
-                      globalResolution={globalResolution}
                       shotStyle={shotStyles[shot.slot]}
-                      shotResolution={shotResolutions[shot.slot]}
                       onStyleChange={onStyleChange}
-                      onResolutionChange={onResolutionChange}
                       shotCameraAngle={shotCameraAngles[shot.slot]}
                       onCameraAngleChange={onCameraAngleChange}
                       sceneProps={sceneProps}

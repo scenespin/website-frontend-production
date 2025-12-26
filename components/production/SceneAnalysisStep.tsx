@@ -28,11 +28,9 @@ interface SceneAnalysisStepProps {
   onEnabledShotsChange: (shots: number[]) => void;
   onNext: () => void;
   isAnalyzing: boolean;
-  // Model Style Selector (global)
+  // Model Style Selector (global only - resolution moved to review step)
   globalStyle: ModelStyle;
   onGlobalStyleChange: (style: ModelStyle) => void;
-  globalResolution: Resolution;
-  onGlobalResolutionChange: (resolution: Resolution) => void;
   // Props-to-Shots Assignment
   sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
   propsToShots: Record<string, number[]>; // propId -> shot slots
@@ -43,15 +41,13 @@ export function SceneAnalysisStep({
   sceneAnalysisResult,
   enabledShots,
   onEnabledShotsChange,
-  onNext,
-  isAnalyzing,
-  globalStyle,
-  onGlobalStyleChange,
-  globalResolution,
-  onGlobalResolutionChange,
-  sceneProps = [],
-  propsToShots,
-  onPropsToShotsChange
+                onNext,
+                isAnalyzing,
+                globalStyle,
+                onGlobalStyleChange,
+                sceneProps = [],
+                propsToShots,
+                onPropsToShotsChange
 }: SceneAnalysisStepProps) {
   // Auto-select all shots when analysis completes
   useEffect(() => {
@@ -122,33 +118,17 @@ export function SceneAnalysisStep({
             <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
               Model Style (applies to all shots)
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] text-[#808080] mb-1.5">Style</label>
-                <select
-                  value={globalStyle}
-                  onChange={(e) => onGlobalStyleChange(e.target.value as ModelStyle)}
-                  className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-                >
-                  <option value="auto">Auto (Content-aware)</option>
-                  <option value="cinematic">Cinematic</option>
-                  <option value="photorealistic">Photorealistic</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] text-[#808080] mb-1.5">Resolution</label>
-                <select
-                  value={globalResolution}
-                  onChange={(e) => onGlobalResolutionChange(e.target.value as Resolution)}
-                  className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-                >
-                  <option value="1080p">HD</option>
-                  <option value="4k">4K</option>
-                </select>
-              </div>
-            </div>
+            <select
+              value={globalStyle}
+              onChange={(e) => onGlobalStyleChange(e.target.value as ModelStyle)}
+              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+            >
+              <option value="auto">Auto (Content-aware)</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="photorealistic">Photorealistic</option>
+            </select>
             <div className="text-[10px] text-[#808080] italic mt-1">
-              You can override style for individual shots in shot configuration steps.
+              You can override style for individual shots in shot configuration steps. Resolution will be set in the review step.
             </div>
           </div>
 

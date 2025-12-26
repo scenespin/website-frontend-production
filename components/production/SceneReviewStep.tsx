@@ -29,9 +29,8 @@ interface SceneReviewStepProps {
   // Global settings
   globalStyle: ModelStyle;
   globalResolution: Resolution;
-  // Per-shot overrides
+  // Per-shot overrides (no resolution - global only, set in review step)
   shotStyles?: Record<number, ModelStyle>;
-  shotResolutions?: Record<number, Resolution>;
   shotCameraAngles?: Record<number, CameraAngle>;
   // Character mappings
   selectedCharacterReferences: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>;
@@ -61,8 +60,8 @@ export function SceneReviewStep({
   enabledShots,
   globalStyle,
   globalResolution,
+  onGlobalResolutionChange,
   shotStyles = {},
-  shotResolutions = {},
   shotCameraAngles = {},
   selectedCharacterReferences,
   characterOutfits,
@@ -124,14 +123,26 @@ export function SceneReviewStep({
           {/* Global Settings Summary */}
           <div className="pb-3 border-b border-[#3F3F46]">
             <div className="text-xs font-medium text-[#FFFFFF] mb-2">Global Settings</div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
+            <div className="space-y-3">
+              <div className="text-xs">
                 <span className="text-[#808080]">Style: </span>
                 <span className="text-[#FFFFFF]">{globalStyle}</span>
               </div>
               <div>
-                <span className="text-[#808080]">Resolution: </span>
-                <span className="text-[#FFFFFF]">{globalResolution}</span>
+                <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
+                  Resolution (applies to all shots)
+                </label>
+                <select
+                  value={globalResolution}
+                  onChange={(e) => onGlobalResolutionChange(e.target.value as Resolution)}
+                  className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+                >
+                  <option value="1080p">HD</option>
+                  <option value="4k">4K</option>
+                </select>
+                <div className="text-[10px] text-[#808080] italic mt-1">
+                  Select resolution before generating. 4K will upscale individual clips before stitching (not the final result).
+                </div>
               </div>
             </div>
           </div>
@@ -144,7 +155,6 @@ export function SceneReviewStep({
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {selectedShots.map((shot: any) => {
                 const shotStyle = shotStyles[shot.slot];
-                const shotResolution = shotResolutions[shot.slot];
                 const shotCameraAngle = shotCameraAngles[shot.slot];
                 const shotDialogueWorkflow = selectedDialogueWorkflows[shot.slot];
                 const shotDialoguePrompt = dialogueWorkflowPrompts[shot.slot];
@@ -177,13 +187,10 @@ export function SceneReviewStep({
                     </div>
 
                     {/* Shot Overrides */}
-                    {(shotStyle || shotResolution || shotCameraAngle) && (
+                    {(shotStyle || shotCameraAngle) && (
                       <div className="text-[10px] text-[#808080] space-y-1">
                         {shotStyle && (
                           <div>Style: <span className="text-[#FFFFFF]">{shotStyle}</span> (override)</div>
-                        )}
-                        {shotResolution && (
-                          <div>Resolution: <span className="text-[#FFFFFF]">{shotResolution}</span> (override)</div>
                         )}
                         {shotCameraAngle && shotCameraAngle !== 'auto' && (
                           <div>Camera: <span className="text-[#FFFFFF]">{shotCameraAngle.replace('-', ' ')}</span></div>
