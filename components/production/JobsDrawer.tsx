@@ -648,12 +648,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style */}
       {jobCount > 0 && !isOpen && (
         <button
-          onClick={onOpen}
-          className="fixed top-24 right-0 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300 relative"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onOpen();
+          }}
+          className="fixed top-24 right-0 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex border-none px-4 py-3 transition-all duration-300 relative"
           style={{ 
             writingMode: 'vertical-rl', 
             textOrientation: 'mixed',
-            animation: 'pulse-subtle 3s ease-in-out infinite'
+            animation: 'pulse-subtle 3s ease-in-out infinite',
+            zIndex: Z_INDEX.POPOVER, // High enough to be visible above most elements
           }}
           title={`${jobCount} job${jobCount !== 1 ? 's' : ''} running`}
         >
@@ -669,19 +674,31 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       {/* Backdrop - Only render when open (matches AgentDrawer) */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 z-30 transition-opacity hidden md:block"
-          onClick={onClose}
+          className="fixed inset-0 bg-black/40 transition-opacity hidden md:block"
+          style={{ zIndex: Z_INDEX.JOBS_DRAWER - 1 }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+          }}
         />
       )}
 
       {/* Drawer - Always render for smooth slide animation (matches AgentDrawer) */}
       <div
-        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
+        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl transition-all duration-300 ease-out hidden md:block ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{
           width: compact ? '100vw' : '400px',
           maxWidth: '90vw',
+          zIndex: Z_INDEX.JOBS_DRAWER,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
         }}
       >
         {/* Header - Matches AgentDrawer style */}
@@ -694,7 +711,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="btn btn-sm btn-ghost btn-circle"
             title="Close"
           >
