@@ -377,14 +377,72 @@ export function ModernGallery({
           transition={{ duration: 0.4, delay: 0.1 }}
           className={layout === 'top' ? 'w-full' : 'lg:col-span-2'}
         >
-          <Gallery
-            photos={photos}
-            onClick={handleGridImageClick}
-            renderImage={imageRenderer}
-            margin={12}
-            direction="row"
-            targetRowHeight={200}
-          />
+          {layout === 'top' ? (
+            // Simple thumbnail grid for top layout (locations)
+            gridImages.length > 0 && (
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 mt-4">
+                {gridImages.map((img) => {
+                  const actualIndex = filteredImages.findIndex(f => f.id === img.id);
+                  const isSelected = actualIndex === featuredIndex;
+                  
+                  return (
+                    <div
+                      key={img.id}
+                      className={`relative group cursor-pointer aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                        isSelected
+                          ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
+                          : 'border-[#3F3F46] hover:border-[#DC143C]/50'
+                      }`}
+                      onClick={(e) => {
+                        // Set this image as the featured image
+                        setFeaturedIndex(actualIndex);
+                      }}
+                    >
+                    <img
+                      src={img.thumbnailUrl || img.imageUrl}
+                      alt={img.label}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    
+                    {/* Badges */}
+                    <div className="absolute top-2 right-2 flex flex-col gap-1">
+                      {img.isBase && (
+                        <div className="px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
+                          Base
+                        </div>
+                      )}
+                      {img.source && (
+                        <div className={`px-1.5 py-0.5 text-white text-[10px] rounded ${
+                          img.source === 'pose-generation' 
+                            ? 'bg-[#8B5CF6]' 
+                            : 'bg-[#3F3F46]'
+                        }`}>
+                          {img.source === 'pose-generation' ? 'AI' : 'User'}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                      <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                    </div>
+                  </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            // Masonry layout for left layout (characters)
+            <Gallery
+              photos={photos}
+              onClick={handleGridImageClick}
+              renderImage={imageRenderer}
+              margin={12}
+              direction="row"
+              targetRowHeight={200}
+            />
+          )}
         </motion.div>
       </div>
 
