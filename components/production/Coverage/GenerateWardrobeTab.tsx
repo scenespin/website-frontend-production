@@ -524,11 +524,11 @@ export function GenerateWardrobeTab({
         />
       </div>
 
-      {/* Step 5: Reference Images (Virtual Try-On / Additional References) */}
-      {selectedModel && (
+      {/* Step 5: Clothing Images (Virtual Try-On) */}
+      {supportsClothing && selectedModel && (
         <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
           <h3 className="text-sm font-semibold text-white mb-3">
-            Step 5: Reference Images {supportsClothing ? '(Virtual Try-On)' : '(Additional References)'}
+            Step 5: Clothing Images (Virtual Try-On)
             <span className="ml-2 text-xs font-normal text-[#808080]">
               ({clothingImages.length}/{Math.min((selectedModel?.referenceLimit || 3) - 1, 3)})
             </span>
@@ -541,7 +541,7 @@ export function GenerateWardrobeTab({
               className="w-full px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white hover:border-[#DC143C]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Upload className="w-4 h-4" />
-              {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : supportsClothing ? `Upload Clothing/Outfit Images` : `Upload Reference Images`}
+              {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
             </button>
             <input
               ref={clothingFileInputRef}
