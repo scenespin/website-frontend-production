@@ -996,26 +996,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                               </div>
                             );
                           })}
-                            >
-                              {img.s3Key ? (
-                                <ImageThumbnailFromS3Key 
-                                  s3Key={img.s3Key} 
-                                  alt={img.label || `Image ${index + 1}`}
-                                  fallbackUrl={img.imageUrl}
-                                />
-                              ) : img.imageUrl ? (
-                                <img
-                                  src={img.imageUrl}
-                                  alt={img.label || `Image ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
-                                  No image
-                                </div>
-                              )}
-                            </div>
-                          ))}
                           {job.results.images.length > 4 && (
                             <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
                               <span className="text-[8px] text-[#808080]">+{job.results.images.length - 4}</span>
