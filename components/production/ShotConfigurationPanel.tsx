@@ -212,13 +212,8 @@ export function ShotConfigurationPanel({
                       const char = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).find((c: any) => c.id === charId);
                       if (!char) return null;
                       return (
-                        <div key={charId} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                          <div>
-                            {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                          </div>
-                          <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
-                            {renderCharacterImagesOnly(charId, shot.slot)}
-                          </div>
+                        <div key={charId}>
+                          {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
                         </div>
                       );
                     })}
@@ -227,8 +222,21 @@ export function ShotConfigurationPanel({
               </div>
             )}
           </div>
+          {/* Right column: Character images for selected additional characters */}
           <div className="border-l border-[#3F3F46] pl-4">
-            {/* Right side content can be added here if needed */}
+            {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
+              <div className="space-y-4">
+                {selectedCharactersForShots[shot.slot].map((charId: string) => {
+                  const char = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).find((c: any) => c.id === charId);
+                  if (!char) return null;
+                  return (
+                    <div key={charId}>
+                      {renderCharacterImagesOnly(charId, shot.slot)}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
