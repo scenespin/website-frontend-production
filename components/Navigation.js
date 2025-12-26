@@ -23,7 +23,8 @@ import {
   Music,
   Image,
   Plus,
-  Clapperboard
+  Clapperboard,
+  Archive
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -178,8 +179,8 @@ export default function Navigation() {
       ]
     },
     {
-      name: 'Storage',
-      icon: FolderOpen,
+      name: 'Archive',
+      icon: Archive,
       href: '/storage',
       description: 'Media Library & uploads'
     },
