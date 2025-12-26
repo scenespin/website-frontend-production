@@ -63,6 +63,21 @@ interface UnifiedSceneConfigurationProps {
   isGenerating?: boolean;
   screenplayId?: string;
   getToken: () => Promise<string | null>;
+  // Model Style Selector (global + per-shot overrides)
+  globalStyle?: 'cinematic' | 'photorealistic' | 'auto';
+  globalResolution?: '1080p' | '4k';
+  shotStyles?: Record<number, 'cinematic' | 'photorealistic' | 'auto'>;
+  shotResolutions?: Record<number, '1080p' | '4k'>;
+  onStyleChange?: (shotSlot: number, style: 'cinematic' | 'photorealistic' | 'auto' | undefined) => void;
+  onResolutionChange?: (shotSlot: number, resolution: '1080p' | '4k' | undefined) => void;
+  // Camera Angle (per-shot)
+  shotCameraAngles?: Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>;
+  onCameraAngleChange?: (shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => void;
+  // Props Configuration (per-shot)
+  sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
+  propsToShots?: Record<string, number[]>; // Which props are assigned to which shots
+  shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
+  onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
 }
 
 export function UnifiedSceneConfiguration({
@@ -93,7 +108,19 @@ export function UnifiedSceneConfiguration({
   onGenerate,
   isGenerating = false,
   screenplayId,
-  getToken
+  getToken,
+  globalStyle = 'auto',
+  globalResolution = '1080p',
+  shotStyles = {},
+  shotResolutions = {},
+  onStyleChange,
+  onResolutionChange,
+  shotCameraAngles = {},
+  onCameraAngleChange,
+  sceneProps = [],
+  propsToShots = {},
+  shotProps = {},
+  onPropDescriptionChange
 }: UnifiedSceneConfigurationProps) {
   const [expandedShots, setExpandedShots] = useState<Record<number, boolean>>({});
 
@@ -724,6 +751,18 @@ export function UnifiedSceneConfiguration({
                       onPronounExtrasPromptChange={(pronoun, prompt) => {
                         onPronounExtrasPromptChange?.(shot.slot, pronoun, prompt);
                       }}
+                      globalStyle={globalStyle}
+                      globalResolution={globalResolution}
+                      shotStyle={shotStyles[shot.slot]}
+                      shotResolution={shotResolutions[shot.slot]}
+                      onStyleChange={onStyleChange}
+                      onResolutionChange={onResolutionChange}
+                      shotCameraAngle={shotCameraAngles[shot.slot]}
+                      onCameraAngleChange={onCameraAngleChange}
+                      sceneProps={sceneProps}
+                      propsToShots={propsToShots}
+                      shotProps={shotProps}
+                      onPropDescriptionChange={onPropDescriptionChange}
                     />
                       );
                     })()}

@@ -16,6 +16,20 @@ import { LocationAngleSelector } from './LocationAngleSelector';
 import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
 
+export type ModelStyle = 'cinematic' | 'photorealistic' | 'auto';
+export type Resolution = '1080p' | '4k';
+export type CameraAngle = 
+  | 'close-up'
+  | 'medium-shot'
+  | 'wide-shot'
+  | 'extreme-close-up'
+  | 'extreme-wide-shot'
+  | 'over-the-shoulder'
+  | 'low-angle'
+  | 'high-angle'
+  | 'dutch-angle'
+  | 'auto';
+
 interface ShotConfigurationPanelProps {
   shot: any;
   sceneAnalysisResult: SceneAnalysisResult;
@@ -53,6 +67,21 @@ interface ShotConfigurationPanelProps {
   // Pronoun extras prompts (for skipped pronouns)
   pronounExtrasPrompts?: Record<string, string>; // { pronoun: prompt text }
   onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
+  // Model Style Selector (per-shot override)
+  globalStyle?: ModelStyle; // Global style (from Step 1)
+  globalResolution?: Resolution; // Global resolution (from Step 1)
+  shotStyle?: ModelStyle; // Per-shot style override
+  shotResolution?: Resolution; // Per-shot resolution override
+  onStyleChange?: (shotSlot: number, style: ModelStyle | undefined) => void; // undefined = use global
+  onResolutionChange?: (shotSlot: number, resolution: Resolution | undefined) => void; // undefined = use global
+  // Camera Angle (per-shot)
+  shotCameraAngle?: CameraAngle; // Per-shot camera angle (defaults to 'auto')
+  onCameraAngleChange?: (shotSlot: number, angle: CameraAngle | undefined) => void; // undefined = use 'auto'
+  // Props Configuration (per-shot)
+  sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
+  propsToShots?: Record<string, number[]>; // Which props are assigned to which shots (from Step 1)
+  shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>; // Per-shot prop configurations
+  onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
 }
 
 export function ShotConfigurationPanel({
@@ -85,7 +114,19 @@ export function ShotConfigurationPanel({
   dialogueWorkflowPrompt,
   onDialogueWorkflowPromptChange,
   pronounExtrasPrompts = {},
-  onPronounExtrasPromptChange
+  onPronounExtrasPromptChange,
+  globalStyle = 'auto',
+  globalResolution = '1080p',
+  shotStyle,
+  shotResolution,
+  onStyleChange,
+  onResolutionChange,
+  shotCameraAngle,
+  onCameraAngleChange,
+  sceneProps = [],
+  propsToShots = {},
+  shotProps = {},
+  onPropDescriptionChange
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -264,15 +305,157 @@ export function ShotConfigurationPanel({
         </div>
       )}
 
-      {/* Props Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
-        <div>
-          <div className="text-xs font-medium text-[#808080]">Props</div>
+      {/* Model Style Override Section */}
+      {(onStyleChange || onResolutionChange) && (
+        <div className="pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Model Style</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] text-[#808080] mb-1.5">Style</label>
+              <select
+                value={shotStyle || globalStyle}
+                onChange={(e) => {
+                  const style = e.target.value as ModelStyle;
+                  if (style === globalStyle) {
+                    onStyleChange?.(shot.slot, undefined); // Remove override
+                  } else {
+                    onStyleChange?.(shot.slot, style);
+                  }
+                }}
+                className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+              >
+                <option value={globalStyle}>Using default: {globalStyle}</option>
+                <option value="auto">Auto (Content-aware)</option>
+                <option value="cinematic">Cinematic</option>
+                <option value="photorealistic">Photorealistic</option>
+              </select>
+              {shotStyle && shotStyle !== globalStyle && (
+                <div className="text-[10px] text-[#808080] italic mt-1">
+                  Override: Using {shotStyle} instead of default ({globalStyle})
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-[10px] text-[#808080] mb-1.5">Resolution</label>
+              <select
+                value={shotResolution || globalResolution}
+                onChange={(e) => {
+                  const resolution = e.target.value as Resolution;
+                  if (resolution === globalResolution) {
+                    onResolutionChange?.(shot.slot, undefined); // Remove override
+                  } else {
+                    onResolutionChange?.(shot.slot, resolution);
+                  }
+                }}
+                className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+              >
+                <option value={globalResolution}>Using default: {globalResolution}</option>
+                <option value="1080p">1080p</option>
+                <option value="4k">4K</option>
+              </select>
+              {shotResolution && shotResolution !== globalResolution && (
+                <div className="text-[10px] text-[#808080] italic mt-1">
+                  Override: Using {shotResolution} instead of default ({globalResolution})
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="border-l border-[#3F3F46] pl-4">
-          <div className="text-[10px] text-[#808080] italic">Coming in next phase</div>
+      )}
+
+      {/* Camera Angle Section */}
+      {onCameraAngleChange && (
+        <div className="pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Camera Angle</div>
+          <select
+            value={shotCameraAngle || 'auto'}
+            onChange={(e) => {
+              const angle = e.target.value as CameraAngle;
+              if (angle === 'auto') {
+                onCameraAngleChange(shot.slot, undefined); // Remove override
+              } else {
+                onCameraAngleChange(shot.slot, angle);
+              }
+            }}
+            className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+          >
+            <option value="auto">Auto (Content-aware) - Default</option>
+            <option value="close-up">Close-up</option>
+            <option value="medium-shot">Medium Shot</option>
+            <option value="wide-shot">Wide Shot</option>
+            <option value="extreme-close-up">Extreme Close-up</option>
+            <option value="extreme-wide-shot">Extreme Wide Shot</option>
+            <option value="over-the-shoulder">Over-the-Shoulder</option>
+            <option value="low-angle">Low Angle</option>
+            <option value="high-angle">High Angle</option>
+            <option value="dutch-angle">Dutch Angle</option>
+          </select>
+          {shotCameraAngle && shotCameraAngle !== 'auto' && (
+            <div className="text-[10px] text-[#808080] italic mt-1">
+              Override: Using {shotCameraAngle.replace('-', ' ')} instead of auto-detection
+            </div>
+          )}
+          {!shotCameraAngle && (
+            <div className="text-[10px] text-[#808080] italic mt-1">
+              Using auto-detection (content-aware selection)
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Props Section - Only show props assigned to this shot */}
+      {(() => {
+        // Get props assigned to this shot
+        const assignedProps = sceneProps.filter(prop => 
+          propsToShots[prop.id]?.includes(shot.slot)
+        );
+        
+        if (assignedProps.length === 0) return null;
+        
+        return (
+          <div className="pb-3 border-b border-[#3F3F46]">
+            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Props</div>
+            <div className="space-y-3">
+              {assignedProps.map((prop) => {
+                const propConfig = shotProps[shot.slot]?.[prop.id] || {};
+                
+                return (
+                  <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                    <div className="flex items-center gap-2">
+                      {prop.imageUrl && (
+                        <img 
+                          src={prop.imageUrl} 
+                          alt={prop.name}
+                          className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
+                        />
+                      )}
+                      <span className="text-xs font-medium text-[#FFFFFF]">{prop.name}</span>
+                    </div>
+                    
+                    {/* Prop Usage Description */}
+                    {onPropDescriptionChange && (
+                      <div>
+                        <label className="block text-[10px] text-[#808080] mb-1.5">
+                          Describe how "{prop.name}" is used in this shot:
+                        </label>
+                        <textarea
+                          value={propConfig.usageDescription || ''}
+                          onChange={(e) => {
+                            onPropDescriptionChange(shot.slot, prop.id, e.target.value);
+                          }}
+                          placeholder={`e.g., Character picks up ${prop.name} and examines it...`}
+                          rows={2}
+                          className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Character(s) Section */}
       {explicitCharacters.length > 0 && (

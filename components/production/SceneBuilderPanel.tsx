@@ -62,6 +62,8 @@ import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
 import { UnifiedSceneConfiguration } from './UnifiedSceneConfiguration';
+import { SceneAnalysisStep } from './SceneAnalysisStep';
+import { SceneReviewStep } from './SceneReviewStep';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
@@ -181,8 +183,24 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // UI State: Collapsible sections
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   
-  // Wizard flow state (Step 3 removed - now part of UnifiedSceneConfiguration)
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  // Wizard flow state
+  const [wizardStep, setWizardStep] = useState<'analysis' | 'shot-config' | 'review'>('analysis');
+  const [currentShotIndex, setCurrentShotIndex] = useState<number>(0);
+  const [useWizard, setUseWizard] = useState(true); // Toggle between wizard and old UI
+  
+  // Model Style Selector state (global + per-shot overrides)
+  const [globalStyle, setGlobalStyle] = useState<'cinematic' | 'photorealistic' | 'auto'>('auto');
+  const [globalResolution, setGlobalResolution] = useState<'1080p' | '4k'>('1080p');
+  const [shotStyles, setShotStyles] = useState<Record<number, 'cinematic' | 'photorealistic' | 'auto'>>({});
+  const [shotResolutions, setShotResolutions] = useState<Record<number, '1080p' | '4k'>>({});
+  
+  // Camera Angle state (per-shot, defaults to 'auto')
+  const [shotCameraAngles, setShotCameraAngles] = useState<Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>>({});
+  
+  // Props state
+  const [sceneProps, setSceneProps] = useState<Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>>([]);
+  const [propsToShots, setPropsToShots] = useState<Record<string, number[]>>({}); // propId -> shot slots
+  const [shotProps, setShotProps] = useState<Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>>({}); // Per-shot prop configs
   
   // Phase 2: Scene selection state
   const [inputMethod, setInputMethod] = useState<'database' | 'manual'>('database');
@@ -256,6 +274,46 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
 
   // Removed: Auto-select scene from editor context
   // Users can now freely select any scene in Production Hub without being forced into editor context
+
+  // Fetch props when scene is selected
+  useEffect(() => {
+    async function fetchSceneProps() {
+      if (!selectedSceneId || !projectId) return;
+      
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
+        
+        if (!scene) return;
+        
+        const propIds = scene.fountain?.tags?.props || [];
+        if (propIds.length > 0) {
+          // Fetch prop details from Asset Bank
+          const propsResponse = await fetch(`/api/assets?ids=${propIds.join(',')}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (propsResponse.ok) {
+            const propsData = await propsResponse.json();
+            const props = Array.isArray(propsData) ? propsData : (propsData.assets || []);
+            setSceneProps(props.map((prop: any) => ({
+              id: prop.id || prop.assetId,
+              name: prop.name || prop.assetName || 'Unnamed Prop',
+              imageUrl: prop.imageUrl || prop.thumbnailUrl,
+              s3Key: prop.s3Key || prop.imageS3Key
+            })));
+          }
+        } else {
+          setSceneProps([]);
+        }
+      } catch (error) {
+        console.error('[SceneBuilderPanel] Failed to fetch scene props:', error);
+        setSceneProps([]);
+      }
+    }
+    
+    fetchSceneProps();
+  }, [selectedSceneId, projectId, screenplay.scenes, getToken]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   useEffect(() => {
@@ -2133,6 +2191,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         selectedDialogueWorkflows: Object.keys(selectedDialogueWorkflows).length > 0 ? selectedDialogueWorkflows : undefined, // Per-shot dialogue workflow selection: { shotSlot: workflowType }
         dialogueWorkflowPrompts: Object.keys(dialogueWorkflowPrompts).length > 0 ? dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
         pronounExtrasPrompts: Object.keys(pronounExtrasPrompts).length > 0 ? pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
+        // Model Style Selector (global + per-shot overrides)
+        globalStyle: globalStyle !== 'auto' ? globalStyle : undefined, // Only send if not 'auto'
+        globalResolution: globalResolution !== '1080p' ? globalResolution : undefined, // Only send if not default
+        shotStyles: Object.keys(shotStyles).length > 0 ? shotStyles : undefined, // Per-shot style overrides: { shotSlot: style }
+        shotResolutions: Object.keys(shotResolutions).length > 0 ? shotResolutions : undefined, // Per-shot resolution overrides: { shotSlot: resolution }
+        // Camera Angles (per-shot, defaults to 'auto' if not specified)
+        shotCameraAngles: Object.keys(shotCameraAngles).length > 0 ? shotCameraAngles : undefined, // Per-shot camera angle overrides: { shotSlot: angle }
+        // Props Integration
+        propsToShots: Object.keys(propsToShots).length > 0 ? propsToShots : undefined, // Props-to-shots assignment: { propId: [shotSlot1, shotSlot2] }
+        shotProps: Object.keys(shotProps).length > 0 ? shotProps : undefined, // Per-shot prop configurations: { shotSlot: { propId: { usageDescription, selectedImageId } } }
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
@@ -2804,8 +2872,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
           >
-            {/* Step 1: Scene Selection */}
-            {currentStep === 1 && (
+            {/* Step 1: Scene Selection (keep existing) */}
+            {currentStep === 1 && !selectedSceneId && (
               <Card className="bg-[#141414] border-[#3F3F46]">
                 <CardHeader className="pb-1.5">
                   <CardTitle className="text-sm text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
@@ -2972,23 +3040,32 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   />
                 )}
                 </CardContent>
-                <CardContent className="pt-0 pb-3">
-                  <Button
-                    onClick={() => {
-                      if (!sceneDescription.trim()) {
-                        toast.error('Please select or enter a scene first');
-                        return;
-                      }
-                      setCurrentStep(2);
-                    }}
-                    disabled={!sceneDescription.trim()}
-                    className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white h-11 text-sm px-4 py-2.5"
-                  >
-                    Continue to Step 2
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardContent>
               </Card>
+            )}
+
+            {/* Step 1: Scene Analysis & Shot Selection (after scene is selected) */}
+            {currentStep === 1 && selectedSceneId && sceneAnalysisResult && (
+              <SceneAnalysisStep
+                sceneAnalysisResult={sceneAnalysisResult}
+                enabledShots={enabledShots}
+                onEnabledShotsChange={setEnabledShots}
+                onNext={() => {
+                  if (wizardStep === 'analysis') {
+                    // Move to first shot configuration
+                    setWizardStep('shot-config');
+                    setCurrentShotIndex(0);
+                    setCurrentStep(2);
+                  }
+                }}
+                isAnalyzing={isAnalyzing}
+                globalStyle={globalStyle}
+                onGlobalStyleChange={setGlobalStyle}
+                globalResolution={globalResolution}
+                onGlobalResolutionChange={setGlobalResolution}
+                sceneProps={sceneProps}
+                propsToShots={propsToShots}
+                onPropsToShotsChange={setPropsToShots}
+              />
             )}
 
             {/* Step 2: Unified Scene Configuration */}
@@ -3110,6 +3187,68 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     isGenerating={isGenerating}
                     screenplayId={projectId}
                     getToken={getToken}
+                    globalStyle={globalStyle}
+                    globalResolution={globalResolution}
+                    shotStyles={shotStyles}
+                    shotResolutions={shotResolutions}
+                    onStyleChange={(shotSlot, style) => {
+                      if (style === undefined) {
+                        setShotStyles(prev => {
+                          const updated = { ...prev };
+                          delete updated[shotSlot];
+                          return updated;
+                        });
+                      } else {
+                        setShotStyles(prev => ({ ...prev, [shotSlot]: style }));
+                      }
+                    }}
+                    onResolutionChange={(shotSlot, resolution) => {
+                      if (resolution === undefined) {
+                        setShotResolutions(prev => {
+                          const updated = { ...prev };
+                          delete updated[shotSlot];
+                          return updated;
+                        });
+                      } else {
+                        setShotResolutions(prev => ({ ...prev, [shotSlot]: resolution }));
+                      }
+                    }}
+                    shotCameraAngles={shotCameraAngles}
+                    onCameraAngleChange={(shotSlot, angle) => {
+                      if (angle === undefined) {
+                        setShotCameraAngles(prev => {
+                          const updated = { ...prev };
+                          delete updated[shotSlot];
+                          return updated;
+                        });
+                      } else {
+                        setShotCameraAngles(prev => ({ ...prev, [shotSlot]: angle }));
+                      }
+                    }}
+                    sceneProps={sceneProps}
+                    propsToShots={propsToShots}
+                    shotProps={shotProps}
+                    onPropDescriptionChange={(shotSlot, propId, description) => {
+                      setShotProps(prev => {
+                        const shotConfig = prev[shotSlot] || {};
+                        const updated = { ...prev };
+                        updated[shotSlot] = {
+                          ...shotConfig,
+                          [propId]: {
+                            ...shotConfig[propId],
+                            usageDescription: description || undefined
+                          }
+                        };
+                        // Remove empty descriptions
+                        if (!description || description.trim() === '') {
+                          delete updated[shotSlot][propId];
+                          if (Object.keys(updated[shotSlot]).length === 0) {
+                            delete updated[shotSlot];
+                          }
+                        }
+                        return updated;
+                      });
+                    }}
                   />
                 )}
 
