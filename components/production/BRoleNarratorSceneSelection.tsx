@@ -535,7 +535,7 @@ export function BRoleNarratorSceneSelection({
             <div className="flex items-center gap-2">
               <Checkbox
                 checked={usePerSceneNarration}
-                onCheckedChange={setUsePerSceneNarration}
+                onCheckedChange={(checked) => setUsePerSceneNarration(checked === true)}
               />
               <Label className="text-xs text-[#808080]">
                 Use per-scene narration (advanced)
