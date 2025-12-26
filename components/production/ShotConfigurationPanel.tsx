@@ -46,6 +46,12 @@ interface ShotConfigurationPanelProps {
   // Dialogue workflow selection (per-shot)
   selectedDialogueWorkflow?: string; // Selected workflow for this shot (overrides auto-detection)
   onDialogueWorkflowChange?: (shotSlot: number, workflowType: string) => void;
+  // Dialogue workflow override prompts (for off-frame-voiceover and scene-voiceover)
+  dialogueWorkflowPrompt?: string; // User-provided description of alternate action
+  onDialogueWorkflowPromptChange?: (shotSlot: number, prompt: string) => void;
+  // Pronoun extras prompts (for skipped pronouns)
+  pronounExtrasPrompts?: Record<string, string>; // { pronoun: prompt text }
+  onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
 }
 
 export function ShotConfigurationPanel({
@@ -74,7 +80,11 @@ export function ShotConfigurationPanel({
   onCharacterReferenceChange,
   onCharacterOutfitChange,
   selectedDialogueWorkflow,
-  onDialogueWorkflowChange
+  onDialogueWorkflowChange,
+  dialogueWorkflowPrompt,
+  onDialogueWorkflowPromptChange,
+  pronounExtrasPrompts = {},
+  onPronounExtrasPromptChange
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -128,6 +138,30 @@ export function ShotConfigurationPanel({
             {selectedDialogueWorkflow && selectedDialogueWorkflow !== detectedWorkflowType && (
               <div className="text-[10px] text-[#808080] italic mt-1">
                 Override: Using selected workflow instead of auto-detected
+              </div>
+            )}
+            {/* Prompt box for off-frame-voiceover and scene-voiceover overrides */}
+            {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
+              <div className="mt-3">
+                <label className="block text-[10px] text-[#808080] mb-1.5">
+                  Describe the alternate action in the scene:
+                </label>
+                <textarea
+                  value={dialogueWorkflowPrompt || ''}
+                  onChange={(e) => {
+                    onDialogueWorkflowPromptChange(shot.slot, e.target.value);
+                  }}
+                  placeholder={
+                    currentWorkflow === 'off-frame-voiceover'
+                      ? 'e.g., Character speaking from off-screen, back turned, or side profile...'
+                      : 'e.g., Narrator voice describing the scene while characters are visible...'
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                />
+                <div className="text-[10px] text-[#808080] italic mt-1">
+                  This description will be used to generate the scene with the selected workflow.
+                </div>
               </div>
             )}
           </div>
@@ -231,6 +265,8 @@ export function ShotConfigurationPanel({
                             onCharacterReferenceChange={onCharacterReferenceChange}
                             onCharacterOutfitChange={onCharacterOutfitChange}
                             allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                            pronounExtrasPrompts={pronounExtrasPrompts}
+                            onPronounExtrasPromptChange={onPronounExtrasPromptChange}
                           />
                         </div>
                         {/* Images - only show if character is mapped */}
@@ -284,6 +320,8 @@ export function ShotConfigurationPanel({
                             onCharacterReferenceChange={onCharacterReferenceChange}
                             onCharacterOutfitChange={onCharacterOutfitChange}
                             allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                            pronounExtrasPrompts={pronounExtrasPrompts}
+                            onPronounExtrasPromptChange={onPronounExtrasPromptChange}
                           />
                         </div>
                         {/* Images - show all mapped characters */}

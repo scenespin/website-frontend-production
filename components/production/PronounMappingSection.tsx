@@ -30,6 +30,9 @@ interface PronounMappingSectionProps {
   onCharacterOutfitChange?: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
   // Additional character sources with full data (including outfits)
   allCharactersWithOutfits?: any[]; // Characters from sceneAnalysisResult or allCharacters with outfit data
+  // Pronoun extras prompts (for skipped pronouns - describes what the pronoun refers to)
+  pronounExtrasPrompts?: Record<string, string>; // { "they": "the couple standing in line behind them" }
+  onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
 }
 
 export function PronounMappingSection({
@@ -47,7 +50,9 @@ export function PronounMappingSection({
   characterOutfits = {},
   onCharacterReferenceChange,
   onCharacterOutfitChange,
-  allCharactersWithOutfits = []
+  allCharactersWithOutfits = [],
+  pronounExtrasPrompts = {},
+  onPronounExtrasPromptChange
 }: PronounMappingSectionProps) {
   // Get outfit for a character in this shot
   const getOutfitForCharacter = (charId: string): string | undefined => {
@@ -235,12 +240,31 @@ export function PronounMappingSection({
                     </select>
                   </div>
                   
-                  {/* Show "Skipped mapping" message if user chose to skip */}
+                  {/* Show prompt box for skipped pronouns */}
                   {isIgnored && (
                     <div className="ml-[76px] pt-2">
-                      <div className="text-[10px] text-[#808080] italic">
+                      <div className="text-[10px] text-[#808080] italic mb-2">
                         This pronoun will be handled automatically by the AI.
                       </div>
+                      {onPronounExtrasPromptChange && (
+                        <div className="mt-2">
+                          <label className="block text-[10px] text-[#808080] mb-1.5">
+                            Describe what "{pronoun}" refers to (extras/background):
+                          </label>
+                          <textarea
+                            value={pronounExtrasPrompts[pronoun] || ''}
+                            onChange={(e) => {
+                              onPronounExtrasPromptChange(pronoun, e.target.value);
+                            }}
+                            placeholder='e.g., "the couple standing in line behind them", "the people walking by", "the squirrels in the tree"'
+                            rows={2}
+                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                          />
+                          <div className="text-[10px] text-[#808080] italic mt-1">
+                            This description will be used in image and video generation prompts.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   
@@ -393,6 +417,29 @@ export function PronounMappingSection({
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Show prompt box for skipped plural pronouns */}
+                  {isIgnored && onPronounExtrasPromptChange && (
+                    <div className="ml-[76px] pt-2">
+                      <div className="mt-2">
+                        <label className="block text-[10px] text-[#808080] mb-1.5">
+                          Describe what "{pronoun}" refers to (extras/background):
+                        </label>
+                        <textarea
+                          value={pronounExtrasPrompts[pronoun] || ''}
+                          onChange={(e) => {
+                            onPronounExtrasPromptChange(pronoun, e.target.value);
+                          }}
+                          placeholder='e.g., "the couple standing in line behind them", "the people walking by", "the squirrels in the tree"'
+                          rows={2}
+                          className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                        />
+                        <div className="text-[10px] text-[#808080] italic mt-1">
+                          This description will be used in image and video generation prompts.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Show character names and outfit selectors when mapped (not ignored) */}
                   {!isIgnored && mappedCharacterIds.length > 0 && (

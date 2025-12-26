@@ -51,6 +51,12 @@ interface UnifiedSceneConfigurationProps {
   // Dialogue workflow selection (per-shot)
   selectedDialogueWorkflows?: Record<number, string>; // Per-shot: shotSlot -> workflowType
   onDialogueWorkflowChange?: (shotSlot: number, workflowType: string) => void;
+  // Dialogue workflow override prompts (per-shot)
+  dialogueWorkflowPrompts?: Record<number, string>; // Per-shot: shotSlot -> prompt text
+  onDialogueWorkflowPromptChange?: (shotSlot: number, prompt: string) => void;
+  // Pronoun extras prompts (per-shot, per-pronoun)
+  pronounExtrasPrompts?: Record<number, Record<string, string>>; // Per-shot, per-pronoun: shotSlot -> { pronoun: prompt }
+  onPronounExtrasPromptChange?: (shotSlot: number, pronoun: string, prompt: string) => void;
   enabledShots: number[];
   onEnabledShotsChange: (enabledShots: number[]) => void;
   onGenerate: () => void;
@@ -78,6 +84,10 @@ export function UnifiedSceneConfiguration({
   allCharacters = [],
   selectedDialogueWorkflows = {},
   onDialogueWorkflowChange,
+  dialogueWorkflowPrompts = {},
+  onDialogueWorkflowPromptChange,
+  pronounExtrasPrompts = {},
+  onPronounExtrasPromptChange,
   enabledShots,
   onEnabledShotsChange,
   onGenerate,
@@ -708,6 +718,12 @@ export function UnifiedSceneConfiguration({
                       onCharacterOutfitChange={onCharacterOutfitChange}
                       selectedDialogueWorkflow={selectedDialogueWorkflows[shot.slot]}
                       onDialogueWorkflowChange={onDialogueWorkflowChange}
+                      dialogueWorkflowPrompt={dialogueWorkflowPrompts[shot.slot]}
+                      onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
+                      pronounExtrasPrompts={pronounExtrasPrompts[shot.slot] || {}}
+                      onPronounExtrasPromptChange={(pronoun, prompt) => {
+                        onPronounExtrasPromptChange?.(shot.slot, pronoun, prompt);
+                      }}
                     />
                       );
                     })()}
