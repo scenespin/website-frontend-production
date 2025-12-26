@@ -7,7 +7,7 @@
  * Matches LocationBankPanel pattern exactly
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Package, Car, Armchair, Box, Film, X, Loader2 } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
@@ -23,9 +23,11 @@ import { useAssets } from '@/hooks/useAssetBank';
 interface AssetBankPanelProps {
   className?: string;
   isMobile?: boolean;
+  entityToOpen?: string | null; // Asset ID to open modal for
+  onEntityOpened?: () => void; // Callback when entity modal is opened
 }
 
-export default function AssetBankPanel({ className = '', isMobile = false }: AssetBankPanelProps) {
+export default function AssetBankPanel({ className = '', isMobile = false, entityToOpen, onEntityOpened }: AssetBankPanelProps) {
   const { getToken } = useAuth();
   const editorContext = useEditorContext();
   const screenplay = useScreenplay();
@@ -46,6 +48,18 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Auto-open modal when entityToOpen is set
+  useEffect(() => {
+    if (entityToOpen && !showDetailModal) {
+      const asset = assets.find(a => a.id === entityToOpen);
+      if (asset) {
+        setSelectedAssetId(entityToOpen);
+        setShowDetailModal(true);
+        onEntityOpened?.();
+      }
+    }
+  }, [entityToOpen, assets, showDetailModal, onEntityOpened]);
 
   // Early return after all hooks
   if (!screenplayId) {

@@ -140,6 +140,7 @@ interface JobsDrawerProps {
   autoOpen?: boolean; // Auto-open when jobs are running
   compact?: boolean; // Compact mode for smaller screens
   jobCount?: number; // Number of active jobs for tab badge
+  onNavigateToEntity?: (entityType: 'character' | 'location' | 'asset', entityId: string) => void; // Callback to navigate to entity modal
 }
 
 // StatusFilter removed - showing all jobs per session
@@ -235,7 +236,7 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
   );
 }
 
-export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0 }: JobsDrawerProps) {
+export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0, onNavigateToEntity }: JobsDrawerProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   const { getToken, userId } = useAuth();
@@ -894,33 +895,52 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                       {/* Angle References - Location/Asset angles */}
                       {job.jobType === 'image-generation' && job.results?.angleReferences && job.results.angleReferences.length > 0 && (
                         <div className="grid grid-cols-4 gap-1">
-                          {job.results.angleReferences.slice(0, 4).map((angleRef, index) => (
-                            <div
-                              key={angleRef.s3Key || index}
-                              className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F]"
-                            >
-                              {angleRef.s3Key ? (
-                                <ImageThumbnailFromS3Key 
-                                  s3Key={angleRef.s3Key} 
-                                  alt={`${angleRef.angle} view`}
-                                  fallbackUrl={angleRef.imageUrl}
-                                />
-                              ) : angleRef.imageUrl ? (
-                                <img
-                                  src={angleRef.imageUrl}
-                                  alt={`${angleRef.angle} view`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
-                                  No image
+                          {job.results.angleReferences.slice(0, 4).map((angleRef, index) => {
+                            // Determine entity type and ID from job metadata
+                            const locationId = job.metadata?.inputs?.locationId;
+                            const assetId = job.metadata?.inputs?.assetId;
+                            const entityType = locationId ? 'location' : assetId ? 'asset' : null;
+                            const entityId = locationId || assetId;
+                            const entityName = job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName;
+                            const canNavigate = onNavigateToEntity && entityType && entityId;
+                            
+                            return (
+                              <div
+                                key={angleRef.s3Key || index}
+                                className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
+                                  canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
+                                }`}
+                                onClick={() => {
+                                  if (canNavigate && entityType) {
+                                    onNavigateToEntity(entityType, entityId);
+                                    onClose(); // Close drawer when navigating
+                                  }
+                                }}
+                                title={canNavigate ? `View ${entityName || entityType}` : undefined}
+                              >
+                                {angleRef.s3Key ? (
+                                  <ImageThumbnailFromS3Key 
+                                    s3Key={angleRef.s3Key} 
+                                    alt={`${angleRef.angle} view`}
+                                    fallbackUrl={angleRef.imageUrl}
+                                  />
+                                ) : angleRef.imageUrl ? (
+                                  <img
+                                    src={angleRef.imageUrl}
+                                    alt={`${angleRef.angle} view`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
+                                    No image
+                                  </div>
+                                )}
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
+                                  <p className="text-[8px] text-white truncate capitalize">{angleRef.angle || `Angle ${index + 1}`}</p>
                                 </div>
-                              )}
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
-                                <p className="text-[8px] text-white truncate capitalize">{angleRef.angle || `Angle ${index + 1}`}</p>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                           {job.results.angleReferences.length > 4 && (
                             <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
                               <span className="text-[8px] text-[#808080]">+{job.results.angleReferences.length - 4}</span>
@@ -932,10 +952,50 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                       {/* Generic Images */}
                       {job.jobType === 'image-generation' && job.results.images && job.results.images.length > 0 && (
                         <div className="grid grid-cols-4 gap-1">
-                          {job.results.images.slice(0, 4).map((img, index) => (
-                            <div
-                              key={index}
-                              className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F]"
+                          {job.results.images.slice(0, 4).map((img, index) => {
+                            // Check if this is for a character, location, or asset
+                            const characterId = job.metadata?.inputs?.characterId;
+                            const locationId = job.metadata?.inputs?.locationId;
+                            const assetId = job.metadata?.inputs?.assetId;
+                            const entityType = characterId ? 'character' : locationId ? 'location' : assetId ? 'asset' : null;
+                            const entityId = characterId || locationId || assetId;
+                            const entityName = job.metadata?.inputs?.characterName || job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName;
+                            const canNavigate = onNavigateToEntity && entityType && entityId;
+                            
+                            return (
+                              <div
+                                key={index}
+                                className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
+                                  canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
+                                }`}
+                                onClick={() => {
+                                  if (canNavigate && entityType) {
+                                    onNavigateToEntity(entityType, entityId);
+                                    onClose(); // Close drawer when navigating
+                                  }
+                                }}
+                                title={canNavigate ? `View ${entityName || entityType}` : undefined}
+                              >
+                                {img.s3Key ? (
+                                  <ImageThumbnailFromS3Key 
+                                    s3Key={img.s3Key} 
+                                    alt={img.name || `Image ${index + 1}`}
+                                    fallbackUrl={img.imageUrl}
+                                  />
+                                ) : img.imageUrl ? (
+                                  <img
+                                    src={img.imageUrl}
+                                    alt={img.name || `Image ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
+                                    No image
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                             >
                               {img.s3Key ? (
                                 <ImageThumbnailFromS3Key 

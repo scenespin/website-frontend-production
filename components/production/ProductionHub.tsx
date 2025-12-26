@@ -98,6 +98,9 @@ export function ProductionHub({}: ProductionHubProps) {
   const [showJobsBanner, setShowJobsBanner] = useState(true);
   const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false);
   
+  // Navigation state for opening entity modals from JobsDrawer
+  const [entityToOpen, setEntityToOpen] = useState<{ type: 'character' | 'location' | 'asset'; id: string } | null>(null);
+  
   // 🔥 FIX: Use ref to prevent circular updates when we programmatically change the tab
   const isUpdatingTabRef = useRef(false);
   
@@ -375,7 +378,11 @@ export function ProductionHub({}: ProductionHubProps) {
         {activeTab === 'characters' && (
           <div className="h-full overflow-y-auto">
             <ProductionErrorBoundary componentName="Character Bank">
-              <CharacterBankPanel className="h-full" />
+              <CharacterBankPanel 
+                className="h-full"
+                entityToOpen={entityToOpen?.type === 'character' ? entityToOpen.id : null}
+                onEntityOpened={() => setEntityToOpen(null)}
+              />
             </ProductionErrorBoundary>
             </div>
         )}
@@ -383,7 +390,11 @@ export function ProductionHub({}: ProductionHubProps) {
         {activeTab === 'locations' && (
           <div className="h-full overflow-y-auto">
             <ProductionErrorBoundary componentName="Location Bank">
-              <LocationBankPanel className="h-full" />
+              <LocationBankPanel 
+                className="h-full"
+                entityToOpen={entityToOpen?.type === 'location' ? entityToOpen.id : null}
+                onEntityOpened={() => setEntityToOpen(null)}
+              />
             </ProductionErrorBoundary>
         </div>
         )}
@@ -391,7 +402,11 @@ export function ProductionHub({}: ProductionHubProps) {
         {activeTab === 'assets' && (
             <div className="h-full overflow-y-auto">
             <ProductionErrorBoundary componentName="Asset Bank">
-              <AssetBankPanel className="h-full" />
+              <AssetBankPanel 
+                className="h-full"
+                entityToOpen={entityToOpen?.type === 'asset' ? entityToOpen.id : null}
+                onEntityOpened={() => setEntityToOpen(null)}
+              />
             </ProductionErrorBoundary>
             </div>
           )}
@@ -407,6 +422,15 @@ export function ProductionHub({}: ProductionHubProps) {
         autoOpen={true}
         compact={isMobile}
         jobCount={activeJobs}
+        onNavigateToEntity={(entityType, entityId) => {
+          // Switch to appropriate tab
+          const targetTab: ProductionTab = entityType === 'character' ? 'characters' : entityType === 'location' ? 'locations' : 'assets';
+          setActiveTab(targetTab);
+          // Set entity to open - panels will check this and open modal
+          setEntityToOpen({ type: entityType, id: entityId });
+          // Update URL
+          handleTabChange(targetTab);
+        }}
       />
     </div>
   );

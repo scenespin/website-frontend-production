@@ -7,7 +7,7 @@
  * Matches LocationBankPanel pattern exactly
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { CharacterProfile } from './types';
 import { User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,13 +24,17 @@ interface CharacterBankPanelProps {
   characters?: CharacterProfile[];
   isLoading?: boolean;
   onCharactersUpdate?: () => void;
+  entityToOpen?: string | null; // Character ID to open modal for
+  onEntityOpened?: () => void; // Callback when entity modal is opened
 }
 
 export function CharacterBankPanel({
   className = '',
   characters: propsCharacters = [],
   isLoading: propsIsLoading = false,
-  onCharactersUpdate
+  onCharactersUpdate,
+  entityToOpen,
+  onEntityOpened
 }: CharacterBankPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
@@ -54,6 +58,18 @@ export function CharacterBankPanel({
   
   // 🔥 FIX: Get selectedCharacter from query data (always up-to-date) instead of stale prop
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
+
+  // Auto-open modal when entityToOpen is set
+  useEffect(() => {
+    if (entityToOpen && !showCharacterDetail) {
+      const character = characters.find(c => c.id === entityToOpen);
+      if (character) {
+        setSelectedCharacterId(entityToOpen);
+        setShowCharacterDetail(true);
+        onEntityOpened?.();
+      }
+    }
+  }, [entityToOpen, characters, showCharacterDetail, onEntityOpened]);
 
   // Early return after all hooks
   if (!screenplayId) {

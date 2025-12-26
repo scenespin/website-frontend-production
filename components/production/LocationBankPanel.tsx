@@ -7,7 +7,7 @@
  * Reduced from ~358 lines to ~200 lines using React Query
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -23,13 +23,17 @@ interface LocationBankPanelProps {
   locations?: LocationProfile[];
   isLoading?: boolean;
   onLocationsUpdate?: () => void;
+  entityToOpen?: string | null; // Location ID to open modal for
+  onEntityOpened?: () => void; // Callback when entity modal is opened
 }
 
 export function LocationBankPanel({
   className = '',
   locations: propsLocations = [],
   isLoading: propsIsLoading = false,
-  onLocationsUpdate
+  onLocationsUpdate,
+  entityToOpen,
+  onEntityOpened
 }: LocationBankPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
@@ -50,6 +54,18 @@ export function LocationBankPanel({
   const [showLocationDetail, setShowLocationDetail] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [angleLocation, setAngleLocation] = useState<LocationProfile | null>(null);
+
+  // Auto-open modal when entityToOpen is set
+  useEffect(() => {
+    if (entityToOpen && !showLocationDetail) {
+      const location = locations.find(l => l.locationId === entityToOpen);
+      if (location) {
+        setSelectedLocationId(entityToOpen);
+        setShowLocationDetail(true);
+        onEntityOpened?.();
+      }
+    }
+  }, [entityToOpen, locations, showLocationDetail, onEntityOpened]);
 
   // Early return after all hooks
   if (!screenplayId) {
