@@ -188,6 +188,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [currentShotIndex, setCurrentShotIndex] = useState<number>(0);
   const [useWizard, setUseWizard] = useState(true); // Toggle between wizard and old UI
   
+  // Step navigation (for existing 2-step flow)
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  
   // Model Style Selector state (global + per-shot overrides)
   const [globalStyle, setGlobalStyle] = useState<'cinematic' | 'photorealistic' | 'auto'>('auto');
   const [globalResolution, setGlobalResolution] = useState<'1080p' | '4k'>('1080p');
