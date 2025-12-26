@@ -41,6 +41,8 @@ interface ModernGalleryProps {
   availableOutfits?: string[];
   entityName?: string;
   onImageClick?: (index: number) => void;
+  layout?: 'left' | 'top'; // 'left' for character gallery, 'top' for location gallery
+  aspectRatio?: '16:9' | '21:9'; // For top layout
 }
 
 export function ModernGallery({
@@ -49,7 +51,9 @@ export function ModernGallery({
   onOutfitFilterChange,
   availableOutfits = [],
   entityName,
-  onImageClick
+  onImageClick,
+  layout = 'left',
+  aspectRatio = '16:9'
 }: ModernGalleryProps) {
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -223,7 +227,7 @@ export function ModernGallery({
           className="relative group cursor-pointer"
           onClick={handleFeaturedClick}
         >
-          <div className="relative w-full rounded-xl overflow-hidden border-2 border-[#3F3F46] group-hover:border-[#DC143C] transition-all duration-200 shadow-2xl">
+          <div className="relative w-full rounded-xl overflow-hidden transition-all duration-200 shadow-2xl">
             <img
               src={featuredImage.imageUrl}
               alt={featuredImage.label}
@@ -299,23 +303,27 @@ export function ModernGallery({
   // Multiple images layout - featured + grid
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Featured Image - Left side (1/3 width) */}
+      <div className={`grid gap-6 ${layout === 'top' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3'}`}>
+        {/* Featured Image - Left side (1/3 width) or Top (full width) */}
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, x: layout === 'top' ? 0 : -20, y: layout === 'top' ? -20 : 0 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="lg:col-span-1"
+          className={layout === 'top' ? 'w-full' : 'lg:col-span-1'}
         >
           <div
             className="relative group cursor-pointer"
             onClick={handleFeaturedClick}
           >
-            <div className="relative w-full rounded-xl overflow-hidden border-2 border-[#3F3F46] group-hover:border-[#DC143C] transition-all duration-200 shadow-2xl bg-[#1F1F1F] flex items-center justify-center" style={{ minHeight: '400px', maxHeight: '600px' }}>
+            <div className={`relative w-full rounded-xl overflow-hidden transition-all duration-200 shadow-2xl bg-[#1F1F1F] flex items-center justify-center ${
+              layout === 'left' ? '' : 'group-hover:shadow-2xl' // No border for left layout, shadow only for top
+            }`} style={layout === 'top' ? { aspectRatio: aspectRatio === '21:9' ? '21/9' : '16/9' } : { minHeight: '400px', maxHeight: '600px' }}>
               <img
                 src={featuredImage.imageUrl}
                 alt={featuredImage.label}
-                className="w-full h-auto max-h-[600px] object-contain transition-transform duration-300 group-hover:scale-105"
+                className={`w-full h-auto object-contain transition-transform duration-300 group-hover:scale-105 ${
+                  layout === 'top' ? 'h-full' : 'max-h-[600px]'
+                }`}
                 loading="lazy"
               />
               
@@ -362,12 +370,12 @@ export function ModernGallery({
           </div>
         </motion.div>
 
-        {/* Grid Gallery - Right side (2/3 width) */}
+        {/* Grid Gallery - Right side (2/3 width) or Below (full width) */}
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, x: layout === 'top' ? 0 : 20, y: layout === 'top' ? 20 : 0 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="lg:col-span-2"
+          className={layout === 'top' ? 'w-full' : 'lg:col-span-2'}
         >
           <Gallery
             photos={photos}

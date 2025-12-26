@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
+import { ModernGallery, type GalleryImage } from './Gallery/ModernGallery';
 
 /**
  * Get display label for provider ID
@@ -513,58 +514,21 @@ export function LocationDetailModal({
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
               {activeTab === 'gallery' && (
                 <div className="p-6">
-                  {/* Main Image Display */}
                   {allImages.length > 0 ? (
-                    <div className="mb-6">
-                      {/* 🔥 Gallery viewer: Always 16:9 (landscape) - 16:9 images fill it completely, square images show black bars on left/right sides */}
-                      {/* Future: Will support 21:9 when ultrawide is available */}
-                      {/* 🔥 FIX: Use aspect-video (16:9) and ensure container maintains 16:9 ratio */}
-                      <div className="relative w-full aspect-video bg-[#1F1F1F] rounded-lg overflow-hidden border border-[#3F3F46] mb-4" style={{ aspectRatio: '16/9' }}>
-                        <img
-                          src={allImages[selectedImageIndex]?.imageUrl}
-                          alt={allImages[selectedImageIndex]?.label}
-                          className="w-full h-full object-contain" // Always contain - 16:9 fills frame, square shows left/right side bars
-                          style={{ objectFit: 'contain' }} // Explicit object-fit to ensure proper display
-                        />
-                        {/* Aspect ratio indicator - always 16:9 (cropped version) */}
-                        <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 text-white text-xs rounded">
-                          16:9
-                        </div>
-                        {allImages[selectedImageIndex]?.isBase && (
-                          <div className="absolute top-4 left-4 px-3 py-1 bg-[#DC143C]/20 text-[#DC143C] rounded-full text-xs font-medium">
-                            Base Reference
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Thumbnail Grid */}
-                      {allImages.length > 1 && (
-                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                          {allImages.map((img, idx) => (
-                            <button
-                              key={img.id}
-                              onClick={() => setSelectedImageIndex(idx)}
-                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                                selectedImageIndex === idx
-                                  ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
-                                  : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-                              }`}
-                            >
-                              <img
-                                src={img.imageUrl}
-                                alt={img.label}
-                                className="w-full h-full object-cover"
-                              />
-                              {img.isBase && (
-                                <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
-                                  Base
-                                </div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <ModernGallery
+                      images={allImages.map((img): GalleryImage => ({
+                        id: img.id,
+                        imageUrl: img.imageUrl,
+                        label: img.label,
+                        isBase: img.isBase,
+                        source: img.metadata?.generationMethod === 'ai-generated' ? 'pose-generation' : 'user-upload'
+                      }))}
+                      layout="top"
+                      aspectRatio={allImages[selectedImageIndex]?.metadata?.aspectRatio === '21:9' ? '21:9' : '16:9'}
+                      onImageClick={(index) => {
+                        setSelectedImageIndex(index);
+                      }}
+                    />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <MapPin className="w-16 h-16 text-[#808080] mb-4" />
