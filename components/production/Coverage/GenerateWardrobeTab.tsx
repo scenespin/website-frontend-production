@@ -122,6 +122,12 @@ export function GenerateWardrobeTab({
     return selectedModel.supportsClothingImages === true;
   }, [selectedModel, providerId]);
 
+  // Reset providerId and clothing images when quality changes
+  useEffect(() => {
+    setProviderId('');
+    setClothingImages([]);
+  }, [quality]);
+
   // Load models when quality changes
   useEffect(() => {
     async function loadModels() {
@@ -147,12 +153,6 @@ export function GenerateWardrobeTab({
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         
-        // Auto-select first model BEFORE setting models state
-        // This ensures selectedModel memo recalculates correctly
-        if (enabledModels.length > 0 && !providerId) {
-          setProviderId(enabledModels[0].id);
-        }
-        
         setModels(enabledModels);
       } catch (error: any) {
         console.error('[GenerateWardrobeTab] Failed to load models:', error);
@@ -165,11 +165,12 @@ export function GenerateWardrobeTab({
     loadModels();
   }, [quality, getToken]);
 
-  // Reset providerId when quality changes
+  // Auto-select first model when models are loaded and providerId is empty
   useEffect(() => {
-    setProviderId('');
-    setClothingImages([]);
-  }, [quality]);
+    if (models.length > 0 && !providerId && !isLoadingModels) {
+      setProviderId(models[0].id);
+    }
+  }, [models, providerId, isLoadingModels]);
 
   // Handle clothing image upload (Virtual Try-On)
   const handleClothingImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
