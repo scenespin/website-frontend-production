@@ -1717,31 +1717,37 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const now = new Date().toISOString();
         
         // 🔥 Beats removed - update directly in scenes state
-        setScenes(prev => prev.map(scene =>
-                    scene.id === id
-                        ? { ...scene, ...updates, updatedAt: now }
-                        : scene
-        ));
+        let updatedScene: Scene | undefined;
+        setScenes(prev => prev.map(scene => {
+            if (scene.id === id) {
+                updatedScene = { ...scene, ...updates, updatedAt: now };
+                return updatedScene;
+            }
+            return scene;
+        }));
         
         // Feature 0117: Save updated scene directly to DynamoDB
+        // 🔥 FIX: Use scenesRef to get latest state (avoid stale closure)
+        // Wait a bit for state update to propagate to ref
         if (screenplayId) {
             try {
-                const currentScene = scenes.find(s => s.id === id);
-                if (currentScene) {
-                    const sceneWithUpdates = { ...currentScene, ...updates, updatedAt: now };
-                        const apiScene = transformScenesToAPI([sceneWithUpdates]);
-                        await bulkCreateScenes(screenplayId, apiScene, getToken);
-                        console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
+                // Use the updated scene from the state update, or fall back to ref
+                const sceneToSave = updatedScene || scenesRef.current.find(s => s.id === id);
+                if (sceneToSave) {
+                    const apiScene = transformScenesToAPI([sceneToSave]);
+                    await bulkCreateScenes(screenplayId, apiScene, getToken);
+                    console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
                 }
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update scene in DynamoDB:', error);
             }
         }
-    }, [scenes, screenplayId, getToken]);
+    }, [screenplayId, getToken]);
     
     // 🔥 Feature 0136: Asset-Scene Association - Link asset to scene
     const linkAssetToScene = useCallback(async (assetId: string, sceneId: string) => {
-        const scene = scenes.find(s => s.id === sceneId);
+        // 🔥 FIX: Use scenesRef to get latest state (avoid stale closure)
+        const scene = scenesRef.current.find(s => s.id === sceneId) || scenes.find(s => s.id === sceneId);
         if (!scene) {
             console.error('[ScreenplayContext] Scene not found:', sceneId);
             return;
@@ -1770,7 +1776,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // 🔥 Feature 0136: Asset-Scene Association - Unlink asset from scene
     const unlinkAssetFromScene = useCallback(async (assetId: string, sceneId: string) => {
-        const scene = scenes.find(s => s.id === sceneId);
+        // 🔥 FIX: Use scenesRef to get latest state (avoid stale closure)
+        const scene = scenesRef.current.find(s => s.id === sceneId) || scenes.find(s => s.id === sceneId);
         if (!scene) {
             console.error('[ScreenplayContext] Scene not found:', sceneId);
             return;
