@@ -35,7 +35,6 @@ const PACKAGE_ICONS: Record<string, any> = {
   standard: Check,
   premium: Star,
   cinematic: Sparkles,
-  master: Crown,
   dialogue: MessageCircle
 };
 
@@ -44,9 +43,50 @@ const PACKAGE_COLORS: Record<string, string> = {
   standard: 'from-blue-500 to-blue-600',
   premium: 'from-purple-500 to-purple-600',
   cinematic: 'from-pink-500 to-red-600',
-  master: 'from-yellow-500 to-orange-600',
   dialogue: 'from-green-500 to-emerald-600'
 };
+
+/**
+ * Format pose name for display (convert kebab-case to readable)
+ */
+function formatPoseName(pose: string): string {
+  return pose
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * Group poses by category for better display
+ */
+function groupPosesByCategory(poses: string[]): { category: string; poses: string[] }[] {
+  const categories: Record<string, string[]> = {
+    'Angles': [],
+    'Expressions': [],
+    'Actions': [],
+    'Close-ups': [],
+    'Other': []
+  };
+
+  poses.forEach(pose => {
+    const formatted = formatPoseName(pose);
+    if (pose.includes('close-up') || pose.includes('extreme-close-up')) {
+      categories['Close-ups'].push(formatted);
+    } else if (pose.includes('smiling') || pose.includes('serious') || pose.includes('neutral-expression') || pose.includes('determined')) {
+      categories['Expressions'].push(formatted);
+    } else if (pose.includes('walking') || pose.includes('running') || pose.includes('sitting') || pose.includes('standing')) {
+      categories['Actions'].push(formatted);
+    } else if (pose.includes('front') || pose.includes('side') || pose.includes('back') || pose.includes('three-quarter') || pose.includes('angle') || pose.includes('profile')) {
+      categories['Angles'].push(formatted);
+    } else {
+      categories['Other'].push(formatted);
+    }
+  });
+
+  return Object.entries(categories)
+    .filter(([_, poses]) => poses.length > 0)
+    .map(([category, poses]) => ({ category, poses }));
+}
 
 export default function PosePackageSelector({
   characterName,
@@ -96,21 +136,14 @@ export default function PosePackageSelector({
     {
       id: 'cinematic',
       name: 'Cinematic Package',
-      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'back-view', 'back-view-full-body', 'three-quarter-back', 'full-body-front', 'full-body-three-quarter', 'full-body-side', 'walking-forward', 'running', 'sitting', 'standing-confident', 'high-angle', 'low-angle', 'close-up'],
-      credits: calculatePackageCredits(18), // 🔥 DYNAMIC: 18 poses × creditsPerImage
+      // 🔥 CAPPED AT 12 POSES: Balanced selection for maximum first frame usage (with location/assets)
+      // Builds on Premium (11) by adding: side-profile-right, three-quarter-back, high-angle, low-angle
+      // Removed redundant poses, focused on unique camera angles and expressions
+      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'three-quarter-back', 'full-body-front', 'full-body-three-quarter', 'back-view-full-body', 'high-angle', 'low-angle', 'close-up'],
+      credits: calculatePackageCredits(12), // 🔥 DYNAMIC: 12 poses × creditsPerImage (capped at model limit minus location/assets)
       consistencyRating: 98,
-      description: '18 poses for high-end productions (includes headshot for dialogue)',
-      bestFor: ['High-end films', 'Multiple angles', 'Dialogue scenes', 'Camera variety'],
-      discount: 0
-    },
-    {
-      id: 'master',
-      name: 'Master Package',
-      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'back-view', 'back-view-full-body', 'back-view-upper', 'three-quarter-back', 'full-body-front', 'full-body-three-quarter', 'full-body-side', 'walking-forward', 'running', 'sitting', 'standing-casual', 'standing-confident', 'neutral-expression', 'smiling', 'serious', 'determined', 'high-angle', 'low-angle', 'close-up', 'extreme-close-up', 'close-up-three-quarter'],
-      credits: calculatePackageCredits(27), // 🔥 DYNAMIC: 27 poses × creditsPerImage
-      consistencyRating: 99,
-      description: 'Complete 27-pose set for maximum coverage (includes dialogue variations)',
-      bestFor: ['Feature films', 'Complete coverage', 'Professional studios', 'Dialogue scenes'],
+      description: '12 carefully curated poses for high-end productions (optimized for first frame generation with locations/assets)',
+      bestFor: ['High-end films', 'Multiple angles', 'Camera variety', 'Maximum consistency'],
       discount: 0
     },
     {
@@ -203,6 +236,11 @@ export default function PosePackageSelector({
                   </div>
                   <div className="text-[10px] text-[#808080]">
                     {pkg.poses.length} poses
+                  </div>
+                  {/* Pose Preview */}
+                  <div className="text-[9px] text-[#808080] mt-1 line-clamp-2">
+                    {pkg.poses.slice(0, 3).map(formatPoseName).join(', ')}
+                    {pkg.poses.length > 3 && ` +${pkg.poses.length - 3} more`}
                   </div>
                 </div>
                 
@@ -305,8 +343,36 @@ export default function PosePackageSelector({
               </p>
               
               {/* Pose Count */}
-              <div className="text-sm text-base-content/70 mb-4">
+              <div className="text-sm text-base-content/70 mb-3">
                 <strong>{pkg.poses.length} poses</strong> included
+              </div>
+              
+              {/* Pose List by Category */}
+              <div className="mb-4 space-y-2 max-h-48 overflow-y-auto">
+                {groupPosesByCategory(pkg.poses).map(({ category, poses }) => (
+                  <div key={category}>
+                    <div className="text-xs font-semibold text-base-content/50 uppercase mb-1">
+                      {category}:
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {poses.map((pose, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 bg-base-content/10 text-base-content/70 text-[10px] rounded"
+                        >
+                          {pose}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Usage Note */}
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded p-2 mb-4">
+                <div className="text-[10px] text-base-content/60">
+                  <strong className="text-base-content/80">Note:</strong> Up to 12 character poses used per first frame (with 1-2 location/asset references). All poses available for character consistency across multiple scenes.
+                </div>
               </div>
               
               {/* Best For */}
