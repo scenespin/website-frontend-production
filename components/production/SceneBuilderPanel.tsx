@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import { SceneBuilderProgress } from '@/components/video/SceneBuilderProgress';
 import { SceneBuilderDecisionModal } from '@/components/video/SceneBuilderDecisionModal';
 import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
+import { ShotConfigurationStep } from './ShotConfigurationStep';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
