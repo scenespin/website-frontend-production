@@ -3708,7 +3708,6 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       });
                     }}
                   />
-                )}
 
                 {/* Back Button */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
