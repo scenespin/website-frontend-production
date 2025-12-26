@@ -336,7 +336,10 @@ export function LocationDetailModal({
         imageUrl: location.baseReference.imageUrl,
         label: `${location.name} - Base Reference`,
         isBase: true,
-        s3Key: location.baseReference.s3Key
+        s3Key: location.baseReference.s3Key,
+        metadata: {
+          generationMethod: location.baseReference.generationMethod || 'upload'
+        }
       });
     }
     
@@ -347,7 +350,10 @@ export function LocationDetailModal({
           imageUrl: img.imageUrl,
           label: `${location.name} - Reference`,
           isBase: false,
-          s3Key: img.s3Key
+          s3Key: img.s3Key,
+          metadata: {
+            generationMethod: img.generationMethod || 'upload'
+          }
         });
       });
     }
@@ -369,6 +375,7 @@ export function LocationDetailModal({
         isRegenerated: isRegenerated,
         metadata: {
           ...variation.metadata,
+          generationMethod: variation.generationMethod || 'angle-variation', // Store generationMethod for source badge
           variation: variation // Store full variation for regeneration
         }
       });
@@ -521,7 +528,9 @@ export function LocationDetailModal({
                         imageUrl: img.imageUrl,
                         label: img.label,
                         isBase: img.isBase,
-                        source: img.metadata?.generationMethod === 'ai-generated' ? 'pose-generation' : 'user-upload'
+                        source: (img.metadata?.generationMethod === 'ai-generated' || img.metadata?.generationMethod === 'angle-variation') 
+                          ? 'pose-generation' 
+                          : 'user-upload'
                       }))}
                       layout="top"
                       aspectRatio={allImages[selectedImageIndex]?.metadata?.aspectRatio === '21:9' ? '21:9' : '16:9'}
