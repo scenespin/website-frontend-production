@@ -7,17 +7,19 @@
  * Backend/API still uses "Storage" or "media-library" - component name kept for compatibility.
  * 
  * Features:
- * - Browse Archive folders (displayed as "Archive", backend uses "Storage")
+ * - Browse Archive folders with folder tree navigation (displayed as "Archive", backend uses "Storage")
  * - Multi-select images
  * - Filter by image type
  * - Show selected count
+ * - Folder browsing (advanced feature - shows root folder structure)
  */
 
 import React, { useState, useMemo } from 'react';
-import { FolderOpen, Check, Loader2 } from 'lucide-react';
+import { FolderOpen, Check, Loader2, Folder, ChevronRight, ChevronDown, HardDrive, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import type { MediaFile } from '@/types/media';
-import { useMediaFiles, usePresignedUrl } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, usePresignedUrl, useMediaFolderTree } from '@/hooks/useMediaLibrary';
+import type { FolderTreeNode } from '@/types/media';
 
 // Separate component for image thumbnail (to use hooks correctly)
 function MediaLibraryImageThumbnail({
@@ -97,13 +99,23 @@ export function MediaLibraryBrowser({
   onCancel
 }: MediaLibraryBrowserProps) {
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
   
-  // Load media files - include all folders for Storage browser
+  // Load folder tree for navigation
+  const { 
+    data: folderTree = [], 
+    isLoading: folderTreeLoading 
+  } = useMediaFolderTree(screenplayId, !!screenplayId);
+  
+  // Load media files - filter by selected folder
+  // When selectedFolderId is null (root), show all files from all folders
+  // When a folder is selected, show only files in that folder
   const { data: mediaFiles = [], isLoading } = useMediaFiles(
     screenplayId,
-    undefined, // folderId - show all files
+    selectedFolderId || undefined, // folderId - filter by selected folder (undefined = all files)
     true, // enabled
-    true // includeAllFolders - show files from all folders, not just root
+    !selectedFolderId // includeAllFolders - show all files when root is selected, only folder files when folder selected
   );
 
   // Filter to images only
@@ -136,61 +148,201 @@ export function MediaLibraryBrowser({
     onSelectImages(selected);
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-white">Select Images from Archive</h3>
-          {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" */}
-          <p className="text-xs text-[#808080]">
-            {selectedImages.size} of {maxSelections} selected
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {onCancel && (
+  // Handle folder selection
+  const handleFolderSelect = (folderId: string | null) => {
+    setSelectedFolderId(folderId);
+    setSelectedImages(new Set()); // Clear selection when changing folders
+  };
+
+  // Toggle folder expansion
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  };
+
+  // Folder node interface for tree structure
+  interface FolderNode {
+    id: string;
+    name: string;
+    path: string[];
+    folderId: string;
+    fileCount?: number;
+    children?: FolderNode[];
+  }
+
+  // Convert folder tree to renderable format
+  const convertFolderTree = (tree: FolderTreeNode[]): FolderNode[] => {
+    return tree.map(folder => ({
+      id: folder.folderId,
+      name: folder.folderName,
+      path: folder.folderPath,
+      folderId: folder.folderId,
+      fileCount: folder.fileCount,
+      children: folder.children ? convertFolderTree(folder.children) : undefined,
+    }));
+  };
+
+  // Build folder tree with root
+  const buildFolderTree = (): FolderNode[] => {
+    const root: FolderNode = {
+      id: 'root',
+      name: 'All Files',
+      path: [],
+      folderId: '',
+      children: folderTree.length > 0 ? convertFolderTree(folderTree) : undefined,
+    };
+    return [root];
+  };
+
+  // Render folder node recursively
+  const renderFolderNode = (node: FolderNode, level: number = 0): React.ReactNode => {
+    const isExpanded = expandedFolders.has(node.id);
+    const isSelected = selectedFolderId === node.folderId || (node.id === 'root' && !selectedFolderId);
+    const hasChildren = node.children && node.children.length > 0;
+
+    return (
+      <div key={node.id}>
+        <div
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+            isSelected
+              ? 'bg-[#DC143C]/20 text-[#FFFFFF] border border-[#DC143C]/50'
+              : 'text-[#808080] hover:bg-[#1F1F1F] hover:text-[#FFFFFF]'
+          }`}
+          style={{ paddingLeft: `${12 + level * 16}px` }}
+          onClick={() => {
+            if (hasChildren) {
+              toggleFolder(node.id);
+            }
+            handleFolderSelect(node.folderId || null);
+          }}
+        >
+          {hasChildren ? (
             <button
-              onClick={onCancel}
-              className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-white rounded text-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFolder(node.id);
+              }}
+              className="p-0.5 hover:bg-[#1F1F1F] rounded"
             >
-              Cancel
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
             </button>
+          ) : (
+            <div className="w-5" /> // Spacer
           )}
-          <button
-            onClick={handleConfirm}
-            disabled={selectedImages.size === 0}
-            className="px-3 py-1.5 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm"
-          >
-            Add Selected ({selectedImages.size})
-          </button>
+          {isExpanded ? (
+            <FolderOpen className="w-4 h-4 flex-shrink-0" />
+          ) : (
+            <Folder className="w-4 h-4 flex-shrink-0" />
+          )}
+          <span className="text-sm truncate flex-1">{node.name}</span>
+          {node.fileCount !== undefined && (
+            <span className="text-xs text-[#808080] ml-1">{node.fileCount}</span>
+          )}
+        </div>
+        {hasChildren && isExpanded && (
+          <div>
+            {node.children!.map(child => renderFolderNode(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const folderNodes = buildFolderTree();
+
+  return (
+    <div className="flex gap-4 h-[500px]">
+      {/* Folder Sidebar */}
+      <div className="w-64 bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-[#3F3F46]">
+          <h3 className="text-sm font-semibold text-[#FFFFFF]">Folders</h3>
+          <p className="text-xs text-[#808080] mt-1">Browse folder structure</p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {folderTreeLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-[#808080]" />
+            </div>
+          ) : (
+            folderNodes.map(node => renderFolderNode(node))
+          )}
         </div>
       </div>
 
-      {/* Archive Grid */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
+      {/* Main Content Area */}
+      <div className="flex-1 space-y-4 overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-shrink-0">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Select Images from Archive</h3>
+            {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" */}
+            <p className="text-xs text-[#808080]">
+              {selectedImages.size} of {maxSelections} selected
+              {selectedFolderId && ` • Folder: ${folderNodes[0]?.children?.find(f => f.folderId === selectedFolderId)?.name || 'Unknown'}`}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {onCancel && (
+              <button
+                onClick={onCancel}
+                className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-white rounded text-sm"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              onClick={handleConfirm}
+              disabled={selectedImages.size === 0}
+              className="px-3 py-1.5 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm"
+            >
+              Add Selected ({selectedImages.size})
+            </button>
+          </div>
         </div>
-      ) : imageFiles.length === 0 ? (
-        <div className="text-center py-12">
-          <FolderOpen className="w-12 h-12 text-[#808080] mx-auto mb-4" />
-          <p className="text-[#808080] mb-2">No images in Archive</p>
-          <p className="text-xs text-[#6B7280]">
-            Upload images to Archive first, or use the Upload button
-          </p>
+
+        {/* Archive Grid */}
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
+            </div>
+          ) : imageFiles.length === 0 ? (
+            <div className="text-center py-12">
+              <FolderOpen className="w-12 h-12 text-[#808080] mx-auto mb-4" />
+              <p className="text-[#808080] mb-2">
+                {selectedFolderId ? 'No images in this folder' : 'No images in Archive'}
+              </p>
+              <p className="text-xs text-[#6B7280]">
+                {selectedFolderId 
+                  ? 'Navigate to a different folder or upload images here'
+                  : 'Upload images to Archive first, or use the Upload button'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+              {imageFiles.map(file => (
+                <MediaLibraryImageThumbnail
+                  key={file.id}
+                  file={file}
+                  isSelected={selectedImages.has(file.id)}
+                  onToggle={() => handleImageToggle(file.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 max-h-[400px] overflow-y-auto">
-          {imageFiles.map(file => (
-            <MediaLibraryImageThumbnail
-              key={file.id}
-              file={file}
-              isSelected={selectedImages.has(file.id)}
-              onToggle={() => handleImageToggle(file.id)}
-            />
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
