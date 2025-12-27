@@ -2506,9 +2506,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                           <Button
                             onClick={() => {
                               setHasConfirmedSceneSelection(true);
-                              setIsAnalyzing(true); // Start analyzing immediately
                               setAnalysisError(null); // Clear any previous errors
                               toast.success('Analyzing scene...');
+                              // Analysis will be triggered by useEffect when hasConfirmedSceneSelection changes
                             }}
                             className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
                             disabled={isAnalyzing}
