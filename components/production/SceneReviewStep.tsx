@@ -275,11 +275,12 @@ export function SceneReviewStep({
               // Apply markup to base costs
               // Industry standard for SaaS: 3-5x markup on COGS (300-500% markup = 75-83% margin)
               // For AI/video generation services, typical margins are 50-80% of selling price
-              // Using 100% markup (2x) = 50% margin, which is conservative for this industry
+              // Using 70% margin = 3.33x markup (233% markup)
               // This markup is applied ON TOP of base provider costs (Runway, etc.)
-              const markupMultiplier = 2.0; // 100% markup = 50% margin
+              const targetMargin = 0.70; // 70% margin
+              const markupMultiplier = 1 / (1 - targetMargin); // Calculate markup to achieve target margin
               const finalPrice = baseCredits * markupMultiplier;
-              const marginPercentage = ((finalPrice - baseCredits) / finalPrice) * 100; // Actual margin %
+              const marginPercentage = targetMargin * 100; // Display margin %
               
               return (
                 <div className="p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
