@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import Lightbox from 'yet-another-react-lightbox';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
@@ -531,20 +531,63 @@ export function CharacterDetailModal({
   // 🔥 FIX: Memoize allImages to prevent unnecessary recalculations
   const allImages = useMemo(() => [...userReferences, ...poseReferences], [userReferences, poseReferences]);
   
+  // Feature 0174: Match images with Media Library files to get thumbnailS3Key
+  // Create a map of s3Key -> thumbnailS3Key from Media Library
+  const thumbnailS3KeyMap = useMemo(() => {
+    const map = new Map<string, string>();
+    mediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) {
+        map.set(file.s3Key, file.thumbnailS3Key);
+      }
+    });
+    return map;
+  }, [mediaFiles]);
+  
+  // Feature 0174: Extract thumbnail S3 keys for bulk presigned URL generation
+  const thumbnailS3Keys = useMemo(() => {
+    return allImages
+      .map(img => {
+        const s3Key = img.s3Key;
+        if (!s3Key) return null;
+        // Check Media Library for thumbnailS3Key, or fall back to metadata
+        const thumbnailS3Key = thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key;
+        return thumbnailS3Key || null;
+      })
+      .filter((key): key is string => key !== null);
+  }, [allImages, thumbnailS3KeyMap]);
+  
+  // Feature 0174: Get presigned URLs for thumbnails (bulk request for performance)
+  const { data: thumbnailUrls = new Map() } = useBulkPresignedUrls(
+    thumbnailS3Keys.length > 0 ? thumbnailS3Keys : [],
+    thumbnailS3Keys.length > 0 // Only enable if we have thumbnails
+  );
+  
   // Convert to GalleryImage format for ModernGallery
   const galleryImages: GalleryImage[] = useMemo(() => {
-    return allImages.map((img) => ({
-      id: img.id,
-      imageUrl: img.imageUrl,
-      thumbnailUrl: img.imageUrl, // Use same URL for thumbnail (can optimize later)
-      label: img.label,
-      outfitName: (img as any).outfitName || 'default',
-      isBase: img.isBase || false,
-      source: img.isPose ? 'pose-generation' : 'user-upload',
-      width: 4, // Default aspect ratio (can detect from image later)
-      height: 3
-    }));
-  }, [allImages]);
+    return allImages.map((img) => {
+      // Feature 0174: Get thumbnail S3 key from Media Library or metadata
+      const s3Key = img.s3Key;
+      const thumbnailS3Key = s3Key ? (thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key) : null;
+      
+      // Get thumbnail URL if available, otherwise fall back to full image
+      let thumbnailUrl = img.imageUrl;
+      if (thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key)) {
+        thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
+      }
+      
+      return {
+        id: img.id,
+        imageUrl: img.imageUrl, // Always use full image for lightbox/preview
+        thumbnailUrl: thumbnailUrl, // Use thumbnail for grid view, fallback to full image
+        label: img.label,
+        outfitName: (img as any).outfitName || 'default',
+        isBase: img.isBase || false,
+        source: img.isPose ? 'pose-generation' : 'user-upload',
+        width: 4, // Default aspect ratio (can detect from image later)
+        height: 3
+      };
+    });
+  }, [allImages, thumbnailS3KeyMap, thumbnailUrls]);
   
   // Filter gallery images by outfit
   const filteredGalleryImages = useMemo(() => {

@@ -30,6 +30,7 @@ export interface MediaFile {
   folderId?: string; // Feature 0128: S3 folder ID (if file is in a folder)
   folderPath?: string[]; // Feature 0128: Breadcrumb path array for folder navigation
   metadata?: Record<string, any>; // Feature 0170: Generation metadata (entityType, sceneId, etc.)
+  thumbnailS3Key?: string; // Feature 0174: Thumbnail S3 key (if thumbnail exists)
 }
 
 /**
