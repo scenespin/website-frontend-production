@@ -229,6 +229,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [sceneProps, setSceneProps] = useState<Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>>([]);
   const [propsToShots, setPropsToShots] = useState<Record<string, number[]>>({}); // propId -> shot slots
   const [shotProps, setShotProps] = useState<Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>>({}); // Per-shot prop configs
+  const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
+  const [isLoadingSceneContent, setIsLoadingSceneContent] = useState<Record<string, boolean>>({}); // sceneId -> loading state
   
   // Phase 2: Scene selection state
   const [inputMethod, setInputMethod] = useState<'database' | 'manual'>('database');
