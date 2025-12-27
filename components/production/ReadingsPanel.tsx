@@ -89,6 +89,8 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const [showReadingModal, setShowReadingModal] = useState(false);
   const [deletingReadingId, setDeletingReadingId] = useState<string | null>(null);
   const playerRefs = useRef<Map<string, any>>(new Map());
+  const initializingPlayers = useRef<Set<string>>(new Set()); // Track players being initialized
+  const downloadingFiles = useRef<Set<string>>(new Set()); // Track files being downloaded
 
   // Filter and group readings
   const groupedReadings = useMemo(() => {
@@ -167,6 +169,14 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
 
   // Download function - matches original ProductionJobsPanel pattern exactly
   const downloadAudioAsBlob = async (file: MediaFile) => {
+    // Prevent duplicate downloads
+    if (downloadingFiles.current.has(file.id)) {
+      console.warn('[ReadingsPanel] Download already in progress for:', file.id);
+      return;
+    }
+
+    downloadingFiles.current.add(file.id);
+    
     try {
       let downloadUrl: string | undefined = undefined;
       const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
@@ -258,6 +268,8 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       console.error('[ReadingsPanel] Failed to download audio:', error);
       toast.error('Failed to download audio', { description: error.message });
       throw error;
+    } finally {
+      downloadingFiles.current.delete(file.id);
     }
   };
 
@@ -419,13 +431,13 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 onDownloadCombined={() => handleDownloadCombined(reading)}
                 onDownloadAll={() => handleDownloadAll(reading)}
                 onDelete={() => handleDeleteReading(reading)}
-                playerRef={(player) => {
+                playerRef={React.useCallback((player: any) => {
                   if (player) {
                     playerRefs.current.set(reading.id, player);
                   } else {
                     playerRefs.current.delete(reading.id);
                   }
-                }}
+                }, [reading.id])}
               />
             ))}
           </div>
@@ -477,10 +489,17 @@ function ReadingCard({
   useEffect(() => {
     if (!reading.combinedAudio || !isPlaying) return;
     
+    // Prevent duplicate initialization
+    if (initializingPlayers.current.has(reading.id)) {
+      return;
+    }
+    
     // Wait for element to be in DOM
     if (!playerContainerRef.current) {
       return;
     }
+
+    initializingPlayers.current.add(reading.id);
 
     const initializePlayer = async () => {
       try {
@@ -590,8 +609,9 @@ function ReadingCard({
         playerInstanceRef.current = null;
         playerRef(null);
       }
+      initializingPlayers.current.delete(reading.id);
     };
-  }, [isPlaying, reading.combinedAudio, getToken, playerRef]);
+  }, [isPlaying, reading.combinedAudio?.id, reading.id, getToken]); // Removed playerRef from deps, use reading.id instead
 
   const date = new Date(reading.date);
   const sceneCount = reading.sceneAudios.length;
