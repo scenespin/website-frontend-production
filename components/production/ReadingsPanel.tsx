@@ -17,6 +17,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useMediaFiles, useDeleteMedia, usePresignedUrl } from '@/hooks/useMediaLibrary';
+import { getScreenplay } from '@/utils/screenplayStorage';
 import { toast } from 'sonner';
 import { 
   Headphones, 
@@ -54,8 +55,23 @@ interface ReadingSession {
 export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
-  const screenplayTitle = screenplay.title || 'Untitled Screenplay';
   const { getToken } = useAuth();
+  const [screenplayTitle, setScreenplayTitle] = React.useState<string>('Untitled Screenplay');
+
+  // Fetch screenplay title
+  React.useEffect(() => {
+    if (screenplayId && getToken) {
+      getScreenplay(screenplayId, getToken)
+        .then((screenplayData) => {
+          if (screenplayData?.title) {
+            setScreenplayTitle(screenplayData.title);
+          }
+        })
+        .catch(() => {
+          // Keep default title on error
+        });
+    }
+  }, [screenplayId, getToken]);
 
   // Query all Media Library files
   const { data: allFiles = [], isLoading } = useMediaFiles(
