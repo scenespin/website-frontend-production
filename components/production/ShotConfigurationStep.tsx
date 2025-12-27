@@ -219,24 +219,34 @@ export function ShotConfigurationStep({
   const enabledShotsList = shots.filter(s => enabledShots.includes(s.slot));
 
   return (
-    <div className={isMobile ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"}>
-      {/* Shot Navigator (Left side on desktop, top on mobile) */}
+    <div className={isMobile ? "space-y-4" : "grid grid-cols-3 gap-4 items-start"}>
+      {/* Shot Navigator (Left side: 1/3 width on desktop, top on mobile) */}
       {onShotSelect && (
-        <div className={isMobile ? "w-full" : "flex flex-col"}>
+        <div className={isMobile ? "w-full" : "sticky top-4 flex flex-col"}>
           <label className="text-xs font-medium mb-2 block text-[#808080]">
             Select Shot
           </label>
           <ShotNavigatorList
             shots={enabledShotsList}
             currentShotSlot={shot.slot}
-            onShotSelect={onShotSelect}
+            onShotSelect={(shotSlot) => {
+              // Trigger fade transition when clicking shot
+              setIsTransitioning(true);
+              setTimeout(() => {
+                onShotSelect(shotSlot);
+                setIsTransitioning(false);
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }, 800);
+            }}
             isMobile={isMobile}
           />
         </div>
       )}
       
-      {/* Shot Configuration (Right side on desktop, bottom on mobile) */}
-      <div className={`space-y-4 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+      {/* Shot Configuration (Right side: 2/3 width on desktop, bottom on mobile) */}
+      <div className={isMobile ? "w-full" : "col-span-2"}>
+        <div className={`space-y-4 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
         <Card className="bg-[#141414] border-[#3F3F46]">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -383,6 +393,7 @@ export function ShotConfigurationStep({
           </div>
         </CardContent>
       </Card>
+        </div>
       </div>
     </div>
   );

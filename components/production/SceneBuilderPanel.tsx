@@ -58,6 +58,7 @@ import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
+import { getScreenplay } from '@/utils/screenplayStorage';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { SceneSelector } from './SceneSelector';
@@ -336,6 +337,66 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     fetchSceneProps();
   }, [selectedSceneId, projectId, screenplay.scenes, getToken]);
+
+  // Fetch full scene content when scene is selected
+  useEffect(() => {
+    const fetchSceneContent = async () => {
+      if (!selectedSceneId || !projectId) return;
+      
+      const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
+      if (!scene || !scene.fountain?.startLine || !scene.fountain?.endLine) {
+        // Fallback to heading + synopsis
+        let fallback = '';
+        if (scene?.heading) fallback = scene.heading;
+        if (scene?.synopsis) {
+          fallback = fallback ? fallback + '\n\n' + scene.synopsis : scene.synopsis;
+        }
+        if (fallback) {
+          setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: fallback }));
+        }
+        return;
+      }
+      
+      // Check if already loaded
+      if (fullSceneContent[selectedSceneId]) return;
+      
+      setIsLoadingSceneContent(prev => ({ ...prev, [selectedSceneId]: true }));
+      try {
+        const screenplayData = await getScreenplay(projectId, getToken);
+        if (screenplayData?.content) {
+          const fountainLines = screenplayData.content.split('\n');
+          const rawContent = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine);
+          // Filter out sections (#) and synopses (=) per Fountain spec
+          const filteredContent = rawContent.filter(line => {
+            const trimmed = line.trim();
+            return !trimmed.startsWith('#') && !trimmed.startsWith('=');
+          });
+          setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: filteredContent.join('\n') }));
+        } else {
+          // Fallback
+          let fallback = '';
+          if (scene.heading) fallback = scene.heading;
+          if (scene.synopsis) {
+            fallback = fallback ? fallback + '\n\n' + scene.synopsis : scene.synopsis;
+          }
+          setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: fallback }));
+        }
+      } catch (error) {
+        console.error('[SceneBuilderPanel] Failed to fetch screenplay content:', error);
+        // Fallback
+        let fallback = '';
+        if (scene.heading) fallback = scene.heading;
+        if (scene.synopsis) {
+          fallback = fallback ? fallback + '\n\n' + scene.synopsis : scene.synopsis;
+        }
+        setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: fallback }));
+      } finally {
+        setIsLoadingSceneContent(prev => ({ ...prev, [selectedSceneId]: false }));
+      }
+    };
+    
+    fetchSceneContent();
+  }, [selectedSceneId, projectId, screenplay.scenes, getToken, fullSceneContent]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
@@ -2487,36 +2548,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                 </div>
                               )}
                               
-                              {/* Scene Content */}
-                              {(() => {
-                                // Construct scene content from heading and synopsis
-                                let sceneContent = '';
-                                if (scene.heading) {
-                                  sceneContent = scene.heading;
-                                }
-                                if (scene.synopsis) {
-                                  if (sceneContent) {
-                                    sceneContent += '\n\n' + scene.synopsis;
-                                  } else {
-                                    sceneContent = scene.synopsis;
-                                  }
-                                }
-                                
-                                if (sceneContent) {
-                                  return (
-                                    <div>
-                                      <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
-                                      <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-64 overflow-y-auto">
-                                        {sceneContent}
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                
-                                return (
-                                  <div className="text-xs text-[#808080] italic">No scene content available</div>
-                                );
-                              })()}
+                              {/* Scene Content - Full scene from screenplay */}
+                              {isLoadingSceneContent[selectedSceneId] ? (
+                                <div className="text-xs text-[#808080] italic">Loading scene content...</div>
+                              ) : fullSceneContent[selectedSceneId] ? (
+                                <div>
+                                  <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
+                                  <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-96 overflow-y-auto font-mono">
+                                    {fullSceneContent[selectedSceneId]}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-xs text-[#808080] italic">No scene content available</div>
+                              )}
                             </CardContent>
                           </Card>
                           

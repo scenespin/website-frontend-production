@@ -440,18 +440,14 @@ export function ShotConfigurationPanel({
               // Check if narrator is also manually selected (will show normally in that section)
               const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
               return (
-                <div key={charId} className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${isNarrator ? 'opacity-50' : ''}`}>
-                  <div>
-                    {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                    {isNarrator && (
-                      <div className="mt-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                        Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
-                      </div>
-                    )}
-                  </div>
-                  <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
-                    {renderCharacterImagesOnly(charId, shot.slot)}
-                  </div>
+                <div key={charId} className={`space-y-3 ${isNarrator ? 'opacity-50' : ''}`}>
+                  {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                  {isNarrator && (
+                    <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                      Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
+                    </div>
+                  )}
+                  {renderCharacterImagesOnly(charId, shot.slot)}
                 </div>
               );
             })}
@@ -514,8 +510,8 @@ export function ShotConfigurationPanel({
                     
                     return (
                       <div key={pronoun} className="space-y-2">
-                        {/* Mobile: Stack controls + photos together. Desktop: side-by-side */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Stacked layout: controls + photos vertically */}
+                        <div className="space-y-3">
                           <div>
                             <PronounMappingSection
                               pronouns={[pronoun]}
@@ -542,7 +538,7 @@ export function ShotConfigurationPanel({
                           </div>
                           {/* Images - only show if character is mapped and not already rendered */}
                           {char && !alreadyRendered && (
-                            <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                            <div className="mt-3">
                               {renderCharacterImagesOnly(char.id, shot.slot, characterToPronouns.get(char.id)?.map(p => `"${p}"`) || [`"${pronoun}"`])}
                               {characterToPronouns.get(char.id)!.length > 1 && (
                                 <div className="text-[10px] text-[#808080] mt-2 italic">
@@ -552,7 +548,7 @@ export function ShotConfigurationPanel({
                             </div>
                           )}
                           {char && alreadyRendered && (
-                            <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                            <div className="mt-3">
                               <div className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
                                 Character "{char.name}" images shown above (mapped to {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')})
                               </div>
