@@ -339,7 +339,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         const result = await SceneBuilderService.analyzeScene(projectId, selectedSceneId);
         
         if (result) {
-          const characterDetails = result.data.characters?.map(c => ({
+          const characterDetails = result.characters?.map(c => ({
             id: c.id,
             name: c.name,
             hasReferences: c.hasReferences,
@@ -350,12 +350,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           })) || [];
           
           console.log('[SceneBuilderPanel] ✅ Analysis result received:', {
-            sceneType: result.data.sceneType,
-            characterCount: result.data.characters?.length || 0,
+            sceneType: result.sceneType,
+            characterCount: result.characters?.length || 0,
             characters: characterDetails,
             characterNames: characterDetails.map(c => c.name).join(', '),
-            location: result.data.location?.name,
-            shotBreakdown: result.data.shotBreakdown?.totalShots
+            location: result.location?.name,
+            shotBreakdown: result.shotBreakdown?.totalShots
           });
           
           // Log outfit information for each character (explicit logging)
