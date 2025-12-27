@@ -36,7 +36,10 @@ import {
   Save,
   Loader2,
   ChevronRight,
-  Check
+  Check,
+  MapPin,
+  Users,
+  Edit
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -2365,77 +2368,119 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
 
                 {/* Database Selection */}
                 {inputMethod === 'database' && (
-                  <div className="space-y-3">
-                    <SceneSelector
-                      selectedSceneId={selectedSceneId}
-                      onSceneSelect={(sceneId) => {
-                        if (sceneId) {
-                          setSelectedSceneId(sceneId);
-                          setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
-                          setSceneAnalysisResult(null); // Clear previous analysis
-                          setAnalysisError(null); // Clear any errors
-                          const scene = screenplay.scenes?.find(s => s.id === sceneId);
-                          if (scene) {
-                            // Load scene content into description
-                            const sceneText = scene.synopsis || 
-                              `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
-                            setSceneDescription(sceneText);
+                  <div className={isMobile ? "space-y-3" : "grid grid-cols-1 lg:grid-cols-2 gap-4"}>
+                    {/* Scene Navigator List (Left side on desktop, top on mobile) */}
+                    <div className={isMobile ? "w-full" : ""}>
+                      <SceneSelector
+                        selectedSceneId={selectedSceneId}
+                        onSceneSelect={(sceneId) => {
+                          if (sceneId) {
+                            setSelectedSceneId(sceneId);
+                            setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
+                            setSceneAnalysisResult(null); // Clear previous analysis
+                            setAnalysisError(null); // Clear any errors
+                            const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                            if (scene) {
+                              // Load scene content into description
+                              const sceneText = scene.synopsis || 
+                                `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
+                              setSceneDescription(sceneText);
+                            }
+                          } else {
+                            // If empty selection, clear everything
+                            setSelectedSceneId(null);
+                            setHasConfirmedSceneSelection(false);
+                            setSceneAnalysisResult(null);
+                            setAnalysisError(null);
                           }
-                        } else {
-                          // If empty selection, clear everything
-                          setSelectedSceneId(null);
-                          setHasConfirmedSceneSelection(false);
-                          setSceneAnalysisResult(null);
-                          setAnalysisError(null);
-                        }
-                      }}
-                      onUseScene={(scene) => {
-                        // Scene already loaded in onSceneSelect, just confirm
-                        // This is just for the "Use This Scene" button in SceneSelector
-                        // The actual Start button is below in the preview section
-                      }}
-                      onEditScene={(sceneId) => {
-                        // Use context store to set scene, then navigate to editor
-                        const scene = screenplay.scenes?.find(s => s.id === sceneId);
-                        if (scene) {
-                          // Set scene in context store so editor can jump to it
-                          contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
-                          // Navigate to editor - it will read context and jump to scene.startLine
-                          window.location.href = `/write?sceneId=${sceneId}`;
-                        } else {
-                          window.location.href = '/write';
-                        }
-                      }}
-                      isMobile={isMobile}
-                    />
+                        }}
+                        isMobile={isMobile}
+                      />
+                    </div>
                     
-                    {/* Scene Preview and Continue Button */}
+                    {/* Scene Preview and Start Button (Right side on desktop, bottom on mobile) */}
                     {selectedSceneId && (() => {
                       const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
                       if (!scene) return null;
                       
+                      // Get location and characters for display
+                      const sceneRel = screenplay.relationships?.scenes?.[scene.id];
+                      const location = sceneRel?.location 
+                        ? screenplay.locations?.find(l => l.id === sceneRel.location)
+                        : (scene.fountain?.tags?.location 
+                          ? screenplay.locations?.find(l => l.id === scene.fountain.tags.location)
+                          : null);
+                      const characters = (scene.fountain?.tags?.characters || [])
+                        .map(charId => screenplay.characters?.find(c => c.id === charId))
+                        .filter(Boolean);
+                      
                       return (
                         <div className="space-y-3">
-                          {/* Scene Preview Card */}
+                          {/* Merged Scene Preview Card */}
                           <Card className="bg-[#0A0A0A] border-[#3F3F46]">
                             <CardHeader className="pb-2">
-                              <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
+                              <div className="flex items-start justify-between">
+                                <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
+                                <div className="flex items-center gap-2">
+                                  {scene.order && (
+                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+                                      Scene {scene.order}
+                                    </Badge>
+                                  )}
+                                  <Button
+                                    onClick={() => {
+                                      // Use context store to set scene, then navigate to editor
+                                      contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
+                                      window.location.href = `/write?sceneId=${scene.id}`;
+                                    }}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px] text-[#808080] hover:text-[#FFFFFF]"
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                </div>
+                              </div>
                             </CardHeader>
-                            <CardContent className="space-y-2">
+                            <CardContent className="space-y-3">
+                              {/* Scene Heading */}
                               {scene.heading && (
                                 <div>
-                                  <div className="text-[10px] text-[#808080] mb-1">Scene Heading</div>
-                                  <div className="text-xs text-[#FFFFFF] font-medium">{scene.heading}</div>
+                                  <h3 className="text-xs text-[#FFFFFF] font-medium mb-1">
+                                    {scene.heading}
+                                  </h3>
                                 </div>
                               )}
+                              
+                              {/* Location and Characters */}
+                              {(location || characters.length > 0) && (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {location && (
+                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                      <MapPin className="w-3 h-3" />
+                                      <span>{location.name}</span>
+                                    </div>
+                                  )}
+                                  {characters.length > 0 && (
+                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                      <Users className="w-3 h-3" />
+                                      <span>{characters.map(c => c?.name).filter(Boolean).join(', ')}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Scene Synopsis/Content */}
                               {scene.synopsis && (
                                 <div>
-                                  <div className="text-[10px] text-[#808080] mb-1">Scene Content</div>
-                                  <div className="text-xs text-[#808080] whitespace-pre-wrap max-h-48 overflow-y-auto">
+                                  <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
+                                  <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-48 overflow-y-auto">
                                     {scene.synopsis}
                                   </div>
                                 </div>
                               )}
+                              
                               {!scene.synopsis && !scene.heading && (
                                 <div className="text-xs text-[#808080] italic">No scene content available</div>
                               )}
