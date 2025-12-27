@@ -1309,7 +1309,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             textOrientation: 'mixed',
             animation: 'pulse-subtle 3s ease-in-out infinite',
             zIndex: Z_INDEX.POPOVER,
-            display: isMobile ? 'none' : undefined, // Extra safeguard
+            display: actuallyMobile ? 'none' : undefined, // Extra safeguard
           }}
           title={jobCount > 0 || visibleJobs.length > 0 
             ? `${jobCount || visibleJobs.length} job${(jobCount || visibleJobs.length) !== 1 ? 's' : ''} running`
