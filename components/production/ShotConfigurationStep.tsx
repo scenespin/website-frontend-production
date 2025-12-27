@@ -383,6 +383,7 @@ export function ShotConfigurationStep({
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
