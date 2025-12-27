@@ -1232,7 +1232,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       // Validate location images (required unless opted out)
       for (const shot of shots) {
-        if (needsLocationAngle(shot) && isLocationAngleRequired(shot)) {
+        if (needsLocationAngle(shot, sceneAnalysisResult) && isLocationAngleRequired(shot)) {
           const hasLocation = selectedLocationReferences[shot.slot] !== undefined;
           const hasOptOut = locationOptOuts[shot.slot] === true;
           
