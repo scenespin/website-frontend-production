@@ -256,7 +256,7 @@ export function PronounMappingSection({
                         return (
                           <div className="mt-2">
                             <label className="block text-[10px] text-[#808080] mb-1.5">
-                              Describe what "{pronoun}" refers to (extras/background):
+                              Describe what "{pronoun}" refers to (extras/background), unless referring to the main character selected in shot:
                             </label>
                             <textarea
                               value={pronounExtrasPrompts[pronoun] || ''}
@@ -336,12 +336,16 @@ export function PronounMappingSection({
                     </label>
                     {/* Checkbox-based multi-select for plural pronouns */}
                     <div className="flex-1 space-y-2">
-                      {/* Ignore button for plural pronouns */}
+                      {/* Ignore button for plural pronouns - toggleable */}
                       <button
                         type="button"
                         onClick={() => {
-                          // Set to "__ignore__" to mark as skipped mapping
-                          onPronounMappingChange(pronounLower, '__ignore__');
+                          // Toggle: if already ignored, clear it; otherwise set to "__ignore__"
+                          if (mapping === '__ignore__') {
+                            onPronounMappingChange(pronounLower, undefined);
+                          } else {
+                            onPronounMappingChange(pronounLower, '__ignore__');
+                          }
                         }}
                         className={`w-full px-3 py-1.5 text-xs rounded border transition-colors ${
                           mapping === '__ignore__'

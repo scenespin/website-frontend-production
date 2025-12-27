@@ -282,11 +282,10 @@ export function ShotConfigurationPanel({
 
       {/* Location Section */}
       {shouldShowLocation && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
-          <div>
-            <div className="text-xs font-medium text-[#FFFFFF]">Location</div>
-          </div>
-          <div className="border-l border-[#3F3F46] pl-4">
+        <div className="pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Left side: Controls and dropdowns */}
             <LocationAngleSelector
               locationId={sceneAnalysisResult.location.id}
               locationName={sceneAnalysisResult.location.name || 'Location'}
@@ -296,83 +295,16 @@ export function ShotConfigurationPanel({
               onAngleChange={(locationId, angle) => {
                 onLocationAngleChange?.(shot.slot, locationId, angle);
               }}
-              isRequired={isLocationAngleRequired(shot)}
+              isRequired={isLocationAngleRequired(shot, sceneAnalysisResult)}
               recommended={sceneAnalysisResult.location.recommended}
               optOut={locationOptOuts[shot.slot] || false}
               onOptOutChange={(optOut) => {
                 onLocationOptOutChange?.(shot.slot, optOut);
               }}
+              splitLayout={true}
             />
+            {/* Right side: Image grid - rendered by LocationAngleSelector via splitLayout */}
           </div>
-        </div>
-      )}
-
-      {/* Model Style Override Section (Resolution is global only, set in review step) */}
-      {onStyleChange && (
-        <div className="pb-3 border-b border-[#3F3F46]">
-          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Model Style</div>
-          <select
-            value={shotStyle || globalStyle}
-            onChange={(e) => {
-              const style = e.target.value as ModelStyle;
-              if (style === globalStyle) {
-                onStyleChange(shot.slot, undefined); // Remove override
-              } else {
-                onStyleChange(shot.slot, style);
-              }
-            }}
-            className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-          >
-            <option value={globalStyle}>Using default: {globalStyle}</option>
-            <option value="auto">Auto (Content-aware)</option>
-            <option value="cinematic">Cinematic</option>
-            <option value="photorealistic">Photorealistic</option>
-          </select>
-          {shotStyle && shotStyle !== globalStyle && (
-            <div className="text-[10px] text-[#808080] italic mt-1">
-              Override: Using {shotStyle} instead of default ({globalStyle})
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Camera Angle Section */}
-      {onCameraAngleChange && (
-        <div className="pb-3 border-b border-[#3F3F46]">
-          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Camera Angle</div>
-          <select
-            value={shotCameraAngle || 'auto'}
-            onChange={(e) => {
-              const angle = e.target.value as CameraAngle;
-              if (angle === 'auto') {
-                onCameraAngleChange(shot.slot, undefined); // Remove override
-              } else {
-                onCameraAngleChange(shot.slot, angle);
-              }
-            }}
-            className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-          >
-            <option value="auto">Auto (Content-aware) - Default</option>
-            <option value="close-up">Close-up</option>
-            <option value="medium-shot">Medium Shot</option>
-            <option value="wide-shot">Wide Shot</option>
-            <option value="extreme-close-up">Extreme Close-up</option>
-            <option value="extreme-wide-shot">Extreme Wide Shot</option>
-            <option value="over-the-shoulder">Over-the-Shoulder</option>
-            <option value="low-angle">Low Angle</option>
-            <option value="high-angle">High Angle</option>
-            <option value="dutch-angle">Dutch Angle</option>
-          </select>
-          {shotCameraAngle && shotCameraAngle !== 'auto' && (
-            <div className="text-[10px] text-[#808080] italic mt-1">
-              Override: Using {shotCameraAngle.replace('-', ' ')} instead of auto-detection
-            </div>
-          )}
-          {!shotCameraAngle && (
-            <div className="text-[10px] text-[#808080] italic mt-1">
-              Using auto-detection (content-aware selection)
-            </div>
-          )}
         </div>
       )}
 
@@ -600,6 +532,78 @@ export function ShotConfigurationPanel({
           )}
         </div>
       )}
+
+      {/* Model Style and Camera Angle - Moved to bottom before navigation */}
+      <div className="pt-3 border-t border-[#3F3F46] space-y-3">
+        {/* Model Style Override Section (Resolution is global only, set in review step) */}
+        {onStyleChange && (
+          <div>
+            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Model Style</div>
+            <select
+              value={shotStyle || globalStyle}
+              onChange={(e) => {
+                const style = e.target.value as ModelStyle;
+                if (style === globalStyle) {
+                  onStyleChange?.(shot.slot, undefined); // Remove override
+                } else {
+                  onStyleChange(shot.slot, style);
+                }
+              }}
+              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+            >
+              <option value={globalStyle}>Using default: {globalStyle}</option>
+              <option value="auto">Auto (Content-aware)</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="photorealistic">Photorealistic</option>
+            </select>
+            {shotStyle && shotStyle !== globalStyle && (
+              <div className="text-[10px] text-[#808080] italic mt-1">
+                Override: Using {shotStyle} instead of default ({globalStyle})
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Camera Angle Section */}
+        {onCameraAngleChange && (
+          <div>
+            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Camera Angle</div>
+            <select
+              value={shotCameraAngle || 'auto'}
+              onChange={(e) => {
+                const angle = e.target.value as CameraAngle;
+                if (angle === 'auto') {
+                  onCameraAngleChange(shot.slot, undefined); // Remove override
+                } else {
+                  onCameraAngleChange(shot.slot, angle);
+                }
+              }}
+              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+            >
+              <option value="auto">Auto (Content-aware) - Default</option>
+              <option value="close-up">Close-up</option>
+              <option value="medium-shot">Medium Shot</option>
+              <option value="wide-shot">Wide Shot</option>
+              <option value="extreme-close-up">Extreme Close-up</option>
+              <option value="extreme-wide-shot">Extreme Wide Shot</option>
+              <option value="over-the-shoulder">Over-the-Shoulder</option>
+              <option value="low-angle">Low Angle</option>
+              <option value="high-angle">High Angle</option>
+              <option value="dutch-angle">Dutch Angle</option>
+            </select>
+            {shotCameraAngle && shotCameraAngle !== 'auto' && (
+              <div className="text-[10px] text-[#808080] italic mt-1">
+                Override: Using {shotCameraAngle.replace('-', ' ')} instead of auto-detection
+              </div>
+            )}
+            {!shotCameraAngle && (
+              <div className="text-[10px] text-[#808080] italic mt-1">
+                Using auto-detection (content-aware selection)
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
     </div>
   );

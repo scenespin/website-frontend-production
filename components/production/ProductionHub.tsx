@@ -45,6 +45,7 @@ import {
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { LocationBankPanel } from './LocationBankPanel';
 import AssetBankPanel from './AssetBankPanel';
+import { ReadingsPanel } from './ReadingsPanel';
 // ProductionJobsPanel removed - functionality moved to JobsDrawer (Phase 2)
 import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 import { ProductionTabBar } from './ProductionTabBar';
@@ -57,7 +58,8 @@ import { JobsDrawer } from './JobsDrawer';
 type ProductionTab = 
   | 'characters'    // Character Bank
   | 'locations'     // Location Bank
-  | 'assets';       // Asset Bank (Props)
+  | 'assets'        // Asset Bank (Props)
+  | 'readings';     // Screenplay Readings
   // Note: Scene Builder and Storyboard moved to /direct
   // Note: Images, Video, Audio removed (use Media Library in /storage)
   // Note: Storage moved to /storage route
@@ -115,7 +117,7 @@ export function ProductionHub({}: ProductionHubProps) {
     
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
     
-    if (tabFromUrl && ['characters', 'locations', 'assets'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['characters', 'locations', 'assets', 'readings'].includes(tabFromUrl)) {
       // Only update if different to prevent React error #300 (circular updates)
       setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
     } else {
@@ -314,8 +316,13 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
-
-
+          {activeTab === 'readings' && (
+            <div className="h-full overflow-y-auto">
+              <ProductionErrorBoundary componentName="Readings">
+                <ReadingsPanel className="h-full" />
+              </ProductionErrorBoundary>
+            </div>
+          )}
 
         </div>
 
@@ -411,6 +418,13 @@ export function ProductionHub({}: ProductionHubProps) {
             </div>
           )}
 
+        {activeTab === 'readings' && (
+          <div className="h-full overflow-y-auto">
+            <ProductionErrorBoundary componentName="Readings">
+              <ReadingsPanel className="h-full" />
+            </ProductionErrorBoundary>
+          </div>
+        )}
 
       </div>
 

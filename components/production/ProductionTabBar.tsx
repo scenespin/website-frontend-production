@@ -13,17 +13,17 @@
  */
 
 import React from 'react';
-import { Users, MapPin, Package } from 'lucide-react';
+import { Users, MapPin, Package, Headphones } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ProductionTab = 'characters' | 'locations' | 'assets';
+export type ProductionTab = 'characters' | 'locations' | 'assets' | 'readings';
 
 interface ProductionTabBarProps {
   activeTab: ProductionTab;
   onTabChange: (tab: ProductionTab) => void;
 }
 
-// Produce tabs: Characters | Locations | Props
+// Produce tabs: Characters | Locations | Props | Readings
 const PRODUCE_TABS = [
   {
     id: 'characters' as ProductionTab,
@@ -48,6 +48,14 @@ const PRODUCE_TABS = [
     description: 'Props, vehicles & furniture',
     color: 'text-orange-500',
     activeColor: 'text-orange-600 dark:text-orange-400',
+  },
+  {
+    id: 'readings' as ProductionTab,
+    label: 'Readings',
+    icon: Headphones,
+    description: 'Screenplay audio readings',
+    color: 'text-blue-500',
+    activeColor: 'text-blue-600 dark:text-blue-400',
   },
 ] as const;
 

@@ -127,9 +127,11 @@ export function needsLocationAngle(
 
 /**
  * Check if a location angle is required (not optional)
+ * All shots with locations are required unless user opts out
  */
-export function isLocationAngleRequired(shot: any): boolean {
-  return shot.type === 'establishing';
+export function isLocationAngleRequired(shot: any, sceneAnalysisResult: SceneAnalysisResult | null): boolean {
+  // All shots that need a location angle are required (unless opted out)
+  return needsLocationAngle(shot, sceneAnalysisResult);
 }
 
 /**

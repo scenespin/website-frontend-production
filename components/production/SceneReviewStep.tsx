@@ -121,32 +121,6 @@ export function SceneReviewStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Global Settings Summary */}
-          <div className="pb-3 border-b border-[#3F3F46]">
-            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Global Settings</div>
-            <div className="space-y-3">
-              <div className="text-xs">
-                <span className="text-[#808080]">Style: </span>
-                <span className="text-[#FFFFFF]">{globalStyle}</span>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
-                  Resolution (applies to all shots)
-                </label>
-                <select
-                  value={globalResolution}
-                  onChange={(e) => onGlobalResolutionChange(e.target.value as Resolution)}
-                  className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-                >
-                  <option value="1080p">HD</option>
-                  <option value="4k">4K</option>
-                </select>
-                <div className="text-[10px] text-[#808080] italic mt-1">
-                  Select resolution before generating. 4K will upscale individual clips before stitching (not the final result).
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Shots Summary */}
           <div className="space-y-3">
@@ -220,6 +194,15 @@ export function SceneReviewStep({
                     {Object.keys(shotPronounMappings).length > 0 && (
                       <div className="text-[10px] text-[#808080]">
                         Pronouns: {Object.entries(shotPronounMappings).map(([pronoun, charIdOrIds]) => {
+                          // Handle skipped pronouns (__ignore__)
+                          if (charIdOrIds === '__ignore__') {
+                            const extrasPrompt = shotPronounExtras[pronoun];
+                            if (extrasPrompt && extrasPrompt.trim()) {
+                              return `"${pronoun}" → ${extrasPrompt.trim()}`;
+                            } else {
+                              return `"${pronoun}" → (UNDEFINED) Model will predict!`;
+                            }
+                          }
                           const charIds = Array.isArray(charIdOrIds) ? charIdOrIds : [charIdOrIds];
                           const names = charIds.map(id => getCharacterName(id as string)).join(', ');
                           return `"${pronoun}" → ${names}`;
@@ -249,6 +232,68 @@ export function SceneReviewStep({
                 );
               })}
             </div>
+          </div>
+
+          {/* Global Settings and Resolution Selection (above buttons) */}
+          <div className="pt-3 border-t border-[#3F3F46] space-y-3 pb-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-[#808080] whitespace-nowrap">
+                  Style:
+                </label>
+                <select
+                  value={globalStyle}
+                  disabled
+                  className="px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] opacity-60 cursor-not-allowed"
+                >
+                  <option value={globalStyle}>{globalStyle}</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-[#808080] whitespace-nowrap">
+                  Resolution:
+                </label>
+                <select
+                  value={globalResolution}
+                  onChange={(e) => onGlobalResolutionChange(e.target.value as Resolution)}
+                  className="px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+                >
+                  <option value="1080p">HD</option>
+                  <option value="4k">4K</option>
+                </select>
+              </div>
+            </div>
+            
+            {/* Cost Calculator */}
+            {(() => {
+              // Calculate total credits/cost
+              let totalCredits = 0;
+              selectedShots.forEach((shot: any) => {
+                totalCredits += shot.credits || 0;
+              });
+              
+              // Apply margin (e.g., 20% markup)
+              const margin = 0.20;
+              const costWithMargin = totalCredits * (1 + margin);
+              
+              return (
+                <div className="p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-[#808080]">
+                      Estimated Cost:
+                    </div>
+                    <div className="text-sm font-medium text-[#FFFFFF]">
+                      {costWithMargin.toFixed(0)} credits
+                    </div>
+                  </div>
+                  {totalCredits > 0 && (
+                    <div className="text-[10px] text-[#808080] mt-1">
+                      Base: {totalCredits.toFixed(0)} credits + {Math.round(margin * 100)}% margin
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Action Buttons */}

@@ -1232,7 +1232,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       // Validate location images (required unless opted out)
       for (const shot of shots) {
-        if (needsLocationAngle(shot, sceneAnalysisResult) && isLocationAngleRequired(shot)) {
+        if (needsLocationAngle(shot, sceneAnalysisResult) && isLocationAngleRequired(shot, sceneAnalysisResult)) {
           const hasLocation = selectedLocationReferences[shot.slot] !== undefined;
           const hasOptOut = locationOptOuts[shot.slot] === true;
           
@@ -2551,7 +2551,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               const getCharactersFromActionShotWrapper = (shot: any) => getCharactersFromActionShot(shot, sceneAnalysisResult);
               const getCharacterForShotWrapper = (shot: any) => getCharacterForShot(shot, sceneAnalysisResult);
               const needsLocationAngleWrapper = (shot: any) => needsLocationAngle(shot, sceneAnalysisResult);
-              const isLocationAngleRequiredWrapper = (shot: any) => isLocationAngleRequired(shot);
+              const isLocationAngleRequiredWrapper = (shot: any) => isLocationAngleRequired(shot, sceneAnalysisResult);
               const getCharacterWithExtractedOutfitsWrapper = (charId: string, char: any) => getCharacterWithExtractedOutfits(charId, char, characterHeadshots);
               
               const renderCharacterControlsOnly = (
@@ -2753,21 +2753,8 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                           const updatedOutfits = { ...shotOutfits };
                           let hasChanges = false;
                           
-                          charIds.forEach(charId => {
-                            // Only initialize if not already set
-                            if (!updatedOutfits[charId]) {
-                              const char = allCharacters.find((c: any) => c.id === charId);
-                              if (char) {
-                                if (char.defaultOutfit) {
-                                  updatedOutfits[charId] = char.defaultOutfit;
-                                  hasChanges = true;
-                                } else if (char.availableOutfits && char.availableOutfits.length > 0) {
-                                  updatedOutfits[charId] = char.availableOutfits[0];
-                                  hasChanges = true;
-                                }
-                              }
-                            }
-                          });
+                          // Don't initialize outfits - let them default to "All Outfits" (undefined)
+                          // This matches the behavior on the right side where all images are shown by default
                           
                           return hasChanges ? {
                             ...prevOutfits,

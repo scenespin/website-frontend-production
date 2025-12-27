@@ -34,6 +34,7 @@ interface LocationAngleSelectorProps {
   recommended?: { angleId?: string; reason: string };
   optOut?: boolean; // Whether user has opted out of using location image
   onOptOutChange?: (optOut: boolean) => void; // Callback when opt-out checkbox changes
+  splitLayout?: boolean; // If true, returns fragment with controls and images separate for grid layout
 }
 
 export function LocationAngleSelector({
@@ -46,7 +47,8 @@ export function LocationAngleSelector({
   isRequired = false,
   recommended,
   optOut = false,
-  onOptOutChange
+  onOptOutChange,
+  splitLayout = false
 }: LocationAngleSelectorProps) {
   // Group angles by timeOfDay/weather (similar to outfit grouping)
   const groupedAngles = React.useMemo(() => {
@@ -182,37 +184,36 @@ export function LocationAngleSelector({
     );
   }
 
-  return (
+  // Controls section (left side)
+  const controlsSection = (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 text-xs font-medium text-[#808080]">
           <MapPin className="w-3 h-3" />
           <span>{locationName}</span>
         </div>
-        <div className="flex items-center gap-2">
-          {isRequired && (
-            <Badge variant="outline" className="border-[#DC143C] text-[#DC143C] text-[10px]">
-              Required
-            </Badge>
-          )}
-          {isRequired && onOptOutChange && (
-            <label className="flex items-center gap-1.5 text-[10px] text-[#808080] cursor-pointer hover:text-[#FFFFFF] transition-colors">
-              <input
-                type="checkbox"
-                checked={optOut}
-                onChange={(e) => {
-                  onOptOutChange(e.target.checked);
-                  if (e.target.checked) {
-                    // Clear selection when opting out
-                    onAngleChange(locationId, undefined);
-                  }
-                }}
-                className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-              />
-              <span>Don't use location image</span>
-            </label>
-          )}
-        </div>
+        {isRequired && (
+          <Badge variant="outline" className="border-[#DC143C] text-[#DC143C] text-[10px]">
+            Required
+          </Badge>
+        )}
+        {isRequired && onOptOutChange && (
+          <label className="flex items-center gap-1.5 text-[10px] text-[#808080] cursor-pointer hover:text-[#FFFFFF] transition-colors">
+            <input
+              type="checkbox"
+              checked={optOut}
+              onChange={(e) => {
+                onOptOutChange(e.target.checked);
+                if (e.target.checked) {
+                  // Clear selection when opting out
+                  onAngleChange(locationId, undefined);
+                }
+              }}
+              className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+            />
+            <span>Don't use location image</span>
+          </label>
+        )}
       </div>
       
       {!optOut && (
@@ -253,64 +254,6 @@ export function LocationAngleSelector({
             </div>
           )}
           
-      
-      <div className="grid grid-cols-6 gap-1.5">
-        {allAngles.map((angle, idx) => {
-          const selected = isSelected(angle);
-          const isRec = isRecommended(angle);
-          
-          return (
-            <button
-              key={angle.s3Key || angle.imageUrl || `${angle.angle}-${idx}`}
-              onClick={() => {
-                onAngleChange(locationId, {
-                  angleId: angle.angleId,
-                  s3Key: angle.s3Key,
-                  imageUrl: angle.imageUrl
-                });
-              }}
-              className={`relative aspect-square rounded border-2 transition-all ${
-                selected
-                  ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                  : 'border-[#3F3F46] hover:border-[#808080]'
-              }`}
-              title={`${getAngleLabel(angle.angle)}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}`}
-            >
-              {angle.imageUrl ? (
-                <img
-                  src={angle.imageUrl}
-                  alt={angle.label || getAngleLabel(angle.angle)}
-                  className="w-full h-full object-cover rounded"
-                />
-              ) : (
-                <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
-                  {angle.label || getAngleLabel(angle.angle)}
-                </div>
-              )}
-              
-              {selected && (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
-                  <Check className="w-4 h-4 text-[#DC143C]" />
-                </div>
-              )}
-              
-              {isRec && !selected && (
-                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-[#DC143C]/80 text-[8px] text-white rounded">
-                  Recommended
-                </div>
-              )}
-              
-              {/* Angle label overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-                <div className="text-[8px] text-white font-medium truncate">
-                  {getAngleLabel(angle.angle)}
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      
           {/* Optional: Show metadata for selected angle */}
           {selectedAngle && (() => {
             const selected = allAngles.find(a => isSelected(a));
@@ -327,6 +270,84 @@ export function LocationAngleSelector({
           })()}
         </>
       )}
+    </div>
+  );
+
+  // Image grid section (right side)
+  const imageGridSection = !optOut ? (
+    <div className="grid grid-cols-6 gap-1.5">
+      {allAngles.map((angle, idx) => {
+        const selected = isSelected(angle);
+        const isRec = isRecommended(angle);
+        
+        return (
+          <button
+            key={angle.s3Key || angle.imageUrl || `${angle.angle}-${idx}`}
+            onClick={() => {
+              onAngleChange(locationId, {
+                angleId: angle.angleId,
+                s3Key: angle.s3Key,
+                imageUrl: angle.imageUrl
+              });
+            }}
+            className={`relative aspect-square rounded border-2 transition-all ${
+              selected
+                ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                : 'border-[#3F3F46] hover:border-[#808080]'
+            }`}
+            title={`${getAngleLabel(angle.angle)}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}`}
+          >
+            {angle.imageUrl ? (
+              <img
+                src={angle.imageUrl}
+                alt={angle.label || getAngleLabel(angle.angle)}
+                className="w-full h-full object-cover rounded"
+              />
+            ) : (
+              <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
+                {angle.label || getAngleLabel(angle.angle)}
+              </div>
+            )}
+            
+            {selected && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                <Check className="w-4 h-4 text-[#DC143C]" />
+              </div>
+            )}
+            
+            {isRec && !selected && (
+              <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-[#DC143C]/80 text-[8px] text-white rounded">
+                Recommended
+              </div>
+            )}
+            
+            {/* Angle label overlay */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+              <div className="text-[8px] text-white font-medium truncate">
+                {getAngleLabel(angle.angle)}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  ) : null;
+
+  // If splitLayout, return fragment for grid positioning
+  if (splitLayout) {
+    return (
+      <>
+        {controlsSection}
+        {imageGridSection}
+      </>
+    );
+  }
+
+  // Otherwise, return single column layout
+  return (
+    <div className="space-y-2">
+      {controlsSection}
+      {imageGridSection}
     </div>
   );
 }

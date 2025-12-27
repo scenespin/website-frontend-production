@@ -1582,6 +1582,39 @@ export default function MediaLibrary({
     return 'Expires soon';
   };
 
+  const formatDate = (dateString: string | undefined): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      // Show relative time for recent files
+      if (diffDays === 0) {
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        if (diffHours === 0) {
+          const diffMinutes = Math.floor(diffMs / (1000 * 60));
+          return diffMinutes <= 1 ? 'Just now' : `${diffMinutes} minutes ago`;
+        }
+        return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      } else if (diffDays === 1) {
+        return 'Yesterday';
+      } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+      } else {
+        // Show full date for older files
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+        });
+      }
+    } catch (error) {
+      return '';
+    }
+  };
+
   const getFileIcon = (fileType: string) => {
     switch (fileType) {
       case 'video': return <Video className="w-5 h-5" />;
@@ -2182,13 +2215,19 @@ export default function MediaLibrary({
 
                       {/* File Info */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 dark:text-white truncate text-sm">
+                        <h4 className="font-medium text-[#FFFFFF] truncate text-sm">
                           {file.fileName}
                         </h4>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-2 mt-1 text-xs text-[#808080]">
                           {getStorageIcon(file.storageType)}
                           <span>{formatFileSize(file.fileSize)}</span>
                         </div>
+                        {file.uploadedAt && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-[#6B7280]">
+                            <Clock className="w-3 h-3" />
+                            <span>{formatDate(file.uploadedAt)}</span>
+                          </div>
+                        )}
                         {file.expiresAt && (
                           <div className="flex items-center gap-1 mt-1 text-xs text-orange-600 dark:text-orange-400">
                             <Clock className="w-3 h-3" />
