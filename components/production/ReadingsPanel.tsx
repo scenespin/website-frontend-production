@@ -491,12 +491,19 @@ function ReadingCard({
   const isInitializingRef = useRef<boolean>(false);
   const { getToken } = useAuth();
 
+  // Track if we've already tried to initialize (to prevent retries on errors)
+  const hasTriedInitRef = useRef<boolean>(false);
+
   // Initialize Video.js player
   useEffect(() => {
-    if (!reading.combinedAudio || !isPlaying) return;
+    if (!reading.combinedAudio || !isPlaying) {
+      // Reset flag when not playing
+      hasTriedInitRef.current = false;
+      return;
+    }
     
     // Prevent duplicate initialization
-    if (isInitializingRef.current) {
+    if (isInitializingRef.current || hasTriedInitRef.current) {
       return;
     }
     
@@ -506,6 +513,7 @@ function ReadingCard({
     }
 
     isInitializingRef.current = true;
+    hasTriedInitRef.current = true; // Mark that we've tried, even if it fails
 
     const initializePlayer = async () => {
       try {
@@ -519,6 +527,7 @@ function ReadingCard({
             const token = await getToken({ template: 'wryda-backend' });
             if (!token) {
               console.error('[ReadingCard] Not authenticated');
+              isInitializingRef.current = false;
               return;
             }
             
@@ -537,6 +546,7 @@ function ReadingCard({
             if (!presignedResponse.ok) {
               const errorText = await presignedResponse.text();
               console.error('[ReadingCard] Presigned URL failed:', presignedResponse.status, errorText);
+              isInitializingRef.current = false;
               return; // Don't initialize player if we can't get URL
             }
             
@@ -544,6 +554,7 @@ function ReadingCard({
             downloadUrl = presignedData.downloadUrl;
           } catch (error) {
             console.error('[ReadingCard] Failed to get presigned URL:', error);
+            isInitializingRef.current = false;
             return; // Don't initialize player if we can't get URL
           }
         } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
@@ -551,6 +562,7 @@ function ReadingCard({
           const token = await getToken({ template: 'wryda-backend' });
           if (!token) {
             console.error('[ReadingCard] Not authenticated');
+            isInitializingRef.current = false;
             return;
           }
           
@@ -565,18 +577,21 @@ function ReadingCard({
             downloadUrl = data.downloadUrl;
           } else {
             console.error('[ReadingCard] Failed to get cloud storage download URL');
+            isInitializingRef.current = false;
             return;
           }
         }
 
         if (!downloadUrl) {
           console.error('[ReadingCard] No download URL available');
+          isInitializingRef.current = false;
           return;
         }
 
         // Ensure element is still in DOM before initializing
         if (!playerContainerRef.current) {
           console.error('[ReadingCard] Player container not in DOM');
+          isInitializingRef.current = false;
           return;
         }
 
@@ -594,8 +609,10 @@ function ReadingCard({
 
         playerInstanceRef.current = player;
         playerRef(player);
+        isInitializingRef.current = false; // Successfully initialized
       } catch (error) {
         console.error('[ReadingCard] Failed to initialize player:', error);
+        isInitializingRef.current = false;
       }
     };
 
@@ -617,7 +634,7 @@ function ReadingCard({
       }
       isInitializingRef.current = false;
     };
-  }, [isPlaying, reading.combinedAudio?.id, reading.id, getToken]); // Removed playerRef from deps, use reading.id instead
+  }, [isPlaying, reading.combinedAudio?.s3Key, reading.id]); // Only depend on what actually matters
 
   const date = new Date(reading.date);
   const sceneCount = reading.sceneAudios.length;
