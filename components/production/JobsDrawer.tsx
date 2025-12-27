@@ -1153,58 +1153,37 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           />
         )}
 
-        {/* Mobile Drawer - Slides up from bottom */}
-        <div
-          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
-          style={{ height: `${currentMobileHeight}px` }}
-        >
-          {/* Drag Handle (Mobile) */}
+        {/* Mobile Drawer - Slides up from bottom - Only render when open */}
+        {isOpen && (
           <div
-            className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
-            onMouseDown={(e) => handleDragStart(e.clientY)}
-            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+            className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
+            style={{ height: `${currentMobileHeight}px` }}
           >
-            {isOpen && (
-              <>
-                <GripHorizontal className="w-8 h-8 text-[#808080]" />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClose();
-                  }}
-                  className="absolute right-4 btn btn-sm btn-ghost btn-circle z-10"
-                  aria-label="Close drawer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </>
-            )}
-            {!isOpen && (
+            {/* Drag Handle (Mobile) */}
+            <div
+              className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
+              onMouseDown={(e) => handleDragStart(e.clientY)}
+              onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+            >
+              <GripHorizontal className="w-8 h-8 text-[#808080]" />
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onOpen();
+                  onClose();
                 }}
-                className="text-sm font-medium text-[#E5E7EB] flex items-center gap-2"
+                className="absolute right-4 btn btn-sm btn-ghost btn-circle z-10"
+                aria-label="Close drawer"
               >
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                Jobs
-                {jobCount > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white min-w-[18px] text-center">
-                    {jobCount > 99 ? '99+' : jobCount}
-                  </span>
-                )}
+                <X className="w-5 h-5" />
               </button>
-            )}
-          </div>
+            </div>
 
-          {/* Content */}
-          {isOpen && (
+            {/* Content */}
             <div className="h-[calc(100%-64px)] overflow-auto pb-6">
               {renderDrawerContent()}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Safety Error Dialog */}
         <AlertDialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
@@ -1306,28 +1285,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         {renderDrawerContent()}
       </div>
 
-      {/* Floating Open Button (Desktop - when closed) - EXACT same as AgentDrawer */}
-      {!isOpen && (
-        <button
-          onClick={() => onOpen()}
-          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300 relative"
-          style={{ 
-            writingMode: 'vertical-rl', 
-            textOrientation: 'mixed',
-            animation: 'pulse-subtle 3s ease-in-out infinite'
-          }}
-          title={jobCount > 0 || visibleJobs.length > 0 
-            ? `${jobCount || visibleJobs.length} job${(jobCount || visibleJobs.length) !== 1 ? 's' : ''} running`
-            : 'View jobs'}
-        >
-          JOBS
-          {(jobCount > 0 || visibleJobs.length > 0) && (
-            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-blue-600 min-w-[18px] text-center">
-              {(jobCount || visibleJobs.length) > 99 ? '99+' : (jobCount || visibleJobs.length)}
-            </span>
-          )}
-        </button>
-      )}
+      {/* Desktop tab button removed - will implement different approach */}
 
       {/* Safety Error Dialog */}
       <AlertDialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
