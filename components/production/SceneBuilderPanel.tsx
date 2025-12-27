@@ -2997,25 +2997,46 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               const handleShotSelect = (shotSlot: number) => {
                 const shotIndex = enabledShotsList.findIndex((s: any) => s.slot === shotSlot);
                 if (shotIndex !== -1) {
-                  // Check if shot is navigable (completed or next shot)
+                  // Check if shot is navigable
                   const currentIndex = enabledShotsList.findIndex((s: any) => s.slot === currentShot.slot);
                   const nextShotSlot = currentIndex >= 0 && currentIndex < enabledShotsList.length - 1 
                     ? enabledShotsList[currentIndex + 1].slot 
                     : null;
                   
-                  const isNavigable = shotSlot === currentShot.slot || 
-                                     shotSlot === nextShotSlot || 
-                                     completedShots.has(shotSlot);
+                  const isCurrentShotComplete = completedShots.has(currentShot.slot);
+                  
+                  // Navigation rules:
+                  // 1. Current shot - always navigable
+                  // 2. Previous shots - navigable if completed
+                  // 3. Next shot - navigable ONLY if current shot is complete
+                  // 4. Shots beyond next - not navigable until reached sequentially
+                  let isNavigable = false;
+                  if (shotSlot === currentShot.slot) {
+                    isNavigable = true;
+                  } else if (shotIndex < currentIndex) {
+                    // Previous shot - must be completed
+                    isNavigable = completedShots.has(shotSlot);
+                  } else if (shotSlot === nextShotSlot) {
+                    // Next shot - only if current is complete
+                    isNavigable = isCurrentShotComplete;
+                  }
                   
                   if (isNavigable) {
                     setCurrentShotIndex(shotIndex);
                     // Scroll to top when switching shots
                     window.scrollTo({ top: 0, behavior: 'instant' });
                   } else {
-                    toast.error('Complete previous shots first', {
-                      description: 'You can only navigate to completed shots or the next shot in sequence.',
-                      duration: 3000
-                    });
+                    if (shotSlot === nextShotSlot && !isCurrentShotComplete) {
+                      toast.error('Complete current shot first', {
+                        description: 'Please fill out all required fields for this shot before moving to the next one.',
+                        duration: 3000
+                      });
+                    } else {
+                      toast.error('Complete previous shots first', {
+                        description: 'You can only navigate to completed shots or the next shot (if current is complete).',
+                        duration: 3000
+                      });
+                    }
                   }
                 }
               };

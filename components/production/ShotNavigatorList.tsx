@@ -51,14 +51,30 @@ export function ShotNavigatorList({
     ? sortedShots[currentIndex + 1].slot 
     : null;
   
+  // Check if current shot is complete
+  const isCurrentShotComplete = completedShots.has(currentShotSlot);
+  
   // Determine if a shot is navigable
   const isNavigable = (shotSlot: number): boolean => {
     // Always allow current shot
     if (shotSlot === currentShotSlot) return true;
-    // Always allow next shot (even if not complete)
-    if (shotSlot === nextShotSlot) return true;
-    // Allow completed shots
-    return completedShots.has(shotSlot);
+    
+    // Get shot index for comparison
+    const shotIndex = sortedShots.findIndex(s => s.slot === shotSlot);
+    if (shotIndex === -1) return false;
+    
+    // Allow previous shots if they're completed
+    if (shotIndex < currentIndex) {
+      return completedShots.has(shotSlot);
+    }
+    
+    // Allow next shot ONLY if current shot is complete
+    if (shotSlot === nextShotSlot) {
+      return isCurrentShotComplete;
+    }
+    
+    // Don't allow shots beyond next until reached sequentially
+    return false;
   };
 
   return (
