@@ -1141,7 +1141,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   );
 
   // MOBILE RENDER - EXACT same pattern as AgentDrawer
-  if (isMobile) {
+  // Only render if actually on mobile (window width check as safeguard)
+  if (isMobile && typeof window !== 'undefined' && window.innerWidth < 768) {
     return (
       <>
         {/* Backdrop - Mobile Only */}
