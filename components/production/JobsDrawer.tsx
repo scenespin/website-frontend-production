@@ -29,7 +29,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { Z_INDEX } from '@/config/z-index';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -244,38 +243,28 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const queryClient = useQueryClient();
   const { isDrawerOpen: isChatDrawerOpen } = useDrawer(); // Check if chat drawer is open
   
-  // Use shared mobile detection hook
-  const isMobile = useIsMobile();
+  // Mobile detection - EXACT same pattern as AgentDrawer
+  const [isMobile, setIsMobile] = useState(false);
   const [mobileHeight, setMobileHeight] = useState(500);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
-  
-  // Additional check: verify we're actually on mobile by checking window width
-  // This prevents mobile drawer from showing on desktop if hook is incorrect
-  const [verifiedIsMobile, setVerifiedIsMobile] = useState(false);
+
+  // Detect mobile vs desktop - EXACT same as AgentDrawer
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const check = window.innerWidth < 768;
-      setVerifiedIsMobile(check);
-      // Debug log to help troubleshoot
-      if (isMobile !== check) {
-        console.warn('[JobsDrawer] Mobile detection mismatch:', { 
-          hookSaysMobile: isMobile, 
-          actualWidth: window.innerWidth,
-          shouldBeMobile: check 
-        });
-      }
-    }
-  }, [isMobile]);
-  
-  // Use verified mobile state - only true if both hook AND window width agree
-  const actuallyMobile = isMobile && verifiedIsMobile;
-  
-  // Mobile: Calculate height (70px collapsed, variable when open)
-  const currentMobileHeight = actuallyMobile && isOpen ? mobileHeight : actuallyMobile ? 70 : 0;
-  
-  // Handle drag gestures (MOBILE ONLY)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Mobile: Calculate height (70px collapsed, variable when open) - EXACT same as AgentDrawer
+  const currentMobileHeight = isOpen ? mobileHeight : 70;
+
+  // Handle drag gestures (MOBILE ONLY) - EXACT same as AgentDrawer
   const handleDragStart = (clientY: number) => {
     if (!isMobile) return;
     setIsDragging(true);
@@ -1151,27 +1140,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     </>
   );
 
-  // MOBILE RENDER - Slides up from bottom (matches AgentDrawer mobile pattern)
-  // CRITICAL: Only render mobile version if actually on mobile - early return prevents desktop render
-  // Use verified mobile state to prevent false positives
-  if (actuallyMobile) {
+  // MOBILE RENDER - EXACT same pattern as AgentDrawer
+  if (isMobile) {
     return (
       <>
         {/* Backdrop - Mobile Only */}
         {isOpen && (
           <div 
-            className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+            className="fixed inset-0 bg-black/40 z-40 transition-opacity md:hidden"
             onClick={onClose}
           />
         )}
 
-        {/* Mobile Drawer - Slides up from bottom - ONLY renders on mobile */}
+        {/* Mobile Drawer - Slides up from bottom */}
         <div
-          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out rounded-t-2xl"
-          style={{ 
-            height: `${currentMobileHeight}px`,
-            display: actuallyMobile ? 'block' : 'none' // Extra safeguard
-          }}
+          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
+          style={{ height: `${currentMobileHeight}px` }}
         >
           {/* Drag Handle (Mobile) */}
           <div
@@ -1285,31 +1269,51 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     );
   }
 
-  // DESKTOP RENDER - Slides from right
-  // CRITICAL: This code only runs on desktop because mobile render returns early above
-  // Double-check to ensure we're not on mobile (use verified state)
-  if (actuallyMobile) {
-    return null; // Safety check - should never reach here if mobile detection works
-  }
-
+  // DESKTOP RENDER - EXACT same pattern as AgentDrawer
   return (
     <>
-      {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
-      {/* CRITICAL: Only show on desktop - use verified mobile state and md:flex class */}
-      {!isOpen && !actuallyMobile && (
-        <button
+      {/* Backdrop - Desktop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-30 transition-opacity hidden md:block"
+          style={{ zIndex: Z_INDEX.JOBS_DRAWER - 1 }}
           onClick={(e) => {
-            e.stopPropagation();
             e.preventDefault();
-            onOpen();
+            e.stopPropagation();
+            onClose();
           }}
-          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex border-none px-4 py-3 transition-all duration-300 relative"
+        />
+      )}
+
+      {/* Desktop Drawer - Slides in from right */}
+      <div
+        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        style={{
+          width: compact ? '100vw' : '400px',
+          maxWidth: '90vw',
+          zIndex: Z_INDEX.JOBS_DRAWER,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+      >
+        {renderDrawerContent()}
+      </div>
+
+      {/* Floating Open Button (Desktop - when closed) - EXACT same as AgentDrawer */}
+      {!isOpen && (
+        <button
+          onClick={() => onOpen()}
+          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300 relative"
           style={{ 
             writingMode: 'vertical-rl', 
             textOrientation: 'mixed',
-            animation: 'pulse-subtle 3s ease-in-out infinite',
-            zIndex: Z_INDEX.POPOVER,
-            display: actuallyMobile ? 'none' : undefined, // Extra safeguard
+            animation: 'pulse-subtle 3s ease-in-out infinite'
           }}
           title={jobCount > 0 || visibleJobs.length > 0 
             ? `${jobCount || visibleJobs.length} job${(jobCount || visibleJobs.length) !== 1 ? 's' : ''} running`
@@ -1323,41 +1327,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           )}
         </button>
       )}
-
-      {/* Backdrop - Only render when open (matches AgentDrawer) */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 transition-opacity hidden md:block"
-          style={{ zIndex: Z_INDEX.JOBS_DRAWER - 1 }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClose();
-          }}
-        />
-      )}
-
-      {/* Drawer - Desktop only, slides from right */}
-      <div
-        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl transition-all duration-300 ease-out hidden md:block ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-        style={{
-          width: compact ? '100vw' : '400px',
-          maxWidth: '90vw',
-          zIndex: Z_INDEX.JOBS_DRAWER,
-          // Ensure drawer is completely off-screen when closed
-          ...(isOpen ? {} : { pointerEvents: 'none' }),
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        {renderDrawerContent()}
-      </div>
 
       {/* Safety Error Dialog */}
       <AlertDialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
