@@ -295,7 +295,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       filesToDownload.push(...reading.subtitles);
 
       // Download sequentially to avoid overwhelming the browser
-      for (const { file } of filesToDownload) {
+      for (const file of filesToDownload) {
         await downloadAudioAsBlob(file);
         // Small delay between downloads
         await new Promise(resolve => setTimeout(resolve, 500));
