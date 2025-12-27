@@ -2392,6 +2392,64 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     }}
                     isMobile={isMobile}
                   />
+                  
+                  {/* Scene Preview and Continue Button */}
+                  {selectedSceneId && (() => {
+                    const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
+                    if (!scene) return null;
+                    
+                    return (
+                      <div className="space-y-3">
+                        {/* Scene Preview Card */}
+                        <Card className="bg-[#0A0A0A] border-[#3F3F46]">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            {scene.heading && (
+                              <div>
+                                <div className="text-[10px] text-[#808080] mb-1">Scene Heading</div>
+                                <div className="text-xs text-[#FFFFFF] font-medium">{scene.heading}</div>
+                              </div>
+                            )}
+                            {scene.synopsis && (
+                              <div>
+                                <div className="text-[10px] text-[#808080] mb-1">Scene Content</div>
+                                <div className="text-xs text-[#808080] whitespace-pre-wrap max-h-48 overflow-y-auto">
+                                  {scene.synopsis}
+                                </div>
+                              </div>
+                            )}
+                            {!scene.synopsis && !scene.heading && (
+                              <div className="text-xs text-[#808080] italic">No scene content available</div>
+                            )}
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Continue Button */}
+                        <Button
+                          onClick={() => {
+                            setHasConfirmedSceneSelection(true);
+                            toast.success('Analyzing scene...');
+                          }}
+                          className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
+                          disabled={isAnalyzing}
+                        >
+                          {isAnalyzing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Analyzing Scene...
+                            </>
+                          ) : (
+                            <>
+                              Continue to Shot Selection
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 )}
 
                 {/* Manual Entry */}

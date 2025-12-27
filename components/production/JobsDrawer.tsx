@@ -1287,16 +1287,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
   // DESKTOP RENDER - Slides from right
   // CRITICAL: This code only runs on desktop because mobile render returns early above
-  // Double-check to ensure we're not on mobile
-  if (isMobile) {
+  // Double-check to ensure we're not on mobile (use verified state)
+  if (actuallyMobile) {
     return null; // Safety check - should never reach here if mobile detection works
   }
 
   return (
     <>
       {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
-      {/* CRITICAL: Only show on desktop - use both isMobile check and md:flex class */}
-      {!isOpen && !isMobile && (
+      {/* CRITICAL: Only show on desktop - use verified mobile state and md:flex class */}
+      {!isOpen && !actuallyMobile && (
         <button
           onClick={(e) => {
             e.stopPropagation();
