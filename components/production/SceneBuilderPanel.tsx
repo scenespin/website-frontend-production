@@ -712,24 +712,23 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               (current.priority || 999) < (best.priority || 999) ? current : best
             );
               
-              // Find the first shot slot that selected this character
-              const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
-              if (shotSlot && characterId && !selectedCharacterReferences[Number(shotSlot)]?.[characterId]) {
-                setSelectedCharacterReferences(prev => {
-                  const shotRefs = prev[Number(shotSlot)] || {};
-                  return {
-                    ...prev,
-                    [Number(shotSlot)]: {
-                      ...shotRefs,
-                      [characterId]: {
-                        poseId: bestHeadshot.poseId,
-                        s3Key: bestHeadshot.s3Key,
-                        imageUrl: bestHeadshot.imageUrl
-                      }
+            // Find the first shot slot that selected this character
+            const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
+            if (shotSlot && characterId && !selectedCharacterReferences[Number(shotSlot)]?.[characterId]) {
+              setSelectedCharacterReferences(prev => {
+                const shotRefs = prev[Number(shotSlot)] || {};
+                return {
+                  ...prev,
+                  [Number(shotSlot)]: {
+                    ...shotRefs,
+                    [characterId]: {
+                      poseId: bestHeadshot.poseId,
+                      s3Key: bestHeadshot.s3Key,
+                      imageUrl: bestHeadshot.imageUrl
                     }
-                  };
-                });
-              }
+                  }
+                };
+              });
             }
           }
         } catch (error) {
