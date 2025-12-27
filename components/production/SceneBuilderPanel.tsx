@@ -80,6 +80,7 @@ import {
 } from './utils/sceneBuilderUtils';
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
+import { SceneBuilderService } from '@/services/SceneBuilderService';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -300,29 +301,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       if (!selectedSceneId || !projectId) return;
       
       try {
-        const token = await getToken({ template: 'wryda-backend' });
         const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
-        
         if (!scene) return;
         
         const propIds = scene.fountain?.tags?.props || [];
         if (propIds.length > 0) {
-          // Fetch prop details from Asset Bank
-          const propsResponse = await fetch(`/api/assets?ids=${propIds.join(',')}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (propsResponse.ok) {
-            const propsData = await propsResponse.json();
-            const props = Array.isArray(propsData) ? propsData : (propsData.assets || []);
-            setSceneProps(props.map((prop: any) => ({
-              id: prop.id || prop.assetId,
-              name: prop.name || prop.assetName || 'Unnamed Prop',
-              imageUrl: prop.imageUrl || prop.thumbnailUrl,
-              s3Key: prop.s3Key || prop.imageS3Key
-            })));
-          }
-      } else {
+          const props = await SceneBuilderService.fetchSceneProps(propIds, getToken);
+          setSceneProps(props);
+        } else {
           setSceneProps([]);
         }
       } catch (error) {
@@ -350,14 +336,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       setAnalysisError(null);
       
       try {
-        // Note: characterOutfits is now per-shot, so we don't send it to scene analyzer
-        // (analyzer doesn't need outfit info, it just analyzes the scene)
-        const result = await api.sceneAnalyzer.analyze({
-          screenplayId: projectId,
-          sceneId: selectedSceneId
-        });
+        const result = await SceneBuilderService.analyzeScene(projectId, selectedSceneId);
         
-        if (result.success && result.data) {
+        if (result) {
           const characterDetails = result.data.characters?.map(c => ({
             id: c.id,
             name: c.name,
@@ -379,7 +360,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           
           // Log outfit information for each character (explicit logging)
           characterDetails.forEach((char: any) => {
-            const rawChar = result.data.characters?.find((c: any) => c.id === char.id);
+            const rawChar = result.characters?.find((c: any) => c.id === char.id);
             console.log(`[SceneBuilderPanel] 👔 OUTFIT INFO for ${char.name}:`, {
               availableOutfits: rawChar?.availableOutfits || 'NOT FOUND',
               availableOutfitsCount: rawChar?.availableOutfits?.length || 0,
@@ -402,11 +383,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             console.warn('[SceneBuilderPanel] ⚠️ Sarah not found in characters. Found:', characterDetails.map(c => c.name).join(', '));
           }
           
-          setSceneAnalysisResult(result.data);
+          setSceneAnalysisResult(result);
           
           // Task 5: Pre-populate character reference URLs from analysis
           const allCharacterRefs: string[] = [];
-          result.data.characters.forEach(char => {
+          result.characters.forEach(char => {
             if (char.hasReferences && char.references.length > 0) {
               allCharacterRefs.push(...char.references);
             }
@@ -416,12 +397,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           setCharacterReferenceUrls(allCharacterRefs.slice(0, 3));
           
           // Auto-suggest quality tier based on analysis
-          const shotBreakdown = result.data.shotBreakdown;
+          const shotBreakdown = result.shotBreakdown;
           const totalShots = shotBreakdown?.totalShots || 0;
           const totalCredits = shotBreakdown?.totalCredits || 0;
           // Check for VFX in shot breakdown (shots with type 'vfx')
           const hasVFX = shotBreakdown?.shots?.some(shot => shot.type === 'vfx') || false;
-          const characterCount = result.data.characters?.length || 0;
+          const characterCount = result.characters?.length || 0;
           
           // Complex scene indicators:
           // - High shot count (>3 shots)
@@ -553,25 +534,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       if (!projectId) return;
       
       try {
-        const token = await getToken({ template: 'wryda-backend' });
-        if (!token) return;
-        
-        // Load characters from Character Bank (use new endpoint format)
-        const response = await fetch(`/api/character-bank/list?screenplayId=${encodeURIComponent(projectId)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          // 🔥 FIX: Defer state update to prevent React error #300
-          setTimeout(() => {
-            startTransition(() => {
-              const characters = data.characters || data.data?.characters || [];
-              setCharacters(characters);
-              setAllCharacters(characters); // Store for pronoun detection selector
-            });
-          }, 0);
-        }
+        const characters = await SceneBuilderService.fetchCharacters(projectId, getToken);
+        // 🔥 FIX: Defer state update to prevent React error #300
+        setTimeout(() => {
+          startTransition(() => {
+            setCharacters(characters);
+            setAllCharacters(characters); // Store for pronoun detection selector
+          });
+        }, 0);
       } catch (error) {
         console.error('[SceneBuilder] Failed to load characters:', error);
       }
@@ -670,170 +640,40 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
         
         try {
-          const token = await getToken({ template: 'wryda-backend' });
-          if (!token) continue;
+          const headshots = await SceneBuilderService.fetchCharacterHeadshots(characterId, projectId, getToken);
           
-          // Fetch character profile with all pose references
-          const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(projectId)}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          
-          if (response.ok) {
-            const responseData = await response.json();
-            // Backend wraps response in { success: true, data: { character: ... } }
-            const character = responseData.data?.character || responseData.character;
+          if (headshots.length > 0) {
+            setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
             
-            console.log(`[SceneBuilderPanel] Fetched character ${characterId}:`, {
-              hasCharacter: !!character,
-              poseRefsCount: character?.poseReferences?.length || 0,
-              angleRefsCount: character?.angleReferences?.length || 0,
-              responseStructure: {
-                hasData: !!responseData.data,
-                hasCharacter: !!responseData.character,
-                hasDataCharacter: !!responseData.data?.character,
-                keys: Object.keys(responseData)
-              },
-              poseRefs: character?.poseReferences?.slice(0, 3).map((r: any) => ({
-                poseId: r.poseId || r.metadata?.poseId,
-                hasImageUrl: !!r.imageUrl,
-                hasS3Key: !!r.s3Key,
-                label: r.label
-              }))
-            });
+            // Auto-select highest priority headshot (lowest priority number)
+            const bestHeadshot = headshots.reduce((best: any, current: any) => 
+              (current.priority || 999) < (best.priority || 999) ? current : best
+            );
             
-            // Filter to only headshot poses
-            // Backend sets both poseReferences and angleReferences to the same array, so we need to deduplicate
-            // Use a Set to track unique references by s3Key (or poseId if s3Key is missing)
-            const seenRefs = new Set<string>();
-            const allPoseReferences: any[] = [];
+            // Store per-shot, per-character so each character in each shot can have its own selection
+            // Find all shots (dialogue or action) for this character and auto-select the same headshot
+            const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
+              s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
+            ) || [];
             
-            // Add poseReferences first
-            if (character?.poseReferences) {
-              for (const ref of character.poseReferences) {
-                const key = ref.s3Key || ref.poseId || ref.metadata?.poseId || JSON.stringify(ref);
-                if (!seenRefs.has(key)) {
-                  seenRefs.add(key);
-                  allPoseReferences.push(ref);
-                }
-              }
-            }
-            
-            // Add angleReferences, skipping duplicates
-            if (character?.angleReferences) {
-              for (const ref of character.angleReferences) {
-                const key = ref.s3Key || ref.poseId || ref.metadata?.poseId || JSON.stringify(ref);
-                if (!seenRefs.has(key)) {
-                  seenRefs.add(key);
-                  allPoseReferences.push(ref);
-                }
-              }
-            }
-            
-            const beforeDedupCount = allPoseReferences.length;
-            console.log(`[SceneBuilderPanel] Total pose references for ${characterId} (after initial deduplication):`, beforeDedupCount);
-            
-            // Filter headshots (we'll do this on backend validation, but filter by common headshot poseIds here)
-            const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
-            const beforeFinalDedup = allPoseReferences
-              .filter((ref: any) => {
-                const poseId = ref.poseId || ref.metadata?.poseId;
-                const matches = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
-                if (!matches && poseId) {
-                  console.log(`[SceneBuilderPanel] Pose ${poseId} did not match headshot filter`);
-                }
-                return matches;
-              })
-              .map((ref: any) => ({
-                poseId: ref.poseId || ref.metadata?.poseId,
-                s3Key: ref.s3Key,
-                imageUrl: ref.imageUrl,
-                label: ref.label || ref.metadata?.poseName || 'Headshot',
-                priority: ref.priority || 999,
-                outfitName: ref.outfitName || ref.metadata?.outfitName // Store outfit name for filtering
-              }))
-              .filter((ref: any) => ref.imageUrl); // Only include headshots with imageUrl
-            
-            // Final deduplication pass: remove any remaining duplicates by s3Key or poseId
-            const headshots = beforeFinalDedup
-              .filter((ref: any, index: number, self: any[]) => {
-                const key = ref.s3Key || ref.poseId;
-                if (!key) return true; // Keep if no key (shouldn't happen)
-                const firstIndex = self.findIndex((r: any) => (r.s3Key || r.poseId) === key);
-                const isDuplicate = index !== firstIndex;
-                if (isDuplicate) {
-                  console.log(`[SceneBuilderPanel] 🚫 Removed duplicate headshot:`, {
-                    poseId: ref.poseId,
-                    s3Key: ref.s3Key?.substring(0, 30) + '...',
-                    duplicateIndex: index,
-                    firstIndex: firstIndex
-                  });
-                }
-                return !isDuplicate;
-              })
-              .slice(0, 10); // Limit to 10 headshots
-            
-            const duplicatesRemoved = beforeFinalDedup.length - headshots.length;
-            if (duplicatesRemoved > 0) {
-              console.log(`[SceneBuilderPanel] ✅ Deduplication: Removed ${duplicatesRemoved} duplicate headshot(s) for ${characterId}`);
-            }
-            
-            console.log(`[SceneBuilderPanel] Filtered headshots for ${characterId}:`, {
-              count: headshots.length,
-              beforeDedup: beforeFinalDedup.length,
-              duplicatesRemoved: duplicatesRemoved,
-              headshots: headshots.map(h => ({ poseId: h.poseId, s3Key: h.s3Key?.substring(0, 20) + '...', hasImageUrl: !!h.imageUrl, label: h.label }))
-            });
-            
-            // If no Production Hub images exist, include baseReference (creation image) as last resort
-            if (headshots.length === 0 && character?.baseReference?.imageUrl) {
-              console.log(`[SceneBuilderPanel] No Production Hub images for ${characterId}, using baseReference (creation image) as last resort`);
-              headshots.push({
-                poseId: 'base-reference',
-                s3Key: character.baseReference.s3Key || '',
-                imageUrl: character.baseReference.imageUrl,
-                label: 'Creation Image (Last Resort)',
-                priority: 9999, // Lowest priority (highest number) - this is last resort
-                outfitName: undefined
+            // Update references for each shot, preserving existing character references
+            setSelectedCharacterReferences(prev => {
+              const updated = { ...prev };
+              shotsForCharacter.forEach((shot: any) => {
+                const shotRefs = updated[shot.slot] || {};
+                updated[shot.slot] = {
+                  ...shotRefs,
+                  [characterId]: {
+                    poseId: bestHeadshot.poseId,
+                    s3Key: bestHeadshot.s3Key,
+                    imageUrl: bestHeadshot.imageUrl
+                  }
+                };
               });
-            }
-            
-            if (headshots.length > 0) {
-              setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
-              
-              // Auto-select highest priority headshot (lowest priority number)
-              const bestHeadshot = headshots.reduce((best: any, current: any) => 
-                (current.priority || 999) < (best.priority || 999) ? current : best
-              );
-              
-              // Ensure we store s3Key and imageUrl for precise matching (not just poseId)
-              
-              // Store per-shot, per-character so each character in each shot can have its own selection
-              // Find all shots (dialogue or action) for this character and auto-select the same headshot
-              const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
-                s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
-              ) || [];
-              
-              // Update references for each shot, preserving existing character references
-              setSelectedCharacterReferences(prev => {
-                const updated = { ...prev };
-                shotsForCharacter.forEach((shot: any) => {
-                  const shotRefs = updated[shot.slot] || {};
-                  updated[shot.slot] = {
-                    ...shotRefs,
-                [characterId]: {
-                  poseId: bestHeadshot.poseId,
-                  s3Key: bestHeadshot.s3Key,
-                  imageUrl: bestHeadshot.imageUrl
-                }
-                  };
-                });
-                return updated;
-              });
-            } else {
-              console.warn(`[SceneBuilderPanel] No headshots found for character ${characterId} after filtering`);
-            }
+              return updated;
+            });
           } else {
-            console.error(`[SceneBuilderPanel] Failed to fetch character ${characterId}:`, response.status, response.statusText);
+            console.warn(`[SceneBuilderPanel] No headshots found for character ${characterId} after filtering`);
           }
         } catch (error) {
           console.error(`[SceneBuilderPanel] Failed to fetch headshots for character ${characterId}:`, error);
@@ -862,70 +702,15 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
         
         try {
-          const token = await getToken({ template: 'wryda-backend' });
-          if (!token) continue;
+          const headshots = await SceneBuilderService.fetchCharacterHeadshots(characterId, projectId, getToken);
           
-          // Fetch character profile with all pose references
-          const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(projectId)}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          
-          if (response.ok) {
-            const responseData = await response.json();
-            const character = responseData.data?.character || responseData.character;
+          if (headshots.length > 0) {
+            setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
             
-            if (!character) continue;
-            
-            // Filter to only headshot poses (same logic as above)
-            const seenRefs = new Set<string>();
-            const allPoseReferences: any[] = [];
-            
-            if (character?.poseReferences) {
-              for (const ref of character.poseReferences) {
-                const key = ref.s3Key || ref.poseId || ref.metadata?.poseId || JSON.stringify(ref);
-                if (!seenRefs.has(key)) {
-                  seenRefs.add(key);
-                  allPoseReferences.push(ref);
-                }
-              }
-            }
-            
-            // Filter to headshot poses only
-            const headshotPoses = allPoseReferences.filter((ref: any) => {
-              const poseType = ref.poseType || ref.metadata?.poseType || ref.type;
-              return poseType === 'headshot' || poseType === 'portrait' || !poseType; // Include if no type specified
-            });
-            
-            // Transform to headshot format
-            const headshots = headshotPoses.map((ref: any) => ({
-              poseId: ref.poseId || ref.metadata?.poseId,
-              s3Key: ref.s3Key || ref.imageUrl?.split('/').pop(),
-              imageUrl: ref.imageUrl || (ref.s3Key ? `https://s3.amazonaws.com/${ref.s3Key}` : ''),
-              label: ref.label || ref.metadata?.label,
-              priority: ref.priority || ref.metadata?.priority,
-              outfitName: ref.outfitName || ref.metadata?.outfitName
-            })).filter((h: any) => h.imageUrl || h.s3Key);
-            
-            // If no Production Hub images exist, include baseReference (creation image) as last resort
-            if (headshots.length === 0 && character?.baseReference?.imageUrl) {
-              console.log(`[SceneBuilderPanel] No Production Hub images for ${characterId}, using baseReference (creation image) as last resort`);
-              headshots.push({
-                poseId: 'base-reference',
-                s3Key: character.baseReference.s3Key || '',
-                imageUrl: character.baseReference.imageUrl,
-                label: 'Creation Image (Last Resort)',
-                priority: 9999, // Lowest priority (highest number) - this is last resort
-                outfitName: undefined
-              });
-            }
-            
-            if (headshots.length > 0) {
-              setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
-              
-              // Auto-select highest priority headshot for the first shot that uses this character
-              const bestHeadshot = headshots.reduce((best: any, current: any) => 
-                (current.priority || 999) < (best.priority || 999) ? current : best
-              );
+            // Auto-select highest priority headshot for the first shot that uses this character
+            const bestHeadshot = headshots.reduce((best: any, current: any) => 
+              (current.priority || 999) < (best.priority || 999) ? current : best
+            );
               
               // Find the first shot slot that selected this character
               const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
@@ -1039,54 +824,40 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       if (workflowExecutionId || isGenerating) return;
       
       try {
-        const token = await getToken({ template: 'wryda-backend' });
-        if (!token) return;
-        
         // Check localStorage for saved workflowExecutionId
         const savedExecutionId = localStorage.getItem(`scene-builder-execution-${projectId}`);
         if (savedExecutionId) {
           console.log('[SceneBuilderPanel] Found saved workflow execution ID:', savedExecutionId);
           
           // Verify it still exists and is running
-          const response = await fetch(`/api/workflows/${savedExecutionId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const execution = await SceneBuilderService.recoverWorkflowExecution(savedExecutionId, projectId, getToken);
           
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.execution) {
-              const execution = data.execution;
-              
-              // Only recover if it's still running
-              if (execution.status === 'running' || execution.status === 'queued' || execution.status === 'awaiting_user_decision') {
-                console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
-                setWorkflowExecutionId(savedExecutionId);
-                setIsGenerating(true);
-                setWorkflowStatus({
-                  id: execution.executionId,
-                  status: execution.status,
-                  currentStep: execution.currentStep || 1,
-                  totalSteps: execution.totalSteps || 5,
-                  stepResults: execution.stepResults || [],
-                  totalCreditsUsed: execution.totalCreditsUsed || 0,
-                  finalOutputs: execution.finalOutputs || []
-                });
-                setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
-                toast.info('Resuming workflow generation...', {
-                  description: 'Your previous generation is still running'
-                });
-              } else {
-                // Execution completed or failed, remove from localStorage
-                localStorage.removeItem(`scene-builder-execution-${projectId}`);
-              }
-            }
+          if (execution) {
+            console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
+            setWorkflowExecutionId(savedExecutionId);
+            setIsGenerating(true);
+            setWorkflowStatus({
+              id: execution.executionId,
+              status: execution.status,
+              currentStep: execution.currentStep || 1,
+              totalSteps: execution.totalSteps || 5,
+              stepResults: execution.stepResults || [],
+              totalCreditsUsed: execution.totalCreditsUsed || 0,
+              finalOutputs: execution.finalOutputs || []
+            });
+            setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
+            toast.info('Resuming workflow generation...', {
+              description: 'Your previous generation is still running'
+            });
           } else {
-            // Execution not found, remove from localStorage
+            // Execution completed or failed, remove from localStorage
             localStorage.removeItem(`scene-builder-execution-${projectId}`);
           }
         }
       } catch (error) {
         console.error('[SceneBuilderPanel] Failed to recover workflow execution:', error);
+        // Execution not found, remove from localStorage
+        localStorage.removeItem(`scene-builder-execution-${projectId}`);
       }
     }
     
@@ -1102,83 +873,57 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     const interval = setInterval(async () => {
       try {
-        const token = await getToken({ template: 'wryda-backend' });
-        if (!token) {
-          console.error('[SceneBuilderPanel] No auth token for workflow status');
-          return;
-        }
+        const execution = await SceneBuilderService.pollWorkflowStatus(workflowExecutionId, getToken);
         
-        const response = await fetch(`/api/workflows/${workflowExecutionId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        setWorkflowStatus({
+          id: execution.executionId,
+          status: execution.status,
+          currentStep: execution.currentStep || 1,
+          totalSteps: execution.totalSteps || 5,
+          stepResults: execution.stepResults || [],
+          totalCreditsUsed: execution.totalCreditsUsed || 0,
+          finalOutputs: execution.finalOutputs || []
         });
         
-        // 🔥 FIX: Handle 404, 401, and other error responses
-        if (!response.ok) {
-          if (response.status === 404) {
-            console.warn('[SceneBuilderPanel] Workflow execution not found (404), stopping poll:', workflowExecutionId);
-            clearInterval(interval);
-            setIsGenerating(false);
-            toast.error('Workflow execution not found. It may have been deleted or expired.');
-            return;
-          }
-          if (response.status === 401) {
-            console.error('[SceneBuilderPanel] Authentication failed (401), stopping poll:', workflowExecutionId);
-            clearInterval(interval);
-            setIsGenerating(false);
-            toast.error('Authentication failed. Please refresh the page and try again.');
-            return;
-          }
-          // For other errors, log and continue polling (might be temporary)
-          console.warn('[SceneBuilderPanel] Workflow status check failed:', response.status, response.statusText);
-          return;
-        }
-        
-        const data = await response.json();
-        
-        // 🔥 FIX: Validate response structure before accessing properties
-        if (!data.success) {
-          console.warn('[SceneBuilderPanel] Workflow status response not successful:', data);
-          return;
-        }
-        
-        if (!data.execution) {
-          console.warn('[SceneBuilderPanel] Workflow status response missing execution data:', data);
-          return;
-        }
-        
-        setWorkflowStatus(data.execution);
-        
         // Check if awaiting user decision
-        if (data.execution.status === 'awaiting_user_decision') {
+        if (execution.status === 'awaiting_user_decision') {
           setShowDecisionModal(true);
           setIsGenerating(false);
         }
         
         // Check if partial delivery (Premium tier - dialog rejected)
-        if (data.execution.status === 'partial_delivery') {
-          await handlePartialDelivery(data.execution);
+        if (execution.status === 'partial_delivery') {
+          await handlePartialDelivery(execution);
           clearInterval(interval);
         }
         
         // Check if completed
-        if (data.execution.status === 'completed') {
-          handleGenerationComplete(data.execution);
+        if (execution.status === 'completed') {
+          handleGenerationComplete(execution);
           clearInterval(interval);
           // 🔥 NEW: Remove from localStorage when completed
           localStorage.removeItem(`scene-builder-execution-${projectId}`);
         }
         
         // Check if failed
-        if (data.execution.status === 'failed') {
-          handleGenerationFailed(data.execution);
+        if (execution.status === 'failed') {
+          handleGenerationFailed(execution);
           clearInterval(interval);
           // 🔥 NEW: Remove from localStorage when failed
           localStorage.removeItem(`scene-builder-execution-${projectId}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[SceneBuilderPanel] Failed to poll workflow:', error);
+        // Handle specific errors
+        if (error.message?.includes('not found') || error.message?.includes('404')) {
+          clearInterval(interval);
+          setIsGenerating(false);
+          toast.error('Workflow execution not found. It may have been deleted or expired.');
+        } else if (error.message?.includes('Authentication') || error.message?.includes('401')) {
+          clearInterval(interval);
+          setIsGenerating(false);
+          toast.error('Authentication failed. Please refresh the page and try again.');
+        }
         // Don't stop polling on network errors - might be temporary
       }
     }, 3000);
@@ -1250,203 +995,27 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     setShowAnnotationPanel(false);
     
     try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
-      
-      // Step 1: Get pre-signed URL for S3 upload (same flow as MediaLibrary)
-      // CRITICAL: Use fileType (not file.type) to ensure consistency
-      const presignedResponse = await fetch(
-        `/api/video/upload/get-presigned-url?` + 
-        `fileName=${encodeURIComponent(file.name)}` +
-        `&fileType=${encodeURIComponent(fileType)}` +
-        `&fileSize=${file.size}` +
-        `&projectId=${encodeURIComponent(projectId)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+      // Step 1: Get presigned URL
+      const { url, fields, s3Key } = await SceneBuilderService.getPresignedUploadUrl(
+        file.name,
+        fileType,
+        file.size,
+        projectId,
+        getToken
       );
       
-      if (!presignedResponse.ok) {
-        if (presignedResponse.status === 413) {
-          throw new Error(`File too large. Maximum size is 10MB.`);
-        } else if (presignedResponse.status === 401) {
-          throw new Error('Please sign in to upload files.');
-        } else {
-          const errorData = await presignedResponse.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
-        }
-      }
+      // Step 2: Upload to S3
+      await SceneBuilderService.uploadToS3(url, fields, file, '[SceneBuilderPanel] First frame');
       
-      const { url, fields, s3Key } = await presignedResponse.json();
+      // Step 3: Register media
+      await SceneBuilderService.registerMedia(s3Key, file.name, file.type, projectId, getToken);
       
-      if (!url || !fields || !s3Key) {
-        throw new Error('Invalid response from server');
-      }
+      // Step 4: Get download URL
+      const downloadUrl = await SceneBuilderService.getDownloadUrl(s3Key, getToken);
       
-      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
-      // This is the recommended approach for browser uploads - Content-Type is handled
-      // as form data, not headers, preventing 403 Forbidden errors
-      const formData = new FormData();
-      
-      // Add all the fields returned from createPresignedPost
-      // CRITICAL: The 'key' field must be present and match the S3 key exactly
-      // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
-      console.log('[SceneBuilderPanel] Presigned POST fields (first frame):', fields);
-      console.log('[SceneBuilderPanel] Expected S3 key (first frame):', s3Key);
-      
-      Object.entries(fields).forEach(([key, value]) => {
-        // Skip 'bucket' field - it's only used in the policy, not in FormData
-        if (key.toLowerCase() === 'bucket') {
-          console.log(`[SceneBuilderPanel] Skipping 'bucket' field (policy-only): ${value}`);
-          return;
-        }
-        formData.append(key, value as string);
-        console.log(`[SceneBuilderPanel] Added field (first frame): ${key} = ${value}`);
-      });
-      
-      // Verify 'key' field is present (required for presigned POST)
-      if (!fields.key && !fields.Key) {
-        console.error('[SceneBuilderPanel] WARNING: No "key" field in presigned POST fields!');
-        console.error('[SceneBuilderPanel] Available fields:', Object.keys(fields));
-      } else {
-        const keyField = fields.key || fields.Key;
-        if (keyField !== s3Key) {
-          console.error('[SceneBuilderPanel] WARNING: Key field mismatch!', {
-            fieldsKey: keyField,
-            expectedS3Key: s3Key
-          });
-        }
-      }
-      
-      // Add the file last (must be last field in FormData per AWS requirements)
-      formData.append('file', file);
-      console.log('[SceneBuilderPanel] Added file (first frame):', file.name, `(${file.size} bytes, ${file.type})`);
-      console.log('[SceneBuilderPanel] Uploading to URL (first frame):', url);
-      console.log('[SceneBuilderPanel] FormData field count (first frame):', Array.from(formData.keys()).length);
-      
-      const s3Response = await fetch(url, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!s3Response.ok) {
-        // Enhanced error logging for debugging
-        const errorText = await s3Response.text().catch(() => 'No error details');
-        
-        // Parse XML error response for detailed error code
-        let errorCode = 'Unknown';
-        let errorMessage = errorText;
-        try {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(errorText, 'text/xml');
-          errorCode = xmlDoc.querySelector('Code')?.textContent || 'Unknown';
-          errorMessage = xmlDoc.querySelector('Message')?.textContent || errorText;
-          const requestId = xmlDoc.querySelector('RequestId')?.textContent;
-          
-          console.error('[SceneBuilderPanel] S3 Error Details:', {
-            Code: errorCode,
-            Message: errorMessage,
-            RequestId: requestId
-          });
-        } catch (e) {
-          // Not XML, use as-is
-        }
-        
-        // Log FormData contents for debugging
-        const formDataEntries = Array.from(formData.entries());
-        console.error('[SceneBuilderPanel] FormData contents:', formDataEntries.map(([k, v]) => [
-          k,
-          typeof v === 'string' 
-            ? (v.length > 100 ? v.substring(0, 100) + '...' : v)
-            : `File: ${(v as File).name} (${(v as File).size} bytes)`
-        ]));
-        
-        console.error('[SceneBuilderPanel] S3 upload failed:', {
-          status: s3Response.status,
-          statusText: s3Response.statusText,
-          errorCode,
-          errorMessage,
-          errorText: errorText.substring(0, 500),
-          fileType: fileType,
-          fileName: file.name,
-          fileSize: file.size,
-          url: url.substring(0, 150),
-          fieldsCount: formDataEntries.length,
-          fieldNames: formDataEntries.map(([k]) => k)
-        });
-        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorCode}: ${errorMessage}`);
-      }
-      
-      // Step 3: Register the file with the backend
-      const registerResponse = await fetch('/api/media/register', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-          s3Key,
-        }),
-      });
-      
-      if (!registerResponse.ok) {
-        const errorData = await registerResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to register file');
-      }
-      
-      const registerData = await registerResponse.json();
-      
-      // Step 4: Generate presigned download URL from s3Key
-      // Use the backend API proxy to get download URL
-      const downloadUrlResponse = await fetch('/api/s3/download-url', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          s3Key,
-          expiresIn: 3600 // 1 hour
-        }),
-      });
-      
-      if (!downloadUrlResponse.ok) {
-        // If download URL generation fails, log the error and show user-friendly message
-        const errorText = await downloadUrlResponse.text().catch(() => 'Unknown error');
-        console.error('[SceneBuilderPanel] Failed to generate download URL:', {
-          status: downloadUrlResponse.status,
-          statusText: downloadUrlResponse.statusText,
-          error: errorText,
-          s3Key
-        });
-        
-        // Don't use direct S3 URL fallback - bucket is private and requires presigned URLs
-        // Instead, show error and let user retry
-        throw new Error(
-          downloadUrlResponse.status === 401 
-            ? 'Authentication failed. Please refresh and try again.'
-            : downloadUrlResponse.status === 403
-            ? 'Access denied. Please contact support if this persists.'
-            : `Failed to generate image URL (${downloadUrlResponse.status}). Please try again.`
-        );
-      }
-      
-      const downloadUrlData = await downloadUrlResponse.json();
-      
-      if (downloadUrlData.downloadUrl) {
-        setFirstFrameUrl(downloadUrlData.downloadUrl);
-        setShowAnnotationPanel(true);
-        toast.success('Image uploaded! Add annotations or proceed to generation.');
-      } else {
-        throw new Error('No download URL returned');
-      }
+      setFirstFrameUrl(downloadUrl);
+      setShowAnnotationPanel(true);
+      toast.success('Image uploaded! Add annotations or proceed to generation.');
     } catch (error) {
       console.error('[SceneBuilderPanel] Image upload failed:', error);
       toast.error('Failed to upload image', {
@@ -2276,53 +1845,29 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         // workflowRequest.startImageUrl = firstFrameUrl;
       }
       
-      const response = await fetch('/api/workflows/execute', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(workflowRequest)
+      const { executionId } = await SceneBuilderService.executeWorkflow(workflowRequest, getToken);
+      
+      console.log('[SceneBuilderPanel] ✅ Workflow execution started:', executionId);
+      setWorkflowExecutionId(executionId);
+      
+      // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
+      localStorage.setItem(`scene-builder-execution-${projectId}`, executionId);
+      
+      // Set initial workflow status to show progress immediately
+      setWorkflowStatus({
+        id: executionId,
+        status: 'running',
+        currentStep: 1,
+        totalSteps: 5,
+        stepResults: [],
+        totalCreditsUsed: 0,
+        finalOutputs: []
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[SceneBuilderPanel] ❌ Workflow execution request failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData.error || errorData.message,
-          fullError: errorData
-        });
-        throw new Error(errorData.error || errorData.message || `Workflow execution failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.executionId) {
-        console.log('[SceneBuilderPanel] ✅ Workflow execution started:', data.executionId);
-        setWorkflowExecutionId(data.executionId);
-        
-        // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
-        localStorage.setItem(`scene-builder-execution-${projectId}`, data.executionId);
-        
-        // Set initial workflow status to show progress immediately
-        setWorkflowStatus({
-          id: data.executionId,
-          status: 'running',
-          currentStep: 1,
-          totalSteps: 5,
-          stepResults: [],
-          totalCreditsUsed: 0,
-          finalOutputs: []
-        });
-        // Move to a "generating" view - hide wizard, show progress
-        setCurrentStep(2); // Stay on Step 2 (UnifiedSceneConfiguration handles generation)
-        toast.success('Scene Builder started!', {
-          description: 'Generating your complete scene package...'
-        });
-      } else {
-        throw new Error(data.message || data.error || 'Failed to start workflow');
-      }
+      // Move to a "generating" view - hide wizard, show progress
+      setCurrentStep(2); // Stay on Step 2 (UnifiedSceneConfiguration handles generation)
+      toast.success('Scene Builder started!', {
+        description: 'Generating your complete scene package...'
+      });
       
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
@@ -2343,19 +1888,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     setIsGenerating(true);
     
     try {
-      const response = await fetch(`/api/workflows/${workflowExecutionId}/decision`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision: 'continue' })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success('Continuing without audio...');
-      } else {
-        throw new Error(data.message || 'Failed to continue');
-      }
+      await SceneBuilderService.submitWorkflowDecision(workflowExecutionId, 'continue', getToken);
+      toast.success('Continuing without audio...');
     } catch (error) {
       console.error('[SceneBuilderPanel] Decision failed:', error);
       toast.error('Failed to continue workflow');
@@ -2369,17 +1903,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     setShowDecisionModal(false);
     
     try {
-      const response = await fetch(`/api/workflows/${workflowExecutionId}/decision`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision: 'cancel' })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.info('Generation cancelled (no charges)');
-      }
+      await SceneBuilderService.submitWorkflowDecision(workflowExecutionId, 'skip', getToken);
+      toast.info('Generation cancelled (no charges)');
     } catch (error) {
       console.error('[SceneBuilderPanel] Cancel failed:', error);
     }
@@ -2404,126 +1929,23 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       toast.info('Uploading...');
       
-      // PROFESSIONAL UPLOAD: Direct to S3 using pre-signed URL
-      // Step 1: Get pre-signed URL with authentication
-      const token = await getToken({ template: 'wryda-backend' });
-      const presignedResponse = await fetch(
-        `/api/video/upload/get-presigned-url?` +
-        `fileName=${encodeURIComponent(file.name)}` +
-        `&fileType=${encodeURIComponent(file.type)}` +
-        `&fileSize=${file.size}` +
-        `&projectId=${encodeURIComponent(projectId)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+      toast.info('Uploading...');
+      
+      // Get presigned URL
+      const { url, fields, s3Key } = await SceneBuilderService.getPresignedUploadUrl(
+        file.name,
+        file.type,
+        file.size,
+        projectId,
+        getToken
       );
-      
-      if (!presignedResponse.ok) {
-        if (presignedResponse.status === 413) {
-          throw new Error('File too large. Maximum size is 50GB.');
-        } else if (presignedResponse.status === 401) {
-          throw new Error('Please sign in to upload files.');
-        } else {
-          const errorData = await presignedResponse.json();
-          throw new Error(errorData.error || `Upload failed: ${presignedResponse.status}`);
-        }
-      }
-      
-      const { url, fields, s3Key } = await presignedResponse.json();
-      
-      if (!url || !fields || !s3Key) {
-        throw new Error('Invalid response from server');
-      }
       
       toast.info('Uploading to S3...');
       
-      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
-      // This is the recommended approach for browser uploads - Content-Type is handled
-      // as form data, not headers, preventing 403 Forbidden errors
-      const formData = new FormData();
+      // Upload to S3
+      await SceneBuilderService.uploadToS3(url, fields, file, '[SceneBuilderPanel] Media');
       
-      // Add all the fields returned from createPresignedPost
-      // CRITICAL: The 'key' field must be present and match the S3 key exactly
-      // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
-      console.log('[SceneBuilderPanel] Presigned POST fields (media upload):', fields);
-      console.log('[SceneBuilderPanel] Expected S3 key (media upload):', s3Key);
-      
-      Object.entries(fields).forEach(([key, value]) => {
-        // Skip 'bucket' field - it's only used in the policy, not in FormData
-        if (key.toLowerCase() === 'bucket') {
-          console.log(`[SceneBuilderPanel] Skipping 'bucket' field (policy-only): ${value}`);
-          return;
-        }
-        formData.append(key, value as string);
-        console.log(`[SceneBuilderPanel] Added field (media): ${key} = ${value}`);
-      });
-      
-      // Verify 'key' field is present (required for presigned POST)
-      if (!fields.key && !fields.Key) {
-        console.error('[SceneBuilderPanel] WARNING: No "key" field in presigned POST fields!');
-        console.error('[SceneBuilderPanel] Available fields:', Object.keys(fields));
-      }
-      
-      // Add the file last (must be last field in FormData per AWS requirements)
-      formData.append('file', file);
-      console.log('[SceneBuilderPanel] Added file (media):', file.name, `(${file.size} bytes, ${file.type})`);
-      console.log('[SceneBuilderPanel] Uploading to URL (media):', url);
-      
-      const s3Response = await fetch(url, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!s3Response.ok) {
-        const errorText = await s3Response.text().catch(() => 'No error details');
-        
-        // Parse XML error response for detailed error code
-        let errorCode = 'Unknown';
-        let errorMessage = errorText;
-        try {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(errorText, 'text/xml');
-          errorCode = xmlDoc.querySelector('Code')?.textContent || 'Unknown';
-          errorMessage = xmlDoc.querySelector('Message')?.textContent || errorText;
-          const requestId = xmlDoc.querySelector('RequestId')?.textContent;
-          
-          console.error('[SceneBuilderPanel] S3 Error Details (media):', {
-            Code: errorCode,
-            Message: errorMessage,
-            RequestId: requestId
-          });
-        } catch (e) {
-          // Not XML, use as-is
-        }
-        
-        // Log FormData contents for debugging
-        const formDataEntries = Array.from(formData.entries());
-        console.error('[SceneBuilderPanel] FormData contents (media):', formDataEntries.map(([k, v]) => [
-          k,
-          typeof v === 'string' 
-            ? (v.length > 100 ? v.substring(0, 100) + '...' : v)
-            : `File: ${(v as File).name} (${(v as File).size} bytes)`
-        ]));
-        
-        console.error('[SceneBuilderPanel] S3 upload failed (media):', {
-          status: s3Response.status,
-          statusText: s3Response.statusText,
-          errorCode,
-          errorMessage,
-          errorText: errorText.substring(0, 500),
-          url: url.substring(0, 150),
-          fields: Object.keys(fields),
-          s3Key: s3Key,
-          fieldsCount: formDataEntries.length,
-          fieldNames: formDataEntries.map(([k]) => k)
-        });
-        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorCode}: ${errorMessage}`);
-      }
-      
-      // Step 3: Generate S3 URL
+      // Generate S3 URL
       const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
       const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
       const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
