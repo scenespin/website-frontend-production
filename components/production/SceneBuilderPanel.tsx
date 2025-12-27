@@ -348,7 +348,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       try {
         const result = await SceneBuilderService.analyzeScene(projectId, selectedSceneId);
         
-        if (result) {
+        if (result && hasConfirmedSceneSelection) {
           const characterDetails = result.characters?.map(c => ({
             id: c.id,
             name: c.name,
