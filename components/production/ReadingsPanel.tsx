@@ -165,72 +165,76 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     setReadings(groupedReadings);
   }, [groupedReadings]);
 
-  // Download function (reused from JobsDrawer, enhanced for cloud storage)
+  // Download function - matches original ProductionJobsPanel pattern exactly
   const downloadAudioAsBlob = async (file: MediaFile) => {
     try {
-      let downloadUrl: string;
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
+      // Start with fileUrl as fallback (if available), or construct from s3Key
+      let downloadUrl = file.fileUrl || (file.s3Key ? `https://s3.amazonaws.com/${process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-media'}/${file.s3Key}` : '');
       
       const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
-      // Handle different storage types
-      if (file.storageType === 'local' || !file.storageType) {
-        // S3 file - get presigned URL
-        const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            s3Key: file.s3Key,
-            expiresIn: 3600,
-          }),
-        });
-        
-        if (!presignedResponse.ok) {
-          throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+      // If we have an s3Key, try to fetch a fresh presigned URL (like original ProductionJobsPanel)
+      if (file.s3Key && (file.storageType === 'local' || file.storageType === 'wryda-temp' || !file.storageType)) {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) throw new Error('Not authenticated');
+          
+          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key: file.s3Key,
+              expiresIn: 3600, // 1 hour
+            }),
+          });
+          
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+          }
+          
+          const presignedData = await presignedResponse.json();
+          downloadUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[ReadingsPanel] Failed to get presigned URL, using fallback URL:', error);
+          // Fall back to original URL if presigned URL fetch fails (like original code)
+        }
+      } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
+        // For cloud storage files, get download URL from backend
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          toast.error('Not authenticated');
+          return;
         }
         
-        const presignedData = await presignedResponse.json();
-        downloadUrl = presignedData.downloadUrl;
-      } else if (file.storageType === 'google-drive') {
-        // Google Drive file
-        const response = await fetch(`${BACKEND_API_URL}/api/storage/download/google-drive/${file.id}`, {
+        const response = await fetch(`${BACKEND_API_URL}/api/storage/download/${file.storageType}/${file.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to get Google Drive download URL: ${response.status}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          downloadUrl = data.downloadUrl;
+        } else {
+          toast.error('Failed to get download URL');
+          return;
         }
-        
-        const data = await response.json();
-        downloadUrl = data.downloadUrl;
-      } else if (file.storageType === 'dropbox') {
-        // Dropbox file
-        const response = await fetch(`${BACKEND_API_URL}/api/storage/download/dropbox/${file.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to get Dropbox download URL: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        downloadUrl = data.downloadUrl;
-      } else {
-        throw new Error(`Unsupported storage type: ${file.storageType}`);
       }
-      
+
+      if (!downloadUrl) {
+        toast.error('Cannot download this file: no URL available');
+        return;
+      }
+
+      // Professional blob-based download approach (matches original ProductionJobsPanel exactly)
       const response = await fetch(downloadUrl);
       if (!response.ok) {
-        throw new Error(`Failed to fetch file: ${response.statusText}`);
+        throw new Error(`Failed to fetch audio: ${response.statusText}`);
       }
+      
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       
@@ -241,10 +245,11 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       link.click();
       document.body.removeChild(link);
       
+      // Clean up the blob URL after a short delay
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     } catch (error: any) {
-      console.error('[ReadingsPanel] Failed to download file:', error);
-      toast.error('Failed to download file', { description: error.message });
+      console.error('[ReadingsPanel] Failed to download audio:', error);
+      toast.error('Failed to download audio', { description: error.message });
       throw error;
     }
   };
@@ -463,58 +468,69 @@ function ReadingCard({
 
   // Initialize Video.js player
   useEffect(() => {
-    if (!reading.combinedAudio || !playerContainerRef.current) return;
+    if (!reading.combinedAudio || !playerContainerRef.current || !isPlaying) return;
 
     const initializePlayer = async () => {
       try {
-        // Get download URL based on storage type
-        const token = await getToken({ template: 'wryda-backend' });
-        if (!token) return;
-
-        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-        let downloadUrl: string;
-
         const file = reading.combinedAudio!;
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
         
-        if (file.storageType === 'local' || !file.storageType) {
-          // S3 file
-          const response = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
-            method: 'POST',
+        // Start with fileUrl as fallback (if available), or construct from s3Key
+        let downloadUrl = file.fileUrl || (file.s3Key ? `https://s3.amazonaws.com/${process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-media'}/${file.s3Key}` : '');
+
+        // If we have an s3Key, try to fetch a fresh presigned URL (like original ProductionJobsPanel)
+        if (file.s3Key && (file.storageType === 'local' || file.storageType === 'wryda-temp' || !file.storageType)) {
+          try {
+            const token = await getToken({ template: 'wryda-backend' });
+            if (!token) throw new Error('Not authenticated');
+            
+            const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                s3Key: file.s3Key,
+                expiresIn: 3600, // 1 hour
+              }),
+            });
+            
+            if (!presignedResponse.ok) {
+              throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+            }
+            
+            const presignedData = await presignedResponse.json();
+            downloadUrl = presignedData.downloadUrl;
+          } catch (error) {
+            console.error('[ReadingCard] Failed to get presigned URL, using fallback URL:', error);
+            // Fall back to original URL if presigned URL fetch fails (like original code)
+          }
+        } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
+          // For cloud storage files, get download URL from backend
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) {
+            console.error('[ReadingCard] Not authenticated');
+            return;
+          }
+          
+          const response = await fetch(`${BACKEND_API_URL}/api/storage/download/${file.storageType}/${file.id}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              s3Key: file.s3Key,
-              expiresIn: 3600,
-            }),
           });
 
-          if (!response.ok) return;
-          const data = await response.json();
-          downloadUrl = data.downloadUrl;
-        } else if (file.storageType === 'google-drive') {
-          // Google Drive file
-          const response = await fetch(`${BACKEND_API_URL}/api/storage/download/google-drive/${file.id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          if (!response.ok) return;
-          const data = await response.json();
-          downloadUrl = data.downloadUrl;
-        } else if (file.storageType === 'dropbox') {
-          // Dropbox file
-          const response = await fetch(`${BACKEND_API_URL}/api/storage/download/dropbox/${file.id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          if (!response.ok) return;
-          const data = await response.json();
-          downloadUrl = data.downloadUrl;
-        } else {
-          console.error('[ReadingCard] Unsupported storage type:', file.storageType);
+          if (response.ok) {
+            const data = await response.json();
+            downloadUrl = data.downloadUrl;
+          } else {
+            console.error('[ReadingCard] Failed to get cloud storage download URL');
+            return;
+          }
+        }
+
+        if (!downloadUrl) {
+          console.error('[ReadingCard] No download URL available');
           return;
         }
 
