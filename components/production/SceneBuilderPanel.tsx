@@ -39,7 +39,8 @@ import {
   Check,
   MapPin,
   Users,
-  Edit
+  Edit,
+  Package
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -2462,8 +2463,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                 </div>
                               )}
                               
-                              {/* Location and Characters */}
-                              {(location || characters.length > 0) && (
+                              {/* Location, Characters, and Props */}
+                              {(location || characters.length > 0 || (scene.fountain?.tags?.props || []).length > 0) && (
                                 <div className="flex flex-wrap items-center gap-2">
                                   {location && (
                                     <div className="flex items-center gap-1 text-[10px] text-[#808080]">
@@ -2477,22 +2478,50 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                       <span>{characters.map(c => c?.name).filter(Boolean).join(', ')}</span>
                                     </div>
                                   )}
+                                  {(scene.fountain?.tags?.props || []).length > 0 && (
+                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                      <Package className="w-3 h-3" />
+                                      <span>{(scene.fountain?.tags?.props || []).length} prop{(scene.fountain?.tags?.props || []).length !== 1 ? 's' : ''}</span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               
-                              {/* Scene Synopsis/Content */}
-                              {scene.synopsis && (
-                                <div>
-                                  <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
-                                  <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-48 overflow-y-auto">
-                                    {scene.synopsis}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {!scene.synopsis && !scene.heading && (
-                                <div className="text-xs text-[#808080] italic">No scene content available</div>
-                              )}
+                              {/* Scene Full Content */}
+                              {(() => {
+                                // Try to get full scene content from screenplay
+                                let sceneContent = '';
+                                if (screenplay.content && scene.fountain?.startLine !== undefined && scene.fountain?.endLine !== undefined) {
+                                  const fountainLines = screenplay.content.split('\n');
+                                  const rawContent = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine);
+                                  // Filter out sections (#) and synopses (=) per Fountain spec
+                                  const filteredContent = rawContent.filter(line => {
+                                    const trimmed = line.trim();
+                                    return !trimmed.startsWith('#') && !trimmed.startsWith('=');
+                                  });
+                                  sceneContent = filteredContent.join('\n');
+                                }
+                                
+                                // Fallback to synopsis if no full content available
+                                if (!sceneContent && scene.synopsis) {
+                                  sceneContent = scene.synopsis;
+                                }
+                                
+                                if (sceneContent) {
+                                  return (
+                                    <div>
+                                      <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
+                                      <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-64 overflow-y-auto">
+                                        {sceneContent}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                
+                                return (
+                                  <div className="text-xs text-[#808080] italic">No scene content available</div>
+                                );
+                              })()}
                             </CardContent>
                           </Card>
                           
@@ -2881,6 +2910,16 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                 getCharacterForShotWrapper
               );
               
+              // Handler for shot navigation
+              const handleShotSelect = (shotSlot: number) => {
+                const shotIndex = enabledShotsList.findIndex((s: any) => s.slot === shotSlot);
+                if (shotIndex !== -1) {
+                  setCurrentShotIndex(shotIndex);
+                  // Scroll to top when switching shots
+                  window.scrollTo({ top: 0, behavior: 'instant' });
+                }
+              };
+
               return (
                 <ShotConfigurationStep
                   shot={currentShot}
@@ -3087,6 +3126,9 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       setWizardStep('review');
                     }
                   }}
+                  onShotSelect={handleShotSelect}
+                  enabledShots={enabledShots}
+                  isMobile={isMobile}
                 />
               );
             })()}

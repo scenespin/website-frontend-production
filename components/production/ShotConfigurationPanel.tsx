@@ -85,6 +85,7 @@ interface ShotConfigurationPanelProps {
   // Props Configuration (per-shot)
   sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
   propsToShots?: Record<string, number[]>; // Which props are assigned to which shots (from Step 1)
+  onPropsToShotsChange?: (propsToShots: Record<string, number[]>) => void; // Callback to remove prop from shot
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>; // Per-shot prop configurations
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
 }
@@ -133,6 +134,7 @@ export function ShotConfigurationPanel({
   onDurationChange,
   sceneProps = [],
   propsToShots = {},
+  onPropsToShotsChange,
   shotProps = {},
   onPropDescriptionChange
 }: ShotConfigurationPanelProps) {
@@ -352,15 +354,42 @@ export function ShotConfigurationPanel({
                 
                 return (
                   <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
-                    <div className="flex items-center gap-2">
-                      {prop.imageUrl && (
-                        <img 
-                          src={prop.imageUrl} 
-                          alt={prop.name}
-                          className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
-                        />
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        {prop.imageUrl && (
+                          <img 
+                            src={prop.imageUrl} 
+                            alt={prop.name}
+                            className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
+                          />
+                        )}
+                        <span className="text-xs font-medium text-[#FFFFFF]">{prop.name}</span>
+                      </div>
+                      {/* Remove Prop from Shot Checkbox */}
+                      {onPropsToShotsChange && (
+                        <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={false} // Always unchecked - checking it removes the prop
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                // Remove this prop from this shot
+                                const updatedPropsToShots = { ...propsToShots };
+                                if (updatedPropsToShots[prop.id]) {
+                                  updatedPropsToShots[prop.id] = updatedPropsToShots[prop.id].filter(slot => slot !== shot.slot);
+                                  // If no shots left, remove the prop entirely
+                                  if (updatedPropsToShots[prop.id].length === 0) {
+                                    delete updatedPropsToShots[prop.id];
+                                  }
+                                }
+                                onPropsToShotsChange(updatedPropsToShots);
+                              }
+                            }}
+                            className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                          />
+                          <span>Remove from shot</span>
+                        </label>
                       )}
-                      <span className="text-xs font-medium text-[#FFFFFF]">{prop.name}</span>
                     </div>
                     
                     {/* Prop Usage Description */}

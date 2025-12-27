@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ArrowRight, Film, Check } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
+import { ShotNavigatorList } from './ShotNavigatorList';
 import { categorizeCharacters } from './utils/characterCategorization';
 import { toast } from 'sonner';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
@@ -75,11 +76,16 @@ interface ShotConfigurationStepProps {
   // Props
   sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
   propsToShots?: Record<string, number[]>;
+  onPropsToShotsChange?: (propsToShots: Record<string, number[]>) => void;
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
   // Navigation
   onPrevious: () => void;
   onNext: () => void;
+  // Shot navigation (for ShotNavigatorList)
+  onShotSelect?: (shotSlot: number) => void;
+  enabledShots?: number[];
+  isMobile?: boolean;
 }
 
 export function ShotConfigurationStep({
@@ -131,7 +137,10 @@ export function ShotConfigurationStep({
   shotProps = {},
   onPropDescriptionChange,
   onPrevious,
-  onNext
+  onNext,
+  onShotSelect,
+  enabledShots = [],
+  isMobile = false
 }: ShotConfigurationStepProps) {
   const { getToken } = useAuth();
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -183,6 +192,9 @@ export function ShotConfigurationStep({
       }
     }
     
+    // Scroll to top immediately
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    
     // Add transition animation
     setIsTransitioning(true);
     setTimeout(() => {
@@ -192,6 +204,9 @@ export function ShotConfigurationStep({
   };
 
   const handlePrevious = () => {
+    // Scroll to top immediately
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    
     setIsTransitioning(true);
     setTimeout(() => {
       onPrevious();
@@ -199,9 +214,29 @@ export function ShotConfigurationStep({
     }, 800);
   };
 
+  const shots = sceneAnalysisResult.shotBreakdown?.shots || [];
+  const enabledShotsList = shots.filter(s => enabledShots.includes(s.slot));
+
   return (
-    <div className={`space-y-4 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-      <Card className="bg-[#141414] border-[#3F3F46]">
+    <div className={isMobile ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"}>
+      {/* Shot Navigator (Left side on desktop, top on mobile) */}
+      {onShotSelect && (
+        <div className={isMobile ? "w-full" : "flex flex-col"}>
+          <label className="text-xs font-medium mb-2 block text-[#808080]">
+            Select Shot
+          </label>
+          <ShotNavigatorList
+            shots={enabledShotsList}
+            currentShotSlot={shot.slot}
+            onShotSelect={onShotSelect}
+            isMobile={isMobile}
+          />
+        </div>
+      )}
+      
+      {/* Shot Configuration (Right side on desktop, bottom on mobile) */}
+      <div className={`space-y-4 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+        <Card className="bg-[#141414] border-[#3F3F46]">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
@@ -295,6 +330,7 @@ export function ShotConfigurationStep({
             onDurationChange={onDurationChange}
             sceneProps={sceneProps}
             propsToShots={propsToShots}
+            onPropsToShotsChange={onPropsToShotsChange}
             shotProps={shotProps}
             onPropDescriptionChange={onPropDescriptionChange}
           />
