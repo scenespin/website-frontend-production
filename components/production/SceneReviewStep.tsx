@@ -273,7 +273,7 @@ export function SceneReviewStep({
                 }
               });
               
-              // Apply 70% margin to base video and upscaling separately, then add together
+              // Apply 70% margin to total base cost (video + upscaling combined)
               // Industry standard for SaaS: 3-5x markup on COGS (300-500% markup = 75-83% margin)
               // For AI/video generation services, typical margins are 50-80% of selling price
               // Using 70% margin = 3.33x markup (233% markup)
@@ -281,14 +281,11 @@ export function SceneReviewStep({
               const targetMargin = 0.70; // 70% margin
               const markupMultiplier = 1 / (1 - targetMargin); // Calculate markup to achieve target margin
               
-              // Apply margin to video generation cost
-              const videoWithMargin = baseVideoCredits * markupMultiplier;
+              // Total base cost = video generation + upscaling (if 4K)
+              const totalBaseCredits = baseVideoCredits + baseUpscalingCredits;
               
-              // Apply margin to upscaling cost (if 4K)
-              const upscalingWithMargin = baseUpscalingCredits * markupMultiplier;
-              
-              // Final price = video with margin + upscaling with margin
-              const finalPrice = videoWithMargin + upscalingWithMargin;
+              // Apply margin once to the total
+              const finalPrice = totalBaseCredits * markupMultiplier;
               
               return (
                 <div className="p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">

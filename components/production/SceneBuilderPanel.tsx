@@ -322,12 +322,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   }, [selectedSceneId, projectId, screenplay.scenes, getToken]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
+  // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
+  const [hasConfirmedSceneSelection, setHasConfirmedSceneSelection] = useState(false);
+  
   useEffect(() => {
     if (!selectedSceneId || !projectId) {
       // Clear analysis if no scene selected
       setSceneAnalysisResult(null);
       setAnalysisError(null);
       setCharacterReferenceUrls([]);
+      setHasConfirmedSceneSelection(false);
+      return;
+    }
+
+    // Only auto-analyze if user has confirmed scene selection
+    if (!hasConfirmedSceneSelection) {
       return;
     }
 
@@ -2356,6 +2365,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     selectedSceneId={selectedSceneId}
                     onSceneSelect={(sceneId) => {
                       setSelectedSceneId(sceneId);
+                      setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
                       const scene = screenplay.scenes?.find(s => s.id === sceneId);
                       if (scene) {
                         // Load scene content into description

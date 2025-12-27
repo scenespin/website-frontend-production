@@ -38,12 +38,7 @@ export function SceneSelector({
   const scenes = screenplay.scenes || [];
   const selectedScene = scenes.find(s => s.id === selectedSceneId);
 
-  // Auto-select first scene if none selected and scenes available
-  useEffect(() => {
-    if (!selectedSceneId && scenes.length > 0) {
-      onSceneSelect(scenes[0].id);
-    }
-  }, [scenes.length, selectedSceneId, onSceneSelect]);
+  // Don't auto-select - let user choose
 
   const handleEditScene = () => {
     if (selectedSceneId && onEditScene) {

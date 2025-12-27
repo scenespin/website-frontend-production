@@ -251,16 +251,29 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
   
-  // Mobile: Calculate height (70px collapsed, variable when open)
-  // Only calculate if actually on mobile to prevent unnecessary renders
-  const currentMobileHeight = isMobile && isOpen ? mobileHeight : isMobile ? 70 : 0;
-  
-  // Debug: Log mobile state (remove in production)
+  // Additional check: verify we're actually on mobile by checking window width
+  // This prevents mobile drawer from showing on desktop if hook is incorrect
+  const [verifiedIsMobile, setVerifiedIsMobile] = useState(false);
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('[JobsDrawer] Mobile detection:', { isMobile, windowWidth: window.innerWidth });
+      const check = window.innerWidth < 768;
+      setVerifiedIsMobile(check);
+      // Debug log to help troubleshoot
+      if (isMobile !== check) {
+        console.warn('[JobsDrawer] Mobile detection mismatch:', { 
+          hookSaysMobile: isMobile, 
+          actualWidth: window.innerWidth,
+          shouldBeMobile: check 
+        });
+      }
     }
   }, [isMobile]);
+  
+  // Use verified mobile state - only true if both hook AND window width agree
+  const actuallyMobile = isMobile && verifiedIsMobile;
+  
+  // Mobile: Calculate height (70px collapsed, variable when open)
+  const currentMobileHeight = actuallyMobile && isOpen ? mobileHeight : actuallyMobile ? 70 : 0;
   
   // Handle drag gestures (MOBILE ONLY)
   const handleDragStart = (clientY: number) => {
@@ -1140,7 +1153,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
   // MOBILE RENDER - Slides up from bottom (matches AgentDrawer mobile pattern)
   // CRITICAL: Only render mobile version if actually on mobile - early return prevents desktop render
-  if (isMobile) {
+  // Use verified mobile state to prevent false positives
+  if (actuallyMobile) {
     return (
       <>
         {/* Backdrop - Mobile Only */}
@@ -1156,7 +1170,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out rounded-t-2xl"
           style={{ 
             height: `${currentMobileHeight}px`,
-            display: isMobile ? 'block' : 'none' // Extra safeguard
+            display: actuallyMobile ? 'block' : 'none' // Extra safeguard
           }}
         >
           {/* Drag Handle (Mobile) */}
