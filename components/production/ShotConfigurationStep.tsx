@@ -36,6 +36,8 @@ interface ShotConfigurationStepProps {
   onLocationAngleChange?: (shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   isLocationAngleRequired: (shot: any) => boolean;
   needsLocationAngle: (shot: any) => boolean;
+  locationOptOuts?: Record<number, boolean>;
+  onLocationOptOutChange?: (shotSlot: number, optOut: boolean) => void;
   // Character data
   allCharacters: any[];
   selectedCharactersForShots: Record<number, string[]>;
@@ -89,6 +91,8 @@ export function ShotConfigurationStep({
   onLocationAngleChange,
   isLocationAngleRequired,
   needsLocationAngle,
+  locationOptOuts = {},
+  onLocationOptOutChange,
   allCharacters,
   selectedCharactersForShots,
   onCharactersForShotChange,
@@ -181,6 +185,8 @@ export function ShotConfigurationStep({
             onLocationAngleChange={onLocationAngleChange}
             isLocationAngleRequired={isLocationAngleRequired}
             needsLocationAngle={needsLocationAngle}
+            locationOptOuts={locationOptOuts}
+            onLocationOptOutChange={onLocationOptOutChange}
             renderCharacterControlsOnly={renderCharacterControlsOnly}
             renderCharacterImagesOnly={renderCharacterImagesOnly}
             pronounInfo={pronounInfo}
