@@ -19,6 +19,8 @@ interface ShotNavigatorListProps {
   onShotSelect: (shotSlot: number) => void;
   className?: string;
   isMobile?: boolean;
+  completedShots?: Set<number>; // Shots that are completely filled out
+  enabledShots?: number[]; // All enabled shots (for determining "next" shot)
 }
 
 export function ShotNavigatorList({
@@ -26,7 +28,9 @@ export function ShotNavigatorList({
   currentShotSlot,
   onShotSelect,
   className = '',
-  isMobile = false
+  isMobile = false,
+  completedShots = new Set(),
+  enabledShots = []
 }: ShotNavigatorListProps) {
   if (!shots || shots.length === 0) {
     return (
@@ -40,6 +44,22 @@ export function ShotNavigatorList({
 
   // Sort shots by slot number
   const sortedShots = [...shots].sort((a, b) => (a.slot || 0) - (b.slot || 0));
+  
+  // Find current shot index to determine "next" shot
+  const currentIndex = sortedShots.findIndex(s => s.slot === currentShotSlot);
+  const nextShotSlot = currentIndex >= 0 && currentIndex < sortedShots.length - 1 
+    ? sortedShots[currentIndex + 1].slot 
+    : null;
+  
+  // Determine if a shot is navigable
+  const isNavigable = (shotSlot: number): boolean => {
+    // Always allow current shot
+    if (shotSlot === currentShotSlot) return true;
+    // Always allow next shot (even if not complete)
+    if (shotSlot === nextShotSlot) return true;
+    // Allow completed shots
+    return completedShots.has(shotSlot);
+  };
 
   return (
     <div className={cn(
@@ -52,17 +72,28 @@ export function ShotNavigatorList({
           const isSelected = shot.slot === currentShotSlot;
           const shotType = shot.type === 'dialogue' ? 'Dialogue' : 'Action';
           const credits = shot.credits || 0;
+          const isComplete = completedShots.has(shot.slot);
+          const isNavigableShot = isNavigable(shot.slot);
+          const isNextShot = shot.slot === nextShotSlot;
 
           return (
             <button
               key={shot.slot}
-              onClick={() => onShotSelect(shot.slot)}
+              onClick={() => {
+                if (isNavigableShot) {
+                  onShotSelect(shot.slot);
+                }
+              }}
+              disabled={!isNavigableShot}
               className={cn(
                 "flex w-full flex-col items-start rounded-md transition-all p-2 gap-1 text-left",
                 isSelected
                   ? "bg-[#1A1A1A] text-[#FFFFFF] border-l-2 border-[#DC143C]"
-                  : "text-[#808080] hover:bg-[#141414] border-l-2 border-transparent hover:text-[#FFFFFF]"
+                  : isNavigableShot
+                  ? "text-[#808080] hover:bg-[#141414] border-l-2 border-transparent hover:text-[#FFFFFF] cursor-pointer"
+                  : "text-[#3F3F46] border-l-2 border-transparent cursor-not-allowed opacity-50"
               )}
+              title={!isNavigableShot && !isNextShot ? "Complete previous shots first" : undefined}
             >
               {/* Shot Number & Type */}
               <div className="flex items-center w-full gap-2">
@@ -110,6 +141,16 @@ export function ShotNavigatorList({
                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080]">
                   {credits} credits
                 </Badge>
+                {isComplete && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-green-500 text-green-400">
+                    ✓ Complete
+                  </Badge>
+                )}
+                {isNextShot && !isComplete && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-blue-500 text-blue-400">
+                    Next
+                  </Badge>
+                )}
               </div>
             </button>
           );

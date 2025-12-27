@@ -85,6 +85,7 @@ interface ShotConfigurationStepProps {
   // Shot navigation (for ShotNavigatorList)
   onShotSelect?: (shotSlot: number) => void;
   enabledShots?: number[];
+  completedShots?: Set<number>; // Shots that are completely filled out
   isMobile?: boolean;
 }
 
@@ -141,6 +142,7 @@ export function ShotConfigurationStep({
   onNext,
   onShotSelect,
   enabledShots = [],
+  completedShots = new Set(),
   isMobile = false
 }: ShotConfigurationStepProps) {
   const { getToken } = useAuth();
@@ -230,6 +232,7 @@ export function ShotConfigurationStep({
             shots={enabledShotsList}
             currentShotSlot={shot.slot}
             onShotSelect={(shotSlot) => {
+              // Only allow navigation if shot is navigable (will be checked in navigator)
               // Trigger fade transition when clicking shot
               setIsTransitioning(true);
               setTimeout(() => {
@@ -240,6 +243,8 @@ export function ShotConfigurationStep({
               }, 800);
             }}
             isMobile={isMobile}
+            completedShots={completedShots}
+            enabledShots={enabledShots}
           />
         </div>
       )}

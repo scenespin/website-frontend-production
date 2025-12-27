@@ -2949,13 +2949,72 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                 getCharacterForShotWrapper
               );
               
+              // Calculate completed shots - shots that have all required fields filled
+              const completedShots = new Set<number>();
+              enabledShotsList.forEach((s: any) => {
+                let isComplete = true;
+                
+                // Check location requirement
+                if (isLocationAngleRequiredWrapper(s) && needsLocationAngleWrapper(s)) {
+                  const hasLocation = selectedLocationReferences[s.slot] !== undefined;
+                  const hasOptOut = locationOptOuts[s.slot] === true;
+                  if (!hasLocation && !hasOptOut) {
+                    isComplete = false;
+                  }
+                }
+                
+                // Check character references for dialogue shots
+                if (s.type === 'dialogue' && s.characterId) {
+                  const hasCharacterRef = selectedCharacterReferences[s.slot]?.[s.characterId] !== undefined;
+                  if (!hasCharacterRef) {
+                    isComplete = false;
+                  }
+                }
+                
+                // Check pronoun mappings (all pronouns must be mapped or skipped)
+                if (s.type === 'action') {
+                  const actionPronounInfo = actionShotHasPronounsWrapper(s);
+                  if (actionPronounInfo.hasPronouns) {
+                    const mappings = pronounMappingsForShots[s.slot] || {};
+                    const unmappedPronouns = actionPronounInfo.pronouns.filter((p: string) => {
+                      const mapping = mappings[p.toLowerCase()];
+                      return !mapping || (Array.isArray(mapping) && mapping.length === 0);
+                    });
+                    if (unmappedPronouns.length > 0) {
+                      isComplete = false;
+                    }
+                  }
+                }
+                
+                if (isComplete) {
+                  completedShots.add(s.slot);
+                }
+              });
+              
               // Handler for shot navigation
               const handleShotSelect = (shotSlot: number) => {
                 const shotIndex = enabledShotsList.findIndex((s: any) => s.slot === shotSlot);
                 if (shotIndex !== -1) {
-                  setCurrentShotIndex(shotIndex);
-                  // Scroll to top when switching shots
-                  window.scrollTo({ top: 0, behavior: 'instant' });
+                  // Check if shot is navigable (completed or next shot)
+                  const currentIndex = enabledShotsList.findIndex((s: any) => s.slot === currentShot.slot);
+                  const nextShotSlot = currentIndex >= 0 && currentIndex < enabledShotsList.length - 1 
+                    ? enabledShotsList[currentIndex + 1].slot 
+                    : null;
+                  
+                  const isNavigable = shotSlot === currentShot.slot || 
+                                     shotSlot === nextShotSlot || 
+                                     completedShots.has(shotSlot);
+                  
+                  if (isNavigable) {
+                    setCurrentShotIndex(shotIndex);
+                    // Scroll to top when switching shots
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                  } else {
+                    toast.error('Complete previous shots first', {
+                      description: 'You can only navigate to completed shots or the next shot in sequence.',
+                      duration: 3000
+                    });
+                  }
                 }
               };
 
@@ -3167,6 +3226,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   }}
                   onShotSelect={handleShotSelect}
                   enabledShots={enabledShots}
+                  completedShots={completedShots}
                   isMobile={isMobile}
                 />
               );
