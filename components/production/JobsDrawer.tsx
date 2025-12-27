@@ -660,12 +660,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
       {!isOpen && (
         <button
-          onClick={() => onOpen()}
-          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300 relative"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onOpen();
+          }}
+          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex border-none px-4 py-3 transition-all duration-300 relative"
           style={{ 
             writingMode: 'vertical-rl', 
             textOrientation: 'mixed',
-            animation: 'pulse-subtle 3s ease-in-out infinite'
+            animation: 'pulse-subtle 3s ease-in-out infinite',
+            zIndex: Z_INDEX.POPOVER, // High z-index to ensure tab is always visible above other elements
           }}
           title={jobCount > 0 || visibleJobs.length > 0 
             ? `${jobCount || visibleJobs.length} job${(jobCount || visibleJobs.length) !== 1 ? 's' : ''} running`
