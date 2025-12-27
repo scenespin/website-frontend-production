@@ -261,12 +261,17 @@ export function SceneReviewStep({
                 baseVideoCredits += shotCredits;
                 
                 // Calculate 4K upscaling base cost separately (only if 4K is selected)
-                // Runway upscaling cost: $0.02 per second = 2 credits per second
-                // Default shot duration is 5 seconds (if not specified in shot data)
+                // Runway API Pricing (for reference):
+                //   - gen4_turbo: 5 credits/second
+                //   - gen4_aleph: 15 credits/second
+                //   - gen3a_turbo: 5 credits/second
+                //   - upscale_v1: 2 credits/second (used here)
+                //   - act_two: 5 credits/second
+                // Note: Base video costs (shot.credits) come from backend and should reflect actual Runway model costs
                 if (globalResolution === '4k') {
                   // Get shot duration in seconds (default to 5 seconds if not available)
                   const shotDurationSeconds = shot.duration || 5;
-                  // Calculate upscaling cost: duration × $0.02/second = duration × 2 credits
+                  // Calculate upscaling cost: duration × 2 credits/second (Runway upscale_v1 pricing)
                   const upscaleCost = shotDurationSeconds * 2;
                   baseUpscalingCredits += upscaleCost;
                 }
