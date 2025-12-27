@@ -15,6 +15,7 @@ import { ArrowLeft, ArrowRight, Film, Check } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { categorizeCharacters } from './utils/characterCategorization';
+import { toast } from 'sonner';
 
 interface ShotConfigurationStepProps {
   shot: any;
@@ -121,6 +122,25 @@ export function ShotConfigurationStep({
   onPrevious,
   onNext
 }: ShotConfigurationStepProps) {
+  // Validate location requirement before allowing next
+  const handleNext = () => {
+    // Check if location is required but not selected/opted out
+    if (isLocationAngleRequired(shot) && needsLocationAngle(shot)) {
+      const hasLocation = selectedLocationReferences[shot.slot] !== undefined;
+      const hasOptOut = locationOptOuts[shot.slot] === true;
+      
+      if (!hasLocation && !hasOptOut) {
+        toast.error('Location image required', {
+          description: 'Please select a location image or check "Don\'t use location image" to continue.',
+          duration: 5000
+        });
+        return;
+      }
+    }
+    
+    onNext();
+  };
+
   return (
     <div className="space-y-4">
       <Card className="bg-[#141414] border-[#3F3F46]">
@@ -229,7 +249,7 @@ export function ShotConfigurationStep({
               Previous
             </Button>
             <Button
-              onClick={onNext}
+              onClick={handleNext}
               className="flex-1 bg-[#DC143C] hover:bg-[#B91238] text-white"
             >
               {shotIndex === totalShots - 1 ? 'Review' : 'Next Shot'}

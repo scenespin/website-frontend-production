@@ -234,34 +234,20 @@ export function SceneReviewStep({
             </div>
           </div>
 
-          {/* Global Settings and Resolution Selection (above buttons) */}
+          {/* Resolution Selection and Cost Calculator (above buttons) */}
           <div className="pt-3 border-t border-[#3F3F46] space-y-3 pb-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-[#808080] whitespace-nowrap">
-                  Style:
-                </label>
-                <select
-                  value={globalStyle}
-                  disabled
-                  className="px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] opacity-60 cursor-not-allowed"
-                >
-                  <option value={globalStyle}>{globalStyle}</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-[#808080] whitespace-nowrap">
-                  Resolution:
-                </label>
-                <select
-                  value={globalResolution}
-                  onChange={(e) => onGlobalResolutionChange(e.target.value as Resolution)}
-                  className="px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-                >
-                  <option value="1080p">HD</option>
-                  <option value="4k">4K</option>
-                </select>
-              </div>
+            <div className="flex items-center justify-end gap-2">
+              <label className="text-xs text-[#808080] whitespace-nowrap">
+                Resolution:
+              </label>
+              <select
+                value={globalResolution}
+                onChange={(e) => onGlobalResolutionChange(e.target.value as Resolution)}
+                className="px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+              >
+                <option value="1080p">HD</option>
+                <option value="4k">4K</option>
+              </select>
             </div>
             
             {/* Cost Calculator */}
@@ -269,7 +255,12 @@ export function SceneReviewStep({
               // Calculate total base credits (raw costs from backend - no markup applied yet)
               let baseCredits = 0;
               selectedShots.forEach((shot: any) => {
-                baseCredits += shot.credits || 0;
+                let shotCredits = shot.credits || 0;
+                // Add 4K upscaling cost if 4K is selected (estimate: ~50% more credits for upscaling)
+                if (globalResolution === '4k') {
+                  shotCredits = Math.round(shotCredits * 1.5); // 50% markup for 4K upscaling
+                }
+                baseCredits += shotCredits;
               });
               
               // Apply markup to base costs
@@ -280,7 +271,6 @@ export function SceneReviewStep({
               const targetMargin = 0.70; // 70% margin
               const markupMultiplier = 1 / (1 - targetMargin); // Calculate markup to achieve target margin
               const finalPrice = baseCredits * markupMultiplier;
-              const marginPercentage = targetMargin * 100; // Display margin %
               
               return (
                 <div className="p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
@@ -292,11 +282,6 @@ export function SceneReviewStep({
                       {finalPrice.toFixed(0)} credits
                     </div>
                   </div>
-                  {baseCredits > 0 && (
-                    <div className="text-[10px] text-[#808080] mt-1">
-                      Base: {baseCredits.toFixed(0)} credits × {markupMultiplier.toFixed(1)}x markup ({Math.round(marginPercentage)}% margin)
-                    </div>
-                  )}
                 </div>
               );
             })()}

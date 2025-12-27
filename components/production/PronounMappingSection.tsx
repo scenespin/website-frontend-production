@@ -191,7 +191,7 @@ export function PronounMappingSection({
       {/* Pronoun Mapping Dropdowns */}
       <div className="space-y-3">
         <div className="text-xs font-medium text-[#FFFFFF] mb-2">
-          Map Pronouns to Characters (up to {maxTotalCharacters} total)
+          Map Pronouns to Characters{pluralPronounsList.length > 0 ? ` (up to ${maxTotalCharacters} total)` : ''}
         </div>
         
         {/* Singular Pronouns Section */}
@@ -256,7 +256,7 @@ export function PronounMappingSection({
                         return (
                           <div className="mt-2">
                             <label className="block text-[10px] text-[#808080] mb-1.5">
-                              Describe what "{pronoun}" refers to (extras/background), unless referring to the main character selected in shot:
+                              Describe what "{pronoun}" refers to (extras/background), unless referring to a character already selected for this shot:
                             </label>
                             <textarea
                               value={pronounExtrasPrompts[pronoun] || ''}

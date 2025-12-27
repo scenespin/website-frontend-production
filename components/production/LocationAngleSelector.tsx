@@ -97,18 +97,32 @@ export function LocationAngleSelector({
   }, [baseReference, angleVariations]);
   
   // Get all group keys (sorted: "No Metadata" last, then alphabetically)
+  // IMPORTANT: Only include "Creation" if there are NO Production Hub images
   const groupKeys = React.useMemo(() => {
     const keys = Object.keys(groupedAngles);
-    return keys.sort((a, b) => {
+    const hasProductionHubImages = keys.some(k => k !== 'Creation' && k !== 'No Metadata');
+    
+    // Only include Creation if it's the absolute last resort (no Production Hub images)
+    const filteredKeys = hasProductionHubImages 
+      ? keys.filter(k => k !== 'Creation')
+      : keys;
+    
+    return filteredKeys.sort((a, b) => {
       if (a === 'No Metadata') return 1;
       if (b === 'No Metadata') return -1;
-      if (a === 'Creation') return -1; // Creation first
+      if (a === 'Creation') return -1; // Creation first (only if no Production Hub)
       if (b === 'Creation') return 1;
       return a.localeCompare(b);
     });
   }, [groupedAngles]);
   
-  // Selected group (default to first group with Production Hub images, or "Creation")
+  // Check if we're using Creation image (last resort)
+  const isUsingCreationImage = React.useMemo(() => {
+    const hasProductionHubImages = angleVariations.length > 0;
+    return !hasProductionHubImages && !!baseReference;
+  }, [angleVariations.length, baseReference]);
+  
+  // Selected group (default to first group with Production Hub images, or "Creation" only if last resort)
   const [selectedGroup, setSelectedGroup] = React.useState<string>(() => {
     // Prefer first Production Hub group (not "Creation")
     const productionHubGroups = groupKeys.filter(k => k !== 'Creation');
@@ -218,6 +232,13 @@ export function LocationAngleSelector({
       
       {!optOut && (
         <>
+          {/* Warning when using Creation image (last resort) */}
+          {isUsingCreationImage && (
+            <div className="p-2 bg-yellow-900/20 border border-yellow-700/50 rounded text-[10px] text-yellow-300">
+              ⚠️ Using creation image (last resort). No Production Hub images available. Consider generating location angles for better results.
+            </div>
+          )}
+          
           {/* Time of Day/Weather Group Selector (similar to outfit dropdown) */}
           {groupKeys.length > 1 && (
             <div className="flex items-center gap-2">

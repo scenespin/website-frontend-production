@@ -37,7 +37,7 @@ export function CharacterOutfitSelector({
 }: CharacterOutfitSelectorProps) {
   const [localSelectedOutfit, setLocalSelectedOutfit] = useState<string>(selectedOutfit || 'default');
 
-  // Initialize with selectedOutfit or default
+  // Initialize with selectedOutfit or default to "All Outfits"
   useEffect(() => {
     const outfitsArray = availableOutfits || [];
     
@@ -47,25 +47,14 @@ export function CharacterOutfitSelector({
       if (isPreset) {
         setLocalSelectedOutfit(selectedOutfit);
       } else {
-        // If not a preset, use default or first available
-        if (defaultOutfit && outfitsArray.includes(defaultOutfit)) {
-          setLocalSelectedOutfit('default');
-        } else if (outfitsArray.length > 0) {
-          setLocalSelectedOutfit(outfitsArray[0]);
-        } else {
-          setLocalSelectedOutfit('default');
-        }
+        // If not a preset, default to "All Outfits"
+        setLocalSelectedOutfit('default');
       }
-    } else if (defaultOutfit && outfitsArray.includes(defaultOutfit)) {
-      // Use default outfit if available
-      setLocalSelectedOutfit('default');
-    } else if (outfitsArray.length > 0) {
-      // Auto-select first outfit if no default is set
-      setLocalSelectedOutfit(outfitsArray[0]);
     } else {
+      // If selectedOutfit is undefined or 'default', show "All Outfits"
       setLocalSelectedOutfit('default');
     }
-  }, [selectedOutfit, availableOutfits, defaultOutfit]);
+  }, [selectedOutfit, availableOutfits]);
 
   const handleOutfitChange = (value: string) => {
     setLocalSelectedOutfit(value);

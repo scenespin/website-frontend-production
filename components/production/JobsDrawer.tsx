@@ -29,6 +29,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { Z_INDEX } from '@/config/z-index';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -243,21 +244,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const queryClient = useQueryClient();
   const { isDrawerOpen: isChatDrawerOpen } = useDrawer(); // Check if chat drawer is open
   
-  // Detect mobile vs desktop
-  const [isMobile, setIsMobile] = useState(false);
+  // Use shared mobile detection hook
+  const isMobile = useIsMobile();
   const [mobileHeight, setMobileHeight] = useState(500);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
-  
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
   
   // Mobile: Calculate height (70px collapsed, variable when open)
   const currentMobileHeight = isOpen ? mobileHeight : 70;
