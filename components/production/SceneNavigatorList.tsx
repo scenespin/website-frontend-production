@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { MapPin, Users } from 'lucide-react';
+import { MapPin, Users, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Scene } from '@/types/screenplay';
@@ -62,6 +62,12 @@ export function SceneNavigatorList({
     return null;
   };
 
+  // Get asset/prop count for a scene (from scene.fountain.tags.props)
+  const getScenePropsCount = (scene: Scene): number => {
+    const assetIds = scene.fountain?.tags?.props || [];
+    return assetIds.length;
+  };
+
   if (!scenes || scenes.length === 0) {
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
@@ -90,10 +96,15 @@ export function SceneNavigatorList({
       className
     )}>
       <div className="flex flex-col gap-1">
-        {sortedScenes.map((scene) => {
+        {sortedScenes.map((scene, index) => {
           const isSelected = scene.id === selectedSceneId;
           const characters = getSceneCharacters(scene);
           const location = getSceneLocation(scene);
+          const propsCount = getScenePropsCount(scene);
+          
+          // Use index + 1 for display number to ensure sequential numbering
+          // This fixes the issue where scenes might have duplicate order values
+          const displayNumber = index + 1;
 
           return (
             <button
@@ -112,7 +123,7 @@ export function SceneNavigatorList({
                   "font-bold tabular-nums text-xs min-w-[20px]",
                   isSelected ? "text-[#DC143C]" : "text-[#808080]"
                 )}>
-                  {scene.order || scene.number || '?'}
+                  {displayNumber}
                 </span>
                 <span className={cn(
                   "font-medium truncate flex-1 text-xs",
@@ -130,7 +141,7 @@ export function SceneNavigatorList({
               )}
 
               {/* Badges */}
-              {(location || characters.length > 0) && (
+              {(location || characters.length > 0 || propsCount > 0) && (
                 <div className="flex flex-wrap w-full gap-1 mt-1">
                   {location && (
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080] gap-1">
@@ -142,6 +153,12 @@ export function SceneNavigatorList({
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080] gap-1">
                       <Users className="w-2.5 h-2.5" />
                       <span>{characters.length}</span>
+                    </Badge>
+                  )}
+                  {propsCount > 0 && (
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080] gap-1">
+                      <Package className="w-2.5 h-2.5" />
+                      <span>{propsCount}</span>
                     </Badge>
                   )}
                 </div>
