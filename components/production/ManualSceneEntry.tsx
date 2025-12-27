@@ -106,7 +106,7 @@ export function ManualSceneEntry({
         {onGenerateWithAI && (
           <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              💡 <strong>AI Generation:</strong> Enter a simple description and let AI create a full scene in Fountain format. You can edit the result before using it.
+              💡 <strong>AI Generation:</strong> Enter a simple description and let AI create a full scene. You can edit the result before using it.
             </p>
           </div>
         )}
