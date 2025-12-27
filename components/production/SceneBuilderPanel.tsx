@@ -302,6 +302,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Users can now freely select any scene in Production Hub without being forced into editor context
 
   // Fetch props when scene is selected
+  // NOTE: Props are stored in scene.fountain.tags.props (manually linked via UI)
+  // The relationships.scenes[sceneId].props is NOT populated/synced, so we only use fountain.tags.props
   useEffect(() => {
     async function fetchSceneProps() {
       if (!selectedSceneId || !projectId) return;
@@ -313,16 +315,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           return;
         }
         
-        // Get prop IDs from both fountain tags and relationships
-        const fountainPropIds = scene.fountain?.tags?.props || [];
-        const relationshipProps = screenplay.relationships?.scenes?.[selectedSceneId]?.props || [];
+        // Get prop IDs from fountain tags (source of truth - manually linked via SceneDetailSidebar)
+        const propIds = scene.fountain?.tags?.props || [];
         
-        // Combine and deduplicate prop IDs
-        const allPropIds = [...new Set([...fountainPropIds, ...relationshipProps])];
-        
-        if (allPropIds.length > 0) {
-          console.log('[SceneBuilderPanel] Fetching props for scene:', selectedSceneId, 'Prop IDs:', allPropIds);
-          const props = await SceneBuilderService.fetchSceneProps(allPropIds, getToken);
+        if (propIds.length > 0) {
+          console.log('[SceneBuilderPanel] Fetching props for scene:', selectedSceneId, 'Prop IDs:', propIds);
+          const props = await SceneBuilderService.fetchSceneProps(propIds, getToken);
           console.log('[SceneBuilderPanel] Fetched props:', props);
           setSceneProps(props);
         } else {
@@ -336,7 +334,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     }
     
     fetchSceneProps();
-  }, [selectedSceneId, projectId, screenplay.scenes, screenplay.relationships, getToken]);
+  }, [selectedSceneId, projectId, screenplay.scenes, getToken]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
