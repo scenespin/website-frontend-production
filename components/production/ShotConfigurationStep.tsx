@@ -134,6 +134,7 @@ export function ShotConfigurationStep({
   onDurationChange,
   sceneProps = [],
   propsToShots = {},
+  onPropsToShotsChange,
   shotProps = {},
   onPropDescriptionChange,
   onPrevious,
