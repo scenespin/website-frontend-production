@@ -2503,6 +2503,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                           <Button
                             onClick={() => {
                               setHasConfirmedSceneSelection(true);
+                              setIsAnalyzing(true); // Start analyzing immediately
+                              setAnalysisError(null); // Clear any previous errors
                               toast.success('Analyzing scene...');
                             }}
                             className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
