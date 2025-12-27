@@ -7,7 +7,7 @@
  * Navigation: Previous/Next buttons, progress indicator
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,8 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { categorizeCharacters } from './utils/characterCategorization';
 import { toast } from 'sonner';
+import { SceneBuilderService } from '@/services/SceneBuilderService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ShotConfigurationStepProps {
   shot: any;
@@ -131,7 +133,39 @@ export function ShotConfigurationStep({
   onPrevious,
   onNext
 }: ShotConfigurationStepProps) {
+  const { getToken } = useAuth();
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [pricing, setPricing] = useState<{ hdPrice: number; k4Price: number } | null>(null);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
+  
+  // Fetch pricing from backend (server-side margin calculation)
+  useEffect(() => {
+    const fetchPricing = async () => {
+      if (!shot?.credits) return;
+      
+      setIsLoadingPricing(true);
+      try {
+        const pricingResult = await SceneBuilderService.calculatePricing(
+          [{ slot: shot.slot, credits: shot.credits }],
+          shotDuration ? { [shot.slot]: shotDuration } : undefined,
+          getToken
+        );
+        
+        const shotPricing = pricingResult.shots.find(s => s.shotSlot === shot.slot);
+        if (shotPricing) {
+          setPricing({ hdPrice: shotPricing.hdPrice, k4Price: shotPricing.k4Price });
+        }
+      } catch (error) {
+        console.error('Failed to fetch pricing:', error);
+        // Fallback: don't show pricing if fetch fails
+        setPricing(null);
+      } finally {
+        setIsLoadingPricing(false);
+      }
+    };
+    
+    fetchPricing();
+  }, [shot?.slot, shot?.credits, shotDuration, getToken]);
 
   // Validate location requirement before allowing next
   const handleNext = () => {
@@ -265,46 +299,30 @@ export function ShotConfigurationStep({
             onPropDescriptionChange={onPropDescriptionChange}
           />
 
-          {/* Cost Calculator */}
-          <div className="pt-3 border-t border-[#3F3F46]">
-            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
-            {(() => {
-              // Calculate costs for both HD and 4K
-              const baseVideoCredits = shot.credits || 0;
-              const selectedDuration = shotDuration || 'quick-cut';
-              const shotDurationSeconds = selectedDuration === 'extended-take' ? 10 : 5;
-              
-              // HD cost (no upscaling)
-              const hdBaseCredits = baseVideoCredits;
-              
-              // 4K cost (video + upscaling)
-              const upscaleBaseCredits = shotDurationSeconds * 2; // 2 credits/second for Runway upscale_v1
-              const k4BaseCredits = baseVideoCredits + upscaleBaseCredits;
-              
-              // Apply 70% margin (3.33x markup)
-              const targetMargin = 0.70;
-              const markupMultiplier = 1 / (1 - targetMargin);
-              
-              const hdFinalPrice = hdBaseCredits * markupMultiplier;
-              const k4FinalPrice = k4BaseCredits * markupMultiplier;
-              
-              return (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#808080]">HD:</span>
-                    <span className="text-[#FFFFFF] font-medium">{Math.round(hdFinalPrice)} credits</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#808080]">4K:</span>
-                    <span className="text-[#FFFFFF] font-medium">{Math.round(k4FinalPrice)} credits</span>
-                  </div>
-                  <div className="text-[10px] text-[#808080] italic mt-1">
-                    Final resolution selected on review page
-                  </div>
+          {/* Cost Calculator - Prices from backend (margins hidden) */}
+          {pricing && (
+            <div className="pt-3 border-t border-[#3F3F46]">
+              <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#808080]">HD:</span>
+                  <span className="text-[#FFFFFF] font-medium">{pricing.hdPrice} credits</span>
                 </div>
-              );
-            })()}
-          </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#808080]">4K:</span>
+                  <span className="text-[#FFFFFF] font-medium">{pricing.k4Price} credits</span>
+                </div>
+                <div className="text-[10px] text-[#808080] italic mt-1">
+                  Final resolution selected on review page
+                </div>
+              </div>
+            </div>
+          )}
+          {isLoadingPricing && (
+            <div className="pt-3 border-t border-[#3F3F46]">
+              <div className="text-xs text-[#808080]">Loading pricing...</div>
+            </div>
+          )}
 
           {/* Navigation Buttons */}
           <div className="flex gap-3 pt-3 border-t border-[#3F3F46]">

@@ -41,6 +41,18 @@ export interface WorkflowStatusResponse {
   message?: string;
 }
 
+export interface ShotPricing {
+  shotSlot: number;
+  hdPrice: number;
+  k4Price: number;
+}
+
+export interface ScenePricingResult {
+  shots: ShotPricing[];
+  totalHdPrice: number;
+  totalK4Price: number;
+}
+
 export class SceneBuilderService {
   /**
    * Get authentication token

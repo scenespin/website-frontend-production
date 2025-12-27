@@ -15,13 +15,15 @@
  * - Generate button
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Film, Sparkles, ArrowLeft, Play } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import type { ModelStyle, Resolution, CameraAngle } from './ShotConfigurationPanel';
+import { SceneBuilderService } from '@/services/SceneBuilderService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
@@ -82,6 +84,44 @@ export function SceneReviewStep({
   isGenerating = false,
   allCharacters = []
 }: SceneReviewStepProps) {
+  const { getToken } = useAuth();
+  const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number } | null>(null);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
+  
+  // Fetch pricing from backend (server-side margin calculation)
+  useEffect(() => {
+    const fetchPricing = async () => {
+      if (!sceneAnalysisResult?.shotBreakdown?.shots) return;
+      
+      const selectedShots = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => 
+        enabledShots.includes(shot.slot)
+      );
+      
+      if (selectedShots.length === 0) return;
+      
+      setIsLoadingPricing(true);
+      try {
+        const pricingResult = await SceneBuilderService.calculatePricing(
+          selectedShots.map((shot: any) => ({ slot: shot.slot, credits: shot.credits || 0 })),
+          shotDurations,
+          getToken
+        );
+        
+        setPricing({
+          totalHdPrice: pricingResult.totalHdPrice,
+          totalK4Price: pricingResult.totalK4Price
+        });
+      } catch (error) {
+        console.error('Failed to fetch pricing:', error);
+        setPricing(null);
+      } finally {
+        setIsLoadingPricing(false);
+      }
+    };
+    
+    fetchPricing();
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, getToken]);
+  
   if (!sceneAnalysisResult) {
     return (
       <Card className="bg-[#141414] border-[#3F3F46]">
@@ -253,62 +293,32 @@ export function SceneReviewStep({
               </select>
             </div>
             
-            {/* Cost Calculator */}
-            {(() => {
-              // Calculate base credits (raw costs from backend - no markup applied yet)
-              let baseVideoCredits = 0;
-              let baseUpscalingCredits = 0;
-              
-              selectedShots.forEach((shot: any) => {
-                const shotCredits = shot.credits || 0;
-                baseVideoCredits += shotCredits;
-                
-                // Calculate 4K upscaling base cost separately (only if 4K is selected)
-                // Runway API Pricing (for reference):
-                //   - gen4_turbo: 5 credits/second
-                //   - gen4_aleph: 15 credits/second
-                //   - gen3a_turbo: 5 credits/second
-                //   - upscale_v1: 2 credits/second (used here)
-                //   - act_two: 5 credits/second
-                // Note: Base video costs (shot.credits) come from backend and should reflect actual Runway model costs
-                if (globalResolution === '4k') {
-                  // Get shot duration from user selection (defaults to 'quick-cut' = ~5s)
-                  const selectedDuration = shotDurations[shot.slot] || 'quick-cut';
-                  // Convert duration type to seconds: 'quick-cut' = 5s, 'extended-take' = 10s
-                  const shotDurationSeconds = selectedDuration === 'extended-take' ? 10 : 5;
-                  // Calculate upscaling cost: duration × 2 credits/second (Runway upscale_v1 pricing)
-                  const upscaleCost = shotDurationSeconds * 2;
-                  baseUpscalingCredits += upscaleCost;
-                }
-              });
-              
-              // Apply 70% margin to total base cost (video + upscaling combined)
-              // Industry standard for SaaS: 3-5x markup on COGS (300-500% markup = 75-83% margin)
-              // For AI/video generation services, typical margins are 50-80% of selling price
-              // Using 70% margin = 3.33x markup (233% markup)
-              // This markup is applied ON TOP of base provider costs (Runway, etc.)
-              const targetMargin = 0.70; // 70% margin
-              const markupMultiplier = 1 / (1 - targetMargin); // Calculate markup to achieve target margin
-              
-              // Total base cost = video generation + upscaling (if 4K)
-              const totalBaseCredits = baseVideoCredits + baseUpscalingCredits;
-              
-              // Apply margin once to the total
-              const finalPrice = totalBaseCredits * markupMultiplier;
-              
-              return (
-                <div className="p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-[#808080]">
-                      Estimated Cost:
-                    </div>
-                    <div className="text-sm font-medium text-[#FFFFFF]">
-                      {finalPrice.toFixed(0)} credits
-                    </div>
-                  </div>
+            {/* Cost Calculator - Prices from backend (margins hidden) */}
+            {pricing && (
+              <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-3 space-y-2">
+                <div className="text-sm font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#808080]">HD:</span>
+                  <span className={`text-sm font-medium ${globalResolution === '1080p' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
+                    {pricing.totalHdPrice} credits
+                  </span>
                 </div>
-              );
-            })()}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#808080]">4K:</span>
+                  <span className={`text-sm font-medium ${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
+                    {pricing.totalK4Price} credits
+                  </span>
+                </div>
+                <div className="text-[10px] text-[#808080] italic mt-2 pt-2 border-t border-[#3F3F46]">
+                  Selected: {globalResolution === '4k' ? '4K' : 'HD'} ({globalResolution === '4k' ? pricing.totalK4Price : pricing.totalHdPrice} credits)
+                </div>
+              </div>
+            )}
+            {isLoadingPricing && (
+              <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-3">
+                <div className="text-xs text-[#808080]">Loading pricing...</div>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
