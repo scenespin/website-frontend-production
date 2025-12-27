@@ -67,6 +67,9 @@ interface ShotConfigurationStepProps {
   // Camera Angle
   shotCameraAngle?: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto';
   onCameraAngleChange?: (shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => void;
+  // Shot Duration
+  shotDuration?: 'quick-cut' | 'extended-take';
+  onDurationChange?: (shotSlot: number, duration: 'quick-cut' | 'extended-take' | undefined) => void;
   // Props
   sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
   propsToShots?: Record<string, number[]>;
@@ -119,6 +122,8 @@ export function ShotConfigurationStep({
   onStyleChange,
   shotCameraAngle,
   onCameraAngleChange,
+  shotDuration,
+  onDurationChange,
   sceneProps = [],
   propsToShots = {},
   shotProps = {},
@@ -252,6 +257,8 @@ export function ShotConfigurationStep({
             onStyleChange={onStyleChange}
             shotCameraAngle={shotCameraAngle}
             onCameraAngleChange={onCameraAngleChange}
+            shotDuration={shotDuration}
+            onDurationChange={onDurationChange}
             sceneProps={sceneProps}
             propsToShots={propsToShots}
             shotProps={shotProps}

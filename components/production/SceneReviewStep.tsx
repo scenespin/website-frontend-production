@@ -33,6 +33,7 @@ interface SceneReviewStepProps {
   // Per-shot overrides (no resolution - global only, set in review step)
   shotStyles?: Record<number, ModelStyle>;
   shotCameraAngles?: Record<number, CameraAngle>;
+  shotDurations?: Record<number, 'quick-cut' | 'extended-take'>;
   // Character mappings
   selectedCharacterReferences: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>;
   characterOutfits: Record<number, Record<string, string>>;
@@ -64,6 +65,7 @@ export function SceneReviewStep({
   onGlobalResolutionChange,
   shotStyles = {},
   shotCameraAngles = {},
+  shotDurations = {},
   selectedCharacterReferences,
   characterOutfits,
   selectedLocationReferences,
@@ -131,6 +133,7 @@ export function SceneReviewStep({
               {selectedShots.map((shot: any) => {
                 const shotStyle = shotStyles[shot.slot];
                 const shotCameraAngle = shotCameraAngles[shot.slot];
+                const shotDuration = shotDurations[shot.slot] || 'quick-cut';
                 const shotDialogueWorkflow = selectedDialogueWorkflows[shot.slot];
                 const shotDialoguePrompt = dialogueWorkflowPrompts[shot.slot];
                 const shotPronounMappings = pronounMappingsForShots[shot.slot] || {};
@@ -269,8 +272,10 @@ export function SceneReviewStep({
                 //   - act_two: 5 credits/second
                 // Note: Base video costs (shot.credits) come from backend and should reflect actual Runway model costs
                 if (globalResolution === '4k') {
-                  // Get shot duration in seconds (default to 5 seconds if not available)
-                  const shotDurationSeconds = shot.duration || 5;
+                  // Get shot duration from user selection (defaults to 'quick-cut' = ~5s)
+                  const selectedDuration = shotDurations[shot.slot] || 'quick-cut';
+                  // Convert duration type to seconds: 'quick-cut' = 5s, 'extended-take' = 10s
+                  const shotDurationSeconds = selectedDuration === 'extended-take' ? 10 : 5;
                   // Calculate upscaling cost: duration × 2 credits/second (Runway upscale_v1 pricing)
                   const upscaleCost = shotDurationSeconds * 2;
                   baseUpscalingCredits += upscaleCost;

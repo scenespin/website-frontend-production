@@ -18,6 +18,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 
 export type ModelStyle = 'cinematic' | 'photorealistic' | 'auto';
 export type Resolution = '1080p' | '4k';
+export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
 export type CameraAngle = 
   | 'close-up'
   | 'medium-shot'
@@ -78,6 +79,9 @@ interface ShotConfigurationPanelProps {
   // Camera Angle (per-shot)
   shotCameraAngle?: CameraAngle; // Per-shot camera angle (defaults to 'auto')
   onCameraAngleChange?: (shotSlot: number, angle: CameraAngle | undefined) => void; // undefined = use 'auto'
+  // Shot Duration (per-shot)
+  shotDuration?: ShotDuration; // Per-shot duration (defaults to 'quick-cut' = ~5s)
+  onDurationChange?: (shotSlot: number, duration: ShotDuration | undefined) => void; // undefined = use 'quick-cut'
   // Props Configuration (per-shot)
   sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
   propsToShots?: Record<string, number[]>; // Which props are assigned to which shots (from Step 1)
@@ -123,6 +127,8 @@ export function ShotConfigurationPanel({
   onStyleChange,
   shotCameraAngle,
   onCameraAngleChange,
+  shotDuration,
+  onDurationChange,
   sceneProps = [],
   propsToShots = {},
   shotProps = {},
@@ -618,6 +624,29 @@ export function ShotConfigurationPanel({
                 Override: Using {shotStyle} instead of default ({globalStyle})
               </div>
             )}
+          </div>
+        )}
+
+        {/* Shot Duration Section */}
+        {onDurationChange && (
+          <div>
+            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Duration</div>
+            <select
+              value={shotDuration || 'quick-cut'}
+              onChange={(e) => {
+                const duration = e.target.value as ShotDuration;
+                onDurationChange(shot.slot, duration);
+              }}
+              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+            >
+              <option value="quick-cut">Quick Cut (~5s)</option>
+              <option value="extended-take">Extended Take (~10s)</option>
+            </select>
+            <div className="text-[10px] text-[#808080] italic mt-1">
+              {shotDuration === 'quick-cut' 
+                ? 'Quick Cut: 4-5 seconds (default)'
+                : 'Extended Take: 8-10 seconds'}
+            </div>
           </div>
         )}
 

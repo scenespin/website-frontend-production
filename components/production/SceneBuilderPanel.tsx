@@ -217,6 +217,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Camera Angle state (per-shot, defaults to 'auto')
   const [shotCameraAngles, setShotCameraAngles] = useState<Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>>({});
+  // Shot Duration state (per-shot, defaults to 'quick-cut' = ~5s)
+  const [shotDurations, setShotDurations] = useState<Record<number, 'quick-cut' | 'extended-take'>>({});
   
   // Props state
   const [sceneProps, setSceneProps] = useState<Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>>([]);
@@ -2916,6 +2918,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       setShotCameraAngles(prev => ({ ...prev, [shotSlot]: angle }));
                     }
                   }}
+                  shotDuration={shotDurations[currentShot.slot] || 'quick-cut'}
+                  onDurationChange={(shotSlot, duration) => {
+                    setShotDurations(prev => ({
+                      ...prev,
+                      [shotSlot]: duration || 'quick-cut'
+                    }));
+                  }}
                   sceneProps={sceneProps}
                   propsToShots={propsToShots}
                   shotProps={shotProps}
@@ -2968,6 +2977,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                 onGlobalResolutionChange={setGlobalResolution}
                 shotStyles={shotStyles}
                 shotCameraAngles={shotCameraAngles}
+                shotDurations={shotDurations}
                 selectedCharacterReferences={selectedCharacterReferences}
                 characterOutfits={characterOutfits}
                 selectedLocationReferences={selectedLocationReferences}
