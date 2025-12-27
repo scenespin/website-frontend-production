@@ -308,13 +308,25 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       try {
         const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
-        if (!scene) return;
+        if (!scene) {
+          setSceneProps([]);
+          return;
+        }
         
-        const propIds = scene.fountain?.tags?.props || [];
-        if (propIds.length > 0) {
-          const props = await SceneBuilderService.fetchSceneProps(propIds, getToken);
+        // Get prop IDs from both fountain tags and relationships
+        const fountainPropIds = scene.fountain?.tags?.props || [];
+        const relationshipProps = screenplay.relationships?.scenes?.[selectedSceneId]?.props || [];
+        
+        // Combine and deduplicate prop IDs
+        const allPropIds = [...new Set([...fountainPropIds, ...relationshipProps])];
+        
+        if (allPropIds.length > 0) {
+          console.log('[SceneBuilderPanel] Fetching props for scene:', selectedSceneId, 'Prop IDs:', allPropIds);
+          const props = await SceneBuilderService.fetchSceneProps(allPropIds, getToken);
+          console.log('[SceneBuilderPanel] Fetched props:', props);
           setSceneProps(props);
         } else {
+          console.log('[SceneBuilderPanel] No props found for scene:', selectedSceneId);
           setSceneProps([]);
         }
       } catch (error) {
@@ -324,7 +336,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     }
     
     fetchSceneProps();
-  }, [selectedSceneId, projectId, screenplay.scenes, getToken]);
+  }, [selectedSceneId, projectId, screenplay.scenes, screenplay.relationships, getToken]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
@@ -2637,7 +2649,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             )}
 
             {/* Step 1: Scene Analysis & Shot Selection (after scene is selected and confirmed) */}
-            {currentStep === 1 && hasConfirmedSceneSelection && selectedSceneId && (
+            {(currentStep === 1 && hasConfirmedSceneSelection && selectedSceneId) && (
               <>
                 {isAnalyzing && !sceneAnalysisResult ? (
                   <Card className="bg-[#141414] border-[#3F3F46]">
