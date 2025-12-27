@@ -295,7 +295,7 @@ export function ShotConfigurationPanel({
               onAngleChange={(locationId, angle) => {
                 onLocationAngleChange?.(shot.slot, locationId, angle);
               }}
-              isRequired={isLocationAngleRequired(shot, sceneAnalysisResult)}
+              isRequired={isLocationAngleRequired(shot)}
               recommended={sceneAnalysisResult.location.recommended}
               optOut={locationOptOuts[shot.slot] || false}
               onOptOutChange={(optOut) => {
