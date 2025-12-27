@@ -8,7 +8,7 @@
  */
 
 import React, { useState } from 'react';
-import { Sparkles, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,18 +18,22 @@ interface ManualSceneEntryProps {
   value: string;
   onChange: (value: string) => void;
   onUseAsIs: () => void;
+  onStart?: () => void;
   onGenerateWithAI?: () => Promise<void>;
   className?: string;
   isMobile?: boolean;
+  isAnalyzing?: boolean;
 }
 
 export function ManualSceneEntry({
   value,
   onChange,
   onUseAsIs,
+  onStart,
   onGenerateWithAI,
   className = '',
-  isMobile = false
+  isMobile = false,
+  isAnalyzing = false
 }: ManualSceneEntryProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -85,22 +89,42 @@ export function ManualSceneEntry({
               disabled={isGenerating || !value.trim()}
               className="flex items-center gap-2"
             >
-              <Sparkles className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              <span className={isGenerating ? 'animate-spin' : ''}>🤖</span>
               {isGenerating ? 'Generating...' : 'Generate Scene with AI'}
             </Button>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            onClick={onUseAsIs}
-            disabled={!value.trim()}
-            className="flex-1"
-            size="sm"
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Use As-Is
-          </Button>
+          {onStart ? (
+            <Button
+              onClick={onStart}
+              disabled={!value.trim() || isAnalyzing}
+              className="flex-1 bg-[#DC143C] hover:bg-[#B91238] text-white"
+              size="sm"
+            >
+              {isAnalyzing ? (
+                <>
+                  <span className="mr-2 animate-spin">🤖</span>
+                  Analyzing Scene...
+                </>
+              ) : (
+                <>
+                  🤖 Start
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button
+              onClick={onUseAsIs}
+              disabled={!value.trim()}
+              className="flex-1"
+              size="sm"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Use As-Is
+            </Button>
+          )}
         </div>
 
         {onGenerateWithAI && (

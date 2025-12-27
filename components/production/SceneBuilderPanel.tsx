@@ -2463,6 +2463,30 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   <ManualSceneEntry
                     value={sceneDescription}
                     onChange={setSceneDescription}
+                    onStart={async () => {
+                      if (!sceneDescription.trim()) {
+                        toast.error('Please enter a scene description');
+                        return;
+                      }
+                      // For manual entry, we need to analyze the scene text directly
+                      // This will trigger analysis and move to the next step
+                      setIsAnalyzing(true);
+                      setAnalysisError(null);
+                      toast.success('Analyzing scene...');
+                      
+                      try {
+                        // TODO: Implement manual scene analysis endpoint
+                        // For now, we'll need to create a temporary scene or use a different analysis method
+                        // This is a placeholder - the actual implementation depends on backend support
+                        toast.info('Manual scene analysis coming soon. Please use a scene from the database for now.');
+                        setIsAnalyzing(false);
+                      } catch (error: any) {
+                        console.error('[SceneBuilderPanel] Manual scene analysis failed:', error);
+                        setAnalysisError(error.message || 'Failed to analyze scene');
+                        toast.error(error.message || 'Failed to analyze scene. Please try again.');
+                        setIsAnalyzing(false);
+                      }
+                    }}
                     onUseAsIs={() => {
                       if (!sceneDescription.trim()) {
                         toast.error('Please enter a scene description');
@@ -2550,6 +2574,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       }
                     }}
                     isMobile={isMobile}
+                    isAnalyzing={isAnalyzing}
                   />
                 )}
                 </CardContent>

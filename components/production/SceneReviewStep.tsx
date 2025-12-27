@@ -19,7 +19,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Film, Sparkles, ArrowLeft, Play } from 'lucide-react';
+import { Check, Film, ArrowLeft, Play } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import type { ModelStyle, Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
@@ -338,7 +338,7 @@ export function SceneReviewStep({
             >
               {isGenerating ? (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                  <span className="mr-2">🤖</span>
                   Generating...
                 </>
               ) : (
