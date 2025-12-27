@@ -483,6 +483,7 @@ function ReadingCard({
 }: ReadingCardProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
+  const isInitializingRef = useRef<boolean>(false);
   const { getToken } = useAuth();
 
   // Initialize Video.js player
@@ -490,7 +491,7 @@ function ReadingCard({
     if (!reading.combinedAudio || !isPlaying) return;
     
     // Prevent duplicate initialization
-    if (initializingPlayers.current.has(reading.id)) {
+    if (isInitializingRef.current) {
       return;
     }
     
@@ -499,7 +500,7 @@ function ReadingCard({
       return;
     }
 
-    initializingPlayers.current.add(reading.id);
+    isInitializingRef.current = true;
 
     const initializePlayer = async () => {
       try {
@@ -609,7 +610,7 @@ function ReadingCard({
         playerInstanceRef.current = null;
         playerRef(null);
       }
-      initializingPlayers.current.delete(reading.id);
+      isInitializingRef.current = false;
     };
   }, [isPlaying, reading.combinedAudio?.id, reading.id, getToken]); // Removed playerRef from deps, use reading.id instead
 
