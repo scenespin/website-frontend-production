@@ -16,7 +16,7 @@
  * - Asset library for timeline integration
  */
 
-import React, { useState, useEffect, startTransition } from 'react';
+import React, { useState, useEffect, useCallback, startTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -323,7 +323,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           const props = await SceneBuilderService.fetchSceneProps(propIds, getToken);
           console.log('[SceneBuilderPanel] Fetched props:', props);
           setSceneProps(props);
-        } else {
+      } else {
           console.log('[SceneBuilderPanel] No props found for scene:', selectedSceneId);
           setSceneProps([]);
         }
@@ -339,31 +339,20 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
   const [hasConfirmedSceneSelection, setHasConfirmedSceneSelection] = useState(false);
-  
-  useEffect(() => {
+
+  // Auto-analyze the selected scene
+  const analyzeScene = useCallback(async () => {
     if (!selectedSceneId || !projectId) {
-      // Clear analysis if no scene selected
-      setSceneAnalysisResult(null);
-      setAnalysisError(null);
-      setCharacterReferenceUrls([]);
-      setHasConfirmedSceneSelection(false);
       return;
     }
-
-    // Only auto-analyze if user has confirmed scene selection
-    if (!hasConfirmedSceneSelection) {
-      return;
-    }
-
-    // Auto-analyze the selected scene
-    const analyzeScene = async () => {
-      setIsAnalyzing(true);
-      setAnalysisError(null);
+    
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    
+    try {
+      const result = await SceneBuilderService.analyzeScene(projectId, selectedSceneId);
       
-      try {
-        const result = await SceneBuilderService.analyzeScene(projectId, selectedSceneId);
-        
-        if (result && hasConfirmedSceneSelection) {
+      if (result) {
           const characterDetails = result.characters?.map(c => ({
             id: c.id,
             name: c.name,
@@ -463,10 +452,26 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       } finally {
         setIsAnalyzing(false);
       }
-    };
-
-    analyzeScene();
   }, [selectedSceneId, projectId]);
+  
+  useEffect(() => {
+    if (!selectedSceneId || !projectId) {
+      // Clear analysis if no scene selected
+      setSceneAnalysisResult(null);
+      setAnalysisError(null);
+      setCharacterReferenceUrls([]);
+      setHasConfirmedSceneSelection(false);
+      return;
+    }
+
+    // Only auto-analyze if user has confirmed scene selection
+    if (!hasConfirmedSceneSelection) {
+      return;
+    }
+
+    // Trigger analysis
+    analyzeScene();
+  }, [selectedSceneId, projectId, hasConfirmedSceneSelection, analyzeScene]);
   
   // Load style profiles for this project (Feature 0109)
   useEffect(() => {
@@ -558,13 +563,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       try {
         const characters = await SceneBuilderService.fetchCharacters(projectId, getToken);
-        // 🔥 FIX: Defer state update to prevent React error #300
-        setTimeout(() => {
-          startTransition(() => {
+          // 🔥 FIX: Defer state update to prevent React error #300
+          setTimeout(() => {
+            startTransition(() => {
             setCharacters(characters);
             setAllCharacters(characters); // Store for pronoun detection selector
-          });
-        }, 0);
+            });
+          }, 0);
       } catch (error) {
         console.error('[SceneBuilder] Failed to load characters:', error);
       }
@@ -726,14 +731,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         try {
           const headshots = await SceneBuilderService.fetchCharacterHeadshots(characterId, projectId, getToken);
-          
-          if (headshots.length > 0) {
-            setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
             
+            if (headshots.length > 0) {
+              setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
+              
             // Auto-select highest priority headshot for the first shot that uses this character
-            const bestHeadshot = headshots.reduce((best: any, current: any) => 
-              (current.priority || 999) < (best.priority || 999) ? current : best
-            );
+              const bestHeadshot = headshots.reduce((best: any, current: any) => 
+                (current.priority || 999) < (best.priority || 999) ? current : best
+              );
               
             // Find the first shot slot that selected this character
             const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
@@ -741,15 +746,15 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               setSelectedCharacterReferences(prev => {
                 const shotRefs = prev[Number(shotSlot)] || {};
                 return {
-                  ...prev,
+                ...prev,
                   [Number(shotSlot)]: {
                     ...shotRefs,
-                    [characterId]: {
-                      poseId: bestHeadshot.poseId,
-                      s3Key: bestHeadshot.s3Key,
-                      imageUrl: bestHeadshot.imageUrl
-                    }
-                  }
+                [characterId]: {
+                  poseId: bestHeadshot.poseId,
+                  s3Key: bestHeadshot.s3Key,
+                  imageUrl: bestHeadshot.imageUrl
+                }
+            }
                 };
               });
             }
@@ -855,31 +860,31 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           const execution = await SceneBuilderService.recoverWorkflowExecution(savedExecutionId, projectId, getToken);
           
           if (execution) {
-            console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
-            setWorkflowExecutionId(savedExecutionId);
-            setIsGenerating(true);
-            setWorkflowStatus({
-              id: execution.executionId,
-              status: execution.status,
-              currentStep: execution.currentStep || 1,
-              totalSteps: execution.totalSteps || 5,
-              stepResults: execution.stepResults || [],
-              totalCreditsUsed: execution.totalCreditsUsed || 0,
-              finalOutputs: execution.finalOutputs || []
-            });
-            setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
-            toast.info('Resuming workflow generation...', {
-              description: 'Your previous generation is still running'
-            });
-          } else {
-            // Execution completed or failed, remove from localStorage
-            localStorage.removeItem(`scene-builder-execution-${projectId}`);
-          }
-        }
+                console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
+                setWorkflowExecutionId(savedExecutionId);
+                setIsGenerating(true);
+                setWorkflowStatus({
+                  id: execution.executionId,
+                  status: execution.status,
+                  currentStep: execution.currentStep || 1,
+                  totalSteps: execution.totalSteps || 5,
+                  stepResults: execution.stepResults || [],
+                  totalCreditsUsed: execution.totalCreditsUsed || 0,
+                  finalOutputs: execution.finalOutputs || []
+                });
+                setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
+                toast.info('Resuming workflow generation...', {
+                  description: 'Your previous generation is still running'
+                });
+              } else {
+                // Execution completed or failed, remove from localStorage
+                localStorage.removeItem(`scene-builder-execution-${projectId}`);
+              }
+            }
       } catch (error) {
         console.error('[SceneBuilderPanel] Failed to recover workflow execution:', error);
-        // Execution not found, remove from localStorage
-        localStorage.removeItem(`scene-builder-execution-${projectId}`);
+            // Execution not found, remove from localStorage
+            localStorage.removeItem(`scene-builder-execution-${projectId}`);
       }
     }
     
@@ -1047,8 +1052,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const downloadUrl = await SceneBuilderService.getDownloadUrl(s3Key, getToken);
       
       setFirstFrameUrl(downloadUrl);
-      setShowAnnotationPanel(true);
-      toast.success('Image uploaded! Add annotations or proceed to generation.');
+        setShowAnnotationPanel(true);
+        toast.success('Image uploaded! Add annotations or proceed to generation.');
     } catch (error) {
       console.error('[SceneBuilderPanel] Image upload failed:', error);
       toast.error('Failed to upload image', {
@@ -1886,25 +1891,25 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       console.log('[SceneBuilderPanel] ✅ Workflow execution started:', executionId);
       setWorkflowExecutionId(executionId);
-      
-      // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
+        
+        // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
       localStorage.setItem(`scene-builder-execution-${projectId}`, executionId);
-      
-      // Set initial workflow status to show progress immediately
-      setWorkflowStatus({
+        
+        // Set initial workflow status to show progress immediately
+        setWorkflowStatus({
         id: executionId,
-        status: 'running',
-        currentStep: 1,
-        totalSteps: 5,
-        stepResults: [],
-        totalCreditsUsed: 0,
-        finalOutputs: []
-      });
-      // Move to a "generating" view - hide wizard, show progress
-      setCurrentStep(2); // Stay on Step 2 (UnifiedSceneConfiguration handles generation)
-      toast.success('Scene Builder started!', {
-        description: 'Generating your complete scene package...'
-      });
+          status: 'running',
+          currentStep: 1,
+          totalSteps: 5,
+          stepResults: [],
+          totalCreditsUsed: 0,
+          finalOutputs: []
+        });
+        // Move to a "generating" view - hide wizard, show progress
+        setCurrentStep(2); // Stay on Step 2 (UnifiedSceneConfiguration handles generation)
+        toast.success('Scene Builder started!', {
+          description: 'Generating your complete scene package...'
+        });
       
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
@@ -1926,7 +1931,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     try {
       await SceneBuilderService.submitWorkflowDecision(workflowExecutionId, 'continue', getToken);
-      toast.success('Continuing without audio...');
+        toast.success('Continuing without audio...');
     } catch (error) {
       console.error('[SceneBuilderPanel] Decision failed:', error);
       toast.error('Failed to continue workflow');
@@ -1941,7 +1946,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     try {
       await SceneBuilderService.submitWorkflowDecision(workflowExecutionId, 'skip', getToken);
-      toast.info('Generation cancelled (no charges)');
+        toast.info('Generation cancelled (no charges)');
     } catch (error) {
       console.error('[SceneBuilderPanel] Cancel failed:', error);
     }
@@ -2381,31 +2386,31 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   <div className={isMobile ? "space-y-3" : "grid grid-cols-1 lg:grid-cols-2 gap-4"}>
                     {/* Scene Navigator List (Left side on desktop, top on mobile) */}
                     <div className={isMobile ? "w-full" : ""}>
-                      <SceneSelector
-                        selectedSceneId={selectedSceneId}
-                        onSceneSelect={(sceneId) => {
+                  <SceneSelector
+                    selectedSceneId={selectedSceneId}
+                    onSceneSelect={(sceneId) => {
                           if (sceneId) {
-                            setSelectedSceneId(sceneId);
+                      setSelectedSceneId(sceneId);
                             setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
                             setSceneAnalysisResult(null); // Clear previous analysis
                             setAnalysisError(null); // Clear any errors
-                            const scene = screenplay.scenes?.find(s => s.id === sceneId);
-                            if (scene) {
-                              // Load scene content into description
-                              const sceneText = scene.synopsis || 
-                                `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
-                              setSceneDescription(sceneText);
-                            }
-                          } else {
+                      const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                      if (scene) {
+                        // Load scene content into description
+                        const sceneText = scene.synopsis || 
+                          `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
+                        setSceneDescription(sceneText);
+                      }
+                      } else {
                             // If empty selection, clear everything
                             setSelectedSceneId(null);
                             setHasConfirmedSceneSelection(false);
                             setSceneAnalysisResult(null);
                             setAnalysisError(null);
-                          }
-                        }}
-                        isMobile={isMobile}
-                      />
+                      }
+                    }}
+                    isMobile={isMobile}
+                  />
                     </div>
                     
                     {/* Scene Preview and Start Button (Right side on desktop, bottom on mobile) */}
@@ -2432,11 +2437,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                               <div className="flex items-start justify-between">
                                 <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
                                 <div className="flex items-center gap-2">
-                                  {scene.order && (
+                                  {(scene.order !== undefined && scene.order !== null) || (scene.number !== undefined && scene.number !== null) ? (
                                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
-                                      Scene {scene.order}
+                                      Scene {scene.order ?? scene.number ?? '?'}
                                     </Badge>
-                                  )}
+                                  ) : null}
                                   <Button
                                     onClick={() => {
                                       // Use context store to set scene, then navigate to editor
@@ -2686,8 +2691,8 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     <CardContent className="p-6 text-center">
                       <div className="text-sm text-red-400 mb-2">Analysis failed</div>
                       <div className="text-xs text-[#808080] mb-4">{analysisError}</div>
-                      <Button
-                        onClick={() => {
+                  <Button
+                    onClick={() => {
                           setHasConfirmedSceneSelection(false);
                           setAnalysisError(null);
                         }}
@@ -2695,9 +2700,9 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         size="sm"
                       >
                         Go Back
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  </Button>
+                </CardContent>
+              </Card>
                 ) : null}
               </>
             )}
