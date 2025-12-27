@@ -2361,95 +2361,97 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
 
                 {/* Database Selection */}
                 {inputMethod === 'database' && (
-                  <SceneSelector
-                    selectedSceneId={selectedSceneId}
-                    onSceneSelect={(sceneId) => {
-                      setSelectedSceneId(sceneId);
-                      setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
-                      const scene = screenplay.scenes?.find(s => s.id === sceneId);
-                      if (scene) {
-                        // Load scene content into description
-                        const sceneText = scene.synopsis || 
-                          `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
-                        setSceneDescription(sceneText);
-                      }
-                    }}
-                    onUseScene={(scene) => {
-                      // Scene already loaded in onSceneSelect, just confirm
-                      toast.success('Scene loaded! Ready to generate.');
-                    }}
-                    onEditScene={(sceneId) => {
-                      // Use context store to set scene, then navigate to editor
-                      const scene = screenplay.scenes?.find(s => s.id === sceneId);
-                      if (scene) {
-                        // Set scene in context store so editor can jump to it
-                        contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
-                        // Navigate to editor - it will read context and jump to scene.startLine
-                        window.location.href = `/write?sceneId=${sceneId}`;
-                      } else {
-                        window.location.href = '/write';
-                      }
-                    }}
-                    isMobile={isMobile}
-                  />
-                  
-                  {/* Scene Preview and Continue Button */}
-                  {selectedSceneId && (() => {
-                    const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
-                    if (!scene) return null;
+                  <div className="space-y-3">
+                    <SceneSelector
+                      selectedSceneId={selectedSceneId}
+                      onSceneSelect={(sceneId) => {
+                        setSelectedSceneId(sceneId);
+                        setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
+                        const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                        if (scene) {
+                          // Load scene content into description
+                          const sceneText = scene.synopsis || 
+                            `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
+                          setSceneDescription(sceneText);
+                        }
+                      }}
+                      onUseScene={(scene) => {
+                        // Scene already loaded in onSceneSelect, just confirm
+                        toast.success('Scene loaded! Ready to generate.');
+                      }}
+                      onEditScene={(sceneId) => {
+                        // Use context store to set scene, then navigate to editor
+                        const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                        if (scene) {
+                          // Set scene in context store so editor can jump to it
+                          contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
+                          // Navigate to editor - it will read context and jump to scene.startLine
+                          window.location.href = `/write?sceneId=${sceneId}`;
+                        } else {
+                          window.location.href = '/write';
+                        }
+                      }}
+                      isMobile={isMobile}
+                    />
                     
-                    return (
-                      <div className="space-y-3">
-                        {/* Scene Preview Card */}
-                        <Card className="bg-[#0A0A0A] border-[#3F3F46]">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            {scene.heading && (
-                              <div>
-                                <div className="text-[10px] text-[#808080] mb-1">Scene Heading</div>
-                                <div className="text-xs text-[#FFFFFF] font-medium">{scene.heading}</div>
-                              </div>
-                            )}
-                            {scene.synopsis && (
-                              <div>
-                                <div className="text-[10px] text-[#808080] mb-1">Scene Content</div>
-                                <div className="text-xs text-[#808080] whitespace-pre-wrap max-h-48 overflow-y-auto">
-                                  {scene.synopsis}
+                    {/* Scene Preview and Continue Button */}
+                    {selectedSceneId && (() => {
+                      const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
+                      if (!scene) return null;
+                      
+                      return (
+                        <div className="space-y-3">
+                          {/* Scene Preview Card */}
+                          <Card className="bg-[#0A0A0A] border-[#3F3F46]">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                              {scene.heading && (
+                                <div>
+                                  <div className="text-[10px] text-[#808080] mb-1">Scene Heading</div>
+                                  <div className="text-xs text-[#FFFFFF] font-medium">{scene.heading}</div>
                                 </div>
-                              </div>
+                              )}
+                              {scene.synopsis && (
+                                <div>
+                                  <div className="text-[10px] text-[#808080] mb-1">Scene Content</div>
+                                  <div className="text-xs text-[#808080] whitespace-pre-wrap max-h-48 overflow-y-auto">
+                                    {scene.synopsis}
+                                  </div>
+                                </div>
+                              )}
+                              {!scene.synopsis && !scene.heading && (
+                                <div className="text-xs text-[#808080] italic">No scene content available</div>
+                              )}
+                            </CardContent>
+                          </Card>
+                          
+                          {/* Continue Button */}
+                          <Button
+                            onClick={() => {
+                              setHasConfirmedSceneSelection(true);
+                              toast.success('Analyzing scene...');
+                            }}
+                            className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
+                            disabled={isAnalyzing}
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Analyzing Scene...
+                              </>
+                            ) : (
+                              <>
+                                Continue to Shot Selection
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </>
                             )}
-                            {!scene.synopsis && !scene.heading && (
-                              <div className="text-xs text-[#808080] italic">No scene content available</div>
-                            )}
-                          </CardContent>
-                        </Card>
-                        
-                        {/* Continue Button */}
-                        <Button
-                          onClick={() => {
-                            setHasConfirmedSceneSelection(true);
-                            toast.success('Analyzing scene...');
-                          }}
-                          className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
-                          disabled={isAnalyzing}
-                        >
-                          {isAnalyzing ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Analyzing Scene...
-                            </>
-                          ) : (
-                            <>
-                              Continue to Shot Selection
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    );
-                  })()}
+                          </Button>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
 
                 {/* Manual Entry */}
