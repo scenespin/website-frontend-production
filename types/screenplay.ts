@@ -300,7 +300,13 @@ export interface SceneRelationships {
     type: 'scene';
     characters: string[]; // Character IDs
     location?: string; // Location ID
-    props?: string[]; // Prop IDs
+    /**
+     * @deprecated NOT IMPLEMENTED - This field is never populated or used.
+     * Props are stored in scene.fountain.tags.props (manually linked via UI).
+     * Kept for type compatibility but should not be accessed.
+     * See: SceneBuilderPanel.tsx line 306 for details.
+     */
+    props?: string[]; // Prop IDs - UNUSED
     storyBeat?: string; // Story beat ID (optional - beats removed, kept for backward compatibility)
 }
 
