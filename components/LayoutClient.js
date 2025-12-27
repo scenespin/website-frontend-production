@@ -184,10 +184,13 @@ const ClientLayout = ({ children }) => {
           {children}
 
           {/* Show Success/Error messages anywhere from the app with toast() */}
+          {/* Styled with black on black theme in globals.css */}
           <Toaster
+            position="bottom-right"
             toastOptions={{
               duration: 3000,
             }}
+            theme="dark"
           />
 
           {/* Show tooltips if any JSX elements has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content="" */}

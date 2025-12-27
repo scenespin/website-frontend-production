@@ -873,9 +873,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   finalOutputs: execution.finalOutputs || []
                 });
                 setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
-                toast.info('Resuming workflow generation...', {
-                  description: 'Your previous generation is still running'
-                });
+                // Toast removed - progress indicator shows this status
               } else {
                 // Execution completed or failed, remove from localStorage
                 localStorage.removeItem(`scene-builder-execution-${projectId}`);
@@ -1696,7 +1694,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const uploadedImages = referenceImages.filter(img => img !== null) as File[];
       
       if (uploadedImages.length > 0) {
-        toast.info('Uploading additional character references...');
+        // Toast removed - progress indicator shows upload status
         
         for (const file of uploadedImages) {
           // Use presigned POST upload (same as first frame upload)
@@ -1907,9 +1905,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         });
         // Move to a "generating" view - hide wizard, show progress
         setCurrentStep(2); // Stay on Step 2 (UnifiedSceneConfiguration handles generation)
-        toast.success('Scene Builder started!', {
-          description: 'Generating your complete scene package...'
-        });
+        // Toast removed - progress indicator shows generation status
       
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
@@ -1931,7 +1927,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     try {
       await SceneBuilderService.submitWorkflowDecision(workflowExecutionId, 'continue', getToken);
-        toast.success('Continuing without audio...');
+        // Toast removed - user already made the choice, progress indicator shows status
     } catch (error) {
       console.error('[SceneBuilderPanel] Decision failed:', error);
       toast.error('Failed to continue workflow');
@@ -1969,9 +1965,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const fileType = file.type.startsWith('video/') ? 'video' : 
                        file.type.startsWith('audio/') ? 'audio' : 'image';
       
-      toast.info('Uploading...');
-      
-      toast.info('Uploading...');
+      // Toast removed - progress indicator shows upload status
       
       // Get presigned URL
       const { url, fields, s3Key } = await SceneBuilderService.getPresignedUploadUrl(
@@ -1982,7 +1976,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         getToken
       );
       
-      toast.info('Uploading to S3...');
+      // Toast removed - technical detail, not user-facing
       
       // Upload to S3
       await SceneBuilderService.uploadToS3(url, fields, file, '[SceneBuilderPanel] Media');
@@ -2507,7 +2501,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                             onClick={() => {
                               setHasConfirmedSceneSelection(true);
                               setAnalysisError(null); // Clear any previous errors
-                              toast.success('Analyzing scene...');
+                              // Toast removed - loading state shows this
                               // Analysis will be triggered by useEffect when hasConfirmedSceneSelection changes
                             }}
                             className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
@@ -2544,7 +2538,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                       // This will trigger analysis and move to the next step
                       setIsAnalyzing(true);
                       setAnalysisError(null);
-                      toast.success('Analyzing scene...');
+                      // Toast removed - loading state shows this
                       
                       try {
                         // TODO: Implement manual scene analysis endpoint

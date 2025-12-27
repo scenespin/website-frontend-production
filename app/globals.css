@@ -305,3 +305,91 @@ progress::-webkit-progress-value {
   scrollbar-width: thin;
   scrollbar-color: #3F3F46 #0A0A0A;
 }
+
+/* ===== TOAST NOTIFICATIONS - BLACK ON BLACK THEME ===== */
+/* Sonner toast styling to match cinema theme */
+[data-sonner-toast] {
+  background: #141414 !important;
+  border: 1px solid #3F3F46 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-sonner-toast] [data-title] {
+  color: #FFFFFF !important;
+  font-weight: 500;
+}
+
+[data-sonner-toast] [data-description] {
+  color: #B3B3B3 !important;
+  font-size: 0.875rem;
+}
+
+/* Success toasts - Green accent */
+[data-sonner-toast][data-type="success"] {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  background: #141414 !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: #10B981 !important;
+}
+
+/* Error toasts - Red accent (cinema red) */
+[data-sonner-toast][data-type="error"] {
+  border-color: rgba(220, 20, 60, 0.3) !important;
+  background: #141414 !important;
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: #DC143C !important;
+}
+
+/* Info toasts - Blue accent */
+[data-sonner-toast][data-type="info"] {
+  border-color: rgba(0, 217, 255, 0.3) !important;
+  background: #141414 !important;
+}
+
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: #00D9FF !important;
+}
+
+/* Warning toasts - Orange accent */
+[data-sonner-toast][data-type="warning"] {
+  border-color: rgba(249, 115, 22, 0.3) !important;
+  background: #141414 !important;
+}
+
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: #F97316 !important;
+}
+
+/* Close button styling */
+[data-sonner-toast] [data-close-button] {
+  color: #808080 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  color: #FFFFFF !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Toast action buttons */
+[data-sonner-toast] button {
+  background: #1F1F1F !important;
+  border: 1px solid #3F3F46 !important;
+  color: #FFFFFF !important;
+}
+
+[data-sonner-toast] button:hover {
+  background: #2A2A2A !important;
+  border-color: #DC143C !important;
+}
+
+/* Loading spinner in toasts */
+[data-sonner-toast] [data-loading] {
+  color: #DC143C !important;
+}
