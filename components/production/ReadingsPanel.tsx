@@ -25,7 +25,6 @@ import {
   Pause, 
   Download, 
   Trash2, 
-  RefreshCw, 
   Plus,
   Loader2,
   Clock,
@@ -88,7 +87,6 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const [selectedReadingId, setSelectedReadingId] = useState<string | null>(null);
   const [playingReadingId, setPlayingReadingId] = useState<string | null>(null);
   const [showReadingModal, setShowReadingModal] = useState(false);
-  const [regenerateReadingId, setRegenerateReadingId] = useState<string | null>(null);
   const [deletingReadingId, setDeletingReadingId] = useState<string | null>(null);
   const playerRefs = useRef<Map<string, any>>(new Map());
 
@@ -334,15 +332,8 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     }
   };
 
-  // Handle regenerate
-  const handleRegenerate = (reading: ReadingSession) => {
-    setRegenerateReadingId(reading.id);
-    setShowReadingModal(true);
-  };
-
   // Handle generate new
   const handleGenerateNew = () => {
-    setRegenerateReadingId(null);
     setShowReadingModal(true);
   };
 
@@ -416,7 +407,6 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 onDownloadCombined={() => handleDownloadCombined(reading)}
                 onDownloadAll={() => handleDownloadAll(reading)}
                 onDelete={() => handleDeleteReading(reading)}
-                onRegenerate={() => handleRegenerate(reading)}
                 playerRef={(player) => {
                   if (player) {
                     playerRefs.current.set(reading.id, player);
@@ -436,7 +426,6 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
           isOpen={showReadingModal}
           onClose={() => {
             setShowReadingModal(false);
-            setRegenerateReadingId(null);
           }}
           screenplayId={screenplayId}
           screenplayTitle={screenplayTitle}
@@ -455,7 +444,6 @@ interface ReadingCardProps {
   onDownloadCombined: () => void;
   onDownloadAll: () => void;
   onDelete: () => void;
-  onRegenerate: () => void;
   playerRef: (player: any) => void;
 }
 
@@ -467,7 +455,6 @@ function ReadingCard({
   onDownloadCombined,
   onDownloadAll,
   onDelete,
-  onRegenerate,
   playerRef
 }: ReadingCardProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -631,14 +618,6 @@ function ReadingCard({
         >
           <Download className="w-3 h-3" />
           All Files
-        </button>
-
-        <button
-          onClick={onRegenerate}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Regenerate
         </button>
 
         <button
