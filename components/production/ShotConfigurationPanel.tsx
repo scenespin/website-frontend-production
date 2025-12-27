@@ -42,6 +42,8 @@ interface ShotConfigurationPanelProps {
   onLocationAngleChange?: (shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   isLocationAngleRequired: (shot: any) => boolean;
   needsLocationAngle: (shot: any) => boolean;
+  locationOptOuts?: Record<number, boolean>; // Per-shot location opt-out state
+  onLocationOptOutChange?: (shotSlot: number, optOut: boolean) => void; // Callback for opt-out changes
   // Character rendering helpers
   renderCharacterControlsOnly: (charId: string, shotSlot: number, shotMappings: Record<string, string | string[]>, hasPronouns: boolean, category: 'explicit' | 'singular' | 'plural') => React.ReactNode;
   renderCharacterImagesOnly: (charId: string, shotSlot: number, pronounsForChar?: string[]) => React.ReactNode;
@@ -93,6 +95,8 @@ export function ShotConfigurationPanel({
   onLocationAngleChange,
   isLocationAngleRequired,
   needsLocationAngle,
+  locationOptOuts = {},
+  onLocationOptOutChange,
   renderCharacterControlsOnly,
   renderCharacterImagesOnly,
   pronounInfo,
@@ -294,6 +298,10 @@ export function ShotConfigurationPanel({
               }}
               isRequired={isLocationAngleRequired(shot)}
               recommended={sceneAnalysisResult.location.recommended}
+              optOut={locationOptOuts[shot.slot] || false}
+              onOptOutChange={(optOut) => {
+                onLocationOptOutChange?.(shot.slot, optOut);
+              }}
             />
           </div>
         </div>
