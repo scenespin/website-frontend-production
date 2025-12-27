@@ -162,10 +162,15 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     );
   }, [allFiles]);
 
-  // Update readings when groupedReadings changes
+  // Update readings when groupedReadings changes (only if actually different)
   useEffect(() => {
-    setReadings(groupedReadings);
-  }, [groupedReadings]);
+    // Only update if the array reference or content actually changed
+    const currentIds = readings.map(r => r.id).sort().join(',');
+    const newIds = groupedReadings.map(r => r.id).sort().join(',');
+    if (currentIds !== newIds) {
+      setReadings(groupedReadings);
+    }
+  }, [groupedReadings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Download function - matches original ProductionJobsPanel pattern exactly
   const downloadAudioAsBlob = async (file: MediaFile) => {
@@ -431,13 +436,13 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 onDownloadCombined={() => handleDownloadCombined(reading)}
                 onDownloadAll={() => handleDownloadAll(reading)}
                 onDelete={() => handleDeleteReading(reading)}
-                playerRef={React.useCallback((player: any) => {
+                playerRef={(player: any) => {
                   if (player) {
                     playerRefs.current.set(reading.id, player);
                   } else {
                     playerRefs.current.delete(reading.id);
                   }
-                }, [reading.id])}
+                }}
               />
             ))}
           </div>
