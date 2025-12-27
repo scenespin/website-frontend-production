@@ -2377,34 +2377,34 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
 
                 {/* Database Selection */}
                 {inputMethod === 'database' && (
-                  <div className={isMobile ? "space-y-3" : "grid grid-cols-1 lg:grid-cols-2 gap-4"}>
+                  <div className={isMobile ? "space-y-3" : "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"}>
                     {/* Scene Navigator List (Left side on desktop, top on mobile) */}
-                    <div className={isMobile ? "w-full" : ""}>
-                  <SceneSelector
-                    selectedSceneId={selectedSceneId}
-                    onSceneSelect={(sceneId) => {
+                    <div className={isMobile ? "w-full" : "flex flex-col"}>
+                      <SceneSelector
+                        selectedSceneId={selectedSceneId}
+                        onSceneSelect={(sceneId) => {
                           if (sceneId) {
-                      setSelectedSceneId(sceneId);
+                            setSelectedSceneId(sceneId);
                             setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
                             setSceneAnalysisResult(null); // Clear previous analysis
                             setAnalysisError(null); // Clear any errors
-                      const scene = screenplay.scenes?.find(s => s.id === sceneId);
-                      if (scene) {
-                        // Load scene content into description
-                        const sceneText = scene.synopsis || 
-                          `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
-                        setSceneDescription(sceneText);
-                      }
-                      } else {
+                            const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                            if (scene) {
+                              // Load scene content into description
+                              const sceneText = scene.synopsis || 
+                                `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
+                              setSceneDescription(sceneText);
+                            }
+                          } else {
                             // If empty selection, clear everything
                             setSelectedSceneId(null);
                             setHasConfirmedSceneSelection(false);
                             setSceneAnalysisResult(null);
                             setAnalysisError(null);
-                      }
-                    }}
-                    isMobile={isMobile}
-                  />
+                          }
+                        }}
+                        isMobile={isMobile}
+                      />
                     </div>
                     
                     {/* Scene Preview and Start Button (Right side on desktop, bottom on mobile) */}
