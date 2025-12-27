@@ -1141,8 +1141,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   );
 
   // MOBILE RENDER - EXACT same pattern as AgentDrawer
-  // Only render if actually on mobile (window width check as safeguard)
-  if (isMobile && typeof window !== 'undefined' && window.innerWidth < 768) {
+  if (isMobile) {
     return (
       <>
         {/* Backdrop - Mobile Only */}
@@ -1153,37 +1152,58 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           />
         )}
 
-        {/* Mobile Drawer - Slides up from bottom - Only render when open */}
-        {isOpen && (
+        {/* Mobile Drawer - Slides up from bottom - EXACT same as AgentDrawer */}
+        <div
+          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
+          style={{ height: `${currentMobileHeight}px` }}
+        >
+          {/* Drag Handle (Mobile) */}
           <div
-            className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
-            style={{ height: `${currentMobileHeight}px` }}
+            className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
+            onMouseDown={(e) => handleDragStart(e.clientY)}
+            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           >
-            {/* Drag Handle (Mobile) */}
-            <div
-              className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
-              onMouseDown={(e) => handleDragStart(e.clientY)}
-              onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
-            >
-              <GripHorizontal className="w-8 h-8 text-[#808080]" />
+            {isOpen && (
+              <>
+                <GripHorizontal className="w-8 h-8 text-[#808080]" />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="absolute right-4 btn btn-sm btn-ghost btn-circle z-10"
+                  aria-label="Close drawer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </>
+            )}
+            {!isOpen && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onClose();
+                  onOpen();
                 }}
-                className="absolute right-4 btn btn-sm btn-ghost btn-circle z-10"
-                aria-label="Close drawer"
+                className="text-sm font-medium text-[#E5E7EB] flex items-center gap-2"
               >
-                <X className="w-5 h-5" />
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                Jobs
+                {(jobCount > 0 || visibleJobs.length > 0) && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white min-w-[18px] text-center">
+                    {(jobCount || visibleJobs.length) > 99 ? '99+' : (jobCount || visibleJobs.length)}
+                  </span>
+                )}
               </button>
-            </div>
+            )}
+          </div>
 
-            {/* Content */}
+          {/* Content */}
+          {isOpen && (
             <div className="h-[calc(100%-64px)] overflow-auto pb-6">
               {renderDrawerContent()}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Safety Error Dialog */}
         <AlertDialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
@@ -1256,36 +1276,39 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/40 z-30 transition-opacity hidden md:block"
-          style={{ zIndex: Z_INDEX.JOBS_DRAWER - 1 }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClose();
-          }}
+          onClick={onClose}
         />
       )}
 
-      {/* Desktop Drawer - Slides in from right */}
+      {/* Desktop Drawer - Slides in from right - EXACT same as AgentDrawer */}
       <div
         className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
-        style={{
-          width: compact ? '100vw' : '400px',
-          maxWidth: '90vw',
-          zIndex: Z_INDEX.JOBS_DRAWER,
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-        }}
+        style={{ width: compact ? '100vw' : '400px', maxWidth: '90vw' }}
       >
         {renderDrawerContent()}
       </div>
 
-      {/* Desktop tab button removed - will implement different approach */}
+      {/* Floating Open Button (Desktop - when closed) - EXACT same as AgentDrawer */}
+      {!isOpen && (
+        <button
+          onClick={() => onOpen()}
+          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300"
+          style={{ 
+            writingMode: 'vertical-rl', 
+            textOrientation: 'mixed',
+            animation: 'pulse-subtle 3s ease-in-out infinite'
+          }}
+        >
+          JOBS
+          {(jobCount > 0 || visibleJobs.length > 0) && (
+            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-blue-600 min-w-[18px] text-center">
+              {(jobCount || visibleJobs.length) > 99 ? '99+' : (jobCount || visibleJobs.length)}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* Safety Error Dialog */}
       <AlertDialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
