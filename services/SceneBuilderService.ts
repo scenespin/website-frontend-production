@@ -95,23 +95,35 @@ export class SceneBuilderService {
     
     const token = await this.getToken(getTokenFn);
     
-    const response = await fetch(`/api/assets?ids=${propIds.join(',')}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch props: ${response.statusText}`);
+    try {
+      const response = await fetch(`/api/assets?ids=${propIds.join(',')}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        // If 404 or other error, log but don't throw - return empty array instead
+        // This allows the scene builder to continue even if some props are missing
+        console.warn(`[SceneBuilderService] Failed to fetch props (${response.status}): ${response.statusText}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      const props = Array.isArray(data) ? data : (data.assets || []);
+      
+      // Filter out any null/undefined props and map to expected format
+      return props
+        .filter((prop: any) => prop !== null && prop !== undefined)
+        .map((prop: any) => ({
+          id: prop.id || prop.assetId,
+          name: prop.name || prop.assetName || 'Unnamed Prop',
+          imageUrl: prop.imageUrl || prop.thumbnailUrl,
+          s3Key: prop.s3Key || prop.imageS3Key
+        }));
+    } catch (error: any) {
+      // Gracefully handle errors - log but don't break the scene builder
+      console.error('[SceneBuilderService] Error fetching props:', error);
+      return [];
     }
-    
-    const data = await response.json();
-    const props = Array.isArray(data) ? data : (data.assets || []);
-    
-    return props.map((prop: any) => ({
-      id: prop.id || prop.assetId,
-      name: prop.name || prop.assetName || 'Unnamed Prop',
-      imageUrl: prop.imageUrl || prop.thumbnailUrl,
-      s3Key: prop.s3Key || prop.imageS3Key
-    }));
   }
 
   /**
