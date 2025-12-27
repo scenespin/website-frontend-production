@@ -1814,6 +1814,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         // Note: Resolution is global only (no per-shot resolution) - set in review step before generation
         // Camera Angles (per-shot, defaults to 'auto' if not specified)
         shotCameraAngles: Object.keys(shotCameraAngles).length > 0 ? shotCameraAngles : undefined, // Per-shot camera angle overrides: { shotSlot: angle }
+        // Shot Durations (per-shot, defaults to 'quick-cut' = ~5s if not specified)
+        shotDurations: Object.keys(shotDurations).length > 0 ? shotDurations : undefined, // Per-shot duration: { shotSlot: 'quick-cut' | 'extended-take' }
         // Props Integration
         propsToShots: Object.keys(propsToShots).length > 0 ? propsToShots : undefined, // Props-to-shots assignment: { propId: [shotSlot1, shotSlot2] }
         shotProps: Object.keys(shotProps).length > 0 ? shotProps : undefined, // Per-shot prop configurations: { shotSlot: { propId: { usageDescription, selectedImageId } } }
