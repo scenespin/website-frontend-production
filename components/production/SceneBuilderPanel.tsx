@@ -2325,7 +2325,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             className="space-y-3"
           >
             {/* Step 1: Scene Selection (keep existing) */}
-            {currentStep === 1 && !selectedSceneId && (
+            {currentStep === 1 && !hasConfirmedSceneSelection && (
               <Card className="bg-[#141414] border-[#3F3F46]">
                 <CardHeader className="pb-1.5">
                   <CardTitle className="text-sm text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
@@ -2369,19 +2369,30 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     <SceneSelector
                       selectedSceneId={selectedSceneId}
                       onSceneSelect={(sceneId) => {
-                        setSelectedSceneId(sceneId);
-                        setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
-                        const scene = screenplay.scenes?.find(s => s.id === sceneId);
-                        if (scene) {
-                          // Load scene content into description
-                          const sceneText = scene.synopsis || 
-                            `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
-                          setSceneDescription(sceneText);
+                        if (sceneId) {
+                          setSelectedSceneId(sceneId);
+                          setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
+                          setSceneAnalysisResult(null); // Clear previous analysis
+                          setAnalysisError(null); // Clear any errors
+                          const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                          if (scene) {
+                            // Load scene content into description
+                            const sceneText = scene.synopsis || 
+                              `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
+                            setSceneDescription(sceneText);
+                          }
+                        } else {
+                          // If empty selection, clear everything
+                          setSelectedSceneId(null);
+                          setHasConfirmedSceneSelection(false);
+                          setSceneAnalysisResult(null);
+                          setAnalysisError(null);
                         }
                       }}
                       onUseScene={(scene) => {
                         // Scene already loaded in onSceneSelect, just confirm
-                        toast.success('Scene loaded! Ready to generate.');
+                        // This is just for the "Use This Scene" button in SceneSelector
+                        // The actual Start button is below in the preview section
                       }}
                       onEditScene={(sceneId) => {
                         // Use context store to set scene, then navigate to editor
@@ -2431,7 +2442,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                             </CardContent>
                           </Card>
                           
-                          {/* Continue Button */}
+                          {/* Start Button */}
                           <Button
                             onClick={() => {
                               setHasConfirmedSceneSelection(true);
@@ -2442,13 +2453,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                           >
                             {isAnalyzing ? (
                               <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                <span className="mr-2 animate-spin">🤖</span>
                                 Analyzing Scene...
                               </>
                             ) : (
                               <>
-                                Continue to Shot Selection
-                                <ArrowRight className="w-4 h-4 ml-2" />
+                                🤖 Start
                               </>
                             )}
                           </Button>
@@ -2581,27 +2591,58 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               </Card>
             )}
 
-            {/* Step 1: Scene Analysis & Shot Selection (after scene is selected) */}
-            {currentStep === 1 && selectedSceneId && sceneAnalysisResult && (
-              <SceneAnalysisStep
-                sceneAnalysisResult={sceneAnalysisResult}
-                enabledShots={enabledShots}
-                onEnabledShotsChange={setEnabledShots}
-                onNext={() => {
-                  if (wizardStep === 'analysis') {
-                    // Move to first shot configuration
-                    setWizardStep('shot-config');
-                    setCurrentShotIndex(0);
-                      setCurrentStep(2);
-                  }
-                }}
-                isAnalyzing={isAnalyzing}
-                globalStyle={globalStyle}
-                onGlobalStyleChange={setGlobalStyle}
-                sceneProps={sceneProps}
-                propsToShots={propsToShots}
-                onPropsToShotsChange={setPropsToShots}
-              />
+            {/* Step 1: Scene Analysis & Shot Selection (after scene is selected and confirmed) */}
+            {currentStep === 1 && hasConfirmedSceneSelection && selectedSceneId && (
+              <>
+                {isAnalyzing && !sceneAnalysisResult ? (
+                  <Card className="bg-[#141414] border-[#3F3F46]">
+                    <CardContent className="p-6 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <span className="text-4xl animate-spin">🤖</span>
+                        <div className="text-sm text-[#FFFFFF]">Analyzing scene...</div>
+                        <div className="text-xs text-[#808080]">This may take a moment</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : sceneAnalysisResult ? (
+                  <SceneAnalysisStep
+                    sceneAnalysisResult={sceneAnalysisResult}
+                    enabledShots={enabledShots}
+                    onEnabledShotsChange={setEnabledShots}
+                    onNext={() => {
+                      if (wizardStep === 'analysis') {
+                        // Move to first shot configuration
+                        setWizardStep('shot-config');
+                        setCurrentShotIndex(0);
+                        setCurrentStep(2);
+                      }
+                    }}
+                    isAnalyzing={isAnalyzing}
+                    globalStyle={globalStyle}
+                    onGlobalStyleChange={setGlobalStyle}
+                    sceneProps={sceneProps}
+                    propsToShots={propsToShots}
+                    onPropsToShotsChange={setPropsToShots}
+                  />
+                ) : analysisError ? (
+                  <Card className="bg-[#141414] border-[#3F3F46]">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-sm text-red-400 mb-2">Analysis failed</div>
+                      <div className="text-xs text-[#808080] mb-4">{analysisError}</div>
+                      <Button
+                        onClick={() => {
+                          setHasConfirmedSceneSelection(false);
+                          setAnalysisError(null);
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Go Back
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </>
             )}
 
             {/* Step 2-N: Individual Shot Configuration (one shot per step) */}
