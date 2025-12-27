@@ -888,15 +888,26 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           setIsGenerating(false);
         }
         
+        // Convert WorkflowExecution to WorkflowStatus format
+        const workflowStatus: WorkflowStatus = {
+          id: execution.executionId,
+          status: execution.status,
+          currentStep: execution.currentStep || 1,
+          totalSteps: execution.totalSteps || 5,
+          stepResults: execution.stepResults || [],
+          totalCreditsUsed: execution.totalCreditsUsed || 0,
+          finalOutputs: execution.finalOutputs || []
+        };
+        
         // Check if partial delivery (Premium tier - dialog rejected)
         if (execution.status === 'partial_delivery') {
-          await handlePartialDelivery(execution);
+          await handlePartialDelivery(workflowStatus);
           clearInterval(interval);
         }
         
         // Check if completed
         if (execution.status === 'completed') {
-          handleGenerationComplete(execution);
+          handleGenerationComplete(workflowStatus);
           clearInterval(interval);
           // 🔥 NEW: Remove from localStorage when completed
           localStorage.removeItem(`scene-builder-execution-${projectId}`);
@@ -904,7 +915,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         // Check if failed
         if (execution.status === 'failed') {
-          handleGenerationFailed(execution);
+          handleGenerationFailed(workflowStatus);
           clearInterval(interval);
           // 🔥 NEW: Remove from localStorage when failed
           localStorage.removeItem(`scene-builder-execution-${projectId}`);
