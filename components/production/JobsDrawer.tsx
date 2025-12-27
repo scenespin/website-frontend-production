@@ -1271,7 +1271,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   return (
     <>
       {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
-      {!isOpen && (
+      {!isOpen && !isMobile && (
         <button
           onClick={(e) => {
             e.stopPropagation();
