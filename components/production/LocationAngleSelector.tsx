@@ -32,6 +32,8 @@ interface LocationAngleSelectorProps {
   onAngleChange: (locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   isRequired?: boolean;
   recommended?: { angleId?: string; reason: string };
+  optOut?: boolean; // Whether user has opted out of using location image
+  onOptOutChange?: (optOut: boolean) => void; // Callback when opt-out checkbox changes
 }
 
 export function LocationAngleSelector({
@@ -42,11 +44,13 @@ export function LocationAngleSelector({
   selectedAngle,
   onAngleChange,
   isRequired = false,
-  recommended
+  recommended,
+  optOut = false,
+  onOptOutChange
 }: LocationAngleSelectorProps) {
-  // Combine base reference with angle variations for display
-  const allAngles = React.useMemo(() => {
-    const angles: Array<{
+  // Group angles by timeOfDay/weather (similar to outfit grouping)
+  const groupedAngles = React.useMemo(() => {
+    const groups: Record<string, Array<{
       angleId?: string;
       angle: string;
       s3Key: string;
@@ -55,11 +59,12 @@ export function LocationAngleSelector({
       timeOfDay?: string;
       weather?: string;
       isBase?: boolean;
-    }> = [];
+    }>> = {};
     
-    // Add base reference if available
+    // Add base reference to "Creation" group
     if (baseReference) {
-      angles.push({
+      if (!groups['Creation']) groups['Creation'] = [];
+      groups['Creation'].push({
         ...baseReference,
         angleId: undefined,
         isBase: true,
@@ -67,17 +72,51 @@ export function LocationAngleSelector({
       });
     }
     
-    // Add angle variations
+    // Group angle variations by timeOfDay/weather
     angleVariations.forEach(angle => {
-      angles.push({
+      const metadataParts = [
+        angle.timeOfDay ? angle.timeOfDay : null,
+        angle.weather ? angle.weather : null
+      ].filter(Boolean);
+      
+      const groupKey = metadataParts.length > 0 
+        ? metadataParts.join(' • ') 
+        : 'No Metadata';
+      
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push({
         ...angle,
         isBase: false,
         label: angle.label || angle.angle
       });
     });
     
-    return angles;
+    return groups;
   }, [baseReference, angleVariations]);
+  
+  // Get all group keys (sorted: "No Metadata" last, then alphabetically)
+  const groupKeys = React.useMemo(() => {
+    const keys = Object.keys(groupedAngles);
+    return keys.sort((a, b) => {
+      if (a === 'No Metadata') return 1;
+      if (b === 'No Metadata') return -1;
+      if (a === 'Creation') return -1; // Creation first
+      if (b === 'Creation') return 1;
+      return a.localeCompare(b);
+    });
+  }, [groupedAngles]);
+  
+  // Selected group (default to first group with Production Hub images, or "Creation")
+  const [selectedGroup, setSelectedGroup] = React.useState<string>(() => {
+    // Prefer first Production Hub group (not "Creation")
+    const productionHubGroups = groupKeys.filter(k => k !== 'Creation');
+    return productionHubGroups.length > 0 ? productionHubGroups[0] : groupKeys[0] || 'Creation';
+  });
+  
+  // Get angles for selected group
+  const allAngles = React.useMemo(() => {
+    return groupedAngles[selectedGroup] || [];
+  }, [groupedAngles, selectedGroup]);
 
   const getAngleLabel = (angle: string): string => {
     const labels: Record<string, string> = {
@@ -150,12 +189,70 @@ export function LocationAngleSelector({
           <MapPin className="w-3 h-3" />
           <span>{locationName}</span>
         </div>
-        {isRequired && (
-          <Badge variant="outline" className="border-[#DC143C] text-[#DC143C] text-[10px]">
-            Required
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {isRequired && (
+            <Badge variant="outline" className="border-[#DC143C] text-[#DC143C] text-[10px]">
+              Required
+            </Badge>
+          )}
+          {isRequired && onOptOutChange && (
+            <label className="flex items-center gap-1.5 text-[10px] text-[#808080] cursor-pointer hover:text-[#FFFFFF] transition-colors">
+              <input
+                type="checkbox"
+                checked={optOut}
+                onChange={(e) => {
+                  onOptOutChange(e.target.checked);
+                  if (e.target.checked) {
+                    // Clear selection when opting out
+                    onAngleChange(locationId, undefined);
+                  }
+                }}
+                className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+              />
+              <span>Don't use location image</span>
+            </label>
+          )}
+        </div>
       </div>
+      
+      {!optOut && (
+        <>
+          {/* Time of Day/Weather Group Selector (similar to outfit dropdown) */}
+          {groupKeys.length > 1 && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-[#808080]">Filter by:</label>
+              <select
+                value={selectedGroup}
+                onChange={(e) => {
+                  setSelectedGroup(e.target.value);
+                  // Clear selection when switching groups
+                  onAngleChange(locationId, undefined);
+                }}
+                className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
+              >
+                {groupKeys.map((groupKey) => {
+                  const count = groupedAngles[groupKey]?.length || 0;
+                  let displayName: string;
+                  if (groupKey === 'Creation') {
+                    displayName = 'Creation Image';
+                  } else if (groupKey === 'No Metadata') {
+                    displayName = 'No Metadata';
+                  } else {
+                    displayName = groupKey
+                      .split(' • ')
+                      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                      .join(' • ');
+                  }
+                  return (
+                    <option key={groupKey} value={groupKey}>
+                      {displayName} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+          
       
       <div className="grid grid-cols-6 gap-1.5">
         {allAngles.map((angle, idx) => {
@@ -214,20 +311,22 @@ export function LocationAngleSelector({
         })}
       </div>
       
-      {/* Optional: Show metadata for selected angle */}
-      {selectedAngle && (() => {
-        const selected = allAngles.find(a => isSelected(a));
-        if (selected && (selected.timeOfDay || selected.weather)) {
-          return (
-            <div className="text-[10px] text-[#808080] mt-1">
-              {selected.timeOfDay && <span>Time: {selected.timeOfDay}</span>}
-              {selected.timeOfDay && selected.weather && <span className="mx-1">•</span>}
-              {selected.weather && <span>Weather: {selected.weather}</span>}
-            </div>
-          );
-        }
-        return null;
-      })()}
+          {/* Optional: Show metadata for selected angle */}
+          {selectedAngle && (() => {
+            const selected = allAngles.find(a => isSelected(a));
+            if (selected && (selected.timeOfDay || selected.weather)) {
+              return (
+                <div className="text-[10px] text-[#808080] mt-1">
+                  {selected.timeOfDay && <span>Time: {selected.timeOfDay}</span>}
+                  {selected.timeOfDay && selected.weather && <span className="mx-1">•</span>}
+                  {selected.weather && <span>Weather: {selected.weather}</span>}
+                </div>
+              );
+            }
+            return null;
+          })()}
+        </>
+      )}
     </div>
   );
 }
