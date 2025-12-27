@@ -428,8 +428,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           // This ensures the UI shows updated dialogue blocks and character information
           console.log('[SceneBuilderPanel] 🔄 Triggering scene refresh after analysis');
           window.dispatchEvent(new CustomEvent('refreshScenes'));
-        } else {
-          throw new Error(result.message || 'Analysis failed');
         }
       } catch (error: any) {
         console.error('[SceneBuilderPanel] Scene analysis failed:', error);
