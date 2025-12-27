@@ -23,7 +23,7 @@ import { Check, Film, Sparkles, ArrowLeft, Play } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import type { ModelStyle, Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@clerk/nextjs';
 
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;

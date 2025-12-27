@@ -17,7 +17,7 @@ import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { categorizeCharacters } from './utils/characterCategorization';
 import { toast } from 'sonner';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@clerk/nextjs';
 
 interface ShotConfigurationStepProps {
   shot: any;
