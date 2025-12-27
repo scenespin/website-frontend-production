@@ -444,38 +444,40 @@ export function ShotConfigurationPanel({
                     : null;
                   
                   return (
-                    <div key={pronoun} className="space-y-4">
-                      {/* Pronoun mapping controls */}
-                      <div>
-                        <PronounMappingSection
-                          pronouns={[pronoun]}
-                          characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
-                          selectedCharacters={selectedCharactersForShots[shot.slot] || []}
-                          pronounMappings={shotMappings}
-                          onPronounMappingChange={(p, characterIdOrIds) => {
-                            onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
-                          }}
-                          onCharacterSelectionChange={(characterIds) => {
-                            onCharactersForShotChange?.(shot.slot, characterIds);
-                          }}
-                          shotSlot={shot.slot}
-                          characterHeadshots={characterHeadshots}
-                          loadingHeadshots={loadingHeadshots}
-                          selectedCharacterReferences={selectedCharacterReferences}
-                          characterOutfits={characterOutfits}
-                          onCharacterReferenceChange={onCharacterReferenceChange}
-                          onCharacterOutfitChange={onCharacterOutfitChange}
-                          allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
-                          pronounExtrasPrompts={pronounExtrasPrompts}
-                          onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                        />
-                      </div>
-                      {/* Images - only show if character is mapped (stacked below on mobile, side-by-side on desktop) */}
-                      {char && (
-                        <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
-                          {renderCharacterImagesOnly(char.id, shot.slot, [`"${pronoun}"`])}
+                    <div key={pronoun} className="space-y-2">
+                      {/* Mobile: Stack controls + photos together. Desktop: side-by-side */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div>
+                          <PronounMappingSection
+                            pronouns={[pronoun]}
+                            characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                            selectedCharacters={selectedCharactersForShots[shot.slot] || []}
+                            pronounMappings={shotMappings}
+                            onPronounMappingChange={(p, characterIdOrIds) => {
+                              onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
+                            }}
+                            onCharacterSelectionChange={(characterIds) => {
+                              onCharactersForShotChange?.(shot.slot, characterIds);
+                            }}
+                            shotSlot={shot.slot}
+                            characterHeadshots={characterHeadshots}
+                            loadingHeadshots={loadingHeadshots}
+                            selectedCharacterReferences={selectedCharacterReferences}
+                            characterOutfits={characterOutfits}
+                            onCharacterReferenceChange={onCharacterReferenceChange}
+                            onCharacterOutfitChange={onCharacterOutfitChange}
+                            allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                            pronounExtrasPrompts={pronounExtrasPrompts}
+                            onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                          />
                         </div>
-                      )}
+                        {/* Images - only show if character is mapped */}
+                        {char && (
+                          <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                            {renderCharacterImagesOnly(char.id, shot.slot, [`"${pronoun}"`])}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -497,42 +499,44 @@ export function ShotConfigurationPanel({
                   const mappedCharacterIds = isIgnored ? [] : (Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []));
                   
                   return (
-                    <div key={pronoun} className="space-y-4">
-                      {/* Pronoun mapping controls */}
-                      <div>
-                        <PronounMappingSection
-                          pronouns={[pronoun]}
-                          characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
-                          selectedCharacters={selectedCharactersForShots[shot.slot] || []}
-                          pronounMappings={shotMappings}
-                          onPronounMappingChange={(p, characterIdOrIds) => {
-                            onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
-                          }}
-                          onCharacterSelectionChange={(characterIds) => {
-                            onCharactersForShotChange?.(shot.slot, characterIds);
-                          }}
-                          shotSlot={shot.slot}
-                          characterHeadshots={characterHeadshots}
-                          loadingHeadshots={loadingHeadshots}
-                          selectedCharacterReferences={selectedCharacterReferences}
-                          characterOutfits={characterOutfits}
-                          onCharacterReferenceChange={onCharacterReferenceChange}
-                          onCharacterOutfitChange={onCharacterOutfitChange}
-                          allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
-                          pronounExtrasPrompts={pronounExtrasPrompts}
-                          onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                        />
-                      </div>
-                      {/* Images - show all mapped characters (stacked below on mobile, side-by-side on desktop) */}
-                      {mappedCharacterIds.length > 0 && (
-                        <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:border-l lg:border-[#3F3F46] lg:pl-4 space-y-4 lg:space-y-0">
-                          {mappedCharacterIds.map((charId) => (
-                            <div key={charId}>
-                              {renderCharacterImagesOnly(charId, shot.slot, [`"${pronoun}"`])}
-                            </div>
-                          ))}
+                    <div key={pronoun} className="space-y-2">
+                      {/* Mobile: Stack controls + photos together. Desktop: side-by-side */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div>
+                          <PronounMappingSection
+                            pronouns={[pronoun]}
+                            characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                            selectedCharacters={selectedCharactersForShots[shot.slot] || []}
+                            pronounMappings={shotMappings}
+                            onPronounMappingChange={(p, characterIdOrIds) => {
+                              onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
+                            }}
+                            onCharacterSelectionChange={(characterIds) => {
+                              onCharactersForShotChange?.(shot.slot, characterIds);
+                            }}
+                            shotSlot={shot.slot}
+                            characterHeadshots={characterHeadshots}
+                            loadingHeadshots={loadingHeadshots}
+                            selectedCharacterReferences={selectedCharacterReferences}
+                            characterOutfits={characterOutfits}
+                            onCharacterReferenceChange={onCharacterReferenceChange}
+                            onCharacterOutfitChange={onCharacterOutfitChange}
+                            allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                            pronounExtrasPrompts={pronounExtrasPrompts}
+                            onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                          />
                         </div>
-                      )}
+                        {/* Images - show all mapped characters */}
+                        {mappedCharacterIds.length > 0 && (
+                          <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4 space-y-4">
+                            {mappedCharacterIds.map((charId) => (
+                              <div key={charId}>
+                                {renderCharacterImagesOnly(charId, shot.slot, [`"${pronoun}"`])}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

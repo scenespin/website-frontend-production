@@ -122,12 +122,61 @@ export function LocationAngleSelector({
     return !hasProductionHubImages && !!baseReference;
   }, [angleVariations.length, baseReference]);
   
-  // Selected group (default to first group with Production Hub images, or "Creation" only if last resort)
+  // Selected group - sync with selected angle if it exists
   const [selectedGroup, setSelectedGroup] = React.useState<string>(() => {
+    // If we have a selected angle, find which group it belongs to
+    if (selectedAngle) {
+      // Check if it's in baseReference (Creation group)
+      if (baseReference && (
+        (selectedAngle.s3Key && baseReference.s3Key === selectedAngle.s3Key) ||
+        (selectedAngle.imageUrl && baseReference.imageUrl === selectedAngle.imageUrl)
+      )) {
+        return 'Creation';
+      }
+      // Check angleVariations
+      for (const [groupKey, angles] of Object.entries(groupedAngles)) {
+        const found = angles.find(angle => 
+          (selectedAngle.s3Key && angle.s3Key === selectedAngle.s3Key) ||
+          (selectedAngle.imageUrl && angle.imageUrl === selectedAngle.imageUrl) ||
+          (selectedAngle.angleId && angle.angleId === selectedAngle.angleId)
+        );
+        if (found) {
+          return groupKey;
+        }
+      }
+    }
     // Prefer first Production Hub group (not "Creation")
     const productionHubGroups = groupKeys.filter(k => k !== 'Creation');
     return productionHubGroups.length > 0 ? productionHubGroups[0] : groupKeys[0] || 'Creation';
   });
+  
+  // Sync selectedGroup when selectedAngle changes externally
+  React.useEffect(() => {
+    if (selectedAngle) {
+      // Find which group the selected angle belongs to
+      if (baseReference && (
+        (selectedAngle.s3Key && baseReference.s3Key === selectedAngle.s3Key) ||
+        (selectedAngle.imageUrl && baseReference.imageUrl === selectedAngle.imageUrl)
+      )) {
+        if (groupKeys.includes('Creation')) {
+          setSelectedGroup('Creation');
+        }
+        return;
+      }
+      // Check angleVariations
+      for (const [groupKey, angles] of Object.entries(groupedAngles)) {
+        const found = angles.find(angle => 
+          (selectedAngle.s3Key && angle.s3Key === selectedAngle.s3Key) ||
+          (selectedAngle.imageUrl && angle.imageUrl === selectedAngle.imageUrl) ||
+          (selectedAngle.angleId && angle.angleId === selectedAngle.angleId)
+        );
+        if (found && groupKeys.includes(groupKey)) {
+          setSelectedGroup(groupKey);
+          return;
+        }
+      }
+    }
+  }, [selectedAngle, baseReference, groupedAngles, groupKeys]);
   
   // Get angles for selected group
   const allAngles = React.useMemo(() => {
@@ -246,9 +295,21 @@ export function LocationAngleSelector({
               <select
                 value={selectedGroup}
                 onChange={(e) => {
-                  setSelectedGroup(e.target.value);
-                  // Clear selection when switching groups
-                  onAngleChange(locationId, undefined);
+                  const newGroup = e.target.value;
+                  setSelectedGroup(newGroup);
+                  // Only clear selection if the selected angle is not in the new group
+                  if (selectedAngle) {
+                    const newGroupAngles = groupedAngles[newGroup] || [];
+                    const angleInNewGroup = newGroupAngles.find(angle =>
+                      (selectedAngle.s3Key && angle.s3Key === selectedAngle.s3Key) ||
+                      (selectedAngle.imageUrl && angle.imageUrl === selectedAngle.imageUrl) ||
+                      (selectedAngle.angleId && angle.angleId === selectedAngle.angleId)
+                    );
+                    // Only clear if the selected angle is not in the new group
+                    if (!angleInNewGroup) {
+                      onAngleChange(locationId, undefined);
+                    }
+                  }
                 }}
                 className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
               >

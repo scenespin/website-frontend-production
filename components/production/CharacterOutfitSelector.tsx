@@ -37,7 +37,7 @@ export function CharacterOutfitSelector({
 }: CharacterOutfitSelectorProps) {
   const [localSelectedOutfit, setLocalSelectedOutfit] = useState<string>(selectedOutfit || 'default');
 
-  // Initialize with selectedOutfit or default to "All Outfits"
+  // Initialize with selectedOutfit or default to first available outfit (not "All Outfits")
   useEffect(() => {
     const outfitsArray = availableOutfits || [];
     
@@ -47,23 +47,34 @@ export function CharacterOutfitSelector({
       if (isPreset) {
         setLocalSelectedOutfit(selectedOutfit);
       } else {
-        // If not a preset, default to "All Outfits"
-        setLocalSelectedOutfit('default');
+        // If not a preset, default to first available or default outfit
+        const initialOutfit = defaultOutfit && outfitsArray.includes(defaultOutfit)
+          ? defaultOutfit
+          : (outfitsArray.length > 0 ? outfitsArray[0] : 'default');
+        setLocalSelectedOutfit(initialOutfit);
+        // Auto-select if we had to change it
+        if (initialOutfit !== 'default') {
+          onOutfitChange(characterId, initialOutfit);
+        }
       }
     } else {
-      // If selectedOutfit is undefined or 'default', show "All Outfits"
-      setLocalSelectedOutfit('default');
+      // If selectedOutfit is undefined, default to first available or default outfit
+      const initialOutfit = defaultOutfit && outfitsArray.includes(defaultOutfit)
+        ? defaultOutfit
+        : (outfitsArray.length > 0 ? outfitsArray[0] : 'default');
+      setLocalSelectedOutfit(initialOutfit);
+      // Auto-select if we had to change it
+      if (initialOutfit !== 'default' && outfitsArray.length > 0) {
+        onOutfitChange(characterId, initialOutfit);
+      }
     }
-  }, [selectedOutfit, availableOutfits]);
+  }, [selectedOutfit, availableOutfits, defaultOutfit, characterId, onOutfitChange]);
 
   const handleOutfitChange = (value: string) => {
+    // Require a specific outfit - "All Outfits" is not allowed as final selection
+    // This ensures only one outfit's images are sent, not all images
     setLocalSelectedOutfit(value);
-    // "default" or "All Outfits" means show all outfits (undefined)
-    if (value === 'default') {
-      onOutfitChange(characterId, undefined); // undefined means show all outfits
-    } else {
-      onOutfitChange(characterId, value); // specific outfit name
-    }
+    onOutfitChange(characterId, value); // specific outfit name
   };
 
   // Determine if we should show dropdown or just display
@@ -88,13 +99,11 @@ export function CharacterOutfitSelector({
         {hasAnyOutfits ? (
           shouldShowDropdown ? (
             <select
-              value={localSelectedOutfit}
+              value={localSelectedOutfit === 'default' ? (defaultOutfit || outfitsArray[0] || '') : localSelectedOutfit}
               onChange={(e) => handleOutfitChange(e.target.value)}
               className="flex-1 px-2 py-1 bg-[#141414] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+              required
             >
-              <option value="default">
-                All Outfits
-              </option>
               {outfitsArray.map((outfit) => (
                 <option key={outfit} value={outfit}>
                   {outfit}
@@ -132,13 +141,11 @@ export function CharacterOutfitSelector({
         shouldShowDropdown ? (
           // Multiple outfits - show dropdown
           <select
-            value={localSelectedOutfit}
+            value={localSelectedOutfit === 'default' ? (defaultOutfit || outfitsArray[0] || '') : localSelectedOutfit}
             onChange={(e) => handleOutfitChange(e.target.value)}
             className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+            required
           >
-            <option value="default">
-              All Outfits
-            </option>
             {outfitsArray.map((outfit) => (
               <option key={outfit} value={outfit}>
                 {outfit}

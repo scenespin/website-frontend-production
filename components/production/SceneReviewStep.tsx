@@ -253,24 +253,33 @@ export function SceneReviewStep({
             {/* Cost Calculator */}
             {(() => {
               // Calculate total base credits (raw costs from backend - no markup applied yet)
-              let baseCredits = 0;
+              let baseVideoCredits = 0;
+              let upscalingCredits = 0;
+              
               selectedShots.forEach((shot: any) => {
-                let shotCredits = shot.credits || 0;
-                // Add 4K upscaling cost if 4K is selected (estimate: ~50% more credits for upscaling)
+                const shotCredits = shot.credits || 0;
+                baseVideoCredits += shotCredits;
+                
+                // Calculate 4K upscaling cost separately (only if 4K is selected)
+                // Upscaling is a separate operation with its own cost
                 if (globalResolution === '4k') {
-                  shotCredits = Math.round(shotCredits * 1.5); // 50% markup for 4K upscaling
+                  // Estimate: upscaling costs ~50% of base video generation cost
+                  const upscaleCost = Math.round(shotCredits * 0.5);
+                  upscalingCredits += upscaleCost;
                 }
-                baseCredits += shotCredits;
               });
               
-              // Apply markup to base costs
+              // Total base cost = video generation + upscaling (if 4K)
+              const totalBaseCredits = baseVideoCredits + upscalingCredits;
+              
+              // Apply markup to total base costs
               // Industry standard for SaaS: 3-5x markup on COGS (300-500% markup = 75-83% margin)
               // For AI/video generation services, typical margins are 50-80% of selling price
               // Using 70% margin = 3.33x markup (233% markup)
               // This markup is applied ON TOP of base provider costs (Runway, etc.)
               const targetMargin = 0.70; // 70% margin
               const markupMultiplier = 1 / (1 - targetMargin); // Calculate markup to achieve target margin
-              const finalPrice = baseCredits * markupMultiplier;
+              const finalPrice = totalBaseCredits * markupMultiplier;
               
               return (
                 <div className="p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
