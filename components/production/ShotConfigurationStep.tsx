@@ -265,6 +265,47 @@ export function ShotConfigurationStep({
             onPropDescriptionChange={onPropDescriptionChange}
           />
 
+          {/* Cost Calculator */}
+          <div className="pt-3 border-t border-[#3F3F46]">
+            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
+            {(() => {
+              // Calculate costs for both HD and 4K
+              const baseVideoCredits = shot.credits || 0;
+              const selectedDuration = shotDuration || 'quick-cut';
+              const shotDurationSeconds = selectedDuration === 'extended-take' ? 10 : 5;
+              
+              // HD cost (no upscaling)
+              const hdBaseCredits = baseVideoCredits;
+              
+              // 4K cost (video + upscaling)
+              const upscaleBaseCredits = shotDurationSeconds * 2; // 2 credits/second for Runway upscale_v1
+              const k4BaseCredits = baseVideoCredits + upscaleBaseCredits;
+              
+              // Apply 70% margin (3.33x markup)
+              const targetMargin = 0.70;
+              const markupMultiplier = 1 / (1 - targetMargin);
+              
+              const hdFinalPrice = hdBaseCredits * markupMultiplier;
+              const k4FinalPrice = k4BaseCredits * markupMultiplier;
+              
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#808080]">HD:</span>
+                    <span className="text-[#FFFFFF] font-medium">{Math.round(hdFinalPrice)} credits</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#808080]">4K:</span>
+                    <span className="text-[#FFFFFF] font-medium">{Math.round(k4FinalPrice)} credits</span>
+                  </div>
+                  <div className="text-[10px] text-[#808080] italic mt-1">
+                    Final resolution selected on review page
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
           {/* Navigation Buttons */}
           <div className="flex gap-3 pt-3 border-t border-[#3F3F46]">
             <Button

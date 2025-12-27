@@ -103,6 +103,8 @@ export function ShotConfigurationPanel({
   needsLocationAngle,
   locationOptOuts = {},
   onLocationOptOutChange,
+  locationDescriptions = {},
+  onLocationDescriptionChange,
   renderCharacterControlsOnly,
   renderCharacterImagesOnly,
   pronounInfo,
