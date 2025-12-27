@@ -2301,25 +2301,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       <div className="p-3 md:p-4 space-y-3">
         {/* Content */}
         <div className="space-y-3">
-        {/* Step Indicator */}
-        {!isGenerating && !workflowStatus && (
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className={`flex items-center gap-2 ${currentStep >= 1 ? 'text-[#DC143C]' : 'text-[#808080]'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep >= 1 ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#141414]'}`}>
-                {currentStep > 1 ? <CheckCircle2 className="w-5 h-5 text-[#DC143C]" /> : <span className="text-sm font-bold">1</span>}
-              </div>
-              <span className="text-sm font-medium hidden sm:inline">Select Scene</span>
-            </div>
-            <ChevronRight className="w-4 h-4 text-[#808080]" />
-            <div className={`flex items-center gap-2 ${currentStep >= 2 ? 'text-[#DC143C]' : currentStep === 1 ? 'text-[#808080]' : 'text-[#3F3F46] opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep >= 2 ? 'border-[#DC143C] bg-[#DC143C]/10' : currentStep === 1 ? 'border-[#3F3F46] bg-[#141414]' : 'border-[#3F3F46] bg-[#141414] opacity-50'}`}>
-                {currentStep >= 2 ? <CheckCircle2 className="w-5 h-5 text-[#DC143C]" /> : <span className="text-sm font-bold">2</span>}
-              </div>
-              <span className="text-sm font-medium hidden sm:inline">Configure</span>
-            </div>
-          </div>
-        )}
-
         {/* Scene Builder Form - Wizard Flow */}
         {!isGenerating && !workflowStatus && (
           <motion.div

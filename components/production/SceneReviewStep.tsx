@@ -266,15 +266,20 @@ export function SceneReviewStep({
             
             {/* Cost Calculator */}
             {(() => {
-              // Calculate total credits/cost
-              let totalCredits = 0;
+              // Calculate total base credits (raw costs from backend - no markup applied yet)
+              let baseCredits = 0;
               selectedShots.forEach((shot: any) => {
-                totalCredits += shot.credits || 0;
+                baseCredits += shot.credits || 0;
               });
               
-              // Apply margin (e.g., 20% markup)
-              const margin = 0.20;
-              const costWithMargin = totalCredits * (1 + margin);
+              // Apply markup to base costs
+              // Industry standard for SaaS: 3-5x markup on COGS (300-500% markup = 75-83% margin)
+              // For AI/video generation services, typical margins are 50-80% of selling price
+              // Using 100% markup (2x) = 50% margin, which is conservative for this industry
+              // This markup is applied ON TOP of base provider costs (Runway, etc.)
+              const markupMultiplier = 2.0; // 100% markup = 50% margin
+              const finalPrice = baseCredits * markupMultiplier;
+              const marginPercentage = ((finalPrice - baseCredits) / finalPrice) * 100; // Actual margin %
               
               return (
                 <div className="p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
@@ -283,12 +288,12 @@ export function SceneReviewStep({
                       Estimated Cost:
                     </div>
                     <div className="text-sm font-medium text-[#FFFFFF]">
-                      {costWithMargin.toFixed(0)} credits
+                      {finalPrice.toFixed(0)} credits
                     </div>
                   </div>
-                  {totalCredits > 0 && (
+                  {baseCredits > 0 && (
                     <div className="text-[10px] text-[#808080] mt-1">
-                      Base: {totalCredits.toFixed(0)} credits + {Math.round(margin * 100)}% margin
+                      Base: {baseCredits.toFixed(0)} credits × {markupMultiplier.toFixed(1)}x markup ({Math.round(marginPercentage)}% margin)
                     </div>
                   )}
                 </div>
