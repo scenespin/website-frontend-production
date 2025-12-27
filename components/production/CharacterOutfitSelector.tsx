@@ -41,6 +41,13 @@ export function CharacterOutfitSelector({
   useEffect(() => {
     const outfitsArray = availableOutfits || [];
     
+    // If no outfits available, don't try to set one (will show "No outfits available" message)
+    if (outfitsArray.length === 0 && !defaultOutfit) {
+      setLocalSelectedOutfit('default');
+      // Don't call onOutfitChange - let it remain undefined so backend uses default references
+      return;
+    }
+    
     if (selectedOutfit && selectedOutfit !== 'default') {
       // Check if it's a preset outfit
       const isPreset = outfitsArray.includes(selectedOutfit);
@@ -73,8 +80,13 @@ export function CharacterOutfitSelector({
   const handleOutfitChange = (value: string) => {
     // Require a specific outfit - "All Outfits" is not allowed as final selection
     // This ensures only one outfit's images are sent, not all images
-    setLocalSelectedOutfit(value);
-    onOutfitChange(characterId, value); // specific outfit name
+    // Only call onOutfitChange if we have outfits available
+    const outfitsArray = availableOutfits || [];
+    if (outfitsArray.length > 0 || defaultOutfit) {
+      setLocalSelectedOutfit(value);
+      onOutfitChange(characterId, value); // specific outfit name
+    }
+    // If no outfits available, do nothing (will show "No outfits available" message)
   };
 
   // Determine if we should show dropdown or just display
@@ -116,9 +128,14 @@ export function CharacterOutfitSelector({
             </span>
           )
         ) : (
-          <span className="text-xs text-[#808080] italic">
-            No outfits available
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-[#808080] italic">
+              No outfits available
+            </span>
+            <span className="text-[10px] text-[#3F3F46]">
+              Character setup incomplete. Default references will be used.
+            </span>
+          </div>
         )}
       </div>
     );
@@ -160,8 +177,13 @@ export function CharacterOutfitSelector({
         )
       ) : (
         // No outfits available
-        <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-xs text-[#808080]">
-          No outfits available - using default references
+        <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
+          <div className="text-xs text-[#808080] mb-1">
+            No outfits available
+          </div>
+          <div className="text-[10px] text-[#3F3F46]">
+            Character setup incomplete. Default references will be used for this shot.
+          </div>
         </div>
       )}
     </div>

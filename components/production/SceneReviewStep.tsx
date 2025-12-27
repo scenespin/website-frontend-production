@@ -252,34 +252,39 @@ export function SceneReviewStep({
             
             {/* Cost Calculator */}
             {(() => {
-              // Calculate total base credits (raw costs from backend - no markup applied yet)
+              // Calculate base credits (raw costs from backend - no markup applied yet)
               let baseVideoCredits = 0;
-              let upscalingCredits = 0;
+              let baseUpscalingCredits = 0;
               
               selectedShots.forEach((shot: any) => {
                 const shotCredits = shot.credits || 0;
                 baseVideoCredits += shotCredits;
                 
-                // Calculate 4K upscaling cost separately (only if 4K is selected)
+                // Calculate 4K upscaling base cost separately (only if 4K is selected)
                 // Upscaling is a separate operation with its own cost
                 if (globalResolution === '4k') {
                   // Estimate: upscaling costs ~50% of base video generation cost
                   const upscaleCost = Math.round(shotCredits * 0.5);
-                  upscalingCredits += upscaleCost;
+                  baseUpscalingCredits += upscaleCost;
                 }
               });
               
-              // Total base cost = video generation + upscaling (if 4K)
-              const totalBaseCredits = baseVideoCredits + upscalingCredits;
-              
-              // Apply markup to total base costs
+              // Apply 70% margin to base video and upscaling separately, then add together
               // Industry standard for SaaS: 3-5x markup on COGS (300-500% markup = 75-83% margin)
               // For AI/video generation services, typical margins are 50-80% of selling price
               // Using 70% margin = 3.33x markup (233% markup)
               // This markup is applied ON TOP of base provider costs (Runway, etc.)
               const targetMargin = 0.70; // 70% margin
               const markupMultiplier = 1 / (1 - targetMargin); // Calculate markup to achieve target margin
-              const finalPrice = totalBaseCredits * markupMultiplier;
+              
+              // Apply margin to video generation cost
+              const videoWithMargin = baseVideoCredits * markupMultiplier;
+              
+              // Apply margin to upscaling cost (if 4K)
+              const upscalingWithMargin = baseUpscalingCredits * markupMultiplier;
+              
+              // Final price = video with margin + upscaling with margin
+              const finalPrice = videoWithMargin + upscalingWithMargin;
               
               return (
                 <div className="p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
