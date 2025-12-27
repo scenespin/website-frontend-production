@@ -252,7 +252,15 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const dragStartHeight = useRef(0);
   
   // Mobile: Calculate height (70px collapsed, variable when open)
-  const currentMobileHeight = isOpen ? mobileHeight : 70;
+  // Only calculate if actually on mobile to prevent unnecessary renders
+  const currentMobileHeight = isMobile && isOpen ? mobileHeight : isMobile ? 70 : 0;
+  
+  // Debug: Log mobile state (remove in production)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('[JobsDrawer] Mobile detection:', { isMobile, windowWidth: window.innerWidth });
+    }
+  }, [isMobile]);
   
   // Handle drag gestures (MOBILE ONLY)
   const handleDragStart = (clientY: number) => {
@@ -1131,21 +1139,25 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   );
 
   // MOBILE RENDER - Slides up from bottom (matches AgentDrawer mobile pattern)
+  // CRITICAL: Only render mobile version if actually on mobile - early return prevents desktop render
   if (isMobile) {
     return (
       <>
         {/* Backdrop - Mobile Only */}
         {isOpen && (
           <div 
-            className="fixed inset-0 bg-black/40 z-40 transition-opacity md:hidden"
+            className="fixed inset-0 bg-black/40 z-40 transition-opacity"
             onClick={onClose}
           />
         )}
 
-        {/* Mobile Drawer - Slides up from bottom */}
+        {/* Mobile Drawer - Slides up from bottom - ONLY renders on mobile */}
         <div
-          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
-          style={{ height: `${currentMobileHeight}px` }}
+          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out rounded-t-2xl"
+          style={{ 
+            height: `${currentMobileHeight}px`,
+            display: isMobile ? 'block' : 'none' // Extra safeguard
+          }}
         >
           {/* Drag Handle (Mobile) */}
           <div
@@ -1260,11 +1272,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   }
 
   // DESKTOP RENDER - Slides from right
-  // Note: Mobile render already returns early above, so this code only runs on desktop
+  // CRITICAL: This code only runs on desktop because mobile render returns early above
+  // Double-check to ensure we're not on mobile
+  if (isMobile) {
+    return null; // Safety check - should never reach here if mobile detection works
+  }
+
   return (
     <>
       {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
-      {!isOpen && (
+      {/* CRITICAL: Only show on desktop - use both isMobile check and md:flex class */}
+      {!isOpen && !isMobile && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -1276,7 +1294,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             writingMode: 'vertical-rl', 
             textOrientation: 'mixed',
             animation: 'pulse-subtle 3s ease-in-out infinite',
-            zIndex: Z_INDEX.POPOVER, // High z-index to ensure tab is always visible above other elements
+            zIndex: Z_INDEX.POPOVER,
+            display: isMobile ? 'none' : undefined, // Extra safeguard
           }}
           title={jobCount > 0 || visibleJobs.length > 0 
             ? `${jobCount || visibleJobs.length} job${(jobCount || visibleJobs.length) !== 1 ? 's' : ''} running`

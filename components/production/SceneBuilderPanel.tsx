@@ -212,6 +212,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Location opt-out state (for shots where user doesn't want to use location image)
   const [locationOptOuts, setLocationOptOuts] = useState<Record<number, boolean>>({});
+  const [locationDescriptions, setLocationDescriptions] = useState<Record<number, string>>({});
   const [shotStyles, setShotStyles] = useState<Record<number, 'cinematic' | 'photorealistic' | 'auto'>>({});
   
   // Camera Angle state (per-shot, defaults to 'auto')
@@ -1787,6 +1788,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         } : undefined, // NEW: Pass filtered shot breakdown (only enabled shots) with per-shot character references
         selectedCharacterReferences: Object.keys(selectedCharacterReferences).length > 0 ? selectedCharacterReferences : undefined, // Feature 0163 Phase 1: Per-shot selected references (fallback for backend Priority 3)
         selectedLocationReferences: Object.keys(selectedLocationReferences).length > 0 ? selectedLocationReferences : undefined, // Phase 2: Per-shot location angle selection
+        locationOptOuts: Object.keys(locationOptOuts).length > 0 ? locationOptOuts : undefined, // Per-shot location opt-out state
+        locationDescriptions: Object.keys(locationDescriptions).length > 0 ? locationDescriptions : undefined, // Per-shot location descriptions when opted out
         selectedCharactersForShots: Object.keys(selectedCharactersForShots).length > 0 ? selectedCharactersForShots : undefined, // Pronoun Detection: Multi-character selection per shot
         pronounMappingsForShots: Object.keys(pronounMappingsForShots).length > 0 ? pronounMappingsForShots : undefined, // Pronoun-to-character mappings: { shotSlot: { pronoun: characterId } }
         characterOutfits: Object.keys(characterOutfits).length > 0 ? characterOutfits : undefined, // Per-shot, per-character outfit selection: { shotSlot: { characterId: outfitName } }
@@ -2710,6 +2713,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     setLocationOptOuts(prev => ({
                       ...prev,
                       [shotSlot]: optOut
+                    }));
+                  }}
+                  locationDescriptions={locationDescriptions}
+                  onLocationDescriptionChange={(shotSlot, description) => {
+                    setLocationDescriptions(prev => ({
+                      ...prev,
+                      [shotSlot]: description
                     }));
                   }}
                   allCharacters={allCharacters}

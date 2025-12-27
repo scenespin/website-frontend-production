@@ -39,6 +39,8 @@ interface ShotConfigurationStepProps {
   needsLocationAngle: (shot: any) => boolean;
   locationOptOuts?: Record<number, boolean>;
   onLocationOptOutChange?: (shotSlot: number, optOut: boolean) => void;
+  locationDescriptions?: Record<number, string>;
+  onLocationDescriptionChange?: (shotSlot: number, description: string) => void;
   // Character data
   allCharacters: any[];
   selectedCharactersForShots: Record<number, string[]>;
@@ -94,6 +96,8 @@ export function ShotConfigurationStep({
   needsLocationAngle,
   locationOptOuts = {},
   onLocationOptOutChange,
+  locationDescriptions = {},
+  onLocationDescriptionChange,
   allCharacters,
   selectedCharactersForShots,
   onCharactersForShotChange,
@@ -122,6 +126,8 @@ export function ShotConfigurationStep({
   onPrevious,
   onNext
 }: ShotConfigurationStepProps) {
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
   // Validate location requirement before allowing next
   const handleNext = () => {
     // Check if location is required but not selected/opted out
@@ -138,11 +144,24 @@ export function ShotConfigurationStep({
       }
     }
     
-    onNext();
+    // Add transition animation
+    setIsTransitioning(true);
+    setTimeout(() => {
+      onNext();
+      setIsTransitioning(false);
+    }, 800); // 0.8 second transition
+  };
+
+  const handlePrevious = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      onPrevious();
+      setIsTransitioning(false);
+    }, 800);
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
       <Card className="bg-[#141414] border-[#3F3F46]">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -207,6 +226,8 @@ export function ShotConfigurationStep({
             needsLocationAngle={needsLocationAngle}
             locationOptOuts={locationOptOuts}
             onLocationOptOutChange={onLocationOptOutChange}
+            locationDescriptions={locationDescriptions}
+            onLocationDescriptionChange={onLocationDescriptionChange}
             renderCharacterControlsOnly={renderCharacterControlsOnly}
             renderCharacterImagesOnly={renderCharacterImagesOnly}
             pronounInfo={pronounInfo}
@@ -240,16 +261,17 @@ export function ShotConfigurationStep({
           {/* Navigation Buttons */}
           <div className="flex gap-3 pt-3 border-t border-[#3F3F46]">
             <Button
-              onClick={onPrevious}
+              onClick={handlePrevious}
+              disabled={isTransitioning || shotIndex === 0}
               variant="outline"
               className="flex-1 border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1A1A1A]"
-              disabled={shotIndex === 0}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Previous
             </Button>
             <Button
               onClick={handleNext}
+              disabled={isTransitioning}
               className="flex-1 bg-[#DC143C] hover:bg-[#B91238] text-white"
             >
               {shotIndex === totalShots - 1 ? 'Review' : 'Next Shot'}

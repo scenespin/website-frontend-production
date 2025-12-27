@@ -34,6 +34,8 @@ interface LocationAngleSelectorProps {
   recommended?: { angleId?: string; reason: string };
   optOut?: boolean; // Whether user has opted out of using location image
   onOptOutChange?: (optOut: boolean) => void; // Callback when opt-out checkbox changes
+  locationDescription?: string; // Description of location when optOut is true
+  onLocationDescriptionChange?: (description: string) => void; // Callback when description changes
   splitLayout?: boolean; // If true, returns fragment with controls and images separate for grid layout
 }
 
@@ -48,6 +50,8 @@ export function LocationAngleSelector({
   recommended,
   optOut = false,
   onOptOutChange,
+  locationDescription = '',
+  onLocationDescriptionChange,
   splitLayout = false
 }: LocationAngleSelectorProps) {
   // Group angles by timeOfDay/weather (similar to outfit grouping)
@@ -278,6 +282,27 @@ export function LocationAngleSelector({
           </label>
         )}
       </div>
+      
+      {/* Location description prompt when opted out */}
+      {optOut && onLocationDescriptionChange && (
+        <div className="mt-3">
+          <label className="block text-[10px] text-[#808080] mb-1.5">
+            Describe the background or location for this shot (optional):
+          </label>
+          <textarea
+            value={locationDescription}
+            onChange={(e) => onLocationDescriptionChange(e.target.value)}
+            placeholder="e.g., 'blurry illuminated background', 'modern office with city view', 'empty warehouse with dramatic lighting'"
+            rows={2}
+            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+          />
+          <div className="text-[10px] text-[#808080] italic mt-1">
+            {locationDescription.trim() 
+              ? 'This description will be used in image and video generation prompts.'
+              : 'If left empty, the model will predict the background based on the scene context.'}
+          </div>
+        </div>
+      )}
       
       {!optOut && (
         <>

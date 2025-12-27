@@ -44,6 +44,8 @@ interface ShotConfigurationPanelProps {
   needsLocationAngle: (shot: any) => boolean;
   locationOptOuts?: Record<number, boolean>; // Per-shot location opt-out state
   onLocationOptOutChange?: (shotSlot: number, optOut: boolean) => void; // Callback for opt-out changes
+  locationDescriptions?: Record<number, string>; // Per-shot location descriptions when opted out
+  onLocationDescriptionChange?: (shotSlot: number, description: string) => void; // Callback for description changes
   // Character rendering helpers
   renderCharacterControlsOnly: (charId: string, shotSlot: number, shotMappings: Record<string, string | string[]>, hasPronouns: boolean, category: 'explicit' | 'singular' | 'plural') => React.ReactNode;
   renderCharacterImagesOnly: (charId: string, shotSlot: number, pronounsForChar?: string[]) => React.ReactNode;
@@ -313,6 +315,10 @@ export function ShotConfigurationPanel({
               onOptOutChange={(optOut) => {
                 onLocationOptOutChange?.(shot.slot, optOut);
               }}
+              locationDescription={locationDescriptions[shot.slot] || ''}
+              onLocationDescriptionChange={(description) => {
+                onLocationDescriptionChange?.(shot.slot, description);
+              }}
               splitLayout={true}
             />
             {/* Right side: Image grid - rendered by LocationAngleSelector via splitLayout */}
@@ -426,63 +432,102 @@ export function ShotConfigurationPanel({
             </div>
           )}
           {/* Singular Pronouns Section */}
-          {pronounInfo.pronouns.filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase())).length > 0 && (
-            <div className="space-y-4 pb-3 border-b border-[#3F3F46]">
-              <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
-                Singular Pronouns
-              </div>
-              {pronounInfo.pronouns
-                .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
-                .map((pronoun: string) => {
-                  const pronounLower = pronoun.toLowerCase();
-                  const mapping = shotMappings[pronounLower];
-                  const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
-                  const isIgnored = mappedCharacterId === '__ignore__';
-                  const char = mappedCharacterId && !isIgnored 
-                    ? (sceneAnalysisResult?.characters.find((c: any) => c.id === mappedCharacterId) ||
-                       allCharacters.find((c: any) => c.id === mappedCharacterId))
-                    : null;
-                  
-                  return (
-                    <div key={pronoun} className="space-y-2">
-                      {/* Mobile: Stack controls + photos together. Desktop: side-by-side */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div>
-                          <PronounMappingSection
-                            pronouns={[pronoun]}
-                            characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
-                            selectedCharacters={selectedCharactersForShots[shot.slot] || []}
-                            pronounMappings={shotMappings}
-                            onPronounMappingChange={(p, characterIdOrIds) => {
-                              onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
-                            }}
-                            onCharacterSelectionChange={(characterIds) => {
-                              onCharactersForShotChange?.(shot.slot, characterIds);
-                            }}
-                            shotSlot={shot.slot}
-                            characterHeadshots={characterHeadshots}
-                            loadingHeadshots={loadingHeadshots}
-                            selectedCharacterReferences={selectedCharacterReferences}
-                            characterOutfits={characterOutfits}
-                            onCharacterReferenceChange={onCharacterReferenceChange}
-                            onCharacterOutfitChange={onCharacterOutfitChange}
-                            allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
-                            pronounExtrasPrompts={pronounExtrasPrompts}
-                            onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                          />
-                        </div>
-                        {/* Images - only show if character is mapped */}
-                        {char && (
-                          <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
-                            {renderCharacterImagesOnly(char.id, shot.slot, [`"${pronoun}"`])}
+          {pronounInfo.pronouns.filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase())).length > 0 && (() => {
+            // Track which characters have been rendered to avoid duplicates
+            const renderedCharacters = new Set<string>();
+            const characterToPronouns = new Map<string, string[]>();
+            
+            // First pass: collect all character-to-pronoun mappings
+            pronounInfo.pronouns
+              .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
+              .forEach((pronoun: string) => {
+                const pronounLower = pronoun.toLowerCase();
+                const mapping = shotMappings[pronounLower];
+                const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+                if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
+                  if (!characterToPronouns.has(mappedCharacterId)) {
+                    characterToPronouns.set(mappedCharacterId, []);
+                  }
+                  characterToPronouns.get(mappedCharacterId)!.push(pronoun);
+                }
+              });
+            
+            return (
+              <div className="space-y-4 pb-3 border-b border-[#3F3F46]">
+                <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
+                  Singular Pronouns
+                </div>
+                {pronounInfo.pronouns
+                  .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
+                  .map((pronoun: string) => {
+                    const pronounLower = pronoun.toLowerCase();
+                    const mapping = shotMappings[pronounLower];
+                    const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+                    const isIgnored = mappedCharacterId === '__ignore__';
+                    const char = mappedCharacterId && !isIgnored 
+                      ? (sceneAnalysisResult?.characters.find((c: any) => c.id === mappedCharacterId) ||
+                         allCharacters.find((c: any) => c.id === mappedCharacterId))
+                      : null;
+                    
+                    // Check if this character has already been rendered
+                    const alreadyRendered = char && renderedCharacters.has(char.id);
+                    if (char && !alreadyRendered) {
+                      renderedCharacters.add(char.id);
+                    }
+                    
+                    return (
+                      <div key={pronoun} className="space-y-2">
+                        {/* Mobile: Stack controls + photos together. Desktop: side-by-side */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          <div>
+                            <PronounMappingSection
+                              pronouns={[pronoun]}
+                              characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                              selectedCharacters={selectedCharactersForShots[shot.slot] || []}
+                              pronounMappings={shotMappings}
+                              onPronounMappingChange={(p, characterIdOrIds) => {
+                                onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
+                              }}
+                              onCharacterSelectionChange={(characterIds) => {
+                                onCharactersForShotChange?.(shot.slot, characterIds);
+                              }}
+                              shotSlot={shot.slot}
+                              characterHeadshots={characterHeadshots}
+                              loadingHeadshots={loadingHeadshots}
+                              selectedCharacterReferences={selectedCharacterReferences}
+                              characterOutfits={characterOutfits}
+                              onCharacterReferenceChange={onCharacterReferenceChange}
+                              onCharacterOutfitChange={onCharacterOutfitChange}
+                              allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                              pronounExtrasPrompts={pronounExtrasPrompts}
+                              onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                            />
                           </div>
-                        )}
+                          {/* Images - only show if character is mapped and not already rendered */}
+                          {char && !alreadyRendered && (
+                            <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                              {renderCharacterImagesOnly(char.id, shot.slot, characterToPronouns.get(char.id)?.map(p => `"${p}"`) || [`"${pronoun}"`])}
+                              {characterToPronouns.get(char.id)!.length > 1 && (
+                                <div className="text-[10px] text-[#808080] mt-2 italic">
+                                  This character is mapped to multiple pronouns: {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {char && alreadyRendered && (
+                            <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4">
+                              <div className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                                Character "{char.name}" images shown above (mapped to {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')})
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
+                    );
+                  })}
+              </div>
+            );
+          })()}
 
           {/* Plural Pronouns Section */}
           {pronounInfo.pronouns.filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase())).length > 0 && (

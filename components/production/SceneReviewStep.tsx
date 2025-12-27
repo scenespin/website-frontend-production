@@ -262,6 +262,10 @@ export function SceneReviewStep({
                 
                 // Calculate 4K upscaling base cost separately (only if 4K is selected)
                 // Upscaling is a separate operation with its own cost
+                // Example: If base video = 750 credits:
+                //   - HD: 750 × 3.33 = 2,500 credits (video with 70% margin)
+                //   - 4K: (750 × 3.33) + (375 × 3.33) = 2,500 + 1,249 = 3,749 credits
+                //   - Upscaling cost = 50% of base video, then 70% margin applied separately
                 if (globalResolution === '4k') {
                   // Estimate: upscaling costs ~50% of base video generation cost
                   const upscaleCost = Math.round(shotCredits * 0.5);
