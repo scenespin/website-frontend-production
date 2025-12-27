@@ -207,7 +207,16 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
           if (!presignedResponse.ok) {
             const errorText = await presignedResponse.text();
             console.error('[ReadingsPanel] Presigned URL failed:', presignedResponse.status, errorText);
-            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+            let errorMessage = `Server returned ${presignedResponse.status}`;
+            try {
+              const errorData = JSON.parse(errorText);
+              if (errorData.message) {
+                errorMessage = errorData.message;
+              }
+            } catch {
+              // Use default error message
+            }
+            throw new Error(errorMessage);
           }
           
           const presignedData = await presignedResponse.json();
@@ -496,20 +505,38 @@ function ReadingCard({
 
   // Initialize Video.js player
   useEffect(() => {
-    if (!reading.combinedAudio || !isPlaying) {
-      // Reset flag when not playing
-      hasTriedInitRef.current = false;
+    // Cleanup when not playing
+    if (!isPlaying || !reading.combinedAudio) {
+      if (playerInstanceRef.current) {
+        try {
+          playerInstanceRef.current.dispose();
+        } catch (e) {
+          console.warn('[ReadingCard] Error disposing player:', e);
+        }
+        playerInstanceRef.current = null;
+        playerRef(null);
+      }
+      isInitializingRef.current = false;
+      hasTriedInitRef.current = false; // Reset so we can retry if needed
       return;
     }
     
     // Prevent duplicate initialization
-    if (isInitializingRef.current || hasTriedInitRef.current) {
+    if (isInitializingRef.current || hasTriedInitRef.current || playerInstanceRef.current) {
       return;
     }
     
-    // Wait for element to be in DOM
+    // Wait for element to be in DOM with retry logic
     if (!playerContainerRef.current) {
-      return;
+      // Retry after a short delay if element isn't ready
+      const retryTimeout = setTimeout(() => {
+        if (playerContainerRef.current && isPlaying && !playerInstanceRef.current) {
+          // Element is now ready, continue with initialization
+          isInitializingRef.current = false;
+          hasTriedInitRef.current = false;
+        }
+      }, 200);
+      return () => clearTimeout(retryTimeout);
     }
 
     isInitializingRef.current = true;
@@ -528,6 +555,7 @@ function ReadingCard({
             if (!token) {
               console.error('[ReadingCard] Not authenticated');
               isInitializingRef.current = false;
+              toast.error('Not authenticated', { description: 'Please sign in to play audio' });
               return;
             }
             
@@ -547,14 +575,20 @@ function ReadingCard({
               const errorText = await presignedResponse.text();
               console.error('[ReadingCard] Presigned URL failed:', presignedResponse.status, errorText);
               isInitializingRef.current = false;
+              toast.error('Failed to load audio', { 
+                description: `Server returned ${presignedResponse.status}. Please try again.` 
+              });
               return; // Don't initialize player if we can't get URL
             }
             
             const presignedData = await presignedResponse.json();
             downloadUrl = presignedData.downloadUrl;
-          } catch (error) {
+          } catch (error: any) {
             console.error('[ReadingCard] Failed to get presigned URL:', error);
             isInitializingRef.current = false;
+            toast.error('Failed to load audio', { 
+              description: error.message || 'Unable to generate secure download link' 
+            });
             return; // Don't initialize player if we can't get URL
           }
         } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
@@ -563,6 +597,7 @@ function ReadingCard({
           if (!token) {
             console.error('[ReadingCard] Not authenticated');
             isInitializingRef.current = false;
+            toast.error('Not authenticated', { description: 'Please sign in to play audio' });
             return;
           }
           
@@ -578,13 +613,26 @@ function ReadingCard({
           } else {
             console.error('[ReadingCard] Failed to get cloud storage download URL');
             isInitializingRef.current = false;
+            toast.error('Failed to load audio', { 
+              description: `Server returned ${response.status}` 
+            });
             return;
           }
+        } else {
+          console.error('[ReadingCard] Unsupported storage type:', file.storageType);
+          isInitializingRef.current = false;
+          toast.error('Unsupported storage type', { 
+            description: 'This file cannot be played in the browser' 
+          });
+          return;
         }
 
         if (!downloadUrl) {
           console.error('[ReadingCard] No download URL available');
           isInitializingRef.current = false;
+          toast.error('No download URL available', { 
+            description: 'Unable to generate playback URL' 
+          });
           return;
         }
 
@@ -593,6 +641,16 @@ function ReadingCard({
           console.error('[ReadingCard] Player container not in DOM');
           isInitializingRef.current = false;
           return;
+        }
+
+        // Check if player already exists (shouldn't happen, but safety check)
+        if (playerInstanceRef.current) {
+          console.warn('[ReadingCard] Player already exists, disposing old instance');
+          try {
+            playerInstanceRef.current.dispose();
+          } catch (e) {
+            console.warn('[ReadingCard] Error disposing existing player:', e);
+          }
         }
 
         // Initialize Video.js
@@ -604,22 +662,37 @@ function ReadingCard({
           sources: [{
             src: downloadUrl,
             type: 'audio/mpeg'
-          }]
+          }],
+          errorDisplay: true,
+        });
+
+        // Handle player errors
+        player.on('error', () => {
+          const error = player.error();
+          console.error('[ReadingCard] Video.js player error:', error);
+          toast.error('Playback error', { 
+            description: error?.message || 'Failed to play audio file' 
+          });
         });
 
         playerInstanceRef.current = player;
         playerRef(player);
         isInitializingRef.current = false; // Successfully initialized
-      } catch (error) {
+        
+        console.log('[ReadingCard] ✅ Player initialized successfully');
+      } catch (error: any) {
         console.error('[ReadingCard] Failed to initialize player:', error);
         isInitializingRef.current = false;
+        toast.error('Failed to initialize player', { 
+          description: error.message || 'Unknown error occurred' 
+        });
       }
     };
 
     // Small delay to ensure DOM is ready
     const timeoutId = setTimeout(() => {
       initializePlayer();
-    }, 100);
+    }, 150);
 
     return () => {
       clearTimeout(timeoutId);
@@ -634,7 +707,7 @@ function ReadingCard({
       }
       isInitializingRef.current = false;
     };
-  }, [isPlaying, reading.combinedAudio?.s3Key, reading.id]); // Only depend on what actually matters
+  }, [isPlaying, reading.combinedAudio, getToken, playerRef]); // Include all dependencies
 
   const date = new Date(reading.date);
   const sceneCount = reading.sceneAudios.length;
