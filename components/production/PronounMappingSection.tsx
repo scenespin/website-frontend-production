@@ -231,7 +231,7 @@ export function PronounMappingSection({
                       className="flex-1 px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
                     >
                       <option value="">-- Select character --</option>
-                      <option value="__ignore__">-- Skip mapping --</option>
+                      <option value="__ignore__">-- Skip (extras/background only) --</option>
                       {availableChars.map((char) => (
                         <option key={char.id} value={char.id}>
                           {char.name}
@@ -256,7 +256,7 @@ export function PronounMappingSection({
                         return (
                           <div className="mt-2">
                             <label className="block text-[10px] text-[#808080] mb-1.5">
-                              Describe what "{pronoun}" refers to (extras/background), unless referring to a character already selected for this shot:
+                              Select the character "{pronoun}" refers to above, or describe if it's an extra/background character not in the script:
                             </label>
                             <textarea
                               value={pronounExtrasPrompts[pronoun] || ''}
@@ -353,7 +353,7 @@ export function PronounMappingSection({
                             : 'bg-[#1A1A1A] border-[#3F3F46] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
                         }`}
                       >
-                        {mapping === '__ignore__' ? '✓ Skip mapping' : 'Skip mapping'}
+                        {mapping === '__ignore__' ? '✓ Skip (extras only)' : 'Skip (extras only)'}
                       </button>
                       
                       <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-2 space-y-1.5 max-h-32 overflow-y-auto">
@@ -415,7 +415,7 @@ export function PronounMappingSection({
                           ) : mappedCharacterIds.length > 0 ? (
                             <>✓ Selected: {mappedCharacterIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ')}</>
                           ) : (
-                            <>Select one or more characters, or skip mapping</>
+                            <>Select one or more characters, or skip (extras only)</>
                           )}
                         </span>
                         {remainingSlots > 0 && (
@@ -435,7 +435,7 @@ export function PronounMappingSection({
                     <div className="ml-[76px] pt-2">
                       <div className="mt-2">
                         <label className="block text-[10px] text-[#808080] mb-1.5">
-                          Describe what "{pronoun}" refers to (extras/background):
+                          Select the character "{pronoun}" refers to above, or describe if it's an extra/background character not in the script:
                         </label>
                         <textarea
                           value={pronounExtrasPrompts[pronoun] || ''}
