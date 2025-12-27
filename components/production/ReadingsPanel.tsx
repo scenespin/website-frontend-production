@@ -168,9 +168,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   // Download function - matches original ProductionJobsPanel pattern exactly
   const downloadAudioAsBlob = async (file: MediaFile) => {
     try {
-      // Start with fileUrl as fallback (if available), or construct from s3Key
-      let downloadUrl = file.fileUrl || (file.s3Key ? `https://s3.amazonaws.com/${process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-media'}/${file.s3Key}` : '');
-      
+      let downloadUrl: string | undefined = undefined;
       const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
       // If we have an s3Key, try to fetch a fresh presigned URL (like original ProductionJobsPanel)
@@ -192,14 +190,20 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
           });
           
           if (!presignedResponse.ok) {
+            const errorText = await presignedResponse.text();
+            console.error('[ReadingsPanel] Presigned URL failed:', presignedResponse.status, errorText);
             throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
           }
           
           const presignedData = await presignedResponse.json();
           downloadUrl = presignedData.downloadUrl;
         } catch (error) {
-          console.error('[ReadingsPanel] Failed to get presigned URL, using fallback URL:', error);
-          // Fall back to original URL if presigned URL fetch fails (like original code)
+          console.error('[ReadingsPanel] Failed to get presigned URL:', error);
+          // Don't fall back to constructed URL - S3 requires authentication
+          toast.error('Failed to get download URL', { 
+            description: 'Unable to generate secure download link. Please try again.' 
+          });
+          return;
         }
       } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
         // For cloud storage files, get download URL from backend
@@ -222,6 +226,9 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
           toast.error('Failed to get download URL');
           return;
         }
+      } else {
+        toast.error('Unsupported storage type for this file');
+        return;
       }
 
       if (!downloadUrl) {
@@ -468,21 +475,27 @@ function ReadingCard({
 
   // Initialize Video.js player
   useEffect(() => {
-    if (!reading.combinedAudio || !playerContainerRef.current || !isPlaying) return;
+    if (!reading.combinedAudio || !isPlaying) return;
+    
+    // Wait for element to be in DOM
+    if (!playerContainerRef.current) {
+      return;
+    }
 
     const initializePlayer = async () => {
       try {
         const file = reading.combinedAudio!;
         const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-        
-        // Start with fileUrl as fallback (if available), or construct from s3Key
-        let downloadUrl = file.fileUrl || (file.s3Key ? `https://s3.amazonaws.com/${process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-media'}/${file.s3Key}` : '');
+        let downloadUrl: string | undefined = undefined;
 
-        // If we have an s3Key, try to fetch a fresh presigned URL (like original ProductionJobsPanel)
+        // If we have an s3Key, try to fetch a fresh presigned URL
         if (file.s3Key && (file.storageType === 'local' || file.storageType === 'wryda-temp' || !file.storageType)) {
           try {
             const token = await getToken({ template: 'wryda-backend' });
-            if (!token) throw new Error('Not authenticated');
+            if (!token) {
+              console.error('[ReadingCard] Not authenticated');
+              return;
+            }
             
             const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
               method: 'POST',
@@ -497,14 +510,16 @@ function ReadingCard({
             });
             
             if (!presignedResponse.ok) {
-              throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+              const errorText = await presignedResponse.text();
+              console.error('[ReadingCard] Presigned URL failed:', presignedResponse.status, errorText);
+              return; // Don't initialize player if we can't get URL
             }
             
             const presignedData = await presignedResponse.json();
             downloadUrl = presignedData.downloadUrl;
           } catch (error) {
-            console.error('[ReadingCard] Failed to get presigned URL, using fallback URL:', error);
-            // Fall back to original URL if presigned URL fetch fails (like original code)
+            console.error('[ReadingCard] Failed to get presigned URL:', error);
+            return; // Don't initialize player if we can't get URL
           }
         } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
           // For cloud storage files, get download URL from backend
@@ -534,8 +549,14 @@ function ReadingCard({
           return;
         }
 
+        // Ensure element is still in DOM before initializing
+        if (!playerContainerRef.current) {
+          console.error('[ReadingCard] Player container not in DOM');
+          return;
+        }
+
         // Initialize Video.js
-        const player = videojs(playerContainerRef.current!, {
+        const player = videojs(playerContainerRef.current, {
           controls: true,
           responsive: true,
           fluid: true,
@@ -548,26 +569,24 @@ function ReadingCard({
 
         playerInstanceRef.current = player;
         playerRef(player);
-
-        return () => {
-          if (playerInstanceRef.current) {
-            playerInstanceRef.current.dispose();
-            playerInstanceRef.current = null;
-            playerRef(null);
-          }
-        };
       } catch (error) {
         console.error('[ReadingCard] Failed to initialize player:', error);
       }
     };
 
-    if (isPlaying) {
+    // Small delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
       initializePlayer();
-    }
+    }, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       if (playerInstanceRef.current) {
-        playerInstanceRef.current.dispose();
+        try {
+          playerInstanceRef.current.dispose();
+        } catch (e) {
+          console.warn('[ReadingCard] Error disposing player:', e);
+        }
         playerInstanceRef.current = null;
         playerRef(null);
       }
