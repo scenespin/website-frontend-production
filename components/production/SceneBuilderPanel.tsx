@@ -67,6 +67,17 @@ import { SceneAnalysisStep } from './SceneAnalysisStep';
 import { SceneReviewStep } from './SceneReviewStep';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 import { categorizeCharacters } from './utils/characterCategorization';
+import {
+  getFullShotText,
+  actionShotHasExplicitCharacter,
+  actionShotHasPronouns,
+  getCharactersFromActionShot,
+  getCharacterForShot,
+  needsLocationAngle,
+  isLocationAngleRequired,
+  getCharacterWithExtractedOutfits,
+  detectDialogue
+} from './utils/sceneBuilderUtils';
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
 
@@ -196,7 +207,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Model Style Selector state (global + per-shot overrides)
   // Resolution is global only, set in review step (not per-shot)
   const [globalStyle, setGlobalStyle] = useState<'cinematic' | 'photorealistic' | 'auto'>('auto');
-  const [globalResolution, setGlobalResolution] = useState<'1080p' | '4k'>('1080p');
+  const [globalResolution, setGlobalResolution] = useState<'1080p' | '4k'>('4k');
+  
+  // Location opt-out state (for shots where user doesn't want to use location image)
+  const [locationOptOuts, setLocationOptOuts] = useState<Record<number, boolean>>({});
   const [shotStyles, setShotStyles] = useState<Record<number, 'cinematic' | 'photorealistic' | 'auto'>>({});
   
   // Camera Angle state (per-shot, defaults to 'auto')
@@ -308,7 +322,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               s3Key: prop.s3Key || prop.imageS3Key
             })));
           }
-        } else {
+      } else {
           setSceneProps([]);
         }
       } catch (error) {
@@ -770,6 +784,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               headshots: headshots.map(h => ({ poseId: h.poseId, s3Key: h.s3Key?.substring(0, 20) + '...', hasImageUrl: !!h.imageUrl, label: h.label }))
             });
             
+            // If no Production Hub images exist, include baseReference (creation image) as last resort
+            if (headshots.length === 0 && character?.baseReference?.imageUrl) {
+              console.log(`[SceneBuilderPanel] No Production Hub images for ${characterId}, using baseReference (creation image) as last resort`);
+              headshots.push({
+                poseId: 'base-reference',
+                s3Key: character.baseReference.s3Key || '',
+                imageUrl: character.baseReference.imageUrl,
+                label: 'Creation Image (Last Resort)',
+                priority: 9999, // Lowest priority (highest number) - this is last resort
+                outfitName: undefined
+              });
+            }
+            
             if (headshots.length > 0) {
               setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
               
@@ -793,11 +820,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   const shotRefs = updated[shot.slot] || {};
                   updated[shot.slot] = {
                     ...shotRefs,
-                    [characterId]: {
-                      poseId: bestHeadshot.poseId,
-                      s3Key: bestHeadshot.s3Key,
-                      imageUrl: bestHeadshot.imageUrl
-                    }
+                [characterId]: {
+                  poseId: bestHeadshot.poseId,
+                  s3Key: bestHeadshot.s3Key,
+                  imageUrl: bestHeadshot.imageUrl
+                }
                   };
                 });
                 return updated;
@@ -878,6 +905,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               priority: ref.priority || ref.metadata?.priority,
               outfitName: ref.outfitName || ref.metadata?.outfitName
             })).filter((h: any) => h.imageUrl || h.s3Key);
+            
+            // If no Production Hub images exist, include baseReference (creation image) as last resort
+            if (headshots.length === 0 && character?.baseReference?.imageUrl) {
+              console.log(`[SceneBuilderPanel] No Production Hub images for ${characterId}, using baseReference (creation image) as last resort`);
+              headshots.push({
+                poseId: 'base-reference',
+                s3Key: character.baseReference.s3Key || '',
+                imageUrl: character.baseReference.imageUrl,
+                label: 'Creation Image (Last Resort)',
+                priority: 9999, // Lowest priority (highest number) - this is last resort
+                outfitName: undefined
+              });
+            }
             
             if (headshots.length > 0) {
               setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
@@ -971,19 +1011,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           }
           
           // Initialize outfits for characters in this shot
-          sceneAnalysisResult.characters.forEach(char => {
+        sceneAnalysisResult.characters.forEach(char => {
             // Only set if character doesn't have an outfit selected for this shot yet
             if (!updated[shotSlot][char.id]) {
-              if (char.defaultOutfit) {
-                // Use default outfit if set
+            if (char.defaultOutfit) {
+              // Use default outfit if set
                 updated[shotSlot][char.id] = char.defaultOutfit;
-                hasChanges = true;
-              } else if (char.availableOutfits && char.availableOutfits.length > 0) {
-                // Auto-select first outfit if no default is set
+              hasChanges = true;
+            } else if (char.availableOutfits && char.availableOutfits.length > 0) {
+              // Auto-select first outfit if no default is set
                 updated[shotSlot][char.id] = char.availableOutfits[0];
-                hasChanges = true;
-              }
+              hasChanges = true;
             }
+          }
           });
         });
         
@@ -1146,49 +1186,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     return () => clearInterval(interval);
   }, [workflowExecutionId, isGenerating]);
   
-  /**
-   * Detect if scene description contains dialogue
-   * Simple detection for Phase 1 - will be enhanced in Phase 2
-   */
-  function detectDialogue(text: string): { hasDialogue: boolean; characterName?: string; dialogue?: string } {
-    const trimmed = text.trim();
-    if (!trimmed) return { hasDialogue: false };
-    
-    // Method 1: Screenplay format - CHARACTER NAME followed by dialogue
-    const screenplayRegex = /\n\s*([A-Z\s]{2,})\n\s*([^\n]+)/;
-    const screenplayMatch = trimmed.match(screenplayRegex);
-    if (screenplayMatch) {
-      const speaker = screenplayMatch[1].trim();
-      const dialogue = screenplayMatch[2].trim();
-      // Filter out sluglines
-      if (!dialogue.match(/^(INT\.|EXT\.|FADE|CUT TO|DISSOLVE)/i)) {
-        return { hasDialogue: true, characterName: speaker, dialogue };
-      }
-    }
-    
-    // Method 2: Quoted dialogue - "dialog text" or 'dialog text'
-    const quotedRegex = /["']([^"']{10,})["']/;
-    const quotedMatch = trimmed.match(quotedRegex);
-    if (quotedMatch) {
-      return { hasDialogue: true, dialogue: quotedMatch[1].trim() };
-    }
-    
-    // Method 3: Says/speaks pattern
-    const saysRegex = /(\w+)\s+(says?|speaks?|yells?|shouts?|whispers?)[:\s]+["']?([^"'\n.]{10,})["']?/i;
-    const saysMatch = trimmed.match(saysRegex);
-    if (saysMatch) {
-      return { hasDialogue: true, characterName: saysMatch[1].trim(), dialogue: saysMatch[3].trim() };
-    }
-    
-    // Method 4: Colon format - "CHARACTER: dialog text"
-    const colonRegex = /(\w+):\s*["']?([^"\n]{10,})["']?/;
-    const colonMatch = trimmed.match(colonRegex);
-    if (colonMatch) {
-      return { hasDialogue: true, characterName: colonMatch[1].trim(), dialogue: colonMatch[2].trim() };
-    }
-    
-    return { hasDialogue: false };
-  }
+  // detectDialogue function moved to sceneBuilderUtils.ts
   
   /**
    * Load generation history from localStorage
@@ -1650,6 +1648,28 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       if (validationErrors.length > 0) {
         toast.error('Please map all pronouns', {
           description: validationErrors.join('. ') + '. Select a character or choose "Skip mapping" for each pronoun.',
+          duration: 8000
+        });
+        return;
+      }
+      
+      // Validate location images (required unless opted out)
+      for (const shot of shots) {
+        if (needsLocationAngle(shot) && isLocationAngleRequired(shot)) {
+          const hasLocation = selectedLocationReferences[shot.slot] !== undefined;
+          const hasOptOut = locationOptOuts[shot.slot] === true;
+          
+          if (!hasLocation && !hasOptOut) {
+            validationErrors.push(
+              `Shot ${shot.slot}: Please select a location image or check "Don't use location image"`
+            );
+          }
+        }
+      }
+      
+      if (validationErrors.length > 0) {
+        toast.error('Please complete all required fields', {
+          description: validationErrors.join('. '),
           duration: 8000
         });
         return;
@@ -3059,7 +3079,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     // Move to first shot configuration
                     setWizardStep('shot-config');
                     setCurrentShotIndex(0);
-                    setCurrentStep(2);
+                      setCurrentStep(2);
                   }
                 }}
                 isAnalyzing={isAnalyzing}
@@ -3093,107 +3113,16 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                 return null;
               }
               
-              // Helper functions (copied from UnifiedSceneConfiguration)
-              const getFullShotText = (shot: any): string => {
-                if (shot.type === 'action' && shot.narrationBlock?.text) return shot.narrationBlock.text;
-                if (shot.type === 'dialogue' && shot.dialogueBlock?.dialogue) return shot.dialogueBlock.dialogue;
-                return shot.description || '';
-              };
-              
-              const actionShotHasExplicitCharacter = (shot: any): boolean => {
-                if (shot.type !== 'action' || !sceneAnalysisResult?.characters) return false;
-                const fullText = getFullShotText(shot);
-                if (!fullText) return false;
-                const textLower = fullText.toLowerCase();
-                const originalText = fullText;
-                return sceneAnalysisResult.characters.some((char: any) => {
-                  if (!char.name) return false;
-                  const charName = char.name.toLowerCase();
-                  return textLower.includes(charName) || textLower.includes(charName + "'s") || originalText.includes(char.name.toUpperCase());
-                });
-              };
-              
-              const actionShotHasPronouns = (shot: any): { hasPronouns: boolean; pronouns: string[] } => {
-                if (shot.type !== 'action') return { hasPronouns: false, pronouns: [] };
-                const fullText = getFullShotText(shot);
-                if (!fullText) return { hasPronouns: false, pronouns: [] };
-                const textLower = fullText.toLowerCase();
-                const detectedPronouns: string[] = [];
-                const pronounPatterns = { singular: /\b(she|her|hers|he|him|his)\b/g, plural: /\b(they|them|their|theirs)\b/g };
-                let match;
-                while ((match = pronounPatterns.singular.exec(textLower)) !== null) {
-                  if (!detectedPronouns.includes(match[0])) detectedPronouns.push(match[0]);
-                }
-                pronounPatterns.singular.lastIndex = 0;
-                while ((match = pronounPatterns.plural.exec(textLower)) !== null) {
-                  if (!detectedPronouns.includes(match[0])) detectedPronouns.push(match[0]);
-                }
-                return { hasPronouns: detectedPronouns.length > 0, pronouns: detectedPronouns };
-              };
-              
-              const getCharactersFromActionShot = (shot: any): any[] => {
-                if (shot.type !== 'action' || !sceneAnalysisResult?.characters) return [];
-                const fullText = getFullShotText(shot);
-                if (!fullText) return [];
-                const textLower = fullText.toLowerCase();
-                const originalText = fullText;
-                const foundCharacters: any[] = [];
-                const foundCharIds = new Set<string>();
-                for (const char of sceneAnalysisResult.characters) {
-                  if (!char.name || foundCharIds.has(char.id)) continue;
-                  const charName = char.name.toLowerCase();
-                  const charNameRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-                  const possessiveRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'s\\b`, 'i');
-                  if (charNameRegex.test(fullText) || possessiveRegex.test(fullText)) {
-                    foundCharacters.push(char);
-                    foundCharIds.add(char.id);
-                  }
-                }
-                for (const char of sceneAnalysisResult.characters) {
-                  if (!char.name || foundCharIds.has(char.id)) continue;
-                  if (originalText.includes(char.name.toUpperCase())) {
-                    foundCharacters.push(char);
-                    foundCharIds.add(char.id);
-                  }
-                }
-                return foundCharacters;
-              };
-              
-              const getCharacterForShot = (shot: any) => {
-                if (shot.type === 'dialogue' && shot.characterId && sceneAnalysisResult?.characters) {
-                  return sceneAnalysisResult.characters.find((c: any) => c.id === shot.characterId);
-                }
-                if (shot.type === 'action') {
-                  const chars = getCharactersFromActionShot(shot);
-                  return chars.length > 0 ? chars[0] : null;
-                }
-                return null;
-              };
-              
-              const needsLocationAngle = (shot: any): boolean => {
-                return shot.type === 'establishing' || 
-                       !!(shot.type === 'action' && sceneAnalysisResult?.location?.id) ||
-                       !!(shot.type === 'dialogue' && sceneAnalysisResult?.location?.id);
-              };
-              
-              const isLocationAngleRequired = (shot: any): boolean => {
-                return shot.type === 'establishing';
-              };
-              
-              const getCharacterWithExtractedOutfits = (charId: string, char: any): any => {
-                if (char.availableOutfits && char.availableOutfits.length > 0) return char;
-                const headshots = characterHeadshots[charId] || [];
-                const outfitSet = new Set<string>();
-                headshots.forEach((headshot: any) => {
-                  const outfitName = headshot.outfitName || headshot.metadata?.outfitName;
-                  if (outfitName && outfitName !== 'default') outfitSet.add(outfitName);
-                });
-                const extractedOutfits = Array.from(outfitSet).sort();
-                if (extractedOutfits.length > 0) {
-                  return { ...char, availableOutfits: extractedOutfits };
-                }
-                return char;
-              };
+              // Helper functions imported from sceneBuilderUtils.ts
+              // Wrapper functions to pass sceneAnalysisResult context
+              const getFullShotTextWrapper = (shot: any) => getFullShotText(shot);
+              const actionShotHasExplicitCharacterWrapper = (shot: any) => actionShotHasExplicitCharacter(shot, sceneAnalysisResult);
+              const actionShotHasPronounsWrapper = (shot: any) => actionShotHasPronouns(shot);
+              const getCharactersFromActionShotWrapper = (shot: any) => getCharactersFromActionShot(shot, sceneAnalysisResult);
+              const getCharacterForShotWrapper = (shot: any) => getCharacterForShot(shot, sceneAnalysisResult);
+              const needsLocationAngleWrapper = (shot: any) => needsLocationAngle(shot, sceneAnalysisResult);
+              const isLocationAngleRequiredWrapper = (shot: any) => isLocationAngleRequired(shot);
+              const getCharacterWithExtractedOutfitsWrapper = (charId: string, char: any) => getCharacterWithExtractedOutfits(charId, char, characterHeadshots);
               
               const renderCharacterControlsOnly = (
                 charId: string,
@@ -3205,7 +3134,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                 const baseChar = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
                            allCharacters.find((c: any) => c.id === charId);
                 if (!baseChar) return null;
-                const char = getCharacterWithExtractedOutfits(charId, baseChar);
+                const char = getCharacterWithExtractedOutfitsWrapper(charId, baseChar);
                 const selectedOutfit = characterOutfits[shotSlot]?.[charId];
                 const hasAnyOutfits = (char.availableOutfits?.length || 0) > 0 || !!char.defaultOutfit;
                 const pronounsForThisChar = hasPronouns ? Object.entries(shotMappings)
@@ -3332,14 +3261,14 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               };
               
               // Get pronoun info and mappings for current shot
-              const pronounInfo = currentShot.type === 'action' ? actionShotHasPronouns(currentShot) : { hasPronouns: false, pronouns: [] };
+              const pronounInfo = currentShot.type === 'action' ? actionShotHasPronounsWrapper(currentShot) : { hasPronouns: false, pronouns: [] };
               const hasPronouns = !!(pronounInfo.hasPronouns && sceneAnalysisResult?.characters);
               const shotMappings = hasPronouns ? (pronounMappingsForShots[currentShot.slot] || {}) : {};
               const { explicitCharacters, singularPronounCharacters, pluralPronounCharacters } = categorizeCharacters(
                 currentShot,
                 shotMappings,
-                getCharactersFromActionShot,
-                getCharacterForShot
+                getCharactersFromActionShotWrapper,
+                getCharacterForShotWrapper
               );
               
               return (
@@ -3363,8 +3292,15 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       [shotSlot]: angle
                     }));
                   }}
-                  isLocationAngleRequired={isLocationAngleRequired}
-                  needsLocationAngle={needsLocationAngle}
+                  isLocationAngleRequired={isLocationAngleRequiredWrapper}
+                  needsLocationAngle={needsLocationAngleWrapper}
+                  locationOptOuts={locationOptOuts}
+                  onLocationOptOutChange={(shotSlot, optOut) => {
+                    setLocationOptOuts(prev => ({
+                      ...prev,
+                      [shotSlot]: optOut
+                    }));
+                  }}
                   allCharacters={allCharacters}
                   selectedCharactersForShots={selectedCharactersForShots}
                   onCharactersForShotChange={(shotSlot, characterIds) => {
@@ -3379,6 +3315,35 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       const newMappings = { ...shotMappings };
                       if (characterIdOrIds) {
                         newMappings[pronoun] = characterIdOrIds;
+                        
+                        // Initialize outfit for newly selected characters
+                        const charIds = Array.isArray(characterIdOrIds) ? characterIdOrIds : [characterIdOrIds];
+                        setCharacterOutfits(prevOutfits => {
+                          const shotOutfits = prevOutfits[shotSlot] || {};
+                          const updatedOutfits = { ...shotOutfits };
+                          let hasChanges = false;
+                          
+                          charIds.forEach(charId => {
+                            // Only initialize if not already set
+                            if (!updatedOutfits[charId]) {
+                              const char = allCharacters.find((c: any) => c.id === charId);
+                              if (char) {
+                                if (char.defaultOutfit) {
+                                  updatedOutfits[charId] = char.defaultOutfit;
+                                  hasChanges = true;
+                                } else if (char.availableOutfits && char.availableOutfits.length > 0) {
+                                  updatedOutfits[charId] = char.availableOutfits[0];
+                                  hasChanges = true;
+                                }
+                              }
+                            }
+                          });
+                          
+                          return hasChanges ? {
+                            ...prevOutfits,
+                            [shotSlot]: updatedOutfits
+                          } : prevOutfits;
+                        });
                       } else {
                         delete newMappings[pronoun];
                       }
@@ -3551,7 +3516,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             {/* Legacy: Step 2: Unified Scene Configuration (fallback if not using wizard) */}
             {currentStep === 2 && wizardStep !== 'shot-config' && wizardStep !== 'review' && selectedSceneId && sceneAnalysisResult && (
               <>
-                <UnifiedSceneConfiguration
+                  <UnifiedSceneConfiguration
                     sceneAnalysisResult={sceneAnalysisResult}
                     qualityTier={qualityTier}
                     onQualityTierChange={setQualityTier}
@@ -3567,7 +3532,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                           delete updatedShotRefs[characterId];
                         }
                         return {
-                          ...prev,
+                        ...prev,
                           [shotSlot]: Object.keys(updatedShotRefs).length > 0 ? updatedShotRefs : undefined
                         };
                       });
@@ -3583,7 +3548,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         }
                         updated[shotSlot] = {
                           ...updated[shotSlot],
-                          [characterId]: outfitName || undefined
+                        [characterId]: outfitName || undefined
                         };
                         return updated;
                       });
