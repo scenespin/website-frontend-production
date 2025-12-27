@@ -243,6 +243,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const queryClient = useQueryClient();
   const { isDrawerOpen: isChatDrawerOpen } = useDrawer(); // Check if chat drawer is open
   
+  // Detect mobile - drawer should only render on desktop
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPolling, setIsPolling] = useState(false);
@@ -655,6 +666,11 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   // Determine z-index based on chat drawer state
   const zIndex = isChatDrawerOpen ? Z_INDEX.JOBS_DRAWER : Z_INDEX.JOBS_DRAWER;
 
+  // Don't render drawer on mobile - mobile uses banner/button in ProductionHub
+  if (isMobile) {
+    return null;
+  }
+
   return (
     <>
       {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
@@ -698,7 +714,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         />
       )}
 
-      {/* Drawer - Always render for smooth slide animation (matches AgentDrawer) */}
+      {/* Drawer - Desktop only, slides from right */}
       <div
         className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl transition-all duration-300 ease-out hidden md:block ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
@@ -707,6 +723,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           width: compact ? '100vw' : '400px',
           maxWidth: '90vw',
           zIndex: Z_INDEX.JOBS_DRAWER,
+          // Ensure drawer is completely off-screen when closed
+          ...(isOpen ? {} : { pointerEvents: 'none' }),
         }}
         onClick={(e) => {
           e.stopPropagation();
