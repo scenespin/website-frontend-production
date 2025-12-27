@@ -1260,11 +1260,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   }
 
   // DESKTOP RENDER - Slides from right
-  // Only render desktop version if NOT mobile
-  if (isMobile) {
-    return null; // Mobile version already rendered above
-  }
-
+  // Note: Mobile render already returns early above, so this code only runs on desktop
   return (
     <>
       {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
