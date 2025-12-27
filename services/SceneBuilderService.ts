@@ -597,5 +597,41 @@ export class SceneBuilderService {
       s3Key: data.s3Key || ''
     };
   }
+
+  /**
+   * Calculate pricing for shot breakdown
+   * SECURITY: All margin calculations are done server-side
+   */
+  static async calculatePricing(
+    shots: Array<{ slot: number; credits: number }>,
+    shotDurations?: Record<number, 'quick-cut' | 'extended-take'>,
+    getTokenFn?: (options: { template: string }) => Promise<string | null>
+  ): Promise<ScenePricingResult> {
+    if (!getTokenFn) {
+      throw new Error('getToken function is required');
+    }
+    
+    const token = await this.getToken(getTokenFn);
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/scene-analyzer/pricing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        shots,
+        shotDurations
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to calculate pricing' }));
+      throw new Error(error.message || 'Failed to calculate pricing');
+    }
+    
+    const result = await response.json();
+    return result.pricing;
+  }
 }
 
