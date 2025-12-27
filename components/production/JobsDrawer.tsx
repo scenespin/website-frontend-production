@@ -16,12 +16,12 @@
  * - Compact job cards optimized for drawer width
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
-  Sparkles, AlertCircle, Image, Save, X, ChevronRight
+  Sparkles, AlertCircle, Image, Save, X, ChevronRight, GripHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
@@ -243,8 +243,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const queryClient = useQueryClient();
   const { isDrawerOpen: isChatDrawerOpen } = useDrawer(); // Check if chat drawer is open
   
-  // Detect mobile - drawer should only render on desktop
+  // Detect mobile vs desktop
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileHeight, setMobileHeight] = useState(500);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef(0);
+  const dragStartHeight = useRef(0);
+  
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
@@ -253,6 +258,62 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+  
+  // Mobile: Calculate height (70px collapsed, variable when open)
+  const currentMobileHeight = isOpen ? mobileHeight : 70;
+  
+  // Handle drag gestures (MOBILE ONLY)
+  const handleDragStart = (clientY: number) => {
+    if (!isMobile) return;
+    setIsDragging(true);
+    dragStartY.current = clientY;
+    dragStartHeight.current = mobileHeight;
+  };
+
+  useEffect(() => {
+    if (!isDragging || !isMobile) return;
+
+    const handleMove = (clientY: number) => {
+      const deltaY = dragStartY.current - clientY;
+      const newHeight = Math.max(300, Math.min(window.innerHeight * 0.9, dragStartHeight.current + deltaY));
+
+      // If swiping down significantly, close the drawer
+      if (deltaY < -100 && clientY > dragStartY.current) {
+        onClose();
+        setIsDragging(false);
+        return;
+      }
+
+      setMobileHeight(newHeight);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
+      handleMove(e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleMove(touch.clientY);
+    };
+
+    const handleEnd = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchend', handleEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging, isMobile, onClose]);
   
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -666,11 +727,547 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   // Determine z-index based on chat drawer state
   const zIndex = isChatDrawerOpen ? Z_INDEX.JOBS_DRAWER : Z_INDEX.JOBS_DRAWER;
 
-  // Don't render drawer on mobile - mobile uses banner/button in ProductionHub
+  // Render drawer content (reused for both mobile and desktop)
+  const renderDrawerContent = () => (
+    <>
+      {/* Header - Matches AgentDrawer style */}
+      <div className="h-14 flex items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+          <h3 className="text-base font-semibold text-[#E5E7EB]">Jobs</h3>
+          {isPolling && (
+            <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+          )}
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="btn btn-sm btn-ghost btn-circle"
+          title="Close"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoading && jobs.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
+          </div>
+        ) : visibleJobs.length === 0 ? (
+          <div className="text-center py-12 px-4">
+            <p className="text-sm text-[#808080] font-medium">No jobs found</p>
+            <p className="text-xs text-[#6B7280] mt-1">
+              Generate a workflow to see it here
+            </p>
+          </div>
+        ) : (
+          <div className="p-3 space-y-2">
+            {visibleJobs.map((job) => (
+              <div
+                key={job.jobId}
+                className="p-3 rounded-lg border border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F] transition-all"
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <h4 className="text-xs font-semibold text-[#E5E7EB] truncate">
+                        {job.workflowName}
+                      </h4>
+                      {getStatusBadge(job.status)}
+                    </div>
+                    <p className="text-[10px] text-[#808080]">
+                      {formatTime(job.createdAt)} · {job.creditsUsed} credits
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 ml-2">
+                    {job.status === 'failed' && (
+                      <button
+                        onClick={() => handleRetry(job.jobId)}
+                        className="p-1 rounded hover:bg-[#1F1F1F] text-[#808080] hover:text-[#E5E7EB] transition-colors"
+                        title="Retry"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(job.jobId)}
+                      className="p-1 rounded hover:bg-red-900/30 text-red-400 hover:text-red-300 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Progress Bar (for running jobs) */}
+                {(job.status === 'running' || job.status === 'queued') && (
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between text-[10px] mb-0.5">
+                      <span className="text-[#808080]">Progress</span>
+                      <span className="font-semibold text-[#DC143C]">{Math.round(job.progress)}%</span>
+                    </div>
+                    <div className="h-1 bg-[#1F1F1F] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#DC143C] transition-all duration-500"
+                        style={{ width: `${job.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {job.status === 'failed' && job.error && (
+                  <div className="p-2 rounded bg-red-900/20 border border-red-800 mb-2">
+                    <div className="flex items-start gap-1.5">
+                      <AlertCircle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-red-300">{job.error}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Results (for completed jobs) - Compact view */}
+                {job.status === 'completed' && job.results && (
+                  <div className="space-y-1.5">
+                    {/* Result summary */}
+                    <div className="flex items-center gap-2 text-[10px] text-[#808080]">
+                      {job.jobType === 'pose-generation' && job.results.poses && (
+                        <span className="flex items-center gap-0.5">
+                          <Image className="w-2.5 h-2.5" />
+                          {job.results.poses.length} pose(s)
+                        </span>
+                      )}
+                      {job.jobType === 'image-generation' && (
+                        <>
+                          {job.results.angleReferences && job.results.angleReferences.length > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <Image className="w-2.5 h-2.5" />
+                              {job.results.angleReferences.length} angle(s)
+                            </span>
+                          )}
+                          {job.results.images && job.results.images.length > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <Image className="w-2.5 h-2.5" />
+                              {job.results.images.length} image(s)
+                            </span>
+                          )}
+                        </>
+                      )}
+                      {job.jobType === 'audio-generation' && job.results.audio && (
+                        <span className="flex items-center gap-0.5">
+                          <Play className="w-2.5 h-2.5" />
+                          {job.results.audio.length} audio
+                        </span>
+                      )}
+                      {job.jobType === 'complete-scene' && job.results.videos && (
+                        <span className="flex items-center gap-0.5">
+                          <Play className="w-2.5 h-2.5" />
+                          {job.results.videos.length} video(s)
+                        </span>
+                      )}
+                      {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (
+                        <span className="flex items-center gap-0.5">
+                          <Play className="w-2.5 h-2.5" />
+                          {job.results.screenplayReading.sceneAudios?.length || job.results.screenplayReading.scenesProcessed?.length || 0} scene(s)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Compact thumbnails - 4 columns for drawer */}
+                    {job.jobType === 'pose-generation' && job.results.poses && job.results.poses.length > 0 && (
+                      <div className="grid grid-cols-4 gap-1">
+                        {job.results.poses.slice(0, 4).map((pose, index) => {
+                          const characterId = job.metadata?.inputs?.characterId;
+                          const canNavigate = onNavigateToEntity && characterId;
+                          return (
+                            <div
+                              key={pose.poseId || index}
+                              className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
+                                canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
+                              }`}
+                              onClick={() => {
+                                if (canNavigate) {
+                                  onNavigateToEntity('character', characterId);
+                                  onClose();
+                                }
+                              }}
+                              title={canNavigate ? `View ${job.metadata?.inputs?.characterName || 'Character'}` : undefined}
+                            >
+                              {pose.s3Key ? (
+                                <ImageThumbnailFromS3Key 
+                                  s3Key={pose.s3Key} 
+                                  alt={pose.poseName || `Pose ${index + 1}`}
+                                  fallbackUrl={pose.imageUrl}
+                                />
+                              ) : pose.imageUrl ? (
+                                <img
+                                  src={pose.imageUrl}
+                                  alt={pose.poseName || `Pose ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
+                                  No image
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {job.results.poses.length > 4 && (
+                          <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
+                            <span className="text-[8px] text-[#808080]">+{job.results.poses.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Angle References - Location/Asset angles */}
+                    {job.jobType === 'image-generation' && job.results?.angleReferences && job.results.angleReferences.length > 0 && (
+                      <div className="grid grid-cols-4 gap-1">
+                        {job.results.angleReferences.slice(0, 4).map((angleRef, index) => {
+                          const locationId = job.metadata?.inputs?.locationId;
+                          const assetId = job.metadata?.inputs?.assetId;
+                          const entityType = locationId ? 'location' : assetId ? 'asset' : null;
+                          const entityId = locationId || assetId;
+                          const entityName = job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName;
+                          const canNavigate = onNavigateToEntity && entityType && entityId;
+                          
+                          return (
+                            <div
+                              key={angleRef.s3Key || index}
+                              className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
+                                canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
+                              }`}
+                              onClick={() => {
+                                if (canNavigate && entityType) {
+                                  onNavigateToEntity(entityType, entityId);
+                                  onClose();
+                                }
+                              }}
+                              title={canNavigate ? `View ${entityName || entityType}` : undefined}
+                            >
+                              {angleRef.s3Key ? (
+                                <ImageThumbnailFromS3Key 
+                                  s3Key={angleRef.s3Key} 
+                                  alt={`${angleRef.angle} view`}
+                                  fallbackUrl={angleRef.imageUrl}
+                                />
+                              ) : angleRef.imageUrl ? (
+                                <img
+                                  src={angleRef.imageUrl}
+                                  alt={`${angleRef.angle} view`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
+                                  No image
+                                </div>
+                              )}
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
+                                <p className="text-[8px] text-white truncate capitalize">{angleRef.angle || `Angle ${index + 1}`}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {job.results.angleReferences.length > 4 && (
+                          <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
+                            <span className="text-[8px] text-[#808080]">+{job.results.angleReferences.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Generic Images */}
+                    {job.jobType === 'image-generation' && job.results.images && job.results.images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-1">
+                        {job.results.images.slice(0, 4).map((img, index) => {
+                          const characterId = job.metadata?.inputs?.characterId;
+                          const locationId = job.metadata?.inputs?.locationId;
+                          const assetId = job.metadata?.inputs?.assetId;
+                          const entityType = characterId ? 'character' : locationId ? 'location' : assetId ? 'asset' : null;
+                          const entityId = characterId || locationId || assetId;
+                          const entityName = job.metadata?.inputs?.characterName || job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName;
+                          const canNavigate = onNavigateToEntity && entityType && entityId;
+                          
+                          return (
+                            <div
+                              key={index}
+                              className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
+                                canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
+                              }`}
+                              onClick={() => {
+                                if (canNavigate && entityType) {
+                                  onNavigateToEntity(entityType, entityId);
+                                  onClose();
+                                }
+                              }}
+                              title={canNavigate ? `View ${entityName || entityType}` : undefined}
+                            >
+                              {img.s3Key ? (
+                                <ImageThumbnailFromS3Key 
+                                  s3Key={img.s3Key} 
+                                  alt={img.label || `Image ${index + 1}`}
+                                  fallbackUrl={img.imageUrl}
+                                />
+                              ) : img.imageUrl ? (
+                                <img
+                                  src={img.imageUrl}
+                                  alt={img.label || `Image ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
+                                  No image
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {job.results.images.length > 4 && (
+                          <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
+                            <span className="text-[8px] text-[#808080]">+{job.results.images.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Download buttons - compact */}
+                    <div className="flex flex-wrap gap-1">
+                      {job.jobType === 'audio-generation' && job.results.audio && job.results.audio.length > 0 && (
+                        <button
+                          onClick={() => {
+                            const firstAudio = job.results!.audio![0];
+                            setSelectedAsset({
+                              url: firstAudio.audioUrl,
+                              s3Key: firstAudio.s3Key,
+                              name: firstAudio.label || 'Generated Audio',
+                              type: 'audio',
+                              metadata: {
+                                audioType: job.metadata?.inputs?.type || 'audio',
+                                prompt: job.metadata?.inputs?.prompt,
+                                allAudio: job.results!.audio
+                              }
+                            });
+                            setShowStorageModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#8B5CF6] text-white hover:bg-[#7C4DCC] transition-colors"
+                        >
+                          <Save className="w-2.5 h-2.5" />
+                          Save
+                        </button>
+                      )}
+                      
+                      {job.jobType === 'complete-scene' && job.results.videos && (
+                        <>
+                          {job.results.videos.map((video, index) => (
+                            <a
+                              key={index}
+                              href={video.url}
+                              download
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                            >
+                              <Download className="w-2.5 h-2.5" />
+                              Download
+                            </a>
+                          ))}
+                        </>
+                      )}
+
+                      {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (() => {
+                        const reading = job.results!.screenplayReading!;
+                        return (
+                          <>
+                            <button
+                              onClick={async () => {
+                                const filename = 'Screenplay Reading.mp3';
+                                await downloadAudioAsBlob(reading.audioUrl, filename, reading.s3Key);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                            >
+                              <Download className="w-2.5 h-2.5" />
+                              Download
+                            </button>
+                            {reading.subtitleS3Key && (
+                              <button
+                                onClick={async () => {
+                                  toast.info('Subtitle download coming soon');
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                              >
+                                <Download className="w-2.5 h-2.5" />
+                                Subtitles
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setSelectedAsset({
+                                  url: reading.audioUrl,
+                                  s3Key: reading.s3Key,
+                                  name: 'Screenplay Reading - Complete',
+                                  type: 'audio',
+                                  metadata: {
+                                    screenplayId: job.metadata?.inputs?.screenplayId,
+                                    scenesProcessed: reading.scenesProcessed,
+                                    sceneAudios: reading.sceneAudios
+                                  }
+                                });
+                                setShowStorageModal(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#8B5CF6] text-white hover:bg-[#7C4DCC] transition-colors"
+                            >
+                              <Save className="w-2.5 h-2.5" />
+                              Save
+                            </button>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  // MOBILE RENDER - Slides up from bottom (matches AgentDrawer mobile pattern)
   if (isMobile) {
-    return null;
+    return (
+      <>
+        {/* Backdrop - Mobile Only */}
+        {isOpen && (
+          <div 
+            className="fixed inset-0 bg-black/40 z-40 transition-opacity md:hidden"
+            onClick={onClose}
+          />
+        )}
+
+        {/* Mobile Drawer - Slides up from bottom */}
+        <div
+          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
+          style={{ height: `${currentMobileHeight}px` }}
+        >
+          {/* Drag Handle (Mobile) */}
+          <div
+            className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
+            onMouseDown={(e) => handleDragStart(e.clientY)}
+            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+          >
+            {isOpen && (
+              <>
+                <GripHorizontal className="w-8 h-8 text-[#808080]" />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="absolute right-4 btn btn-sm btn-ghost btn-circle z-10"
+                  aria-label="Close drawer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </>
+            )}
+            {!isOpen && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpen();
+                }}
+                className="text-sm font-medium text-[#E5E7EB] flex items-center gap-2"
+              >
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                Jobs
+                {jobCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white min-w-[18px] text-center">
+                    {jobCount > 99 ? '99+' : jobCount}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Content */}
+          {isOpen && (
+            <div className="h-[calc(100%-64px)] overflow-auto pb-6">
+              {renderDrawerContent()}
+            </div>
+          )}
+        </div>
+
+        {/* Safety Error Dialog */}
+        <AlertDialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>4K Generation Failed</AlertDialogTitle>
+              <AlertDialogDescription>
+                {safetyErrorData?.failedItems.length || 0} item(s) failed due to safety restrictions.
+                <br /><br />
+                Would you like to:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li><strong>Retry 4K:</strong> Try generating in 4K quality again (may still fail if content is restricted)</li>
+                  <li><strong>Use Standard (1080p):</strong> Generate with standard quality, which has fewer safety restrictions</li>
+                </ul>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setShowSafetyDialog(false);
+                setSafetyErrorData(null);
+              }}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  setShowSafetyDialog(false);
+                  setSafetyErrorData(null);
+                  toast.info('Regenerate with standard quality - coming soon');
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Use Standard (1080p)
+              </AlertDialogAction>
+              <AlertDialogAction
+                onClick={async () => {
+                  setShowSafetyDialog(false);
+                  setSafetyErrorData(null);
+                  toast.info('Retry 4K - coming soon');
+                }}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                Retry 4K
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        
+        {/* Storage Decision Modal */}
+        {showStorageModal && selectedAsset && (
+          <StorageDecisionModal
+            isOpen={showStorageModal}
+            onClose={() => {
+              setShowStorageModal(false);
+              setSelectedAsset(null);
+            }}
+            assetType={selectedAsset.type}
+            assetName={selectedAsset.name}
+            s3TempUrl={selectedAsset.url}
+            s3Key={selectedAsset.s3Key}
+            fileSize={undefined}
+            metadata={selectedAsset.metadata}
+          />
+        )}
+      </>
+    );
   }
 
+  // DESKTOP RENDER - Slides from right
   return (
     <>
       {/* Floating Open Button (Desktop - when closed) - Matches AgentDrawer style exactly */}
@@ -733,401 +1330,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           e.stopPropagation();
         }}
       >
-        {/* Header - Matches AgentDrawer style */}
-        <div className="h-14 flex items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-            <h3 className="text-base font-semibold text-[#E5E7EB]">Jobs</h3>
-            {isPolling && (
-              <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
-            )}
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="btn btn-sm btn-ghost btn-circle"
-            title="Close"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading && jobs.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
-            </div>
-          ) : visibleJobs.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <p className="text-sm text-[#808080] font-medium">No jobs found</p>
-              <p className="text-xs text-[#6B7280] mt-1">
-                Generate a workflow to see it here
-              </p>
-            </div>
-          ) : (
-            <div className="p-3 space-y-2">
-              {visibleJobs.map((job) => (
-                <div
-                  key={job.jobId}
-                  className="p-3 rounded-lg border border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F] transition-all"
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <h4 className="text-xs font-semibold text-[#E5E7EB] truncate">
-                          {job.workflowName}
-                        </h4>
-                        {getStatusBadge(job.status)}
-                      </div>
-                      <p className="text-[10px] text-[#808080]">
-                        {formatTime(job.createdAt)} · {job.creditsUsed} credits
-                      </p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 ml-2">
-                      {job.status === 'failed' && (
-                        <button
-                          onClick={() => handleRetry(job.jobId)}
-                          className="p-1 rounded hover:bg-[#1F1F1F] text-[#808080] hover:text-[#E5E7EB] transition-colors"
-                          title="Retry"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(job.jobId)}
-                        className="p-1 rounded hover:bg-red-900/30 text-red-400 hover:text-red-300 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar (for running jobs) */}
-                  {(job.status === 'running' || job.status === 'queued') && (
-                    <div className="mb-2">
-                      <div className="flex items-center justify-between text-[10px] mb-0.5">
-                        <span className="text-[#808080]">Progress</span>
-                        <span className="font-semibold text-[#DC143C]">{Math.round(job.progress)}%</span>
-                      </div>
-                      <div className="h-1 bg-[#1F1F1F] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#DC143C] transition-all duration-500"
-                          style={{ width: `${job.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Error Message */}
-                  {job.status === 'failed' && job.error && (
-                    <div className="p-2 rounded bg-red-900/20 border border-red-800 mb-2">
-                      <div className="flex items-start gap-1.5">
-                        <AlertCircle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
-                        <p className="text-[10px] text-red-300">{job.error}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Results (for completed jobs) - Compact view */}
-                  {job.status === 'completed' && job.results && (
-                    <div className="space-y-1.5">
-                      {/* Result summary */}
-                      <div className="flex items-center gap-2 text-[10px] text-[#808080]">
-                        {job.jobType === 'pose-generation' && job.results.poses && (
-                          <span className="flex items-center gap-0.5">
-                            <Image className="w-2.5 h-2.5" />
-                            {job.results.poses.length} pose(s)
-                          </span>
-                        )}
-                        {job.jobType === 'image-generation' && (
-                          <>
-                            {job.results.angleReferences && job.results.angleReferences.length > 0 && (
-                              <span className="flex items-center gap-0.5">
-                                <Image className="w-2.5 h-2.5" />
-                                {job.results.angleReferences.length} angle(s)
-                              </span>
-                            )}
-                            {job.results.images && job.results.images.length > 0 && (
-                              <span className="flex items-center gap-0.5">
-                                <Image className="w-2.5 h-2.5" />
-                                {job.results.images.length} image(s)
-                              </span>
-                            )}
-                          </>
-                        )}
-                        {job.jobType === 'audio-generation' && job.results.audio && (
-                          <span className="flex items-center gap-0.5">
-                            <Play className="w-2.5 h-2.5" />
-                            {job.results.audio.length} audio
-                          </span>
-                        )}
-                        {job.jobType === 'complete-scene' && job.results.videos && (
-                          <span className="flex items-center gap-0.5">
-                            <Play className="w-2.5 h-2.5" />
-                            {job.results.videos.length} video(s)
-                          </span>
-                        )}
-                        {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (
-                          <span className="flex items-center gap-0.5">
-                            <Play className="w-2.5 h-2.5" />
-                            {job.results.screenplayReading.sceneAudios?.length || job.results.screenplayReading.scenesProcessed?.length || 0} scene(s)
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Compact thumbnails - 4 columns for drawer */}
-                      {job.jobType === 'pose-generation' && job.results.poses && job.results.poses.length > 0 && (
-                        <div className="grid grid-cols-4 gap-1">
-                          {job.results.poses.slice(0, 4).map((pose, index) => (
-                            <div
-                              key={pose.poseId || index}
-                              className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F]"
-                            >
-                              {pose.s3Key ? (
-                                <ImageThumbnailFromS3Key 
-                                  s3Key={pose.s3Key} 
-                                  alt={pose.poseName || `Pose ${index + 1}`}
-                                  fallbackUrl={pose.imageUrl}
-                                />
-                              ) : pose.imageUrl ? (
-                                <img
-                                  src={pose.imageUrl}
-                                  alt={pose.poseName || `Pose ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
-                                  No image
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                          {job.results.poses.length > 4 && (
-                            <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
-                              <span className="text-[8px] text-[#808080]">+{job.results.poses.length - 4}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Angle References - Location/Asset angles */}
-                      {job.jobType === 'image-generation' && job.results?.angleReferences && job.results.angleReferences.length > 0 && (
-                        <div className="grid grid-cols-4 gap-1">
-                          {job.results.angleReferences.slice(0, 4).map((angleRef, index) => {
-                            // Determine entity type and ID from job metadata
-                            const locationId = job.metadata?.inputs?.locationId;
-                            const assetId = job.metadata?.inputs?.assetId;
-                            const entityType = locationId ? 'location' : assetId ? 'asset' : null;
-                            const entityId = locationId || assetId;
-                            const entityName = job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName;
-                            const canNavigate = onNavigateToEntity && entityType && entityId;
-                            
-                            return (
-                              <div
-                                key={angleRef.s3Key || index}
-                                className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
-                                  canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
-                                }`}
-                                onClick={() => {
-                                  if (canNavigate && entityType) {
-                                    onNavigateToEntity(entityType, entityId);
-                                    onClose(); // Close drawer when navigating
-                                  }
-                                }}
-                                title={canNavigate ? `View ${entityName || entityType}` : undefined}
-                              >
-                                {angleRef.s3Key ? (
-                                  <ImageThumbnailFromS3Key 
-                                    s3Key={angleRef.s3Key} 
-                                    alt={`${angleRef.angle} view`}
-                                    fallbackUrl={angleRef.imageUrl}
-                                  />
-                                ) : angleRef.imageUrl ? (
-                                  <img
-                                    src={angleRef.imageUrl}
-                                    alt={`${angleRef.angle} view`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
-                                    No image
-                                  </div>
-                                )}
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
-                                  <p className="text-[8px] text-white truncate capitalize">{angleRef.angle || `Angle ${index + 1}`}</p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {job.results.angleReferences.length > 4 && (
-                            <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
-                              <span className="text-[8px] text-[#808080]">+{job.results.angleReferences.length - 4}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Generic Images */}
-                      {job.jobType === 'image-generation' && job.results.images && job.results.images.length > 0 && (
-                        <div className="grid grid-cols-4 gap-1">
-                          {job.results.images.slice(0, 4).map((img, index) => {
-                            // Check if this is for a character, location, or asset
-                            const characterId = job.metadata?.inputs?.characterId;
-                            const locationId = job.metadata?.inputs?.locationId;
-                            const assetId = job.metadata?.inputs?.assetId;
-                            const entityType = characterId ? 'character' : locationId ? 'location' : assetId ? 'asset' : null;
-                            const entityId = characterId || locationId || assetId;
-                            const entityName = job.metadata?.inputs?.characterName || job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName;
-                            const canNavigate = onNavigateToEntity && entityType && entityId;
-                            
-                            return (
-                              <div
-                                key={index}
-                                className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
-                                  canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
-                                }`}
-                                onClick={() => {
-                                  if (canNavigate && entityType) {
-                                    onNavigateToEntity(entityType, entityId);
-                                    onClose(); // Close drawer when navigating
-                                  }
-                                }}
-                                title={canNavigate ? `View ${entityName || entityType}` : undefined}
-                              >
-                                {img.s3Key ? (
-                                  <ImageThumbnailFromS3Key 
-                                    s3Key={img.s3Key} 
-                                    alt={img.label || `Image ${index + 1}`}
-                                    fallbackUrl={img.imageUrl}
-                                  />
-                                ) : img.imageUrl ? (
-                                  <img
-                                    src={img.imageUrl}
-                                    alt={img.label || `Image ${index + 1}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
-                                    No image
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                          {job.results.images.length > 4 && (
-                            <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
-                              <span className="text-[8px] text-[#808080]">+{job.results.images.length - 4}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Download buttons - compact */}
-                      <div className="flex flex-wrap gap-1">
-                        {job.jobType === 'audio-generation' && job.results.audio && job.results.audio.length > 0 && (
-                          <button
-                            onClick={() => {
-                              const firstAudio = job.results!.audio![0];
-                              setSelectedAsset({
-                                url: firstAudio.audioUrl,
-                                s3Key: firstAudio.s3Key,
-                                name: firstAudio.label || 'Generated Audio',
-                                type: 'audio',
-                                metadata: {
-                                  audioType: job.metadata?.inputs?.type || 'audio',
-                                  prompt: job.metadata?.inputs?.prompt,
-                                  allAudio: job.results!.audio
-                                }
-                              });
-                              setShowStorageModal(true);
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#8B5CF6] text-white hover:bg-[#7C4DCC] transition-colors"
-                          >
-                            <Save className="w-2.5 h-2.5" />
-                            Save
-                          </button>
-                        )}
-                        
-                        {job.jobType === 'complete-scene' && job.results.videos && (
-                          <>
-                            {job.results.videos.map((video, index) => (
-                              <a
-                                key={index}
-                                href={video.url}
-                                download
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-                              >
-                                <Download className="w-2.5 h-2.5" />
-                                Download
-                              </a>
-                            ))}
-                          </>
-                        )}
-
-                        {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (() => {
-                          const reading = job.results!.screenplayReading!;
-                          return (
-                            <>
-                              <button
-                                onClick={async () => {
-                                  const filename = 'Screenplay Reading.mp3';
-                                  await downloadAudioAsBlob(reading.audioUrl, filename, reading.s3Key);
-                                }}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-                              >
-                                <Download className="w-2.5 h-2.5" />
-                                Download
-                              </button>
-                              {reading.subtitleS3Key && (
-                                <button
-                                  onClick={async () => {
-                                    // Download subtitle logic
-                                    toast.info('Subtitle download coming soon');
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-                                >
-                                  <Download className="w-2.5 h-2.5" />
-                                  Subtitles
-                                </button>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setSelectedAsset({
-                                    url: reading.audioUrl,
-                                    s3Key: reading.s3Key,
-                                    name: 'Screenplay Reading - Complete',
-                                    type: 'audio',
-                                    metadata: {
-                                      screenplayId: job.metadata?.inputs?.screenplayId,
-                                      scenesProcessed: reading.scenesProcessed,
-                                      sceneAudios: reading.sceneAudios
-                                    }
-                                  });
-                                  setShowStorageModal(true);
-                                }}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#8B5CF6] text-white hover:bg-[#7C4DCC] transition-colors"
-                              >
-                                <Save className="w-2.5 h-2.5" />
-                                Save
-                              </button>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {renderDrawerContent()}
       </div>
 
       {/* Safety Error Dialog */}
