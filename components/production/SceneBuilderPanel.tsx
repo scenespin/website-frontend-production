@@ -2487,24 +2487,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                 </div>
                               )}
                               
-                              {/* Scene Full Content */}
+                              {/* Scene Content */}
                               {(() => {
-                                // Try to get full scene content from screenplay
+                                // Construct scene content from heading and synopsis
                                 let sceneContent = '';
-                                if (screenplay.content && scene.fountain?.startLine !== undefined && scene.fountain?.endLine !== undefined) {
-                                  const fountainLines = screenplay.content.split('\n');
-                                  const rawContent = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine);
-                                  // Filter out sections (#) and synopses (=) per Fountain spec
-                                  const filteredContent = rawContent.filter(line => {
-                                    const trimmed = line.trim();
-                                    return !trimmed.startsWith('#') && !trimmed.startsWith('=');
-                                  });
-                                  sceneContent = filteredContent.join('\n');
+                                if (scene.heading) {
+                                  sceneContent = scene.heading;
                                 }
-                                
-                                // Fallback to synopsis if no full content available
-                                if (!sceneContent && scene.synopsis) {
-                                  sceneContent = scene.synopsis;
+                                if (scene.synopsis) {
+                                  if (sceneContent) {
+                                    sceneContent += '\n\n' + scene.synopsis;
+                                  } else {
+                                    sceneContent = scene.synopsis;
+                                  }
                                 }
                                 
                                 if (sceneContent) {
