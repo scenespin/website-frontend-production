@@ -159,6 +159,11 @@ export function SceneAnalysisStep({
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {shots.map((shot: any) => {
                 const isSelected = enabledShots.includes(shot.slot);
+                // Get props assigned to this shot
+                const assignedProps = sceneProps.filter(prop => 
+                  propsToShots[prop.id]?.includes(shot.slot)
+                );
+                
                 return (
                   <div
                     key={shot.slot}
@@ -204,79 +209,62 @@ export function SceneAnalysisStep({
                           {shot.credits || 0} credits
                         </span>
                       </div>
+                      
+                      {/* Props Assignment - Integrated into shot row */}
+                      {sceneProps.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                          <div className="text-[10px] font-medium text-[#808080] mb-2">
+                            Props ({assignedProps.length} assigned)
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {sceneProps.map((prop) => {
+                              const isAssigned = propsToShots[prop.id]?.includes(shot.slot) || false;
+                              return (
+                                <label
+                                  key={prop.id}
+                                  className={`flex items-center gap-1.5 px-2 py-1 rounded border cursor-pointer transition-colors ${
+                                    isAssigned
+                                      ? 'border-[#DC143C] bg-[#DC143C]/10'
+                                      : 'border-[#3F3F46] hover:border-[#808080]'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isAssigned}
+                                    onChange={(e) => {
+                                      const assignedShots = propsToShots[prop.id] || [];
+                                      const newShots = e.target.checked
+                                        ? [...assignedShots, shot.slot]
+                                        : assignedShots.filter(s => s !== shot.slot);
+                                      onPropsToShotsChange({
+                                        ...propsToShots,
+                                        [prop.id]: newShots
+                                      });
+                                    }}
+                                    className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0"
+                                  />
+                                  {prop.imageUrl && (
+                                    <img 
+                                      src={prop.imageUrl} 
+                                      alt={prop.name}
+                                      className="w-4 h-4 object-cover rounded"
+                                    />
+                                  )}
+                                  <span className="text-[10px] text-[#FFFFFF]">
+                                    {prop.name}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
-
-          {/* Props Assignment (if props exist) */}
-          {sceneProps.length > 0 && (
-            <div className="space-y-2 pt-3 border-t border-[#3F3F46]">
-              <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
-                Props Assignment
-              </label>
-              <p className="text-[10px] text-[#808080] mb-3">
-                Select which shots each prop appears in. You'll configure prop details in each shot step.
-              </p>
-              <div className="space-y-3">
-                {sceneProps.map((prop) => {
-                  const assignedShots = propsToShots[prop.id] || [];
-                  
-                  return (
-                    <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
-                      <div className="flex items-center gap-2 mb-2">
-                        {prop.imageUrl && (
-                          <img 
-                            src={prop.imageUrl} 
-                            alt={prop.name}
-                            className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
-                          />
-                        )}
-                        <span className="text-xs font-medium text-[#FFFFFF]">{prop.name}</span>
-                      </div>
-                      
-                      {/* Shot Selection Checkboxes */}
-                      <div className="flex flex-wrap gap-2">
-                        {shots.map((shot: any) => {
-                          const isSelected = assignedShots.includes(shot.slot);
-                          return (
-                            <label
-                              key={shot.slot}
-                              className={`flex items-center gap-1.5 px-2 py-1 rounded border cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'border-[#DC143C] bg-[#DC143C]/10'
-                                  : 'border-[#3F3F46] hover:border-[#808080]'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  const newShots = e.target.checked
-                                    ? [...assignedShots, shot.slot]
-                                    : assignedShots.filter(s => s !== shot.slot);
-                                  onPropsToShotsChange({
-                                    ...propsToShots,
-                                    [prop.id]: newShots
-                                  });
-                                }}
-                                className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0"
-                              />
-                              <span className="text-[10px] text-[#FFFFFF]">
-                                Shot {shot.slot}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Continue Button */}
           <div className="pt-3 border-t border-[#3F3F46]">
