@@ -292,8 +292,6 @@ export function ShotConfigurationPanel({
                     })}
                   </div>
                 )}
-              </div>
-            )}
                 {/* Character images for selected additional characters - stacked below */}
                 {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
                   <div className="mt-4 space-y-4">
