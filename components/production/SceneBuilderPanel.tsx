@@ -2540,21 +2540,27 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                               </div>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                              {/* Continue Button - Moved to top of Scene Preview */}
+                              {/* Start Button - Moved to top of Scene Preview */}
                               <Button
                                 onClick={() => {
-                                  if (wizardStep === 'analysis') {
-                                    // Move to first shot configuration
-                                    setWizardStep('shot-config');
-                                    setCurrentShotIndex(0);
-                                    setCurrentStep(2); // Step 2 is used for shot configuration when wizardStep === 'shot-config'
-                                  }
+                                  setHasConfirmedSceneSelection(true);
+                                  setAnalysisError(null); // Clear any previous errors
+                                  // Toast removed - loading state shows this
+                                  // Analysis will be triggered by useEffect when hasConfirmedSceneSelection changes
                                 }}
-                                disabled={enabledShots.length === 0}
-                                className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white h-11 text-sm px-4 py-2.5"
+                                className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
+                                disabled={isAnalyzing}
                               >
-                                Continue to Shot Configuration ({enabledShots.length} {enabledShots.length === 1 ? 'shot' : 'shots'})
-                                <ArrowRight className="w-4 h-4 ml-2" />
+                                {isAnalyzing ? (
+                                  <>
+                                    <span className="mr-2 animate-spin">🤖</span>
+                                    Analyzing Scene...
+                                  </>
+                                ) : (
+                                  <>
+                                    🤖 Start
+                                  </>
+                                )}
                               </Button>
                               
                               {/* Scene Heading */}
