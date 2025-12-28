@@ -172,8 +172,66 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     }
   }, [groupedReadings]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Download function - matches original ProductionJobsPanel pattern exactly
-  const downloadAudioAsBlob = async (file: MediaFile) => {
+  /**
+   * Helper function for downloading audio files via blob (matches JobsDrawer exactly)
+   */
+  const downloadAudioAsBlob = async (audioUrl: string, filename: string, s3Key?: string) => {
+    try {
+      let downloadUrl = audioUrl;
+      
+      if (s3Key) {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) throw new Error('Not authenticated');
+          
+          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key: s3Key,
+              expiresIn: 3600,
+            }),
+          });
+          
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+          }
+          
+          const presignedData = await presignedResponse.json();
+          downloadUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[ReadingsPanel] Failed to get presigned URL, using original URL:', error);
+        }
+      }
+      
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch audio: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (error: any) {
+      console.error('[ReadingsPanel] Failed to download audio:', error);
+      toast.error('Failed to download audio', { description: error.message });
+      throw error;
+    }
+  };
+
+  // Download function for MediaFile - wraps downloadAudioAsBlob
+  const downloadFile = async (file: MediaFile) => {
     // Prevent duplicate downloads
     if (downloadingFiles.current.has(file.id)) {
       console.warn('[ReadingsPanel] Download already in progress for:', file.id);
@@ -184,51 +242,13 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     
     try {
       let downloadUrl: string | undefined = undefined;
+      let s3Key: string | undefined = undefined;
       const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
-      // If we have an s3Key, try to fetch a fresh presigned URL (like original ProductionJobsPanel)
+      // If we have an s3Key, use it for presigned URL (matches JobsDrawer)
       if (file.s3Key && (file.storageType === 'local' || file.storageType === 'wryda-temp' || !file.storageType)) {
-        try {
-          const token = await getToken({ template: 'wryda-backend' });
-          if (!token) throw new Error('Not authenticated');
-          
-          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              s3Key: file.s3Key,
-              expiresIn: 3600, // 1 hour
-            }),
-          });
-          
-          if (!presignedResponse.ok) {
-            const errorText = await presignedResponse.text();
-            console.error('[ReadingsPanel] Presigned URL failed:', presignedResponse.status, errorText);
-            let errorMessage = `Server returned ${presignedResponse.status}`;
-            try {
-              const errorData = JSON.parse(errorText);
-              if (errorData.message) {
-                errorMessage = errorData.message;
-              }
-            } catch {
-              // Use default error message
-            }
-            throw new Error(errorMessage);
-          }
-          
-          const presignedData = await presignedResponse.json();
-          downloadUrl = presignedData.downloadUrl;
-        } catch (error) {
-          console.error('[ReadingsPanel] Failed to get presigned URL:', error);
-          // Don't fall back to constructed URL - S3 requires authentication
-          toast.error('Failed to get download URL', { 
-            description: 'Unable to generate secure download link. Please try again.' 
-          });
-          return;
-        }
+        s3Key = file.s3Key;
+        downloadUrl = file.s3Url; // Fallback URL
       } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
         // For cloud storage files, get download URL from backend
         const token = await getToken({ template: 'wryda-backend' });
@@ -255,33 +275,19 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
         return;
       }
 
-      if (!downloadUrl) {
+      if (!downloadUrl && !s3Key) {
         toast.error('Cannot download this file: no URL available');
         return;
       }
 
-      // Professional blob-based download approach (matches original ProductionJobsPanel exactly)
-      const response = await fetch(downloadUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch audio: ${response.statusText}`);
-      }
-      
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = file.fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up the blob URL after a short delay
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-    } catch (error: any) {
-      console.error('[ReadingsPanel] Failed to download audio:', error);
-      toast.error('Failed to download audio', { description: error.message });
-      throw error;
+      // Use the blob download function (matches JobsDrawer exactly)
+      await downloadAudioAsBlob(
+        downloadUrl || file.s3Url || '',
+        file.fileName || 'download.mp3',
+        s3Key
+      );
+    } catch (error) {
+      // Error already handled in downloadAudioAsBlob
     } finally {
       downloadingFiles.current.delete(file.id);
     }
@@ -303,7 +309,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     }
   };
 
-  // Handle download combined audio
+  // Handle download combined audio (stitched scenes)
   const handleDownloadCombined = async (reading: ReadingSession) => {
     if (!reading.combinedAudio) {
       toast.error('Combined audio not found');
@@ -311,10 +317,20 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     }
 
     try {
-      await downloadAudioAsBlob(reading.combinedAudio);
+      await downloadFile(reading.combinedAudio);
       toast.success('Download started');
     } catch (error: any) {
       toast.error('Failed to download', { description: error.message });
+    }
+  };
+
+  // Handle download individual scene
+  const handleDownloadScene = async (sceneFile: MediaFile) => {
+    try {
+      await downloadFile(sceneFile);
+      toast.success('Download started');
+    } catch (error: any) {
+      toast.error('Failed to download scene', { description: error.message });
     }
   };
 
@@ -332,7 +348,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
 
       // Download sequentially to avoid overwhelming the browser
       for (const file of filesToDownload) {
-        await downloadAudioAsBlob(file);
+        await downloadFile(file);
         // Small delay between downloads
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -443,6 +459,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 isDeleting={deletingReadingId === reading.id}
                 onPlayPause={() => reading.combinedAudio && handlePlayPause(reading.id, reading.combinedAudio)}
                 onDownloadCombined={() => handleDownloadCombined(reading)}
+                onDownloadScene={handleDownloadScene}
                 onDownloadAll={() => handleDownloadAll(reading)}
                 onDelete={() => handleDeleteReading(reading)}
                 playerRef={(player: any) => {
@@ -480,6 +497,7 @@ interface ReadingCardProps {
   isDeleting: boolean;
   onPlayPause: () => void;
   onDownloadCombined: () => void;
+  onDownloadScene: (sceneFile: MediaFile) => void;
   onDownloadAll: () => void;
   onDelete: () => void;
   playerRef: (player: any) => void;
@@ -491,6 +509,7 @@ function ReadingCard({
   isDeleting,
   onPlayPause,
   onDownloadCombined,
+  onDownloadScene,
   onDownloadAll,
   onDelete,
   playerRef
@@ -743,46 +762,86 @@ function ReadingCard({
       )}
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-2">
-        {reading.combinedAudio && (
-          <button
-            onClick={onPlayPause}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-          >
-            {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-            {isPlaying ? 'Pause' : 'Play'}
-          </button>
-        )}
-        
-        <button
-          onClick={onDownloadCombined}
-          disabled={!reading.combinedAudio}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Download className="w-3 h-3" />
-          Audio
-        </button>
-
-        <button
-          onClick={onDownloadAll}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
-        >
-          <Download className="w-3 h-3" />
-          All Files
-        </button>
-
-        <button
-          onClick={onDelete}
-          disabled={isDeleting}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-red-400 hover:bg-[#2A2A2A] hover:border-red-500 transition-colors disabled:opacity-50"
-        >
-          {isDeleting ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
-          ) : (
-            <Trash2 className="w-3 h-3" />
+      <div className="space-y-2">
+        {/* Primary Actions */}
+        <div className="flex flex-wrap gap-2">
+          {reading.combinedAudio && (
+            <button
+              onClick={onPlayPause}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+            >
+              {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              {isPlaying ? 'Pause' : 'Play'}
+            </button>
           )}
-          Delete
-        </button>
+          
+          {reading.combinedAudio && (
+            <button
+              onClick={onDownloadCombined}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
+              title="Download stitched scenes (all scenes combined)"
+            >
+              <Download className="w-3 h-3" />
+              Stitched Scenes
+            </button>
+          )}
+
+          <button
+            onClick={onDownloadAll}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
+          >
+            <Download className="w-3 h-3" />
+            All Files
+          </button>
+
+          <button
+            onClick={onDelete}
+            disabled={isDeleting}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-red-400 hover:bg-[#2A2A2A] hover:border-red-500 transition-colors disabled:opacity-50"
+          >
+            {isDeleting ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Trash2 className="w-3 h-3" />
+            )}
+            Delete
+          </button>
+        </div>
+
+        {/* Individual Scene Downloads */}
+        {reading.sceneAudios.length > 0 && (
+          <div className="border-t border-[#3F3F46] pt-2">
+            <div className="text-xs text-gray-400 mb-2 font-medium">Individual Scenes:</div>
+            <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+              {reading.sceneAudios
+                .sort((a, b) => {
+                  // Sort by scene number if available in metadata
+                  const aSceneNum = a.metadata?.sceneNumber || a.metadata?.sceneId?.match(/\d+/)?.[0] || '0';
+                  const bSceneNum = b.metadata?.sceneNumber || b.metadata?.sceneId?.match(/\d+/)?.[0] || '0';
+                  return parseInt(aSceneNum) - parseInt(bSceneNum);
+                })
+                .map((sceneFile) => {
+                  const sceneHeading = sceneFile.metadata?.heading || sceneFile.fileName.replace('.mp3', '');
+                  const sceneNumber = sceneFile.metadata?.sceneNumber || sceneFile.metadata?.sceneId?.match(/\d+/)?.[0] || '';
+                  const displayName = sceneNumber 
+                    ? `Scene ${sceneNumber}: ${sceneHeading}` 
+                    : sceneHeading;
+                  
+                  return (
+                    <button
+                      key={sceneFile.id}
+                      onClick={() => onDownloadScene(sceneFile)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors text-left"
+                      title={`Download ${displayName}`}
+                    >
+                      <Download className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{displayName}</span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

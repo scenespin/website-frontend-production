@@ -1121,52 +1121,78 @@ export default function MediaLibrary({
     }
   };
 
+  /**
+   * Helper function for downloading files via blob (matches JobsDrawer exactly)
+   */
+  const downloadFileAsBlob = async (fileUrl: string, filename: string, s3Key?: string) => {
+    try {
+      let downloadUrl = fileUrl;
+      
+      if (s3Key) {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) throw new Error('Not authenticated');
+          
+          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key: s3Key,
+              expiresIn: 3600,
+            }),
+          });
+          
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+          }
+          
+          const presignedData = await presignedResponse.json();
+          downloadUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[MediaLibrary] Failed to get presigned URL, using original URL:', error);
+        }
+      }
+      
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (error: any) {
+      console.error('[MediaLibrary] Failed to download file:', error);
+      toast.error('Failed to download file', { description: error.message });
+      throw error;
+    }
+  };
+
   const handleDownloadFile = async (file: MediaFile) => {
     try {
       let downloadUrl: string | undefined = undefined;
+      let s3Key: string | undefined = undefined;
       
-      // Phase 2C: On-demand presigned URL generation for S3/local files
-      if (file.storageType === 'wryda-temp' || file.storageType === 'local') {
+      // For S3/local files, use s3Key for presigned URL
+      if (file.storageType === 'wryda-temp' || file.storageType === 'local' || !file.storageType) {
         if (!file.s3Key) {
           toast.error('Cannot download file: missing file key');
           return;
         }
-        
-        // Use React Query to fetch presigned URL on-demand
-        try {
-          const presignedData = await queryClient.fetchQuery({
-            queryKey: ['media', 'presigned-url', file.s3Key],
-            queryFn: async () => {
-              const token = await getToken({ template: 'wryda-backend' });
-              if (!token) throw new Error('Not authenticated');
-              
-              const response = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  s3Key: file.s3Key,
-                  expiresIn: 3600, // 1 hour
-                }),
-              });
-              
-              if (!response.ok) {
-                throw new Error(`Failed to generate presigned URL: ${response.status}`);
-              }
-              
-              return await response.json();
-            },
-            staleTime: 5 * 60 * 1000, // 5 minutes
-          });
-          
-          downloadUrl = presignedData.downloadUrl;
-        } catch (error) {
-          console.error('[MediaLibrary] Failed to get presigned URL:', error);
-          toast.error('Failed to get download URL');
-          return;
-        }
+        s3Key = file.s3Key;
+        // Use s3Url as fallback if available
+        downloadUrl = file.s3Url || undefined;
       } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
         // For cloud storage files, get download URL from backend
         const token = await getToken({ template: 'wryda-backend' });
@@ -1188,41 +1214,24 @@ export default function MediaLibrary({
           toast.error('Failed to get download URL');
           return;
         }
-      }
-
-      if (!downloadUrl) {
-        toast.error('Cannot download this file');
+      } else {
+        toast.error('Unsupported storage type for this file');
         return;
       }
 
-      // Professional blob-based download approach
-      // Fetch file as blob, create object URL, then download
-      const response = await fetch(downloadUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch file: ${response.statusText}`);
+      if (!downloadUrl && !s3Key) {
+        toast.error('Cannot download this file: no URL available');
+        return;
       }
-      
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      
-      // Determine file extension from file type or name
-      const fileExtension = file.fileName.split('.').pop() || 
-                           (file.fileType === 'image' ? 'jpg' : 
-                            file.fileType === 'video' ? 'mp4' : 
-                            file.fileType === 'audio' ? 'mp3' : 'bin');
-      
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = file.fileName || `download.${fileExtension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up the blob URL after a short delay
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+      // Use the blob download function (matches JobsDrawer exactly)
+      await downloadFileAsBlob(
+        downloadUrl || file.s3Url || '',
+        file.fileName || `download.${file.fileName.split('.').pop() || 'bin'}`,
+        s3Key
+      );
     } catch (error) {
-      console.error('[MediaLibrary] Download error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to download file');
+      // Error already handled in downloadFileAsBlob
     }
   };
 
