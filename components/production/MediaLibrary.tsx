@@ -915,6 +915,83 @@ export default function MediaLibrary({
     }
   };
 
+  // Handle single folder deletion
+  const deleteFolder = async (folderId: string, folderName: string) => {
+    if (!confirm(`Are you sure you want to delete the folder "${folderName}"? This will move all files to the parent folder and cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Get child folders to check if folder has children
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+      
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const childFoldersResponse = await fetch(
+        `${BACKEND_API_URL}/api/media/folders?screenplayId=${encodeURIComponent(projectId)}&parentFolderId=${encodeURIComponent(folderId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      
+      let hasChildFolders = false;
+      if (childFoldersResponse.ok) {
+        const childFoldersData = await childFoldersResponse.json();
+        const childFolders = childFoldersData.folders || [];
+        hasChildFolders = childFolders.length > 0;
+      }
+
+      // Recursively delete folder (same logic as bulk delete)
+      const deleteFolderRecursively = async (folderId: string): Promise<void> => {
+        // Get child folders
+        const childFoldersResponse = await fetch(
+          `${BACKEND_API_URL}/api/media/folders?screenplayId=${encodeURIComponent(projectId)}&parentFolderId=${encodeURIComponent(folderId)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+        
+        if (childFoldersResponse.ok) {
+          const childFoldersData = await childFoldersResponse.json();
+          const childFolders = childFoldersData.folders || [];
+          
+          // Recursively delete all child folders first (depth-first)
+          for (const childFolder of childFolders) {
+            await deleteFolderRecursively(childFolder.folderId);
+          }
+        }
+        
+        // Now delete the parent folder
+        await deleteFolderMutation.mutateAsync({ folderId, moveFilesToParent: true });
+      };
+
+      await deleteFolderRecursively(folderId);
+      toast.success(`Folder "${folderName}" deleted successfully`);
+      
+      // If we deleted the currently selected folder, navigate to parent
+      if (selectedFolderId === folderId) {
+        // Navigate to parent using breadcrumb path
+        if (selectedFolderPath.length > 1) {
+          // Navigate to parent
+          const parentPath = selectedFolderPath.slice(0, -1);
+          handleBreadcrumbClick(parentPath);
+        } else {
+          // Navigate to root
+          setSelectedFolderId(null);
+          setSelectedFolderPath([]);
+        }
+      }
+    } catch (error) {
+      console.error('[MediaLibrary] Delete folder error:', error);
+      setMutationError(error instanceof Error ? error.message : 'Failed to delete folder');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete folder');
+    }
+  };
+
   // Phase 2: Bulk delete handler (files and folders)
   const handleBulkDelete = async () => {
     if (selectedFiles.size === 0 && selectedFolders.size === 0) {
@@ -2083,8 +2160,8 @@ export default function MediaLibrary({
                           )}
                         </div>
                         
-                        {/* 🔥 NEW: Folder Actions Menu (for S3 folders with local files) - only show when not in selection mode */}
-                        {!selectionMode && storageType === 's3' && hasConnectedProviders && (
+                        {/* 🔥 NEW: Folder Actions Menu (for S3 folders) - only show when not in selection mode */}
+                        {!selectionMode && storageType === 's3' && (
                           <div 
                             className="absolute top-2 right-2 z-50" 
                             onClick={(e) => e.stopPropagation()}
@@ -2104,16 +2181,31 @@ export default function MediaLibrary({
                                 className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
                                 style={{ backgroundColor: '#0A0A0A' }}
                               >
+                                {/* Sync to Cloud option - only show if cloud providers are connected */}
+                                {hasConnectedProviders && (
+                                  <DropdownMenuItem 
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      console.log('[MediaLibrary] Sync folder to Cloud onClick for folder:', folder.id);
+                                      await handleSyncFolderToCloud(folder.id);
+                                    }}
+                                    className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                  >
+                                    <Cloud className="w-4 h-4 mr-2" />
+                                    Sync to Cloud
+                                  </DropdownMenuItem>
+                                )}
+                                {/* Delete folder option */}
                                 <DropdownMenuItem 
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    console.log('[MediaLibrary] Sync folder to Cloud onClick for folder:', folder.id);
-                                    await handleSyncFolderToCloud(folder.id);
+                                    console.log('[MediaLibrary] Delete folder onClick for folder:', folder.id);
+                                    await deleteFolder(folder.id, folder.name);
                                   }}
-                                  className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                  className="text-red-400 hover:bg-red-900/20 hover:text-red-300 cursor-pointer focus:bg-red-900/20 focus:text-red-300"
                                 >
-                                  <Cloud className="w-4 h-4 mr-2" />
-                                  Sync to Cloud
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete Folder
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
