@@ -7,6 +7,8 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { updateScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
+import { normalizeScreenplayText } from '@/utils/screenplayNormalizer';
+import { processChunkedImport } from '@/utils/screenplayStreamParser';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import type { Character, Location, Scene, StoryBeat } from '@/types/screenplay';
@@ -27,20 +29,42 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [isImporting, setIsImporting] = useState(false);
     const [parseResult, setParseResult] = useState<any>(null);
     const [showWarning, setShowWarning] = useState(false); // 🔥 NEW: Warning dialog state
+    const [normalizationProgress, setNormalizationProgress] = useState<number | null>(null); // Feature 0177: Progress for large files
     
     // Parse content whenever it changes (debounced)
+    // Feature 0177: Normalize content before parsing
     useEffect(() => {
         if (!content.trim()) {
             setParseResult(null);
+            setNormalizationProgress(null);
             return;
         }
         
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
             try {
-                const result = parseContentForImport(content);
+                // Feature 0177: Normalize content before parsing
+                const isLargeFile = content.length > 1024 * 1024; // >1MB
+                
+                let normalized: string;
+                if (isLargeFile) {
+                    // Large file: use chunked processing with progress
+                    setNormalizationProgress(0);
+                    normalized = await processChunkedImport(
+                        content,
+                        (chunk) => normalizeScreenplayText(chunk),
+                        (progress) => setNormalizationProgress(progress)
+                    );
+                    setNormalizationProgress(null);
+                } else {
+                    // Small file: normalize in one pass
+                    normalized = normalizeScreenplayText(content);
+                }
+                
+                const result = parseContentForImport(normalized);
                 setParseResult(result);
             } catch (error) {
                 console.error('[ScriptImportModal] Parse error:', error);
+                setNormalizationProgress(null);
             }
         }, 500); // Debounce 500ms
         
@@ -114,8 +138,26 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 throw new Error('clearContentOnly() returned empty array - this should never happen!');
             }
             
-            // Step 2: Set content in editor
-            setContent(content);
+            // Step 2: Normalize and set content in editor
+            // Feature 0177: Normalize content before setting in editor
+            const isLargeFile = content.length > 1024 * 1024; // >1MB
+            let normalizedContent: string;
+            
+            if (isLargeFile) {
+                // Large file: use chunked processing with progress
+                setNormalizationProgress(0);
+                normalizedContent = await processChunkedImport(
+                    content,
+                    (chunk) => normalizeScreenplayText(chunk),
+                    (progress) => setNormalizationProgress(progress)
+                );
+                setNormalizationProgress(null);
+            } else {
+                // Small file: normalize in one pass
+                normalizedContent = normalizeScreenplayText(content);
+            }
+            
+            setContent(normalizedContent);
             
             // Step 3: Import characters (with explicit screenplay ID)
             let importedCharacters: Character[] = [];
@@ -340,6 +382,20 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                 onChange={(e) => setContentLocal(e.target.value)}
                                 disabled={isImporting}
                             />
+                            {/* Feature 0177: Progress indicator for large file normalization */}
+                            {normalizationProgress !== null && (
+                                <div className="mt-2">
+                                    <div className="flex items-center justify-between text-sm text-base-content/70 mb-1">
+                                        <span>Normalizing screenplay...</span>
+                                        <span>{Math.round(normalizationProgress * 100)}%</span>
+                                    </div>
+                                    <progress 
+                                        className="progress progress-primary w-full" 
+                                        value={normalizationProgress} 
+                                        max={1}
+                                    />
+                                </div>
+                            )}
                         </div>
                         
                         {/* Preview Panel */}
