@@ -75,12 +75,18 @@ export function getCharactersFromActionShot(
   const foundCharIds = new Set<string>();
   
   // First, check for ALL CAPS mentions (screenplay format - more reliable)
-  // This handles cases like "MARCUS BLAKE" where the name is in all caps
+  // This handles cases like "MARCUS BLAKE" or "KAT STRATFORD" where the name is in all caps
+  // Use word boundary regex to ensure we match complete names, not substrings
   for (const char of sceneAnalysisResult.characters) {
     if (!char.name || foundCharIds.has(char.id)) continue;
     // Check for ALL CAPS version of the name (screenplay format)
     const allCapsName = char.name.toUpperCase();
-    if (originalText.includes(allCapsName)) {
+    // Escape special regex characters in the name
+    const escapedName = allCapsName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Match ALL CAPS name with word boundaries (allows for comma, period, etc. after name)
+    // Pattern: \bKAT STRATFORD\b or KAT STRATFORD followed by comma/period/space
+    const allCapsRegex = new RegExp(`\\b${escapedName}\\b`, 'i');
+    if (allCapsRegex.test(originalText)) {
       foundCharacters.push(char);
       foundCharIds.add(char.id);
     }
