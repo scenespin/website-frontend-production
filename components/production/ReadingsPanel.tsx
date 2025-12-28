@@ -248,7 +248,8 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       // If we have an s3Key, use it for presigned URL (matches JobsDrawer)
       if (file.s3Key && (file.storageType === 'local' || file.storageType === 'wryda-temp' || !file.storageType)) {
         s3Key = file.s3Key;
-        downloadUrl = file.s3Url; // Fallback URL
+        // No fallback URL needed - we'll use s3Key to get presigned URL
+        downloadUrl = undefined;
       } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
         // For cloud storage files, get download URL from backend
         const token = await getToken({ template: 'wryda-backend' });
