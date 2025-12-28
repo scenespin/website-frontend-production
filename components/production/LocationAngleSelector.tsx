@@ -243,15 +243,7 @@ export function LocationAngleSelector({
     return allAngles.indexOf(angle) === 0;
   };
 
-  if (allAngles.length === 0) {
-    return (
-      <div className="text-xs text-[#808080] p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
-        No location angles available
-      </div>
-    );
-  }
-
-  // Controls section (left side)
+  // Controls section (left side) - Always show, even when no angles available
   const controlsSection = (
     <div className="space-y-2">
       <div className="flex items-center gap-2">

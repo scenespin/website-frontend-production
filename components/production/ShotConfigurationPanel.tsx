@@ -815,29 +815,6 @@ export function ShotConfigurationPanel({
           </div>
         )}
 
-        {/* Shot Duration Section */}
-        {onDurationChange && (
-          <div>
-            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Duration</div>
-            <select
-              value={shotDuration || 'quick-cut'}
-              onChange={(e) => {
-                const duration = e.target.value as ShotDuration;
-                onDurationChange(shot.slot, duration);
-              }}
-              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-            >
-              <option value="quick-cut">Quick Cut (~5s)</option>
-              <option value="extended-take">Extended Take (~10s)</option>
-            </select>
-            <div className="text-[10px] text-[#808080] italic mt-1">
-              {shotDuration === 'quick-cut' 
-                ? 'Quick Cut: 4-5 seconds (default)'
-                : 'Extended Take: 8-10 seconds'}
-            </div>
-          </div>
-        )}
-
         {/* Camera Angle Section */}
         {onCameraAngleChange && (
           <div>
