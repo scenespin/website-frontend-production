@@ -1340,6 +1340,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               `Shot ${shot.slot}: Please select a location image or check "Don't use location image"`
             );
           }
+          
+          // If opted out, location description is required
+          if (hasOptOut) {
+            const locationDesc = locationDescriptions[shot.slot] || '';
+            if (!locationDesc.trim()) {
+              validationErrors.push(
+                `Shot ${shot.slot}: Location description is required when "Don't use location image" is checked`
+              );
+            }
+          }
         }
       }
       
