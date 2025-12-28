@@ -74,20 +74,25 @@ export function getCharactersFromActionShot(
   const foundCharacters: any[] = [];
   const foundCharIds = new Set<string>();
   
+  // First, check for ALL CAPS mentions (screenplay format - more reliable)
+  // This handles cases like "MARCUS BLAKE" where the name is in all caps
+  for (const char of sceneAnalysisResult.characters) {
+    if (!char.name || foundCharIds.has(char.id)) continue;
+    // Check for ALL CAPS version of the name (screenplay format)
+    const allCapsName = char.name.toUpperCase();
+    if (originalText.includes(allCapsName)) {
+      foundCharacters.push(char);
+      foundCharIds.add(char.id);
+    }
+  }
+  
+  // Then check for regular case matches (word boundaries for precision)
   for (const char of sceneAnalysisResult.characters) {
     if (!char.name || foundCharIds.has(char.id)) continue;
     const charName = char.name.toLowerCase();
     const charNameRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
     const possessiveRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'s\\b`, 'i');
     if (charNameRegex.test(fullText) || possessiveRegex.test(fullText)) {
-      foundCharacters.push(char);
-      foundCharIds.add(char.id);
-    }
-  }
-  
-  for (const char of sceneAnalysisResult.characters) {
-    if (!char.name || foundCharIds.has(char.id)) continue;
-    if (originalText.includes(char.name.toUpperCase())) {
       foundCharacters.push(char);
       foundCharIds.add(char.id);
     }

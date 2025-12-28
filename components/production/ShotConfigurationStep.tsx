@@ -302,11 +302,11 @@ export function ShotConfigurationStep({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Shot Description */}
+          {/* Shot Description - Full text, no truncation */}
           <div className="pb-3 border-b border-[#3F3F46]">
             <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Description</div>
-            <div className="text-xs text-[#808080]">
-              {shot.description || shot.dialogueBlock?.dialogue || shot.narrationBlock?.text || 'No description'}
+            <div className="text-xs text-[#808080] break-words whitespace-pre-wrap">
+              {shot.narrationBlock?.text || shot.dialogueBlock?.dialogue || shot.description || 'No description'}
             </div>
           </div>
 

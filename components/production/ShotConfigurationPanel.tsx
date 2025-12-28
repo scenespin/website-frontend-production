@@ -177,6 +177,34 @@ export function ShotConfigurationPanel({
 
   return (
     <div className="mt-3 space-y-4">
+      {/* Location Section - Always first, before Dialogue Workflow */}
+      {shouldShowLocation && (
+        <div className="pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
+          <LocationAngleSelector
+            locationId={sceneAnalysisResult.location.id}
+            locationName={sceneAnalysisResult.location.name || 'Location'}
+            angleVariations={sceneAnalysisResult.location.angleVariations || []}
+            baseReference={sceneAnalysisResult.location.baseReference}
+            selectedAngle={selectedLocationReferences[shot.slot]}
+            onAngleChange={(locationId, angle) => {
+              onLocationAngleChange?.(shot.slot, locationId, angle);
+            }}
+            isRequired={isLocationAngleRequired(shot)}
+            recommended={sceneAnalysisResult.location.recommended}
+            optOut={locationOptOuts[shot.slot] || false}
+            onOptOutChange={(optOut) => {
+              onLocationOptOutChange?.(shot.slot, optOut);
+            }}
+            locationDescription={locationDescriptions[shot.slot] || ''}
+            onLocationDescriptionChange={(description) => {
+              onLocationDescriptionChange?.(shot.slot, description);
+            }}
+            splitLayout={false}
+          />
+        </div>
+      )}
+
       {/* Dialogue Workflow Selection - Only for dialogue shots */}
       {shot.type === 'dialogue' && onDialogueWorkflowChange && (
         <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
@@ -244,12 +272,13 @@ export function ShotConfigurationPanel({
               </div>
             )}
             
-            {/* Additional Characters Section for Narrate Shot (scene-voiceover) - placed below prompt box
-                Note: Using backend identifier 'scene-voiceover' for logic */}
-            {currentWorkflow === 'scene-voiceover' && shot.type === 'dialogue' && onCharactersForShotChange && (
+            {/* Additional Characters Section for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) - placed below prompt box */}
+            {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && shot.type === 'dialogue' && onCharactersForShotChange && (
               <div className="mt-4">
                 <div className="mb-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                  Add characters that will appear in the scene. The narrator can also appear in the scene if selected.
+                  {currentWorkflow === 'scene-voiceover' 
+                    ? 'Add characters that will appear in the scene. The narrator can also appear in the scene if selected.'
+                    : 'Add characters that will appear in the scene (off-screen or visible).'}
                 </div>
                 <div className="text-xs font-medium text-[#FFFFFF] mb-2">Additional Characters</div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -309,34 +338,6 @@ export function ShotConfigurationPanel({
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Location Section - Vertically stacked */}
-      {shouldShowLocation && (
-        <div className="pb-3 border-b border-[#3F3F46]">
-          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
-          <LocationAngleSelector
-            locationId={sceneAnalysisResult.location.id}
-            locationName={sceneAnalysisResult.location.name || 'Location'}
-            angleVariations={sceneAnalysisResult.location.angleVariations || []}
-            baseReference={sceneAnalysisResult.location.baseReference}
-            selectedAngle={selectedLocationReferences[shot.slot]}
-            onAngleChange={(locationId, angle) => {
-              onLocationAngleChange?.(shot.slot, locationId, angle);
-            }}
-            isRequired={isLocationAngleRequired(shot)}
-            recommended={sceneAnalysisResult.location.recommended}
-            optOut={locationOptOuts[shot.slot] || false}
-            onOptOutChange={(optOut) => {
-              onLocationOptOutChange?.(shot.slot, optOut);
-            }}
-            locationDescription={locationDescriptions[shot.slot] || ''}
-            onLocationDescriptionChange={(description) => {
-              onLocationDescriptionChange?.(shot.slot, description);
-            }}
-            splitLayout={false}
-          />
         </div>
       )}
 
@@ -439,7 +440,8 @@ export function ShotConfigurationPanel({
                       
                       const selectedImageId = propConfig.selectedImageId;
                       
-                      if (availableImages.length > 1) {
+                      // Show image selection if we have any images (even just 1)
+                      if (availableImages.length > 0) {
                         return (
                           <div className="mt-3">
                             <label className="block text-[10px] text-[#808080] mb-2">

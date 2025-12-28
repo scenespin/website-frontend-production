@@ -138,16 +138,16 @@ export function ShotNavigatorList({
                 </Badge>
               </div>
 
-              {/* Shot Description */}
+              {/* Shot Description - Full text, no truncation */}
               {shot.description && (
-                <p className="line-clamp-2 w-full text-left text-[10px] leading-relaxed text-[#808080]">
+                <p className="w-full text-left text-[10px] leading-relaxed text-[#808080] break-words whitespace-pre-wrap">
                   {shot.description}
                 </p>
               )}
               
-              {/* Dialogue Preview */}
+              {/* Dialogue Preview - Full text, no truncation */}
               {shot.dialogueBlock?.dialogue && !shot.description && (
-                <p className="line-clamp-2 w-full text-left text-[10px] leading-relaxed text-[#808080] italic">
+                <p className="w-full text-left text-[10px] leading-relaxed text-[#808080] italic break-words whitespace-pre-wrap">
                   "{shot.dialogueBlock.dialogue}"
                 </p>
               )}

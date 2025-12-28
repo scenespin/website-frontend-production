@@ -276,23 +276,26 @@ export function LocationAngleSelector({
         )}
       </div>
       
-      {/* Location description prompt when opted out */}
+      {/* Location description prompt when opted out - REQUIRED */}
       {optOut && onLocationDescriptionChange && (
         <div className="mt-3">
           <label className="block text-[10px] text-[#808080] mb-1.5">
-            Describe the background or location for this shot (optional):
+            Describe the background or location for this shot <span className="text-[#DC143C]">(required)</span>:
           </label>
           <textarea
             value={locationDescription}
             onChange={(e) => onLocationDescriptionChange(e.target.value)}
             placeholder="e.g., 'blurry illuminated background', 'modern office with city view', 'empty warehouse with dramatic lighting'"
             rows={2}
-            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+            className={`w-full px-3 py-2 bg-[#1A1A1A] border rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:outline-none transition-colors resize-none ${
+              !locationDescription.trim() ? 'border-[#DC143C]' : 'border-[#3F3F46] focus:border-[#DC143C]'
+            }`}
+            required
           />
-          <div className="text-[10px] text-[#808080] italic mt-1">
-            {locationDescription.trim() 
-              ? 'This description will be used in image and video generation prompts.'
-              : 'If left empty, the model will predict the background based on the scene context.'}
+          <div className={`text-[10px] mt-1 ${!locationDescription.trim() ? 'text-[#DC143C]' : 'text-[#808080] italic'}`}>
+            {!locationDescription.trim() 
+              ? '⚠️ Location description is required when not using a location image.'
+              : 'This description will be used in image and video generation prompts.'}
           </div>
         </div>
       )}

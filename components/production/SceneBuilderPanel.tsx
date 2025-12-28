@@ -2970,6 +2970,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   if (!hasLocation && !hasOptOut) {
                     isComplete = false;
                   }
+                  // If opted out, location description is required
+                  if (hasOptOut) {
+                    const locationDesc = locationDescriptions[s.slot] || '';
+                    if (!locationDesc.trim()) {
+                      isComplete = false;
+                    }
+                  }
                 }
                 
                 // Check character references for dialogue shots
@@ -2987,6 +2994,9 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     const mappings = pronounMappingsForShots[s.slot] || {};
                     const unmappedPronouns = actionPronounInfo.pronouns.filter((p: string) => {
                       const mapping = mappings[p.toLowerCase()];
+                      // Allow "__ignore__" (skip mapping) as a valid mapping
+                      if (mapping === '__ignore__') return false;
+                      // Empty mapping or empty array means not mapped - require action
                       return !mapping || (Array.isArray(mapping) && mapping.length === 0);
                     });
                     if (unmappedPronouns.length > 0) {
