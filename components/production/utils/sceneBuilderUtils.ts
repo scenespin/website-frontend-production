@@ -90,20 +90,25 @@ export function getCharactersFromActionShot(
     const escapedNameLower = charNameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     
     // Check for ALL CAPS mentions (screenplay format - more reliable)
-    // Pattern 1: Standard word boundary match (handles most cases)
-    const allCapsRegex = new RegExp(`\\b${escapedNameUpper}\\b`, 'i');
-    if (allCapsRegex.test(fullText)) {
+    // Priority 1: Character introduction pattern - name followed by comma or parenthesis
+    // Example: "SARAH (30s), sharp eyes..." or "KAT STRATFORD, eighteen, pretty..."
+    // This pattern should be checked FIRST because it's more specific and reliable
+    // Pattern matches: "SARAH (30s)" or "SARAH, sharp" or "SARAH (30s), sharp"
+    const introPattern1 = new RegExp(`^${escapedNameUpper}\\s*[,(]`, 'im'); // Start of line/string, followed by comma or paren
+    const introPattern2 = new RegExp(`(?:^|\\s)${escapedNameUpper}\\s*[,(]`, 'i'); // Start of string or whitespace, followed by comma or paren
+    // Pattern for name followed by space and parenthesis/comma (most common format)
+    const introPattern3 = new RegExp(`${escapedNameUpper}\\s+[,(]`, 'i'); // Name followed by one or more spaces and comma/paren
+    // Pattern for name immediately followed by parenthesis (no space, e.g., "SARAH(30s)")
+    const introPattern4 = new RegExp(`${escapedNameUpper}[,(]`, 'i'); // Name immediately followed by comma or paren
+    if (introPattern1.test(fullText) || introPattern2.test(fullText) || introPattern3.test(fullText) || introPattern4.test(fullText)) {
       foundCharacters.push(char);
       foundCharIds.add(char.id);
       continue;
     }
     
-    // Pattern 2: Character introduction pattern - name followed by comma and description
-    // Example: "KAT STRATFORD, eighteen, pretty..." or "SARAH MITCHELL (28), sharp-eyed..."
-    // This handles cases where the name is at the start of a sentence or line
-    const introPattern1 = new RegExp(`^${escapedNameUpper}\\s*[,(]`, 'im'); // Start of line/string, followed by comma or paren
-    const introPattern2 = new RegExp(`\\b${escapedNameUpper}\\s*[,(]`, 'i'); // Word boundary, followed by comma or paren
-    if (introPattern1.test(fullText) || introPattern2.test(fullText)) {
+    // Priority 2: Standard word boundary match (handles most other cases)
+    const allCapsRegex = new RegExp(`\\b${escapedNameUpper}\\b`, 'i');
+    if (allCapsRegex.test(fullText)) {
       foundCharacters.push(char);
       foundCharIds.add(char.id);
       continue;
