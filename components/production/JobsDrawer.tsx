@@ -1301,9 +1301,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             animation: 'pulse-subtle 3s ease-in-out infinite'
           }}
         >
-          <span className="relative z-10">JOBS</span>
+          JOBS
           {(jobCount > 0 || visibleJobs.length > 0) && (
-            <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-blue-600 min-w-[18px] text-center shadow-md z-20">
+            <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-blue-600 min-w-[18px] text-center shadow-md">
               {(jobCount || visibleJobs.length) > 99 ? '99+' : (jobCount || visibleJobs.length)}
             </span>
           )}
