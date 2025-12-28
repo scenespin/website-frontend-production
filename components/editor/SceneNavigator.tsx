@@ -93,7 +93,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
 
     // Fetch first line of scene text when no synopsis is available (or synopsis is "Imported from script")
     useEffect(() => {
-        if (!screenplay?.id || !getToken) return;
+        if (!screenplay?.screenplayId || !getToken) return;
         
         const fetchFirstLines = async () => {
             const scenesToFetch = allScenes.filter(scene => {
@@ -104,7 +104,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
             if (scenesToFetch.length === 0) return;
             
             try {
-                const screenplayData = await getScreenplay(screenplay.id, getToken);
+                const screenplayData = await getScreenplay(screenplay.screenplayId, getToken);
                 if (!screenplayData?.content) return;
                 
                 const fountainLines = screenplayData.content.split('\n');
