@@ -62,7 +62,6 @@ import { getScreenplay } from '@/utils/screenplayStorage';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { SceneSelector } from './SceneSelector';
-import { ManualSceneEntry } from './ManualSceneEntry';
 import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
@@ -240,7 +239,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [isLoadingSceneContent, setIsLoadingSceneContent] = useState<Record<string, boolean>>({}); // sceneId -> loading state
   
   // Phase 2: Scene selection state
-  const [inputMethod, setInputMethod] = useState<'database' | 'manual'>('database');
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   
   // Style matching state (Feature 0109)
@@ -2422,50 +2420,22 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
           >
-            {/* Step 1: Scene Selection (keep existing) */}
+            {/* Step 1: Scene Selection */}
             {currentStep === 1 && !hasConfirmedSceneSelection && (
-              <Card className="bg-[#141414] border-[#3F3F46]">
-                <CardHeader className="pb-1.5">
-                  <CardTitle className="text-sm text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
-                  <CardDescription className="text-[10px] text-[#808080]">
-                    Choose a scene from your screenplay or enter one manually
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-2">
-                {/* Input Method Toggle */}
-                <div className="flex items-center gap-3">
-                  <label className="text-xs font-medium text-[#808080]">Input Method:</label>
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="inputMethod"
-                        value="database"
-                        checked={inputMethod === 'database'}
-                        onChange={() => setInputMethod('database')}
-                        className="w-3 h-3"
-                      />
-                      <span className="text-xs">From Database</span>
-                    </label>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="inputMethod"
-                        value="manual"
-                        checked={inputMethod === 'manual'}
-                        onChange={() => setInputMethod('manual')}
-                        className="w-3 h-3"
-                      />
-                      <span className="text-xs">Manual Entry</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Database Selection */}
-                {inputMethod === 'database' && (
-                  <div className={isMobile ? "space-y-3" : "grid grid-cols-1 lg:grid-cols-2 gap-4"}>
-                    {/* Scene Navigator List (Left side on desktop, top on mobile) */}
-                    <div className={isMobile ? "w-full" : "flex flex-col"}>
+              <div className={`grid ${isMobile ? 'grid-cols-1 space-y-4' : 'grid-cols-2 gap-4'}`}>
+                {/* Left: Scene Navigator with Title/Description (1/2 width) */}
+                <div className={isMobile ? 'w-full' : 'col-span-1'}>
+                  <Card className="bg-[#141414] border-[#3F3F46]">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm text-[#FFFFFF] flex items-center gap-2">
+                        <Film className="w-4 h-4" />
+                        Step 1: Scene Selection
+                      </CardTitle>
+                      <CardDescription className="text-[10px] text-[#808080]">
+                        Choose a scene from your screenplay
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
                       <SceneSelector
                         selectedSceneId={selectedSceneId}
                         onSceneSelect={(sceneId) => {
@@ -2492,252 +2462,130 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                         projectId={projectId}
                         isMobile={isMobile}
                       />
-                    </div>
-                    
-                    {/* Scene Preview and Start Button (Right side on desktop, bottom on mobile) */}
-                    {selectedSceneId && (() => {
-                      const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
-                      if (!scene) return null;
-                      
-                      // Get location and characters for display
-                      const sceneRel = screenplay.relationships?.scenes?.[scene.id];
-                      const location = sceneRel?.location 
-                        ? screenplay.locations?.find(l => l.id === sceneRel.location)
-                        : (scene.fountain?.tags?.location 
-                          ? screenplay.locations?.find(l => l.id === scene.fountain.tags.location)
-                          : null);
-                      const characters = (scene.fountain?.tags?.characters || [])
-                        .map(charId => screenplay.characters?.find(c => c.id === charId))
-                        .filter(Boolean);
-                      
-                      return (
-                        <div className="space-y-3">
-                          {/* Merged Scene Preview Card */}
-                          <Card className="bg-[#0A0A0A] border-[#3F3F46]">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-start justify-between">
-                                <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
-                                <div className="flex items-center gap-2">
-                                  {(scene.order !== undefined && scene.order !== null) || (scene.number !== undefined && scene.number !== null) ? (
-                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
-                                      Scene {scene.order ?? scene.number ?? '?'}
-                                    </Badge>
-                                  ) : null}
-                                  <Button
-                                    onClick={() => {
-                                      // Use context store to set scene, then navigate to editor
-                                      contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
-                                      window.location.href = `/write?sceneId=${scene.id}`;
-                                    }}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 px-2 text-[10px] text-[#808080] hover:text-[#FFFFFF]"
-                                  >
-                                    <Edit className="w-3 h-3 mr-1" />
-                                    Edit
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              {/* Start Button - Moved to top of Scene Preview */}
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {/* Right: Scene Preview (1/2 width) */}
+                {selectedSceneId && (() => {
+                  const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
+                  if (!scene) return null;
+                  
+                  // Get location and characters for display
+                  const sceneRel = screenplay.relationships?.scenes?.[scene.id];
+                  const location = sceneRel?.location 
+                    ? screenplay.locations?.find(l => l.id === sceneRel.location)
+                    : (scene.fountain?.tags?.location 
+                      ? screenplay.locations?.find(l => l.id === scene.fountain.tags.location)
+                      : null);
+                  const characters = (scene.fountain?.tags?.characters || [])
+                    .map(charId => screenplay.characters?.find(c => c.id === charId))
+                    .filter(Boolean);
+                  
+                  return (
+                    <div className={isMobile ? 'w-full' : 'col-span-1'}>
+                      <Card className="bg-[#0A0A0A] border-[#3F3F46]">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between">
+                            <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
+                            <div className="flex items-center gap-2">
+                              {(scene.order !== undefined && scene.order !== null) || (scene.number !== undefined && scene.number !== null) ? (
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+                                  Scene {scene.order ?? scene.number ?? '?'}
+                                </Badge>
+                              ) : null}
                               <Button
                                 onClick={() => {
-                                  setHasConfirmedSceneSelection(true);
-                                  setAnalysisError(null); // Clear any previous errors
-                                  // Toast removed - loading state shows this
-                                  // Analysis will be triggered by useEffect when hasConfirmedSceneSelection changes
+                                  // Use context store to set scene, then navigate to editor
+                                  contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
+                                  window.location.href = `/write?sceneId=${scene.id}`;
                                 }}
-                                className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
-                                disabled={isAnalyzing}
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-[10px] text-[#808080] hover:text-[#FFFFFF]"
                               >
-                                {isAnalyzing ? (
-                                  <>
-                                    <span className="mr-2 animate-spin">🤖</span>
-                                    Analyzing Scene...
-                                  </>
-                                ) : (
-                                  <>
-                                    🤖 Start
-                                  </>
-                                )}
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit
                               </Button>
-                              
-                              {/* Scene Heading */}
-                              {scene.heading && (
-                                <div>
-                                  <h3 className="text-xs text-[#FFFFFF] font-medium mb-1">
-                                    {scene.heading}
-                                  </h3>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {/* Start Button - Moved to top of Scene Preview */}
+                          <Button
+                            onClick={() => {
+                              setHasConfirmedSceneSelection(true);
+                              setAnalysisError(null); // Clear any previous errors
+                              // Toast removed - loading state shows this
+                              // Analysis will be triggered by useEffect when hasConfirmedSceneSelection changes
+                            }}
+                            className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
+                            disabled={isAnalyzing}
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <span className="mr-2 animate-spin">🤖</span>
+                                Analyzing Scene...
+                              </>
+                            ) : (
+                              <>
+                                🤖 Start
+                              </>
+                            )}
+                          </Button>
+                          
+                          {/* Scene Heading */}
+                          {scene.heading && (
+                            <div>
+                              <h3 className="text-xs text-[#FFFFFF] font-medium mb-1">
+                                {scene.heading}
+                              </h3>
+                            </div>
+                          )}
+                          
+                          {/* Location, Characters, and Props */}
+                          {(location || characters.length > 0 || (scene.fountain?.tags?.props || []).length > 0) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {location && (
+                                <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                  <MapPin className="w-3 h-3" />
+                                  <span>{location.name}</span>
                                 </div>
                               )}
-                              
-                              {/* Location, Characters, and Props */}
-                              {(location || characters.length > 0 || (scene.fountain?.tags?.props || []).length > 0) && (
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {location && (
-                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
-                                      <MapPin className="w-3 h-3" />
-                                      <span>{location.name}</span>
-                                    </div>
-                                  )}
-                                  {characters.length > 0 && (
-                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
-                                      <Users className="w-3 h-3" />
-                                      <span>{characters.map(c => c?.name).filter(Boolean).join(', ')}</span>
-                                    </div>
-                                  )}
-                                  {(scene.fountain?.tags?.props || []).length > 0 && (
-                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
-                                      <Package className="w-3 h-3" />
-                                      <span>{(scene.fountain?.tags?.props || []).length} prop{(scene.fountain?.tags?.props || []).length !== 1 ? 's' : ''}</span>
-                                    </div>
-                                  )}
+                              {characters.length > 0 && (
+                                <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                  <Users className="w-3 h-3" />
+                                  <span>{characters.map(c => c?.name).filter(Boolean).join(', ')}</span>
                                 </div>
                               )}
-                              
-                              {/* Scene Content - Full scene from screenplay */}
-                              {isLoadingSceneContent[selectedSceneId] ? (
-                                <div className="text-xs text-[#808080] italic">Loading scene content...</div>
-                              ) : fullSceneContent[selectedSceneId] ? (
-                                <div>
-                                  <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
-                                  <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-96 overflow-y-auto font-mono">
-                                    {fullSceneContent[selectedSceneId]}
-                                  </div>
+                              {(scene.fountain?.tags?.props || []).length > 0 && (
+                                <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                  <Package className="w-3 h-3" />
+                                  <span>{(scene.fountain?.tags?.props || []).length} prop{(scene.fountain?.tags?.props || []).length !== 1 ? 's' : ''}</span>
                                 </div>
-                              ) : (
-                                <div className="text-xs text-[#808080] italic">No scene content available</div>
                               )}
-                            </CardContent>
-                          </Card>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {/* Manual Entry */}
-                {inputMethod === 'manual' && (
-                  <ManualSceneEntry
-                    value={sceneDescription}
-                    onChange={setSceneDescription}
-                    onStart={async () => {
-                      if (!sceneDescription.trim()) {
-                        toast.error('Please enter a scene description');
-                        return;
-                      }
-                      // For manual entry, we need to analyze the scene text directly
-                      // This will trigger analysis and move to the next step
-                      setIsAnalyzing(true);
-                      setAnalysisError(null);
-                      // Toast removed - loading state shows this
-                      
-                      try {
-                        // TODO: Implement manual scene analysis endpoint
-                        // For now, we'll need to create a temporary scene or use a different analysis method
-                        // This is a placeholder - the actual implementation depends on backend support
-                        toast.info('Manual scene analysis coming soon. Please use a scene from the database for now.');
-                        setIsAnalyzing(false);
-                      } catch (error: any) {
-                        console.error('[SceneBuilderPanel] Manual scene analysis failed:', error);
-                        setAnalysisError(error.message || 'Failed to analyze scene');
-                        toast.error(error.message || 'Failed to analyze scene. Please try again.');
-                        setIsAnalyzing(false);
-                      }
-                    }}
-                    onUseAsIs={() => {
-                      if (!sceneDescription.trim()) {
-                        toast.error('Please enter a scene description');
-                        return;
-                      }
-                      toast.success('Scene ready! Set generation options below.');
-                    }}
-                    onGenerateWithAI={async () => {
-                      // Generate scene using Director agent
-                      if (!sceneDescription.trim()) {
-                        toast.error('Please enter a scene description first');
-                        return;
-                      }
-                      
-                      try {
-                        const token = await getToken({ template: 'wryda-backend' });
-                        
-                        // Build prompt for Director agent (full scene generation)
-                        const directorPrompt = `User's request: "${sceneDescription}"
-
-DIRECTOR MODE - SCENE DEVELOPMENT:
-
-You are a professional screenplay director helping develop full scenes. Your role is to:
-
-1. EXPAND THE IDEA: Take the user's concept and develop it into complete scene content
-2. SCENE LENGTH: Write a complete, full scene (15-30+ lines)
-3. INCLUDE ELEMENTS:
-   - Scene heading (INT./EXT. LOCATION - TIME)
-   - Action lines that set the mood and visual
-   - Character reactions and emotions
-   - Dialogue when appropriate
-   - Parentheticals for tone/delivery
-   - Scene atmosphere and tension
-   - Visual storytelling and cinematic direction
-
-4. FOUNTAIN FORMAT (CRITICAL):
-   - Character names in ALL CAPS
-   - Character extensions are valid: CHARACTER (O.S.), CHARACTER (V.O.), CHARACTER (CONT'D)
-   - Parentheticals in parentheses: (examining the USB drive)
-   - Dialogue in plain text below character name
-   - Action lines in normal case
-   - Scene headings in ALL CAPS: INT. LOCATION - TIME
-   - Transitions: CUT TO:, FADE OUT. are valid but use sparingly (modern screenwriting typically omits them)
-   - Emphasis: Fountain uses *italics*, **bold**, _underline_ for emphasis (use sparingly)
-   - NO markdown formatting (no # headers, no ---, no markdown syntax)
-   - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
-   - Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
-   - Proper spacing between elements
-
-5. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary.
-
-Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
-                        
-                        const response = await fetch('/api/chat/generate', {
-                          method: 'POST',
-                          headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            userPrompt: directorPrompt,
-                            desiredModelId: 'gemini-2.0-flash-001', // Fast and affordable
-                            conversationHistory: [],
-                          }),
-                        });
-                        
-                        if (!response.ok) {
-                          const errorData = await response.json().catch(() => ({}));
-                          throw new Error(errorData.message || `HTTP ${response.status}`);
-                        }
-                        
-                        const data = await response.json();
-                        
-                        if (data.success && data.content) {
-                          // Update textarea with generated scene
-                          setSceneDescription(data.content);
-                          toast.success('Scene generated! Review and edit if needed.');
-                        } else {
-                          throw new Error(data.message || 'Failed to generate scene');
-                        }
-                      } catch (error: any) {
-                        console.error('[SceneBuilderPanel] AI scene generation failed:', error);
-                        toast.error(error.message || 'Failed to generate scene. Please try again.');
-                        throw error; // Re-throw so ManualSceneEntry can handle it
-                      }
-                    }}
-                    isMobile={isMobile}
-                    isAnalyzing={isAnalyzing}
-                  />
-                )}
-                </CardContent>
-              </Card>
+                            </div>
+                          )}
+                          
+                          {/* Scene Content - Full scene from screenplay */}
+                          {isLoadingSceneContent[selectedSceneId] ? (
+                            <div className="text-xs text-[#808080] italic">Loading scene content...</div>
+                          ) : fullSceneContent[selectedSceneId] ? (
+                            <div>
+                              <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
+                              <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-96 overflow-y-auto font-mono">
+                                {fullSceneContent[selectedSceneId]}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-[#808080] italic">No scene content available</div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })()}
+              </div>
             )}
 
             {/* Step 2: Scene Analysis & Shot Selection (after scene is selected and confirmed) */}
