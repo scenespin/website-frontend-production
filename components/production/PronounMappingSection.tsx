@@ -274,6 +274,11 @@ export function PronounMappingSection({
                                 ? '⚠️ Description is required when skipping pronoun mapping.'
                                 : 'This description will be used in image and video generation prompts.'}
                             </div>
+                            {!isEmpty && (
+                              <div className="text-[10px] mt-1.5 text-yellow-400/80">
+                                💡 Extras appear in this shot only. Create a character for consistency across shots.
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
@@ -463,6 +468,11 @@ export function PronounMappingSection({
                                   ? '⚠️ Description is required when skipping pronoun mapping.'
                                   : 'This description will be used in image and video generation prompts.'}
                               </div>
+                              {!isEmpty && (
+                                <div className="text-[10px] mt-1.5 text-yellow-400/80">
+                                  💡 Extras appear in this shot only. Create a character for consistency across shots.
+                                </div>
+                              )}
                             </>
                           );
                         })()}
