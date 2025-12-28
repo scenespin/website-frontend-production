@@ -75,9 +75,9 @@ export function CharacterBankPanel({
       type: c.type || 'supporting',
       arcStatus: 'introduced' as const,
       description: c.description || '',
-      created_at: '',
-      updated_at: '',
-      updatedAt: ''
+      customFields: [], // Required field, empty array for sorting purposes
+      createdAt: new Date().toISOString(), // Required field, dummy value for sorting
+      updatedAt: new Date().toISOString() // Required field, dummy value for sorting
     }));
   }, [characters]);
   
