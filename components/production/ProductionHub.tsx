@@ -351,35 +351,6 @@ export function ProductionHub({}: ProductionHubProps) {
         onTabChange={handleTabChange}
       />
 
-        {/* Active Jobs Banner */}
-        {activeJobs > 0 && showJobsBanner && (
-        <div className="bg-blue-950 border-b border-blue-800 px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-4 h-4 text-blue-400 animate-spin flex-shrink-0" />
-              <div>
-              <p className="text-xs font-semibold text-blue-100">
-                  {activeJobs} {activeJobs === 1 ? 'job' : 'jobs'} running
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsJobsDrawerOpen(true)}
-              className="text-xs px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded transition-colors flex items-center gap-1"
-              >
-              View
-              <ChevronRight className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => setShowJobsBanner(false)}
-              className="p-1 hover:bg-blue-800 rounded text-blue-300 hover:text-blue-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
       {/* Tab Content */}
         <div className="flex-1 overflow-hidden bg-[#0A0A0A]">
         {activeTab === 'characters' && (
