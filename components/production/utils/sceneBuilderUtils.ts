@@ -87,6 +87,7 @@ export function getCharactersFromActionShot(
     // Escape special regex characters
     const escapedName = charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const escapedNameUpper = charNameUpper.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedNameLower = charNameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     
     // Check for ALL CAPS mentions (screenplay format - more reliable)
     // Use word boundaries to ensure we match complete names, not substrings
