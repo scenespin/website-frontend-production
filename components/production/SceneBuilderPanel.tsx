@@ -1302,20 +1302,25 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         // Require all pronouns to be mapped OR explicitly skipped
         // Users must select a character OR "Skip mapping" for each pronoun
         const shotMappings = pronounMappingsForShots[shot.slot] || {};
+        const shotPrompts = pronounExtrasPrompts[shot.slot] || {};
         const unmappedPronouns = detectedPronouns.filter(p => {
           const mapping = shotMappings[p.toLowerCase()];
-          // Allow "__ignore__" (skip mapping) as a valid mapping
-          if (mapping === '__ignore__') return false;
+          // Allow "__ignore__" (skip mapping) as a valid mapping, but require prompt text
+          if (mapping === '__ignore__') {
+            const prompt = shotPrompts[p.toLowerCase()] || '';
+            // If skipped, prompt is required
+            return !prompt.trim();
+          }
           // Empty mapping or empty array means not mapped - require action
           return !mapping || (Array.isArray(mapping) && mapping.length === 0);
         });
         
-        // Require all pronouns to be addressed (mapped to character or skipped)
+        // Require all pronouns to be addressed (mapped to character or skipped with prompt)
         if (unmappedPronouns.length > 0) {
           validationErrors.push(
             `Shot ${shot.slot}: ${unmappedPronouns.length === 1 
-              ? `Pronoun "${unmappedPronouns[0]}" must be mapped to a character or skipped`
-              : `Pronouns "${unmappedPronouns.join('", "')}" must be mapped to characters or skipped`
+              ? `Pronoun "${unmappedPronouns[0]}" must be mapped to a character, or if skipped, a description is required`
+              : `Pronouns "${unmappedPronouns.join('", "')}" must be mapped to characters, or if skipped, descriptions are required`
             }`
           );
         }
