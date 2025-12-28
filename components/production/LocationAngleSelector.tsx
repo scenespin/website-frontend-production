@@ -256,7 +256,8 @@ export function LocationAngleSelector({
             Required
           </Badge>
         )}
-        {isRequired && onOptOutChange && (
+        {/* Always show opt-out checkbox if onOptOutChange is provided (even when no angles available) */}
+        {onOptOutChange && (
           <label className="flex items-center gap-1.5 text-[10px] text-[#808080] cursor-pointer hover:text-[#FFFFFF] transition-colors">
             <input
               type="checkbox"
@@ -298,15 +299,22 @@ export function LocationAngleSelector({
       
       {!optOut && (
         <>
+          {/* Show message when no angles available */}
+          {allAngles.length === 0 && (
+            <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+              No location angles available. Use the checkbox above to describe the location instead.
+            </div>
+          )}
+          
           {/* Warning when using Creation image (last resort) */}
-          {isUsingCreationImage && (
+          {isUsingCreationImage && allAngles.length > 0 && (
             <div className="p-2 bg-yellow-900/20 border border-yellow-700/50 rounded text-[10px] text-yellow-300">
               ⚠️ Using creation image (last resort). No Production Hub images available. Consider generating location angles for better results.
             </div>
           )}
           
-          {/* Time of Day/Weather Group Selector (similar to outfit dropdown) */}
-          {groupKeys.length > 1 && (
+          {/* Time of Day/Weather Group Selector (similar to outfit dropdown) - Only show if angles available */}
+          {groupKeys.length > 1 && allAngles.length > 0 && (
             <div className="flex items-center gap-2">
               <label className="text-xs text-[#808080]">Filter by:</label>
               <select
