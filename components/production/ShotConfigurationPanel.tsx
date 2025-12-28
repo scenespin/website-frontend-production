@@ -294,24 +294,23 @@ export function ShotConfigurationPanel({
                 )}
               </div>
             )}
-          </div>
-          {/* Right column: Character images for selected additional characters */}
-          <div className="border-l border-[#3F3F46] pl-4">
-            {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
-              <div className="space-y-4">
-                {selectedCharactersForShots[shot.slot].map((charId: string) => {
-                  const char = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).find((c: any) => c.id === charId);
-                  if (!char) return null;
-                  return (
-                    <div key={charId}>
-                      {renderCharacterImagesOnly(charId, shot.slot)}
-                    </div>
-                  );
-                })}
+                {/* Character images for selected additional characters - stacked below */}
+                {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
+                  <div className="mt-4 space-y-4">
+                    {selectedCharactersForShots[shot.slot].map((charId: string) => {
+                      const char = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).find((c: any) => c.id === charId);
+                      if (!char) return null;
+                      return (
+                        <div key={charId}>
+                          {renderCharacterImagesOnly(charId, shot.slot)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
       )}
 
       {/* Location Section - Vertically stacked */}
@@ -509,7 +508,39 @@ export function ShotConfigurationPanel({
       })()}
 
       {/* Character(s) Section */}
-      {explicitCharacters.length > 0 && (
+      {explicitCharacters.length > 0 && (() => {
+        // Track rendered characters globally across all sections (explicit, singular, plural)
+        const allRenderedCharacters = new Set<string>();
+        
+        // Collect characters from singular pronouns
+        pronounInfo.pronouns
+          .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
+          .forEach((pronoun: string) => {
+            const pronounLower = pronoun.toLowerCase();
+            const mapping = shotMappings[pronounLower];
+            const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+            if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
+              allRenderedCharacters.add(mappedCharacterId);
+            }
+          });
+        
+        // Collect characters from plural pronouns
+        pronounInfo.pronouns
+          .filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase()))
+          .forEach((pronoun: string) => {
+            const pronounLower = pronoun.toLowerCase();
+            const mapping = shotMappings[pronounLower];
+            if (mapping && mapping !== '__ignore__') {
+              const mappedCharacterIds = Array.isArray(mapping) ? mapping : [mapping];
+              mappedCharacterIds.forEach((charId: string) => {
+                if (charId && charId !== '__ignore__') {
+                  allRenderedCharacters.add(charId);
+                }
+              });
+            }
+          });
+        
+        return (
         <div className="pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
           {/* Show message for Narrate Shot (scene-voiceover) */}
@@ -557,8 +588,10 @@ export function ShotConfigurationPanel({
           )}
           {/* Singular Pronouns Section */}
           {pronounInfo.pronouns.filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase())).length > 0 && (() => {
-            // Track which characters have been rendered to avoid duplicates
+            // Track which characters have been rendered to avoid duplicates (including explicit characters)
             const renderedCharacters = new Set<string>();
+            // Add explicit characters to rendered set (they're shown in Character(s) section)
+            explicitCharacters.forEach(charId => renderedCharacters.add(charId));
             const characterToPronouns = new Map<string, string[]>();
             
             // First pass: collect all character-to-pronoun mappings
@@ -654,7 +687,24 @@ export function ShotConfigurationPanel({
           })()}
 
           {/* Plural Pronouns Section */}
-          {pronounInfo.pronouns.filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase())).length > 0 && (
+          {pronounInfo.pronouns.filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase())).length > 0 && (() => {
+            // Track which characters have been rendered (including explicit and singular pronouns)
+            const renderedCharacters = new Set<string>();
+            // Add explicit characters
+            explicitCharacters.forEach(charId => renderedCharacters.add(charId));
+            // Add singular pronoun characters
+            pronounInfo.pronouns
+              .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
+              .forEach((pronoun: string) => {
+                const pronounLower = pronoun.toLowerCase();
+                const mapping = shotMappings[pronounLower];
+                const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+                if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
+                  renderedCharacters.add(mappedCharacterId);
+                }
+              });
+            
+            return (
             <div className="space-y-4">
               <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
                 Plural Pronouns
@@ -695,14 +745,26 @@ export function ShotConfigurationPanel({
                             onPronounExtrasPromptChange={onPronounExtrasPromptChange}
                           />
                         </div>
-                        {/* Images - show all mapped characters - stacked below */}
+                        {/* Images - show all mapped characters - stacked below, but skip if already rendered */}
                         {mappedCharacterIds.length > 0 && (
                           <div className="mt-3 space-y-4">
-                            {mappedCharacterIds.map((charId) => (
-                              <div key={charId}>
-                                {renderCharacterImagesOnly(charId, shot.slot, [`"${pronoun}"`])}
-                              </div>
-                            ))}
+                            {mappedCharacterIds.map((charId) => {
+                              const alreadyRendered = renderedCharacters.has(charId);
+                              if (alreadyRendered) {
+                                renderedCharacters.add(charId); // Track it anyway
+                                return (
+                                  <div key={charId} className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                                    Character images shown above (already mapped in another section)
+                                  </div>
+                                );
+                              }
+                              renderedCharacters.add(charId);
+                              return (
+                                <div key={charId}>
+                                  {renderCharacterImagesOnly(charId, shot.slot, [`"${pronoun}"`])}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -710,7 +772,8 @@ export function ShotConfigurationPanel({
                   );
                 })}
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
 

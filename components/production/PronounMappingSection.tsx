@@ -329,13 +329,13 @@ export function PronounMappingSection({
               
               return (
                 <div key={pronoun} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs text-[#808080] min-w-[60px]">
+                  <div className="space-y-2">
+                    <label className="block text-xs text-[#808080]">
                       "{pronoun}"
                       <span className="text-[10px] text-[#DC143C] ml-1">(plural)</span>
                     </label>
                     {/* Checkbox-based multi-select for plural pronouns */}
-                    <div className="flex-1 space-y-2">
+                    <div className="space-y-2">
                       {/* Ignore button for plural pronouns - toggleable */}
                       <button
                         type="button"

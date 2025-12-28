@@ -150,8 +150,68 @@ export function SceneReviewStep({
     return labels[workflow] || workflow;
   };
 
+  // Calculate total duration
+  const totalDuration = selectedShots.reduce((total: number, shot: any) => {
+    const duration = shotDurations[shot.slot] || 'quick-cut';
+    const seconds = duration === 'extended-take' ? 10 : 5;
+    return total + seconds;
+  }, 0);
+  const minutes = Math.floor(totalDuration / 60);
+  const seconds = totalDuration % 60;
+  const durationText = minutes > 0 
+    ? `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}${seconds > 0 ? ` ${seconds} ${seconds === 1 ? 'second' : 'seconds'}` : ''}`
+    : `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
+
   return (
     <div className="space-y-4">
+      {/* Two-column layout: Summary (left 1/3) and Review (right 2/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left: Summary Section (1/3) */}
+        <div className="lg:col-span-1">
+          <Card className="bg-[#141414] border-[#3F3F46] h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-[#FFFFFF] flex items-center gap-2">
+                <Film className="w-4 h-4" />
+                Scene Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#808080]">Total Shots:</span>
+                  <span className="text-sm font-medium text-[#FFFFFF]">{selectedShots.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#808080]">Total Duration:</span>
+                  <span className="text-sm font-medium text-[#FFFFFF]">{durationText}</span>
+                </div>
+                {pricing && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#808080]">Estimated Cost:</span>
+                    <span className={`text-sm font-medium ${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
+                      {globalResolution === '4k' ? pricing.totalK4Price : pricing.totalHdPrice} credits
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="pt-3 border-t border-[#3F3F46]">
+                <p className="text-xs text-[#FFFFFF] leading-relaxed mb-2">
+                  You're about to generate <span className="text-[#DC143C] font-medium">{selectedShots.length} {selectedShots.length === 1 ? 'shot' : 'shots'}</span> totaling <span className="text-[#DC143C] font-medium">{durationText}</span> of professional video content.
+                </p>
+                <p className="text-xs text-[#808080] leading-relaxed">
+                  Each shot has been carefully configured with your selected characters, locations, props, and creative direction. Our AI will bring your vision to life with cinematic quality and precision.
+                </p>
+                <p className="text-xs text-[#FFFFFF] leading-relaxed mt-2">
+                  Ready to bring your scene to the screen? Click generate to start production.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Review & Generate Section (2/3) */}
+        <div className="lg:col-span-2">
       <Card className="bg-[#141414] border-[#3F3F46]">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm text-[#FFFFFF] flex items-center gap-2">
@@ -351,6 +411,8 @@ export function SceneReviewStep({
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
