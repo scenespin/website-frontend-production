@@ -2547,7 +2547,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                     // Move to first shot configuration
                                     setWizardStep('shot-config');
                                     setCurrentShotIndex(0);
-                                    setCurrentStep(3); // Move to Step 3 for shot configuration
+                                    setCurrentStep(2); // Step 2 is used for shot configuration when wizardStep === 'shot-config'
                                   }
                                 }}
                                 disabled={enabledShots.length === 0}
@@ -2824,7 +2824,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                                     // Move to first shot configuration
                                     setWizardStep('shot-config');
                                     setCurrentShotIndex(0);
-                                    setCurrentStep(3); // Move to Step 3 for shot configuration
+                                    setCurrentStep(2); // Step 2 is used for shot configuration when wizardStep === 'shot-config'
                                   }
                                 }}
                                 disabled={enabledShots.length === 0}
