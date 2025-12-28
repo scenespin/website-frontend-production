@@ -221,6 +221,8 @@ export function ShotConfigurationPanel({
                   Backend identifiers: 'off-frame-voiceover', 'scene-voiceover'
                   Display labels: 'Hidden Mouth Dialogue', 'Narrate Shot' */}
               <option value="first-frame-lipsync">Dialogue (Lip Sync)</option>
+              <option value="extreme-closeup">Extreme Close-Up (Face)</option>
+              <option value="extreme-closeup-mouth">Extreme Close-Up (Mouth Only)</option>
               <option value="off-frame-voiceover">Hidden Mouth Dialogue</option>
               <option value="scene-voiceover">Narrate Shot</option>
             </select>

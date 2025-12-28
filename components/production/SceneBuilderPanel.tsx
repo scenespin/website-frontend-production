@@ -1356,6 +1356,51 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         }
       }
       
+      // Validate character headshots (required - no checkbox override)
+      for (const shot of shots) {
+        // Collect all character IDs for this shot
+        const shotCharacterIds = new Set<string>();
+        
+        // Add explicit characters from action/dialogue
+        if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
+          const dialogueChar = sceneAnalysisResult?.characters?.find((c: any) => 
+            c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim()
+          );
+          if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
+        }
+        
+        // Add characters from pronoun mappings
+        const shotMappings = pronounMappingsForShots[shot.slot] || {};
+        for (const [pronoun, mapping] of Object.entries(shotMappings)) {
+          if (mapping && mapping !== '__ignore__') {
+            if (Array.isArray(mapping)) {
+              mapping.forEach(charId => shotCharacterIds.add(charId));
+            } else {
+              shotCharacterIds.add(mapping);
+            }
+          }
+        }
+        
+        // Add additional characters for dialogue workflows
+        const additionalChars = selectedCharactersForShots[shot.slot] || [];
+        additionalChars.forEach(charId => shotCharacterIds.add(charId));
+        
+        // Check each character has headshots
+        for (const charId of shotCharacterIds) {
+          const headshots = characterHeadshots[charId] || [];
+          const hasSelectedReference = selectedCharacterReferences[shot.slot]?.[charId] !== undefined;
+          
+          // Character must have headshots available OR a selected reference
+          if (headshots.length === 0 && !hasSelectedReference) {
+            const char = sceneAnalysisResult?.characters?.find((c: any) => c.id === charId);
+            const charName = char?.name || 'Character';
+            validationErrors.push(
+              `Shot ${shot.slot}: ${charName} requires a character image. Please add headshots in the Character Bank or Creation Hub.`
+            );
+          }
+        }
+      }
+      
       if (validationErrors.length > 0) {
         toast.error('Please complete all required fields', {
           description: validationErrors.join('. '),
