@@ -266,17 +266,7 @@ export function SceneAnalysisStep({
             </div>
           </div>
 
-          {/* Continue Button */}
-          <div className="pt-3 border-t border-[#3F3F46]">
-            <Button
-              onClick={onNext}
-              disabled={enabledShots.length === 0}
-              className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white h-11 text-sm px-4 py-2.5"
-            >
-              Continue to Shot Configuration ({selectedShotsCount} {selectedShotsCount === 1 ? 'shot' : 'shots'})
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
+          {/* Continue Button - Moved to Scene Preview section */}
         </CardContent>
       </Card>
     </div>

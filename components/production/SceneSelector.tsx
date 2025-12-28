@@ -17,6 +17,7 @@ interface SceneSelectorProps {
   onEditScene?: (sceneId: string) => void; // Kept for compatibility but not used
   className?: string;
   isMobile?: boolean;
+  projectId?: string; // Optional: for fetching first line of scene text
 }
 
 export function SceneSelector({
@@ -25,7 +26,8 @@ export function SceneSelector({
   onUseScene,
   onEditScene,
   className = '',
-  isMobile = false
+  isMobile = false,
+  projectId
 }: SceneSelectorProps) {
   return (
     <div className={className}>
@@ -36,6 +38,7 @@ export function SceneSelector({
         selectedSceneId={selectedSceneId}
         onSceneSelect={onSceneSelect}
         isMobile={isMobile}
+        projectId={projectId}
       />
     </div>
   );

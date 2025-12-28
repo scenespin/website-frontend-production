@@ -7,28 +7,34 @@
  * Shows scenes in a scrollable list that stacks on mobile.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useAuth } from '@clerk/nextjs';
 import { MapPin, Users, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Scene } from '@/types/screenplay';
+import { getScreenplay } from '@/utils/screenplayStorage';
 
 interface SceneNavigatorListProps {
   selectedSceneId: string | null;
   onSceneSelect: (sceneId: string) => void;
   className?: string;
   isMobile?: boolean;
+  projectId?: string; // Optional: for fetching first line of scene text
 }
 
 export function SceneNavigatorList({
   selectedSceneId,
   onSceneSelect,
   className = '',
-  isMobile = false
+  isMobile = false,
+  projectId
 }: SceneNavigatorListProps) {
   const screenplay = useScreenplay();
   const scenes = screenplay.scenes || [];
+  const { getToken } = useAuth();
+  const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
 
   // Get character names for a scene
   const getSceneCharacters = (scene: Scene): string[] => {
@@ -67,6 +73,46 @@ export function SceneNavigatorList({
     const assetIds = scene.fountain?.tags?.props || [];
     return assetIds.length;
   };
+
+  // Fetch first line of scene text when no synopsis is available
+  useEffect(() => {
+    if (!projectId || !getToken) return;
+    
+    const fetchFirstLines = async () => {
+      const scenesToFetch = scenes.filter(scene => !scene.synopsis && scene.fountain?.startLine && scene.fountain?.endLine);
+      if (scenesToFetch.length === 0) return;
+      
+      try {
+        const screenplayData = await getScreenplay(projectId, getToken);
+        if (!screenplayData?.content) return;
+        
+        const fountainLines = screenplayData.content.split('\n');
+        const newFirstLines: Record<string, string> = {};
+        
+        scenesToFetch.forEach(scene => {
+          if (scene.fountain?.startLine && scene.fountain?.endLine) {
+            const sceneLines = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine);
+            // Find first non-empty line that's not a heading, section, or synopsis
+            const firstLine = sceneLines.find(line => {
+              const trimmed = line.trim();
+              return trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('=') && !trimmed.match(/^(INT\.|EXT\.)/i);
+            });
+            if (firstLine) {
+              newFirstLines[scene.id] = firstLine.trim();
+            }
+          }
+        });
+        
+        if (Object.keys(newFirstLines).length > 0) {
+          setSceneFirstLines(prev => ({ ...prev, ...newFirstLines }));
+        }
+      } catch (error) {
+        console.error('[SceneNavigatorList] Failed to fetch first lines:', error);
+      }
+    };
+    
+    fetchFirstLines();
+  }, [projectId, getToken, scenes]);
 
   if (!scenes || scenes.length === 0) {
     return (
@@ -133,20 +179,38 @@ export function SceneNavigatorList({
                 </span>
               </div>
 
-              {/* Synopsis */}
-              {scene.synopsis && (
-                <p className="line-clamp-2 w-full text-left text-[10px] leading-relaxed text-[#808080]">
-                  {scene.synopsis}
-                </p>
-              )}
+              {/* Synopsis or first line of scene text */}
+              {(() => {
+                // If synopsis exists, use it
+                if (scene.synopsis) {
+                  return (
+                    <p className="line-clamp-2 w-full text-left text-[10px] leading-relaxed text-[#808080]">
+                      {scene.synopsis}
+                    </p>
+                  );
+                }
+                
+                // Otherwise, try to get first line from scene content
+                const firstLine = sceneFirstLines[scene.id];
+                if (firstLine) {
+                  return (
+                    <p className="line-clamp-2 w-full text-left text-[10px] leading-relaxed text-[#808080]">
+                      {firstLine}
+                    </p>
+                  );
+                }
+                
+                // No synopsis or first line available - don't show placeholder
+                return null;
+              })()}
 
               {/* Badges */}
               {(location || characters.length > 0 || propsCount > 0) && (
                 <div className="flex flex-wrap w-full gap-1 mt-1">
                   {location && (
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080] gap-1">
-                      <MapPin className="w-2.5 h-2.5" />
-                      <span>{location}</span>
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080] gap-1 max-w-[200px]">
+                      <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                      <span className="truncate">{location}</span>
                     </Badge>
                   )}
                   {characters.length > 0 && (

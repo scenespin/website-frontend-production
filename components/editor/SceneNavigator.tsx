@@ -170,20 +170,31 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                                 </span>
                             </div>
 
-                            {/* Synopsis */}
-                            {scene.synopsis && (
-                                <p className="line-clamp-2 w-full text-left text-xs leading-relaxed text-base-content/50">
-                                    {scene.synopsis}
-                                </p>
-                            )}
+                            {/* Synopsis or first line of scene text */}
+                            {(() => {
+                                // If synopsis exists, use it
+                                if (scene.synopsis) {
+                                    return (
+                                        <p className="line-clamp-2 w-full text-left text-xs leading-relaxed text-base-content/50">
+                                            {scene.synopsis}
+                                        </p>
+                                    );
+                                }
+                                
+                                // Otherwise, try to get first line from scene content
+                                // Note: We don't have direct access to full screenplay content here,
+                                // so we'll only show if synopsis is available
+                                // This prevents showing placeholders when no content is available
+                                return null;
+                            })()}
 
                             {/* Badges */}
                             {(location || characters.length > 0 || assets.length > 0) && (
                                 <div className="flex flex-wrap w-full gap-1 mt-1">
                                     {location && (
-                                        <span className="badge badge-sm badge-secondary gap-1">
-                                            <MapPin className="w-3 h-3" />
-                                            <span>{location}</span>
+                                        <span className="badge badge-sm badge-secondary gap-1 max-w-[200px]">
+                                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                                            <span className="truncate">{location}</span>
                                         </span>
                                     )}
                                     {characters.length > 0 && (
