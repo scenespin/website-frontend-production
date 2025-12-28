@@ -282,8 +282,10 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       }
 
       // Use the blob download function (matches JobsDrawer exactly)
+      // If we have s3Key, pass empty string for audioUrl (will be replaced by presigned URL)
+      // If we have downloadUrl (cloud storage), use that
       await downloadAudioAsBlob(
-        downloadUrl || file.s3Url || '',
+        downloadUrl || '',
         file.fileName || 'download.mp3',
         s3Key
       );
