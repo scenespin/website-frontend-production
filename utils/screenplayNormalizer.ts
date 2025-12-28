@@ -94,11 +94,18 @@ export function normalizeWhitespace(text: string): string {
     // 1. Current line doesn't end with punctuation (., !, ?, :, ;)
     // 2. Next line exists and doesn't start with uppercase (not a new element)
     // 3. Current line has content (not empty)
+    // 4. Current line is NOT a character name (all caps, short) followed by parenthetical
+    // 5. Next line is NOT a parenthetical (starts with "(" and ends with ")")
+    const nextLineTrimmed = nextLine ? nextLine.trim() : '';
+    const isCharacterName = /^[A-Z][A-Z\s\.']+$/.test(trimmed) && trimmed.split(/\s+/).length <= 4;
+    const isParenthetical = nextLineTrimmed.startsWith('(') && nextLineTrimmed.endsWith(')');
+    
     const isWrapped = trimmed.length > 0 
       && nextLine 
       && !/[.!?:;]$/.test(trimmed) // Doesn't end with sentence punctuation
-      && !/^[A-Z]/.test(nextLine.trim()) // Next line doesn't start with uppercase (not scene heading/character)
-      && !/^(INT\.|EXT\.|INT\/EXT)/i.test(nextLine.trim()); // Next line is not a scene heading
+      && !/^[A-Z]/.test(nextLineTrimmed) // Next line doesn't start with uppercase (not scene heading/character)
+      && !/^(INT\.|EXT\.|INT\/EXT)/i.test(nextLineTrimmed) // Next line is not a scene heading
+      && !(isCharacterName && isParenthetical); // Don't join character names with parentheticals
     
     if (isWrapped) {
       // Join with current line (will be added when we process next line)
