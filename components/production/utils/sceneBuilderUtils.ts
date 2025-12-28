@@ -90,9 +90,20 @@ export function getCharactersFromActionShot(
     const escapedNameLower = charNameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     
     // Check for ALL CAPS mentions (screenplay format - more reliable)
-    // Use word boundaries to ensure we match complete names, not substrings
+    // Pattern 1: Standard word boundary match (handles most cases)
     const allCapsRegex = new RegExp(`\\b${escapedNameUpper}\\b`, 'i');
     if (allCapsRegex.test(fullText)) {
+      foundCharacters.push(char);
+      foundCharIds.add(char.id);
+      continue;
+    }
+    
+    // Pattern 2: Character introduction pattern - name followed by comma and description
+    // Example: "KAT STRATFORD, eighteen, pretty..." or "SARAH MITCHELL (28), sharp-eyed..."
+    // This handles cases where the name is at the start of a sentence or line
+    const introPattern1 = new RegExp(`^${escapedNameUpper}\\s*[,(]`, 'im'); // Start of line/string, followed by comma or paren
+    const introPattern2 = new RegExp(`\\b${escapedNameUpper}\\s*[,(]`, 'i'); // Word boundary, followed by comma or paren
+    if (introPattern1.test(fullText) || introPattern2.test(fullText)) {
       foundCharacters.push(char);
       foundCharIds.add(char.id);
       continue;
