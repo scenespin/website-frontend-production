@@ -2474,9 +2474,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                             setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
                             setSceneAnalysisResult(null); // Clear previous analysis
                             setAnalysisError(null); // Clear any errors
-                          }
-                        }}
-                        projectId={projectId}
                             const scene = screenplay.scenes?.find(s => s.id === sceneId);
                             if (scene) {
                               // Load scene content into description
@@ -2492,6 +2489,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                             setAnalysisError(null);
                           }
                         }}
+                        projectId={projectId}
                         isMobile={isMobile}
                       />
                     </div>
