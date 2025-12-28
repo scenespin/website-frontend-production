@@ -494,6 +494,8 @@ export default function MediaLibrary({
                 expiresAt: undefined,               // Not applicable for S3 files
                 thumbnailUrl: undefined,            // Will be generated client-side for videos
                 s3Key: file.s3Key,                  // Store S3 key for generating fresh presigned URLs (bucket is private)
+                metadata: file.metadata,            // Feature 0174: Include metadata for thumbnail filtering
+                thumbnailS3Key: file.metadata?.thumbnailS3Key, // Feature 0174: Thumbnail S3 key
               };
             })
           );
@@ -976,9 +978,9 @@ export default function MediaLibrary({
       if (selectedFolderId === folderId) {
         // Navigate to parent using breadcrumb path
         if (selectedFolderPath.length > 1) {
-          // Navigate to parent
-          const parentPath = selectedFolderPath.slice(0, -1);
-          handleBreadcrumbClick(parentPath);
+          // Navigate to parent - pass index (length - 2 because we want the second-to-last item)
+          const parentIndex = selectedFolderPath.length - 2;
+          handleBreadcrumbClick(parentIndex);
         } else {
           // Navigate to root
           setSelectedFolderId(null);
@@ -1625,6 +1627,12 @@ export default function MediaLibrary({
   const childFolders = getChildFolders();
 
   const filteredFiles = displayFiles.filter(file => {
+    // Feature 0174: Hide thumbnail files from Archive display
+    // Thumbnails are stored in Media Library for reference but shouldn't be shown to users
+    if ((file as any).metadata?.isThumbnail === true) {
+      return false;
+    }
+
     // Search filter
     if (searchQuery && !file.fileName.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
