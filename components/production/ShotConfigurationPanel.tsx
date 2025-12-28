@@ -84,7 +84,14 @@ interface ShotConfigurationPanelProps {
   shotDuration?: ShotDuration; // Per-shot duration (defaults to 'quick-cut' = ~5s)
   onDurationChange?: (shotSlot: number, duration: ShotDuration | undefined) => void; // undefined = use 'quick-cut'
   // Props Configuration (per-shot)
-  sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
+  sceneProps?: Array<{ 
+    id: string; 
+    name: string; 
+    imageUrl?: string; 
+    s3Key?: string;
+    angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+    images?: Array<{ url: string; s3Key?: string }>;
+  }>;
   propsToShots?: Record<string, number[]>; // Which props are assigned to which shots (from Step 1)
   onPropsToShotsChange?: (propsToShots: Record<string, number[]>) => void; // Callback to remove prop from shot
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>; // Per-shot prop configurations
@@ -350,6 +357,11 @@ export function ShotConfigurationPanel({
             <div className="space-y-3">
               {assignedProps.map((prop) => {
                 const propConfig = shotProps[shot.slot]?.[prop.id] || {};
+                // Type assertion to ensure we have the full prop type with angleReferences and images
+                const fullProp = prop as typeof prop & {
+                  angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+                  images?: Array<{ url: string; s3Key?: string }>;
+                };
                 
                 return (
                   <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
@@ -397,7 +409,7 @@ export function ShotConfigurationPanel({
                       const availableImages: Array<{ id: string; imageUrl: string; label?: string }> = [];
                       
                       // Add angleReferences (Production Hub images)
-                      if (prop.angleReferences && prop.angleReferences.length > 0) {
+                      if (fullProp.angleReferences && fullProp.angleReferences.length > 0) {
                         prop.angleReferences.forEach(ref => {
                           availableImages.push({
                             id: ref.id,
