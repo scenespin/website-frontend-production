@@ -240,12 +240,9 @@ export function PronounMappingSection({
                     </select>
                   </div>
                   
-                  {/* Show prompt box for skipped pronouns */}
+                  {/* Show prompt box for skipped pronouns - REQUIRED */}
                   {isIgnored && (
                     <div className="ml-[76px] pt-2">
-                      <div className="text-[10px] text-[#808080] italic mb-2">
-                        This pronoun will be handled automatically by the AI.
-                      </div>
                       {onPronounExtrasPromptChange && (() => {
                         // Determine if this is a plural pronoun
                         const pluralPronouns = ['they', 'them', 'their', 'theirs'];
@@ -253,22 +250,29 @@ export function PronounMappingSection({
                         const placeholder = isPlural
                           ? 'e.g., "the couple standing in line behind them", "the people walking by", "the squirrels in the tree"'
                           : 'e.g., "the person standing in the corner", "the woman at the counter", "the man walking past"';
+                        const promptValue = pronounExtrasPrompts[pronoun] || '';
+                        const isEmpty = !promptValue.trim();
                         return (
                           <div className="mt-2">
                             <label className="block text-[10px] text-[#808080] mb-1.5">
-                              Select the character "{pronoun}" refers to above, or describe if it's an extra/background character not in the script:
+                              Describe what "{pronoun}" refers to (extras/background) <span className="text-[#DC143C]">(required)</span>:
                             </label>
                             <textarea
-                              value={pronounExtrasPrompts[pronoun] || ''}
+                              value={promptValue}
                               onChange={(e) => {
                                 onPronounExtrasPromptChange(pronoun, e.target.value);
                               }}
                               placeholder={placeholder}
                               rows={2}
-                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                              className={`w-full px-3 py-2 bg-[#1A1A1A] border rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:outline-none transition-colors resize-none ${
+                                isEmpty ? 'border-[#DC143C]' : 'border-[#3F3F46] focus:border-[#DC143C]'
+                              }`}
+                              required
                             />
-                            <div className="text-[10px] text-[#808080] italic mt-1">
-                              This description will be used in image and video generation prompts.
+                            <div className={`text-[10px] mt-1 ${isEmpty ? 'text-[#DC143C]' : 'text-[#808080] italic'}`}>
+                              {isEmpty 
+                                ? '⚠️ Description is required when skipping pronoun mapping.'
+                                : 'This description will be used in image and video generation prompts.'}
                             </div>
                           </div>
                         );
@@ -430,25 +434,38 @@ export function PronounMappingSection({
                     </div>
                   </div>
                   
-                  {/* Show prompt box for skipped plural pronouns */}
+                  {/* Show prompt box for skipped plural pronouns - REQUIRED */}
                   {isIgnored && onPronounExtrasPromptChange && (
                     <div className="ml-[76px] pt-2">
                       <div className="mt-2">
-                        <label className="block text-[10px] text-[#808080] mb-1.5">
-                          Select the character "{pronoun}" refers to above, or describe if it's an extra/background character not in the script:
-                        </label>
-                        <textarea
-                          value={pronounExtrasPrompts[pronoun] || ''}
-                          onChange={(e) => {
-                            onPronounExtrasPromptChange(pronoun, e.target.value);
-                          }}
-                          placeholder='e.g., "the couple standing in line behind them", "the people walking by", "the squirrels in the tree"'
-                          rows={2}
-                          className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-                        />
-                        <div className="text-[10px] text-[#808080] italic mt-1">
-                          This description will be used in image and video generation prompts.
-                        </div>
+                        {(() => {
+                          const promptValue = pronounExtrasPrompts[pronoun] || '';
+                          const isEmpty = !promptValue.trim();
+                          return (
+                            <>
+                              <label className="block text-[10px] text-[#808080] mb-1.5">
+                                Describe what "{pronoun}" refers to (extras/background) <span className="text-[#DC143C]">(required)</span>:
+                              </label>
+                              <textarea
+                                value={promptValue}
+                                onChange={(e) => {
+                                  onPronounExtrasPromptChange(pronoun, e.target.value);
+                                }}
+                                placeholder='e.g., "the couple standing in line behind them", "the people walking by", "the squirrels in the tree"'
+                                rows={2}
+                                className={`w-full px-3 py-2 bg-[#1A1A1A] border rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:outline-none transition-colors resize-none ${
+                                  isEmpty ? 'border-[#DC143C]' : 'border-[#3F3F46] focus:border-[#DC143C]'
+                                }`}
+                                required
+                              />
+                              <div className={`text-[10px] mt-1 ${isEmpty ? 'text-[#DC143C]' : 'text-[#808080] italic'}`}>
+                                {isEmpty 
+                                  ? '⚠️ Description is required when skipping pronoun mapping.'
+                                  : 'This description will be used in image and video generation prompts.'}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}

@@ -572,12 +572,8 @@ export function ShotConfigurationPanel({
                       Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
                     </div>
                   )}
-                  {!alreadyRenderedInPronouns && renderCharacterImagesOnly(charId, shot.slot)}
-                  {alreadyRenderedInPronouns && (
-                    <div className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
-                      Character images shown in pronoun mapping section below
-                    </div>
-                  )}
+                  {/* Always show images in Character(s) section, even if also mapped to pronoun */}
+                  {renderCharacterImagesOnly(charId, shot.slot)}
                 </div>
               );
             })}

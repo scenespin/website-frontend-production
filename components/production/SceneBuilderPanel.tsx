@@ -3002,10 +3002,15 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   const actionPronounInfo = actionShotHasPronounsWrapper(s);
                   if (actionPronounInfo.hasPronouns) {
                     const mappings = pronounMappingsForShots[s.slot] || {};
+                    const shotPrompts = pronounExtrasPrompts[s.slot] || {};
                     const unmappedPronouns = actionPronounInfo.pronouns.filter((p: string) => {
                       const mapping = mappings[p.toLowerCase()];
-                      // Allow "__ignore__" (skip mapping) as a valid mapping
-                      if (mapping === '__ignore__') return false;
+                      // Allow "__ignore__" (skip mapping) as a valid mapping, but require prompt text
+                      if (mapping === '__ignore__') {
+                        const prompt = shotPrompts[p.toLowerCase()] || '';
+                        // If skipped, prompt is required
+                        return !prompt.trim();
+                      }
                       // Empty mapping or empty array means not mapped - require action
                       return !mapping || (Array.isArray(mapping) && mapping.length === 0);
                     });
