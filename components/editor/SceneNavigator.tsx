@@ -133,7 +133,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
         };
         
         fetchFirstLines();
-    }, [screenplay?.id, getToken, allScenes]);
+    }, [screenplay?.screenplayId, getToken, allScenes]);
 
     // Get character names for a scene
     const getSceneCharacters = (scene: Scene): string[] => {
