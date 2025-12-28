@@ -16,6 +16,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { ShotNavigatorList } from './ShotNavigatorList';
 import { categorizeCharacters } from './utils/characterCategorization';
+import { getCharactersFromActionShot } from './utils/sceneBuilderUtils';
 import { toast } from 'sonner';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
@@ -188,20 +189,107 @@ export function ShotConfigurationStep({
     fetchPricing();
   }, [shot?.slot, shot?.credits, shotDuration, getToken]);
 
-  // Validate location requirement before allowing next
+  // Validate shot completion before allowing next
   const handleNext = () => {
-    // Check if location is required but not selected/opted out
+    const validationErrors: string[] = [];
+    
+    // 1. Validate location requirement
     if (isLocationAngleRequired(shot) && needsLocationAngle(shot)) {
       const hasLocation = selectedLocationReferences[shot.slot] !== undefined;
       const hasOptOut = locationOptOuts[shot.slot] === true;
       
       if (!hasLocation && !hasOptOut) {
-        toast.error('Location image required', {
-          description: 'Please select a location image or check "Don\'t use location image" to continue.',
-          duration: 5000
-        });
-        return;
+        validationErrors.push('Location image required. Please select a location image or check "Don\'t use location image" to continue.');
       }
+      
+      // If opted out, location description is required
+      if (hasOptOut && (!locationDescriptions || !locationDescriptions[shot.slot] || locationDescriptions[shot.slot].trim() === '')) {
+        validationErrors.push('Location description is required when "Don\'t use location image" is checked.');
+      }
+    }
+    
+    // 2. Validate character headshots (required - no checkbox override)
+    // Collect all character IDs for this shot
+    const shotCharacterIds = new Set<string>();
+    
+    // Add explicit characters from dialogue
+    if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
+      const dialogueChar = sceneAnalysisResult?.characters?.find((c: any) => 
+        c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim()
+      );
+      if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
+    }
+    
+    // Add explicit characters from action shots
+    if (shot.type === 'action' && shot.characterId) {
+      shotCharacterIds.add(shot.characterId);
+    }
+    
+    // Add explicit characters from action shots (detected from text)
+    if (shot.type === 'action') {
+      const actionChars = getCharactersFromActionShot(shot, sceneAnalysisResult);
+      actionChars.forEach((char: any) => shotCharacterIds.add(char.id));
+    }
+    
+    // Add characters from pronoun mappings (but not skipped ones)
+    // shotMappings is already a prop that contains mappings for this shot
+    for (const [pronoun, mapping] of Object.entries(shotMappings || {})) {
+      if (mapping && mapping !== '__ignore__') {
+        if (Array.isArray(mapping)) {
+          mapping.forEach(charId => shotCharacterIds.add(charId));
+        } else {
+          shotCharacterIds.add(mapping);
+        }
+      }
+    }
+    
+    // Add additional characters for dialogue workflows
+    const additionalChars = selectedCharactersForShots[shot.slot] || [];
+    additionalChars.forEach(charId => shotCharacterIds.add(charId));
+    
+    // Check each character has headshots
+    for (const charId of shotCharacterIds) {
+      if (!charId || charId === '__ignore__') continue;
+      
+      const headshots = characterHeadshots[charId] || [];
+      const hasSelectedReference = selectedCharacterReferences[shot.slot]?.[charId] !== undefined;
+      
+      // Character must have headshots available OR a selected reference
+      if (headshots.length === 0 && !hasSelectedReference) {
+        const char = sceneAnalysisResult?.characters?.find((c: any) => c.id === charId);
+        const charName = char?.name || 'Character';
+        validationErrors.push(
+          `${charName} requires a character image. Please add headshots in the Character Bank (Production Hub) or Creation Hub, or upload images.`
+        );
+      }
+    }
+    
+    // 3. Validate pronouns that are skipped must have descriptions
+    // Note: pronounExtrasPrompts is Record<string, string> (flat, keyed by pronoun)
+    // But we need to check per-shot prompts - they should be passed from parent
+    // For now, we'll check if pronoun is skipped and show a generic message
+    if (pronounInfo.hasPronouns && pronounExtrasPrompts) {
+      for (const pronoun of pronounInfo.pronouns) {
+        const mapping = shotMappings[pronoun.toLowerCase()];
+        if (mapping === '__ignore__') {
+          // Check if description exists (pronounExtrasPrompts is flat record keyed by pronoun)
+          const hasDescription = pronounExtrasPrompts[pronoun.toLowerCase()] && pronounExtrasPrompts[pronoun.toLowerCase()].trim() !== '';
+          if (!hasDescription) {
+            validationErrors.push(
+              `Pronoun "${pronoun}" is skipped but requires a description. Please describe what "${pronoun}" refers to.`
+            );
+          }
+        }
+      }
+    }
+    
+    // Show validation errors if any
+    if (validationErrors.length > 0) {
+      toast.error('Please complete all required fields', {
+        description: validationErrors.join(' '),
+        duration: 8000
+      });
+      return;
     }
     
     // Scroll to top immediately
