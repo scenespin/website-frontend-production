@@ -561,6 +561,8 @@ export function ShotConfigurationPanel({
               const isNarrator = currentWorkflow === 'scene-voiceover' && charId === speakingCharacterId;
               // Check if narrator is also manually selected (will show normally in that section)
               const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
+              // Check if this character is already rendered in pronoun sections
+              const alreadyRenderedInPronouns = allRenderedCharacters.has(charId);
               return (
                 <div key={charId} className={`space-y-3 ${isNarrator ? 'opacity-50' : ''}`}>
                   {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
@@ -569,7 +571,12 @@ export function ShotConfigurationPanel({
                       Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
                     </div>
                   )}
-                  {renderCharacterImagesOnly(charId, shot.slot)}
+                  {!alreadyRenderedInPronouns && renderCharacterImagesOnly(charId, shot.slot)}
+                  {alreadyRenderedInPronouns && (
+                    <div className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                      Character images shown in pronoun mapping section below
+                    </div>
+                  )}
                 </div>
               );
             })}
