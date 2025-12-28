@@ -309,6 +309,7 @@ export function ShotConfigurationPanel({
               </div>
             )}
           </div>
+        </div>
       )}
 
       {/* Location Section - Vertically stacked */}
