@@ -61,6 +61,9 @@ export function actionShotHasPronouns(shot: any): { hasPronouns: boolean; pronou
 
 /**
  * Extract character mentions from an action shot
+ * Uses the same character names from sceneAnalysisResult (which come from backend parsing)
+ * and checks if they appear in the action shot text using word boundaries for precision
+ * This ensures consistency with the backend's established Fountain parsing
  */
 export function getCharactersFromActionShot(
   shot: any,
@@ -69,48 +72,34 @@ export function getCharactersFromActionShot(
   if (shot.type !== 'action' || !sceneAnalysisResult?.characters) return [];
   const fullText = getFullShotText(shot);
   if (!fullText) return [];
-  const textLower = fullText.toLowerCase();
-  const originalText = fullText;
   const foundCharacters: any[] = [];
   const foundCharIds = new Set<string>();
   
-  // First, check for ALL CAPS mentions (screenplay format - more reliable)
-  // This handles cases like "MARCUS BLAKE" or "KAT STRATFORD" where the name is in all caps
+  // Use characters from sceneAnalysisResult (already extracted by backend using established parser)
+  // Check if character names appear in the action shot text
   for (const char of sceneAnalysisResult.characters) {
     if (!char.name || foundCharIds.has(char.id)) continue;
-    // Check for ALL CAPS version of the name (screenplay format)
-    const allCapsName = char.name.toUpperCase();
-    // Escape special regex characters in the name
-    const escapedName = allCapsName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     
-    // Try word boundary regex first (more precise)
-    const allCapsRegex = new RegExp(`\\b${escapedName}\\b`, 'i');
-    if (allCapsRegex.test(originalText)) {
+    const charName = char.name;
+    const charNameUpper = charName.toUpperCase();
+    const charNameLower = charName.toLowerCase();
+    
+    // Escape special regex characters
+    const escapedName = charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedNameUpper = charNameUpper.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Check for ALL CAPS mentions (screenplay format - more reliable)
+    // Use word boundaries to ensure we match complete names, not substrings
+    const allCapsRegex = new RegExp(`\\b${escapedNameUpper}\\b`, 'i');
+    if (allCapsRegex.test(fullText)) {
       foundCharacters.push(char);
       foundCharIds.add(char.id);
       continue;
     }
     
-    // Fallback: Simple case-insensitive includes check for ALL CAPS
-    // This catches cases where word boundaries might not work (e.g., names with special chars)
-    // Only check if the text actually contains the all-caps version
-    if (originalText.toUpperCase().includes(allCapsName)) {
-      // Additional validation: ensure it's not a substring match
-      // Check that it's followed by a non-word character or end of string
-      const followChar = originalText.toUpperCase().indexOf(allCapsName) + allCapsName.length;
-      if (followChar >= originalText.length || !/\w/.test(originalText[followChar])) {
-        foundCharacters.push(char);
-        foundCharIds.add(char.id);
-      }
-    }
-  }
-  
-  // Then check for regular case matches (word boundaries for precision)
-  for (const char of sceneAnalysisResult.characters) {
-    if (!char.name || foundCharIds.has(char.id)) continue;
-    const charName = char.name.toLowerCase();
-    const charNameRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    const possessiveRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'s\\b`, 'i');
+    // Check for regular case matches (word boundaries for precision)
+    const charNameRegex = new RegExp(`\\b${escapedName}\\b`, 'i');
+    const possessiveRegex = new RegExp(`\\b${escapedNameLower}'s\\b`, 'i');
     if (charNameRegex.test(fullText) || possessiveRegex.test(fullText)) {
       foundCharacters.push(char);
       foundCharIds.add(char.id);
