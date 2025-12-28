@@ -79,7 +79,11 @@ export function SceneNavigatorList({
     if (!projectId || !getToken) return;
     
     const fetchFirstLines = async () => {
-      const scenesToFetch = scenes.filter(scene => !scene.synopsis && scene.fountain?.startLine && scene.fountain?.endLine);
+      const scenesToFetch = scenes.filter(scene => {
+        // Fetch if no synopsis, or synopsis is the placeholder "Imported from script"
+        const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
+        return !hasValidSynopsis && scene.fountain?.startLine && scene.fountain?.endLine;
+      });
       if (scenesToFetch.length === 0) return;
       
       try {
@@ -181,8 +185,9 @@ export function SceneNavigatorList({
 
               {/* Synopsis or first line of scene text */}
               {(() => {
-                // If synopsis exists, use it
-                if (scene.synopsis) {
+                // If synopsis exists and is not the placeholder, use it
+                const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
+                if (hasValidSynopsis) {
                   return (
                     <p className="line-clamp-2 w-full text-left text-[10px] leading-relaxed text-[#808080]">
                       {scene.synopsis}

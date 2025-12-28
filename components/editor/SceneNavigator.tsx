@@ -6,6 +6,8 @@ import type { Scene } from '@/types/screenplay';
 import { MapPin, Users, Package } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@clerk/nextjs';
+import { getScreenplay } from '@/utils/screenplayStorage';
 
 interface SceneNavigatorProps {
     currentLine: number;
@@ -23,6 +25,8 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     const context = useContextStore((state) => state.context);
     const setCurrentScene = useContextStore((state) => state.setCurrentScene);
     const [currentSceneId, setCurrentSceneId] = useState<string | null>(null);
+    const { getToken } = useAuth();
+    const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
 
     // 🔥 Get all scenes directly (beats removed - scenes are standalone)
     const allScenesRaw = screenplay?.scenes || [];
@@ -87,6 +91,49 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
         }
     }, [currentLine, context.currentSceneId, allScenes]);
 
+    // Fetch first line of scene text when no synopsis is available (or synopsis is "Imported from script")
+    useEffect(() => {
+        if (!screenplay?.id || !getToken) return;
+        
+        const fetchFirstLines = async () => {
+            const scenesToFetch = allScenes.filter(scene => {
+                // Fetch if no synopsis, or synopsis is the placeholder "Imported from script"
+                const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
+                return !hasValidSynopsis && scene.fountain?.startLine && scene.fountain?.endLine;
+            });
+            if (scenesToFetch.length === 0) return;
+            
+            try {
+                const screenplayData = await getScreenplay(screenplay.id, getToken);
+                if (!screenplayData?.content) return;
+                
+                const fountainLines = screenplayData.content.split('\n');
+                const newFirstLines: Record<string, string> = {};
+                
+                scenesToFetch.forEach(scene => {
+                    if (scene.fountain?.startLine && scene.fountain?.endLine) {
+                        const sceneLines = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine);
+                        // Find first non-empty line that's not a heading, section, or synopsis
+                        const firstLine = sceneLines.find(line => {
+                            const trimmed = line.trim();
+                            return trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('=') && !trimmed.match(/^(INT\.|EXT\.)/i);
+                        });
+                        if (firstLine) {
+                            newFirstLines[scene.id] = firstLine.trim();
+                        }
+                    }
+                });
+                
+                if (Object.keys(newFirstLines).length > 0) {
+                    setSceneFirstLines(prev => ({ ...prev, ...newFirstLines }));
+                }
+            } catch (error) {
+                console.error('[SceneNavigator] Failed to fetch first lines:', error);
+            }
+        };
+        
+        fetchFirstLines();
+    }, [screenplay?.id, getToken, allScenes]);
 
     // Get character names for a scene
     const getSceneCharacters = (scene: Scene): string[] => {
@@ -172,8 +219,9 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
 
                             {/* Synopsis or first line of scene text */}
                             {(() => {
-                                // If synopsis exists, use it
-                                if (scene.synopsis) {
+                                // If synopsis exists and is not the placeholder, use it
+                                const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
+                                if (hasValidSynopsis) {
                                     return (
                                         <p className="line-clamp-2 w-full text-left text-xs leading-relaxed text-base-content/50">
                                             {scene.synopsis}
@@ -182,9 +230,16 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                                 }
                                 
                                 // Otherwise, try to get first line from scene content
-                                // Note: We don't have direct access to full screenplay content here,
-                                // so we'll only show if synopsis is available
-                                // This prevents showing placeholders when no content is available
+                                const firstLine = sceneFirstLines[scene.id];
+                                if (firstLine) {
+                                    return (
+                                        <p className="line-clamp-2 w-full text-left text-xs leading-relaxed text-base-content/50">
+                                            {firstLine}
+                                        </p>
+                                    );
+                                }
+                                
+                                // No synopsis or first line available - don't show placeholder
                                 return null;
                             })()}
 
