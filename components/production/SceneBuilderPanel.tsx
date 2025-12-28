@@ -2836,7 +2836,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                                 disabled={enabledShots.length === 0}
                                 className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white h-11 text-sm px-4 py-2.5"
                               >
-                                Continue to Shot Configuration ({enabledShots.length} {enabledShots.length === 1 ? 'shot' : 'shots'})
+                                Direct {enabledShots.length} {enabledShots.length === 1 ? 'Shot' : 'Shots'}
                                 <ArrowRight className="w-4 h-4 ml-2" />
                               </Button>
                               
