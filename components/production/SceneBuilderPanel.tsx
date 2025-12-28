@@ -2739,7 +2739,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               </Card>
             )}
 
-            {/* Step 1: Scene Analysis & Shot Selection (after scene is selected and confirmed) */}
+            {/* Step 2: Scene Analysis & Shot Selection (after scene is selected and confirmed) */}
             {(currentStep === 1 && hasConfirmedSceneSelection && selectedSceneId) && (
               <>
                 {isAnalyzing && !sceneAnalysisResult ? (
@@ -2753,25 +2753,127 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     </CardContent>
                   </Card>
                 ) : sceneAnalysisResult ? (
-                  <SceneAnalysisStep
-                    sceneAnalysisResult={sceneAnalysisResult}
-                    enabledShots={enabledShots}
-                    onEnabledShotsChange={setEnabledShots}
-                    onNext={() => {
-                      if (wizardStep === 'analysis') {
-                        // Move to first shot configuration
-                        setWizardStep('shot-config');
-                        setCurrentShotIndex(0);
-                        setCurrentStep(2);
-                      }
-                    }}
-                    isAnalyzing={isAnalyzing}
-                    globalStyle={globalStyle}
-                    onGlobalStyleChange={setGlobalStyle}
-                    sceneProps={sceneProps}
-                    propsToShots={propsToShots}
-                    onPropsToShotsChange={setPropsToShots}
-                  />
+                  <div className={`grid ${isMobile ? 'grid-cols-1 space-y-4' : 'grid-cols-3 gap-4'} items-start`}>
+                    {/* Left: Scene Analysis Step (2/3 width) */}
+                    <div className={isMobile ? 'w-full' : 'col-span-2'}>
+                      <SceneAnalysisStep
+                        sceneAnalysisResult={sceneAnalysisResult}
+                        enabledShots={enabledShots}
+                        onEnabledShotsChange={setEnabledShots}
+                        onNext={() => {
+                          if (wizardStep === 'analysis') {
+                            // Move to first shot configuration
+                            setWizardStep('shot-config');
+                            setCurrentShotIndex(0);
+                            setCurrentStep(2);
+                          }
+                        }}
+                        isAnalyzing={isAnalyzing}
+                        globalStyle={globalStyle}
+                        onGlobalStyleChange={setGlobalStyle}
+                        sceneProps={sceneProps}
+                        propsToShots={propsToShots}
+                        onPropsToShotsChange={setPropsToShots}
+                      />
+                    </div>
+                    
+                    {/* Right: Scene Preview (1/3 width) */}
+                    {selectedSceneId && (() => {
+                      const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
+                      if (!scene) return null;
+                      
+                      // Get location and characters for display
+                      const sceneRel = screenplay.relationships?.scenes?.[scene.id];
+                      const location = sceneRel?.location 
+                        ? screenplay.locations?.find(l => l.id === sceneRel.location)
+                        : (scene.fountain?.tags?.location 
+                          ? screenplay.locations?.find(l => l.id === scene.fountain.tags.location)
+                          : null);
+                      const characters = (scene.fountain?.tags?.characters || [])
+                        .map(charId => screenplay.characters?.find(c => c.id === charId))
+                        .filter(Boolean);
+                      
+                      return (
+                        <div className={isMobile ? 'w-full' : 'col-span-1'}>
+                          <Card className="bg-[#0A0A0A] border-[#3F3F46] sticky top-4">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between">
+                                <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
+                                <div className="flex items-center gap-2">
+                                  {(scene.order !== undefined && scene.order !== null) || (scene.number !== undefined && scene.number !== null) ? (
+                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+                                      Scene {scene.order ?? scene.number ?? '?'}
+                                    </Badge>
+                                  ) : null}
+                                  <Button
+                                    onClick={() => {
+                                      // Use context store to set scene, then navigate to editor
+                                      contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
+                                      window.location.href = `/write?sceneId=${scene.id}`;
+                                    }}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px] text-[#808080] hover:text-[#FFFFFF]"
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              {/* Scene Heading */}
+                              {scene.heading && (
+                                <div>
+                                  <h3 className="text-xs text-[#FFFFFF] font-medium mb-1">
+                                    {scene.heading}
+                                  </h3>
+                                </div>
+                              )}
+                              
+                              {/* Location, Characters, and Props */}
+                              {(location || characters.length > 0 || (scene.fountain?.tags?.props || []).length > 0) && (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {location && (
+                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                      <MapPin className="w-3 h-3" />
+                                      <span>{location.name}</span>
+                                    </div>
+                                  )}
+                                  {characters.length > 0 && (
+                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                      <Users className="w-3 h-3" />
+                                      <span>{characters.map(c => c?.name).filter(Boolean).join(', ')}</span>
+                                    </div>
+                                  )}
+                                  {(scene.fountain?.tags?.props || []).length > 0 && (
+                                    <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                                      <Package className="w-3 h-3" />
+                                      <span>{(scene.fountain?.tags?.props || []).length} prop{(scene.fountain?.tags?.props || []).length !== 1 ? 's' : ''}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Scene Content - Full scene from screenplay */}
+                              {isLoadingSceneContent[selectedSceneId] ? (
+                                <div className="text-xs text-[#808080] italic">Loading scene content...</div>
+                              ) : fullSceneContent[selectedSceneId] ? (
+                                <div>
+                                  <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
+                                  <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-96 overflow-y-auto font-mono">
+                                    {fullSceneContent[selectedSceneId]}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-xs text-[#808080] italic">No scene content available</div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 ) : analysisError ? (
                   <Card className="bg-[#141414] border-[#3F3F46]">
                     <CardContent className="p-6 text-center">
