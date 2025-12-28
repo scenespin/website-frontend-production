@@ -1191,8 +1191,8 @@ export default function MediaLibrary({
           return;
         }
         s3Key = file.s3Key;
-        // Use s3Url as fallback if available
-        downloadUrl = file.s3Url || undefined;
+        // No fallback URL needed - we'll use s3Key to get presigned URL
+        downloadUrl = undefined;
       } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
         // For cloud storage files, get download URL from backend
         const token = await getToken({ template: 'wryda-backend' });
@@ -1225,8 +1225,10 @@ export default function MediaLibrary({
       }
 
       // Use the blob download function (matches JobsDrawer exactly)
+      // If we have s3Key, pass empty string for fileUrl (will be replaced by presigned URL)
+      // If we have downloadUrl (cloud storage), use that
       await downloadFileAsBlob(
-        downloadUrl || file.s3Url || '',
+        downloadUrl || '',
         file.fileName || `download.${file.fileName.split('.').pop() || 'bin'}`,
         s3Key
       );
