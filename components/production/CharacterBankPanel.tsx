@@ -7,9 +7,9 @@
  * Matches LocationBankPanel pattern exactly
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { CharacterProfile } from './types';
-import { User, Loader2 } from 'lucide-react';
+import { User, Loader2, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -18,6 +18,13 @@ import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { CharacterDetailModal } from './CharacterDetailModal';
 import PoseGenerationModal from '../character-bank/PoseGenerationModal';
 import { useCharacters } from '@/hooks/useCharacterBank';
+import { 
+  getCharacterSortPreference, 
+  setCharacterSortPreference, 
+  sortCharacters,
+  type CharacterSortOption 
+} from '@/utils/characterSorting';
+import type { Character } from '@/types/screenplay';
 
 interface CharacterBankPanelProps {
   className?: string;
@@ -55,9 +62,50 @@ export function CharacterBankPanel({
   const [showCharacterDetail, setShowCharacterDetail] = useState(false);
   const [showPoseModal, setShowPoseModal] = useState(false);
   const [poseCharacter, setPoseCharacter] = useState<{id: string, name: string, baseReferenceS3Key?: string} | null>(null);
+  const [sortBy, setSortBy] = useState<CharacterSortOption>(() => getCharacterSortPreference());
   
   // 🔥 FIX: Get selectedCharacter from query data (always up-to-date) instead of stale prop
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
+  
+  // Convert CharacterProfile[] to Character[] for sorting utility
+  const charactersForSorting: Character[] = useMemo(() => {
+    return characters.map(c => ({
+      id: c.id,
+      name: c.name,
+      type: c.type || 'supporting',
+      arcStatus: 'introduced' as const,
+      description: c.description || '',
+      created_at: '',
+      updated_at: '',
+      updatedAt: ''
+    }));
+  }, [characters]);
+  
+  // Sort characters using shared utility
+  const sortedCharactersForSorting = useMemo(() => {
+    return sortCharacters(
+      charactersForSorting,
+      sortBy,
+      screenplay.relationships,
+      screenplay.scenes
+    );
+  }, [charactersForSorting, sortBy, screenplay.relationships, screenplay.scenes]);
+  
+  // Map back to CharacterProfile[] maintaining original data
+  const sortedCharacters = useMemo(() => {
+    const sortedIds = new Set(sortedCharactersForSorting.map(c => c.id));
+    return characters.filter(c => sortedIds.has(c.id))
+      .sort((a, b) => {
+        const indexA = sortedCharactersForSorting.findIndex(c => c.id === a.id);
+        const indexB = sortedCharactersForSorting.findIndex(c => c.id === b.id);
+        return indexA - indexB;
+      });
+  }, [characters, sortedCharactersForSorting]);
+  
+  // Save sort preference when it changes
+  useEffect(() => {
+    setCharacterSortPreference(sortBy);
+  }, [sortBy]);
 
   // Auto-open modal when entityToOpen is set
   useEffect(() => {
@@ -206,10 +254,31 @@ export function CharacterBankPanel({
           </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          {/* Sort Selector */}
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between border-b border-[#1A1A1A]">
+            <span className="text-sm text-[#B3B3B3]">{characters.length} {characters.length === 1 ? 'Character' : 'Characters'}</span>
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-4 h-4 text-[#808080]" />
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  const newSort = e.target.value as CharacterSortOption;
+                  setSortBy(newSort);
+                  setCharacterSortPreference(newSort);
+                }}
+                className="bg-[#1A1A1A] border border-[#2A2A2A] rounded px-2 py-1 text-sm text-[#B3B3B3] focus:outline-none focus:border-[#DC143C] cursor-pointer"
+              >
+                <option value="alphabetical">Alphabetical</option>
+                <option value="appearance">Order of Appearance</option>
+                <option value="sceneCount">Scene Count</option>
+              </select>
+            </div>
+          </div>
+          
           <div className="p-4 mx-4">
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2.5">
-              {characters.map((character) => {
+              {sortedCharacters.map((character) => {
                 const allReferences: CinemaCardImage[] = [];
                 
                 // Add base reference

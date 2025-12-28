@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, MoreVertical, User, Users, Copy } from 'lucide-react';
+import { Plus, MoreVertical, User, Users, Copy, ArrowUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useEditor } from '@/contexts/EditorContext';
@@ -11,6 +11,12 @@ import CharacterDetailSidebar from './CharacterDetailSidebar';
 import { DeleteCharacterDialog } from '../structure/DeleteConfirmDialog';
 import { getCharacterDependencies, generateCharacterReport } from '@/utils/dependencyChecker';
 import { toast } from 'sonner';
+import { 
+  getCharacterSortPreference, 
+  setCharacterSortPreference, 
+  sortCharacters,
+  type CharacterSortOption 
+} from '@/utils/characterSorting';
 
 interface CharacterColumn {
     id: string;
@@ -51,11 +57,17 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [sortBy, setSortBy] = useState<CharacterSortOption>(() => getCharacterSortPreference());
     
     // Delete confirmation dialog state
     const [characterToDelete, setCharacterToDelete] = useState<Character | null>(null);
     const [deleteDependencyReport, setDeleteDependencyReport] = useState('');
     const [deleteSceneCount, setDeleteSceneCount] = useState(0);
+    
+    // Save sort preference when it changes
+    useEffect(() => {
+      setCharacterSortPreference(sortBy);
+    }, [sortBy]);
     
     // Memoize isInScript checks to prevent render loops
     const scriptContent = editorState.content;
@@ -105,32 +117,37 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
             resolved: resolved.length 
         });
 
+        // Sort characters within each column using shared utility
+        const sortedIntroduced = sortCharacters(introduced, sortBy, relationships, scenes);
+        const sortedDeveloping = sortCharacters(developing, sortBy, relationships, scenes);
+        const sortedResolved = sortCharacters(resolved, sortBy, relationships, scenes);
+
         const newColumns: CharacterColumn[] = [
             {
                 id: 'col-introduced',
                 title: 'Introduced',
                 arcStatus: 'introduced',
-                characters: introduced,
+                characters: sortedIntroduced,
                 color: '#3B82F6' // Blue
             },
             {
                 id: 'col-developing',
                 title: 'Developing',
                 arcStatus: 'developing',
-                characters: developing,
+                characters: sortedDeveloping,
                 color: '#F59E0B' // Orange
             },
             {
                 id: 'col-resolved',
                 title: 'Resolved',
                 arcStatus: 'resolved',
-                characters: resolved,
+                characters: sortedResolved,
                 color: '#10B981' // Green
             }
         ];
 
         setColumns(newColumns);
-    }, [characters, isLoading, hasInitializedFromDynamoDB]);
+    }, [characters, isLoading, hasInitializedFromDynamoDB, sortBy, relationships, scenes]);
 
     const handleDelete = async (characterId: string, characterName: string) => {
         const character = characters.find(c => c.id === characterId);
@@ -196,24 +213,44 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                         Track character arcs throughout your screenplay
                                     </p>
                                 </div>
-                                {canEditScript && (
-                                    <button
-                                        onClick={() => setIsCreating(true)}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
-                                        style={{
-                                            backgroundColor: '#DC143C',
-                                            color: 'white',
-                                        }}
-                                    >
-                                        <Plus size={18} />
-                                        Add Character
-                                    </button>
-                                )}
-                                {!canEditScript && (
-                                    <span className="text-sm text-base-content/50">
-                                        Read-only access
-                                    </span>
-                                )}
+                                <div className="flex items-center gap-3">
+                                    {/* Sort Selector */}
+                                    <div className="flex items-center gap-2">
+                                        <ArrowUpDown size={16} style={{ color: '#9CA3AF' }} />
+                                        <select
+                                            value={sortBy}
+                                            onChange={(e) => {
+                                                const newSort = e.target.value as CharacterSortOption;
+                                                setSortBy(newSort);
+                                                setCharacterSortPreference(newSort);
+                                            }}
+                                            className="bg-[#0A0A0A] border border-[#27272A] rounded px-2 py-1 text-sm"
+                                            style={{ color: '#E5E7EB' }}
+                                        >
+                                            <option value="alphabetical">Alphabetical</option>
+                                            <option value="appearance">Order of Appearance</option>
+                                            <option value="sceneCount">Scene Count</option>
+                                        </select>
+                                    </div>
+                                    {canEditScript && (
+                                        <button
+                                            onClick={() => setIsCreating(true)}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+                                            style={{
+                                                backgroundColor: '#DC143C',
+                                                color: 'white',
+                                            }}
+                                        >
+                                            <Plus size={18} />
+                                            Add Character
+                                        </button>
+                                    )}
+                                    {!canEditScript && (
+                                        <span className="text-sm text-base-content/50">
+                                            Read-only access
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
