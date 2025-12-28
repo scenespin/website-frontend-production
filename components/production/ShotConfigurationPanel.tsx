@@ -410,7 +410,7 @@ export function ShotConfigurationPanel({
                       
                       // Add angleReferences (Production Hub images)
                       if (fullProp.angleReferences && fullProp.angleReferences.length > 0) {
-                        prop.angleReferences.forEach(ref => {
+                        fullProp.angleReferences.forEach(ref => {
                           availableImages.push({
                             id: ref.id,
                             imageUrl: ref.imageUrl,
@@ -420,8 +420,8 @@ export function ShotConfigurationPanel({
                       }
                       
                       // Add images[] (Creation images) if no angleReferences
-                      if (availableImages.length === 0 && prop.images && prop.images.length > 0) {
-                        prop.images.forEach(img => {
+                      if (availableImages.length === 0 && fullProp.images && fullProp.images.length > 0) {
+                        fullProp.images.forEach(img => {
                           availableImages.push({
                             id: img.url,
                             imageUrl: img.url,
