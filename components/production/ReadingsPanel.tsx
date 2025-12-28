@@ -731,8 +731,24 @@ function ReadingCard({
     };
   }, [isPlaying, reading.combinedAudio, getToken, playerRef]); // Include all dependencies
 
+  // Helper function to format duration (seconds to MM:SS or HH:MM:SS)
+  const formatDuration = (seconds?: number): string => {
+    if (!seconds || seconds === 0) return '0:00';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const date = new Date(reading.date);
   const sceneCount = reading.sceneAudios.length;
+  const totalDuration = reading.combinedAudio?.metadata?.totalDuration as number | undefined;
+  const avgDurationPerScene = totalDuration && sceneCount > 0 
+    ? totalDuration / sceneCount 
+    : undefined;
 
   return (
     <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4 hover:border-[#DC143C] transition-colors">
@@ -742,13 +758,25 @@ function ReadingCard({
           <h3 className="text-sm font-medium text-white truncate mb-1">
             {reading.title}
           </h3>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
             <Clock className="w-3 h-3" />
             <span>{date.toLocaleDateString()}</span>
             {sceneCount > 0 && (
               <>
                 <span>•</span>
                 <span>{sceneCount} {sceneCount === 1 ? 'scene' : 'scenes'}</span>
+              </>
+            )}
+            {totalDuration && (
+              <>
+                <span>•</span>
+                <span>Total: {formatDuration(totalDuration)}</span>
+              </>
+            )}
+            {avgDurationPerScene && (
+              <>
+                <span>•</span>
+                <span>Avg: {formatDuration(avgDurationPerScene)}/scene</span>
               </>
             )}
           </div>
@@ -818,28 +846,36 @@ function ReadingCard({
             <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
               {reading.sceneAudios
                 .sort((a, b) => {
-                  // Sort by scene number if available in metadata
-                  const aSceneNum = a.metadata?.sceneNumber || a.metadata?.sceneId?.match(/\d+/)?.[0] || '0';
-                  const bSceneNum = b.metadata?.sceneNumber || b.metadata?.sceneId?.match(/\d+/)?.[0] || '0';
-                  return parseInt(aSceneNum) - parseInt(bSceneNum);
+                  // Sort by actual scene number from metadata (preferred) or fallback to sceneId
+                  const aSceneNum = a.metadata?.sceneNumber ?? 
+                    (a.metadata?.sceneId?.match(/\d+/)?.[0] ? parseInt(a.metadata.sceneId.match(/\d+/)?.[0] || '0') : 0);
+                  const bSceneNum = b.metadata?.sceneNumber ?? 
+                    (b.metadata?.sceneId?.match(/\d+/)?.[0] ? parseInt(b.metadata.sceneId.match(/\d+/)?.[0] || '0') : 0);
+                  return aSceneNum - bSceneNum;
                 })
                 .map((sceneFile) => {
                   const sceneHeading = sceneFile.metadata?.heading || sceneFile.fileName.replace('.mp3', '');
-                  const sceneNumber = sceneFile.metadata?.sceneNumber || sceneFile.metadata?.sceneId?.match(/\d+/)?.[0] || '';
-                  const displayName = sceneNumber 
-                    ? `Scene ${sceneNumber}: ${sceneHeading}` 
+                  // Use actual scene number from metadata (stored by backend)
+                  const sceneNumber = sceneFile.metadata?.sceneNumber;
+                  const sceneDuration = sceneFile.metadata?.duration as number | undefined;
+                  const displayName = sceneNumber !== undefined
+                    ? `Scene ${sceneNumber}: ${sceneHeading}`
                     : sceneHeading;
+                  const durationText = sceneDuration ? ` (${formatDuration(sceneDuration)})` : '';
                   
                   return (
-                    <button
-                      key={sceneFile.id}
-                      onClick={() => onDownloadScene(sceneFile)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors text-left"
-                      title={`Download ${displayName}`}
-                    >
-                      <Download className="w-3 h-3 flex-shrink-0" />
-                      <span className="truncate">{displayName}</span>
-                    </button>
+                    <div key={sceneFile.id} className="flex items-center justify-between gap-2 p-1 bg-[#2A2A2A] rounded">
+                      <span className="text-xs text-gray-300 truncate flex-1">
+                        {displayName}{durationText}
+                      </span>
+                      <button
+                        onClick={() => onDownloadScene(sceneFile)}
+                        className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                        title={`Download ${displayName}`}
+                      >
+                        <Download className="w-3 h-3" />
+                      </button>
+                    </div>
                   );
                 })}
             </div>
