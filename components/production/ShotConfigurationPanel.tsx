@@ -581,7 +581,8 @@ export function ShotConfigurationPanel({
             })}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Pronoun Mapping Section */}
       {hasPronouns && (
