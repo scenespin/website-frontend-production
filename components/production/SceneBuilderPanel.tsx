@@ -2463,7 +2463,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
 
                 {/* Database Selection */}
                 {inputMethod === 'database' && (
-                  <div className={isMobile ? "space-y-3" : "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"}>
+                  <div className={isMobile ? "space-y-3" : "grid grid-cols-1 lg:grid-cols-2 gap-4"}>
                     {/* Scene Navigator List (Left side on desktop, top on mobile) */}
                     <div className={isMobile ? "w-full" : "flex flex-col"}>
                       <SceneSelector
@@ -2753,9 +2753,9 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     </CardContent>
                   </Card>
                 ) : sceneAnalysisResult ? (
-                  <div className={`grid ${isMobile ? 'grid-cols-1 space-y-4' : 'grid-cols-3 gap-4'} items-start`}>
-                    {/* Left: Scene Analysis Step (2/3 width) */}
-                    <div className={isMobile ? 'w-full' : 'col-span-2'}>
+                  <div className={`grid ${isMobile ? 'grid-cols-1 space-y-4' : 'grid-cols-2 gap-4'}`}>
+                    {/* Left: Scene Analysis Step (1/2 width) */}
+                    <div className={isMobile ? 'w-full' : 'col-span-1'}>
                       <SceneAnalysisStep
                         sceneAnalysisResult={sceneAnalysisResult}
                         enabledShots={enabledShots}
@@ -2777,7 +2777,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       />
                     </div>
                     
-                    {/* Right: Scene Preview (1/3 width) */}
+                    {/* Right: Scene Preview (1/2 width) */}
                     {selectedSceneId && (() => {
                       const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
                       if (!scene) return null;
@@ -2795,7 +2795,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       
                       return (
                         <div className={isMobile ? 'w-full' : 'col-span-1'}>
-                          <Card className="bg-[#0A0A0A] border-[#3F3F46] sticky top-4">
+                          <Card className="bg-[#0A0A0A] border-[#3F3F46]">
                             <CardHeader className="pb-2">
                               <div className="flex items-start justify-between">
                                 <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
