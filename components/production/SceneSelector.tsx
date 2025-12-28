@@ -31,9 +31,6 @@ export function SceneSelector({
 }: SceneSelectorProps) {
   return (
     <div className={className}>
-      <label className="text-xs font-medium mb-2 block text-[#808080]">
-        Select Scene
-      </label>
       <SceneNavigatorList
         selectedSceneId={selectedSceneId}
         onSceneSelect={onSceneSelect}
