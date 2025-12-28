@@ -12,6 +12,7 @@
  */
 
 import React from 'react';
+import { Check } from 'lucide-react';
 import { LocationAngleSelector } from './LocationAngleSelector';
 import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
@@ -88,6 +89,7 @@ interface ShotConfigurationPanelProps {
   onPropsToShotsChange?: (propsToShots: Record<string, number[]>) => void; // Callback to remove prop from shot
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>; // Per-shot prop configurations
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
+  onPropImageChange?: (shotSlot: number, propId: string, imageId: string | undefined) => void; // Callback for prop image selection
 }
 
 export function ShotConfigurationPanel({
@@ -136,7 +138,8 @@ export function ShotConfigurationPanel({
   propsToShots = {},
   onPropsToShotsChange,
   shotProps = {},
-  onPropDescriptionChange
+  onPropDescriptionChange,
+  onPropImageChange
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -169,7 +172,7 @@ export function ShotConfigurationPanel({
     <div className="mt-3 space-y-4">
       {/* Dialogue Workflow Selection - Only for dialogue shots */}
       {shot.type === 'dialogue' && onDialogueWorkflowChange && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-3 border-b border-[#3F3F46]">
+        <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
           <div>
             <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow</div>
             <select
@@ -304,35 +307,31 @@ export function ShotConfigurationPanel({
         </div>
       )}
 
-      {/* Location Section */}
+      {/* Location Section - Vertically stacked */}
       {shouldShowLocation && (
         <div className="pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Left side: Controls and dropdowns */}
-            <LocationAngleSelector
-              locationId={sceneAnalysisResult.location.id}
-              locationName={sceneAnalysisResult.location.name || 'Location'}
-              angleVariations={sceneAnalysisResult.location.angleVariations || []}
-              baseReference={sceneAnalysisResult.location.baseReference}
-              selectedAngle={selectedLocationReferences[shot.slot]}
-              onAngleChange={(locationId, angle) => {
-                onLocationAngleChange?.(shot.slot, locationId, angle);
-              }}
-              isRequired={isLocationAngleRequired(shot)}
-              recommended={sceneAnalysisResult.location.recommended}
-              optOut={locationOptOuts[shot.slot] || false}
-              onOptOutChange={(optOut) => {
-                onLocationOptOutChange?.(shot.slot, optOut);
-              }}
-              locationDescription={locationDescriptions[shot.slot] || ''}
-              onLocationDescriptionChange={(description) => {
-                onLocationDescriptionChange?.(shot.slot, description);
-              }}
-              splitLayout={true}
-            />
-            {/* Right side: Image grid - rendered by LocationAngleSelector via splitLayout */}
-          </div>
+          <LocationAngleSelector
+            locationId={sceneAnalysisResult.location.id}
+            locationName={sceneAnalysisResult.location.name || 'Location'}
+            angleVariations={sceneAnalysisResult.location.angleVariations || []}
+            baseReference={sceneAnalysisResult.location.baseReference}
+            selectedAngle={selectedLocationReferences[shot.slot]}
+            onAngleChange={(locationId, angle) => {
+              onLocationAngleChange?.(shot.slot, locationId, angle);
+            }}
+            isRequired={isLocationAngleRequired(shot)}
+            recommended={sceneAnalysisResult.location.recommended}
+            optOut={locationOptOuts[shot.slot] || false}
+            onOptOutChange={(optOut) => {
+              onLocationOptOutChange?.(shot.slot, optOut);
+            }}
+            locationDescription={locationDescriptions[shot.slot] || ''}
+            onLocationDescriptionChange={(description) => {
+              onLocationDescriptionChange?.(shot.slot, description);
+            }}
+            splitLayout={false}
+          />
         </div>
       )}
 
@@ -392,9 +391,89 @@ export function ShotConfigurationPanel({
                       )}
                     </div>
                     
+                    {/* Prop Image Selection */}
+                    {onPropImageChange && (() => {
+                      // Get all available images for this prop (angleReferences first, then images)
+                      const availableImages: Array<{ id: string; imageUrl: string; label?: string }> = [];
+                      
+                      // Add angleReferences (Production Hub images)
+                      if (prop.angleReferences && prop.angleReferences.length > 0) {
+                        prop.angleReferences.forEach(ref => {
+                          availableImages.push({
+                            id: ref.id,
+                            imageUrl: ref.imageUrl,
+                            label: ref.label
+                          });
+                        });
+                      }
+                      
+                      // Add images[] (Creation images) if no angleReferences
+                      if (availableImages.length === 0 && prop.images && prop.images.length > 0) {
+                        prop.images.forEach(img => {
+                          availableImages.push({
+                            id: img.url,
+                            imageUrl: img.url,
+                            label: undefined
+                          });
+                        });
+                      }
+                      
+                      // If no images available, use the default imageUrl
+                      if (availableImages.length === 0 && prop.imageUrl) {
+                        availableImages.push({
+                          id: prop.imageUrl,
+                          imageUrl: prop.imageUrl,
+                          label: 'Default'
+                        });
+                      }
+                      
+                      const selectedImageId = propConfig.selectedImageId;
+                      
+                      if (availableImages.length > 1) {
+                        return (
+                          <div className="mt-3">
+                            <label className="block text-[10px] text-[#808080] mb-2">
+                              Select prop image for this shot:
+                            </label>
+                            <div className="grid grid-cols-4 gap-2">
+                              {availableImages.map((img) => {
+                                const isSelected = selectedImageId === img.id || (!selectedImageId && img.id === availableImages[0].id);
+                                return (
+                                  <button
+                                    key={img.id}
+                                    onClick={() => {
+                                      onPropImageChange(shot.slot, prop.id, isSelected ? undefined : img.id);
+                                    }}
+                                    className={`relative aspect-square rounded border-2 transition-all ${
+                                      isSelected
+                                        ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                        : 'border-[#3F3F46] hover:border-[#808080]'
+                                    }`}
+                                    title={img.label || 'Prop image'}
+                                  >
+                                    <img
+                                      src={img.imageUrl}
+                                      alt={img.label || prop.name}
+                                      className="w-full h-full object-cover rounded"
+                                    />
+                                    {isSelected && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
+                                        <Check className="w-3 h-3 text-[#DC143C]" />
+                                      </div>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    
                     {/* Prop Usage Description */}
                     {onPropDescriptionChange && (
-                      <div>
+                      <div className="mt-3">
                         <label className="block text-[10px] text-[#808080] mb-1.5">
                           Describe how "{prop.name}" is used in this shot:
                         </label>
@@ -578,8 +657,8 @@ export function ShotConfigurationPanel({
                   
                   return (
                     <div key={pronoun} className="space-y-2">
-                      {/* Mobile: Stack controls + photos together. Desktop: side-by-side */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Stacked layout: controls + photos vertically */}
+                      <div className="space-y-3">
                         <div>
                           <PronounMappingSection
                             pronouns={[pronoun]}
@@ -604,9 +683,9 @@ export function ShotConfigurationPanel({
                             onPronounExtrasPromptChange={onPronounExtrasPromptChange}
                           />
                         </div>
-                        {/* Images - show all mapped characters */}
+                        {/* Images - show all mapped characters - stacked below */}
                         {mappedCharacterIds.length > 0 && (
-                          <div className="lg:border-l lg:border-[#3F3F46] lg:pl-4 space-y-4">
+                          <div className="mt-3 space-y-4">
                             {mappedCharacterIds.map((charId) => (
                               <div key={charId}>
                                 {renderCharacterImagesOnly(charId, shot.slot, [`"${pronoun}"`])}

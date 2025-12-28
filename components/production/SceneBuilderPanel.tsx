@@ -226,7 +226,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [shotDurations, setShotDurations] = useState<Record<number, 'quick-cut' | 'extended-take'>>({});
   
   // Props state
-  const [sceneProps, setSceneProps] = useState<Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>>([]);
+  const [sceneProps, setSceneProps] = useState<Array<{ 
+    id: string; 
+    name: string; 
+    imageUrl?: string; 
+    s3Key?: string;
+    angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+    images?: Array<{ url: string; s3Key?: string }>;
+  }>>([]);
   const [propsToShots, setPropsToShots] = useState<Record<string, number[]>>({}); // propId -> shot slots
   const [shotProps, setShotProps] = useState<Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>>({}); // Per-shot prop configs
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
@@ -3227,6 +3234,31 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         delete updated[shotSlot][propId];
                         if (Object.keys(updated[shotSlot]).length === 0) {
                           delete updated[shotSlot];
+                        }
+                      }
+                      return updated;
+                    });
+                  }}
+                  onPropImageChange={(shotSlot, propId, imageId) => {
+                    setShotProps(prev => {
+                      const shotConfig = prev[shotSlot] || {};
+                      const updated = { ...prev };
+                      updated[shotSlot] = {
+                        ...shotConfig,
+                        [propId]: {
+                          ...shotConfig[propId],
+                          selectedImageId: imageId || undefined
+                        }
+                      };
+                      if (!imageId) {
+                        // If imageId is cleared, keep the prop config but remove selectedImageId
+                        if (updated[shotSlot][propId] && !updated[shotSlot][propId].usageDescription) {
+                          delete updated[shotSlot][propId];
+                          if (Object.keys(updated[shotSlot]).length === 0) {
+                            delete updated[shotSlot];
+                          }
+                        } else if (updated[shotSlot][propId]) {
+                          delete updated[shotSlot][propId].selectedImageId;
                         }
                       }
                       return updated;

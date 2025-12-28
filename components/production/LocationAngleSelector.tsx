@@ -380,9 +380,9 @@ export function LocationAngleSelector({
     </div>
   );
 
-  // Image grid section (right side)
+  // Image grid section (right side) - bigger thumbnails
   const imageGridSection = !optOut ? (
-    <div className="grid grid-cols-6 gap-1.5">
+    <div className="grid grid-cols-4 gap-2">
       {allAngles.map((angle, idx) => {
         const selected = isSelected(angle);
         const isRec = isRecommended(angle);

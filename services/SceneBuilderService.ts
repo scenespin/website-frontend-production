@@ -110,15 +110,17 @@ export class SceneBuilderService {
       const data = await response.json();
       const props = Array.isArray(data) ? data : (data.assets || []);
       
-      // Filter out any null/undefined props and map to expected format
-      return props
-        .filter((prop: any) => prop !== null && prop !== undefined)
-        .map((prop: any) => ({
-          id: prop.id || prop.assetId,
-          name: prop.name || prop.assetName || 'Unnamed Prop',
-          imageUrl: prop.imageUrl || prop.thumbnailUrl,
-          s3Key: prop.s3Key || prop.imageS3Key
-        }));
+        // Filter out any null/undefined props and map to expected format
+        return props
+          .filter((prop: any) => prop !== null && prop !== undefined)
+          .map((prop: any) => ({
+            id: prop.id || prop.assetId,
+            name: prop.name || prop.assetName || 'Unnamed Prop',
+            imageUrl: prop.imageUrl || prop.thumbnailUrl,
+            s3Key: prop.s3Key || prop.imageS3Key,
+            angleReferences: prop.angleReferences || [],
+            images: prop.images || []
+          }));
     } catch (error: any) {
       // Gracefully handle errors - log but don't break the scene builder
       console.error('[SceneBuilderService] Error fetching props:', error);

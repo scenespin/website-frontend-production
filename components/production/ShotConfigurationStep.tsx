@@ -74,11 +74,19 @@ interface ShotConfigurationStepProps {
   shotDuration?: 'quick-cut' | 'extended-take';
   onDurationChange?: (shotSlot: number, duration: 'quick-cut' | 'extended-take' | undefined) => void;
   // Props
-  sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
+  sceneProps?: Array<{ 
+    id: string; 
+    name: string; 
+    imageUrl?: string; 
+    s3Key?: string;
+    angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+    images?: Array<{ url: string; s3Key?: string }>;
+  }>;
   propsToShots?: Record<string, number[]>;
   onPropsToShotsChange?: (propsToShots: Record<string, number[]>) => void;
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
+  onPropImageChange?: (shotSlot: number, propId: string, imageId: string | undefined) => void;
   // Navigation
   onPrevious: () => void;
   onNext: () => void;
@@ -138,6 +146,7 @@ export function ShotConfigurationStep({
   onPropsToShotsChange,
   shotProps = {},
   onPropDescriptionChange,
+  onPropImageChange,
   onPrevious,
   onNext,
   onShotSelect,
@@ -349,6 +358,7 @@ export function ShotConfigurationStep({
             onPropsToShotsChange={onPropsToShotsChange}
             shotProps={shotProps}
             onPropDescriptionChange={onPropDescriptionChange}
+            onPropImageChange={onPropImageChange}
           />
 
           {/* Cost Calculator - Prices from backend (margins hidden) */}
