@@ -795,23 +795,40 @@ export function CharacterDetailModal({
         
         // Log all images to see which ones are using thumbnails
         const imageIndex = allImages.indexOf(img);
+        // 🔥 DETAILED: Compare exact keys to see why lookup is failing
+        const exactKeyMatch = thumbnailS3Key ? thumbnailUrls.has(thumbnailS3Key) : false;
+        const allThumbnailKeys = Array.from(thumbnailUrls.keys());
+        const keyComparison = thumbnailS3Key ? {
+          lookingFor: thumbnailS3Key,
+          lookingForLength: thumbnailS3Key.length,
+          availableKeys: allThumbnailKeys.map(k => ({
+            key: k,
+            length: k.length,
+            matches: k === thumbnailS3Key,
+            startsWithMatch: k.startsWith(thumbnailS3Key.substring(0, 50)),
+            endsWithMatch: k.endsWith(thumbnailS3Key.substring(Math.max(0, thumbnailS3Key.length - 50))),
+          })).slice(0, 3)
+        } : null;
+        
         console.log(`[CharacterDetailModal] 🔍 Image ${imageIndex} thumbnail status:`, {
           imageId: img.id,
           isBase: (img as any).isBase,
           isPose: (img as any).isPose,
           s3Key: s3Key?.substring(0, 120),
           thumbnailS3Key: thumbnailS3Key?.substring(0, 120),
+          thumbnailS3KeyFull: thumbnailS3Key, // Full key for comparison
           thumbnailS3KeySource: thumbnailS3Key ? (thumbnailS3KeyMap.has(s3Key!) ? 'thumbnailS3KeyMap' : 'metadata') : 'none',
-          hasThumbnailUrl: thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key),
+          hasThumbnailUrl: exactKeyMatch,
           thumbnailUrl: thumbnailUrl?.substring(0, 120),
           usingThumbnail: thumbnailUrl !== img.imageUrl,
           thumbnailUrlsMapSize: thumbnailUrls.size,
-          matchingThumbnailKey: matchingThumbnailKey?.substring(0, 100),
+          matchingThumbnailKey: matchingThumbnailKey,
           reverseLookupFound: matchingThumbnailKey !== undefined,
+          keyComparison,
           imageMetadata: {
             entityType: metadata.entityType,
             entityId: metadata.entityId,
-            thumbnailS3Key: metadata.thumbnailS3Key?.substring(0, 80),
+            thumbnailS3Key: metadata.thumbnailS3Key,
           },
         });
       }
