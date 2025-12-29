@@ -224,6 +224,27 @@ export interface Location {
         creditsUsed: number;
         createdAt: string;
     }>;
+    backgrounds?: Array<{ // NEW: Backgrounds - close-up views of specific areas within the location
+        id: string;
+        imageUrl?: string;
+        s3Key: string;
+        backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
+        description?: string;
+        sourceType?: 'reference-images' | 'angle-variations';
+        sourceAngleId?: string;
+        timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+        weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
+        generationMethod: 'ai-generated' | 'angle-crop' | 'upload';
+        creditsUsed: number;
+        createdAt: string;
+        metadata?: {
+            generationPrompt?: string;
+            providerId?: string;
+            quality?: 'standard' | 'high-quality';
+            referenceImageUrls?: string[];
+            generatedAt?: string;
+        };
+    }>;
     locationBankProfile?: { // DEPRECATED: Keep for backward compat
         baseReferenceS3Key?: string;
         angleVariations?: Array<{
@@ -626,6 +647,16 @@ export interface SceneAnalysisResult {
             angle: string;
             s3Key: string;
             imageUrl: string;
+            timeOfDay?: string;
+            weather?: string;
+        }>;
+        backgrounds?: Array<{ // NEW: Backgrounds - close-up views
+            id: string;
+            imageUrl: string;
+            s3Key: string;
+            backgroundType: string;
+            sourceType?: string;
+            sourceAngleId?: string;
             timeOfDay?: string;
             weather?: string;
         }>;

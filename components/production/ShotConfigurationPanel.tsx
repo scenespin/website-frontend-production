@@ -185,10 +185,33 @@ export function ShotConfigurationPanel({
             locationId={sceneAnalysisResult.location.id}
             locationName={sceneAnalysisResult.location.name || 'Location'}
             angleVariations={sceneAnalysisResult.location.angleVariations || []}
+            backgrounds={sceneAnalysisResult.location.backgrounds || []} // NEW: Pass backgrounds
             baseReference={sceneAnalysisResult.location.baseReference}
-            selectedAngle={selectedLocationReferences[shot.slot]}
+            selectedAngle={selectedLocationReferences[shot.slot]} // KEPT for backward compat
+            selectedLocationReference={selectedLocationReferences[shot.slot] ? {
+              // Convert to unified format if needed
+              type: (selectedLocationReferences[shot.slot] as any).type || 'angle',
+              angleId: selectedLocationReferences[shot.slot].angleId,
+              backgroundId: (selectedLocationReferences[shot.slot] as any).backgroundId,
+              s3Key: selectedLocationReferences[shot.slot].s3Key,
+              imageUrl: selectedLocationReferences[shot.slot].imageUrl
+            } : undefined}
             onAngleChange={(locationId, angle) => {
+              // KEPT for backward compat
               onLocationAngleChange?.(shot.slot, locationId, angle);
+            }}
+            onLocationReferenceChange={(locationId, reference) => {
+              // NEW: Unified callback (if available, otherwise falls back to onAngleChange)
+              if (onLocationAngleChange) {
+                // Convert unified format to angle format for backward compat
+                onLocationAngleChange(shot.slot, locationId, reference ? {
+                  angleId: reference.angleId,
+                  backgroundId: reference.backgroundId as any, // Store backgroundId for future use
+                  s3Key: reference.s3Key,
+                  imageUrl: reference.imageUrl,
+                  type: reference.type as any // Store type for future use
+                } as any : undefined);
+              }
             }}
             isRequired={isLocationAngleRequired(shot)}
             recommended={sceneAnalysisResult.location.recommended}

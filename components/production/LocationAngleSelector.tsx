@@ -28,8 +28,36 @@ interface LocationAngleSelectorProps {
     imageUrl: string;
     angle: string;
   };
-  selectedAngle?: { angleId?: string; s3Key?: string; imageUrl?: string };
-  onAngleChange: (locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
+  backgrounds?: Array<{ // NEW: Backgrounds array
+    id: string;
+    imageUrl: string;
+    s3Key: string;
+    backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
+    sourceType?: 'reference-images' | 'angle-variations';
+    sourceAngleId?: string;
+    metadata?: {
+      providerId?: string;
+      quality?: 'standard' | 'high-quality';
+    };
+    timeOfDay?: string; // For grouping with angles
+    weather?: string; // For grouping with angles
+  }>;
+  selectedAngle?: { angleId?: string; s3Key?: string; imageUrl?: string }; // KEPT for backward compat
+  selectedLocationReference?: { // NEW: Unified selection (supports both angles and backgrounds)
+    type?: 'angle' | 'background';
+    angleId?: string;
+    backgroundId?: string;
+    s3Key?: string;
+    imageUrl?: string;
+  };
+  onAngleChange: (locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => void; // KEPT for backward compat
+  onLocationReferenceChange?: (locationId: string, reference: { 
+    type?: 'angle' | 'background';
+    angleId?: string;
+    backgroundId?: string;
+    s3Key?: string;
+    imageUrl?: string;
+  } | undefined) => void; // NEW: Unified callback
   isRequired?: boolean;
   recommended?: { angleId?: string; reason: string };
   optOut?: boolean; // Whether user has opted out of using location image
@@ -44,8 +72,11 @@ export function LocationAngleSelector({
   locationName,
   angleVariations,
   baseReference,
-  selectedAngle,
-  onAngleChange,
+  backgrounds = [], // NEW: Default to empty array
+  selectedAngle, // KEPT for backward compat
+  selectedLocationReference, // NEW: Unified selection
+  onAngleChange, // KEPT for backward compat
+  onLocationReferenceChange, // NEW: Unified callback
   isRequired = false,
   recommended,
   optOut = false,
@@ -54,14 +85,45 @@ export function LocationAngleSelector({
   onLocationDescriptionChange,
   splitLayout = false
 }: LocationAngleSelectorProps) {
-  // Group angles by timeOfDay/weather (similar to outfit grouping)
-  const groupedAngles = React.useMemo(() => {
+  // Use unified selection if available, otherwise fall back to selectedAngle
+  const currentSelection = selectedLocationReference || (selectedAngle ? {
+    type: 'angle' as const,
+    angleId: selectedAngle.angleId,
+    s3Key: selectedAngle.s3Key,
+    imageUrl: selectedAngle.imageUrl
+  } : undefined);
+  
+  // Unified callback - use onLocationReferenceChange if available, otherwise onAngleChange
+  const handleSelectionChange = React.useCallback((reference: {
+    type?: 'angle' | 'background';
+    angleId?: string;
+    backgroundId?: string;
+    s3Key?: string;
+    imageUrl?: string;
+  } | undefined) => {
+    if (onLocationReferenceChange) {
+      onLocationReferenceChange(locationId, reference);
+    } else if (onAngleChange) {
+      // Backward compat: convert to angle format
+      onAngleChange(locationId, reference ? {
+        angleId: reference.angleId,
+        s3Key: reference.s3Key,
+        imageUrl: reference.imageUrl
+      } : undefined);
+    }
+  }, [locationId, onLocationReferenceChange, onAngleChange]);
+  
+  // Group both angles AND backgrounds by timeOfDay/weather (unified grouping)
+  const groupedPhotos = React.useMemo(() => {
     const groups: Record<string, Array<{
+      type: 'angle' | 'background';
+      id?: string;
       angleId?: string;
-      angle: string;
-      s3Key: string;
+      backgroundId?: string;
       imageUrl: string;
-      label?: string;
+      s3Key: string;
+      label: string;
+      badge?: string; // For display (e.g., "Angle", "Background • Window")
       timeOfDay?: string;
       weather?: string;
       isBase?: boolean;
@@ -71,10 +133,14 @@ export function LocationAngleSelector({
     if (baseReference) {
       if (!groups['Creation']) groups['Creation'] = [];
       groups['Creation'].push({
-        ...baseReference,
+        type: 'angle',
+        id: undefined,
         angleId: undefined,
-        isBase: true,
-        label: `Base (${baseReference.angle})`
+        imageUrl: baseReference.imageUrl,
+        s3Key: baseReference.s3Key,
+        label: `Base (${baseReference.angle})`,
+        badge: 'Angle',
+        isBase: true
       });
     }
     
@@ -91,19 +157,59 @@ export function LocationAngleSelector({
       
       if (!groups[groupKey]) groups[groupKey] = [];
       groups[groupKey].push({
-        ...angle,
-        isBase: false,
-        label: angle.label || angle.angle
+        type: 'angle',
+        id: angle.angleId,
+        angleId: angle.angleId,
+        imageUrl: angle.imageUrl,
+        s3Key: angle.s3Key,
+        label: angle.label || angle.angle,
+        badge: 'Angle',
+        timeOfDay: angle.timeOfDay,
+        weather: angle.weather,
+        isBase: false
+      });
+    });
+    
+    // Group backgrounds by timeOfDay/weather (same grouping logic)
+    backgrounds.forEach(background => {
+      const metadataParts = [
+        background.timeOfDay ? background.timeOfDay : null,
+        background.weather ? background.weather : null
+      ].filter(Boolean);
+      
+      const groupKey = metadataParts.length > 0 
+        ? metadataParts.join(' • ') 
+        : 'No Metadata';
+      
+      if (!groups[groupKey]) groups[groupKey] = [];
+      
+      // Format background type label
+      const backgroundTypeLabel = background.backgroundType
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      groups[groupKey].push({
+        type: 'background',
+        id: background.id,
+        backgroundId: background.id,
+        imageUrl: background.imageUrl,
+        s3Key: background.s3Key,
+        label: backgroundTypeLabel,
+        badge: `Background • ${backgroundTypeLabel}${background.sourceType === 'angle-variations' ? ' (from Angle)' : ''}`,
+        timeOfDay: background.timeOfDay,
+        weather: background.weather,
+        isBase: false
       });
     });
     
     return groups;
-  }, [baseReference, angleVariations]);
+  }, [baseReference, angleVariations, backgrounds]);
   
   // Get all group keys (sorted: "No Metadata" last, then alphabetically)
   // IMPORTANT: Only include "Creation" if there are NO Production Hub images
   const groupKeys = React.useMemo(() => {
-    const keys = Object.keys(groupedAngles);
+    const keys = Object.keys(groupedPhotos);
     const hasProductionHubImages = keys.some(k => k !== 'Creation' && k !== 'No Metadata');
     
     // Only include Creation if it's the absolute last resort (no Production Hub images)
@@ -118,31 +224,32 @@ export function LocationAngleSelector({
       if (b === 'Creation') return 1;
       return a.localeCompare(b);
     });
-  }, [groupedAngles]);
+  }, [groupedPhotos]);
   
   // Check if we're using Creation image (last resort)
   const isUsingCreationImage = React.useMemo(() => {
-    const hasProductionHubImages = angleVariations.length > 0;
+    const hasProductionHubImages = angleVariations.length > 0 || backgrounds.length > 0;
     return !hasProductionHubImages && !!baseReference;
-  }, [angleVariations.length, baseReference]);
+  }, [angleVariations.length, backgrounds.length, baseReference]);
   
-  // Selected group - sync with selected angle if it exists
+  // Selected group - sync with selected reference if it exists
   const [selectedGroup, setSelectedGroup] = React.useState<string>(() => {
-    // If we have a selected angle, find which group it belongs to
-    if (selectedAngle) {
+    // If we have a selected reference, find which group it belongs to
+    if (currentSelection) {
       // Check if it's in baseReference (Creation group)
       if (baseReference && (
-        (selectedAngle.s3Key && baseReference.s3Key === selectedAngle.s3Key) ||
-        (selectedAngle.imageUrl && baseReference.imageUrl === selectedAngle.imageUrl)
+        (currentSelection.s3Key && baseReference.s3Key === currentSelection.s3Key) ||
+        (currentSelection.imageUrl && baseReference.imageUrl === currentSelection.imageUrl)
       )) {
         return 'Creation';
       }
-      // Check angleVariations
-      for (const [groupKey, angles] of Object.entries(groupedAngles)) {
-        const found = angles.find(angle => 
-          (selectedAngle.s3Key && angle.s3Key === selectedAngle.s3Key) ||
-          (selectedAngle.imageUrl && angle.imageUrl === selectedAngle.imageUrl) ||
-          (selectedAngle.angleId && angle.angleId === selectedAngle.angleId)
+      // Check all photos (angles and backgrounds)
+      for (const [groupKey, photos] of Object.entries(groupedPhotos)) {
+        const found = photos.find(photo => 
+          (currentSelection.s3Key && photo.s3Key === currentSelection.s3Key) ||
+          (currentSelection.imageUrl && photo.imageUrl === currentSelection.imageUrl) ||
+          (currentSelection.angleId && photo.angleId === currentSelection.angleId) ||
+          (currentSelection.backgroundId && photo.backgroundId === currentSelection.backgroundId)
         );
         if (found) {
           return groupKey;
@@ -154,25 +261,26 @@ export function LocationAngleSelector({
     return productionHubGroups.length > 0 ? productionHubGroups[0] : groupKeys[0] || 'Creation';
   });
   
-  // Sync selectedGroup when selectedAngle changes externally
+  // Sync selectedGroup when currentSelection changes externally
   React.useEffect(() => {
-    if (selectedAngle) {
-      // Find which group the selected angle belongs to
+    if (currentSelection) {
+      // Find which group the selected reference belongs to
       if (baseReference && (
-        (selectedAngle.s3Key && baseReference.s3Key === selectedAngle.s3Key) ||
-        (selectedAngle.imageUrl && baseReference.imageUrl === selectedAngle.imageUrl)
+        (currentSelection.s3Key && baseReference.s3Key === currentSelection.s3Key) ||
+        (currentSelection.imageUrl && baseReference.imageUrl === currentSelection.imageUrl)
       )) {
         if (groupKeys.includes('Creation')) {
           setSelectedGroup('Creation');
         }
         return;
       }
-      // Check angleVariations
-      for (const [groupKey, angles] of Object.entries(groupedAngles)) {
-        const found = angles.find(angle => 
-          (selectedAngle.s3Key && angle.s3Key === selectedAngle.s3Key) ||
-          (selectedAngle.imageUrl && angle.imageUrl === selectedAngle.imageUrl) ||
-          (selectedAngle.angleId && angle.angleId === selectedAngle.angleId)
+      // Check all photos (angles and backgrounds)
+      for (const [groupKey, photos] of Object.entries(groupedPhotos)) {
+        const found = photos.find(photo => 
+          (currentSelection.s3Key && photo.s3Key === currentSelection.s3Key) ||
+          (currentSelection.imageUrl && photo.imageUrl === currentSelection.imageUrl) ||
+          (currentSelection.angleId && photo.angleId === currentSelection.angleId) ||
+          (currentSelection.backgroundId && photo.backgroundId === currentSelection.backgroundId)
         );
         if (found && groupKeys.includes(groupKey)) {
           setSelectedGroup(groupKey);
@@ -180,12 +288,12 @@ export function LocationAngleSelector({
         }
       }
     }
-  }, [selectedAngle, baseReference, groupedAngles, groupKeys]);
+  }, [currentSelection, baseReference, groupedPhotos, groupKeys]);
   
-  // Get angles for selected group
-  const allAngles = React.useMemo(() => {
-    return groupedAngles[selectedGroup] || [];
-  }, [groupedAngles, selectedGroup]);
+  // Get photos (angles + backgrounds) for selected group
+  const allPhotos = React.useMemo(() => {
+    return groupedPhotos[selectedGroup] || [];
+  }, [groupedPhotos, selectedGroup]);
 
   const getAngleLabel = (angle: string): string => {
     const labels: Record<string, string> = {
@@ -210,37 +318,43 @@ export function LocationAngleSelector({
     return labels[angle] || angle;
   };
 
-  const isSelected = (angle: typeof allAngles[0]): boolean => {
-    if (!selectedAngle) return false;
+  const isSelected = (photo: typeof allPhotos[0]): boolean => {
+    if (!currentSelection) return false;
     
     // Match by s3Key (most reliable)
-    if (angle.s3Key && selectedAngle.s3Key && angle.s3Key === selectedAngle.s3Key) {
+    if (photo.s3Key && currentSelection.s3Key && photo.s3Key === currentSelection.s3Key) {
       return true;
     }
     
     // Match by imageUrl
-    if (angle.imageUrl && selectedAngle.imageUrl && angle.imageUrl === selectedAngle.imageUrl) {
+    if (photo.imageUrl && currentSelection.imageUrl && photo.imageUrl === currentSelection.imageUrl) {
       return true;
     }
     
-    // Match by angleId
-    if (angle.angleId && selectedAngle.angleId && angle.angleId === selectedAngle.angleId) {
+    // Match by angleId (for angles)
+    if (photo.type === 'angle' && photo.angleId && currentSelection.angleId && photo.angleId === currentSelection.angleId) {
+      return true;
+    }
+    
+    // Match by backgroundId (for backgrounds)
+    if (photo.type === 'background' && photo.backgroundId && currentSelection.backgroundId && photo.backgroundId === currentSelection.backgroundId) {
       return true;
     }
     
     return false;
   };
 
-  const isRecommended = (angle: typeof allAngles[0]): boolean => {
-    if (!recommended) return false;
+  const isRecommended = (photo: typeof allPhotos[0]): boolean => {
+    if (!recommended || photo.type !== 'angle') return false;
     
     // Check if this angle matches the recommended one
-    if (recommended.angleId && angle.angleId && recommended.angleId === angle.angleId) {
+    if (recommended.angleId && photo.angleId && recommended.angleId === photo.angleId) {
       return true;
     }
     
     // If no angleId match, check if it's the first angle (fallback recommendation)
-    return allAngles.indexOf(angle) === 0;
+    const anglesOnly = allPhotos.filter(p => p.type === 'angle');
+    return anglesOnly.indexOf(photo) === 0;
   };
 
   // Controls section (left side) - Always show, even when no angles available
@@ -266,7 +380,7 @@ export function LocationAngleSelector({
                 onOptOutChange(e.target.checked);
                 if (e.target.checked) {
                   // Clear selection when opting out
-                  onAngleChange(locationId, undefined);
+                  handleSelectionChange(undefined);
                 }
               }}
               className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
@@ -303,21 +417,21 @@ export function LocationAngleSelector({
       {!optOut && (
         <>
           {/* Show message when no angles available */}
-          {allAngles.length === 0 && (
+          {allPhotos.length === 0 && (
             <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-              No location angles available. Use the checkbox above to describe the location instead.
+              No location angles or backgrounds available. Use the checkbox above to describe the location instead.
             </div>
           )}
           
           {/* Warning when using Creation image (last resort) */}
-          {isUsingCreationImage && allAngles.length > 0 && (
+          {isUsingCreationImage && allPhotos.length > 0 && (
             <div className="p-2 bg-yellow-900/20 border border-yellow-700/50 rounded text-[10px] text-yellow-300">
               ⚠️ Using creation image (last resort). No Production Hub images available. Consider generating location angles for better results.
             </div>
           )}
           
           {/* Time of Day/Weather Group Selector (similar to outfit dropdown) - Only show if angles available */}
-          {groupKeys.length > 1 && allAngles.length > 0 && (
+          {groupKeys.length > 1 && allPhotos.length > 0 && (
             <div className="flex items-center gap-2">
               <label className="text-xs text-[#808080]">Filter by:</label>
               <select
@@ -325,24 +439,25 @@ export function LocationAngleSelector({
                 onChange={(e) => {
                   const newGroup = e.target.value;
                   setSelectedGroup(newGroup);
-                  // Only clear selection if the selected angle is not in the new group
-                  if (selectedAngle) {
-                    const newGroupAngles = groupedAngles[newGroup] || [];
-                    const angleInNewGroup = newGroupAngles.find(angle =>
-                      (selectedAngle.s3Key && angle.s3Key === selectedAngle.s3Key) ||
-                      (selectedAngle.imageUrl && angle.imageUrl === selectedAngle.imageUrl) ||
-                      (selectedAngle.angleId && angle.angleId === selectedAngle.angleId)
+                  // Only clear selection if the selected reference is not in the new group
+                  if (currentSelection) {
+                    const newGroupPhotos = groupedPhotos[newGroup] || [];
+                    const photoInNewGroup = newGroupPhotos.find(photo =>
+                      (currentSelection.s3Key && photo.s3Key === currentSelection.s3Key) ||
+                      (currentSelection.imageUrl && photo.imageUrl === currentSelection.imageUrl) ||
+                      (currentSelection.angleId && photo.angleId === currentSelection.angleId) ||
+                      (currentSelection.backgroundId && photo.backgroundId === currentSelection.backgroundId)
                     );
-                    // Only clear if the selected angle is not in the new group
-                    if (!angleInNewGroup) {
-                      onAngleChange(locationId, undefined);
+                    // Only clear if the selected reference is not in the new group
+                    if (!photoInNewGroup) {
+                      handleSelectionChange(undefined);
                     }
                   }
                 }}
                 className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
               >
                 {groupKeys.map((groupKey) => {
-                  const count = groupedAngles[groupKey]?.length || 0;
+                  const count = groupedPhotos[groupKey]?.length || 0;
                   let displayName: string;
                   if (groupKey === 'Creation') {
                     displayName = 'Creation Image';
@@ -356,7 +471,7 @@ export function LocationAngleSelector({
                   }
                   return (
                     <option key={groupKey} value={groupKey}>
-                      {displayName} ({count})
+                      {displayName} ({count} photos)
                     </option>
                   );
                 })}
@@ -364,15 +479,16 @@ export function LocationAngleSelector({
             </div>
           )}
           
-          {/* Optional: Show metadata for selected angle */}
-          {selectedAngle && (() => {
-            const selected = allAngles.find(a => isSelected(a));
+          {/* Optional: Show metadata for selected reference */}
+          {currentSelection && (() => {
+            const selected = allPhotos.find(p => isSelected(p));
             if (selected && (selected.timeOfDay || selected.weather)) {
               return (
                 <div className="text-[10px] text-[#808080] mt-1">
                   {selected.timeOfDay && <span>Time: {selected.timeOfDay}</span>}
                   {selected.timeOfDay && selected.weather && <span className="mx-1">•</span>}
                   {selected.weather && <span>Weather: {selected.weather}</span>}
+                  {selected.badge && <span className="mx-1">• {selected.badge}</span>}
                 </div>
               );
             }
@@ -384,20 +500,23 @@ export function LocationAngleSelector({
   );
 
   // Image grid section (right side) - bigger thumbnails
+  // Shows both angles AND backgrounds from selected metadata group
   const imageGridSection = !optOut ? (
     <div className="grid grid-cols-4 gap-2">
-      {allAngles.map((angle, idx) => {
-        const selected = isSelected(angle);
-        const isRec = isRecommended(angle);
+      {allPhotos.map((photo, idx) => {
+        const selected = isSelected(photo);
+        const isRec = isRecommended(photo);
         
         return (
           <button
-            key={angle.s3Key || angle.imageUrl || `${angle.angle}-${idx}`}
+            key={photo.s3Key || photo.imageUrl || `${photo.type}-${photo.id || idx}`}
             onClick={() => {
-              onAngleChange(locationId, {
-                angleId: angle.angleId,
-                s3Key: angle.s3Key,
-                imageUrl: angle.imageUrl
+              handleSelectionChange({
+                type: photo.type,
+                angleId: photo.angleId,
+                backgroundId: photo.backgroundId,
+                s3Key: photo.s3Key,
+                imageUrl: photo.imageUrl
               });
             }}
             className={`relative aspect-square rounded border-2 transition-all ${
@@ -405,17 +524,17 @@ export function LocationAngleSelector({
                 ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                 : 'border-[#3F3F46] hover:border-[#808080]'
             }`}
-            title={`${getAngleLabel(angle.angle)}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}`}
+            title={`${photo.label}${photo.timeOfDay ? ` - ${photo.timeOfDay}` : ''}${photo.weather ? ` - ${photo.weather}` : ''}`}
           >
-            {angle.imageUrl ? (
+            {photo.imageUrl ? (
               <img
-                src={angle.imageUrl}
-                alt={angle.label || getAngleLabel(angle.angle)}
+                src={photo.imageUrl}
+                alt={photo.label}
                 className="w-full h-full object-cover rounded"
               />
             ) : (
               <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
-                {angle.label || getAngleLabel(angle.angle)}
+                {photo.label}
               </div>
             )}
             
@@ -431,11 +550,18 @@ export function LocationAngleSelector({
               </div>
             )}
             
-            {/* Angle label overlay */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-              <div className="text-[8px] text-white font-medium truncate">
-                {getAngleLabel(angle.angle)}
+            {/* Label and badge overlay */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-1.5">
+              <div className="text-[8px] text-white font-medium truncate mb-0.5">
+                {photo.label}
               </div>
+              {photo.badge && (
+                <div className={`text-[7px] ${
+                  photo.type === 'background' ? 'text-blue-300' : 'text-gray-300'
+                } truncate`}>
+                  {photo.badge}
+                </div>
+              )}
             </div>
           </button>
         );
