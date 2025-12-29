@@ -52,12 +52,20 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
  * Query hook for fetching media files list
  * Feature 0128: Added optional folderId parameter for folder filtering
  * Feature: Added includeAllFolders parameter to show all files regardless of folder
+ * Feature 0174: Added entityType and entityId parameters for efficient filtering
  */
-export function useMediaFiles(screenplayId: string, folderId?: string, enabled: boolean = true, includeAllFolders: boolean = false) {
+export function useMediaFiles(
+  screenplayId: string, 
+  folderId?: string, 
+  enabled: boolean = true, 
+  includeAllFolders: boolean = false,
+  entityType?: 'character' | 'location' | 'asset',
+  entityId?: string
+) {
   const { getToken } = useAuth();
 
   return useQuery<MediaFile[], Error>({
-    queryKey: ['media', 'files', screenplayId, folderId || 'root', includeAllFolders ? 'all' : 'filtered'],
+    queryKey: ['media', 'files', screenplayId, folderId || 'root', includeAllFolders ? 'all' : 'filtered', entityType, entityId],
     queryFn: async () => {
       const token = await getAuthToken(getToken);
       if (!token) {
@@ -72,6 +80,12 @@ export function useMediaFiles(screenplayId: string, folderId?: string, enabled: 
       }
       if (includeAllFolders) {
         params.append('includeAllFolders', 'true');
+      }
+      if (entityType) {
+        params.append('entityType', entityType);
+      }
+      if (entityId) {
+        params.append('entityId', entityId);
       }
 
       const response = await fetch(`${BACKEND_API_URL}/api/media/list?${params.toString()}`, {

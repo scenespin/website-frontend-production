@@ -456,8 +456,15 @@ export function CharacterDetailModal({
   // Media Library organizes as: Characters/[Character Name]/Outfits/[Outfit Name]/
   // Always call the hook (React rules), but disable the query when modal is closed or screenplayId is missing
   // 🔥 FIX: Use empty string as fallback for hook call (React requires consistent hook calls)
-  // 🔥 FIX: Use includeAllFolders=true to get files from all folders (not just root)
-  const { data: mediaFiles = [] } = useMediaFiles(screenplayId || '', undefined, isOpen && !!screenplayId, true);
+  // 🔥 FIX: Filter by character entityType and entityId for efficient querying (only loads files for this character)
+  const { data: mediaFiles = [] } = useMediaFiles(
+    screenplayId || '', 
+    undefined, 
+    isOpen && !!screenplayId, 
+    true, // includeAllFolders: true (needed to get files from outfit folders)
+    'character', // entityType: filter to character files only
+    character.id // entityId: filter to this specific character
+  );
   
   // Extract outfit names from Media Library folder paths
   const mediaLibraryOutfitNames = useMemo(() => {
