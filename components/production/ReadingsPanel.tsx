@@ -33,9 +33,6 @@ import {
 } from 'lucide-react';
 import type { MediaFile } from '@/types/media';
 import ScreenplayReadingModal from '../modals/ScreenplayReadingModal';
-import videojs from 'video.js';
-import 'video.js/dist/video-js.css';
-import '@videojs/themes/dist/sea/index.css';
 
 interface ReadingsPanelProps {
   className?: string;
@@ -88,8 +85,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const [playingReadingId, setPlayingReadingId] = useState<string | null>(null);
   const [showReadingModal, setShowReadingModal] = useState(false);
   const [deletingReadingId, setDeletingReadingId] = useState<string | null>(null);
-  const playerRefs = useRef<Map<string, any>>(new Map());
-  const initializingPlayers = useRef<Set<string>>(new Set()); // Track players being initialized
+  const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track audio elements for pause
   const downloadingFiles = useRef<Set<string>>(new Set()); // Track files being downloaded
 
   // Filter and group readings
@@ -300,15 +296,20 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const handlePlayPause = (readingId: string, audioFile: MediaFile) => {
     if (playingReadingId === readingId) {
       // Pause
-      const player = playerRefs.current.get(readingId);
-      if (player) {
-        player.pause();
+      const audio = audioRefs.current.get(readingId);
+      if (audio) {
+        audio.pause();
       }
       setPlayingReadingId(null);
     } else {
-      // Play
+      // Play - stop any currently playing audio
+      if (playingReadingId) {
+        const currentAudio = audioRefs.current.get(playingReadingId);
+        if (currentAudio) {
+          currentAudio.pause();
+        }
+      }
       setPlayingReadingId(readingId);
-      // Video.js player will be initialized in the AudioPlayer component
     }
   };
 
@@ -465,11 +466,11 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 onDownloadScene={handleDownloadScene}
                 onDownloadAll={() => handleDownloadAll(reading)}
                 onDelete={() => handleDeleteReading(reading)}
-                playerRef={(player: any) => {
-                  if (player) {
-                    playerRefs.current.set(reading.id, player);
+                audioRef={(audio: HTMLAudioElement | null) => {
+                  if (audio) {
+                    audioRefs.current.set(reading.id, audio);
                   } else {
-                    playerRefs.current.delete(reading.id);
+                    audioRefs.current.delete(reading.id);
                   }
                 }}
               />
@@ -503,7 +504,7 @@ interface ReadingCardProps {
   onDownloadScene: (sceneFile: MediaFile) => void;
   onDownloadAll: () => void;
   onDelete: () => void;
-  playerRef: (player: any) => void;
+  audioRef: (audio: HTMLAudioElement | null) => void;
 }
 
 function ReadingCard({
@@ -515,56 +516,23 @@ function ReadingCard({
   onDownloadScene,
   onDownloadAll,
   onDelete,
-  playerRef
+  audioRef
 }: ReadingCardProps) {
-  const playerContainerRef = useRef<HTMLAudioElement>(null);
-  const playerInstanceRef = useRef<any>(null);
-  const isInitializingRef = useRef<boolean>(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const { getToken } = useAuth();
 
-  // Track if we've already tried to initialize (to prevent retries on errors)
-  const hasTriedInitRef = useRef<boolean>(false);
-
-  // Initialize Video.js player
+  // Fetch presigned URL for audio playback
   useEffect(() => {
-    // Cleanup when not playing
     if (!isPlaying || !reading.combinedAudio) {
-      if (playerInstanceRef.current) {
-        try {
-          playerInstanceRef.current.dispose();
-        } catch (e) {
-          console.warn('[ReadingCard] Error disposing player:', e);
-        }
-        playerInstanceRef.current = null;
-        playerRef(null);
-      }
-      isInitializingRef.current = false;
-      hasTriedInitRef.current = false; // Reset so we can retry if needed
+      setAudioUrl(null);
+      setIsLoadingAudio(false);
       return;
     }
-    
-    // Prevent duplicate initialization
-    if (isInitializingRef.current || hasTriedInitRef.current || playerInstanceRef.current) {
-      return;
-    }
-    
-    // Wait for element to be in DOM with retry logic
-    if (!playerContainerRef.current) {
-      // Retry after a short delay if element isn't ready
-      const retryTimeout = setTimeout(() => {
-        if (playerContainerRef.current && isPlaying && !playerInstanceRef.current) {
-          // Element is now ready, continue with initialization
-          isInitializingRef.current = false;
-          hasTriedInitRef.current = false;
-        }
-      }, 200);
-      return () => clearTimeout(retryTimeout);
-    }
 
-    isInitializingRef.current = true;
-    hasTriedInitRef.current = true; // Mark that we've tried, even if it fails
-
-    const initializePlayer = async () => {
+    const fetchAudioUrl = async () => {
+      setIsLoadingAudio(true);
       try {
         const file = reading.combinedAudio!;
         const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
@@ -576,8 +544,8 @@ function ReadingCard({
             const token = await getToken({ template: 'wryda-backend' });
             if (!token) {
               console.error('[ReadingCard] Not authenticated');
-              isInitializingRef.current = false;
               toast.error('Not authenticated', { description: 'Please sign in to play audio' });
+              setIsLoadingAudio(false);
               return;
             }
             
@@ -596,30 +564,30 @@ function ReadingCard({
             if (!presignedResponse.ok) {
               const errorText = await presignedResponse.text();
               console.error('[ReadingCard] Presigned URL failed:', presignedResponse.status, errorText);
-              isInitializingRef.current = false;
               toast.error('Failed to load audio', { 
                 description: `Server returned ${presignedResponse.status}. Please try again.` 
               });
-              return; // Don't initialize player if we can't get URL
+              setIsLoadingAudio(false);
+              return;
             }
             
             const presignedData = await presignedResponse.json();
             downloadUrl = presignedData.downloadUrl;
           } catch (error: any) {
             console.error('[ReadingCard] Failed to get presigned URL:', error);
-            isInitializingRef.current = false;
             toast.error('Failed to load audio', { 
               description: error.message || 'Unable to generate secure download link' 
             });
-            return; // Don't initialize player if we can't get URL
+            setIsLoadingAudio(false);
+            return;
           }
         } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
           // For cloud storage files, get download URL from backend
           const token = await getToken({ template: 'wryda-backend' });
           if (!token) {
             console.error('[ReadingCard] Not authenticated');
-            isInitializingRef.current = false;
             toast.error('Not authenticated', { description: 'Please sign in to play audio' });
+            setIsLoadingAudio(false);
             return;
           }
           
@@ -628,138 +596,91 @@ function ReadingCard({
               'Authorization': `Bearer ${token}`,
             },
           });
-
+          
           if (response.ok) {
             const data = await response.json();
             downloadUrl = data.downloadUrl;
           } else {
             console.error('[ReadingCard] Failed to get cloud storage download URL');
-            isInitializingRef.current = false;
             toast.error('Failed to load audio', { 
               description: `Server returned ${response.status}` 
             });
+            setIsLoadingAudio(false);
             return;
           }
         } else {
           console.error('[ReadingCard] Unsupported storage type:', file.storageType);
-          isInitializingRef.current = false;
           toast.error('Unsupported storage type', { 
             description: 'This file cannot be played in the browser' 
           });
+          setIsLoadingAudio(false);
           return;
         }
 
-        if (!downloadUrl) {
-          console.error('[ReadingCard] No download URL available');
-          isInitializingRef.current = false;
-          toast.error('No download URL available', { 
-            description: 'Unable to generate playback URL' 
-          });
-          return;
+        if (downloadUrl) {
+          setAudioUrl(downloadUrl);
+          console.log('[ReadingCard] ✅ Audio URL loaded:', downloadUrl.substring(0, 100));
         }
-
-        // Ensure element is still in DOM before initializing
-        if (!playerContainerRef.current) {
-          console.error('[ReadingCard] Player container not in DOM');
-          isInitializingRef.current = false;
-          return;
-        }
-
-        // Check if player already exists (shouldn't happen, but safety check)
-        if (playerInstanceRef.current) {
-          console.warn('[ReadingCard] Player already exists, disposing old instance');
-          try {
-            playerInstanceRef.current.dispose();
-          } catch (e) {
-            console.warn('[ReadingCard] Error disposing existing player:', e);
-          }
-        }
-
-        // Initialize Video.js for audio playback
-        // Note: Video.js can handle audio when initialized on an <audio> element
-        const player = videojs(playerContainerRef.current, {
-          controls: true,
-          responsive: true,
-          fluid: true,
-          preload: 'auto',
-          sources: [{
-            src: downloadUrl,
-            type: 'audio/mpeg'
-          }],
-          errorDisplay: true,
-          // Audio-specific settings
-          audioOnlyMode: true, // This helps Video.js optimize for audio
-          audioPosterMode: false, // Don't show poster for audio
-        });
-
-        // Wait for player to be ready before setting up event handlers
-        player.ready(() => {
-          console.log('[ReadingCard] Player ready, source URL:', downloadUrl.substring(0, 100));
-          
-          // Check if source loaded successfully
-          player.on('loadstart', () => {
-            console.log('[ReadingCard] Source loading started');
-          });
-          
-          player.on('loadedmetadata', () => {
-            console.log('[ReadingCard] ✅ Source metadata loaded, duration:', player.duration());
-          });
-          
-          player.on('canplay', () => {
-            console.log('[ReadingCard] ✅ Source can play');
-            // Auto-play when source is ready (since user clicked Play button)
-            player.play().catch((playError: any) => {
-              console.error('[ReadingCard] Failed to auto-play:', playError);
-              // Browser may block autoplay - that's okay, user can click play button
-            });
-          });
-          
-          player.on('error', () => {
-            const error = player.error();
-            console.error('[ReadingCard] Video.js player error:', error);
-            console.error('[ReadingCard] Error code:', error?.code);
-            console.error('[ReadingCard] Error message:', error?.message);
-            console.error('[ReadingCard] Source URL:', downloadUrl);
-            
-            toast.error('Playback error', { 
-              description: error?.message || `Failed to load audio (code: ${error?.code || 'unknown'})` 
-            });
-          });
-        });
-
-        playerInstanceRef.current = player;
-        playerRef(player);
-        isInitializingRef.current = false; // Successfully initialized
-        
-        console.log('[ReadingCard] ✅ Player initialized successfully with source:', downloadUrl.substring(0, 100));
       } catch (error: any) {
-        console.error('[ReadingCard] Failed to initialize player:', error);
-        isInitializingRef.current = false;
-        toast.error('Failed to initialize player', { 
+        console.error('[ReadingCard] Failed to fetch audio URL:', error);
+        toast.error('Failed to load audio', { 
           description: error.message || 'Unknown error occurred' 
         });
+      } finally {
+        setIsLoadingAudio(false);
       }
     };
 
-    // Small delay to ensure DOM is ready
-    const timeoutId = setTimeout(() => {
-      initializePlayer();
-    }, 150);
+    fetchAudioUrl();
+  }, [isPlaying, reading.combinedAudio, getToken]);
+
+  // Handle audio playback
+  useEffect(() => {
+    if (!audioRef.current || !audioUrl || !isPlaying) return;
+
+    const audio = audioRef.current;
+    
+    // Auto-play when URL is ready
+    const playAudio = async () => {
+      try {
+        await audio.play();
+        console.log('[ReadingCard] ✅ Audio playback started');
+      } catch (playError: any) {
+        console.error('[ReadingCard] Failed to auto-play:', playError);
+        // Browser may block autoplay - user can click play button
+      }
+    };
+
+    // Register audio element with parent
+    audioRef(audio);
+
+    // Wait for metadata to load before playing
+    const handleLoadedMetadata = () => {
+      console.log('[ReadingCard] ✅ Audio metadata loaded, duration:', audio.duration);
+      playAudio();
+    };
+
+    const handleError = (e: Event) => {
+      console.error('[ReadingCard] Audio playback error:', e);
+      const error = audio.error;
+      if (error) {
+        console.error('[ReadingCard] Error code:', error.code);
+        console.error('[ReadingCard] Error message:', error.message);
+        toast.error('Playback error', { 
+          description: error.message || `Failed to play audio (code: ${error.code || 'unknown'})` 
+        });
+      }
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('error', handleError);
 
     return () => {
-      clearTimeout(timeoutId);
-      if (playerInstanceRef.current) {
-        try {
-          playerInstanceRef.current.dispose();
-        } catch (e) {
-          console.warn('[ReadingCard] Error disposing player:', e);
-        }
-        playerInstanceRef.current = null;
-        playerRef(null);
-      }
-      isInitializingRef.current = false;
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('error', handleError);
+      audioRef(null); // Unregister on cleanup
     };
-  }, [isPlaying, reading.combinedAudio, getToken, playerRef]); // Include all dependencies
+  }, [audioUrl, isPlaying, audioRef]);
 
   // Helper function to format duration (seconds to MM:SS or HH:MM:SS)
   const formatDuration = (seconds?: number): string => {
@@ -816,9 +737,32 @@ function ReadingCard({
       {/* Audio Player (only show when playing) */}
       {isPlaying && reading.combinedAudio && (
         <div className="mb-3">
-          <div data-vjs-player>
-            <audio ref={playerContainerRef} className="video-js vjs-theme-sea vjs-big-play-centered" />
-          </div>
+          {isLoadingAudio ? (
+            <div className="flex items-center justify-center py-4 text-gray-400 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              Loading audio...
+            </div>
+          ) : audioUrl ? (
+            <audio
+              ref={audioRef}
+              src={audioUrl}
+              controls
+              preload="auto"
+              className="w-full"
+              onError={(e) => {
+                console.error('[ReadingCard] Audio element error:', e);
+                toast.error('Failed to load audio', { 
+                  description: 'The audio file may be corrupted or the URL expired' 
+                });
+              }}
+            >
+              Your browser does not support the audio element.
+            </audio>
+          ) : (
+            <div className="text-center py-4 text-gray-400 text-sm">
+              Failed to load audio URL
+            </div>
+          )}
         </div>
       )}
 
