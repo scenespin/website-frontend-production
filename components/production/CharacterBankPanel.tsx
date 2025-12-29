@@ -11,6 +11,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { CharacterProfile } from './types';
 import { User, Loader2, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -382,7 +383,7 @@ export function CharacterBankPanel({
           baseReferenceS3Key={poseCharacter.baseReferenceS3Key}
           onComplete={async () => {
             toast.success(`Pose generation started for ${poseCharacter.name}!`, {
-              description: 'Check the Jobs tab to track progress.'
+              description: `Estimated time: ${getEstimatedDuration('pose-generation')}. Check the Jobs tab to track progress.`
             });
             setShowPoseModal(false);
             setPoseCharacter(null);

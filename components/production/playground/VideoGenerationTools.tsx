@@ -13,6 +13,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Video, Image as ImageIcon, Loader2, Upload, X, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { GenerationPreview } from './GenerationPreview';
@@ -252,7 +253,9 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         // For async jobs, we might get a job ID - show message
         const jobId = result.data?.jobId || result.jobId;
         if (jobId) {
-          toast.success('Video generation started! Check Jobs panel for progress.');
+          toast.success('Video generation started!', {
+            description: `Estimated time: ${getEstimatedDuration('complete-scene')}. Check Jobs panel for progress.`
+          });
         } else {
           // Try to construct from S3 key if available
           const s3Key = result.data?.s3Key || result.data?.key;

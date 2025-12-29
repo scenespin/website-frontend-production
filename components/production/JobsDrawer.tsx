@@ -29,6 +29,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { Z_INDEX } from '@/config/z-index';
+import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -708,6 +709,32 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
   };
 
+
+  /**
+   * Calculate estimated remaining time for a running job
+   */
+  const getEstimatedRemaining = (job: WorkflowJob): string | null => {
+    if (job.status !== 'running' && job.status !== 'queued') return null;
+    if (job.progress === 0) return null; // Can't estimate if no progress yet
+    
+    const elapsed = new Date().getTime() - new Date(job.createdAt).getTime();
+    const elapsedMinutes = elapsed / 60000;
+    
+    // Estimate: if 20% done in X minutes, remaining is 4X minutes
+    if (job.progress > 0 && job.progress < 100) {
+      const estimatedTotalMinutes = elapsedMinutes / (job.progress / 100);
+      const remainingMinutes = estimatedTotalMinutes - elapsedMinutes;
+      
+      if (remainingMinutes < 1) return '< 1 min';
+      if (remainingMinutes < 60) return `~${Math.round(remainingMinutes)} min`;
+      const hours = Math.floor(remainingMinutes / 60);
+      const mins = Math.round(remainingMinutes % 60);
+      return `~${hours}h ${mins}m`;
+    }
+    
+    return null;
+  };
+
   /**
    * Format timestamp
    */
@@ -784,6 +811,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                     </div>
                     <p className="text-[10px] text-[#808080]">
                       {formatTime(job.createdAt)} · {job.creditsUsed} credits
+                      {(job.status === 'running' || job.status === 'queued') && getEstimatedRemaining(job) && (
+                        <span className="ml-1.5 text-blue-400">· ~{getEstimatedRemaining(job)} remaining</span>
+                      )}
                     </p>
                   </div>
 
