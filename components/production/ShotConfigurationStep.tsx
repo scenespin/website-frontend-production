@@ -478,12 +478,12 @@ export function ShotConfigurationStep({
           <div className="flex gap-3 pt-3 border-t border-[#3F3F46]">
             <Button
               onClick={handlePrevious}
-              disabled={isTransitioning || shotIndex === 0}
+              disabled={isTransitioning}
               variant="outline"
               className="flex-1 border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1A1A1A]"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Previous
+              {shotIndex === 0 ? 'Back to Analysis' : 'Previous'}
             </Button>
             <Button
               onClick={handleNext}

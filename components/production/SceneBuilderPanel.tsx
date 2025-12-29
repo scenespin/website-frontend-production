@@ -3315,9 +3315,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     if (currentShotIndex > 0) {
                       setCurrentShotIndex(currentShotIndex - 1);
                     } else {
-                      // Go back to Scene Analysis & Shot Selection (Step 2)
+                      // Go back to Scene Analysis & Shot Selection
+                      // Scene Analysis is shown when currentStep === 1 && hasConfirmedSceneSelection
                       setWizardStep('analysis');
-                      setCurrentStep(2);
+                      setCurrentStep(1);
                     }
                   }}
                   onNext={() => {
