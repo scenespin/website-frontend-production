@@ -517,7 +517,7 @@ function ReadingCard({
   onDelete,
   playerRef
 }: ReadingCardProps) {
-  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const playerContainerRef = useRef<HTMLAudioElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const isInitializingRef = useRef<boolean>(false);
   const { getToken } = useAuth();
