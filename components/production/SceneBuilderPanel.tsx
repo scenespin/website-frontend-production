@@ -50,6 +50,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 // Removed SceneBuilderProgress - using Jobs panel instead
+import { JobsDrawer } from './JobsDrawer';
 import { SceneBuilderDecisionModal } from '@/components/video/SceneBuilderDecisionModal';
 import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
 import { ShotConfigurationStep } from './ShotConfigurationStep';
