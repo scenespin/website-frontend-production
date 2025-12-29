@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
+import { GenerateLocationTab } from './Coverage/GenerateLocationTab';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import {
@@ -122,7 +123,7 @@ export function LocationDetailModal({
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'generate'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
@@ -411,9 +412,9 @@ export function LocationDetailModal({
   };
 
 
-  const handleGenerateAngles = () => {
-    // Open angle generation modal
-    setShowAngleModal(true);
+  const handleGeneratePackages = () => {
+    // Switch to Generate tab
+    setActiveTab('generate');
   };
 
   // 🔥 REMOVED: handleReframeAngles - Luma reframe removed (Photon maxes at 1080p, not worth it)
@@ -503,16 +504,31 @@ export function LocationDetailModal({
                 <Box className="w-4 h-4 inline mr-2" />
                 References ({allImages.length})
               </button>
+              <button
+                onClick={() => setActiveTab('generate')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'generate'
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                }`}
+              >
+                <span className="text-base mr-2">🤖</span>
+                Generate
+              </button>
               
-              {/* Generate Angle Package Button - Always visible */}
+              {/* Generate Packages Button - Always visible */}
               <div className="ml-auto">
                 <button
-                  onClick={handleGenerateAngles}
+                  onClick={handleGeneratePackages}
                   disabled={isGeneratingAngles}
-                  className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                  className={`px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium ${
+                    activeTab === 'generate'
+                      ? 'bg-[#DC143C] text-white'
+                      : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                  }`}
                 >
                   <span className="text-base">🤖</span>
-                  {isGeneratingAngles ? 'Generating...' : 'Generate Angle Package'}
+                  {isGeneratingAngles ? 'Generating...' : 'Generate Packages'}
                 </button>
               </div>
             </div>
@@ -950,6 +966,31 @@ export function LocationDetailModal({
                       <p className="text-[#808080] mb-4">No reference images yet</p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Generate Tab */}
+              {activeTab === 'generate' && (
+                <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
+                  <GenerateLocationTab
+                    locationId={location.locationId}
+                    locationName={location.name}
+                    screenplayId={screenplayId || ''}
+                    locationProfile={location}
+                    location={location}
+                    onClose={onClose}
+                    onComplete={async (result) => {
+                      // Job started - tab will close, job runs in background
+                      // User can track progress in Jobs tab
+                      // Location data will refresh automatically when job completes
+                      if (result?.jobId) {
+                        toast.success(`${result.type === 'angles' ? 'Angle' : 'Background'} generation started!`, {
+                          description: 'View in Jobs tab to track progress.',
+                          duration: 5000
+                        });
+                      }
+                    }}
+                  />
                 </div>
               )}
             </div>
