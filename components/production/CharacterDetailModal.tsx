@@ -616,6 +616,46 @@ export function CharacterDetailModal({
         return { imgKey: imgKey.substring(0, 120), matches: matches.slice(0, 3) };
       });
       
+      // 🔥 EXPANDED: Log full s3Keys for first 3 images and all Media Library files
+      const fullComparison = {
+        allImageS3Keys: allImageS3Keys.slice(0, 3).map((imgKey, idx) => ({
+          index: idx,
+          imageId: allImages[idx]?.id,
+          isBase: (allImages[idx] as any)?.isBase,
+          fullS3Key: imgKey,
+          s3KeyLength: imgKey?.length,
+        })),
+        mediaFileS3Keys: mediaFileS3Keys.map((mlKey, idx) => ({
+          index: idx,
+          fullS3Key: mlKey,
+          thumbnailS3Key: mediaFiles[idx]?.thumbnailS3Key,
+          s3KeyLength: mlKey?.length,
+        })),
+        matches: allImageS3Keys.slice(0, 3).map((imgKey, imgIdx) => {
+          if (!imgKey) return { imageIndex: imgIdx, matches: [] };
+          return {
+            imageIndex: imgIdx,
+            imageId: allImages[imgIdx]?.id,
+            imageS3Key: imgKey,
+            matches: mediaFileS3Keys.map((mlKey, mlIdx) => {
+              const exactMatch = mlKey === imgKey;
+              const endsWithMatch = mlKey.endsWith(imgKey) || imgKey.endsWith(mlKey);
+              const imgFilename = imgKey.split('/').pop() || '';
+              const mlFilename = mlKey.split('/').pop() || '';
+              const filenameMatch = imgFilename === mlFilename && imgFilename.length > 0;
+              return {
+                exactMatch,
+                endsWithMatch,
+                filenameMatch,
+                mediaFileIndex: mlIdx,
+                mediaFileS3Key: mlKey,
+                thumbnailS3Key: mediaFiles[mlIdx]?.thumbnailS3Key,
+              };
+            }).filter(m => m.exactMatch || m.endsWithMatch || m.filenameMatch)
+          };
+        })
+      };
+      
       console.log('[CharacterDetailModal] 🔍 Thumbnail mapping:', {
         mediaFilesCount: mediaFiles.length,
         mediaFilesWithThumbnails: mediaFiles.filter((f: any) => f.thumbnailS3Key).length,
@@ -635,9 +675,7 @@ export function CharacterDetailModal({
           s3Key: k.substring(0, 120),
           thumbnailS3Key: v.substring(0, 120)
         })),
-        allImageS3KeysSample: allImageS3Keys.slice(0, 5).map(k => k ? k.substring(0, 120) : 'null'),
-        mediaFileS3KeysSample: mediaFileS3Keys.slice(0, 5).map(k => k ? k.substring(0, 120) : 'null'),
-        detailedComparison,
+        fullComparison,
         entityQueryUsed: entityMediaFiles.length > 0,
         fallbackQueryUsed: entityMediaFiles.length === 0 && allMediaFiles.length > 0,
       });
@@ -706,6 +744,19 @@ export function CharacterDetailModal({
   
   // Convert to GalleryImage format for ModernGallery
   const galleryImages: GalleryImage[] = useMemo(() => {
+    // 🔥 FIX: Create reverse lookup from thumbnailS3Key -> image s3Key for cases where map is empty
+    // This handles cases where thumbnailS3Keys come from metadata instead of Media Library map
+    const thumbnailS3KeyToImageS3Key = new Map<string, string>();
+    allImages.forEach((img) => {
+      const s3Key = img.s3Key;
+      if (!s3Key) return;
+      // Try map first, then metadata
+      const thumbnailS3Key = thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key;
+      if (thumbnailS3Key) {
+        thumbnailS3KeyToImageS3Key.set(thumbnailS3Key, s3Key);
+      }
+    });
+    
     return allImages.map((img) => {
       // Feature 0174: Get thumbnail S3 key from Media Library or metadata
       const s3Key = img.s3Key;
@@ -715,19 +766,44 @@ export function CharacterDetailModal({
       let thumbnailUrl = img.imageUrl;
       if (thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key)) {
         thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
+      } else {
+        // 🔥 FALLBACK: Try to find thumbnail URL by iterating through fetched URLs
+        // This handles cases where we have URLs but the map lookup failed
+        for (const [fetchedThumbnailS3Key, fetchedUrl] of thumbnailUrls.entries()) {
+          // Check if this thumbnail belongs to this image (via reverse lookup or metadata)
+          const imageS3KeyForThumbnail = thumbnailS3KeyToImageS3Key.get(fetchedThumbnailS3Key);
+          if (imageS3KeyForThumbnail === s3Key) {
+            thumbnailUrl = fetchedUrl;
+            break;
+          }
+          // Also check if thumbnailS3Key matches (in case metadata has it)
+          if (thumbnailS3Key === fetchedThumbnailS3Key) {
+            thumbnailUrl = fetchedUrl;
+            break;
+          }
+        }
       }
       
       // 🔥 DEBUG: Log first image's thumbnail status (only once per render)
       if (isOpen && img === allImages[0] && allImages.length > 0) {
         const metadata = (img as any).metadata || {};
+        const allThumbnailS3Keys = Array.from(thumbnailUrls.keys());
+        const matchingThumbnailKey = allThumbnailS3Keys.find(key => {
+          const imageS3KeyForThumbnail = thumbnailS3KeyToImageS3Key.get(key);
+          return imageS3KeyForThumbnail === s3Key || key === thumbnailS3Key;
+        });
         console.log('[CharacterDetailModal] 🔍 First image thumbnail status:', {
           imageId: img.id,
-          s3Key: s3Key?.substring(0, 80),
-          thumbnailS3Key: thumbnailS3Key?.substring(0, 80),
+          s3Key: s3Key?.substring(0, 100),
+          thumbnailS3Key: thumbnailS3Key?.substring(0, 100),
           thumbnailS3KeySource: thumbnailS3Key ? (thumbnailS3KeyMap.has(s3Key!) ? 'thumbnailS3KeyMap' : 'metadata') : 'none',
           hasThumbnailUrl: thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key),
-          thumbnailUrl: thumbnailUrl?.substring(0, 80),
+          thumbnailUrl: thumbnailUrl?.substring(0, 100),
           usingThumbnail: thumbnailUrl !== img.imageUrl,
+          thumbnailUrlsMapSize: thumbnailUrls.size,
+          allThumbnailS3KeysSample: allThumbnailS3Keys.slice(0, 3).map(k => k.substring(0, 80)),
+          matchingThumbnailKey: matchingThumbnailKey?.substring(0, 80),
+          reverseLookupFound: matchingThumbnailKey !== undefined,
           imageMetadata: {
             entityType: metadata.entityType,
             entityId: metadata.entityId,
