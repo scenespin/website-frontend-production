@@ -32,6 +32,7 @@ import {
   Trash2,
   RefreshCw,
   ArrowRight,
+  ArrowLeft,
   Film,
   Save,
   Loader2,
