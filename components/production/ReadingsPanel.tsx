@@ -675,17 +675,21 @@ function ReadingCard({
           }
         }
 
-        // Initialize Video.js
+        // Initialize Video.js for audio playback
+        // Note: Video.js can handle audio when initialized on an <audio> element
         const player = videojs(playerContainerRef.current, {
           controls: true,
           responsive: true,
           fluid: true,
-          preload: 'auto', // Changed to 'auto' to load the source
+          preload: 'auto',
           sources: [{
             src: downloadUrl,
             type: 'audio/mpeg'
           }],
           errorDisplay: true,
+          // Audio-specific settings
+          audioOnlyMode: true, // This helps Video.js optimize for audio
+          audioPosterMode: false, // Don't show poster for audio
         });
 
         // Wait for player to be ready before setting up event handlers
@@ -813,7 +817,7 @@ function ReadingCard({
       {isPlaying && reading.combinedAudio && (
         <div className="mb-3">
           <div data-vjs-player>
-            <div ref={playerContainerRef} className="video-js vjs-theme-sea" />
+            <audio ref={playerContainerRef} className="video-js vjs-theme-sea vjs-big-play-centered" />
           </div>
         </div>
       )}
