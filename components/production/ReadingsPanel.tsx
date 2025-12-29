@@ -518,7 +518,7 @@ function ReadingCard({
   onDelete,
   audioRef
 }: ReadingCardProps) {
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioElementRef = useRef<HTMLAudioElement>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const { getToken } = useAuth();
@@ -636,9 +636,9 @@ function ReadingCard({
 
   // Handle audio playback
   useEffect(() => {
-    if (!audioRef.current || !audioUrl || !isPlaying) return;
+    if (!audioElementRef.current || !audioUrl || !isPlaying) return;
 
-    const audio = audioRef.current;
+    const audio = audioElementRef.current;
     
     // Auto-play when URL is ready
     const playAudio = async () => {
@@ -744,7 +744,7 @@ function ReadingCard({
             </div>
           ) : audioUrl ? (
             <audio
-              ref={audioRef}
+              ref={audioElementRef}
               src={audioUrl}
               controls
               preload="auto"
