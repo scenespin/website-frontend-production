@@ -2720,22 +2720,39 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                               </div>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                              {/* Continue Button - Moved to top of Scene Preview */}
-                              <Button
-                                onClick={() => {
-                                  if (wizardStep === 'analysis') {
-                                    // Move to first shot configuration
-                                    setWizardStep('shot-config');
-                                    setCurrentShotIndex(0);
-                                    setCurrentStep(2); // Step 2 is used for shot configuration when wizardStep === 'shot-config'
-                                  }
-                                }}
-                                disabled={enabledShots.length === 0}
-                                className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white h-11 text-sm px-4 py-2.5"
-                              >
-                                Direct {enabledShots.length} {enabledShots.length === 1 ? 'Shot' : 'Shots'}
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
+                              {/* Navigation Buttons - Back to Scene Selection and Direct Shots */}
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() => {
+                                    // Go back to Scene Selection
+                                    setCurrentStep(1);
+                                    setHasConfirmedSceneSelection(false);
+                                    setWizardStep('analysis');
+                                    setSceneAnalysisResult(null);
+                                    setAnalysisError(null);
+                                  }}
+                                  variant="outline"
+                                  className="flex-1 border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1A1A1A] h-11 text-sm"
+                                >
+                                  <ArrowLeft className="w-4 h-4 mr-2" />
+                                  Back to Selection
+                                </Button>
+                                <Button
+                                  onClick={() => {
+                                    if (wizardStep === 'analysis') {
+                                      // Move to first shot configuration
+                                      setWizardStep('shot-config');
+                                      setCurrentShotIndex(0);
+                                      setCurrentStep(2); // Step 2 is used for shot configuration when wizardStep === 'shot-config'
+                                    }
+                                  }}
+                                  disabled={enabledShots.length === 0}
+                                  className="flex-1 bg-[#DC143C] hover:bg-[#B91238] text-white h-11 text-sm"
+                                >
+                                  Direct {enabledShots.length} {enabledShots.length === 1 ? 'Shot' : 'Shots'}
+                                  <ArrowRight className="w-4 h-4 ml-2" />
+                                </Button>
+                              </div>
                               
                               {/* Scene Heading */}
                               {scene.heading && (
