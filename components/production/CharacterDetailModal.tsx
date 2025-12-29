@@ -554,18 +554,43 @@ export function CharacterDetailModal({
       const sampleImage = allImages[0];
       const sampleS3Key = (sampleImage as any).s3Key;
       const matchingFile = mediaFiles.find((f: any) => f.s3Key === sampleS3Key);
+      
+      // Check for partial matches (in case s3Keys don't match exactly)
+      const partialMatches = mediaFiles.filter((f: any) => {
+        if (!f.s3Key || !sampleS3Key) return false;
+        // Check if either key contains the other (for debugging)
+        return f.s3Key.includes(sampleS3Key.substring(0, 50)) || sampleS3Key.includes(f.s3Key.substring(0, 50));
+      });
+      
+      // Get all image s3Keys for comparison
+      const allImageS3Keys = allImages.map((img: any) => img.s3Key).filter(Boolean);
+      const mediaFileS3Keys = mediaFiles.map((f: any) => f.s3Key).filter(Boolean);
+      
       console.log('[CharacterDetailModal] 🔍 Thumbnail mapping:', {
         mediaFilesCount: mediaFiles.length,
         mediaFilesWithThumbnails: mediaFiles.filter((f: any) => f.thumbnailS3Key).length,
         allImagesCount: allImages.length,
-        sampleImageS3Key: sampleS3Key?.substring(0, 80),
-        sampleImageMetadata: (sampleImage as any).metadata,
+        sampleImageS3Key: sampleS3Key,
+        sampleImageId: sampleImage.id,
         matchingFileFound: !!matchingFile,
-        matchingFileThumbnailS3Key: matchingFile?.thumbnailS3Key?.substring(0, 80),
+        matchingFileS3Key: matchingFile?.s3Key,
+        matchingFileThumbnailS3Key: matchingFile?.thumbnailS3Key,
+        partialMatchesCount: partialMatches.length,
+        partialMatchS3Keys: partialMatches.slice(0, 2).map((f: any) => ({
+          s3Key: f.s3Key?.substring(0, 80),
+          thumbnailS3Key: f.thumbnailS3Key?.substring(0, 80),
+        })),
         thumbnailMapSize: map.size,
         thumbnailMapEntries: Array.from(map.entries()).slice(0, 3).map(([k, v]) => ({
-          s3Key: k.substring(0, 60),
-          thumbnailS3Key: v.substring(0, 60)
+          s3Key: k,
+          thumbnailS3Key: v
+        })),
+        allImageS3KeysSample: allImageS3Keys.slice(0, 3),
+        mediaFileS3KeysSample: mediaFileS3Keys.slice(0, 3),
+        s3KeyMatchCheck: allImageS3Keys.slice(0, 1).map(imgKey => ({
+          imgKey: imgKey?.substring(0, 80),
+          hasExactMatch: mediaFileS3Keys.some(mlKey => mlKey === imgKey),
+          hasPartialMatch: mediaFileS3Keys.some(mlKey => mlKey?.includes(imgKey?.substring(0, 50) || '') || imgKey?.includes(mlKey?.substring(0, 50) || '')),
         })),
       });
     }

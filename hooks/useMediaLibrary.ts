@@ -97,13 +97,37 @@ export function useMediaFiles(
       if (!response.ok) {
         if (response.status === 404) {
           // No files found - return empty array (not an error)
+          console.warn('[useMediaFiles] No files found (404):', { screenplayId, folderId, entityType, entityId });
           return [];
         }
+        const errorText = await response.text();
+        console.error('[useMediaFiles] Failed to fetch media files:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText.substring(0, 200),
+          params: { screenplayId, folderId, entityType, entityId },
+        });
         throw new Error(`Failed to fetch media files: ${response.status} ${response.statusText}`);
       }
 
       const data: MediaFileListResponse = await response.json();
       const backendFiles = data.files || [];
+      
+      // 🔥 DEBUG: Log query results
+      if (entityType || entityId) {
+        console.log('[useMediaFiles] Entity query results:', {
+          entityType,
+          entityId,
+          filesFound: backendFiles.length,
+          filesWithThumbnails: backendFiles.filter((f: any) => f.metadata?.thumbnailS3Key).length,
+          sampleFiles: backendFiles.slice(0, 2).map((f: any) => ({
+            s3Key: f.s3Key?.substring(0, 60),
+            entityType: f.entityType || f.metadata?.entityType,
+            entityId: f.entityId || f.metadata?.entityId,
+            thumbnailS3Key: f.thumbnailS3Key || f.metadata?.thumbnailS3Key?.substring(0, 60),
+          })),
+        });
+      }
 
       // Map backend format to frontend MediaFile format
       // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt, metadata }
