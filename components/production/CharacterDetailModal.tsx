@@ -551,13 +551,22 @@ export function CharacterDetailModal({
     
     // 🔥 DEBUG: Log thumbnail mapping for troubleshooting
     if (isOpen && allImages.length > 0) {
+      const sampleImage = allImages[0];
+      const sampleS3Key = (sampleImage as any).s3Key;
+      const matchingFile = mediaFiles.find((f: any) => f.s3Key === sampleS3Key);
       console.log('[CharacterDetailModal] 🔍 Thumbnail mapping:', {
         mediaFilesCount: mediaFiles.length,
         mediaFilesWithThumbnails: mediaFiles.filter((f: any) => f.thumbnailS3Key).length,
         allImagesCount: allImages.length,
-        allImageS3Keys: allImages.map((img: any) => img.s3Key).filter(Boolean),
+        sampleImageS3Key: sampleS3Key?.substring(0, 80),
+        sampleImageMetadata: (sampleImage as any).metadata,
+        matchingFileFound: !!matchingFile,
+        matchingFileThumbnailS3Key: matchingFile?.thumbnailS3Key?.substring(0, 80),
         thumbnailMapSize: map.size,
-        thumbnailMapEntries: Array.from(map.entries()).slice(0, 5), // First 5 for debugging
+        thumbnailMapEntries: Array.from(map.entries()).slice(0, 3).map(([k, v]) => ({
+          s3Key: k.substring(0, 60),
+          thumbnailS3Key: v.substring(0, 60)
+        })),
       });
     }
     
@@ -580,7 +589,14 @@ export function CharacterDetailModal({
     if (isOpen && keys.length > 0) {
       console.log('[CharacterDetailModal] 🔍 Thumbnail S3 keys to fetch:', {
         count: keys.length,
-        keys: keys.slice(0, 5), // First 5 for debugging
+        keys: keys.slice(0, 3).map(k => k.substring(0, 80)), // First 3 for debugging
+        allImageS3Keys: allImages.map((img: any) => img.s3Key).filter(Boolean).slice(0, 3).map((k: string) => k.substring(0, 60)),
+      });
+    } else if (isOpen && allImages.length > 0) {
+      console.log('[CharacterDetailModal] ⚠️ No thumbnail S3 keys found!', {
+        allImagesCount: allImages.length,
+        allImageS3Keys: allImages.map((img: any) => img.s3Key).filter(Boolean).slice(0, 3),
+        thumbnailMapSize: thumbnailS3KeyMap.size,
       });
     }
     
@@ -598,12 +614,22 @@ export function CharacterDetailModal({
     if (isOpen && thumbnailS3Keys.length > 0) {
       console.log('[CharacterDetailModal] 🔍 Thumbnail URL fetch status:', {
         thumbnailS3KeysCount: thumbnailS3Keys.length,
+        thumbnailS3KeysSample: thumbnailS3Keys.slice(0, 2).map(k => k.substring(0, 60)),
         thumbnailUrlsCount: thumbnailUrls.size,
         isLoading: thumbnailsLoading,
-        thumbnailUrlsSample: Array.from(thumbnailUrls.entries()).slice(0, 3), // First 3 for debugging
+        thumbnailUrlsSample: Array.from(thumbnailUrls.entries()).slice(0, 2).map(([k, v]) => ({
+          s3Key: k.substring(0, 60),
+          url: v.substring(0, 60)
+        })),
+        missingUrls: thumbnailS3Keys.filter(k => !thumbnailUrls.has(k)).slice(0, 2).map(k => k.substring(0, 60)),
+      });
+    } else if (isOpen && thumbnailS3Keys.length === 0) {
+      console.log('[CharacterDetailModal] ⚠️ No thumbnail S3 keys to fetch!', {
+        allImagesCount: allImages.length,
+        thumbnailS3KeyMapSize: thumbnailS3KeyMap.size,
       });
     }
-  }, [isOpen, thumbnailS3Keys.length, thumbnailUrls.size, thumbnailsLoading, thumbnailUrls]);
+  }, [isOpen, thumbnailS3Keys.length, thumbnailUrls.size, thumbnailsLoading, thumbnailUrls, thumbnailS3Keys, thumbnailS3KeyMap.size, allImages.length]);
   
   // Convert to GalleryImage format for ModernGallery
   const galleryImages: GalleryImage[] = useMemo(() => {
@@ -618,14 +644,22 @@ export function CharacterDetailModal({
         thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
       }
       
-      // 🔥 DEBUG: Log first image's thumbnail status
+      // 🔥 DEBUG: Log first image's thumbnail status (only once per render)
       if (isOpen && img === allImages[0] && allImages.length > 0) {
+        const metadata = (img as any).metadata || {};
         console.log('[CharacterDetailModal] 🔍 First image thumbnail status:', {
-          s3Key: s3Key?.substring(0, 50),
-          thumbnailS3Key: thumbnailS3Key?.substring(0, 50),
+          imageId: img.id,
+          s3Key: s3Key?.substring(0, 80),
+          thumbnailS3Key: thumbnailS3Key?.substring(0, 80),
+          thumbnailS3KeySource: thumbnailS3Key ? (thumbnailS3KeyMap.has(s3Key!) ? 'thumbnailS3KeyMap' : 'metadata') : 'none',
           hasThumbnailUrl: thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key),
-          thumbnailUrl: thumbnailUrl?.substring(0, 50),
+          thumbnailUrl: thumbnailUrl?.substring(0, 80),
           usingThumbnail: thumbnailUrl !== img.imageUrl,
+          imageMetadata: {
+            entityType: metadata.entityType,
+            entityId: metadata.entityId,
+            thumbnailS3Key: metadata.thumbnailS3Key?.substring(0, 60),
+          },
         });
       }
       
