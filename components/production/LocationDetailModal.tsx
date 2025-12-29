@@ -504,17 +504,6 @@ export function LocationDetailModal({
                 <Box className="w-4 h-4 inline mr-2" />
                 References ({allImages.length})
               </button>
-              <button
-                onClick={() => setActiveTab('generate')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'generate'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <span className="text-base mr-2">🤖</span>
-                Generate
-              </button>
               
               {/* Generate Packages Button - Always visible */}
               <div className="ml-auto">

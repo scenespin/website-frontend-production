@@ -15,6 +15,7 @@ interface LocationBackgroundPackage {
   name: string;
   backgroundTypes: string[];
   credits: number;
+  consistencyRating: number;
   description: string;
   bestFor: string[];
   discount: number;
@@ -59,6 +60,7 @@ export default function LocationBackgroundPackageSelector({
       name: 'Basic Package',
       backgroundTypes: ['window', 'wall', 'doorway'],
       credits: calculatePackageCredits(3), // 3 backgrounds × creditsPerImage
+      consistencyRating: 70,
       description: 'Essential 3 backgrounds for close-up shots',
       bestFor: ['Quick dialogue', 'Simple close-ups', 'Basic coverage'],
       discount: 0
@@ -68,6 +70,7 @@ export default function LocationBackgroundPackageSelector({
       name: 'Standard Package',
       backgroundTypes: ['window', 'wall', 'doorway', 'texture', 'corner-detail', 'furniture'],
       credits: calculatePackageCredits(6), // 6 backgrounds × creditsPerImage
+      consistencyRating: 85,
       description: '6 backgrounds for comprehensive dialogue coverage',
       bestFor: ['Multiple dialogue scenes', 'Varied close-ups', 'Standard coverage'],
       discount: 0
@@ -77,6 +80,7 @@ export default function LocationBackgroundPackageSelector({
       name: 'Premium Package',
       backgroundTypes: ['window', 'wall', 'doorway', 'texture', 'corner-detail', 'furniture', 'architectural-feature', 'custom', 'custom'],
       credits: calculatePackageCredits(9), // 9 backgrounds × creditsPerImage
+      consistencyRating: 92,
       description: '9 backgrounds including custom options for professional productions',
       bestFor: ['Professional films', 'Complex dialogue', 'Detailed close-ups'],
       discount: 0
@@ -105,7 +109,7 @@ export default function LocationBackgroundPackageSelector({
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {packages.map((pkg) => {
           const Icon = PACKAGE_ICONS[pkg.id];
           const isSelected = selectedPackageId === pkg.id;
@@ -163,9 +167,43 @@ export default function LocationBackgroundPackageSelector({
                 {pkg.description}
               </p>
               
+              {/* Consistency Rating */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-base-content/60">Consistency</span>
+                  <span className="text-base-content font-bold">{pkg.consistencyRating}%</span>
+                </div>
+                <div className="w-full bg-base-content/20 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full bg-gradient-to-r ${PACKAGE_COLORS[pkg.id]}`}
+                    style={{ width: `${pkg.consistencyRating}%` }}
+                  />
+                </div>
+              </div>
+              
               {/* Background Count */}
-              <div className="text-sm text-base-content/70 mb-4">
+              <div className="text-sm text-base-content/70 mb-3">
                 <strong>{pkg.backgroundTypes.length} backgrounds</strong> included
+              </div>
+              
+              {/* Background Type List - Show all types without truncation */}
+              <div className="mb-4 space-y-2 max-h-48 overflow-y-auto">
+                <div className="flex flex-wrap gap-1.5">
+                  {pkg.backgroundTypes.map((bgType, idx) => {
+                    const formatted = bgType
+                      .split('-')
+                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(' ');
+                    return (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 bg-base-content/10 text-base-content/70 text-[10px] rounded"
+                      >
+                        {formatted}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
               
               {/* Best For */}

@@ -237,10 +237,15 @@ export default function PosePackageSelector({
                   <div className="text-[10px] text-[#808080]">
                     {pkg.poses.length} poses
                   </div>
-                  {/* Pose Preview */}
-                  <div className="text-[9px] text-[#808080] mt-1 line-clamp-2">
-                    {pkg.poses.slice(0, 3).map(formatPoseName).join(', ')}
-                    {pkg.poses.length > 3 && ` +${pkg.poses.length - 3} more`}
+                  {/* Pose Preview - Show all poses */}
+                  <div className="text-[9px] text-[#808080] mt-1">
+                    <div className="flex flex-wrap gap-1">
+                      {pkg.poses.map((pose, idx) => (
+                        <span key={idx} className="px-1.5 py-0.5 bg-[#3F3F46] text-[#808080] rounded">
+                          {formatPoseName(pose)}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 

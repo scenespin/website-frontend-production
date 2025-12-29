@@ -49,7 +49,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { SceneBuilderProgress } from '@/components/video/SceneBuilderProgress';
+// Removed SceneBuilderProgress - using Jobs panel instead
 import { SceneBuilderDecisionModal } from '@/components/video/SceneBuilderDecisionModal';
 import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
 import { ShotConfigurationStep } from './ShotConfigurationStep';
@@ -573,6 +573,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [showDecisionModal, setShowDecisionModal] = useState(false);
   const [showPartialDeliveryModal, setShowPartialDeliveryModal] = useState(false);
   const [partialDeliveryData, setPartialDeliveryData] = useState<any>(null);
+  
+  // Jobs panel integration - replace legacy progress bar
+  const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false);
   
   // History state
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
@@ -3544,21 +3547,53 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           </motion.div>
         )}
         
-        {/* Progress Tracking - Show when generating or workflow is active */}
+        {/* Jobs Panel Integration - Replace legacy progress bar */}
         {((isGenerating || workflowStatus) && workflowStatus) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-6"
           >
-            <SceneBuilderProgress 
-              executionId={workflowStatus.id}
-              status={workflowStatus.status as 'idle' | 'running' | 'completed' | 'failed' | 'awaiting_user_decision' | 'cancelled'}
-              currentStep={workflowStatus.currentStep}
-              totalSteps={workflowStatus.totalSteps}
-              stepResults={workflowStatus.stepResults}
-              totalCreditsUsed={workflowStatus.totalCreditsUsed || 0}
-            />
+            <Card className="bg-[#141414] border-[#3F3F46]">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {workflowStatus.status === 'running' && (
+                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                    )}
+                    {workflowStatus.status === 'completed' && (
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    )}
+                    {workflowStatus.status === 'failed' && (
+                      <AlertCircle className="w-5 h-5 text-red-500" />
+                    )}
+                    <div>
+                      <div className="font-semibold text-sm">
+                        {workflowStatus.status === 'running' && 'Generation in progress...'}
+                        {workflowStatus.status === 'completed' && 'Generation completed!'}
+                        {workflowStatus.status === 'failed' && 'Generation failed'}
+                        {workflowStatus.status === 'awaiting_user_decision' && 'Awaiting your decision'}
+                      </div>
+                      <div className="text-xs text-[#808080]">
+                        Step {workflowStatus.currentStep} of {workflowStatus.totalSteps} • {workflowStatus.totalCreditsUsed || 0} credits used
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsJobsDrawerOpen(true);
+                      // Auto-open jobs drawer to show job details
+                    }}
+                    className="border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1A1A1A]"
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    View in Jobs
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
         
@@ -3722,6 +3757,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           }}
         />
       )}
+      
+      {/* Jobs Drawer - Replace legacy progress bar */}
+      <JobsDrawer
+        isOpen={isJobsDrawerOpen}
+        onClose={() => setIsJobsDrawerOpen(false)}
+        onOpen={() => setIsJobsDrawerOpen(true)}
+        onToggle={() => setIsJobsDrawerOpen(!isJobsDrawerOpen)}
+        autoOpen={false}
+        compact={false}
+        jobCount={workflowStatus ? 1 : 0}
+        onNavigateToEntity={(type, id) => {
+          // Handle navigation to character/location/asset from jobs drawer
+          console.log(`[SceneBuilderPanel] Navigate to ${type}: ${id}`);
+        }}
+      />
     </div>
   );
 }

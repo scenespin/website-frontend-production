@@ -109,7 +109,7 @@ export default function LocationAnglePackageSelector({
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {packages.map((pkg) => {
           const Icon = PACKAGE_ICONS[pkg.id];
           const isSelected = selectedPackageId === pkg.id;
@@ -181,9 +181,37 @@ export default function LocationAnglePackageSelector({
                 {pkg.description}
               </p>
               
+              {/* Consistency Rating */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-base-content/60">Consistency</span>
+                  <span className="text-base-content font-bold">{pkg.consistencyRating}%</span>
+                </div>
+                <div className="w-full bg-base-content/20 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full bg-gradient-to-r ${PACKAGE_COLORS[pkg.id]}`}
+                    style={{ width: `${pkg.consistencyRating}%` }}
+                  />
+                </div>
+              </div>
+              
               {/* Angle Count */}
-              <div className="text-sm text-base-content/70 mb-4">
+              <div className="text-sm text-base-content/70 mb-3">
                 <strong>{pkg.angles.length} angles</strong> included
+              </div>
+              
+              {/* Angle List - Show all angles without truncation */}
+              <div className="mb-4 space-y-2 max-h-48 overflow-y-auto">
+                <div className="flex flex-wrap gap-1.5">
+                  {pkg.angles.map((angle, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 bg-base-content/10 text-base-content/70 text-[10px] rounded"
+                    >
+                      {angle.charAt(0).toUpperCase() + angle.slice(1).replace(/-/g, ' ')}
+                    </span>
+                  ))}
+                </div>
               </div>
               
               {/* Best For */}
