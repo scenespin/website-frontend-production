@@ -457,7 +457,8 @@ export function CharacterDetailModal({
   // Always call the hook (React rules), but disable the query when modal is closed or screenplayId is missing
   // 🔥 FIX: Use empty string as fallback for hook call (React requires consistent hook calls)
   // 🔥 FIX: Filter by character entityType and entityId for efficient querying (only loads files for this character)
-  const { data: mediaFiles = [] } = useMediaFiles(
+  // 🔥 FIX: If entity query returns 0 files, fallback to querying all files (GSI might not be active or old files don't have entityType/entityId)
+  const { data: entityMediaFiles = [] } = useMediaFiles(
     screenplayId || '', 
     undefined, 
     isOpen && !!screenplayId, 
@@ -465,6 +466,29 @@ export function CharacterDetailModal({
     'character', // entityType: filter to character files only
     character.id // entityId: filter to this specific character
   );
+  
+  // Fallback: If entity query returns 0 files, try querying all files (for old files without entityType/entityId)
+  const { data: allMediaFiles = [] } = useMediaFiles(
+    screenplayId || '', 
+    undefined, 
+    isOpen && !!screenplayId && entityMediaFiles.length === 0, // Only query if entity query returned 0
+    true, // includeAllFolders: true
+    undefined, // No entityType filter
+    undefined // No entityId filter
+  );
+  
+  // Use entity files if available, otherwise fallback to all files filtered by character ID in s3Key
+  const mediaFiles = useMemo(() => {
+    if (entityMediaFiles.length > 0) {
+      return entityMediaFiles;
+    }
+    // Fallback: Filter all files by checking if s3Key contains character ID
+    // Character files are stored in: temp/images/.../character/{characterId}/...
+    const characterIdPattern = `character/${character.id}/`;
+    return allMediaFiles.filter((file: any) => 
+      file.s3Key && file.s3Key.includes(characterIdPattern)
+    );
+  }, [entityMediaFiles, allMediaFiles, character.id]);
   
   // Extract outfit names from Media Library folder paths
   const mediaLibraryOutfitNames = useMemo(() => {
@@ -585,13 +609,30 @@ export function CharacterDetailModal({
           s3Key: k,
           thumbnailS3Key: v
         })),
-        allImageS3KeysSample: allImageS3Keys.slice(0, 3),
-        mediaFileS3KeysSample: mediaFileS3Keys.slice(0, 3),
-        s3KeyMatchCheck: allImageS3Keys.slice(0, 1).map(imgKey => ({
-          imgKey: imgKey?.substring(0, 80),
-          hasExactMatch: mediaFileS3Keys.some(mlKey => mlKey === imgKey),
-          hasPartialMatch: mediaFileS3Keys.some(mlKey => mlKey?.includes(imgKey?.substring(0, 50) || '') || imgKey?.includes(mlKey?.substring(0, 50) || '')),
-        })),
+        allImageS3KeysSample: allImageS3Keys.slice(0, 5).map(k => k || 'null'),
+        mediaFileS3KeysSample: mediaFileS3Keys.slice(0, 5).map(k => k || 'null'),
+        s3KeyMatchCheck: allImageS3Keys.slice(0, 3).map(imgKey => {
+          if (!imgKey) return { imgKey: 'null', hasExactMatch: false, hasPartialMatch: false };
+          const exactMatch = mediaFileS3Keys.find(mlKey => mlKey === imgKey);
+          const partialMatch = mediaFileS3Keys.find(mlKey => {
+            if (!mlKey) return false;
+            // Check if either contains the other (for debugging path differences)
+            const imgKeyShort = imgKey.substring(Math.max(0, imgKey.length - 100)); // Last 100 chars
+            const mlKeyShort = mlKey.substring(Math.max(0, mlKey.length - 100));
+            return mlKey.includes(imgKeyShort) || imgKey.includes(mlKeyShort) || 
+                   mlKey.endsWith(imgKey) || imgKey.endsWith(mlKey);
+          });
+          return {
+            imgKey: imgKey,
+            imgKeyLength: imgKey.length,
+            hasExactMatch: !!exactMatch,
+            exactMatchS3Key: exactMatch,
+            hasPartialMatch: !!partialMatch,
+            partialMatchS3Key: partialMatch,
+          };
+        }),
+        entityQueryUsed: entityMediaFiles.length > 0,
+        fallbackQueryUsed: entityMediaFiles.length === 0 && allMediaFiles.length > 0,
       });
     }
     
