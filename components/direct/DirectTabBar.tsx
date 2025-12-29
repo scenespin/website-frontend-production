@@ -39,7 +39,7 @@ export function DirectTabBar({
   onTabChange,
 }: DirectTabBarProps) {
   return (
-    <div className="border-b border-white/10 bg-[#0A0A0A] w-full">
+    <div className="border-b border-white/10 bg-[#0A0A0A] w-full pb-1">
       <div className="flex gap-1 px-4">
         {DIRECT_TABS.map((tab) => {
           const Icon = tab.icon;
