@@ -680,7 +680,7 @@ function ReadingCard({
           controls: true,
           responsive: true,
           fluid: true,
-          preload: 'metadata',
+          preload: 'auto', // Changed to 'auto' to load the source
           sources: [{
             src: downloadUrl,
             type: 'audio/mpeg'
@@ -688,12 +688,38 @@ function ReadingCard({
           errorDisplay: true,
         });
 
-        // Handle player errors
-        player.on('error', () => {
-          const error = player.error();
-          console.error('[ReadingCard] Video.js player error:', error);
-          toast.error('Playback error', { 
-            description: error?.message || 'Failed to play audio file' 
+        // Wait for player to be ready before setting up event handlers
+        player.ready(() => {
+          console.log('[ReadingCard] Player ready, source URL:', downloadUrl.substring(0, 100));
+          
+          // Check if source loaded successfully
+          player.on('loadstart', () => {
+            console.log('[ReadingCard] Source loading started');
+          });
+          
+          player.on('loadedmetadata', () => {
+            console.log('[ReadingCard] ✅ Source metadata loaded, duration:', player.duration());
+          });
+          
+          player.on('canplay', () => {
+            console.log('[ReadingCard] ✅ Source can play');
+            // Auto-play when source is ready (since user clicked Play button)
+            player.play().catch((playError: any) => {
+              console.error('[ReadingCard] Failed to auto-play:', playError);
+              // Browser may block autoplay - that's okay, user can click play button
+            });
+          });
+          
+          player.on('error', () => {
+            const error = player.error();
+            console.error('[ReadingCard] Video.js player error:', error);
+            console.error('[ReadingCard] Error code:', error?.code);
+            console.error('[ReadingCard] Error message:', error?.message);
+            console.error('[ReadingCard] Source URL:', downloadUrl);
+            
+            toast.error('Playback error', { 
+              description: error?.message || `Failed to load audio (code: ${error?.code || 'unknown'})` 
+            });
           });
         });
 
@@ -701,7 +727,7 @@ function ReadingCard({
         playerRef(player);
         isInitializingRef.current = false; // Successfully initialized
         
-        console.log('[ReadingCard] ✅ Player initialized successfully');
+        console.log('[ReadingCard] ✅ Player initialized successfully with source:', downloadUrl.substring(0, 100));
       } catch (error: any) {
         console.error('[ReadingCard] Failed to initialize player:', error);
         isInitializingRef.current = false;
@@ -847,10 +873,26 @@ function ReadingCard({
               {reading.sceneAudios
                 .sort((a, b) => {
                   // Sort by actual scene number from metadata (preferred) or fallback to sceneId
-                  const aSceneNum = a.metadata?.sceneNumber ?? 
-                    (a.metadata?.sceneId?.match(/\d+/)?.[0] ? parseInt(a.metadata.sceneId.match(/\d+/)?.[0] || '0') : 0);
-                  const bSceneNum = b.metadata?.sceneNumber ?? 
-                    (b.metadata?.sceneId?.match(/\d+/)?.[0] ? parseInt(b.metadata.sceneId.match(/\d+/)?.[0] || '0') : 0);
+                  const getSceneNumber = (file: MediaFile): number => {
+                    // First try sceneNumber from metadata
+                    if (file.metadata?.sceneNumber !== undefined && file.metadata?.sceneNumber !== null) {
+                      return Number(file.metadata.sceneNumber);
+                    }
+                    // Fallback: extract number from sceneId (e.g., "scene-3" -> 3)
+                    const sceneIdMatch = file.metadata?.sceneId?.match(/\d+/);
+                    if (sceneIdMatch && sceneIdMatch[0]) {
+                      return parseInt(sceneIdMatch[0], 10);
+                    }
+                    // Last resort: try to extract from fileName
+                    const fileNameMatch = file.fileName.match(/scene[_-]?(\d+)/i);
+                    if (fileNameMatch && fileNameMatch[1]) {
+                      return parseInt(fileNameMatch[1], 10);
+                    }
+                    return 999999; // Put items without scene numbers at the end
+                  };
+                  
+                  const aSceneNum = getSceneNumber(a);
+                  const bSceneNum = getSceneNumber(b);
                   return aSceneNum - bSceneNum;
                 })
                 .map((sceneFile) => {
