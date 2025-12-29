@@ -389,7 +389,7 @@ export function ShotConfigurationStep({
             ))}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pb-6">
           {/* Shot Description - Full text, no truncation */}
           <div className="pb-3 border-b border-[#3F3F46]">
             <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Description</div>
