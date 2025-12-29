@@ -1294,7 +1294,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       {!isOpen && (
         <button
           onClick={() => onOpen()}
-          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300 relative"
+          className="fixed top-1/2 right-0 -translate-y-1/2 bg-blue-600 hover:opacity-90 text-white text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300"
           style={{ 
             writingMode: 'vertical-rl', 
             textOrientation: 'mixed',
@@ -1302,11 +1302,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           }}
         >
           JOBS
-          {(jobCount > 0 || visibleJobs.length > 0) && (
-            <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-blue-600 min-w-[18px] text-center shadow-md">
-              {(jobCount || visibleJobs.length) > 99 ? '99+' : (jobCount || visibleJobs.length)}
-            </span>
-          )}
         </button>
       )}
 
