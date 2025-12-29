@@ -604,7 +604,7 @@ export function GenerateWardrobeTab({
               Generating...
             </>
           ) : (
-            'Generate Wardrobe'
+            'Generate'
           )}
         </button>
       </div>
