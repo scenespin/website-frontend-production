@@ -106,7 +106,7 @@ export function SceneAnalysisStep({
         <CardHeader className="pb-3">
           <CardTitle className="text-sm text-[#FFFFFF] flex items-center gap-2">
             <Film className="w-4 h-4" />
-            Step 2: Scene Analysis & Shot Selection
+            Scene Analysis & Shot Selection
           </CardTitle>
           <CardDescription className="text-[10px] text-[#808080]">
             Review the shot breakdown and select which shots to generate. Configure details in the next steps.

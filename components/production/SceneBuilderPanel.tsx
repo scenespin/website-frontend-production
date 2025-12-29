@@ -2469,7 +2469,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
           >
-            {/* Step 1: Scene Selection */}
+            {/* Scene Selection */}
             {currentStep === 1 && !hasConfirmedSceneSelection && (
               <div className={`grid ${isMobile ? 'grid-cols-1 space-y-4' : 'grid-cols-2 gap-4'}`}>
                 {/* Left: Scene Navigator with Title/Description (1/2 width) */}
@@ -2478,7 +2478,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm text-[#FFFFFF] flex items-center gap-2">
                         <Film className="w-4 h-4" />
-                        Step 1: Scene Selection
+                        Scene Selection
                       </CardTitle>
                       <CardDescription className="text-[10px] text-[#808080]">
                         Choose a scene from your screenplay
@@ -2637,7 +2637,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               </div>
             )}
 
-            {/* Step 2: Scene Analysis & Shot Selection (after scene is selected and confirmed) */}
+            {/* Scene Analysis & Shot Selection (after scene is selected and confirmed) */}
             {(currentStep === 1 && hasConfirmedSceneSelection && selectedSceneId) && (
               <>
                 {isAnalyzing && !sceneAnalysisResult ? (
@@ -3315,8 +3315,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     if (currentShotIndex > 0) {
                       setCurrentShotIndex(currentShotIndex - 1);
                     } else {
+                      // Go back to Scene Analysis & Shot Selection (Step 2)
                       setWizardStep('analysis');
-                      setCurrentStep(1);
+                      setCurrentStep(2);
                     }
                   }}
                   onNext={() => {
