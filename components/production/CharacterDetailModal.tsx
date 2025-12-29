@@ -540,12 +540,25 @@ export function CharacterDetailModal({
         map.set(file.s3Key, file.thumbnailS3Key);
       }
     });
+    
+    // 🔥 DEBUG: Log thumbnail mapping for troubleshooting
+    if (isOpen && allImages.length > 0) {
+      console.log('[CharacterDetailModal] 🔍 Thumbnail mapping:', {
+        mediaFilesCount: mediaFiles.length,
+        mediaFilesWithThumbnails: mediaFiles.filter((f: any) => f.thumbnailS3Key).length,
+        allImagesCount: allImages.length,
+        allImageS3Keys: allImages.map((img: any) => img.s3Key).filter(Boolean),
+        thumbnailMapSize: map.size,
+        thumbnailMapEntries: Array.from(map.entries()).slice(0, 5), // First 5 for debugging
+      });
+    }
+    
     return map;
-  }, [mediaFiles]);
+  }, [mediaFiles, isOpen, allImages.length]);
   
   // Feature 0174: Extract thumbnail S3 keys for bulk presigned URL generation
   const thumbnailS3Keys = useMemo(() => {
-    return allImages
+    const keys = allImages
       .map(img => {
         const s3Key = img.s3Key;
         if (!s3Key) return null;
@@ -554,13 +567,35 @@ export function CharacterDetailModal({
         return thumbnailS3Key || null;
       })
       .filter((key): key is string => key !== null);
-  }, [allImages, thumbnailS3KeyMap]);
+    
+    // 🔥 DEBUG: Log thumbnail S3 keys being fetched
+    if (isOpen && keys.length > 0) {
+      console.log('[CharacterDetailModal] 🔍 Thumbnail S3 keys to fetch:', {
+        count: keys.length,
+        keys: keys.slice(0, 5), // First 5 for debugging
+      });
+    }
+    
+    return keys;
+  }, [allImages, thumbnailS3KeyMap, isOpen]);
   
   // Feature 0174: Get presigned URLs for thumbnails (bulk request for performance)
-  const { data: thumbnailUrls = new Map() } = useBulkPresignedUrls(
+  const { data: thumbnailUrls = new Map(), isLoading: thumbnailsLoading } = useBulkPresignedUrls(
     thumbnailS3Keys.length > 0 ? thumbnailS3Keys : [],
-    thumbnailS3Keys.length > 0 // Only enable if we have thumbnails
+    isOpen && thumbnailS3Keys.length > 0 // Only enable if modal is open and we have thumbnails
   );
+  
+  // 🔥 DEBUG: Log thumbnail URL fetching status
+  useEffect(() => {
+    if (isOpen && thumbnailS3Keys.length > 0) {
+      console.log('[CharacterDetailModal] 🔍 Thumbnail URL fetch status:', {
+        thumbnailS3KeysCount: thumbnailS3Keys.length,
+        thumbnailUrlsCount: thumbnailUrls.size,
+        isLoading: thumbnailsLoading,
+        thumbnailUrlsSample: Array.from(thumbnailUrls.entries()).slice(0, 3), // First 3 for debugging
+      });
+    }
+  }, [isOpen, thumbnailS3Keys.length, thumbnailUrls.size, thumbnailsLoading, thumbnailUrls]);
   
   // Convert to GalleryImage format for ModernGallery
   const galleryImages: GalleryImage[] = useMemo(() => {
@@ -575,6 +610,17 @@ export function CharacterDetailModal({
         thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
       }
       
+      // 🔥 DEBUG: Log first image's thumbnail status
+      if (isOpen && img === allImages[0] && allImages.length > 0) {
+        console.log('[CharacterDetailModal] 🔍 First image thumbnail status:', {
+          s3Key: s3Key?.substring(0, 50),
+          thumbnailS3Key: thumbnailS3Key?.substring(0, 50),
+          hasThumbnailUrl: thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key),
+          thumbnailUrl: thumbnailUrl?.substring(0, 50),
+          usingThumbnail: thumbnailUrl !== img.imageUrl,
+        });
+      }
+      
       return {
         id: img.id,
         imageUrl: img.imageUrl, // Always use full image for lightbox/preview
@@ -587,7 +633,7 @@ export function CharacterDetailModal({
         height: 3
       };
     });
-  }, [allImages, thumbnailS3KeyMap, thumbnailUrls]);
+  }, [allImages, thumbnailS3KeyMap, thumbnailUrls, isOpen]);
   
   // Filter gallery images by outfit
   const filteredGalleryImages = useMemo(() => {
