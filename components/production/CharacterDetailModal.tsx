@@ -590,6 +590,32 @@ export function CharacterDetailModal({
       const allImageS3Keys = allImages.map((img: any) => img.s3Key).filter(Boolean);
       const mediaFileS3Keys = mediaFiles.map((f: any) => f.s3Key).filter(Boolean);
       
+      // 🔥 DETAILED: Compare first 3 images with all Media Library files
+      const detailedComparison = allImageS3Keys.slice(0, 3).map(imgKey => {
+        if (!imgKey) return { imgKey: 'null', matches: [] };
+        const matches = mediaFileS3Keys.map(mlKey => {
+          if (!mlKey) return null;
+          const exactMatch = mlKey === imgKey;
+          const endsWithMatch = mlKey.endsWith(imgKey) || imgKey.endsWith(mlKey);
+          // Extract filename from both keys for comparison
+          const imgFilename = imgKey.split('/').pop() || '';
+          const mlFilename = mlKey.split('/').pop() || '';
+          const filenameMatch = imgFilename === mlFilename && imgFilename.length > 0;
+          return {
+            exactMatch,
+            endsWithMatch,
+            filenameMatch,
+            imgKey: imgKey.substring(0, 120),
+            mlKey: mlKey.substring(0, 120),
+            imgKeyLength: imgKey.length,
+            mlKeyLength: mlKey.length,
+            imgFilename,
+            mlFilename,
+          };
+        }).filter(Boolean);
+        return { imgKey: imgKey.substring(0, 120), matches: matches.slice(0, 3) };
+      });
+      
       console.log('[CharacterDetailModal] 🔍 Thumbnail mapping:', {
         mediaFilesCount: mediaFiles.length,
         mediaFilesWithThumbnails: mediaFiles.filter((f: any) => f.thumbnailS3Key).length,
@@ -601,36 +627,17 @@ export function CharacterDetailModal({
         matchingFileThumbnailS3Key: matchingFile?.thumbnailS3Key,
         partialMatchesCount: partialMatches.length,
         partialMatchS3Keys: partialMatches.slice(0, 2).map((f: any) => ({
-          s3Key: f.s3Key?.substring(0, 80),
-          thumbnailS3Key: f.thumbnailS3Key?.substring(0, 80),
+          s3Key: f.s3Key?.substring(0, 120),
+          thumbnailS3Key: f.thumbnailS3Key?.substring(0, 120),
         })),
         thumbnailMapSize: map.size,
         thumbnailMapEntries: Array.from(map.entries()).slice(0, 3).map(([k, v]) => ({
-          s3Key: k,
-          thumbnailS3Key: v
+          s3Key: k.substring(0, 120),
+          thumbnailS3Key: v.substring(0, 120)
         })),
-        allImageS3KeysSample: allImageS3Keys.slice(0, 5).map(k => k || 'null'),
-        mediaFileS3KeysSample: mediaFileS3Keys.slice(0, 5).map(k => k || 'null'),
-        s3KeyMatchCheck: allImageS3Keys.slice(0, 3).map(imgKey => {
-          if (!imgKey) return { imgKey: 'null', hasExactMatch: false, hasPartialMatch: false };
-          const exactMatch = mediaFileS3Keys.find(mlKey => mlKey === imgKey);
-          const partialMatch = mediaFileS3Keys.find(mlKey => {
-            if (!mlKey) return false;
-            // Check if either contains the other (for debugging path differences)
-            const imgKeyShort = imgKey.substring(Math.max(0, imgKey.length - 100)); // Last 100 chars
-            const mlKeyShort = mlKey.substring(Math.max(0, mlKey.length - 100));
-            return mlKey.includes(imgKeyShort) || imgKey.includes(mlKeyShort) || 
-                   mlKey.endsWith(imgKey) || imgKey.endsWith(mlKey);
-          });
-          return {
-            imgKey: imgKey,
-            imgKeyLength: imgKey.length,
-            hasExactMatch: !!exactMatch,
-            exactMatchS3Key: exactMatch,
-            hasPartialMatch: !!partialMatch,
-            partialMatchS3Key: partialMatch,
-          };
-        }),
+        allImageS3KeysSample: allImageS3Keys.slice(0, 5).map(k => k ? k.substring(0, 120) : 'null'),
+        mediaFileS3KeysSample: mediaFileS3Keys.slice(0, 5).map(k => k ? k.substring(0, 120) : 'null'),
+        detailedComparison,
         entityQueryUsed: entityMediaFiles.length > 0,
         fallbackQueryUsed: entityMediaFiles.length === 0 && allMediaFiles.length > 0,
       });
