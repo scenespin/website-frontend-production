@@ -166,11 +166,7 @@ export function ProductionHub({}: ProductionHubProps) {
           ).length;
           setActiveJobs(runningCount);
           
-          // Auto-open drawer when jobs are running (if not already open)
-          if (runningCount > 0 && !isJobsDrawerOpen) {
-            console.log('[ProductionHub] Auto-opening JobsDrawer -', runningCount, 'job(s) running');
-            setIsJobsDrawerOpen(true);
-          }
+          // Auto-open disabled - drawer only opens when user clicks the tab
         } else {
           setActiveJobs(0);
         }
@@ -331,7 +327,7 @@ export function ProductionHub({}: ProductionHubProps) {
           isOpen={isJobsDrawerOpen}
           onClose={() => setIsJobsDrawerOpen(false)}
           onOpen={() => setIsJobsDrawerOpen(true)}
-          autoOpen={true}
+          autoOpen={false}
           compact={isMobile}
           jobCount={activeJobs}
         />
@@ -404,7 +400,7 @@ export function ProductionHub({}: ProductionHubProps) {
         isOpen={isJobsDrawerOpen}
         onClose={() => setIsJobsDrawerOpen(false)}
         onOpen={() => setIsJobsDrawerOpen(true)}
-        autoOpen={true}
+        autoOpen={false}
         compact={isMobile}
         jobCount={activeJobs}
         onNavigateToEntity={(entityType, entityId) => {
