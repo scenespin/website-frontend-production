@@ -206,7 +206,7 @@ export default function Navigation() {
   return (
     <>
       {/* Desktop Navigation */}
-      <div className="hidden md:flex bg-[#0A0A0A] border-b border-white/10 w-full pb-1">
+      <div className="hidden md:flex bg-[#0A0A0A] border-b border-white/10 w-full pb-2">
         <div className="w-full px-4">
           <div className="flex items-center justify-between h-16">
             {/* Left Side: Logo + Navigation Links */}
