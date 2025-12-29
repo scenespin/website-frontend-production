@@ -452,6 +452,7 @@ export function GenerateLocationTab({
             onSelectPackage={setSelectedAnglePackageId}
             selectedPackageId={selectedAnglePackageId}
             creditsPerImage={creditsPerImage}
+            compact={true}
           />
         ) : (
           <LocationBackgroundPackageSelector
@@ -459,6 +460,7 @@ export function GenerateLocationTab({
             onSelectPackage={setSelectedBackgroundPackageId}
             selectedPackageId={selectedBackgroundPackageId}
             creditsPerImage={creditsPerImage}
+            compact={true}
           />
         )}
       </div>

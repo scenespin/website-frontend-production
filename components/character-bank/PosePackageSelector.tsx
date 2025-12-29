@@ -241,7 +241,7 @@ export default function PosePackageSelector({
                   <div className="text-[9px] text-[#808080] mt-1">
                     <div className="flex flex-wrap gap-1">
                       {pkg.poses.map((pose, idx) => (
-                        <span key={idx} className="px-1.5 py-0.5 bg-[#3F3F46] text-[#808080] rounded">
+                        <span key={idx} className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">
                           {formatPoseName(pose)}
                         </span>
                       ))}
@@ -363,7 +363,7 @@ export default function PosePackageSelector({
                       {poses.map((pose, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-0.5 bg-base-content/10 text-base-content/70 text-[10px] rounded"
+                          className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30 text-[10px]"
                         >
                           {pose}
                         </span>

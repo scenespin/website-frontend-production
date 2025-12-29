@@ -27,6 +27,7 @@ interface LocationAnglePackageSelectorProps {
   selectedPackageId?: string;
   disabled?: boolean;
   creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
+  compact?: boolean; // 🔥 NEW: Compact mode for smaller display
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
@@ -46,7 +47,8 @@ export default function LocationAnglePackageSelector({
   onSelectPackage,
   selectedPackageId,
   disabled = false,
-  creditsPerImage = 20 // 🔥 NEW: Default to 20 credits if not provided
+  creditsPerImage = 20, // 🔥 NEW: Default to 20 credits if not provided
+  compact = false // 🔥 NEW: Compact mode
 }: LocationAnglePackageSelectorProps) {
   
   // 🔥 NEW: Calculate credits dynamically based on selected model
@@ -98,6 +100,101 @@ export default function LocationAnglePackageSelector({
     })));
   }, [creditsPerImage]);
   
+  if (compact) {
+    // Compact horizontal layout
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-xs text-[#808080] mb-2">
+          <span>More angles = better location consistency</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        {packages.map((pkg) => {
+          const Icon = PACKAGE_ICONS[pkg.id];
+          const isSelected = selectedPackageId === pkg.id;
+          const isRecommended = pkg.id === 'standard';
+          
+          // Compact card design
+          return (
+              <motion.div
+                key={pkg.id}
+                whileHover={!disabled ? { scale: 1.05 } : {}}
+                whileTap={!disabled ? { scale: 0.95 } : {}}
+                className={`
+                  relative rounded-lg border-2 p-3 cursor-pointer transition-all
+                  ${isSelected 
+                    ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                    : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
+                  }
+                  ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+                onClick={() => !disabled && onSelectPackage(pkg.id)}
+              >
+                {/* Recommended Badge */}
+                {isRecommended && (
+                  <div className="absolute -top-1.5 -right-1.5">
+                    <div className="bg-[#DC143C] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                      REC
+                    </div>
+                  </div>
+                )}
+                
+                {/* Package Icon & Name */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`p-1.5 rounded bg-gradient-to-br ${PACKAGE_COLORS[pkg.id]}`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <h3 className="text-xs font-semibold text-white truncate">
+                    {pkg.name.replace(' Package', '')}
+                  </h3>
+                </div>
+                
+                {/* Credits */}
+                <div className="text-sm font-bold text-white mb-1.5">
+                  {pkg.credits} <span className="text-[10px] font-normal text-[#808080]">credits</span>
+                </div>
+                
+                {/* Consistency & Angles */}
+                <div className="space-y-1 mb-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-[#808080]">Consistency</span>
+                    <span className="text-white font-semibold">{pkg.consistencyRating}%</span>
+                  </div>
+                  <div className="w-full bg-[#3F3F46] rounded-full h-1">
+                    <div 
+                      className={`h-1 rounded-full bg-gradient-to-r ${PACKAGE_COLORS[pkg.id]}`}
+                      style={{ width: `${pkg.consistencyRating}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-[#808080]">
+                    {pkg.angles.length} angles
+                  </div>
+                  {/* Angle Preview - Show all angles */}
+                  <div className="text-[9px] text-[#808080] mt-1">
+                    <div className="flex flex-wrap gap-1">
+                      {pkg.angles.map((angle, idx) => (
+                        <span key={idx} className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">
+                          {angle.charAt(0).toUpperCase() + angle.slice(1).replace(/-/g, ' ')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Selected Indicator */}
+                {isSelected && (
+                  <div className="mt-2 py-1 bg-[#DC143C] text-white text-center rounded text-[10px] font-semibold">
+                    ✓ Selected
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  
+  // Full layout (original)
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -181,20 +278,6 @@ export default function LocationAnglePackageSelector({
                 {pkg.description}
               </p>
               
-              {/* Consistency Rating */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-base-content/60">Consistency</span>
-                  <span className="text-base-content font-bold">{pkg.consistencyRating}%</span>
-                </div>
-                <div className="w-full bg-base-content/20 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full bg-gradient-to-r ${PACKAGE_COLORS[pkg.id]}`}
-                    style={{ width: `${pkg.consistencyRating}%` }}
-                  />
-                </div>
-              </div>
-              
               {/* Angle Count */}
               <div className="text-sm text-base-content/70 mb-3">
                 <strong>{pkg.angles.length} angles</strong> included
@@ -206,7 +289,7 @@ export default function LocationAnglePackageSelector({
                   {pkg.angles.map((angle, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-0.5 bg-base-content/10 text-base-content/70 text-[10px] rounded"
+                      className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30 text-[10px]"
                     >
                       {angle.charAt(0).toUpperCase() + angle.slice(1).replace(/-/g, ' ')}
                     </span>
