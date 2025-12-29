@@ -654,9 +654,13 @@ export interface SceneAnalysisResult {
             id: string;
             imageUrl: string;
             s3Key: string;
-            backgroundType: string;
-            sourceType?: string;
+            backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
+            sourceType?: 'reference-images' | 'angle-variations';
             sourceAngleId?: string;
+            metadata?: {
+                providerId?: string;
+                quality?: 'standard' | 'high-quality';
+            };
             timeOfDay?: string;
             weather?: string;
         }>;
