@@ -654,10 +654,14 @@ function ReadingCard({
     // Register audio element with parent
     audioRef(audio);
 
-    // Wait for metadata to load before playing
-    const handleLoadedMetadata = () => {
-      console.log('[ReadingCard] ✅ Audio metadata loaded, duration:', audio.duration);
+    // Wait for canplay event (more reliable than loadedmetadata for problematic files)
+    const handleCanPlay = () => {
+      console.log('[ReadingCard] ✅ Audio can play, duration:', audio.duration);
       playAudio();
+    };
+
+    const handleCanPlayThrough = () => {
+      console.log('[ReadingCard] ✅ Audio can play through (fully loaded)');
     };
 
     const handleError = (e: Event) => {
@@ -666,17 +670,19 @@ function ReadingCard({
       if (error) {
         console.error('[ReadingCard] Error code:', error.code);
         console.error('[ReadingCard] Error message:', error.message);
-        toast.error('Playback error', { 
-          description: error.message || `Failed to play audio (code: ${error.code || 'unknown'})` 
-        });
+        
+        // Don't show toast here - the onError handler on the element will handle it
+        // This is just for logging
       }
     };
 
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('canplaythrough', handleCanPlayThrough);
     audio.addEventListener('error', handleError);
 
     return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
       audio.removeEventListener('error', handleError);
       audioRef(null); // Unregister on cleanup
     };
@@ -747,13 +753,33 @@ function ReadingCard({
               ref={audioElementRef}
               src={audioUrl}
               controls
-              preload="auto"
+              preload="metadata"
+              crossOrigin="anonymous"
               className="w-full"
               onError={(e) => {
                 console.error('[ReadingCard] Audio element error:', e);
-                toast.error('Failed to load audio', { 
-                  description: 'The audio file may be corrupted or the URL expired' 
-                });
+                const audio = e.currentTarget;
+                const error = audio.error;
+                if (error) {
+                  console.error('[ReadingCard] Error code:', error.code);
+                  console.error('[ReadingCard] Error message:', error.message);
+                  
+                  // Try to provide helpful error message
+                  let errorMsg = 'Failed to load audio';
+                  if (error.code === 3) {
+                    errorMsg = 'Audio decode error. The file may have encoding issues. Try downloading instead.';
+                  } else if (error.code === 4) {
+                    errorMsg = 'Audio source not supported or URL expired.';
+                  }
+                  
+                  toast.error('Playback error', { 
+                    description: errorMsg
+                  });
+                } else {
+                  toast.error('Failed to load audio', { 
+                    description: 'The audio file may be corrupted or the URL expired' 
+                  });
+                }
               }}
             >
               Your browser does not support the audio element.
