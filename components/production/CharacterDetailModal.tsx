@@ -784,30 +784,34 @@ export function CharacterDetailModal({
         }
       }
       
-      // 🔥 DEBUG: Log first image's thumbnail status (only once per render)
-      if (isOpen && img === allImages[0] && allImages.length > 0) {
+      // 🔥 DEBUG: Log ALL images' thumbnail status
+      if (isOpen && allImages.length > 0) {
         const metadata = (img as any).metadata || {};
         const allThumbnailS3Keys = Array.from(thumbnailUrls.keys());
         const matchingThumbnailKey = allThumbnailS3Keys.find(key => {
           const imageS3KeyForThumbnail = thumbnailS3KeyToImageS3Key.get(key);
           return imageS3KeyForThumbnail === s3Key || key === thumbnailS3Key;
         });
-        console.log('[CharacterDetailModal] 🔍 First image thumbnail status:', {
+        
+        // Log all images to see which ones are using thumbnails
+        const imageIndex = allImages.indexOf(img);
+        console.log(`[CharacterDetailModal] 🔍 Image ${imageIndex} thumbnail status:`, {
           imageId: img.id,
-          s3Key: s3Key?.substring(0, 100),
-          thumbnailS3Key: thumbnailS3Key?.substring(0, 100),
+          isBase: (img as any).isBase,
+          isPose: (img as any).isPose,
+          s3Key: s3Key?.substring(0, 120),
+          thumbnailS3Key: thumbnailS3Key?.substring(0, 120),
           thumbnailS3KeySource: thumbnailS3Key ? (thumbnailS3KeyMap.has(s3Key!) ? 'thumbnailS3KeyMap' : 'metadata') : 'none',
           hasThumbnailUrl: thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key),
-          thumbnailUrl: thumbnailUrl?.substring(0, 100),
+          thumbnailUrl: thumbnailUrl?.substring(0, 120),
           usingThumbnail: thumbnailUrl !== img.imageUrl,
           thumbnailUrlsMapSize: thumbnailUrls.size,
-          allThumbnailS3KeysSample: allThumbnailS3Keys.slice(0, 3).map(k => k.substring(0, 80)),
-          matchingThumbnailKey: matchingThumbnailKey?.substring(0, 80),
+          matchingThumbnailKey: matchingThumbnailKey?.substring(0, 100),
           reverseLookupFound: matchingThumbnailKey !== undefined,
           imageMetadata: {
             entityType: metadata.entityType,
             entityId: metadata.entityId,
-            thumbnailS3Key: metadata.thumbnailS3Key?.substring(0, 60),
+            thumbnailS3Key: metadata.thumbnailS3Key?.substring(0, 80),
           },
         });
       }
