@@ -322,9 +322,11 @@ export function LocationDetailModal({
     });
   }
   
-  // 🔥 IMPROVED: Organize angles by metadata combinations (timeOfDay + weather) for better visual grouping
-  // Group all angles by their metadata combinations - no tag-based filtering, just visual organization
-  const anglesByMetadata: Record<string, any[]> = {};
+  // 🔥 IMPROVED: Organize angles and backgrounds by metadata combinations (timeOfDay + weather) for better visual grouping
+  // Group all angles and backgrounds by their metadata combinations - no tag-based filtering, just visual organization
+  const imagesByMetadata: Record<string, { angles: any[]; backgrounds: any[] }> = {};
+  
+  // Group angles
   angleVariations.forEach((variation: any) => {
     // Create a display-friendly key for grouping
     const metadataParts = [
@@ -336,17 +338,42 @@ export function LocationDetailModal({
       ? metadataParts.join(' • ') 
       : 'No Metadata';
     
-    if (!anglesByMetadata[key]) {
-      anglesByMetadata[key] = [];
+    if (!imagesByMetadata[key]) {
+      imagesByMetadata[key] = { angles: [], backgrounds: [] };
     }
-    anglesByMetadata[key].push(variation);
+    imagesByMetadata[key].angles.push(variation);
   });
   
+  // Group backgrounds (same metadata structure as angles)
+  if (location.backgrounds && Array.isArray(location.backgrounds)) {
+    location.backgrounds.forEach((background: LocationBackground) => {
+      const metadataParts = [
+        background.timeOfDay ? background.timeOfDay : null,
+        background.weather ? background.weather : null
+      ].filter(Boolean);
+      
+      const key = metadataParts.length > 0 
+        ? metadataParts.join(' • ') 
+        : 'No Metadata';
+      
+      if (!imagesByMetadata[key]) {
+        imagesByMetadata[key] = { angles: [], backgrounds: [] };
+      }
+      imagesByMetadata[key].backgrounds.push(background);
+    });
+  }
+  
   // Sort groups: "No Metadata" last, then alphabetically
-  const sortedMetadataKeys = Object.keys(anglesByMetadata).sort((a, b) => {
+  const sortedMetadataKeys = Object.keys(imagesByMetadata).sort((a, b) => {
     if (a === 'No Metadata') return 1;
     if (b === 'No Metadata') return -1;
     return a.localeCompare(b);
+  });
+  
+  // Keep anglesByMetadata for backward compatibility with References tab
+  const anglesByMetadata: Record<string, any[]> = {};
+  sortedMetadataKeys.forEach(key => {
+    anglesByMetadata[key] = imagesByMetadata[key].angles;
   });
   
   // 🔥 SIMPLIFIED: Always show 16:9 cropped version (final version for video)
@@ -768,7 +795,10 @@ export function LocationDetailModal({
                       {/* 🔥 IMPROVED: Organized by Metadata Combinations - Visual Card-based Grouping */}
                       <div className="space-y-6">
                         {sortedMetadataKeys.map((displayName) => {
-                          const variations = anglesByMetadata[displayName];
+                          const group = imagesByMetadata[displayName];
+                          const variations = group.angles;
+                          const backgrounds = group.backgrounds;
+                          const totalImages = variations.length + backgrounds.length;
                           
                           return (
                             <div key={displayName} className="space-y-3">
@@ -779,12 +809,20 @@ export function LocationDetailModal({
                                     {displayName}
                                   </h4>
                                   <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded text-xs">
-                                    {variations.length} {variations.length === 1 ? 'image' : 'images'}
+                                    {totalImages} {totalImages === 1 ? 'image' : 'images'}
+                                    {variations.length > 0 && backgrounds.length > 0 && ` (${variations.length} angles, ${backgrounds.length} backgrounds)`}
                                   </span>
                                 </div>
                               </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                {variations.map((variation: any) => {
+                              
+                              {/* Angles Section */}
+                              {variations.length > 0 && (
+                                <div className="space-y-2">
+                                  {backgrounds.length > 0 && (
+                                    <p className="text-xs text-[#808080] uppercase tracking-wide">Angles</p>
+                                  )}
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                    {variations.map((variation: any) => {
                           const img = allImages.find(i => i.s3Key === variation.s3Key && !i.isBase);
                           if (!img) return null;
                           const imgId = img.id || `ref_${variation.s3Key}`;
