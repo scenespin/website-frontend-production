@@ -31,6 +31,7 @@ import {
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { ModernGallery, type GalleryImage } from './Gallery/ModernGallery';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 
 /**
  * Get display label for provider ID
@@ -140,6 +141,46 @@ export function LocationDetailModal({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   
+  // Feature 0179: Query Media Library to get thumbnails for location images
+  const { data: mediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    isOpen && !!screenplayId,
+    true, // includeAllFolders
+    'location', // entityType
+    location.locationId // entityId
+  );
+
+  // Feature 0179: Create thumbnail S3 key map from Media Library
+  const thumbnailS3KeyMap = useMemo(() => {
+    const map = new Map<string, string>();
+    mediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) {
+        map.set(file.s3Key, file.thumbnailS3Key);
+      }
+    });
+    return map;
+  }, [mediaFiles]);
+
+  // Feature 0179: Extract thumbnail S3 keys for bulk presigned URL generation
+  const thumbnailS3Keys = useMemo(() => {
+    const keys = allImages
+      .map(img => {
+        const s3Key = img.s3Key;
+        if (!s3Key) return null;
+        const thumbnailS3Key = thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key;
+        return thumbnailS3Key || null;
+      })
+      .filter((key): key is string => key !== null);
+    return keys;
+  }, [allImages, thumbnailS3KeyMap]);
+
+  // Feature 0179: Get presigned URLs for thumbnails
+  const { data: thumbnailUrls = new Map() } = useBulkPresignedUrls(
+    thumbnailS3Keys.length > 0 ? thumbnailS3Keys : [],
+    isOpen && thumbnailS3Keys.length > 0
+  );
+
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
     return null;
@@ -528,15 +569,28 @@ export function LocationDetailModal({
                 <div className="p-6">
                   {allImages.length > 0 ? (
                     <ModernGallery
-                      images={allImages.map((img): GalleryImage => ({
-                        id: img.id,
-                        imageUrl: img.imageUrl,
-                        label: img.label,
-                        isBase: img.isBase,
-                        source: (img.metadata?.generationMethod === 'ai-generated' || img.metadata?.generationMethod === 'angle-variation') 
-                          ? 'pose-generation' 
-                          : 'user-upload'
-                      }))}
+                      images={allImages.map((img): GalleryImage => {
+                        // Feature 0179: Get thumbnail URL if available
+                        const s3Key = img.s3Key;
+                        const thumbnailS3Key = s3Key ? (thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key) : null;
+                        let thumbnailUrl = img.imageUrl;
+                        if (thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key)) {
+                          thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
+                        }
+                        
+                        return {
+                          id: img.id,
+                          imageUrl: img.imageUrl, // Always use full image for lightbox/preview
+                          thumbnailUrl: thumbnailUrl, // Use thumbnail for grid view, fallback to full image
+                          label: img.label,
+                          isBase: img.isBase,
+                          source: (img.metadata?.generationMethod === 'ai-generated' || img.metadata?.generationMethod === 'angle-variation') 
+                            ? 'pose-generation' 
+                            : 'user-upload',
+                          width: 16,
+                          height: 9
+                        };
+                      })}
                       layout="grid-only"
                     />
                   ) : (
