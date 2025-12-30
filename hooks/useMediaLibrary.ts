@@ -112,23 +112,6 @@ export function useMediaFiles(
 
       const data: MediaFileListResponse = await response.json();
       const backendFiles = data.files || [];
-      
-      // 🔥 DEBUG: Log query results
-      if (entityType || entityId) {
-        console.log('[useMediaFiles] Entity query results:', {
-          entityType,
-          entityId,
-          filesFound: backendFiles.length,
-          filesWithThumbnails: backendFiles.filter((f: any) => f.metadata?.thumbnailS3Key).length,
-          sampleFiles: backendFiles.slice(0, 2).map((f: any) => ({
-            s3Key: f.s3Key?.substring(0, 60),
-            entityType: f.entityType || f.metadata?.entityType,
-            entityId: f.entityId || f.metadata?.entityId,
-            thumbnailS3Key: f.thumbnailS3Key || f.metadata?.thumbnailS3Key?.substring(0, 60),
-          })),
-        });
-      }
-
       // Map backend format to frontend MediaFile format
       // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt, metadata, entityType?, entityId? }
       // Frontend expects: { id, fileName, s3Key, fileType (enum), fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key }
@@ -228,11 +211,6 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
         expiresIn: 3600, // 1 hour
       };
 
-      console.log('[useBulkPresignedUrls] 🔍 Requesting bulk presigned URLs:', {
-        s3KeysCount: s3Keys.length,
-        s3KeysSample: s3Keys.slice(0, 3).map(k => k.substring(0, 60)),
-      });
-
       const response = await fetch(`${BACKEND_API_URL}/api/s3/bulk-download-urls`, {
         method: 'POST',
         headers: {
@@ -254,29 +232,12 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
 
       const data: BulkPresignedUrlResponse = await response.json();
       
-      console.log('[useBulkPresignedUrls] 🔍 Bulk presigned URL response:', {
-        success: data.success,
-        urlsCount: data.urls?.length || 0,
-        urlsSample: data.urls?.slice(0, 2).map((u: any) => ({
-          s3Key: u.s3Key?.substring(0, 60),
-          hasUrl: !!u.downloadUrl,
-        })),
-      });
-      
       // Convert array to Map for easy lookup
       const urlMap = new Map<string, string>();
       data.urls?.forEach(({ s3Key, downloadUrl }) => {
         if (s3Key && downloadUrl) {
           urlMap.set(s3Key, downloadUrl);
         }
-      });
-
-      console.log('[useBulkPresignedUrls] 🔍 Created URL map:', {
-        mapSize: urlMap.size,
-        mapEntries: Array.from(urlMap.entries()).slice(0, 2).map(([k, v]) => ({
-          s3Key: k.substring(0, 60),
-          url: v.substring(0, 60),
-        })),
       });
 
       return urlMap;

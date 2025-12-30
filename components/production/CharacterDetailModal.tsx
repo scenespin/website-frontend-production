@@ -479,28 +479,6 @@ export function CharacterDetailModal({
   
   // Use entity files and merge with fallback to catch any files missed by GSI (e.g., newly uploaded files not yet indexed)
   const mediaFiles = useMemo(() => {
-    // 🔥 DEBUG: Log what we're finding
-    if (isOpen) {
-      console.log('[CharacterDetailModal] 🔍 Media files query results:', {
-        entityMediaFilesCount: entityMediaFiles.length,
-        allMediaFilesCount: allMediaFiles.length,
-        characterId: character.id,
-        entityFilesSample: entityMediaFiles.slice(0, 3).map((f: any) => ({
-          s3Key: f.s3Key?.substring(0, 80),
-          entityType: f.metadata?.entityType || f.entityType,
-          entityId: f.metadata?.entityId || f.entityId,
-          thumbnailS3Key: f.thumbnailS3Key || f.metadata?.thumbnailS3Key?.substring(0, 60),
-        })),
-        allFilesSample: allMediaFiles.slice(0, 5).map((f: any) => ({
-          s3Key: f.s3Key?.substring(0, 80),
-          entityType: f.metadata?.entityType || f.entityType,
-          entityId: f.metadata?.entityId || f.entityId,
-          matchesCharacter: (f.metadata?.entityType === 'character' && f.metadata?.entityId === character.id) || 
-                           (f.s3Key && f.s3Key.includes(`character/${character.id}/`)),
-        })),
-      });
-    }
-    
     // Start with entity files (from GSI query - most efficient)
     const entityS3Keys = new Set(entityMediaFiles.map((f: any) => f.s3Key).filter(Boolean));
     
@@ -525,24 +503,7 @@ export function CharacterDetailModal({
     });
     
     // Merge entity files with fallback results
-    const merged = [...entityMediaFiles, ...filtered];
-    
-    // 🔥 DEBUG: Log fallback results
-    if (isOpen && filtered.length > 0) {
-      console.log('[CharacterDetailModal] 🔍 Fallback filter results:', {
-        entityFilesCount: entityMediaFiles.length,
-        filteredCount: filtered.length,
-        mergedCount: merged.length,
-        filteredFiles: filtered.map((f: any) => ({
-          s3Key: f.s3Key?.substring(0, 80),
-          entityType: (f as any).entityType || f.metadata?.entityType,
-          entityId: (f as any).entityId || f.metadata?.entityId,
-          thumbnailS3Key: f.thumbnailS3Key || f.metadata?.thumbnailS3Key?.substring(0, 60),
-        })),
-      });
-    }
-    
-    return merged;
+    return [...entityMediaFiles, ...filtered];
   }, [entityMediaFiles, allMediaFiles, character.id, isOpen]);
   
   // Extract outfit names from Media Library folder paths
@@ -588,25 +549,7 @@ export function CharacterDetailModal({
     const outfits = Array.from(allOutfits);
     const defaultOutfit = outfits.find(o => o === 'default' || o.toLowerCase() === 'default');
     const otherOutfits = outfits.filter(o => o !== 'default' && o.toLowerCase() !== 'default').sort();
-    const result = defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
-    
-    // 🔥 DEBUG: Log outfit names for troubleshooting
-    if (isOpen && poseReferences.length > 0) {
-      console.log('[CharacterDetailModal] 🔍 Outfit organization:', {
-        mediaLibraryOutfitNames: Array.from(mediaLibraryOutfitNames),
-        posesByOutfitKeys: Object.keys(posesByOutfit),
-        allOutfits: Array.from(allOutfits),
-        outfitNames: result,
-        outfitNamesCount: result.length,
-        poseReferencesCount: poseReferences.length,
-        posesByOutfit: Object.keys(posesByOutfit).reduce((acc, key) => {
-          acc[key] = posesByOutfit[key].length;
-          return acc;
-        }, {} as Record<string, number>)
-      });
-    }
-    
-    return result;
+    return defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
   }, [posesByOutfit, mediaLibraryOutfitNames, isOpen, poseReferences.length]);
   
   // Selected outfit tab state - null means show all outfits
@@ -627,115 +570,6 @@ export function CharacterDetailModal({
         map.set(file.s3Key, file.thumbnailS3Key);
       }
     });
-    
-    // 🔥 DEBUG: Log thumbnail mapping for troubleshooting
-    if (isOpen && allImages.length > 0) {
-      const sampleImage = allImages[0];
-      const sampleS3Key = (sampleImage as any).s3Key;
-      const matchingFile = mediaFiles.find((f: any) => f.s3Key === sampleS3Key);
-      
-      // Check for partial matches (in case s3Keys don't match exactly)
-      const partialMatches = mediaFiles.filter((f: any) => {
-        if (!f.s3Key || !sampleS3Key) return false;
-        // Check if either key contains the other (for debugging)
-        return f.s3Key.includes(sampleS3Key.substring(0, 50)) || sampleS3Key.includes(f.s3Key.substring(0, 50));
-      });
-      
-      // Get all image s3Keys for comparison
-      const allImageS3Keys = allImages.map((img: any) => img.s3Key).filter(Boolean);
-      const mediaFileS3Keys = mediaFiles.map((f: any) => f.s3Key).filter(Boolean);
-      
-      // 🔥 DETAILED: Compare first 3 images with all Media Library files
-      const detailedComparison = allImageS3Keys.slice(0, 3).map(imgKey => {
-        if (!imgKey) return { imgKey: 'null', matches: [] };
-        const matches = mediaFileS3Keys.map(mlKey => {
-          if (!mlKey) return null;
-          const exactMatch = mlKey === imgKey;
-          const endsWithMatch = mlKey.endsWith(imgKey) || imgKey.endsWith(mlKey);
-          // Extract filename from both keys for comparison
-          const imgFilename = imgKey.split('/').pop() || '';
-          const mlFilename = mlKey.split('/').pop() || '';
-          const filenameMatch = imgFilename === mlFilename && imgFilename.length > 0;
-          return {
-            exactMatch,
-            endsWithMatch,
-            filenameMatch,
-            imgKey: imgKey.substring(0, 120),
-            mlKey: mlKey.substring(0, 120),
-            imgKeyLength: imgKey.length,
-            mlKeyLength: mlKey.length,
-            imgFilename,
-            mlFilename,
-          };
-        }).filter(Boolean);
-        return { imgKey: imgKey.substring(0, 120), matches: matches.slice(0, 3) };
-      });
-      
-      // 🔥 EXPANDED: Log full s3Keys for first 3 images and all Media Library files
-      const fullComparison = {
-        allImageS3Keys: allImageS3Keys.slice(0, 3).map((imgKey, idx) => ({
-          index: idx,
-          imageId: allImages[idx]?.id,
-          isBase: (allImages[idx] as any)?.isBase,
-          fullS3Key: imgKey,
-          s3KeyLength: imgKey?.length,
-        })),
-        mediaFileS3Keys: mediaFileS3Keys.map((mlKey, idx) => ({
-          index: idx,
-          fullS3Key: mlKey,
-          thumbnailS3Key: mediaFiles[idx]?.thumbnailS3Key,
-          s3KeyLength: mlKey?.length,
-        })),
-        matches: allImageS3Keys.slice(0, 3).map((imgKey, imgIdx) => {
-          if (!imgKey) return { imageIndex: imgIdx, matches: [] };
-          return {
-            imageIndex: imgIdx,
-            imageId: allImages[imgIdx]?.id,
-            imageS3Key: imgKey,
-            matches: mediaFileS3Keys.map((mlKey, mlIdx) => {
-              const exactMatch = mlKey === imgKey;
-              const endsWithMatch = mlKey.endsWith(imgKey) || imgKey.endsWith(mlKey);
-              const imgFilename = imgKey.split('/').pop() || '';
-              const mlFilename = mlKey.split('/').pop() || '';
-              const filenameMatch = imgFilename === mlFilename && imgFilename.length > 0;
-              return {
-                exactMatch,
-                endsWithMatch,
-                filenameMatch,
-                mediaFileIndex: mlIdx,
-                mediaFileS3Key: mlKey,
-                thumbnailS3Key: mediaFiles[mlIdx]?.thumbnailS3Key,
-              };
-            }).filter(m => m.exactMatch || m.endsWithMatch || m.filenameMatch)
-          };
-        })
-      };
-      
-      console.log('[CharacterDetailModal] 🔍 Thumbnail mapping:', {
-        mediaFilesCount: mediaFiles.length,
-        mediaFilesWithThumbnails: mediaFiles.filter((f: any) => f.thumbnailS3Key).length,
-        allImagesCount: allImages.length,
-        sampleImageS3Key: sampleS3Key,
-        sampleImageId: sampleImage.id,
-        matchingFileFound: !!matchingFile,
-        matchingFileS3Key: matchingFile?.s3Key,
-        matchingFileThumbnailS3Key: matchingFile?.thumbnailS3Key,
-        partialMatchesCount: partialMatches.length,
-        partialMatchS3Keys: partialMatches.slice(0, 2).map((f: any) => ({
-          s3Key: f.s3Key?.substring(0, 120),
-          thumbnailS3Key: f.thumbnailS3Key?.substring(0, 120),
-        })),
-        thumbnailMapSize: map.size,
-        thumbnailMapEntries: Array.from(map.entries()).slice(0, 3).map(([k, v]) => ({
-          s3Key: k.substring(0, 120),
-          thumbnailS3Key: v.substring(0, 120)
-        })),
-        fullComparison,
-        entityQueryUsed: entityMediaFiles.length > 0,
-        fallbackQueryUsed: entityMediaFiles.length === 0 && allMediaFiles.length > 0,
-      });
-    }
-    
     return map;
   }, [mediaFiles, isOpen, allImages.length]);
   
@@ -750,22 +584,6 @@ export function CharacterDetailModal({
         return thumbnailS3Key || null;
       })
       .filter((key): key is string => key !== null);
-    
-    // 🔥 DEBUG: Log thumbnail S3 keys being fetched
-    if (isOpen && keys.length > 0) {
-      console.log('[CharacterDetailModal] 🔍 Thumbnail S3 keys to fetch:', {
-        count: keys.length,
-        keys: keys.slice(0, 3).map(k => k.substring(0, 80)), // First 3 for debugging
-        allImageS3Keys: allImages.map((img: any) => img.s3Key).filter(Boolean).slice(0, 3).map((k: string) => k.substring(0, 60)),
-      });
-    } else if (isOpen && allImages.length > 0) {
-      console.log('[CharacterDetailModal] ⚠️ No thumbnail S3 keys found!', {
-        allImagesCount: allImages.length,
-        allImageS3Keys: allImages.map((img: any) => img.s3Key).filter(Boolean).slice(0, 3),
-        thumbnailMapSize: thumbnailS3KeyMap.size,
-      });
-    }
-    
     return keys;
   }, [allImages, thumbnailS3KeyMap, isOpen]);
   
@@ -774,28 +592,6 @@ export function CharacterDetailModal({
     thumbnailS3Keys.length > 0 ? thumbnailS3Keys : [],
     isOpen && thumbnailS3Keys.length > 0 // Only enable if modal is open and we have thumbnails
   );
-  
-  // 🔥 DEBUG: Log thumbnail URL fetching status
-  useEffect(() => {
-    if (isOpen && thumbnailS3Keys.length > 0) {
-      console.log('[CharacterDetailModal] 🔍 Thumbnail URL fetch status:', {
-        thumbnailS3KeysCount: thumbnailS3Keys.length,
-        thumbnailS3KeysSample: thumbnailS3Keys.slice(0, 2).map(k => k.substring(0, 60)),
-        thumbnailUrlsCount: thumbnailUrls.size,
-        isLoading: thumbnailsLoading,
-        thumbnailUrlsSample: Array.from(thumbnailUrls.entries()).slice(0, 2).map(([k, v]) => ({
-          s3Key: k.substring(0, 60),
-          url: v.substring(0, 60)
-        })),
-        missingUrls: thumbnailS3Keys.filter(k => !thumbnailUrls.has(k)).slice(0, 2).map(k => k.substring(0, 60)),
-      });
-    } else if (isOpen && thumbnailS3Keys.length === 0) {
-      console.log('[CharacterDetailModal] ⚠️ No thumbnail S3 keys to fetch!', {
-        allImagesCount: allImages.length,
-        thumbnailS3KeyMapSize: thumbnailS3KeyMap.size,
-      });
-    }
-  }, [isOpen, thumbnailS3Keys.length, thumbnailUrls.size, thumbnailsLoading, thumbnailUrls, thumbnailS3Keys, thumbnailS3KeyMap.size, allImages.length]);
   
   // Convert to GalleryImage format for ModernGallery
   const galleryImages: GalleryImage[] = useMemo(() => {
@@ -837,68 +633,6 @@ export function CharacterDetailModal({
             break;
           }
         }
-      }
-      
-      // 🔥 DEBUG: Log ALL images' thumbnail status
-      if (isOpen && allImages.length > 0) {
-        const metadata = (img as any).metadata || {};
-        const allThumbnailS3Keys = Array.from(thumbnailUrls.keys());
-        const matchingThumbnailKey = allThumbnailS3Keys.find(key => {
-          const imageS3KeyForThumbnail = thumbnailS3KeyToImageS3Key.get(key);
-          return imageS3KeyForThumbnail === s3Key || key === thumbnailS3Key;
-        });
-        
-        // Log all images to see which ones are using thumbnails
-        const imageIndex = allImages.indexOf(img);
-        // 🔥 DETAILED: Compare exact keys to see why lookup is failing
-        const exactKeyMatch = thumbnailS3Key ? thumbnailUrls.has(thumbnailS3Key) : false;
-        const allThumbnailKeys = Array.from(thumbnailUrls.keys());
-        const keyComparison = thumbnailS3Key ? {
-          lookingFor: thumbnailS3Key,
-          lookingForLength: thumbnailS3Key.length,
-          availableKeys: allThumbnailKeys.map(k => ({
-            key: k,
-            length: k.length,
-            matches: k === thumbnailS3Key,
-            startsWithMatch: k.startsWith(thumbnailS3Key.substring(0, 50)),
-            endsWithMatch: k.endsWith(thumbnailS3Key.substring(Math.max(0, thumbnailS3Key.length - 50))),
-          })).slice(0, 3)
-        } : null;
-        
-        // 🔥 SEPARATE LOG: Make key comparison more visible
-        if (thumbnailS3Key && imageIndex > 0 && imageIndex <= 3) {
-          console.log(`[CharacterDetailModal] 🔑 KEY COMPARISON Image ${imageIndex}:`, {
-            lookingFor: thumbnailS3Key,
-            lookingForLength: thumbnailS3Key.length,
-            availableKeysCount: allThumbnailKeys.length,
-            availableKeys: allThumbnailKeys,
-            exactMatchFound: exactKeyMatch,
-            matches: allThumbnailKeys.filter(k => k === thumbnailS3Key),
-            partialMatches: allThumbnailKeys.filter(k => k.includes(thumbnailS3Key.substring(0, 50)) || thumbnailS3Key.includes(k.substring(0, 50))),
-          });
-        }
-        
-        console.log(`[CharacterDetailModal] 🔍 Image ${imageIndex} thumbnail status:`, {
-          imageId: img.id,
-          isBase: (img as any).isBase,
-          isPose: (img as any).isPose,
-          s3Key: s3Key?.substring(0, 120),
-          thumbnailS3Key: thumbnailS3Key?.substring(0, 120),
-          thumbnailS3KeyFull: thumbnailS3Key, // Full key for comparison
-          thumbnailS3KeySource: thumbnailS3Key ? (thumbnailS3KeyMap.has(s3Key!) ? 'thumbnailS3KeyMap' : 'metadata') : 'none',
-          hasThumbnailUrl: exactKeyMatch,
-          thumbnailUrl: thumbnailUrl?.substring(0, 120),
-          usingThumbnail: thumbnailUrl !== img.imageUrl,
-          thumbnailUrlsMapSize: thumbnailUrls.size,
-          matchingThumbnailKey: matchingThumbnailKey,
-          reverseLookupFound: matchingThumbnailKey !== undefined,
-          keyComparison,
-          imageMetadata: {
-            entityType: metadata.entityType,
-            entityId: metadata.entityId,
-            thumbnailS3Key: metadata.thumbnailS3Key,
-          },
-        });
       }
       
       return {
