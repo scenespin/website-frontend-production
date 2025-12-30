@@ -509,9 +509,13 @@ export function CharacterDetailModal({
     const characterIdPattern = `character/${character.id}/`;
     const filtered = allMediaFiles.filter((file: any) => {
       if (!file.s3Key) return false;
-      // Check metadata first (more reliable for uploaded files)
-      const metadata = file.metadata || {};
-      if (metadata.entityType === 'character' && metadata.entityId === character.id) {
+      // Skip thumbnail files (they're stored separately)
+      if (file.s3Key.startsWith('thumbnails/')) return false;
+      
+      // Check entityType/entityId - backend stores them at top level (for GSI) AND in metadata
+      const entityType = (file as any).entityType || file.metadata?.entityType;
+      const entityId = (file as any).entityId || file.metadata?.entityId;
+      if (entityType === 'character' && entityId === character.id) {
         return true;
       }
       // Fallback: Check s3Key pattern (for AI-generated files in character/.../outfits/...)
