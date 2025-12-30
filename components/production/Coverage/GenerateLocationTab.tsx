@@ -197,11 +197,7 @@ export function GenerateLocationTab({
         const result = await response.json();
         
         if (result.jobId) {
-          toast.success('Angle generation started!', {
-            description: 'View in Jobs tab to track progress.',
-            duration: 5000
-          });
-          
+          // Toast notification handled by parent (LocationDetailModal) in onComplete callback
           if (onComplete) {
             onComplete({ jobId: result.jobId, type: 'angles' });
           }
@@ -243,11 +239,7 @@ export function GenerateLocationTab({
         const result = await response.json();
         
         if (result.jobId) {
-          toast.success('Background generation started!', {
-            description: 'View in Jobs tab to track progress.',
-            duration: 5000
-          });
-          
+          // Toast notification handled by parent (LocationDetailModal) in onComplete callback
           if (onComplete) {
             onComplete({ jobId: result.jobId, type: 'backgrounds' });
           }
