@@ -16,6 +16,7 @@ import { Check } from 'lucide-react';
 import { LocationAngleSelector } from './LocationAngleSelector';
 import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
+import { findCharacterById, getCharacterSource } from './utils/sceneBuilderUtils';
 
 export type ModelStyle = 'cinematic' | 'photorealistic' | 'auto';
 export type Resolution = '1080p' | '4k';
@@ -307,9 +308,7 @@ export function ShotConfigurationPanel({
                 </div>
                 <div className="text-xs font-medium text-[#FFFFFF] mb-2">Additional Characters</div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {(() => {
-                    const characterSource = allCharacters.length > 0 ? allCharacters : (sceneAnalysisResult?.characters || []);
-                    return characterSource.map((char: any) => {
+                  {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => {
                     const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
                     return (
                       <div key={char.id} className="flex items-center gap-2">
@@ -338,7 +337,7 @@ export function ShotConfigurationPanel({
                 {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
                   <div className="mt-4 space-y-4">
                     {selectedCharactersForShots[shot.slot].map((charId: string) => {
-                      const char = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).find((c: any) => c.id === charId);
+                      const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
                       if (!char) return null;
                       return (
                         <div key={charId}>
@@ -352,7 +351,7 @@ export function ShotConfigurationPanel({
                 {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
                   <div className="mt-4 space-y-4">
                     {selectedCharactersForShots[shot.slot].map((charId: string) => {
-                      const char = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).find((c: any) => c.id === charId);
+                      const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
                       if (!char) return null;
                       return (
                         <div key={charId}>
