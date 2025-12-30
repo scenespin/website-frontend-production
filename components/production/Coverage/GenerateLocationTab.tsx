@@ -43,7 +43,7 @@ export function GenerateLocationTab({
   const { getToken } = useAuth();
   
   // Step 1: Quality/Model
-  const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard');
+  const [quality, setQuality] = useState<'standard' | 'high-quality'>('high-quality');
   const [providerId, setProviderId] = useState<string>('');
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -472,7 +472,7 @@ export function GenerateLocationTab({
                   onChange={() => setQuality('standard')}
                   className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
                 />
-                <span className="text-sm text-white">Standard (1080p) - {creditsPerImage} credits</span>
+                <span className="text-sm text-white">Standard Quality - {creditsPerImage} credits</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -482,7 +482,7 @@ export function GenerateLocationTab({
                   onChange={() => setQuality('high-quality')}
                   className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
                 />
-                <span className="text-sm text-white">High Quality (4K) - {creditsPerImage} credits</span>
+                <span className="text-sm text-white">High Quality - {creditsPerImage} credits</span>
               </label>
             </div>
           </div>
