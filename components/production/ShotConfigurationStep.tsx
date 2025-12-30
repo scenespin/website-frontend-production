@@ -496,7 +496,7 @@ export function ShotConfigurationStep({
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex gap-3 pt-3 pb-6 border-t border-[#3F3F46]">
+          <div className="flex gap-3 pt-3 pb-12 border-t border-[#3F3F46]">
             <Button
               onClick={handlePrevious}
               disabled={isTransitioning}
