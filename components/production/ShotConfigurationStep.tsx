@@ -224,9 +224,8 @@ export function ShotConfigurationStep({
     
     // Add explicit characters from dialogue
     if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
-      const dialogueChar = sceneAnalysisResult?.characters?.find((c: any) => 
-        c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim()
-      );
+      const dialogueChar = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || [])
+        .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
       if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
     }
     
@@ -266,8 +265,7 @@ export function ShotConfigurationStep({
       
       // If headshots are displayed, a selection is required
       if (headshots.length > 0 && !hasSelectedReference) {
-        const char = sceneAnalysisResult?.characters?.find((c: any) => c.id === charId);
-        const charName = char?.name || 'Character';
+        const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
         validationErrors.push(
           `${charName} requires a character image selection. Please select an image from the options displayed above.`
         );
@@ -275,8 +273,7 @@ export function ShotConfigurationStep({
       
       // If no headshots available and no reference selected, require adding headshots
       if (headshots.length === 0 && !hasSelectedReference) {
-        const char = sceneAnalysisResult?.characters?.find((c: any) => c.id === charId);
-        const charName = char?.name || 'Character';
+        const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
         validationErrors.push(
           `${charName} requires a character image. Please add headshots in the Character Bank (Production Hub) or Creation Hub, or upload images.`
         );

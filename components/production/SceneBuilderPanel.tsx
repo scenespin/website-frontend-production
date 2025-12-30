@@ -82,7 +82,9 @@ import {
   needsLocationAngle,
   isLocationAngleRequired,
   getCharacterWithExtractedOutfits,
-  detectDialogue
+  detectDialogue,
+  findCharacterById,
+  getCharacterName
 } from './utils/sceneBuilderUtils';
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
@@ -1383,10 +1385,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         // Add explicit characters from action/dialogue
         if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
-          const dialogueChar = sceneAnalysisResult?.characters?.find((c: any) => 
-            c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim()
-          );
-          if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
+          const dialogueChar = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || [])
+        .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
+      if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
         }
         
         // Add characters from pronoun mappings
@@ -1412,8 +1413,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           
           // Character must have headshots available OR a selected reference
           if (headshots.length === 0 && !hasSelectedReference) {
-            const char = sceneAnalysisResult?.characters?.find((c: any) => c.id === charId);
-            const charName = char?.name || 'Character';
+            const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
             validationErrors.push(
               `Shot ${shot.slot}: ${charName} requires a character image. Please add headshots in the Character Bank or Creation Hub.`
             );
@@ -2885,8 +2885,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                 hasPronouns: boolean,
                 category: 'explicit' | 'singular' | 'plural'
               ) => {
-                const baseChar = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
-                           allCharacters.find((c: any) => c.id === charId);
+                const baseChar = findCharacterById(charId, allCharacters, sceneAnalysisResult);
                 if (!baseChar) return null;
                 const char = getCharacterWithExtractedOutfitsWrapper(charId, baseChar);
                 const selectedOutfit = characterOutfits[shotSlot]?.[charId];
@@ -2929,8 +2928,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               };
               
               const renderCharacterImagesOnly = (charId: string, shotSlot: number, pronounsForChar?: string[]) => {
-                const char = sceneAnalysisResult?.characters.find((c: any) => c.id === charId) ||
-                           allCharacters.find((c: any) => c.id === charId);
+                const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
                 if (!char) return null;
                 const allHeadshots = characterHeadshots[charId] || [];
                 const selectedHeadshot = selectedCharacterReferences[shotSlot]?.[charId];

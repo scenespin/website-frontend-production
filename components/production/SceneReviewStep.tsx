@@ -24,6 +24,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import type { ModelStyle, Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
+import { getCharacterName } from './utils/sceneBuilderUtils';
 
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
@@ -136,10 +137,8 @@ export function SceneReviewStep({
   const shots = sceneAnalysisResult.shotBreakdown?.shots || [];
   const selectedShots = shots.filter((s: any) => enabledShots.includes(s.slot));
 
-  const getCharacterName = (charId: string) => {
-    const char = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters || []).find((c: any) => c.id === charId);
-    return char?.name || charId;
-  };
+  // Use utility function for character name lookup
+  const getCharName = (charId: string) => getCharacterName(charId, allCharacters, sceneAnalysisResult, charId);
 
   const getWorkflowLabel = (workflow: string) => {
     const labels: Record<string, string> = {
@@ -289,7 +288,7 @@ export function SceneReviewStep({
                     {/* Characters */}
                     {Object.keys(shotCharacterRefs).length > 0 && (
                       <div className="text-[10px] text-[#808080]">
-                        Characters: {Object.keys(shotCharacterRefs).map(charId => getCharacterName(charId)).join(', ')}
+                        Characters: {Object.keys(shotCharacterRefs).map(charId => getCharName(charId)).join(', ')}
                       </div>
                     )}
 
@@ -307,7 +306,7 @@ export function SceneReviewStep({
                             }
                           }
                           const charIds = Array.isArray(charIdOrIds) ? charIdOrIds : [charIdOrIds];
-                          const names = charIds.map(id => getCharacterName(id as string)).join(', ');
+                          const names = charIds.map(id => getCharName(id as string)).join(', ');
                           return `"${pronoun}" → ${names}`;
                         }).join(', ')}
                       </div>

@@ -229,3 +229,36 @@ export function detectDialogue(text: string): { hasDialogue: boolean; characterN
   return { hasDialogue: false };
 }
 
+/**
+ * Find a character by ID from multiple possible sources
+ * Priority: allCharacters > sceneAnalysisResult.characters
+ */
+export function findCharacterById(
+  charId: string,
+  allCharacters: any[],
+  sceneAnalysisResult: SceneAnalysisResult | null
+): any | null {
+  if (!charId) return null;
+  
+  // Try allCharacters first (usually more complete)
+  const fromAllChars = allCharacters.find((c: any) => c.id === charId);
+  if (fromAllChars) return fromAllChars;
+  
+  // Fallback to sceneAnalysisResult
+  return sceneAnalysisResult?.characters?.find((c: any) => c.id === charId) || null;
+}
+
+/**
+ * Get character name by ID with fallback
+ * Returns character name or fallback text
+ */
+export function getCharacterName(
+  charId: string,
+  allCharacters: any[],
+  sceneAnalysisResult: SceneAnalysisResult | null,
+  fallback: string = 'Character'
+): string {
+  const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
+  return char?.name || fallback;
+}
+
