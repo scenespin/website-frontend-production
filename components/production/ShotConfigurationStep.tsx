@@ -247,14 +247,23 @@ export function ShotConfigurationStep({
     const additionalChars = selectedCharactersForShots[shot.slot] || [];
     additionalChars.forEach(charId => shotCharacterIds.add(charId));
     
-    // Check each character has headshots
+    // Check each character has headshots and image selection
     for (const charId of shotCharacterIds) {
       if (!charId || charId === '__ignore__') continue;
       
       const headshots = characterHeadshots[charId] || [];
       const hasSelectedReference = selectedCharacterReferences[shot.slot]?.[charId] !== undefined;
       
-      // Character must have headshots available OR a selected reference
+      // If headshots are displayed, a selection is required
+      if (headshots.length > 0 && !hasSelectedReference) {
+        const char = sceneAnalysisResult?.characters?.find((c: any) => c.id === charId);
+        const charName = char?.name || 'Character';
+        validationErrors.push(
+          `${charName} requires a character image selection. Please select an image from the options displayed above.`
+        );
+      }
+      
+      // If no headshots available and no reference selected, require adding headshots
       if (headshots.length === 0 && !hasSelectedReference) {
         const char = sceneAnalysisResult?.characters?.find((c: any) => c.id === charId);
         const charName = char?.name || 'Character';

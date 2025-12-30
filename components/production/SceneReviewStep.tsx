@@ -382,7 +382,7 @@ export function SceneReviewStep({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3 pb-12 border-t border-[#3F3F46]">
+          <div className="flex gap-3 pt-3 pb-20 border-t border-[#3F3F46]">
             <Button
               onClick={onBack}
               variant="outline"
