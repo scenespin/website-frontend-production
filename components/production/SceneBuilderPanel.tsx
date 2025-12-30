@@ -226,6 +226,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Shot Duration state (per-shot, defaults to 'quick-cut' = ~5s)
   const [shotDurations, setShotDurations] = useState<Record<number, 'quick-cut' | 'extended-take'>>({});
   
+  // Scroll to top when navigating between shots or steps
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.h-full.overflow-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [currentShotIndex, wizardStep, currentStep]);
+
   // Props state
   const [sceneProps, setSceneProps] = useState<Array<{ 
     id: string; 
@@ -2725,6 +2735,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                               <div className="flex gap-2">
                                 <Button
                                   onClick={() => {
+                                    // Scroll to top
+                                    const scrollContainer = document.querySelector('.h-full.overflow-auto');
+                                    if (scrollContainer) {
+                                      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+                                    } else {
+                                      window.scrollTo({ top: 0, behavior: 'instant' });
+                                    }
                                     // Go back to Scene Selection
                                     setCurrentStep(1);
                                     setHasConfirmedSceneSelection(false);
@@ -2741,6 +2758,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                 <Button
                                   onClick={() => {
                                     if (wizardStep === 'analysis') {
+                                      // Scroll to top
+                                      const scrollContainer = document.querySelector('.h-full.overflow-auto');
+                                      if (scrollContainer) {
+                                        scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+                                      } else {
+                                        window.scrollTo({ top: 0, behavior: 'instant' });
+                                      }
                                       // Move to first shot configuration
                                       setWizardStep('shot-config');
                                       setCurrentShotIndex(0);
@@ -3377,6 +3401,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                 propsToShots={propsToShots}
                 shotProps={shotProps}
                 onBack={() => {
+                  // Scroll to top
+                  const scrollContainer = document.querySelector('.h-full.overflow-auto');
+                  if (scrollContainer) {
+                    scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+                  } else {
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                  }
                   const shots = sceneAnalysisResult.shotBreakdown?.shots || [];
                   const enabledShotsList = shots.filter((s: any) => enabledShots.includes(s.slot));
                   setCurrentShotIndex(enabledShotsList.length - 1);

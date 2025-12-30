@@ -323,24 +323,50 @@ export function ShotConfigurationStep({
     }
     
     // Scroll to top immediately
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    const scrollContainer = document.querySelector('.h-full.overflow-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
     
     // Add transition animation
     setIsTransitioning(true);
     setTimeout(() => {
       onNext();
       setIsTransitioning(false);
+      // Ensure scroll to top after navigation completes
+      setTimeout(() => {
+        if (scrollContainer) {
+          scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+      }, 50);
     }, 800); // 0.8 second transition
   };
 
   const handlePrevious = () => {
     // Scroll to top immediately
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    const scrollContainer = document.querySelector('.h-full.overflow-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
     
     setIsTransitioning(true);
     setTimeout(() => {
       onPrevious();
       setIsTransitioning(false);
+      // Ensure scroll to top after navigation completes
+      setTimeout(() => {
+        if (scrollContainer) {
+          scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+      }, 50);
     }, 800);
   };
 
@@ -360,13 +386,26 @@ export function ShotConfigurationStep({
             currentShotSlot={shot.slot}
             onShotSelect={(shotSlot) => {
               // Only allow navigation if shot is navigable (will be checked in navigator)
+              // Scroll to top immediately
+              const scrollContainer = document.querySelector('.h-full.overflow-auto');
+              if (scrollContainer) {
+                scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+              } else {
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }
               // Trigger fade transition when clicking shot
               setIsTransitioning(true);
               setTimeout(() => {
                 onShotSelect(shotSlot);
                 setIsTransitioning(false);
-                // Scroll to top
-                window.scrollTo({ top: 0, behavior: 'instant' });
+                // Ensure scroll to top after transition
+                setTimeout(() => {
+                  if (scrollContainer) {
+                    scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+                  } else {
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                  }
+                }, 50);
               }, 800);
             }}
             isMobile={isMobile}
