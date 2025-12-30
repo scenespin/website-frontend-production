@@ -130,7 +130,7 @@ export function useMediaFiles(
       }
 
       // Map backend format to frontend MediaFile format
-      // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt, metadata }
+      // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt, metadata, entityType?, entityId? }
       // Frontend expects: { id, fileName, s3Key, fileType (enum), fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key }
       return backendFiles.map((file: any) => ({
         id: file.fileId,
@@ -145,7 +145,10 @@ export function useMediaFiles(
         folderId: file.folderId, // Feature 0128: S3 folder support
         folderPath: file.folderPath, // Feature 0128: Breadcrumb path
         metadata: file.metadata, // Feature 0170: Include metadata for scene organization
-        thumbnailS3Key: file.metadata?.thumbnailS3Key, // Feature 0174: Thumbnail S3 key (if exists)
+        thumbnailS3Key: file.metadata?.thumbnailS3Key || file.thumbnailS3Key, // Feature 0174: Thumbnail S3 key (if exists)
+        // Preserve top-level entityType/entityId from GSI (backend stores them at top level for efficient querying)
+        entityType: file.entityType,
+        entityId: file.entityId,
       }));
     },
     enabled: enabled && !!screenplayId,
