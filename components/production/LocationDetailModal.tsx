@@ -794,15 +794,15 @@ export function LocationDetailModal({
                     </div>
                   )}
                   
-                  {/* 🔥 SEPARATION: Production Hub Images - Angle Variations (Editable/Deletable) */}
-                  {angleVariations.length > 0 && (
+                  {/* 🔥 SEPARATION: Production Hub Images - Angle Variations & Backgrounds (Editable/Deletable) */}
+                  {(angleVariations.length > 0 || (location.backgrounds && location.backgrounds.length > 0)) && (
                     <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
                       <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
                         <div>
                           <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
-                            Production Hub Images ({angleVariations.length})
+                            Production Hub Images ({angleVariations.length + (location.backgrounds?.length || 0)})
                           </h3>
-                          <p className="text-xs text-[#6B7280]">AI-generated angle variations - can be edited/deleted here</p>
+                          <p className="text-xs text-[#6B7280]">AI-generated angles and backgrounds - can be edited/deleted here</p>
                         </div>
                       </div>
                       {/* 🔥 IMPROVED: Organized by Metadata Combinations - Visual Card-based Grouping */}
