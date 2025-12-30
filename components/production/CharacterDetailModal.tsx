@@ -477,17 +477,24 @@ export function CharacterDetailModal({
     undefined // No entityId filter
   );
   
-  // Use entity files if available, otherwise fallback to all files filtered by character ID in s3Key
+  // Use entity files if available, otherwise fallback to all files filtered by character ID
   const mediaFiles = useMemo(() => {
     if (entityMediaFiles.length > 0) {
       return entityMediaFiles;
     }
-    // Fallback: Filter all files by checking if s3Key contains character ID
-    // Character files are stored in: temp/images/.../character/{characterId}/...
+    // Fallback: Filter all files by checking metadata OR s3Key pattern
+    // Character files can be in: temp/images/.../character/{characterId}/... OR temp/images/.../uploads/... (with entityType/entityId in metadata)
     const characterIdPattern = `character/${character.id}/`;
-    return allMediaFiles.filter((file: any) => 
-      file.s3Key && file.s3Key.includes(characterIdPattern)
-    );
+    return allMediaFiles.filter((file: any) => {
+      if (!file.s3Key) return false;
+      // Check metadata first (more reliable for uploaded files)
+      const metadata = file.metadata || {};
+      if (metadata.entityType === 'character' && metadata.entityId === character.id) {
+        return true;
+      }
+      // Fallback: Check s3Key pattern (for AI-generated files in character/.../outfits/...)
+      return file.s3Key.includes(characterIdPattern);
+    });
   }, [entityMediaFiles, allMediaFiles, character.id]);
   
   // Extract outfit names from Media Library folder paths
