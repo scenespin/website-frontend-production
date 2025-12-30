@@ -32,8 +32,12 @@ export interface WorkflowExecution {
   totalSteps?: number;
   stepResults?: any[];
   totalCreditsUsed?: number;
+  totalTimeElapsed?: number;
+  startedAt?: Date;
+  completedAt?: Date;
   finalOutputs?: any[];
   metadata?: any;
+  error?: string;
 }
 
 export interface WorkflowStatusResponse {
