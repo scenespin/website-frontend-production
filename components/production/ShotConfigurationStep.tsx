@@ -16,7 +16,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { ShotNavigatorList } from './ShotNavigatorList';
 import { categorizeCharacters } from './utils/characterCategorization';
-import { getCharactersFromActionShot } from './utils/sceneBuilderUtils';
+import { getCharactersFromActionShot, findCharacterById, getCharacterName } from './utils/sceneBuilderUtils';
 import { toast } from 'sonner';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
