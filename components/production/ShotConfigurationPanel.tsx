@@ -307,7 +307,9 @@ export function ShotConfigurationPanel({
                 </div>
                 <div className="text-xs font-medium text-[#FFFFFF] mb-2">Additional Characters</div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {(allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || []).map((char: any) => {
+                  {(() => {
+                    const characterSource = allCharacters.length > 0 ? allCharacters : (sceneAnalysisResult?.characters || []);
+                    return characterSource.map((char: any) => {
                     const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
                     return (
                       <div key={char.id} className="flex items-center gap-2">

@@ -1386,7 +1386,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         // Add explicit characters from action/dialogue
         if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
-          const dialogueChar = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || [])
+          const dialogueChar = getCharacterSource(allCharacters, sceneAnalysisResult)
         .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
       if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
         }
