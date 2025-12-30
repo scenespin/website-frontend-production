@@ -71,9 +71,7 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
         if (shot.video.s3Key) {
           keys.push(shot.video.s3Key);
         }
-        if (shot.firstFrame?.s3Key) {
-          keys.push(shot.firstFrame.s3Key);
-        }
+        // Note: firstFrame is not part of the shot structure in SceneVideo
       });
     });
     return keys;
