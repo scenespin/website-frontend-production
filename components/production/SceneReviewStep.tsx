@@ -382,14 +382,14 @@ export function SceneReviewStep({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3 border-t border-[#3F3F46]">
+          <div className="flex gap-3 pt-3 pb-6 border-t border-[#3F3F46]">
             <Button
               onClick={onBack}
               variant="outline"
               className="flex-1 border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1A1A1A]"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+              Back to Shots
             </Button>
             <Button
               onClick={onGenerate}
@@ -404,7 +404,7 @@ export function SceneReviewStep({
               ) : (
                 <>
                   <Play className="w-4 h-4 mr-2" />
-                  Generate Scene ({selectedShots.length} {selectedShots.length === 1 ? 'shot' : 'shots'})
+                  Generate Shots
                 </>
               )}
             </Button>
