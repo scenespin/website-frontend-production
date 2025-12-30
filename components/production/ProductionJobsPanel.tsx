@@ -109,6 +109,16 @@ interface WorkflowJob {
       errorCode?: string; // 'SAFETY_ERROR_USER_CHOICE' for safety errors
       attemptedQuality?: string;
     }>;
+    backgroundReferences?: Array<{
+      backgroundType: string;
+      imageUrl: string;
+      s3Key: string;
+      creditsUsed: number;
+    }>;
+    failedBackgrounds?: Array<{
+      backgroundType: string;
+      error: string;
+    }>;
   };
   error?: string;
   createdAt: string;
