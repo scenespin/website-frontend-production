@@ -477,7 +477,7 @@ export function CharacterDetailModal({
     undefined // No entityId filter
   );
   
-  // Use entity files if available, otherwise fallback to all files filtered by character ID
+  // Use entity files and merge with fallback to catch any files missed by GSI (e.g., newly uploaded files not yet indexed)
   const mediaFiles = useMemo(() => {
     // 🔥 DEBUG: Log what we're finding
     if (isOpen) {
@@ -501,9 +501,9 @@ export function CharacterDetailModal({
       });
     }
     
-    if (entityMediaFiles.length > 0) {
-      return entityMediaFiles;
-    }
+    // Start with entity files (from GSI query - most efficient)
+    const entityS3Keys = new Set(entityMediaFiles.map((f: any) => f.s3Key).filter(Boolean));
+    
     // Fallback: Filter all files by checking metadata OR s3Key pattern
     // Character files can be in: temp/images/.../character/{characterId}/... OR temp/images/.../uploads/... (with entityType/entityId in metadata)
     const characterIdPattern = `character/${character.id}/`;
@@ -511,6 +511,8 @@ export function CharacterDetailModal({
       if (!file.s3Key) return false;
       // Skip thumbnail files (they're stored separately)
       if (file.s3Key.startsWith('thumbnails/')) return false;
+      // Skip files already in entity results (avoid duplicates)
+      if (entityS3Keys.has(file.s3Key)) return false;
       
       // Check entityType/entityId - backend stores them at top level (for GSI) AND in metadata
       const entityType = (file as any).entityType || file.metadata?.entityType;
@@ -522,20 +524,25 @@ export function CharacterDetailModal({
       return file.s3Key.includes(characterIdPattern);
     });
     
+    // Merge entity files with fallback results
+    const merged = [...entityMediaFiles, ...filtered];
+    
     // 🔥 DEBUG: Log fallback results
-    if (isOpen && entityMediaFiles.length === 0 && filtered.length > 0) {
+    if (isOpen && filtered.length > 0) {
       console.log('[CharacterDetailModal] 🔍 Fallback filter results:', {
+        entityFilesCount: entityMediaFiles.length,
         filteredCount: filtered.length,
+        mergedCount: merged.length,
         filteredFiles: filtered.map((f: any) => ({
           s3Key: f.s3Key?.substring(0, 80),
-          entityType: f.metadata?.entityType,
-          entityId: f.metadata?.entityId,
+          entityType: (f as any).entityType || f.metadata?.entityType,
+          entityId: (f as any).entityId || f.metadata?.entityId,
           thumbnailS3Key: f.thumbnailS3Key || f.metadata?.thumbnailS3Key?.substring(0, 60),
         })),
       });
     }
     
-    return filtered;
+    return merged;
   }, [entityMediaFiles, allMediaFiles, character.id, isOpen]);
   
   // Extract outfit names from Media Library folder paths
