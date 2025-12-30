@@ -160,6 +160,16 @@ export function ShotConfigurationStep({
   const [pricing, setPricing] = useState<{ hdPrice: number; k4Price: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   
+  // Helper function to scroll to top of the scroll container
+  const scrollToTop = useCallback(() => {
+    const scrollContainer = document.querySelector('.h-full.overflow-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, []);
+  
   // Fetch pricing from backend (server-side margin calculation)
   useEffect(() => {
     const fetchPricing = async () => {
@@ -323,12 +333,7 @@ export function ShotConfigurationStep({
     }
     
     // Scroll to top immediately
-    const scrollContainer = document.querySelector('.h-full.overflow-auto');
-    if (scrollContainer) {
-      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    }
+    scrollToTop();
     
     // Add transition animation
     setIsTransitioning(true);
@@ -336,37 +341,20 @@ export function ShotConfigurationStep({
       onNext();
       setIsTransitioning(false);
       // Ensure scroll to top after navigation completes
-      setTimeout(() => {
-        if (scrollContainer) {
-          scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        }
-      }, 50);
+      setTimeout(() => scrollToTop(), 50);
     }, 800); // 0.8 second transition
   };
 
   const handlePrevious = () => {
     // Scroll to top immediately
-    const scrollContainer = document.querySelector('.h-full.overflow-auto');
-    if (scrollContainer) {
-      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    }
+    scrollToTop();
     
     setIsTransitioning(true);
     setTimeout(() => {
       onPrevious();
       setIsTransitioning(false);
       // Ensure scroll to top after navigation completes
-      setTimeout(() => {
-        if (scrollContainer) {
-          scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        }
-      }, 50);
+      setTimeout(() => scrollToTop(), 50);
     }, 800);
   };
 
@@ -387,25 +375,14 @@ export function ShotConfigurationStep({
             onShotSelect={(shotSlot) => {
               // Only allow navigation if shot is navigable (will be checked in navigator)
               // Scroll to top immediately
-              const scrollContainer = document.querySelector('.h-full.overflow-auto');
-              if (scrollContainer) {
-                scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
-              } else {
-                window.scrollTo({ top: 0, behavior: 'instant' });
-              }
+              scrollToTop();
               // Trigger fade transition when clicking shot
               setIsTransitioning(true);
               setTimeout(() => {
                 onShotSelect(shotSlot);
                 setIsTransitioning(false);
                 // Ensure scroll to top after transition
-                setTimeout(() => {
-                  if (scrollContainer) {
-                    scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
-                  } else {
-                    window.scrollTo({ top: 0, behavior: 'instant' });
-                  }
-                }, 50);
+                setTimeout(() => scrollToTop(), 50);
               }, 800);
             }}
             isMobile={isMobile}
