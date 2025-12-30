@@ -858,7 +858,7 @@ export function CharacterDetailModal({
         height: 3
       };
     });
-  }, [allImages, thumbnailS3KeyMap, thumbnailUrls, isOpen]);
+  }, [allImages, thumbnailS3KeyMap, thumbnailUrls, thumbnailUrls.size, isOpen]);
   
   // Filter gallery images by outfit
   const filteredGalleryImages = useMemo(() => {
