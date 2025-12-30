@@ -479,13 +479,35 @@ export function CharacterDetailModal({
   
   // Use entity files if available, otherwise fallback to all files filtered by character ID
   const mediaFiles = useMemo(() => {
+    // 🔥 DEBUG: Log what we're finding
+    if (isOpen) {
+      console.log('[CharacterDetailModal] 🔍 Media files query results:', {
+        entityMediaFilesCount: entityMediaFiles.length,
+        allMediaFilesCount: allMediaFiles.length,
+        characterId: character.id,
+        entityFilesSample: entityMediaFiles.slice(0, 3).map((f: any) => ({
+          s3Key: f.s3Key?.substring(0, 80),
+          entityType: f.metadata?.entityType || f.entityType,
+          entityId: f.metadata?.entityId || f.entityId,
+          thumbnailS3Key: f.thumbnailS3Key || f.metadata?.thumbnailS3Key?.substring(0, 60),
+        })),
+        allFilesSample: allMediaFiles.slice(0, 5).map((f: any) => ({
+          s3Key: f.s3Key?.substring(0, 80),
+          entityType: f.metadata?.entityType || f.entityType,
+          entityId: f.metadata?.entityId || f.entityId,
+          matchesCharacter: (f.metadata?.entityType === 'character' && f.metadata?.entityId === character.id) || 
+                           (f.s3Key && f.s3Key.includes(`character/${character.id}/`)),
+        })),
+      });
+    }
+    
     if (entityMediaFiles.length > 0) {
       return entityMediaFiles;
     }
     // Fallback: Filter all files by checking metadata OR s3Key pattern
     // Character files can be in: temp/images/.../character/{characterId}/... OR temp/images/.../uploads/... (with entityType/entityId in metadata)
     const characterIdPattern = `character/${character.id}/`;
-    return allMediaFiles.filter((file: any) => {
+    const filtered = allMediaFiles.filter((file: any) => {
       if (!file.s3Key) return false;
       // Check metadata first (more reliable for uploaded files)
       const metadata = file.metadata || {};
@@ -495,7 +517,22 @@ export function CharacterDetailModal({
       // Fallback: Check s3Key pattern (for AI-generated files in character/.../outfits/...)
       return file.s3Key.includes(characterIdPattern);
     });
-  }, [entityMediaFiles, allMediaFiles, character.id]);
+    
+    // 🔥 DEBUG: Log fallback results
+    if (isOpen && entityMediaFiles.length === 0 && filtered.length > 0) {
+      console.log('[CharacterDetailModal] 🔍 Fallback filter results:', {
+        filteredCount: filtered.length,
+        filteredFiles: filtered.map((f: any) => ({
+          s3Key: f.s3Key?.substring(0, 80),
+          entityType: f.metadata?.entityType,
+          entityId: f.metadata?.entityId,
+          thumbnailS3Key: f.thumbnailS3Key || f.metadata?.thumbnailS3Key?.substring(0, 60),
+        })),
+      });
+    }
+    
+    return filtered;
+  }, [entityMediaFiles, allMediaFiles, character.id, isOpen]);
   
   // Extract outfit names from Media Library folder paths
   const mediaLibraryOutfitNames = useMemo(() => {
