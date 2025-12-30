@@ -57,7 +57,12 @@ export function GenerateLocationTab({
   
   // Step 2b: Background Source Selection (only for backgrounds)
   const [sourceType, setSourceType] = useState<'reference-images' | 'angle-variations'>('reference-images');
-  const [selectedAngleId, setSelectedAngleId] = useState<string>('');
+  const [selectedAngleId, setSelectedAngleId] = useState<string>(''); // For backward compatibility (single select)
+  const [selectedAngleIds, setSelectedAngleIds] = useState<string[]>([]); // NEW: Multi-select support
+  
+  // Step 2b.1: Metadata filters for angle selection (only for backgrounds with angle-variations source)
+  const [filterTimeOfDay, setFilterTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>('');
+  const [filterWeather, setFilterWeather] = useState<'sunny' | 'cloudy' | 'rainy' | 'snowy' | ''>('');
   
   // Step 4: Optional - Lighting & Atmosphere
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>('');
@@ -72,6 +77,47 @@ export function GenerateLocationTab({
   
   // Get available angles for source selection
   const availableAngles = location?.angleVariations || [];
+  
+  // Filter angles by metadata (for visual selector)
+  const filteredAngles = useMemo(() => {
+    if (sourceType !== 'angle-variations' || availableAngles.length === 0) {
+      return [];
+    }
+    
+    return availableAngles.filter((angle: any) => {
+      const matchesTimeOfDay = !filterTimeOfDay || angle.timeOfDay === filterTimeOfDay;
+      const matchesWeather = !filterWeather || angle.weather === filterWeather;
+      return matchesTimeOfDay && matchesWeather;
+    });
+  }, [availableAngles, sourceType, filterTimeOfDay, filterWeather]);
+  
+  // Toggle angle selection (multi-select)
+  const toggleAngleSelection = (angleId: string) => {
+    setSelectedAngleIds(prev => {
+      if (prev.includes(angleId)) {
+        return prev.filter(id => id !== angleId);
+      } else {
+        return [...prev, angleId];
+      }
+    });
+    // Also update single select for backward compatibility
+    setSelectedAngleId(angleId);
+  };
+  
+  // Select all filtered angles
+  const selectAllFiltered = () => {
+    const allIds = filteredAngles.map((a: any) => a.id).filter(Boolean);
+    setSelectedAngleIds(allIds);
+    if (allIds.length > 0) {
+      setSelectedAngleId(allIds[0]); // For backward compatibility
+    }
+  };
+  
+  // Clear all selections
+  const clearAngleSelections = () => {
+    setSelectedAngleIds([]);
+    setSelectedAngleId('');
+  };
   
   // Get selected model
   const selectedModel = useMemo(() => {
@@ -214,7 +260,8 @@ export function GenerateLocationTab({
           quality: quality,
           providerId: providerId,
           sourceType: sourceType,
-          selectedAngleId: sourceType === 'angle-variations' && selectedAngleId ? selectedAngleId : undefined,
+          selectedAngleId: sourceType === 'angle-variations' && selectedAngleId ? selectedAngleId : undefined, // Backward compatibility
+          selectedAngleIds: sourceType === 'angle-variations' && selectedAngleIds.length > 0 ? selectedAngleIds : undefined, // NEW: Multi-select
           additionalPrompt: additionalPrompt.trim() || undefined,
           timeOfDay: defaultTimeOfDay,
           weather: defaultWeather,
@@ -409,18 +456,134 @@ export function GenerateLocationTab({
                   Uses generated angles - matches lighting/weather of selected angle
                 </p>
                 {sourceType === 'angle-variations' && availableAngles.length > 0 && (
-                  <select
-                    value={selectedAngleId}
-                    onChange={(e) => setSelectedAngleId(e.target.value)}
-                    className="mt-2 w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white"
-                  >
-                    <option value="">All angles (default)</option>
-                    {availableAngles.map((angle: any) => (
-                      <option key={angle.id} value={angle.id}>
-                        {angle.angle} {angle.timeOfDay ? `(${angle.timeOfDay})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-3 space-y-3">
+                    {/* Metadata Filters */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-[#808080] mb-1.5">Filter by Time of Day</label>
+                        <select
+                          value={filterTimeOfDay}
+                          onChange={(e) => {
+                            setFilterTimeOfDay(e.target.value as any);
+                            clearAngleSelections(); // Clear selections when filter changes
+                          }}
+                          className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+                        >
+                          <option value="">All times</option>
+                          <option value="morning">Morning</option>
+                          <option value="afternoon">Afternoon</option>
+                          <option value="evening">Evening</option>
+                          <option value="night">Night</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#808080] mb-1.5">Filter by Weather</label>
+                        <select
+                          value={filterWeather}
+                          onChange={(e) => {
+                            setFilterWeather(e.target.value as any);
+                            clearAngleSelections(); // Clear selections when filter changes
+                          }}
+                          className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+                        >
+                          <option value="">All weather</option>
+                          <option value="sunny">Sunny</option>
+                          <option value="cloudy">Cloudy</option>
+                          <option value="rainy">Rainy</option>
+                          <option value="snowy">Snowy</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    {/* Selection Controls */}
+                    {filteredAngles.length > 0 && (
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-[#808080]">
+                          {filteredAngles.length} angle{filteredAngles.length !== 1 ? 's' : ''} found
+                          {selectedAngleIds.length > 0 && ` • ${selectedAngleIds.length} selected`}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={selectAllFiltered}
+                            className="px-3 py-1 text-xs bg-[#0A0A0A] border border-[#3F3F46] hover:bg-[#1A1A1A] text-white rounded transition-colors"
+                          >
+                            Select All
+                          </button>
+                          {selectedAngleIds.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={clearAngleSelections}
+                              className="px-3 py-1 text-xs bg-[#0A0A0A] border border-[#3F3F46] hover:bg-[#1A1A1A] text-white rounded transition-colors"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Visual Angle Grid */}
+                    {filteredAngles.length > 0 ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-64 overflow-y-auto p-2 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                        {filteredAngles.map((angle: any) => {
+                          const isSelected = selectedAngleIds.includes(angle.id);
+                          return (
+                            <button
+                              key={angle.id}
+                              type="button"
+                              onClick={() => toggleAngleSelection(angle.id)}
+                              className={`relative aspect-square rounded border-2 transition-all ${
+                                isSelected
+                                  ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                  : 'border-[#3F3F46] hover:border-[#808080]'
+                              }`}
+                              title={`${angle.angle || 'Angle'}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}`}
+                            >
+                              {angle.imageUrl ? (
+                                <img
+                                  src={angle.imageUrl}
+                                  alt={angle.angle || 'Angle'}
+                                  className="w-full h-full object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
+                                  {angle.angle || 'Angle'}
+                                </div>
+                              )}
+                              
+                              {isSelected && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20 rounded">
+                                  <svg className="w-5 h-5 text-[#DC143C]" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                              
+                              {/* Metadata badges */}
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5 rounded-b text-[9px] text-white truncate">
+                                {angle.angle || 'Angle'}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#808080] text-center">
+                        {availableAngles.length === 0
+                          ? 'No angle variations available. Generate angles first or use reference images.'
+                          : 'No angles match the selected filters. Try adjusting the time of day or weather filters.'}
+                      </div>
+                    )}
+                    
+                    {/* Info text */}
+                    {selectedAngleIds.length > 0 && (
+                      <p className="text-xs text-[#808080]">
+                        Selected {selectedAngleIds.length} angle{selectedAngleIds.length !== 1 ? 's' : ''} will be used as reference{selectedAngleIds.length > 1 ? 's' : ''}. 
+                        The package determines how many backgrounds are generated ({backgroundCounts[selectedBackgroundPackageId] || 6}).
+                      </p>
+                    )}
+                  </div>
                 )}
                 {availableAngles.length === 0 && (
                   <p className="text-xs text-orange-400 mt-1">
