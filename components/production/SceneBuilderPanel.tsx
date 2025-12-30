@@ -948,28 +948,36 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         if (savedExecutionId) {
           console.log('[SceneBuilderPanel] Found saved workflow execution ID:', savedExecutionId);
           
-          // Verify it still exists and is running
-          const execution = await SceneBuilderService.recoverWorkflowExecution(savedExecutionId, projectId, getToken);
-          
-          if (execution) {
-                console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
-                setWorkflowExecutionId(savedExecutionId);
-                setIsGenerating(true);
-                setWorkflowStatus({
-                  id: execution.executionId,
-                  status: execution.status,
-                  currentStep: execution.currentStep || 1,
-                  totalSteps: execution.totalSteps || 5,
-                  stepResults: execution.stepResults || [],
-                  totalCreditsUsed: execution.totalCreditsUsed || 0,
-                  finalOutputs: execution.finalOutputs || []
-                });
-                setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
-                // Toast removed - progress indicator shows this status
-              } else {
-                // Execution completed or failed, remove from localStorage
-                localStorage.removeItem(`scene-builder-execution-${projectId}`);
-              }
+          // 🔥 FIX: Use pollWorkflowStatus with screenplayId instead of recoverWorkflowExecution
+          // This uses the executions endpoint which works across containers
+          try {
+            const execution = await SceneBuilderService.pollWorkflowStatus(savedExecutionId, getToken, projectId);
+            
+            // Only recover if still running (same logic as recoverWorkflowExecution)
+            if (execution && ['running', 'queued', 'awaiting_user_decision'].includes(execution.status)) {
+              console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
+              setWorkflowExecutionId(savedExecutionId);
+              setIsGenerating(true);
+              setWorkflowStatus({
+                id: execution.executionId,
+                status: execution.status,
+                currentStep: execution.currentStep || 1,
+                totalSteps: execution.totalSteps || 5,
+                stepResults: execution.stepResults || [],
+                totalCreditsUsed: execution.totalCreditsUsed || 0,
+                finalOutputs: execution.finalOutputs || []
+              });
+              setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
+              // Toast removed - progress indicator shows this status
+            } else {
+              // Execution completed or failed, remove from localStorage
+              localStorage.removeItem(`scene-builder-execution-${projectId}`);
+            }
+          } catch (error: any) {
+            // Execution not found or error, remove from localStorage
+            console.warn('[SceneBuilderPanel] Execution not found or error:', error.message);
+            localStorage.removeItem(`scene-builder-execution-${projectId}`);
+          }
             }
       } catch (error) {
         console.error('[SceneBuilderPanel] Failed to recover workflow execution:', error);
@@ -990,7 +998,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     const interval = setInterval(async () => {
       try {
-        const execution = await SceneBuilderService.pollWorkflowStatus(workflowExecutionId, getToken);
+        // 🔥 FIX: Pass screenplayId (projectId) to use executions endpoint (works across containers)
+        const execution = await SceneBuilderService.pollWorkflowStatus(workflowExecutionId, getToken, projectId);
         
         setWorkflowStatus({
           id: execution.executionId,
@@ -2001,6 +2010,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const sceneId = sceneAnalysisResult?.sceneId || selectedSceneId;
       if (sceneId) {
         workflowRequest.sceneId = sceneId;
+      }
+      
+      // 🔥 FIX: Add screenplayId (projectId) to workflow request for character lookup
+      // Backend needs screenplayId to look up characters, not sceneId
+      if (projectId) {
+        workflowRequest.screenplayId = projectId;
       }
       
       // Add scene number and name if available from selected scene

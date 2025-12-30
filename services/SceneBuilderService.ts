@@ -323,13 +323,63 @@ export class SceneBuilderService {
 
   /**
    * Poll workflow status
+   * 
+   * 🔥 FIX: Uses /api/workflows/executions endpoint instead of /api/workflows/:executionId
+   * This works across multiple containers (avoids 404 errors from in-memory storage)
+   * 
+   * @param executionId - The execution ID to poll
+   * @param screenplayId - The screenplay ID (required for executions endpoint)
+   * @param getTokenFn - Token getter function
+   * @returns Workflow execution status
    */
   static async pollWorkflowStatus(
     executionId: string,
-    getTokenFn: (options: { template: string }) => Promise<string | null>
+    getTokenFn: (options: { template: string }) => Promise<string | null>,
+    screenplayId?: string
   ): Promise<WorkflowExecution> {
     const token = await this.getToken(getTokenFn);
     
+    // 🔥 NEW: Use executions endpoint if screenplayId is provided (works across containers)
+    // Falls back to direct endpoint if screenplayId not available (backward compatibility)
+    if (screenplayId && screenplayId !== 'default' && screenplayId.trim() !== '') {
+      try {
+        const response = await fetch(`/api/workflows/executions?screenplayId=${screenplayId}&limit=100`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success) {
+            const jobs = data.data?.jobs || data.jobs || [];
+            const execution = jobs.find((job: any) => job.jobId === executionId);
+            
+            if (execution) {
+              // Convert job format to WorkflowExecution format
+              return {
+                executionId: execution.jobId,
+                workflowId: execution.workflowId,
+                status: execution.status === 'awaiting_user_decision' ? 'awaiting_user_decision' : execution.status,
+                currentStep: Math.round((execution.progress || 0) / 100 * (execution.totalSteps || 1)) || 0,
+                totalSteps: execution.totalSteps || 1,
+                stepResults: execution.results?.stepResults || [],
+                totalCreditsUsed: execution.creditsUsed || 0,
+                totalTimeElapsed: execution.results?.totalTimeElapsed || 0,
+                startedAt: new Date(execution.createdAt),
+                completedAt: execution.completedAt ? new Date(execution.completedAt) : undefined,
+                finalOutputs: execution.results?.finalOutputs || execution.results || {},
+                error: execution.error
+              };
+            }
+          }
+        }
+      } catch (error) {
+        // Fall through to direct endpoint if executions endpoint fails
+        console.warn('[SceneBuilderService] Executions endpoint failed, falling back to direct endpoint:', error);
+      }
+    }
+    
+    // Fallback: Use direct endpoint (for backward compatibility or if screenplayId not available)
     const response = await fetch(`/api/workflows/${executionId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
