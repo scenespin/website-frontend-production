@@ -741,7 +741,7 @@ export function GenerateLocationTab({
                         </p>
                         {selectedMetadata && selectedMetadata.isConsistent && (
                           <p className="text-xs text-cyan-400">
-                            Step 4 has been auto-populated with metadata from selected angles ({selectedMetadata.timeOfDay || 'any time'}, {selectedMetadata.weather || 'any weather'}). You can override these settings if needed.
+                            Step 4 has been auto-populated with metadata from selected angles ({String(selectedMetadata.timeOfDay || 'any time')}, {String(selectedMetadata.weather || 'any weather')}). You can override these settings if needed.
                           </p>
                         )}
                         {selectedMetadata && !selectedMetadata.isConsistent && (
