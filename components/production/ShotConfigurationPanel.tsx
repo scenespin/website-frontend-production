@@ -670,7 +670,7 @@ export function ShotConfigurationPanel({
                           <div>
                             <PronounMappingSection
                               pronouns={[pronoun]}
-                              characters={allCharacters.length > 0 ? allCharacters : sceneAnalysisResult.characters}
+                              characters={getCharacterSource(allCharacters, sceneAnalysisResult)}
                               selectedCharacters={selectedCharactersForShots[shot.slot] || []}
                               pronounMappings={shotMappings}
                               onPronounMappingChange={(p, characterIdOrIds) => {
