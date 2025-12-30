@@ -16,7 +16,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useMediaFiles, useDeleteMedia, usePresignedUrl } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useDeleteMedia, usePresignedUrl, useDeleteFolder } from '@/hooks/useMediaLibrary';
 import { getScreenplay } from '@/utils/screenplayStorage';
 import { toast } from 'sonner';
 import { 
@@ -78,6 +78,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   );
 
   const deleteMedia = useDeleteMedia(screenplayId || '');
+  const deleteFolder = useDeleteFolder(screenplayId || '');
 
   // State
   const [readings, setReadings] = useState<ReadingSession[]>([]);
@@ -418,9 +419,39 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       filesToDelete.push(...reading.sceneAudios);
       filesToDelete.push(...reading.subtitles);
 
-      // Delete all files
+      // Get folderId from files (all files in a reading should have the same folderId)
+      // Find the first file with a folderId
+      const folderId = filesToDelete.find(f => f.folderId)?.folderId;
+      
+      // Verify all files have the same folderId (safety check)
+      const allHaveSameFolderId = folderId && filesToDelete.every(f => !f.folderId || f.folderId === folderId);
+
+      // Delete all files (non-fatal - continue even if some fail)
+      const deletionErrors: string[] = [];
       for (const file of filesToDelete) {
-        await deleteMedia.mutateAsync(file.id);
+        try {
+          await deleteMedia.mutateAsync(file.id);
+        } catch (fileError: any) {
+          console.warn(`[ReadingsPanel] Failed to delete file ${file.fileName} (non-fatal):`, fileError.message);
+          deletionErrors.push(file.fileName);
+        }
+      }
+
+      // If any files failed to delete, show warning but continue
+      if (deletionErrors.length > 0) {
+        console.warn(`[ReadingsPanel] ${deletionErrors.length} file(s) failed to delete:`, deletionErrors);
+      }
+
+      // Delete the folder if all files had the same folderId
+      // This ensures we only delete folders that were actually used by this reading
+      if (folderId && allHaveSameFolderId) {
+        try {
+          await deleteFolder.mutateAsync({ folderId, moveFilesToParent: false });
+        } catch (folderError: any) {
+          // If folder deletion fails (e.g., folder already deleted, has children, or has other files), 
+          // that's okay - we've already deleted all the files
+          console.warn('[ReadingsPanel] Failed to delete folder (may have other files or already deleted):', folderError.message);
+        }
       }
 
       toast.success('Reading deleted');
