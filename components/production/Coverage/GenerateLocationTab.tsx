@@ -91,21 +91,100 @@ export function GenerateLocationTab({
     });
   }, [availableAngles, sourceType, filterTimeOfDay, filterWeather]);
   
-  // Toggle angle selection (multi-select)
-  const toggleAngleSelection = (angleId: string) => {
-    setSelectedAngleIds(prev => {
-      if (prev.includes(angleId)) {
-        return prev.filter(id => id !== angleId);
-      } else {
-        return [...prev, angleId];
+  // Get selected angles with full data
+  const selectedAngles = useMemo(() => {
+    return availableAngles.filter((a: any) => selectedAngleIds.includes(a.id));
+  }, [availableAngles, selectedAngleIds]);
+  
+  // Check if angle can be selected (must match existing selections' metadata)
+  const canSelectAngle = (angle: any): { canSelect: boolean; reason?: string } => {
+    if (selectedAngleIds.length === 0) {
+      return { canSelect: true }; // First selection always allowed
+    }
+    
+    // Get metadata of already-selected angles (only from angle packages, not reference images)
+    const selectedAnglesWithMetadata = selectedAngles.filter((a: any) => 
+      a.generationMethod === 'ai-generated' || a.generationMethod === 'angle-variation'
+    );
+    
+    if (selectedAnglesWithMetadata.length === 0) {
+      return { canSelect: true }; // If no metadata in selections, allow
+    }
+    
+    const selectedTimeOfDays = selectedAnglesWithMetadata.map((a: any) => a.timeOfDay).filter(Boolean);
+    const selectedWeathers = selectedAnglesWithMetadata.map((a: any) => a.weather).filter(Boolean);
+    
+    // Check if new angle matches selected metadata
+    // Only check if angle has metadata (from angle package)
+    const angleHasMetadata = (angle.generationMethod === 'ai-generated' || angle.generationMethod === 'angle-variation') &&
+      (angle.timeOfDay || angle.weather);
+    
+    if (!angleHasMetadata) {
+      // Angle without metadata can only be selected if no metadata in existing selections
+      if (selectedTimeOfDays.length === 0 && selectedWeathers.length === 0) {
+        return { canSelect: true };
       }
-    });
-    // Also update single select for backward compatibility
-    setSelectedAngleId(angleId);
+      return {
+        canSelect: false,
+        reason: 'Cannot mix angles with and without metadata. Please clear selections or select angles with matching metadata.'
+      };
+    }
+    
+    const timeOfDayMatch = selectedTimeOfDays.length === 0 || 
+      (angle.timeOfDay && selectedTimeOfDays.includes(angle.timeOfDay));
+    const weatherMatch = selectedWeathers.length === 0 ||
+      (angle.weather && selectedWeathers.includes(angle.weather));
+    
+    if (!timeOfDayMatch || !weatherMatch) {
+      return {
+        canSelect: false,
+        reason: 'All selected angles must have the same time of day and weather. Please clear selections or adjust filters.'
+      };
+    }
+    
+    return { canSelect: true };
   };
   
-  // Select all filtered angles
+  // Toggle angle selection (multi-select) with validation
+  const toggleAngleSelection = (angleId: string) => {
+    const angle = availableAngles.find((a: any) => a.id === angleId);
+    if (!angle) return;
+    
+    if (selectedAngleIds.includes(angleId)) {
+      // Deselecting - always allowed
+      setSelectedAngleIds(prev => prev.filter(id => id !== angleId));
+      if (selectedAngleIds.length === 1) {
+        setSelectedAngleId(''); // Clear single select if last one
+      }
+    } else {
+      // Selecting - check if allowed
+      const validation = canSelectAngle(angle);
+      if (!validation.canSelect) {
+        toast.error(validation.reason || 'Cannot select this angle');
+        return;
+      }
+      
+      setSelectedAngleIds(prev => [...prev, angleId]);
+      // Also update single select for backward compatibility
+      setSelectedAngleId(angleId);
+    }
+  };
+  
+  // Select all filtered angles (only if they all have same metadata)
   const selectAllFiltered = () => {
+    if (filteredAngles.length === 0) return;
+    
+    // Check if all filtered angles have same metadata
+    const timeOfDays = filteredAngles.map((a: any) => a.timeOfDay).filter(Boolean);
+    const weathers = filteredAngles.map((a: any) => a.weather).filter(Boolean);
+    const uniqueTimeOfDays = [...new Set(timeOfDays)];
+    const uniqueWeathers = [...new Set(weathers)];
+    
+    if (uniqueTimeOfDays.length > 1 || uniqueWeathers.length > 1) {
+      toast.error('Cannot select all: angles have different metadata. Please adjust filters.');
+      return;
+    }
+    
     const allIds = filteredAngles.map((a: any) => a.id).filter(Boolean);
     setSelectedAngleIds(allIds);
     if (allIds.length > 0) {
@@ -118,6 +197,55 @@ export function GenerateLocationTab({
     setSelectedAngleIds([]);
     setSelectedAngleId('');
   };
+  
+  // Get metadata from selected angles (only from angle packages)
+  const selectedMetadata = useMemo(() => {
+    if (selectedAngles.length === 0) return null;
+    
+    // Only consider angles with metadata (from angle packages)
+    const anglesWithMetadata = selectedAngles.filter((a: any) =>
+      (a.generationMethod === 'ai-generated' || a.generationMethod === 'angle-variation') &&
+      (a.timeOfDay || a.weather)
+    );
+    
+    if (anglesWithMetadata.length === 0) return null;
+    
+    const timeOfDays = anglesWithMetadata.map((a: any) => a.timeOfDay).filter(Boolean);
+    const weathers = anglesWithMetadata.map((a: any) => a.weather).filter(Boolean);
+    
+    const uniqueTimeOfDays = [...new Set(timeOfDays)];
+    const uniqueWeathers = [...new Set(weathers)];
+    
+    return {
+      timeOfDay: uniqueTimeOfDays.length === 1 ? uniqueTimeOfDays[0] : null,
+      weather: uniqueWeathers.length === 1 ? uniqueWeathers[0] : null,
+      isConsistent: uniqueTimeOfDays.length <= 1 && uniqueWeathers.length <= 1
+    };
+  }, [selectedAngles]);
+  
+  // Track if user has manually set Step 4 values
+  const [hasManuallySetTimeOfDay, setHasManuallySetTimeOfDay] = useState(false);
+  const [hasManuallySetWeather, setHasManuallySetWeather] = useState(false);
+  
+  // Auto-populate Step 4 from selected angles' metadata (only if not manually set)
+  useEffect(() => {
+    if (sourceType === 'angle-variations' && selectedMetadata && selectedMetadata.isConsistent) {
+      if (selectedMetadata.timeOfDay && !hasManuallySetTimeOfDay) {
+        setTimeOfDay(selectedMetadata.timeOfDay);
+      }
+      if (selectedMetadata.weather && !hasManuallySetWeather) {
+        setWeather(selectedMetadata.weather);
+      }
+    }
+  }, [selectedMetadata, sourceType, hasManuallySetTimeOfDay, hasManuallySetWeather]);
+  
+  // Reset manual flags when source type changes
+  useEffect(() => {
+    if (sourceType !== 'angle-variations') {
+      setHasManuallySetTimeOfDay(false);
+      setHasManuallySetWeather(false);
+    }
+  }, [sourceType]);
   
   // Get selected model
   const selectedModel = useMemo(() => {
@@ -455,8 +583,13 @@ export function GenerateLocationTab({
                 <p className="text-xs text-[#808080] mt-1">
                   Uses generated angles - matches lighting/weather of selected angle
                 </p>
-                {sourceType === 'angle-variations' && availableAngles.length > 0 && (
-                  <div className="mt-3 space-y-3">
+              </div>
+            </label>
+          </div>
+          
+          {/* Angle Selection UI - Separate section to keep radio buttons aligned */}
+          {sourceType === 'angle-variations' && availableAngles.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-[#3F3F46] space-y-3">
                     {/* Metadata Filters */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -528,17 +661,24 @@ export function GenerateLocationTab({
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-64 overflow-y-auto p-2 bg-[#0A0A0A] rounded border border-[#3F3F46]">
                         {filteredAngles.map((angle: any) => {
                           const isSelected = selectedAngleIds.includes(angle.id);
+                          const validation = canSelectAngle(angle);
+                          const hasMetadata = (angle.generationMethod === 'ai-generated' || angle.generationMethod === 'angle-variation') &&
+                            (angle.timeOfDay || angle.weather);
+                          
                           return (
                             <button
                               key={angle.id}
                               type="button"
                               onClick={() => toggleAngleSelection(angle.id)}
+                              disabled={!validation.canSelect && !isSelected}
                               className={`relative aspect-square rounded border-2 transition-all ${
                                 isSelected
                                   ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                  : !validation.canSelect
+                                  ? 'border-[#3F3F46] opacity-50 cursor-not-allowed'
                                   : 'border-[#3F3F46] hover:border-[#808080]'
                               }`}
-                              title={`${angle.angle || 'Angle'}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}`}
+                              title={`${angle.angle || 'Angle'}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}${!validation.canSelect && !isSelected ? ' - Cannot mix with selected angles' : ''}`}
                             >
                               {angle.imageUrl ? (
                                 <img
@@ -560,7 +700,23 @@ export function GenerateLocationTab({
                                 </div>
                               )}
                               
-                              {/* Metadata badges */}
+                              {/* Metadata badges - show time of day and weather */}
+                              {hasMetadata && (
+                                <div className="absolute top-1 left-1 right-1 flex flex-wrap gap-1">
+                                  {angle.timeOfDay && (
+                                    <div className="px-1.5 py-0.5 bg-blue-600/90 text-white text-[8px] font-medium rounded">
+                                      {angle.timeOfDay}
+                                    </div>
+                                  )}
+                                  {angle.weather && (
+                                    <div className="px-1.5 py-0.5 bg-green-600/90 text-white text-[8px] font-medium rounded">
+                                      {angle.weather}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Angle name badge */}
                               <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5 rounded-b text-[9px] text-white truncate">
                                 {angle.angle || 'Angle'}
                               </div>
@@ -578,19 +734,28 @@ export function GenerateLocationTab({
                     
                     {/* Info text */}
                     {selectedAngleIds.length > 0 && (
-                      <p className="text-xs text-[#808080]">
-                        Selected {selectedAngleIds.length} angle{selectedAngleIds.length !== 1 ? 's' : ''} will be used as reference{selectedAngleIds.length > 1 ? 's' : ''}. 
-                        The package determines how many backgrounds are generated ({backgroundCounts[selectedBackgroundPackageId] || 6}).
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-[#808080]">
+                          Selected {selectedAngleIds.length} angle{selectedAngleIds.length !== 1 ? 's' : ''} will be used as reference{selectedAngleIds.length > 1 ? 's' : ''}. 
+                          The package determines how many backgrounds are generated ({backgroundCounts[selectedBackgroundPackageId] || 6}).
+                        </p>
+                        {selectedMetadata && selectedMetadata.isConsistent && (
+                          <p className="text-xs text-cyan-400">
+                            Step 4 has been auto-populated with metadata from selected angles ({selectedMetadata.timeOfDay || 'any time'}, {selectedMetadata.weather || 'any weather'}). You can override these settings if needed.
+                          </p>
+                        )}
+                        {selectedMetadata && !selectedMetadata.isConsistent && (
+                          <p className="text-xs text-orange-400">
+                            Selected angles have mixed metadata. Please set Step 4 manually.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
-                {availableAngles.length === 0 && (
-                  <p className="text-xs text-orange-400 mt-1">
-                    No angle variations available. Generate angles first or use reference images.
-                  </p>
-                )}
-              </div>
+          </div>
+        </div>
+      )}
             </label>
           </div>
         </div>
@@ -623,12 +788,20 @@ export function GenerateLocationTab({
       {/* Step 4: Optional - Lighting & Atmosphere */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
         <h3 className="text-sm font-semibold text-white mb-3">Step 4: Optional - Lighting & Atmosphere</h3>
+        {sourceType === 'angle-variations' && selectedMetadata && selectedMetadata.isConsistent && (
+          <p className="text-xs text-cyan-400 mb-3">
+            Auto-populated from selected angles. You can override these values if needed.
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-[#808080] mb-2">Time of Day (Optional)</label>
             <select
               value={timeOfDay}
-              onChange={(e) => setTimeOfDay(e.target.value as any)}
+              onChange={(e) => {
+                setTimeOfDay(e.target.value as any);
+                setHasManuallySetTimeOfDay(true);
+              }}
               className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
             >
               <option value="">None</option>
@@ -642,7 +815,10 @@ export function GenerateLocationTab({
             <label className="block text-xs text-[#808080] mb-2">Weather (Optional)</label>
             <select
               value={weather}
-              onChange={(e) => setWeather(e.target.value as any)}
+              onChange={(e) => {
+                setWeather(e.target.value as any);
+                setHasManuallySetWeather(true);
+              }}
               className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
             >
               <option value="">None</option>
