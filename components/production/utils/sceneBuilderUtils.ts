@@ -262,3 +262,37 @@ export function getCharacterName(
   return char?.name || fallback;
 }
 
+/**
+ * Get the character source array (allCharacters or sceneAnalysisResult.characters)
+ * Prioritizes allCharacters if available, falls back to sceneAnalysisResult.characters
+ */
+export function getCharacterSource(
+  allCharacters: any[],
+  sceneAnalysisResult: SceneAnalysisResult | null
+): any[] {
+  return allCharacters.length > 0 ? allCharacters : (sceneAnalysisResult?.characters || []);
+}
+
+/**
+ * Get shot-specific character reference
+ * Helper to safely access selectedCharacterReferences[shotSlot][charId]
+ */
+export function getShotCharacterReference(
+  shotSlot: number,
+  charId: string,
+  selectedCharacterReferences: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>
+): { poseId?: string; s3Key?: string; imageUrl?: string } | undefined {
+  return selectedCharacterReferences[shotSlot]?.[charId];
+}
+
+/**
+ * Get shot-specific location reference
+ * Helper to safely access selectedLocationReferences[shotSlot]
+ */
+export function getShotLocationReference(
+  shotSlot: number,
+  selectedLocationReferences: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>
+): { angleId?: string; s3Key?: string; imageUrl?: string } | undefined {
+  return selectedLocationReferences[shotSlot];
+}
+

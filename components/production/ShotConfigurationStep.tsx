@@ -16,7 +16,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { ShotNavigatorList } from './ShotNavigatorList';
 import { categorizeCharacters } from './utils/characterCategorization';
-import { getCharactersFromActionShot, findCharacterById, getCharacterName } from './utils/sceneBuilderUtils';
+import { getCharactersFromActionShot, findCharacterById, getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
 import { toast } from 'sonner';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
@@ -224,7 +224,7 @@ export function ShotConfigurationStep({
     
     // Add explicit characters from dialogue
     if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
-      const dialogueChar = (allCharacters.length > 0 ? allCharacters : sceneAnalysisResult?.characters || [])
+      const dialogueChar = getCharacterSource(allCharacters, sceneAnalysisResult)
         .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
       if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
     }

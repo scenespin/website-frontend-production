@@ -24,7 +24,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import type { ModelStyle, Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
-import { getCharacterName } from './utils/sceneBuilderUtils';
+import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
 
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
@@ -137,7 +137,8 @@ export function SceneReviewStep({
   const shots = sceneAnalysisResult.shotBreakdown?.shots || [];
   const selectedShots = shots.filter((s: any) => enabledShots.includes(s.slot));
 
-  // Use utility function for character name lookup
+  // Use utility functions for character operations
+  const characterSource = getCharacterSource(allCharacters, sceneAnalysisResult);
   const getCharName = (charId: string) => getCharacterName(charId, allCharacters, sceneAnalysisResult, charId);
 
   const getWorkflowLabel = (workflow: string) => {

@@ -84,7 +84,8 @@ import {
   getCharacterWithExtractedOutfits,
   detectDialogue,
   findCharacterById,
-  getCharacterName
+  getCharacterName,
+  getCharacterSource
 } from './utils/sceneBuilderUtils';
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
