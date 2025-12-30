@@ -26,6 +26,7 @@ export interface CharacterHeadshot {
 
 export interface WorkflowExecution {
   executionId: string;
+  workflowId?: string;
   status: string;
   currentStep?: number;
   totalSteps?: number;
