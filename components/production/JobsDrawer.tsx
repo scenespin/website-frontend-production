@@ -1015,6 +1015,61 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                       </div>
                     )}
 
+                    {/* Background References - Location backgrounds */}
+                    {job.jobType === 'image-generation' && job.results?.backgroundReferences && job.results.backgroundReferences.length > 0 && (
+                      <div className="grid grid-cols-4 gap-1">
+                        {job.results.backgroundReferences.slice(0, 4).map((bgRef: any, index: number) => {
+                          const locationId = job.metadata?.inputs?.locationId;
+                          const entityType = locationId ? 'location' : null;
+                          const entityId = locationId;
+                          const entityName = job.metadata?.inputs?.locationName;
+                          const canNavigate = onNavigateToEntity && entityType && entityId;
+                          
+                          return (
+                            <div
+                              key={bgRef.s3Key || index}
+                              className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
+                                canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
+                              }`}
+                              onClick={() => {
+                                if (canNavigate && entityType) {
+                                  onNavigateToEntity(entityType, entityId);
+                                  onClose();
+                                }
+                              }}
+                              title={canNavigate ? `View ${entityName || entityType}` : undefined}
+                            >
+                              {bgRef.s3Key ? (
+                                <ImageThumbnailFromS3Key 
+                                  s3Key={bgRef.s3Key} 
+                                  alt={`${bgRef.backgroundType} background`}
+                                  fallbackUrl={bgRef.imageUrl}
+                                />
+                              ) : bgRef.imageUrl ? (
+                                <img
+                                  src={bgRef.imageUrl}
+                                  alt={`${bgRef.backgroundType} background`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
+                                  No image
+                                </div>
+                              )}
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
+                                <p className="text-[8px] text-white truncate capitalize">{bgRef.backgroundType || `Background ${index + 1}`}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {job.results.backgroundReferences.length > 4 && (
+                          <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
+                            <span className="text-[8px] text-[#808080]">+{job.results.backgroundReferences.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Generic Images */}
                     {job.jobType === 'image-generation' && job.results.images && job.results.images.length > 0 && (
                       <div className="grid grid-cols-4 gap-1">

@@ -1157,6 +1157,12 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                             {job.results.angleReferences.length} angle(s)
                           </span>
                         )}
+                        {job.results.backgroundReferences && job.results.backgroundReferences.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Image className="w-3 h-3" />
+                            {job.results.backgroundReferences.length} background(s)
+                          </span>
+                        )}
                         {job.results.images && job.results.images.length > 0 && (
                           <span className="flex items-center gap-1">
                             <Image className="w-3 h-3" />
@@ -1322,6 +1328,42 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                           )}
                           <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
                             <p className="text-[10px] text-white truncate capitalize">{angleRef.angle || `Angle ${index + 1}`}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Background References - Location backgrounds */}
+                  {job.jobType === 'image-generation' && job.results?.backgroundReferences && job.results.backgroundReferences.length > 0 && (
+                    <div className="grid grid-cols-6 gap-1.5 mt-3">
+                      {job.results.backgroundReferences.map((bgRef: any, index: number) => (
+                        <div
+                          key={bgRef.s3Key || index}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-slate-700/50 bg-slate-900/50"
+                        >
+                          {bgRef.s3Key ? (
+                            <ImageThumbnailFromS3Key 
+                              s3Key={bgRef.s3Key} 
+                              alt={`${bgRef.backgroundType} background`}
+                              fallbackUrl={bgRef.imageUrl}
+                            />
+                          ) : bgRef.imageUrl ? (
+                            <img
+                              src={bgRef.imageUrl}
+                              alt={`${bgRef.backgroundType} background`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-[10px]">
+                              No image
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
+                            <p className="text-[10px] text-white truncate capitalize">{bgRef.backgroundType || `Background ${index + 1}`}</p>
                           </div>
                         </div>
                       ))}
