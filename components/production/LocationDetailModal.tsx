@@ -81,6 +81,28 @@ interface LocationReference {
   };
 }
 
+interface LocationBackground {
+  id: string;
+  imageUrl?: string;
+  s3Key: string;
+  backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
+  description?: string;
+  sourceType?: 'reference-images' | 'angle-variations';
+  sourceAngleId?: string;
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
+  generationMethod: 'ai-generated' | 'angle-crop' | 'upload';
+  creditsUsed: number;
+  createdAt: string;
+  metadata?: {
+    generationPrompt?: string;
+    providerId?: string;
+    quality?: 'standard' | 'high-quality';
+    referenceImageUrls?: string[];
+    generatedAt?: string;
+  };
+}
+
 interface LocationProfile {
   locationId: string;
   screenplayId: string;
@@ -91,6 +113,7 @@ interface LocationProfile {
   baseReference: LocationReference;
   angleVariations: LocationReference[];
   creationImages?: LocationReference[]; // 🔥 NEW: All images uploaded in Creation section
+  backgrounds?: LocationBackground[]; // Feature: Background variations (close-up views)
   totalCreditsSpent?: number;
   consistencyRating?: number;
   createdAt: string;
@@ -383,8 +406,41 @@ export function LocationDetailModal({
       });
     });
     
+    // Feature: Add background images (close-up views of specific areas)
+    if (location.backgrounds && Array.isArray(location.backgrounds)) {
+      location.backgrounds.forEach((background: LocationBackground) => {
+        // Get display label for background type
+        const backgroundTypeLabels: Record<string, string> = {
+          'window': 'Window',
+          'wall': 'Wall',
+          'doorway': 'Doorway',
+          'texture': 'Texture',
+          'corner-detail': 'Corner Detail',
+          'furniture': 'Furniture',
+          'architectural-feature': 'Architectural Feature',
+          'custom': background.description || 'Custom Background'
+        };
+        const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
+        const descriptionLabel = background.description ? ` - ${background.description}` : '';
+        
+        images.push({
+          id: background.id || `bg_${background.s3Key}`,
+          imageUrl: background.imageUrl || '',
+          label: `${location.name} - ${typeLabel}${descriptionLabel}`,
+          isBase: false,
+          s3Key: background.s3Key,
+          metadata: {
+            ...background.metadata,
+            generationMethod: background.generationMethod || 'background-generation',
+            backgroundType: background.backgroundType,
+            background: background // Store full background for reference
+          }
+        });
+      });
+    }
+    
     return images;
-  }, [location.angleVariations, location.baseReference, location.creationImages, location.name]);
+  }, [location.angleVariations, location.baseReference, location.creationImages, location.backgrounds, location.name]);
 
   // Feature 0179: Query Media Library to get thumbnails for location images
   const { data: mediaFiles = [] } = useMediaFiles(
