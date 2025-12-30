@@ -55,7 +55,7 @@ export function ScenePlaylistPlayer({
 }: ScenePlaylistPlayerProps) {
   const { getToken } = useAuth();
   const screenplay = useScreenplay();
-  const screenplayId = propScreenplayId || screenplay?.id;
+  const screenplayId = propScreenplayId || screenplay?.screenplayId;
   const [playlist, setPlaylist] = useState<PlaylistShot[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
