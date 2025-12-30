@@ -756,10 +756,6 @@ export function GenerateLocationTab({
           </div>
         </div>
       )}
-            </label>
-          </div>
-        </div>
-      )}
 
       {/* Step 3: Package Selection */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
