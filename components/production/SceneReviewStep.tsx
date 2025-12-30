@@ -222,7 +222,7 @@ export function SceneReviewStep({
             Review all your selections before generating the scene
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 pb-2">
+        <CardContent className="space-y-4">
 
           {/* Shots Summary */}
           <div className="space-y-3">
@@ -382,7 +382,7 @@ export function SceneReviewStep({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3 pb-6 border-t border-[#3F3F46]">
+          <div className="flex gap-3 pt-3 border-t border-[#3F3F46]">
             <Button
               onClick={onBack}
               variant="outline"

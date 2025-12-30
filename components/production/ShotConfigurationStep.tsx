@@ -410,7 +410,7 @@ export function ShotConfigurationStep({
             ))}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4 pb-2">
+        <CardContent className="space-y-4">
           {/* Shot Description - Full text, no truncation */}
           <div className="pb-3 border-b border-[#3F3F46]">
             <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Description</div>
@@ -496,7 +496,7 @@ export function ShotConfigurationStep({
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex gap-3 pt-3 pb-6 border-t border-[#3F3F46]">
+          <div className="flex gap-3 pt-3 border-t border-[#3F3F46]">
             <Button
               onClick={handlePrevious}
               disabled={isTransitioning}
