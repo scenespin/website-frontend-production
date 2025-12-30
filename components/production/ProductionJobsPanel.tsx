@@ -782,6 +782,26 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       (job.metadata?.locationId || job.inputs?.locationId || job.metadata?.inputs?.locationId) // Check metadata, inputs, and metadata.inputs
     );
     
+    // Check for location background jobs (metadata/inputs has locationId)
+    const completedLocationBackgroundJobs = jobs.filter(job => 
+      job.status === 'completed' && 
+      job.jobType === 'image-generation' &&
+      job.results?.backgroundReferences &&
+      Array.isArray(job.results.backgroundReferences) &&
+      job.results.backgroundReferences.length > 0 &&
+      (job.metadata?.locationId || job.inputs?.locationId || job.metadata?.inputs?.locationId) // Check metadata, inputs, and metadata.inputs
+    );
+    
+    // Check for location background jobs (metadata/inputs has locationId)
+    const completedLocationBackgroundJobs = jobs.filter(job => 
+      job.status === 'completed' && 
+      job.jobType === 'image-generation' &&
+      job.results?.backgroundReferences &&
+      Array.isArray(job.results.backgroundReferences) &&
+      job.results.backgroundReferences.length > 0 &&
+      (job.metadata?.locationId || job.inputs?.locationId || job.metadata?.inputs?.locationId) // Check metadata, inputs, and metadata.inputs
+    );
+    
     // Check for asset angle jobs (metadata/inputs has assetId)
     const completedAssetAngleJobs = jobs.filter(job => 
       job.status === 'completed' && 
@@ -803,8 +823,12 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       !job.metadata?.assetId && !job.inputs?.assetId && !job.metadata?.inputs?.assetId
     );
     
-    if (completedLocationAngleJobs.length > 0) {
-      console.log('[ProductionJobsPanel] Location angle generation completed, refreshing locations...', completedLocationAngleJobs.length);
+    if (completedLocationAngleJobs.length > 0 || completedLocationBackgroundJobs.length > 0) {
+      const totalJobs = completedLocationAngleJobs.length + completedLocationBackgroundJobs.length;
+      const jobTypes = [];
+      if (completedLocationAngleJobs.length > 0) jobTypes.push('angle');
+      if (completedLocationBackgroundJobs.length > 0) jobTypes.push('background');
+      console.log(`[ProductionJobsPanel] Location ${jobTypes.join(' and ')} generation completed, refreshing locations...`, totalJobs);
       // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });

@@ -566,8 +566,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       job.results.angleReferences.length > 0 &&
       job.metadata?.inputs?.locationId
     );
+    
+    const completedLocationBackgroundJobs = jobs.filter(job =>
+      job.status === 'completed' &&
+      job.jobType === 'image-generation' &&
+      job.results?.backgroundReferences &&
+      job.results.backgroundReferences.length > 0 &&
+      job.metadata?.inputs?.locationId
+    );
 
-    if (completedLocationAngleJobs.length > 0) {
+    if (completedLocationAngleJobs.length > 0 || completedLocationBackgroundJobs.length > 0) {
       queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
     }
 
