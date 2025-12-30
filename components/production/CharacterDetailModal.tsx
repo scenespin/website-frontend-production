@@ -810,6 +810,19 @@ export function CharacterDetailModal({
           })).slice(0, 3)
         } : null;
         
+        // 🔥 SEPARATE LOG: Make key comparison more visible
+        if (thumbnailS3Key && imageIndex > 0 && imageIndex <= 3) {
+          console.log(`[CharacterDetailModal] 🔑 KEY COMPARISON Image ${imageIndex}:`, {
+            lookingFor: thumbnailS3Key,
+            lookingForLength: thumbnailS3Key.length,
+            availableKeysCount: allThumbnailKeys.length,
+            availableKeys: allThumbnailKeys,
+            exactMatchFound: exactKeyMatch,
+            matches: allThumbnailKeys.filter(k => k === thumbnailS3Key),
+            partialMatches: allThumbnailKeys.filter(k => k.includes(thumbnailS3Key.substring(0, 50)) || thumbnailS3Key.includes(k.substring(0, 50))),
+          });
+        }
+        
         console.log(`[CharacterDetailModal] 🔍 Image ${imageIndex} thumbnail status:`, {
           imageId: img.id,
           isBase: (img as any).isBase,
