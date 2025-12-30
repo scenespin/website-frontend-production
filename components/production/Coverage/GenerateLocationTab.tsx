@@ -231,10 +231,10 @@ export function GenerateLocationTab({
   useEffect(() => {
     if (sourceType === 'angle-variations' && selectedMetadata && selectedMetadata.isConsistent) {
       if (selectedMetadata.timeOfDay && !hasManuallySetTimeOfDay) {
-        setTimeOfDay(selectedMetadata.timeOfDay);
+        setTimeOfDay(selectedMetadata.timeOfDay as 'morning' | 'afternoon' | 'evening' | 'night');
       }
       if (selectedMetadata.weather && !hasManuallySetWeather) {
-        setWeather(selectedMetadata.weather);
+        setWeather(selectedMetadata.weather as 'sunny' | 'cloudy' | 'rainy' | 'snowy');
       }
     }
   }, [selectedMetadata, sourceType, hasManuallySetTimeOfDay, hasManuallySetWeather]);
