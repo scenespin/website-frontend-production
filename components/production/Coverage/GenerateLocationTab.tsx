@@ -753,7 +753,6 @@ export function GenerateLocationTab({
                     )}
                   </div>
                 )}
-          </div>
         </div>
       )}
 
