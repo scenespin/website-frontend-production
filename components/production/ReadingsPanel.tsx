@@ -83,9 +83,11 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const [readings, setReadings] = useState<ReadingSession[]>([]);
   const [selectedReadingId, setSelectedReadingId] = useState<string | null>(null);
   const [playingReadingId, setPlayingReadingId] = useState<string | null>(null);
+  const [playingSceneId, setPlayingSceneId] = useState<string | null>(null); // Track which individual scene is playing
   const [showReadingModal, setShowReadingModal] = useState(false);
   const [deletingReadingId, setDeletingReadingId] = useState<string | null>(null);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track audio elements for pause
+  const sceneAudioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track individual scene audio elements
   const downloadingFiles = useRef<Set<string>>(new Set()); // Track files being downloaded
 
   // Filter and group readings
@@ -292,7 +294,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     }
   };
 
-  // Handle play/pause
+  // Handle play/pause for combined audio
   const handlePlayPause = (readingId: string, audioFile: MediaFile) => {
     if (playingReadingId === readingId) {
       // Pause
@@ -302,14 +304,53 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       }
       setPlayingReadingId(null);
     } else {
-      // Play - stop any currently playing audio
+      // Play - stop any currently playing audio (combined or scene)
       if (playingReadingId) {
         const currentAudio = audioRefs.current.get(playingReadingId);
         if (currentAudio) {
           currentAudio.pause();
         }
       }
+      // Stop any playing scene audio
+      if (playingSceneId) {
+        const sceneAudio = sceneAudioRefs.current.get(playingSceneId);
+        if (sceneAudio) {
+          sceneAudio.pause();
+        }
+        setPlayingSceneId(null);
+      }
       setPlayingReadingId(readingId);
+    }
+  };
+
+  // Handle play/pause for individual scene
+  const handleScenePlayPause = (sceneFile: MediaFile, readingId: string) => {
+    const sceneId = `${readingId}-${sceneFile.id}`;
+    
+    if (playingSceneId === sceneId) {
+      // Pause
+      const audio = sceneAudioRefs.current.get(sceneId);
+      if (audio) {
+        audio.pause();
+      }
+      setPlayingSceneId(null);
+    } else {
+      // Play - stop any currently playing audio (combined or scene)
+      if (playingReadingId) {
+        const currentAudio = audioRefs.current.get(playingReadingId);
+        if (currentAudio) {
+          currentAudio.pause();
+        }
+        setPlayingReadingId(null);
+      }
+      // Stop any other playing scene
+      if (playingSceneId && playingSceneId !== sceneId) {
+        const otherSceneAudio = sceneAudioRefs.current.get(playingSceneId);
+        if (otherSceneAudio) {
+          otherSceneAudio.pause();
+        }
+      }
+      setPlayingSceneId(sceneId);
     }
   };
 
@@ -460,8 +501,10 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 key={reading.id}
                 reading={reading}
                 isPlaying={playingReadingId === reading.id}
+                playingSceneId={playingSceneId?.startsWith(`${reading.id}-`) ? playingSceneId : null}
                 isDeleting={deletingReadingId === reading.id}
                 onPlayPause={() => reading.combinedAudio && handlePlayPause(reading.id, reading.combinedAudio)}
+                onScenePlayPause={(sceneFile) => handleScenePlayPause(sceneFile, reading.id)}
                 onDownloadCombined={() => handleDownloadCombined(reading)}
                 onDownloadScene={handleDownloadScene}
                 onDownloadAll={() => handleDownloadAll(reading)}
@@ -471,6 +514,13 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                     audioRefs.current.set(reading.id, audio);
                   } else {
                     audioRefs.current.delete(reading.id);
+                  }
+                }}
+                sceneAudioRef={(sceneId: string, audio: HTMLAudioElement | null) => {
+                  if (audio) {
+                    sceneAudioRefs.current.set(sceneId, audio);
+                  } else {
+                    sceneAudioRefs.current.delete(sceneId);
                   }
                 }}
               />
@@ -498,25 +548,31 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
 interface ReadingCardProps {
   reading: ReadingSession;
   isPlaying: boolean;
+  playingSceneId: string | null; // ID of currently playing scene (format: "readingId-sceneFileId")
   isDeleting: boolean;
   onPlayPause: () => void;
+  onScenePlayPause: (sceneFile: MediaFile) => void;
   onDownloadCombined: () => void;
   onDownloadScene: (sceneFile: MediaFile) => void;
   onDownloadAll: () => void;
   onDelete: () => void;
   audioRef: (audio: HTMLAudioElement | null) => void;
+  sceneAudioRef: (sceneId: string, audio: HTMLAudioElement | null) => void;
 }
 
 function ReadingCard({
   reading,
   isPlaying,
+  playingSceneId,
   isDeleting,
   onPlayPause,
+  onScenePlayPause,
   onDownloadCombined,
   onDownloadScene,
   onDownloadAll,
   onDelete,
-  audioRef
+  audioRef,
+  sceneAudioRef
 }: ReadingCardProps) {
   const audioElementRef = useRef<HTMLAudioElement>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -876,25 +932,311 @@ function ReadingCard({
                     : sceneHeading;
                   const durationText = sceneDuration ? ` (${formatDuration(sceneDuration)})` : '';
                   
+                  const sceneId = `${reading.id}-${sceneFile.id}`;
+                  const isScenePlaying = playingSceneId === sceneId;
+                  
                   return (
-                    <div key={sceneFile.id} className="flex items-center justify-between gap-2 p-1 bg-[#2A2A2A] rounded">
-                      <span className="text-xs text-gray-300 truncate flex-1">
-                        {displayName}{durationText}
-                      </span>
-                      <button
-                        onClick={() => onDownloadScene(sceneFile)}
-                        className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-                        title={`Download ${displayName}`}
-                      >
-                        <Download className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <SceneAudioPlayer
+                      key={sceneFile.id}
+                      sceneFile={sceneFile}
+                      sceneId={sceneId}
+                      readingId={reading.id}
+                      displayName={displayName}
+                      durationText={durationText}
+                      isPlaying={isScenePlaying}
+                      onPlayPause={() => onScenePlayPause(sceneFile)}
+                      onDownload={() => onDownloadScene(sceneFile)}
+                      audioRef={(id: string, audio: HTMLAudioElement | null) => sceneAudioRef(id, audio)}
+                      getToken={getToken}
+                    />
                   );
                 })}
             </div>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Individual Scene Audio Player Component
+interface SceneAudioPlayerProps {
+  sceneFile: MediaFile;
+  sceneId: string;
+  readingId: string;
+  displayName: string;
+  durationText: string;
+  isPlaying: boolean;
+  onPlayPause: () => void;
+  onDownload: () => void;
+  audioRef: (sceneId: string, audio: HTMLAudioElement | null) => void;
+  getToken: any;
+}
+
+function SceneAudioPlayer({
+  sceneFile,
+  sceneId,
+  readingId,
+  displayName,
+  durationText,
+  isPlaying,
+  onPlayPause,
+  onDownload,
+  audioRef,
+  getToken
+}: SceneAudioPlayerProps) {
+  const audioElementRef = useRef<HTMLAudioElement>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+
+  // Fetch presigned URL for scene audio playback
+  useEffect(() => {
+    if (!isPlaying || !sceneFile) {
+      setAudioUrl(null);
+      setIsLoadingAudio(false);
+      return;
+    }
+
+    const fetchAudioUrl = async () => {
+      setIsLoadingAudio(true);
+      try {
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        let downloadUrl: string | undefined = undefined;
+
+        // If we have an s3Key, try to fetch a fresh presigned URL
+        if (sceneFile.s3Key && (sceneFile.storageType === 'local' || sceneFile.storageType === 'wryda-temp' || !sceneFile.storageType)) {
+          try {
+            const token = await getToken({ template: 'wryda-backend' });
+            if (!token) {
+              console.error('[SceneAudioPlayer] Not authenticated');
+              toast.error('Not authenticated', { description: 'Please sign in to play audio' });
+              setIsLoadingAudio(false);
+              return;
+            }
+            
+            const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                s3Key: sceneFile.s3Key,
+                expiresIn: 86400 * 7, // 7 days
+              }),
+            });
+            
+            if (!presignedResponse.ok) {
+              const errorText = await presignedResponse.text();
+              console.error('[SceneAudioPlayer] Presigned URL failed:', presignedResponse.status, errorText);
+              toast.error('Failed to load audio', { 
+                description: `Server returned ${presignedResponse.status}. Please try again.` 
+              });
+              setIsLoadingAudio(false);
+              return;
+            }
+            
+            const presignedData = await presignedResponse.json();
+            downloadUrl = presignedData.downloadUrl;
+          } catch (error: any) {
+            console.error('[SceneAudioPlayer] Failed to get presigned URL:', error);
+            toast.error('Failed to load audio', { 
+              description: error.message || 'Unable to generate secure download link' 
+            });
+            setIsLoadingAudio(false);
+            return;
+          }
+        } else if (sceneFile.storageType === 'google-drive' || sceneFile.storageType === 'dropbox') {
+          // For cloud storage files, get download URL from backend
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) {
+            console.error('[SceneAudioPlayer] Not authenticated');
+            toast.error('Not authenticated', { description: 'Please sign in to play audio' });
+            setIsLoadingAudio(false);
+            return;
+          }
+          
+          const response = await fetch(`${BACKEND_API_URL}/api/storage/download/${sceneFile.storageType}/${sceneFile.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            downloadUrl = data.downloadUrl;
+          } else {
+            console.error('[SceneAudioPlayer] Failed to get cloud storage download URL');
+            toast.error('Failed to load audio', { 
+              description: `Server returned ${response.status}` 
+            });
+            setIsLoadingAudio(false);
+            return;
+          }
+        } else {
+          console.error('[SceneAudioPlayer] Unsupported storage type:', sceneFile.storageType);
+          toast.error('Unsupported storage type', { 
+            description: 'This file cannot be played in the browser' 
+          });
+          setIsLoadingAudio(false);
+          return;
+        }
+
+        if (downloadUrl) {
+          setAudioUrl(downloadUrl);
+          console.log('[SceneAudioPlayer] ✅ Audio URL loaded:', downloadUrl.substring(0, 100));
+        }
+      } catch (error: any) {
+        console.error('[SceneAudioPlayer] Failed to fetch audio URL:', error);
+        toast.error('Failed to load audio', { 
+          description: error.message || 'Unknown error occurred' 
+        });
+      } finally {
+        setIsLoadingAudio(false);
+      }
+    };
+
+    fetchAudioUrl();
+  }, [isPlaying, sceneFile, getToken]);
+
+  // Handle audio playback
+  useEffect(() => {
+    if (!audioElementRef.current || !audioUrl || !isPlaying) return;
+
+    const audio = audioElementRef.current;
+    
+    // Auto-play when URL is ready
+    const playAudio = async () => {
+      try {
+        await audio.play();
+        console.log('[SceneAudioPlayer] ✅ Audio playback started');
+      } catch (playError: any) {
+        console.error('[SceneAudioPlayer] Failed to auto-play:', playError);
+        // Browser may block autoplay - user can click play button
+      }
+    };
+
+    // Register audio element with parent
+    audioRef(sceneId, audio);
+
+    // Wait for canplay event
+    const handleCanPlay = () => {
+      console.log('[SceneAudioPlayer] ✅ Audio can play, duration:', audio.duration);
+      playAudio();
+    };
+
+    const handleCanPlayThrough = () => {
+      console.log('[SceneAudioPlayer] ✅ Audio can play through (fully loaded)');
+    };
+
+    const handleError = (e: Event) => {
+      console.error('[SceneAudioPlayer] Audio playback error:', e);
+      const error = audio.error;
+      if (error) {
+        console.error('[SceneAudioPlayer] Error code:', error.code);
+        console.error('[SceneAudioPlayer] Error message:', error.message);
+      }
+    };
+
+    const handleEnded = () => {
+      // Auto-pause when scene finishes
+      audioRef(sceneId, null);
+    };
+
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('canplaythrough', handleCanPlayThrough);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('ended', handleEnded);
+      audioRef(sceneId, null); // Unregister on cleanup
+    };
+  }, [audioUrl, isPlaying, sceneId, audioRef]);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2 p-1 bg-[#2A2A2A] rounded">
+        <span className="text-xs text-gray-300 truncate flex-1">
+          {displayName}{durationText}
+        </span>
+        <div className="flex-shrink-0 flex items-center gap-1">
+          <button
+            onClick={onPlayPause}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+            title={isPlaying ? `Pause ${displayName}` : `Play ${displayName}`}
+          >
+            {isLoadingAudio ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="w-3 h-3" />
+            ) : (
+              <Play className="w-3 h-3" />
+            )}
+          </button>
+          <button
+            onClick={onDownload}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+            title={`Download ${displayName}`}
+          >
+            <Download className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+      
+      {/* Audio Player (only show when playing) */}
+      {isPlaying && sceneFile && (
+        <div className="ml-2">
+          {isLoadingAudio ? (
+            <div className="flex items-center justify-center py-2 text-gray-400 text-xs">
+              <Loader2 className="w-3 h-3 animate-spin mr-2" />
+              Loading audio...
+            </div>
+          ) : audioUrl ? (
+            <audio
+              ref={audioElementRef}
+              src={audioUrl}
+              controls
+              preload="metadata"
+              crossOrigin="anonymous"
+              className="w-full"
+              onError={(e) => {
+                console.error('[SceneAudioPlayer] Audio element error:', e);
+                const audio = e.currentTarget;
+                const error = audio.error;
+                if (error) {
+                  console.error('[SceneAudioPlayer] Error code:', error.code);
+                  console.error('[SceneAudioPlayer] Error message:', error.message);
+                  
+                  let errorMsg = 'Failed to load audio';
+                  if (error.code === 3) {
+                    errorMsg = 'Audio decode error. The file may have encoding issues. Try downloading instead.';
+                  } else if (error.code === 4) {
+                    errorMsg = 'Audio source not supported or URL expired. Try refreshing the page.';
+                  }
+                  
+                  toast.error('Playback error', { 
+                    description: errorMsg
+                  });
+                } else {
+                  toast.error('Failed to load audio', { 
+                    description: 'The audio file may be corrupted or the URL expired. Try refreshing the page.' 
+                  });
+                }
+              }}
+            >
+              Your browser does not support the audio element.
+            </audio>
+          ) : (
+            <div className="text-center py-2 text-gray-400 text-xs">
+              Failed to load audio URL
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
