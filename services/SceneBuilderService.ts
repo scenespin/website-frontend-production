@@ -431,8 +431,35 @@ export class SceneBuilderService {
     });
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to execute workflow: ${response.statusText}`);
+      let errorMessage = `Failed to execute workflow: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        // Handle standard API error response format: { success: false, error: { message, code, details } }
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else {
+            errorMessage = JSON.stringify(errorData.error);
+          }
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else {
+          errorMessage = JSON.stringify(errorData);
+        }
+      } catch (e) {
+        // If JSON parsing fails, use status text
+        console.error('[SceneBuilderService] Failed to parse error response:', e);
+      }
+      console.error('[SceneBuilderService] Workflow execution error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorMessage
+      });
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
