@@ -18,6 +18,8 @@ const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai
 
 /**
  * Scene video data structure
+ * Note: Full stitched scenes are no longer generated automatically.
+ * Users can create stitched videos on-demand via the playlist player.
  */
 export interface SceneVideo {
   sceneId: string;
@@ -27,15 +29,9 @@ export interface SceneVideo {
     shots: Array<{
       shotNumber: number;
       video: MediaFile;
-      firstFrame?: MediaFile;
       metadata?: any;
       timestamp?: string;
     }>;
-    fullScene?: {
-      video: MediaFile;
-      metadata?: any;
-      timestamp?: string;
-    };
   };
 }
 
@@ -83,13 +79,14 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
 
     const sceneMap = new Map<string, SceneVideo>();
 
-    // Filter scene-related files (videos only, exclude metadata.json and first frames for now)
+    // Filter scene-related files (videos only, exclude metadata.json, first frames, and full scenes)
     const sceneFiles = allFiles.filter(file => {
       const metadata = (file as any).metadata || {};
       const isSceneFile = metadata.entityType === 'scene' && metadata.sceneId;
       const isVideo = file.fileType === 'video';
-      // Include videos, exclude metadata files and first frames (they're linked via shot structure)
-      return isSceneFile && isVideo && !metadata.isMetadata && !metadata.isFirstFrame;
+      const isFullScene = metadata.isFullScene === true;
+      // Include individual shot videos only, exclude metadata files, first frames, and full stitched scenes
+      return isSceneFile && isVideo && !metadata.isMetadata && !metadata.isFirstFrame && !isFullScene;
     });
 
     // Group by scene
@@ -118,28 +115,14 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
 
       const scene = sceneMap.get(key)!;
 
-      if (isFullScene) {
-        // Full stitched scene
-        scene.videos.fullScene = {
-          video: file,
-          metadata,
-          timestamp,
-        };
-      } else if (shotNumber) {
+      // Only process individual shots (full scenes are filtered out above)
+      if (shotNumber) {
         // Individual shot
         const existingShot = scene.videos.shots.find(s => s.shotNumber === shotNumber && s.timestamp === timestamp);
-        if (existingShot) {
-          // Check if this is a first frame or metadata file
-          if ((file as any).metadata?.isFirstFrame) {
-            existingShot.firstFrame = file;
-          } else if ((file as any).metadata?.isMetadata) {
-            existingShot.metadata = metadata;
-          }
-        } else {
+        if (!existingShot) {
           scene.videos.shots.push({
             shotNumber,
             video: file,
-            firstFrame: (file as any).metadata?.isFirstFrame ? file : undefined,
             metadata,
             timestamp,
           });

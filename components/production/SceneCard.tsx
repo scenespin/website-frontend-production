@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import { Play, Info, Download, ChevronDown, ChevronUp, Film } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShotThumbnail } from './ShotThumbnail';
-import { FullSceneCard } from './FullSceneCard';
+import { ScenePlaylistPlayer } from './ScenePlaylistPlayer';
 import type { SceneVideo } from '@/hooks/useScenes';
 
 interface SceneCardProps {
@@ -24,15 +24,16 @@ interface SceneCardProps {
   };
   presignedUrls?: Map<string, string>;
   onViewMetadata?: (metadata: any) => void;
+  screenplayId?: string;
 }
 
-export function SceneCard({ scene, presignedUrls, onViewMetadata }: SceneCardProps) {
+export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }: SceneCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [showPlaylist, setShowPlaylist] = useState(false);
 
   const hasVideos = scene.videos && (
-    scene.videos.fullScene || 
-    (scene.videos.shots && scene.videos.shots.length > 0)
+    scene.videos.shots && scene.videos.shots.length > 0
   );
 
   const getPresignedUrl = (s3Key: string | undefined): string | undefined => {
@@ -89,8 +90,6 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata }: SceneCardPro
           <div className="flex items-center gap-2">
             {hasVideos && (
               <span className="text-xs text-[#808080]">
-                {scene.videos?.fullScene ? '1 full scene' : ''}
-                {scene.videos?.fullScene && scene.videos?.shots.length ? ' + ' : ''}
                 {scene.videos?.shots.length ? `${scene.videos.shots.length} shot${scene.videos.shots.length !== 1 ? 's' : ''}` : ''}
               </span>
             )}
@@ -106,17 +105,17 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata }: SceneCardPro
       {/* Scene Content */}
       {isExpanded && hasVideos && (
         <div className="p-4 space-y-4">
-          {/* Full Stitched Scene */}
-          {scene.videos?.fullScene && (
-            <FullSceneCard
-              fullScene={scene.videos.fullScene}
-              presignedUrl={getPresignedUrl(scene.videos.fullScene.video.s3Key)}
-              onDownload={() => handleDownload(
-                scene.videos!.fullScene!.video.s3Key || '',
-                `Scene_${scene.number}_Full.mp4`
-              )}
-              onViewMetadata={() => onViewMetadata?.(scene.videos!.fullScene!.metadata)}
-            />
+          {/* Watch Scene Button - Opens playlist player */}
+          {scene.videos?.shots && scene.videos.shots.length > 0 && (
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={() => setShowPlaylist(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#DC143C] hover:bg-[#B0111E] text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Play className="w-4 h-4" />
+                Watch Scene
+              </button>
+            </div>
           )}
 
           {/* Individual Shots */}
@@ -134,7 +133,6 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata }: SceneCardPro
                     key={`${shot.shotNumber}-${shot.timestamp || index}`}
                     shot={shot}
                     presignedUrl={getPresignedUrl(shot.video.s3Key)}
-                    firstFrameUrl={shot.firstFrame ? getPresignedUrl(shot.firstFrame.s3Key) : undefined}
                     onDownload={() => handleDownload(
                       shot.video.s3Key || '',
                       `Scene_${scene.number}_Shot_${shot.shotNumber}.mp4`
@@ -154,6 +152,21 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata }: SceneCardPro
           <Film className="w-8 h-8 text-[#808080] mx-auto mb-2" />
           <p className="text-sm text-[#808080]">No videos generated for this scene yet</p>
         </div>
+      )}
+
+      {/* Playlist Player Modal */}
+      {showPlaylist && scene.videos && (
+        <ScenePlaylistPlayer
+          scene={{
+            id: scene.id,
+            number: scene.number,
+            heading: scene.heading,
+            videos: scene.videos,
+          }}
+          presignedUrls={presignedUrls || new Map()}
+          onClose={() => setShowPlaylist(false)}
+          screenplayId={screenplayId}
+        />
       )}
     </div>
   );

@@ -3,11 +3,12 @@
 /**
  * Shot Thumbnail Component
  * 
- * Displays a single shot video with thumbnail, first frame preview, and actions.
+ * Displays a single shot video with thumbnail and actions.
+ * Note: First frame images are kept in backend only, not displayed in UI.
  */
 
 import React, { useState } from 'react';
-import { Play, Info, Download, Image as ImageIcon } from 'lucide-react';
+import { Play, Info, Download } from 'lucide-react';
 import { VideoThumbnail } from './VideoThumbnail';
 
 interface ShotThumbnailProps {
@@ -18,14 +19,9 @@ interface ShotThumbnailProps {
       fileName: string;
       fileType: string;
     };
-    firstFrame?: {
-      s3Key?: string;
-      imageUrl?: string;
-    };
     timestamp?: string;
   };
   presignedUrl?: string;
-  firstFrameUrl?: string;
   onDownload?: () => void;
   onViewMetadata?: () => void;
 }
@@ -33,14 +29,11 @@ interface ShotThumbnailProps {
 export function ShotThumbnail({
   shot,
   presignedUrl,
-  firstFrameUrl,
   onDownload,
   onViewMetadata,
 }: ShotThumbnailProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
-
-  const thumbnailUrl = firstFrameUrl || presignedUrl;
 
   return (
     <div
@@ -51,19 +44,7 @@ export function ShotThumbnail({
     >
       {/* Thumbnail */}
       <div className="aspect-video bg-[#0A0A0A] relative">
-        {thumbnailUrl ? (
-          <img
-            src={thumbnailUrl}
-            alt={`Shot ${shot.shotNumber}`}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              // Fallback to video thumbnail if first frame fails
-              if (firstFrameUrl && presignedUrl) {
-                (e.target as HTMLImageElement).src = presignedUrl;
-              }
-            }}
-          />
-        ) : presignedUrl ? (
+        {presignedUrl ? (
           <VideoThumbnail videoUrl={presignedUrl} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -82,13 +63,6 @@ export function ShotThumbnail({
         <div className="absolute top-2 left-2 bg-[#DC143C] text-white text-xs font-semibold px-2 py-1 rounded">
           Shot {shot.shotNumber}
         </div>
-
-        {/* First frame indicator */}
-        {firstFrameUrl && (
-          <div className="absolute top-2 right-2 bg-[#1A1A1A]/80 text-[#808080] p-1 rounded">
-            <ImageIcon className="w-3 h-3" />
-          </div>
-        )}
       </div>
 
       {/* Actions */}

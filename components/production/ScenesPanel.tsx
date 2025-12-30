@@ -130,6 +130,7 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
                 key={scene.id || scene.number}
                 scene={scene}
                 presignedUrls={presignedUrls as Map<string, string> | undefined}
+                screenplayId={screenplayId}
                 onViewMetadata={(metadata) => {
                   setSelectedMetadata(metadata);
                   setShowMetadataModal(true);

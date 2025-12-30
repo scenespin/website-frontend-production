@@ -557,7 +557,7 @@ function ReadingCard({
               },
               body: JSON.stringify({
                 s3Key: file.s3Key,
-                expiresIn: 3600, // 1 hour
+                expiresIn: 86400 * 7, // 7 days (matches backend ScreenplayReadingService)
               }),
             });
             
@@ -670,9 +670,6 @@ function ReadingCard({
       if (error) {
         console.error('[ReadingCard] Error code:', error.code);
         console.error('[ReadingCard] Error message:', error.message);
-        
-        // Don't show toast here - the onError handler on the element will handle it
-        // This is just for logging
       }
     };
 
@@ -769,7 +766,7 @@ function ReadingCard({
                   if (error.code === 3) {
                     errorMsg = 'Audio decode error. The file may have encoding issues. Try downloading instead.';
                   } else if (error.code === 4) {
-                    errorMsg = 'Audio source not supported or URL expired.';
+                    errorMsg = 'Audio source not supported or URL expired. Try refreshing the page.';
                   }
                   
                   toast.error('Playback error', { 
@@ -777,7 +774,7 @@ function ReadingCard({
                   });
                 } else {
                   toast.error('Failed to load audio', { 
-                    description: 'The audio file may be corrupted or the URL expired' 
+                    description: 'The audio file may be corrupted or the URL expired. Try refreshing the page.' 
                   });
                 }
               }}
