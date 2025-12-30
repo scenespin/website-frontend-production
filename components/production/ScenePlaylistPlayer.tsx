@@ -180,6 +180,8 @@ export function ScenePlaylistPlayer({
     return baseCost + (shotCount - 1) * perShotCost;
   }, [playlist.length]);
 
+  const cost = calculateCost();
+
   // Generate stitched video
   const handleGenerateStitched = useCallback(async () => {
     if (playlist.length === 0) {
@@ -267,8 +269,6 @@ export function ScenePlaylistPlayer({
       setIsGenerating(false);
     }
   }, [playlist, screenplayId, scene.id, scene.number, getToken, cost]);
-
-  const cost = calculateCost();
 
   return (
     <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
