@@ -66,9 +66,7 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
   const allS3Keys = useMemo(() => {
     const keys: string[] = [];
     sceneVideos.forEach(sceneVideo => {
-      if (sceneVideo.videos.fullScene?.video.s3Key) {
-        keys.push(sceneVideo.videos.fullScene.video.s3Key);
-      }
+      // Note: fullScene is no longer part of SceneVideo structure (stitched videos are on-demand)
       sceneVideo.videos.shots.forEach(shot => {
         if (shot.video.s3Key) {
           keys.push(shot.video.s3Key);
