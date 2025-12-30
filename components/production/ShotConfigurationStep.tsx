@@ -264,21 +264,42 @@ export function ShotConfigurationStep({
       }
     }
     
-    // 3. Validate pronouns that are skipped must have descriptions
-    // Note: pronounExtrasPrompts is Record<string, string> (flat, keyed by pronoun)
-    // But we need to check per-shot prompts - they should be passed from parent
-    // For now, we'll check if pronoun is skipped and show a generic message
-    if (pronounInfo.hasPronouns && pronounExtrasPrompts) {
+    // 3. Validate ALL pronouns are mapped (singular and plural)
+    // Each pronoun must either be:
+    //   a) Mapped to a character (valid character ID or array of IDs)
+    //   b) Skipped with a description (__ignore__ + description in pronounExtrasPrompts)
+    if (pronounInfo.hasPronouns && pronounInfo.pronouns.length > 0) {
+      const unmappedPronouns: string[] = [];
+      
       for (const pronoun of pronounInfo.pronouns) {
-        const mapping = shotMappings[pronoun.toLowerCase()];
-        if (mapping === '__ignore__') {
-          // Check if description exists (pronounExtrasPrompts is flat record keyed by pronoun)
-          const hasDescription = pronounExtrasPrompts[pronoun.toLowerCase()] && pronounExtrasPrompts[pronoun.toLowerCase()].trim() !== '';
-          if (!hasDescription) {
-            validationErrors.push(
-              `Pronoun "${pronoun}" is skipped but requires a description. Please describe what "${pronoun}" refers to.`
-            );
-          }
+        const pronounLower = pronoun.toLowerCase();
+        const mapping = shotMappings[pronounLower];
+        
+        // Check if pronoun is mapped to a character
+        const isMappedToCharacter = mapping && 
+          mapping !== '__ignore__' && 
+          (Array.isArray(mapping) ? mapping.length > 0 : true);
+        
+        // Check if pronoun is skipped with description
+        const isSkippedWithDescription = mapping === '__ignore__' && 
+          pronounExtrasPrompts[pronounLower] && 
+          pronounExtrasPrompts[pronounLower].trim() !== '';
+        
+        // Pronoun must be either mapped OR skipped with description
+        if (!isMappedToCharacter && !isSkippedWithDescription) {
+          unmappedPronouns.push(pronoun);
+        }
+      }
+      
+      if (unmappedPronouns.length > 0) {
+        if (unmappedPronouns.length === 1) {
+          validationErrors.push(
+            `Pronoun "${unmappedPronouns[0]}" must be mapped to a character, or if skipped, a description is required.`
+          );
+        } else {
+          validationErrors.push(
+            `Pronouns "${unmappedPronouns.join('", "')}" must be mapped to characters, or if skipped, descriptions are required.`
+          );
         }
       }
     }
@@ -389,7 +410,7 @@ export function ShotConfigurationStep({
             ))}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4 pb-6">
+        <CardContent className="space-y-4">
           {/* Shot Description - Full text, no truncation */}
           <div className="pb-3 border-b border-[#3F3F46]">
             <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Description</div>
@@ -475,7 +496,7 @@ export function ShotConfigurationStep({
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex gap-3 pt-3 pb-4 border-t border-[#3F3F46]">
+          <div className="flex gap-3 pt-3 pb-6 border-t border-[#3F3F46]">
             <Button
               onClick={handlePrevious}
               disabled={isTransitioning}
