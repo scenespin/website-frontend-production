@@ -222,7 +222,7 @@ export function SceneReviewStep({
             Review all your selections before generating the scene
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pb-2">
 
           {/* Shots Summary */}
           <div className="space-y-3">

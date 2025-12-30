@@ -112,7 +112,7 @@ export function SceneAnalysisStep({
             Review the shot breakdown and select which shots to generate. Configure details in the next steps.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pb-6">
           {/* Global Model Style Selector */}
           <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
             <label className="block text-xs font-medium text-[#FFFFFF] mb-2">

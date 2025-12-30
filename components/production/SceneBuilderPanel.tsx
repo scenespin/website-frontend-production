@@ -2460,7 +2460,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   return (
     <div className="bg-[#0A0A0A]">
-      <div className="p-3 md:p-4 space-y-3 pb-6">
+      <div className="p-3 md:p-4 space-y-3 pb-12">
         {/* Content */}
         <div className="space-y-3">
         {/* Scene Builder Form - Wizard Flow */}
