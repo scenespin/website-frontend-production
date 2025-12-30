@@ -726,7 +726,7 @@ export function LocationDetailModal({
               {activeTab === 'references' && (
                 <div className="p-6 space-y-6">
                   {/* Phase 2: Selection Mode Toggle & Bulk Actions */}
-                  {angleVariations.length > 0 && (
+                  {(angleVariations.length > 0 || (location.backgrounds && location.backgrounds.length > 0)) && (
                     <div className="flex items-center justify-between mb-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
                       <div className="flex items-center gap-3">
                         <button
@@ -757,15 +757,28 @@ export function LocationDetailModal({
                             <>
                               <button
                                 onClick={() => {
-                                  if (selectedImageIds.size === angleVariations.length) {
+                                  // Get all selectable image IDs (angles + backgrounds)
+                                  const allSelectableIds = new Set<string>();
+                                  angleVariations.forEach((v: any) => {
+                                    const id = v.id || `ref_${v.s3Key}`;
+                                    allSelectableIds.add(id);
+                                  });
+                                  if (location.backgrounds) {
+                                    location.backgrounds.forEach((b: LocationBackground) => {
+                                      const id = b.id || `bg_${b.s3Key}`;
+                                      allSelectableIds.add(id);
+                                    });
+                                  }
+                                  
+                                  if (selectedImageIds.size === allSelectableIds.size) {
                                     setSelectedImageIds(new Set());
                                   } else {
-                                    setSelectedImageIds(new Set(angleVariations.map((v: any) => v.id || `ref_${v.s3Key}`)));
+                                    setSelectedImageIds(allSelectableIds);
                                   }
                                 }}
                                 className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#808080] hover:text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
                               >
-                                {selectedImageIds.size === angleVariations.length ? 'Deselect All' : 'Select All'}
+                                {selectedImageIds.size === (angleVariations.length + (location.backgrounds?.length || 0)) ? 'Deselect All' : 'Select All'}
                               </button>
                               <button
                                 onClick={() => setShowBulkDeleteConfirm(true)}
@@ -1050,7 +1063,189 @@ export function LocationDetailModal({
                             </div>
                           );
                         })}
-                              </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Backgrounds Section */}
+                              {backgrounds.length > 0 && (
+                                <div className="space-y-2">
+                                  {variations.length > 0 && (
+                                    <p className="text-xs text-[#808080] uppercase tracking-wide">Backgrounds</p>
+                                  )}
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                    {backgrounds.map((background: LocationBackground) => {
+                                      const img = allImages.find(i => i.s3Key === background.s3Key && !i.isBase);
+                                      if (!img) return null;
+                                      const imgId = img.id || `bg_${background.s3Key}`;
+                                      const isSelected = selectedImageIds.has(imgId);
+                                      
+                                      // Get display label for background type
+                                      const backgroundTypeLabels: Record<string, string> = {
+                                        'window': 'Window',
+                                        'wall': 'Wall',
+                                        'doorway': 'Doorway',
+                                        'texture': 'Texture',
+                                        'corner-detail': 'Corner Detail',
+                                        'furniture': 'Furniture',
+                                        'architectural-feature': 'Architectural Feature',
+                                        'custom': background.description || 'Custom Background'
+                                      };
+                                      const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
+                                      
+                                      return (
+                                        <div
+                                          key={imgId}
+                                          className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
+                                            selectionMode
+                                              ? isSelected
+                                                ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                                : 'border-[#3F3F46] hover:border-[#DC143C]/50'
+                                              : 'border-[#3F3F46] hover:border-[#DC143C]'
+                                          }`}
+                                        >
+                                          {/* Phase 2: Checkbox overlay in selection mode */}
+                                          {selectionMode && (
+                                            <div className="absolute top-2 left-2 z-10">
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const newSelection = new Set(selectedImageIds);
+                                                  if (isSelected) {
+                                                    newSelection.delete(imgId);
+                                                  } else {
+                                                    newSelection.add(imgId);
+                                                  }
+                                                  setSelectedImageIds(newSelection);
+                                                }}
+                                                className={`p-1.5 rounded-lg transition-colors ${
+                                                  isSelected
+                                                    ? 'bg-[#DC143C] text-white'
+                                                    : 'bg-[#0A0A0A]/80 text-[#808080] hover:bg-[#1F1F1F]'
+                                                }`}
+                                              >
+                                                {isSelected ? (
+                                                  <CheckSquare className="w-4 h-4" />
+                                                ) : (
+                                                  <Square className="w-4 h-4" />
+                                                )}
+                                              </button>
+                                            </div>
+                                          )}
+                                          <img
+                                            src={img.imageUrl}
+                                            alt={img.label}
+                                            className="w-full h-full object-cover"
+                                          />
+                                          {/* Top-right label: Background Type */}
+                                          <div className="absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-[#10B981]">
+                                            {typeLabel}
+                                          </div>
+                                          {/* Bottom-right label: Provider */}
+                                          {(() => {
+                                            const providerId = (img as any).metadata?.providerId || background.metadata?.providerId;
+                                            if (!providerId) return null;
+                                            const providerLabel = getProviderLabel(providerId);
+                                            if (!providerLabel) return null;
+                                            return (
+                                              <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
+                                                {providerLabel}
+                                              </div>
+                                            );
+                                          })()}
+                                          <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
+                                            selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+                                          }`}>
+                                            <div className="absolute bottom-2 left-2 right-2">
+                                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                                            </div>
+                                            {/* Delete button - only show when not in selection mode */}
+                                            {!selectionMode && (
+                                              <div className="absolute top-2 right-2">
+                                                <DropdownMenu>
+                                                  <DropdownMenuTrigger asChild>
+                                                    <button
+                                                      className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                      <MoreVertical className="w-3 h-3 text-white" />
+                                                    </button>
+                                                  </DropdownMenuTrigger>
+                                                  <DropdownMenuContent 
+                                                    align="end"
+                                                    className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+                                                    style={{ backgroundColor: '#0A0A0A' }}
+                                                  >
+                                                    <DropdownMenuItem
+                                                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setPreviewImageIndex(allImages.findIndex(i => i.id === imgId));
+                                                        setPreviewGroupName(displayName);
+                                                      }}
+                                                    >
+                                                      <Eye className="w-4 h-4 mr-2 text-[#808080]" />
+                                                      Preview
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                                      onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                          const filename = `${location.name}_${typeLabel}_${Date.now()}.jpg`;
+                                                          await downloadImageAsBlob(img.imageUrl, filename, img.s3Key);
+                                                        } catch (error: any) {
+                                                          toast.error('Failed to download image');
+                                                        }
+                                                      }}
+                                                    >
+                                                      <Download className="w-4 h-4 mr-2 text-[#808080]" />
+                                                      Download
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                      className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
+                                                      onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (!confirm('Delete this background image? This action cannot be undone.')) {
+                                                          return;
+                                                        }
+                                                        
+                                                        try {
+                                                          if (!background.s3Key) {
+                                                            throw new Error('Missing S3 key for image');
+                                                          }
+                                                          
+                                                          // Remove from backgrounds
+                                                          const updatedBackgrounds = (location.backgrounds || []).filter(
+                                                            (b: LocationBackground) => b.s3Key !== background.s3Key
+                                                          );
+                                                          
+                                                          await onUpdate(location.locationId, {
+                                                            backgrounds: updatedBackgrounds
+                                                          });
+                                                          
+                                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          toast.success('Background image deleted');
+                                                        } catch (error: any) {
+                                                          console.error('[LocationDetailModal] Failed to delete background image:', error);
+                                                          toast.error(`Failed to delete image: ${error.message}`);
+                                                        }
+                                                      }}
+                                                    >
+                                                      <Trash2 className="w-4 h-4 mr-2" />
+                                                      Delete
+                                                    </DropdownMenuItem>
+                                                  </DropdownMenuContent>
+                                                </DropdownMenu>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
