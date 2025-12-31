@@ -218,9 +218,12 @@ export function ImageViewer({
   // Get current image with resolved URL
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
 
+  // Memoize current image and media type for performance (must be before useEffects that use them)
+  const currentImage = useMemo(() => displayImages[currentIndex], [displayImages, currentIndex]);
+  const currentMediaType = useMemo(() => currentImage ? getMediaType(currentImage) : 'image', [currentImage, getMediaType]);
+
   // Generate presigned URL when media changes or URL is missing/expired
   useEffect(() => {
-    const currentImage = displayImages[currentIndex];
     if (!isOpen || !currentImage) {
       setCurrentImageUrl('');
       setIsLoading(false);
@@ -232,7 +235,7 @@ export function ImageViewer({
       try {
         // For videos, use URL directly or generate presigned URL
         // For images, use getImageUrl which handles caching
-        if (getMediaType(currentImage) === 'video') {
+        if (currentMediaType === 'video') {
           // Videos might need presigned URLs too
           if (currentImage.s3Key && (!currentImage.url || !currentImage.url.startsWith('http'))) {
             const url = await getImageUrl(currentImage);
@@ -255,7 +258,7 @@ export function ImageViewer({
     };
 
     loadMediaUrl();
-  }, [isOpen, currentIndex, displayImages, getImageUrl, getMediaType]);
+  }, [isOpen, currentIndex, currentImage, currentMediaType, getImageUrl]);
 
   // Keyboard navigation (only when not in video player controls)
   useEffect(() => {
@@ -513,9 +516,6 @@ export function ImageViewer({
     swipeStartRef.current = null;
   };
 
-  // Memoize current image and media type for performance
-  const currentImage = useMemo(() => displayImages[currentIndex], [displayImages, currentIndex]);
-  const currentMediaType = useMemo(() => currentImage ? getMediaType(currentImage) : 'image', [currentImage, getMediaType]);
   const canNavigatePrevious = currentIndex > 0;
   const canNavigateNext = currentIndex < displayImages.length - 1;
 
