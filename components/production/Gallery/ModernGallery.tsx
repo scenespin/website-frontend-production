@@ -136,7 +136,7 @@ export function ModernGallery({
             />
             
             {/* Hover overlay with zoom icon */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 rounded-lg flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 rounded-lg flex items-center justify-center pointer-events-none">
               <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             </div>
             
@@ -213,12 +213,12 @@ export function ModernGallery({
             />
             
             {/* Hover overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center pointer-events-none">
               <ZoomIn className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             </div>
             
             {/* Badges */}
-            <div className="absolute top-4 left-4 flex gap-2">
+            <div className="absolute top-4 left-4 flex gap-2 pointer-events-none">
               {featuredImage.isBase && (
                 <div className="px-3 py-1.5 bg-[#DC143C] text-white text-sm font-semibold rounded-md shadow-lg">
                   Base
@@ -279,7 +279,7 @@ export function ModernGallery({
                   />
                   
                   {/* Badges */}
-                  <div className="absolute top-2 right-2 flex flex-col gap-1">
+                  <div className="absolute top-2 right-2 flex flex-col gap-1 pointer-events-none">
                     {img.isBase && (
                       <div className="px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
                         Base
@@ -297,7 +297,7 @@ export function ModernGallery({
                   </div>
                   
                   {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center pointer-events-none">
                     <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                   </div>
                 </div>
@@ -337,12 +337,12 @@ export function ModernGallery({
               />
               
               {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center pointer-events-none">
                 <ZoomIn className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               </div>
               
               {/* Badges */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2">
+              <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
                 {featuredImage.isBase && (
                   <div className="px-3 py-1.5 bg-[#DC143C] text-white text-sm font-semibold rounded-md shadow-lg">
                     Base
@@ -370,7 +370,7 @@ export function ModernGallery({
               </div>
               
               {/* Featured label */}
-              <div className="absolute bottom-4 left-4 right-4">
+              <div className="absolute bottom-4 left-4 right-4 pointer-events-none">
                 <div className="px-3 py-2 bg-black/70 backdrop-blur-sm text-white text-sm font-medium rounded-md">
                   {featuredImage.label}
                 </div>
@@ -415,7 +415,7 @@ export function ModernGallery({
                     />
                     
                     {/* Badges */}
-                    <div className="absolute top-2 right-2 flex flex-col gap-1">
+                    <div className="absolute top-2 right-2 flex flex-col gap-1 pointer-events-none">
                       {img.isBase && (
                         <div className="px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
                           Base
@@ -433,7 +433,7 @@ export function ModernGallery({
                     </div>
                     
                     {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center pointer-events-none">
                       <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                     </div>
                   </div>
