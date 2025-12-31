@@ -407,23 +407,6 @@ export function CharacterDetailModal({
     return Array.from(outfitSet);
   }, [mediaFiles, latestCharacter.id, latestCharacter.name]);
   
-  // Get outfit names sorted (default first, then alphabetically)
-  // Combine Media Library folder names with posesByOutfit keys
-  const outfitNames = useMemo(() => {
-    const allOutfits = new Set<string>();
-    
-    // Add outfits from Media Library folders
-    mediaLibraryOutfitNames.forEach(outfit => allOutfits.add(outfit));
-    
-    // Add outfits from posesByOutfit (from pose metadata)
-    Object.keys(posesByOutfit).forEach(outfit => allOutfits.add(outfit));
-    
-    const outfits = Array.from(allOutfits);
-    const defaultOutfit = outfits.find(o => o === 'default' || o.toLowerCase() === 'default');
-    const otherOutfits = outfits.filter(o => o !== 'default' && o.toLowerCase() !== 'default').sort();
-    return defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
-  }, [posesByOutfit, mediaLibraryOutfitNames, isOpen, poseReferences.length]);
-  
   // Selected outfit tab state - null means show all outfits
   // 🔥 FIX: Use separate state for Gallery vs References tabs to prevent conflicts
   const [selectedOutfitGallery, setSelectedOutfitGallery] = useState<string | null>(null);
@@ -742,6 +725,23 @@ export function CharacterDetailModal({
     
     return grouped;
   }, [poseReferences]);
+  
+  // Get outfit names sorted (default first, then alphabetically)
+  // Combine Media Library folder names with posesByOutfit keys
+  const outfitNames = useMemo(() => {
+    const allOutfits = new Set<string>();
+    
+    // Add outfits from Media Library folders
+    mediaLibraryOutfitNames.forEach(outfit => allOutfits.add(outfit));
+    
+    // Add outfits from posesByOutfit (from pose metadata)
+    Object.keys(posesByOutfit).forEach(outfit => allOutfits.add(outfit));
+    
+    const outfits = Array.from(allOutfits);
+    const defaultOutfit = outfits.find(o => o === 'default' || o.toLowerCase() === 'default');
+    const otherOutfits = outfits.filter(o => o !== 'default' && o.toLowerCase() !== 'default').sort();
+    return defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
+  }, [posesByOutfit, mediaLibraryOutfitNames, isOpen, poseReferences.length]);
   
   // 🔥 IMPROVED: Use reusable hook for thumbnail mapping (single source of truth)
   const { galleryImages, thumbnailsLoading } = useThumbnailMapping({
