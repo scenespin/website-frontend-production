@@ -81,9 +81,18 @@ export function UploadWardrobeTab({
   // Get final outfit name
   const finalOutfitName = useMemo(() => {
     if (outfitMode === 'create') {
-      return newOutfitName.trim() || generateOutfitName();
+      return newOutfitName.trim() || null; // 🔥 FIX: Don't auto-generate - require user input
     } else {
-      return selectedExistingOutfit || 'default';
+      return selectedExistingOutfit || null; // 🔥 FIX: Require selection
+    }
+  }, [outfitMode, newOutfitName, selectedExistingOutfit]);
+  
+  // 🔥 NEW: Check if outfit name is valid
+  const isOutfitNameValid = useMemo(() => {
+    if (outfitMode === 'create') {
+      return newOutfitName.trim().length > 0;
+    } else {
+      return selectedExistingOutfit.length > 0;
     }
   }, [outfitMode, newOutfitName, selectedExistingOutfit]);
 
@@ -91,6 +100,15 @@ export function UploadWardrobeTab({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+    
+    // 🔥 FIX: Require outfit name before upload
+    if (!isOutfitNameValid) {
+      toast.error('Please create or select an outfit name first (Step 1)');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
     
     const newImages: UploadingImage[] = files.map(file => ({
       file,
@@ -110,6 +128,12 @@ export function UploadWardrobeTab({
 
   // Handle direct upload
   const handleImageUpload = async (files: File[]) => {
+    // 🔥 FIX: Validate outfit name before proceeding
+    if (!isOutfitNameValid || !finalOutfitName) {
+      toast.error('Please create or select an outfit name first (Step 1)');
+      return;
+    }
+    
     setIsProcessing(true);
     const uploadedS3Keys: string[] = [];
     const outfitNameToUse = finalOutfitName;
@@ -228,6 +252,12 @@ export function UploadWardrobeTab({
 
   // Handle Media Library selection
   const handleSelectFromMediaLibrary = async (images: MediaFile[]) => {
+    // 🔥 FIX: Validate outfit name before proceeding
+    if (!isOutfitNameValid || !finalOutfitName) {
+      toast.error('Please create or select an outfit name first (Step 1)');
+      return;
+    }
+    
     setIsProcessing(true);
     const outfitNameToUse = finalOutfitName;
 
@@ -339,11 +369,14 @@ export function UploadWardrobeTab({
               <button
                 onClick={() => {
                   if (!newOutfitName.trim()) {
-                    const autoName = generateOutfitName();
-                    setNewOutfitName(autoName);
+                    toast.error('Please enter an outfit name');
+                    return;
                   }
+                  // Outfit name is already set in state, no need to do anything else
+                  toast.success(`Outfit "${newOutfitName.trim()}" is ready for images`);
                 }}
-                className="px-3 py-1.5 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded text-sm transition-colors"
+                disabled={!newOutfitName.trim()}
+                className="px-3 py-1.5 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
               >
                 Create
               </button>
@@ -381,8 +414,15 @@ export function UploadWardrobeTab({
         {/* Action Buttons - Direct Actions */}
         <div className="flex gap-2 mb-3">
           <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessing}
+            onClick={() => {
+              // 🔥 FIX: Check outfit name before allowing file selection
+              if (!isOutfitNameValid) {
+                toast.error('Please create or select an outfit name first (Step 1)');
+                return;
+              }
+              fileInputRef.current?.click();
+            }}
+            disabled={isProcessing || !isOutfitNameValid}
             className="flex-1 px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <Upload className="w-4 h-4" />
@@ -397,8 +437,15 @@ export function UploadWardrobeTab({
             className="hidden"
           />
           <button
-            onClick={() => setShowMediaLibrary(!showMediaLibrary)}
-            disabled={isProcessing}
+            onClick={() => {
+              // 🔥 FIX: Check outfit name before allowing browse
+              if (!isOutfitNameValid) {
+                toast.error('Please create or select an outfit name first (Step 1)');
+                return;
+              }
+              setShowMediaLibrary(!showMediaLibrary);
+            }}
+            disabled={isProcessing || !isOutfitNameValid}
             className="flex-1 px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-white border border-[#3F3F46] rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <FolderOpen className="w-4 h-4" />
