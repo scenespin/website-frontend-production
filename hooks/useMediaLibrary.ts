@@ -112,6 +112,22 @@ export function useMediaFiles(
 
       const data: MediaFileListResponse = await response.json();
       const backendFiles = data.files || [];
+      
+      // Debug logging for thumbnail verification
+      const filesWithThumbnails = backendFiles.filter((f: any) => f.metadata?.thumbnailS3Key || f.thumbnailS3Key);
+      if (entityType && entityId) {
+        console.log('[useMediaFiles] Entity query results:', {
+          entityType,
+          entityId,
+          filesFound: backendFiles.length,
+          filesWithThumbnails: filesWithThumbnails.length,
+          sampleFiles: filesWithThumbnails.slice(0, 2).map((f: any) => ({
+            s3Key: f.s3Key?.substring(0, 50) + '...',
+            thumbnailS3Key: f.metadata?.thumbnailS3Key || f.thumbnailS3Key
+          }))
+        });
+      }
+      
       // Map backend format to frontend MediaFile format
       // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt, metadata, entityType?, entityId? }
       // Frontend expects: { id, fileName, s3Key, fileType (enum), fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key }
@@ -211,6 +227,13 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
         expiresIn: 3600, // 1 hour
       };
 
+      // Debug logging for thumbnail URL generation
+      console.log('[useBulkPresignedUrls] 🔍 Requesting bulk presigned URLs:', {
+        s3KeysCount: s3Keys.length,
+        s3KeysSample: s3Keys.slice(0, 3).map(k => k.substring(0, 50) + '...'),
+        areThumbnails: s3Keys.some(k => k.includes('thumbnails/'))
+      });
+
       const response = await fetch(`${BACKEND_API_URL}/api/s3/bulk-download-urls`, {
         method: 'POST',
         headers: {
@@ -238,6 +261,17 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
         if (s3Key && downloadUrl) {
           urlMap.set(s3Key, downloadUrl);
         }
+      });
+
+      // Debug logging for successful thumbnail URL generation
+      console.log('[useBulkPresignedUrls] ✅ Bulk presigned URL response:', {
+        success: true,
+        urlsCount: urlMap.size,
+        urlsSample: Array.from(urlMap.entries()).slice(0, 2).map(([key, url]) => ({
+          s3Key: key.substring(0, 50) + '...',
+          urlPreview: url.substring(0, 60) + '...',
+          isThumbnail: key.includes('thumbnails/')
+        }))
       });
 
       return urlMap;

@@ -110,10 +110,13 @@ export function ModernGallery({
 
   // Handle featured image click
   const handleFeaturedClick = useCallback(() => {
-    setLightboxIndex(featuredIndex);
-    setSelectedIndex(featuredIndex);
+    // If onImageClick is provided, use external lightbox (ImageViewer) instead of built-in one
     if (onImageClick) {
       onImageClick(featuredIndex);
+    } else {
+      // Only open built-in lightbox if no external handler is provided
+      setLightboxIndex(featuredIndex);
+      setSelectedIndex(featuredIndex);
     }
   }, [featuredIndex, onImageClick]);
 
@@ -123,11 +126,13 @@ export function ModernGallery({
     const actualIndex = photo?.actualIndex ?? index;
     
     if (layout === 'grid-only') {
-      // Open lightbox directly for grid-only layout
-      setLightboxIndex(actualIndex);
-      setSelectedIndex(actualIndex);
+      // If onImageClick is provided, use external lightbox (ImageViewer) instead of built-in one
       if (onImageClick) {
         onImageClick(actualIndex);
+      } else {
+        // Only open built-in lightbox if no external handler is provided
+        setLightboxIndex(actualIndex);
+        setSelectedIndex(actualIndex);
       }
     } else {
       // Update featured image for other layouts
