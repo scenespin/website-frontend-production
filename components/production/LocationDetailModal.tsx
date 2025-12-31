@@ -675,6 +675,10 @@ export function LocationDetailModal({
                         };
                       })}
                       layout="grid-only"
+                      onImageClick={(index) => {
+                        setPreviewImageIndex(index);
+                        setPreviewGroupName(null);
+                      }}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -844,13 +848,25 @@ export function LocationDetailModal({
                           return (
                             <div
                               key={imgId}
-                              className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
+                              className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors cursor-pointer ${
                                 selectionMode
                                   ? isSelected
                                     ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                                     : 'border-[#3F3F46] hover:border-[#DC143C]/50'
                                   : 'border-[#3F3F46] hover:border-[#DC143C]'
                               }`}
+                              onClick={(e) => {
+                                if (!selectionMode) {
+                                  // Find index in allImages
+                                  const allIndex = allImages.findIndex(aImg => 
+                                    aImg.id === img.id || aImg.s3Key === img.s3Key
+                                  );
+                                  if (allIndex >= 0) {
+                                    setPreviewImageIndex(allIndex);
+                                    setPreviewGroupName(displayName);
+                                  }
+                                }
+                              }}
                             >
                               {/* Phase 2: Checkbox overlay in selection mode */}
                               {selectionMode && (

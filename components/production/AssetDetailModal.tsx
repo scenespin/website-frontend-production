@@ -359,6 +359,42 @@ export default function AssetDetailModal({
   // Combined for main display (all images)
   const allImages = [...userImages, ...angleImageObjects];
 
+  // 🔥 Helper: Regenerate presigned URL from s3Key if image fails to load
+  // Backend already provides fresh presigned URLs (24 hours) on every API call
+  // This is just a fallback if URLs expire while modal is open
+  const handleImageError = async (e: React.SyntheticEvent<HTMLImageElement>, img: any) => {
+    const imgElement = e.target as HTMLImageElement;
+    
+    // Only regenerate if we have an s3Key and haven't already tried
+    if (img.s3Key && !imgElement.dataset.retried) {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const response = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            s3Key: img.s3Key,
+            expiresIn: 3600, // 1 hour
+          }),
+        });
+        
+        if (response.ok) {
+          const { downloadUrl } = await response.json();
+          imgElement.src = downloadUrl;
+          imgElement.dataset.retried = 'true';
+        }
+      } catch (error) {
+        // Silently fail - image will show broken image icon
+      }
+    }
+  };
+
   // 🔥 REMOVED: handleSave, handleCancel, handleDelete - assets should only be edited/deleted from Create page
 
   if (!isOpen) return null;
@@ -476,49 +512,32 @@ export default function AssetDetailModal({
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
               {activeTab === 'gallery' && (
                 <div className="p-6">
-                  {/* Main Image Display */}
                   {allImages.length > 0 ? (
-                    <div className="mb-6">
-                      <div className="relative aspect-video bg-[#1F1F1F] rounded-lg overflow-hidden border border-[#3F3F46] mb-4">
-                        <img
-                          src={allImages[selectedImageIndex]?.imageUrl}
-                          alt={allImages[selectedImageIndex]?.label}
-                          className="w-full h-full object-contain"
-                        />
-                        {allImages[selectedImageIndex]?.isBase && (
-                          <div className="absolute top-4 left-4 px-3 py-1 bg-[#DC143C]/20 text-[#DC143C] rounded-full text-xs font-medium">
-                            Base Reference
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {allImages.map((img, idx) => (
+                        <button
+                          key={img.id}
+                          onClick={() => setPreviewImageIndex(idx)}
+                          className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                        >
+                          <img
+                            src={img.imageUrl}
+                            alt={img.label}
+                            className="w-full h-full object-cover"
+                            onError={(e) => handleImageError(e, img)}
+                          />
+                          {img.isBase && (
+                            <div className="absolute top-2 left-2 px-2 py-1 bg-[#DC143C] text-white text-[10px] rounded">
+                              Base
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute bottom-2 left-2 right-2">
+                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      
-                      {/* Thumbnail Grid */}
-                      {allImages.length > 1 && (
-                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                          {allImages.map((img, idx) => (
-                            <button
-                              key={img.id}
-                              onClick={() => setSelectedImageIndex(idx)}
-                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                                selectedImageIndex === idx
-                                  ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
-                                  : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-                              }`}
-                            >
-                              <img
-                                src={img.imageUrl}
-                                alt={img.label}
-                                className="w-full h-full object-cover"
-                              />
-                              {img.isBase && (
-                                <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
-                                  Base
-                                </div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                        </button>
+                      ))}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -664,13 +683,25 @@ export default function AssetDetailModal({
                           return (
                             <div
                               key={img.id}
-                              className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
+                              className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors cursor-pointer ${
                                 selectionMode
                                   ? isSelected
                                     ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                                     : 'border-[#3F3F46] hover:border-[#DC143C]/50'
                                   : 'border-[#3F3F46] hover:border-[#DC143C]'
                               }`}
+                              onClick={(e) => {
+                                if (!selectionMode) {
+                                  // Find index in all images
+                                  const allAngleImages = [...userImages, ...angleImageObjects];
+                                  const index = allAngleImages.findIndex(aImg => 
+                                    aImg.id === img.id || aImg.s3Key === img.s3Key
+                                  );
+                                  if (index >= 0) {
+                                    setPreviewImageIndex(index);
+                                  }
+                                }
+                              }}
                             >
                               {/* Phase 2: Checkbox overlay in selection mode */}
                               {selectionMode && (
@@ -708,6 +739,7 @@ export default function AssetDetailModal({
                                     ? 'animate-pulse opacity-75'
                                     : ''
                                 }`}
+                                onError={(e) => handleImageError(e, img)}
                               />
                               {/* Shimmer overlay for regenerating images */}
                               {regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim() && (
@@ -910,6 +942,7 @@ export default function AssetDetailModal({
                                 src={img.imageUrl}
                                 alt={img.label}
                                 className="w-full h-full object-cover"
+                                onError={(e) => handleImageError(e, img)}
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                                 <div className="absolute bottom-2 left-2 right-2">
