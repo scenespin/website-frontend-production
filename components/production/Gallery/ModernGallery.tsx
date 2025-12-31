@@ -289,32 +289,34 @@ export function ModernGallery({
           </div>
         </motion.div>
 
-        {/* Lightbox with Zoom */}
-        <Lightbox
-          open={lightboxIndex >= 0}
-          close={closeLightbox}
-          index={lightboxIndex}
-          slides={slides}
-          plugins={[Zoom]}
-          zoom={{
-            maxZoomPixelRatio: 3,
-            zoomInMultiplier: 2,
-            doubleTapDelay: 300,
-            doubleClickDelay: 300,
-            doubleClickMaxStops: 2,
-            keyboardMoveDistance: 50,
-            wheelZoomDistanceFactor: 100,
-            pinchZoomDistanceFactor: 100,
-            scrollToZoom: true,
-          }}
-          render={{
-            buttonPrev: () => null,
-            buttonNext: () => null,
-          }}
-          styles={{
-            container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
-          }}
-        />
+        {/* Lightbox with Zoom - Only render if not using external ImageViewer */}
+        {!onImageClick && (
+          <Lightbox
+            open={lightboxIndex >= 0}
+            close={closeLightbox}
+            index={lightboxIndex}
+            slides={slides}
+            plugins={[Zoom]}
+            zoom={{
+              maxZoomPixelRatio: 3,
+              zoomInMultiplier: 2,
+              doubleTapDelay: 300,
+              doubleClickDelay: 300,
+              doubleClickMaxStops: 2,
+              keyboardMoveDistance: 50,
+              wheelZoomDistanceFactor: 100,
+              pinchZoomDistanceFactor: 100,
+              scrollToZoom: true,
+            }}
+            render={{
+              buttonPrev: () => null,
+              buttonNext: () => null,
+            }}
+            styles={{
+              container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -335,10 +337,13 @@ export function ModernGallery({
                   key={img.id}
                   className="relative group cursor-pointer aspect-square rounded-lg overflow-hidden border-2 border-[#3F3F46] hover:border-[#DC143C]/50 transition-all"
                   onClick={() => {
-                    setLightboxIndex(index);
-                    setSelectedIndex(index);
+                    // If onImageClick is provided, use external lightbox (ImageViewer) instead of built-in one
                     if (onImageClick) {
                       onImageClick(index);
+                    } else {
+                      // Only open built-in lightbox if no external handler is provided
+                      setLightboxIndex(index);
+                      setSelectedIndex(index);
                     }
                   }}
                 >
@@ -377,21 +382,23 @@ export function ModernGallery({
           </div>
         </motion.div>
 
-        {/* Lightbox with Zoom */}
-        <Lightbox
-          open={lightboxIndex >= 0}
-          close={closeLightbox}
-          index={lightboxIndex}
-          slides={slides}
-          plugins={[Zoom]}
-          render={{
-            buttonPrev: () => null,
-            buttonNext: () => null,
-          }}
-          styles={{
-            container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
-          }}
-        />
+        {/* Lightbox with Zoom - Only render if not using external ImageViewer */}
+        {!onImageClick && (
+          <Lightbox
+            open={lightboxIndex >= 0}
+            close={closeLightbox}
+            index={lightboxIndex}
+            slides={slides}
+            plugins={[Zoom]}
+            render={{
+              buttonPrev: () => null,
+              buttonNext: () => null,
+            }}
+            styles={{
+              container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -542,32 +549,34 @@ export function ModernGallery({
         </motion.div>
       </div>
 
-      {/* Lightbox with Zoom */}
-      <Lightbox
-        open={lightboxIndex >= 0}
-        close={closeLightbox}
-        index={lightboxIndex}
-        slides={slides}
-        plugins={[Zoom]}
-        zoom={{
-          maxZoomPixelRatio: 3,
-          zoomInMultiplier: 2,
-          doubleTapDelay: 300,
-          doubleClickDelay: 300,
-          doubleClickMaxStops: 2,
-          keyboardMoveDistance: 50,
-          wheelZoomDistanceFactor: 100,
-          pinchZoomDistanceFactor: 100,
-          scrollToZoom: true,
-        }}
-        render={{
-          buttonPrev: () => null,
-          buttonNext: () => null,
-        }}
-        styles={{
-          container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
-        }}
-      />
+      {/* Lightbox with Zoom - Only render if not using external ImageViewer */}
+      {!onImageClick && (
+        <Lightbox
+          open={lightboxIndex >= 0}
+          close={closeLightbox}
+          index={lightboxIndex}
+          slides={slides}
+          plugins={[Zoom]}
+          zoom={{
+            maxZoomPixelRatio: 3,
+            zoomInMultiplier: 2,
+            doubleTapDelay: 300,
+            doubleClickDelay: 300,
+            doubleClickMaxStops: 2,
+            keyboardMoveDistance: 50,
+            wheelZoomDistanceFactor: 100,
+            pinchZoomDistanceFactor: 100,
+            scrollToZoom: true,
+          }}
+          render={{
+            buttonPrev: () => null,
+            buttonNext: () => null,
+          }}
+          styles={{
+            container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
+          }}
+        />
+      )}
     </div>
   );
 }
