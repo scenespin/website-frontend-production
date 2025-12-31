@@ -490,7 +490,7 @@ export function CharacterDetailModal({
     });
     
     return map;
-  }, [character.baseReference, character.references, character.poseReferences, character.angleReferences]);
+  }, [character.baseReference, character.references, character.poseReferences]);
   
   // 🔥 NEW: Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
   const imagesFromMediaLibrary = useMemo(() => {
