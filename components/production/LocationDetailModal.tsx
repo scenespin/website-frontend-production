@@ -796,10 +796,9 @@ export function LocationDetailModal({
     isOpen,
     getThumbnailS3KeyFromMetadata: (img) => (img as any).metadata?.thumbnailS3Key || null,
     getImageSource: (img) => {
-      const method = (img as any).metadata?.generationMethod;
-      return (method === 'ai-generated' || method === 'angle-variation') 
-        ? 'pose-generation' 
-        : 'user-upload';
+      // 🔥 FIX: Don't show source label for locations (removed per user request)
+      // Return undefined to hide the source badge
+      return undefined;
     },
     defaultAspectRatio: { width: 16, height: 9 }
   });

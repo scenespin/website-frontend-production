@@ -786,7 +786,30 @@ export function CharacterDetailModal({
     images: allImages,
     isOpen,
     getThumbnailS3KeyFromMetadata: (img) => (img as any).metadata?.thumbnailS3Key || null,
-    getImageSource: (img) => img.isPose ? 'pose-generation' : 'user-upload',
+    getImageSource: (img) => {
+      // 🔥 FIX: Check generationMethod first to correctly identify uploaded vs AI-generated
+      // Uploaded images have generationMethod: 'upload', AI-generated have 'generate' or 'pose-generation'
+      const method = (img as any).metadata?.generationMethod || (img as any).generationMethod;
+      
+      // If generationMethod is explicitly 'upload', it's a user upload
+      if (method === 'upload') {
+        return 'user-upload';
+      }
+      
+      // If generationMethod is 'generate', 'pose-generation', 'ai-generated', or 'angle-variation', it's AI-generated
+      if (method === 'generate' || method === 'pose-generation' || method === 'ai-generated' || method === 'angle-variation') {
+        return 'pose-generation';
+      }
+      
+      // Fallback: Check isPose flag (for backward compatibility)
+      // But prioritize generationMethod if available
+      if (img.isPose && !method) {
+        return 'pose-generation';
+      }
+      
+      // Default to user-upload for uploaded images (when no method specified)
+      return 'user-upload';
+    },
     getOutfitName: (img) => (img as any).outfitName || 'default',
     defaultAspectRatio: { width: 4, height: 3 }
   });

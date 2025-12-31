@@ -31,7 +31,7 @@ export interface GalleryImage {
   label: string;
   outfitName?: string;
   isBase?: boolean;
-  source?: 'pose-generation' | 'user-upload';
+  source?: 'pose-generation' | 'user-upload' | undefined; // undefined = hide badge
   width?: number;
   height?: number;
   s3Key?: string; // Preserved for stable identifier matching
@@ -61,8 +61,9 @@ export interface ThumbnailMappingOptions {
   
   /**
    * Function to determine image source type
+   * Return undefined to hide the source badge
    */
-  getImageSource?: (img: ImageWithThumbnail) => 'pose-generation' | 'user-upload';
+  getImageSource?: (img: ImageWithThumbnail) => 'pose-generation' | 'user-upload' | undefined;
   
   /**
    * Function to extract outfit name
