@@ -1,25 +1,29 @@
 'use client';
 
 /**
- * ImageViewer - Advanced shared image viewer component
+ * ImageViewer - Advanced shared image and video viewer component
  * 
  * Features:
  * - Next/Previous navigation (keyboard + mouse)
  * - Image counter (X of Y)
  * - Toggleable thumbnail strip
- * - Advanced zoom (pinch, drag, wheel)
+ * - Advanced zoom (pinch, drag, wheel) for images
  * - True fullscreen mode (browser Fullscreen API)
  * - Smooth transitions
  * - Group navigation with "View All" option
  * - Download functionality
  * - Delete functionality (optional)
+ * - Video support with integrated VideoPlayer
+ * - Image preloading for faster navigation
+ * - Optimized performance with memoization
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, Trash2, Maximize2, Minimize2, ZoomIn, ZoomOut, Grid3x3 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { X, ChevronLeft, ChevronRight, Download, Trash2, Maximize2, Minimize2, ZoomIn, ZoomOut, Grid3x3, Video as VideoIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { VideoPlayer } from './VideoPlayer';
 
 export interface ImageItem {
   id: string;
@@ -27,6 +31,8 @@ export interface ImageItem {
   label: string;
   s3Key?: string;
   metadata?: any;
+  type?: 'image' | 'video'; // Media type
+  thumbnailUrl?: string; // Optional thumbnail for videos
 }
 
 interface ImageViewerProps {
@@ -69,8 +75,17 @@ export function ImageViewer({
   const [isLoading, setIsLoading] = useState(true);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
+  const [preloadedUrls, setPreloadedUrls] = useState<Set<string>>(new Set());
   const { getToken } = useAuth();
   
+  // Detect media type from URL or metadata
+  const getMediaType = useCallback((item: ImageItem): 'image' | 'video' => {
+    if (item.type) return item.type;
+    const url = item.url?.toLowerCase() || '';
+    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
+    return videoExtensions.some(ext => url.includes(ext)) ? 'video' : 'image';
+  }, []);
+
   // Generate presigned URL from s3Key if URL is missing or fails
   const getImageUrl = useCallback(async (image: ImageItem): Promise<string> => {
     // If we already have a cached URL, use it
@@ -128,8 +143,42 @@ export function ImageViewer({
     return () => window.removeEventListener('resize', checkTouchDevice);
   }, []);
   
-  // Determine which image list to use
-  const displayImages = viewAll && allImages ? allImages : images;
+  // Determine which image list to use (memoized for performance)
+  const displayImages = useMemo(() => {
+    return viewAll && allImages ? allImages : images;
+  }, [viewAll, allImages, images]);
+
+  // Preload next and previous images for faster navigation
+  useEffect(() => {
+    if (!isOpen || displayImages.length === 0) return;
+
+    const preloadUrls: string[] = [];
+    
+    // Preload next image
+    if (currentIndex < displayImages.length - 1) {
+      const nextImage = displayImages[currentIndex + 1];
+      if (nextImage && getMediaType(nextImage) === 'image') {
+        preloadUrls.push(nextImage.url);
+      }
+    }
+    
+    // Preload previous image
+    if (currentIndex > 0) {
+      const prevImage = displayImages[currentIndex - 1];
+      if (prevImage && getMediaType(prevImage) === 'image') {
+        preloadUrls.push(prevImage.url);
+      }
+    }
+
+    // Preload images
+    preloadUrls.forEach(url => {
+      if (url && !preloadedUrls.has(url)) {
+        const img = new Image();
+        img.src = url;
+        setPreloadedUrls(prev => new Set(prev).add(url));
+      }
+    });
+  }, [isOpen, currentIndex, displayImages, preloadedUrls, getMediaType]);
   
   // When switching between group and all, find the current image in the new list
   useEffect(() => {
@@ -160,7 +209,7 @@ export function ImageViewer({
   useEffect(() => {
     if (isOpen && initialIndex >= 0 && initialIndex < displayImages.length) {
       setCurrentIndex(initialIndex);
-      setZoom(1);
+      setZoom(1); // Always reset zoom when opening
       setPosition({ x: 0, y: 0 });
       setIsLoading(true);
     }
@@ -169,35 +218,60 @@ export function ImageViewer({
   // Get current image with resolved URL
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
 
-  // Generate presigned URL when image changes or URL is missing/expired
+  // Generate presigned URL when media changes or URL is missing/expired
   useEffect(() => {
     const currentImage = displayImages[currentIndex];
     if (!isOpen || !currentImage) {
       setCurrentImageUrl('');
+      setIsLoading(false);
       return;
     }
 
-    const loadImageUrl = async () => {
+    const loadMediaUrl = async () => {
       setIsLoading(true);
       try {
-        const url = await getImageUrl(currentImage);
-        setCurrentImageUrl(url);
+        // For videos, use URL directly or generate presigned URL
+        // For images, use getImageUrl which handles caching
+        if (getMediaType(currentImage) === 'video') {
+          // Videos might need presigned URLs too
+          if (currentImage.s3Key && (!currentImage.url || !currentImage.url.startsWith('http'))) {
+            const url = await getImageUrl(currentImage);
+            setCurrentImageUrl(url);
+          } else {
+            setCurrentImageUrl(currentImage.url || '');
+          }
+          // Videos handle their own loading state
+          setIsLoading(false);
+        } else {
+          const url = await getImageUrl(currentImage);
+          setCurrentImageUrl(url);
+          // Image onLoad will set isLoading to false
+        }
       } catch (error) {
-        console.error('[ImageViewer] Failed to load image URL:', error);
+        console.error('[ImageViewer] Failed to load media URL:', error);
         setCurrentImageUrl(currentImage.url || '');
-      } finally {
-        // Image onLoad will set isLoading to false
+        setIsLoading(false);
       }
     };
 
-    loadImageUrl();
-  }, [isOpen, currentIndex, displayImages, getImageUrl]);
+    loadMediaUrl();
+  }, [isOpen, currentIndex, displayImages, getImageUrl, getMediaType]);
 
-  // Keyboard navigation
+  // Keyboard navigation (only when not in video player controls)
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Don't intercept video player keyboard shortcuts when video is playing
+      if (currentMediaType === 'video' && e.target instanceof HTMLVideoElement) {
+        return;
+      }
+
       if (e.key === 'Escape') {
         if (isFullscreen) {
           exitFullscreen();
@@ -205,27 +279,34 @@ export function ImageViewer({
           onClose();
         }
       } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
         handlePrevious();
       } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
         handleNext();
-      } else if (e.key === '+' || e.key === '=') {
+      } else if ((e.key === '+' || e.key === '=') && currentMediaType === 'image') {
+        e.preventDefault();
         handleZoomIn();
-      } else if (e.key === '-') {
+      } else if (e.key === '-' && currentMediaType === 'image') {
+        e.preventDefault();
         handleZoomOut();
-      } else if (e.key === '0') {
+      } else if (e.key === '0' && currentMediaType === 'image') {
+        e.preventDefault();
         handleResetZoom();
       } else if (e.key === 'f' || e.key === 'F') {
         if (enableFullscreen) {
+          e.preventDefault();
           toggleFullscreen();
         }
       } else if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
         setShowThumbnails(prev => !prev);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentIndex, images.length, isFullscreen, enableFullscreen]);
+  }, [isOpen, currentIndex, displayImages.length, isFullscreen, enableFullscreen, currentMediaType, handlePrevious, handleNext, handleZoomIn, handleZoomOut, handleResetZoom, toggleFullscreen, exitFullscreen, onClose]);
 
   // Fullscreen API handlers
   useEffect(() => {
@@ -284,7 +365,7 @@ export function ImageViewer({
     if (currentIndex < displayImages.length - 1) {
       const newIndex = currentIndex + 1;
       setCurrentIndex(newIndex);
-      setZoom(1);
+      setZoom(1); // Reset zoom when navigating
       setPosition({ x: 0, y: 0 });
       setIsLoading(true);
       onNavigate?.(newIndex);
@@ -295,7 +376,7 @@ export function ImageViewer({
     if (currentIndex > 0) {
       const newIndex = currentIndex - 1;
       setCurrentIndex(newIndex);
-      setZoom(1);
+      setZoom(1); // Reset zoom when navigating
       setPosition({ x: 0, y: 0 });
       setIsLoading(true);
       onNavigate?.(newIndex);
@@ -432,7 +513,9 @@ export function ImageViewer({
     swipeStartRef.current = null;
   };
 
-  const currentImage = displayImages[currentIndex];
+  // Memoize current image and media type for performance
+  const currentImage = useMemo(() => displayImages[currentIndex], [displayImages, currentIndex]);
+  const currentMediaType = useMemo(() => currentImage ? getMediaType(currentImage) : 'image', [currentImage, getMediaType]);
   const canNavigatePrevious = currentIndex > 0;
   const canNavigateNext = currentIndex < displayImages.length - 1;
 
@@ -570,71 +653,106 @@ export function ImageViewer({
             </button>
           )}
 
-          {/* Image Container */}
+          {/* Media Container */}
           <div
             ref={containerRef}
             className="relative w-full h-full flex items-center justify-center overflow-hidden"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            onMouseDown={currentMediaType === 'image' ? handleMouseDown : undefined}
+            onMouseMove={currentMediaType === 'image' ? handleMouseMove : undefined}
+            onMouseUp={currentMediaType === 'image' ? handleMouseUp : undefined}
+            onMouseLeave={currentMediaType === 'image' ? handleMouseUp : undefined}
             onTouchStart={(e) => {
-              handleTouchStart(e);
-              handleSwipeStart(e);
+              if (currentMediaType === 'image') {
+                handleTouchStart(e);
+                handleSwipeStart(e);
+              }
             }}
-            onTouchMove={handleTouchMove}
+            onTouchMove={currentMediaType === 'image' ? handleTouchMove : undefined}
             onTouchEnd={(e) => {
-              handleTouchEnd();
-              handleSwipeEnd(e);
+              if (currentMediaType === 'image') {
+                handleTouchEnd();
+                handleSwipeEnd(e);
+              }
             }}
-            style={{ cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+            style={{ cursor: currentMediaType === 'image' && zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
           >
             <AnimatePresence mode="wait">
-              <motion.img
-                key={currentImage.id}
-                ref={imageRef}
-                src={currentImageUrl || currentImage.url}
-                alt={currentImage.label}
-                className="max-w-full max-h-full object-contain select-none"
-                style={{
-                  transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-                  transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: isLoading ? 0.5 : 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                onLoad={() => setIsLoading(false)}
-                onError={async (e) => {
-                  console.error('[ImageViewer] Image failed to load:', currentImageUrl || currentImage.url);
-                  // Try to generate presigned URL if we have s3Key and URL failed
-                  if (currentImage.s3Key && !currentImageUrl.includes('presigned')) {
-                    try {
-                      const url = await getImageUrl(currentImage);
-                      if (url && url !== currentImageUrl) {
-                        setCurrentImageUrl(url);
-                        return; // Retry with new URL
+              {currentMediaType === 'video' ? (
+                <motion.div
+                  key={`video-${currentImage.id}`}
+                  className="w-full h-full flex items-center justify-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: isLoading ? 0.5 : 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <VideoPlayer
+                    src={currentImageUrl || currentImage.url}
+                    className="max-w-full max-h-full"
+                    autoPlay={false}
+                    onError={(error) => {
+                      console.error('[ImageViewer] Video failed to load:', error);
+                      toast.error('Video failed to load');
+                      setIsLoading(false);
+                    }}
+                  />
+                  {/* Video loading is handled by VideoPlayer component */}
+                </motion.div>
+              ) : (
+                <motion.img
+                  key={`image-${currentImage.id}`}
+                  ref={imageRef}
+                  src={currentImageUrl || currentImage.url}
+                  alt={currentImage.label}
+                  className="max-w-full max-h-full object-contain select-none"
+                  style={{
+                    transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+                    transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+                  }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: isLoading ? 0.5 : 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onLoad={() => setIsLoading(false)}
+                  onError={async (e) => {
+                    console.error('[ImageViewer] Image failed to load:', currentImageUrl || currentImage.url);
+                    // Try to generate presigned URL if we have s3Key and URL failed
+                    if (currentImage.s3Key && !currentImageUrl.includes('presigned')) {
+                      try {
+                        const url = await getImageUrl(currentImage);
+                        if (url && url !== currentImageUrl) {
+                          setCurrentImageUrl(url);
+                          return; // Retry with new URL
+                        }
+                      } catch (error) {
+                        console.error('[ImageViewer] Failed to generate presigned URL on error:', error);
                       }
-                    } catch (error) {
-                      console.error('[ImageViewer] Failed to generate presigned URL on error:', error);
                     }
-                  }
-                  toast.error('Image failed to load');
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-                draggable={false}
-              />
+                    toast.error('Image failed to load');
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                  draggable={false}
+                />
+              )}
             </AnimatePresence>
 
-            {/* Loading Indicator */}
-            {isLoading && (
+            {/* Loading Indicator - Only for images (videos handle their own loading) */}
+            {isLoading && currentMediaType === 'image' && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-12 h-12 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin" />
               </div>
             )}
 
-            {/* Zoom Controls - Only show on touch devices (mobile/tablet) */}
-            {enableZoom && zoom !== 1 && isTouchDevice && (
+            {/* Media Type Indicator */}
+            {currentMediaType === 'video' && (
+              <div className="absolute top-4 right-4 z-20 px-3 py-1.5 bg-[#DC143C]/90 backdrop-blur-sm rounded-lg flex items-center gap-2">
+                <VideoIcon className="w-4 h-4 text-white" />
+                <span className="text-white text-sm font-medium">Video</span>
+              </div>
+            )}
+
+            {/* Zoom Controls - Only show on touch devices (mobile/tablet) and for images */}
+            {enableZoom && zoom !== 1 && isTouchDevice && currentMediaType === 'image' && (
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-2 bg-black/70 px-4 py-2 rounded-lg">
                 <button
                   onClick={(e) => {
@@ -696,17 +814,32 @@ export function ImageViewer({
                         setIsLoading(true);
                         onNavigate?.(idx);
                       }}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
                         idx === currentIndex
                           ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                           : 'border-[#3F3F46] hover:border-[#808080]'
                       }`}
                     >
-                      <img
-                        src={img.url}
-                        alt={img.label}
-                        className="w-full h-full object-cover"
-                      />
+                      {getMediaType(img) === 'video' ? (
+                        <>
+                          <img
+                            src={img.thumbnailUrl || img.url}
+                            alt={img.label}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <VideoIcon className="w-6 h-6 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <img
+                          src={img.url}
+                          alt={img.label}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -733,7 +866,7 @@ export function ImageViewer({
               >
                 <Grid3x3 className="w-4 h-4" />
               </button>
-              {enableZoom && (
+              {enableZoom && currentMediaType === 'image' && (
                 <>
                   <button
                     onClick={(e) => {
@@ -770,7 +903,7 @@ export function ImageViewer({
               )}
             </div>
             <div className="text-sm text-[#808080]">
-              Use arrow keys to navigate • {enableZoom && 'Scroll to zoom • '}Press T for thumbnails • Press F for fullscreen
+              Use arrow keys to navigate • {enableZoom && currentMediaType === 'image' && 'Scroll to zoom • '}Press T for thumbnails • Press F for fullscreen
             </div>
           </div>
         </div>
