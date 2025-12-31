@@ -950,14 +950,16 @@ export function LocationDetailModal({
                 <div className="p-6">
                   {allImages.length > 0 ? (
                     <ModernGallery
-                      images={allImages.map((img): GalleryImage => {
+                      images={allImages.map((img, originalIndex): GalleryImage => {
                         // Feature 0179: Get thumbnail URL if available
                         const s3Key = img.s3Key;
                         const thumbnailS3Key = s3Key ? (thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key) : null;
                         let thumbnailUrl = img.imageUrl;
+                        // 🔥 FIX: Only use thumbnail if we can definitively match it
                         if (thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key)) {
                           thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
                         }
+                        // No fallback - prevents mismatched thumbnails
                         
                         return {
                           id: img.id,
@@ -969,7 +971,10 @@ export function LocationDetailModal({
                             ? 'pose-generation' 
                             : 'user-upload',
                           width: 16,
-                          height: 9
+                          height: 9,
+                          // 🔥 FIX: Preserve originalIndex for reliable mapping
+                          originalIndex: originalIndex,
+                          s3Key: s3Key || undefined
                         };
                       })}
                       layout="grid-only"

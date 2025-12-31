@@ -29,6 +29,9 @@ export interface GalleryImage {
   source?: 'pose-generation' | 'user-upload';
   width?: number;
   height?: number;
+  // 🔥 FIX: Optional fields for reliable index tracking
+  s3Key?: string;
+  originalIndex?: number;
 }
 
 interface ModernGalleryProps {
@@ -261,13 +264,17 @@ export function ModernGallery({
         >
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {filteredImages.map((img, index) => {
+              // 🔥 FIX: Use originalIndex if available, otherwise use current index
+              // This ensures correct mapping even when images are filtered
+              const clickIndex = img.originalIndex !== undefined ? img.originalIndex : index;
+              
               return (
                 <div
                   key={img.id}
                   className="relative group cursor-pointer aspect-square rounded-lg overflow-hidden border-2 border-[#3F3F46] hover:border-[#DC143C]/50 transition-all"
                   onClick={() => {
                     if (onImageClick) {
-                      onImageClick(index);
+                      onImageClick(clickIndex);
                     }
                   }}
                 >
