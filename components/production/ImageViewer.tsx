@@ -260,6 +260,92 @@ export function ImageViewer({
     loadMediaUrl();
   }, [isOpen, currentIndex, currentImage, currentMediaType, getImageUrl]);
 
+  // Handler functions (must be defined before useEffects that use them)
+  const enterFullscreen = useCallback(async () => {
+    if (!fullscreenRef.current) return;
+    
+    try {
+      if (fullscreenRef.current.requestFullscreen) {
+        await fullscreenRef.current.requestFullscreen();
+      } else if ((fullscreenRef.current as any).webkitRequestFullscreen) {
+        await (fullscreenRef.current as any).webkitRequestFullscreen();
+      } else if ((fullscreenRef.current as any).mozRequestFullScreen) {
+        await (fullscreenRef.current as any).mozRequestFullScreen();
+      } else if ((fullscreenRef.current as any).msRequestFullscreen) {
+        await (fullscreenRef.current as any).msRequestFullscreen();
+      }
+    } catch (error) {
+      console.error('[ImageViewer] Failed to enter fullscreen:', error);
+      toast.error('Fullscreen not supported');
+    }
+  }, []);
+
+  const exitFullscreen = useCallback(async () => {
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        await (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        await (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        await (document as any).msExitFullscreen();
+      }
+    } catch (error) {
+      console.error('[ImageViewer] Failed to exit fullscreen:', error);
+    }
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (isFullscreen) {
+      exitFullscreen();
+    } else {
+      enterFullscreen();
+    }
+  }, [isFullscreen, exitFullscreen, enterFullscreen]);
+
+  const handleNext = useCallback(() => {
+    if (currentIndex < displayImages.length - 1) {
+      const newIndex = currentIndex + 1;
+      setCurrentIndex(newIndex);
+      setZoom(1); // Reset zoom when navigating
+      setPosition({ x: 0, y: 0 });
+      setIsLoading(true);
+      onNavigate?.(newIndex);
+    }
+  }, [currentIndex, displayImages.length, onNavigate]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      const newIndex = currentIndex - 1;
+      setCurrentIndex(newIndex);
+      setZoom(1); // Reset zoom when navigating
+      setPosition({ x: 0, y: 0 });
+      setIsLoading(true);
+      onNavigate?.(newIndex);
+    }
+  }, [currentIndex, onNavigate]);
+
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => {
+    if (enableZoom) {
+      setZoom(prev => Math.min(prev + 0.25, 5));
+    }
+  }, [enableZoom]);
+
+  const handleZoomOut = useCallback(() => {
+    if (enableZoom) {
+      setZoom(prev => Math.max(prev - 0.25, 0.5));
+    }
+  }, [enableZoom]);
+
+  const handleResetZoom = useCallback(() => {
+    if (enableZoom) {
+      setZoom(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [enableZoom]);
+
   // Keyboard navigation (only when not in video player controls)
   useEffect(() => {
     if (!isOpen) return;
@@ -311,7 +397,7 @@ export function ImageViewer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, currentIndex, displayImages.length, isFullscreen, enableFullscreen, currentMediaType, handlePrevious, handleNext, handleZoomIn, handleZoomOut, handleResetZoom, toggleFullscreen, exitFullscreen, onClose]);
 
-  // Fullscreen API handlers
+  // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -320,91 +406,6 @@ export function ImageViewer({
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
-
-  const enterFullscreen = async () => {
-    if (!fullscreenRef.current) return;
-    
-    try {
-      if (fullscreenRef.current.requestFullscreen) {
-        await fullscreenRef.current.requestFullscreen();
-      } else if ((fullscreenRef.current as any).webkitRequestFullscreen) {
-        await (fullscreenRef.current as any).webkitRequestFullscreen();
-      } else if ((fullscreenRef.current as any).mozRequestFullScreen) {
-        await (fullscreenRef.current as any).mozRequestFullScreen();
-      } else if ((fullscreenRef.current as any).msRequestFullscreen) {
-        await (fullscreenRef.current as any).msRequestFullscreen();
-      }
-    } catch (error) {
-      console.error('[ImageViewer] Failed to enter fullscreen:', error);
-      toast.error('Fullscreen not supported');
-    }
-  };
-
-  const exitFullscreen = async () => {
-    try {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        await (document as any).webkitExitFullscreen();
-      } else if ((document as any).mozCancelFullScreen) {
-        await (document as any).mozCancelFullScreen();
-      } else if ((document as any).msExitFullscreen) {
-        await (document as any).msExitFullscreen();
-      }
-    } catch (error) {
-      console.error('[ImageViewer] Failed to exit fullscreen:', error);
-    }
-  };
-
-  const toggleFullscreen = () => {
-    if (isFullscreen) {
-      exitFullscreen();
-    } else {
-      enterFullscreen();
-    }
-  };
-
-  const handleNext = useCallback(() => {
-    if (currentIndex < displayImages.length - 1) {
-      const newIndex = currentIndex + 1;
-      setCurrentIndex(newIndex);
-      setZoom(1); // Reset zoom when navigating
-      setPosition({ x: 0, y: 0 });
-      setIsLoading(true);
-      onNavigate?.(newIndex);
-    }
-  }, [currentIndex, displayImages.length, onNavigate]);
-
-  const handlePrevious = useCallback(() => {
-    if (currentIndex > 0) {
-      const newIndex = currentIndex - 1;
-      setCurrentIndex(newIndex);
-      setZoom(1); // Reset zoom when navigating
-      setPosition({ x: 0, y: 0 });
-      setIsLoading(true);
-      onNavigate?.(newIndex);
-    }
-  }, [currentIndex, onNavigate]);
-
-  // Zoom handlers
-  const handleZoomIn = () => {
-    if (enableZoom) {
-      setZoom(prev => Math.min(prev + 0.25, 5));
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (enableZoom) {
-      setZoom(prev => Math.max(prev - 0.25, 0.5));
-    }
-  };
-
-  const handleResetZoom = () => {
-    if (enableZoom) {
-      setZoom(1);
-      setPosition({ x: 0, y: 0 });
-    }
-  };
 
   // Wheel zoom - use ref and addEventListener to make it non-passive
   useEffect(() => {
