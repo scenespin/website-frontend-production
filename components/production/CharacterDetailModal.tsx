@@ -29,13 +29,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useThumbnailMapping, type GalleryImage } from '@/hooks/useThumbnailMapping';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { VoiceAssignmentTab } from './VoiceAssignmentTab';
 import { VoiceBrowserModal } from './VoiceBrowserModal';
 import { CustomVoiceForm } from './CustomVoiceForm';
 import { CharacterPoseCropModal } from './CharacterPoseCropModal';
-import { ModernGallery, type GalleryImage } from './Gallery/ModernGallery';
+import { ModernGallery } from './Gallery/ModernGallery';
 import { UploadWardrobeTab } from './Coverage/UploadWardrobeTab';
 import { GenerateWardrobeTab } from './Coverage/GenerateWardrobeTab';
 
@@ -734,58 +735,16 @@ export function CharacterDetailModal({
     return grouped;
   }, [poseReferences]);
   
-  // Feature 0174: Extract thumbnail S3 keys for bulk presigned URL generation
-  const thumbnailS3Keys = useMemo(() => {
-    const keys = allImages
-      .map(img => {
-        const s3Key = img.s3Key;
-        if (!s3Key) return null;
-        // Check Media Library for thumbnailS3Key, or fall back to metadata
-        const thumbnailS3Key = thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key;
-        return thumbnailS3Key || null;
-      })
-      .filter((key): key is string => key !== null);
-    return keys;
-  }, [allImages, thumbnailS3KeyMap, isOpen]);
-  
-  // Feature 0174: Get presigned URLs for thumbnails (bulk request for performance)
-  const { data: thumbnailUrls = new Map(), isLoading: thumbnailsLoading } = useBulkPresignedUrls(
-    thumbnailS3Keys.length > 0 ? thumbnailS3Keys : [],
-    isOpen && thumbnailS3Keys.length > 0 // Only enable if modal is open and we have thumbnails
-  );
-  
-  // Convert to GalleryImage format for ModernGallery
-  const galleryImages: GalleryImage[] = useMemo(() => {
-    return allImages.map((img, originalIndex) => {
-      // Feature 0174: Get thumbnail S3 key from Media Library or metadata
-      const s3Key = img.s3Key;
-      const thumbnailS3Key = s3Key ? (thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key) : null;
-      
-      // Get thumbnail URL if available, otherwise fall back to full image
-      // 🔥 FIX: Only use thumbnail if we can definitively match it to this image's s3Key
-      let thumbnailUrl = img.imageUrl;
-      if (thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key)) {
-        thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
-      }
-      // No fallback - if we can't match the thumbnail, use the full image
-      // This prevents mismatched thumbnails from appearing on wrong images
-      
-      return {
-        id: img.id,
-        imageUrl: img.imageUrl, // Always use full image for lightbox/preview
-        thumbnailUrl: thumbnailUrl, // Use thumbnail for grid view, fallback to full image
-        label: img.label,
-        outfitName: (img as any).outfitName || 'default',
-        isBase: img.isBase || false,
-        source: img.isPose ? 'pose-generation' : 'user-upload',
-        width: 4, // Default aspect ratio (can detect from image later)
-        height: 3,
-        // 🔥 FIX: Preserve s3Key and originalIndex for reliable matching
-        s3Key: s3Key || undefined,
-        originalIndex: originalIndex
-      } as GalleryImage & { s3Key?: string; originalIndex: number };
-    });
-  }, [allImages, thumbnailS3KeyMap, thumbnailUrls, thumbnailUrls.size, isOpen]);
+  // 🔥 IMPROVED: Use reusable hook for thumbnail mapping (single source of truth)
+  const { galleryImages, thumbnailsLoading } = useThumbnailMapping({
+    thumbnailS3KeyMap,
+    images: allImages,
+    isOpen,
+    getThumbnailS3KeyFromMetadata: (img) => (img as any).metadata?.thumbnailS3Key || null,
+    getImageSource: (img) => img.isPose ? 'pose-generation' : 'user-upload',
+    getOutfitName: (img) => (img as any).outfitName || 'default',
+    defaultAspectRatio: { width: 4, height: 3 }
+  });
   
   // Filter gallery images by outfit
   const filteredGalleryImages = useMemo(() => {
@@ -1232,23 +1191,26 @@ export function CharacterDetailModal({
                       availableOutfits={outfitNames}
                       entityName={character.name}
                       layout="grid-only"
-                      onImageClick={(index) => {
-                        // 🔥 FIX: Use originalIndex if available, otherwise find by id/s3Key
-                        const clickedImage = filteredGalleryImages[index];
-                        let actualIndex = -1;
+                      useImageId={true}
+                      onImageClick={(imageIdOrIndex) => {
+                        // 🔥 IMPROVED: Use stable identifier (id) instead of fragile index
+                        const imageId = typeof imageIdOrIndex === 'string' ? imageIdOrIndex : null;
+                        const clickedImage = imageId 
+                          ? filteredGalleryImages.find(img => img.id === imageId)
+                          : filteredGalleryImages[imageIdOrIndex as number];
                         
-                        // First try to use originalIndex if it was preserved
-                        if ((clickedImage as any).originalIndex !== undefined) {
-                          actualIndex = (clickedImage as any).originalIndex;
-                        } else {
-                          // Fallback: Find by id or s3Key
-                          actualIndex = allImages.findIndex(img => {
-                            if (img.id === clickedImage.id) return true;
-                            const clickedS3Key = (clickedImage as any).s3Key;
-                            if (clickedS3Key && img.s3Key === clickedS3Key) return true;
-                            return false;
-                          });
+                        if (!clickedImage) {
+                          console.error('[CharacterDetailModal] Image not found:', imageIdOrIndex);
+                          return;
                         }
+                        
+                        // Find in allImages by stable identifier (id or s3Key)
+                        const actualIndex = allImages.findIndex(img => {
+                          if (img.id === clickedImage.id) return true;
+                          const clickedS3Key = clickedImage.s3Key;
+                          if (clickedS3Key && img.s3Key === clickedS3Key) return true;
+                          return false;
+                        });
                         
                         if (actualIndex >= 0 && actualIndex < allImages.length) {
                           setPreviewImageIndex(actualIndex);
@@ -1256,10 +1218,9 @@ export function CharacterDetailModal({
                           const outfitName = clickedImage.outfitName || (clickedImage as any).metadata?.outfitName;
                           setPreviewGroupName(outfitName || null);
                         } else {
-                          console.error('[CharacterDetailModal] Failed to find image:', { 
+                          console.error('[CharacterDetailModal] Failed to find image in allImages:', { 
                             clickedImageId: clickedImage.id, 
-                            clickedS3Key: (clickedImage as any).s3Key,
-                            filteredIndex: index,
+                            clickedS3Key: clickedImage.s3Key,
                             allImagesLength: allImages.length
                           });
                         }

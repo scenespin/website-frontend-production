@@ -19,20 +19,11 @@ import Gallery from 'react-photo-gallery';
 import { motion } from 'framer-motion';
 import { Sparkles, Upload as UploadIcon, ZoomIn } from 'lucide-react';
 
-export interface GalleryImage {
-  id: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
-  label: string;
-  outfitName?: string;
-  isBase?: boolean;
-  source?: 'pose-generation' | 'user-upload';
-  width?: number;
-  height?: number;
-  // 🔥 FIX: Optional fields for reliable index tracking
-  s3Key?: string;
-  originalIndex?: number;
-}
+// 🔥 IMPROVED: Import GalleryImage from shared hook for consistency
+import type { GalleryImage } from '@/hooks/useThumbnailMapping';
+
+// Re-export for backward compatibility
+export type { GalleryImage };
 
 interface ModernGalleryProps {
   images: GalleryImage[];
@@ -40,9 +31,12 @@ interface ModernGalleryProps {
   onOutfitFilterChange?: (outfit: string | null) => void;
   availableOutfits?: string[];
   entityName?: string;
-  onImageClick?: (index: number) => void;
+  // 🔥 IMPROVED: Accept either index (backward compat) or image identifier (preferred)
+  onImageClick?: (indexOrId: number | string) => void;
   layout?: 'left' | 'top' | 'grid-only'; // 'left' for character gallery, 'top' for location gallery, 'grid-only' for thumbnail grid only
   aspectRatio?: '16:9' | '21:9'; // For top layout
+  // 🔥 NEW: If true, onImageClick will receive image.id instead of index
+  useImageId?: boolean;
 }
 
 export function ModernGallery({
@@ -53,7 +47,8 @@ export function ModernGallery({
   entityName,
   onImageClick,
   layout = 'left',
-  aspectRatio = '16:9'
+  aspectRatio = '16:9',
+  useImageId = false // Default to index for backward compatibility
 }: ModernGalleryProps) {
   const [featuredIndex, setFeaturedIndex] = useState<number>(0);
 
@@ -264,9 +259,8 @@ export function ModernGallery({
         >
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {filteredImages.map((img, index) => {
-              // 🔥 FIX: Use originalIndex if available, otherwise use current index
-              // This ensures correct mapping even when images are filtered
-              const clickIndex = img.originalIndex !== undefined ? img.originalIndex : index;
+              // 🔥 IMPROVED: Use image.id for stable matching (no fragile index tracking)
+              const clickValue = useImageId ? img.id : index;
               
               return (
                 <div
@@ -274,7 +268,7 @@ export function ModernGallery({
                   className="relative group cursor-pointer aspect-square rounded-lg overflow-hidden border-2 border-[#3F3F46] hover:border-[#DC143C]/50 transition-all"
                   onClick={() => {
                     if (onImageClick) {
-                      onImageClick(clickIndex);
+                      onImageClick(clickValue);
                     }
                   }}
                 >

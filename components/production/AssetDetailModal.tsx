@@ -31,6 +31,8 @@ import {
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
+import { ModernGallery } from './Gallery/ModernGallery';
 
 /**
  * Get display label for provider ID
@@ -481,6 +483,33 @@ export default function AssetDetailModal({
     }));
   }, [angleImageObjects]);
   
+  // 🔥 NEW: Create thumbnail S3 key map from Media Library files
+  const thumbnailS3KeyMap = useMemo(() => {
+    const map = new Map<string, string>();
+    mediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) {
+        map.set(file.s3Key, file.thumbnailS3Key);
+      }
+    });
+    return map;
+  }, [mediaFiles]);
+  
+  // 🔥 IMPROVED: Use reusable hook for thumbnail mapping (single source of truth)
+  const { galleryImages: assetGalleryImages } = useThumbnailMapping({
+    thumbnailS3KeyMap,
+    images: allImages,
+    isOpen,
+    getThumbnailS3KeyFromMetadata: (img) => (img as any).metadata?.thumbnailS3Key || null,
+    getImageSource: (img) => {
+      const method = (img as any).metadata?.generationMethod;
+      const source = (img as any).metadata?.source;
+      return (method === 'ai-generated' || method === 'angle-variation' || source === 'angle-generation')
+        ? 'pose-generation'
+        : 'user-upload';
+    },
+    defaultAspectRatio: { width: 4, height: 3 }
+  });
+  
   const canGenerateAngles = userImages.length >= 1; // Need at least 1 creation image for angle generation
   
   // 🔥 DEBUG: Log asset images for troubleshooting
@@ -713,37 +742,29 @@ export default function AssetDetailModal({
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
               {activeTab === 'gallery' && (
                 <div className="p-6">
-                  {allImages.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {allImages.map((img, idx) => (
-                        <button
-                          key={img.id}
-                          onClick={() => setPreviewImageIndex(idx)}
-                          className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
-                        >
-                          <img
-                            src={img.imageUrl}
-                            alt={img.label}
-                            className="w-full h-full object-cover"
-                            onError={(e) => handleImageError(e, img)}
-                          />
-                          {img.isBase && (
-                            <div className="absolute top-2 left-2 px-2 py-1 bg-[#DC143C] text-white text-[10px] rounded">
-                              Base
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="absolute bottom-2 left-2 right-2">
-                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                  {assetGalleryImages.length > 0 ? (
+                    <ModernGallery
+                      images={assetGalleryImages}
+                      layout="grid-only"
+                      useImageId={true}
+                      onImageClick={(imageIdOrIndex) => {
+                        // 🔥 IMPROVED: Use stable identifier (id) instead of fragile index
+                        if (typeof imageIdOrIndex === 'string') {
+                          const actualIndex = allImages.findIndex(img => img.id === imageIdOrIndex);
+                          if (actualIndex >= 0) {
+                            setPreviewImageIndex(actualIndex);
+                          }
+                        } else {
+                          // Fallback for backward compatibility
+                          setPreviewImageIndex(imageIdOrIndex);
+                        }
+                      }}
+                    />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <Box className="w-16 h-16 text-[#808080] mb-4" />
                       <p className="text-[#808080] mb-4">No images yet</p>
+                      <p className="text-sm text-[#6B7280]">Upload images or generate angle references to get started</p>
                     </div>
                   )}
                 </div>

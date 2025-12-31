@@ -30,8 +30,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
-import { ModernGallery, type GalleryImage } from './Gallery/ModernGallery';
+import { ModernGallery } from './Gallery/ModernGallery';
 import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
 
 /**
  * Get display label for provider ID
@@ -788,24 +789,20 @@ export function LocationDetailModal({
     return map;
   }, [mediaFiles]);
 
-  // Feature 0179: Extract thumbnail S3 keys for bulk presigned URL generation
-  const thumbnailS3Keys = useMemo(() => {
-    const keys = allImages
-      .map(img => {
-        const s3Key = img.s3Key;
-        if (!s3Key) return null;
-        const thumbnailS3Key = thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key;
-        return thumbnailS3Key || null;
-      })
-      .filter((key): key is string => key !== null);
-    return keys;
-  }, [allImages, thumbnailS3KeyMap]);
-
-  // Feature 0179: Get presigned URLs for thumbnails
-  const { data: thumbnailUrls = new Map() } = useBulkPresignedUrls(
-    thumbnailS3Keys.length > 0 ? thumbnailS3Keys : [],
-    isOpen && thumbnailS3Keys.length > 0
-  );
+  // 🔥 IMPROVED: Use reusable hook for thumbnail mapping (single source of truth)
+  const { galleryImages: locationGalleryImages } = useThumbnailMapping({
+    thumbnailS3KeyMap,
+    images: allImages,
+    isOpen,
+    getThumbnailS3KeyFromMetadata: (img) => (img as any).metadata?.thumbnailS3Key || null,
+    getImageSource: (img) => {
+      const method = (img as any).metadata?.generationMethod;
+      return (method === 'ai-generated' || method === 'angle-variation') 
+        ? 'pose-generation' 
+        : 'user-upload';
+    },
+    defaultAspectRatio: { width: 16, height: 9 }
+  });
   
   // Convert type for display
   const typeLabel = location.type === 'interior' ? 'INT.' : 
@@ -950,37 +947,22 @@ export function LocationDetailModal({
                 <div className="p-6">
                   {allImages.length > 0 ? (
                     <ModernGallery
-                      images={allImages.map((img, originalIndex): GalleryImage => {
-                        // Feature 0179: Get thumbnail URL if available
-                        const s3Key = img.s3Key;
-                        const thumbnailS3Key = s3Key ? (thumbnailS3KeyMap.get(s3Key) || (img as any).metadata?.thumbnailS3Key) : null;
-                        let thumbnailUrl = img.imageUrl;
-                        // 🔥 FIX: Only use thumbnail if we can definitively match it
-                        if (thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key)) {
-                          thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
-                        }
-                        // No fallback - prevents mismatched thumbnails
-                        
-                        return {
-                          id: img.id,
-                          imageUrl: img.imageUrl, // Always use full image for lightbox/preview
-                          thumbnailUrl: thumbnailUrl, // Use thumbnail for grid view, fallback to full image
-                          label: img.label,
-                          isBase: img.isBase,
-                          source: (img.metadata?.generationMethod === 'ai-generated' || img.metadata?.generationMethod === 'angle-variation') 
-                            ? 'pose-generation' 
-                            : 'user-upload',
-                          width: 16,
-                          height: 9,
-                          // 🔥 FIX: Preserve originalIndex for reliable mapping
-                          originalIndex: originalIndex,
-                          s3Key: s3Key || undefined
-                        };
-                      })}
+                      images={locationGalleryImages}
                       layout="grid-only"
-                      onImageClick={(index) => {
-                        setPreviewImageIndex(index);
-                        setPreviewGroupName(null);
+                      useImageId={true}
+                      onImageClick={(imageIdOrIndex) => {
+                        // 🔥 IMPROVED: Use stable identifier (id) instead of fragile index
+                        if (typeof imageIdOrIndex === 'string') {
+                          const actualIndex = allImages.findIndex(img => img.id === imageIdOrIndex);
+                          if (actualIndex >= 0) {
+                            setPreviewImageIndex(actualIndex);
+                            setPreviewGroupName(null);
+                          }
+                        } else {
+                          // Fallback for backward compatibility
+                          setPreviewImageIndex(imageIdOrIndex);
+                          setPreviewGroupName(null);
+                        }
                       }}
                     />
                   ) : (
