@@ -173,93 +173,91 @@ export function SceneAnalysisStep({
                         : 'bg-[#0A0A0A] border-[#3F3F46] opacity-50'
                     }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          onEnabledShotsChange([...enabledShots, shot.slot]);
-                        } else {
-                          onEnabledShotsChange(enabledShots.filter(s => s !== shot.slot));
-                        }
-                      }}
-                      className="mt-1 w-4 h-4 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-[#FFFFFF]">
-                          Shot {shot.slot}
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${
-                            shot.type === 'dialogue'
-                              ? 'border-blue-500 text-blue-400'
-                              : 'border-green-500 text-green-400'
-                          }`}
-                        >
-                          {shot.type === 'dialogue' ? 'Dialogue' : 'Action'}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-[#808080] mt-1 line-clamp-2">
-                        {shot.description || shot.dialogueBlock?.dialogue || 'No description'}
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[10px] text-[#808080]">
-                          {shot.credits || 0} credits
-                        </span>
-                      </div>
-                      
-                      {/* Props Assignment - Integrated into shot row */}
-                      {sceneProps.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-[#3F3F46]">
-                          <div className="text-[10px] font-medium text-[#808080] mb-2">
-                            Props ({assignedProps.length} assigned)
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {sceneProps.map((prop) => {
-                              const isAssigned = propsToShots[prop.id]?.includes(shot.slot) || false;
-                              return (
-                                <label
-                                  key={prop.id}
-                                  className={`flex items-center gap-1.5 px-2 py-1 rounded border cursor-pointer transition-colors ${
-                                    isAssigned
-                                      ? 'border-[#DC143C] bg-[#DC143C]/10'
-                                      : 'border-[#3F3F46] hover:border-[#808080]'
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isAssigned}
-                                    onChange={(e) => {
-                                      const assignedShots = propsToShots[prop.id] || [];
-                                      const newShots = e.target.checked
-                                        ? [...assignedShots, shot.slot]
-                                        : assignedShots.filter(s => s !== shot.slot);
-                                      onPropsToShotsChange({
-                                        ...propsToShots,
-                                        [prop.id]: newShots
-                                      });
-                                    }}
-                                    className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0"
-                                  />
-                                  {prop.imageUrl && (
-                                    <img 
-                                      src={prop.imageUrl} 
-                                      alt={prop.name}
-                                      className="w-4 h-4 object-cover rounded"
-                                    />
-                                  )}
-                                  <span className="text-[10px] text-[#FFFFFF]">
-                                    {prop.name}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                          </div>
+                    {/* Left Side: Shot Info */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            onEnabledShotsChange([...enabledShots, shot.slot]);
+                          } else {
+                            onEnabledShotsChange(enabledShots.filter(s => s !== shot.slot));
+                          }
+                        }}
+                        className="mt-1 w-4 h-4 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium text-[#FFFFFF]">
+                            Shot {shot.slot}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${
+                              shot.type === 'dialogue'
+                                ? 'border-blue-500 text-blue-400'
+                                : 'border-green-500 text-green-400'
+                            }`}
+                          >
+                            {shot.type === 'dialogue' ? 'Dialogue' : 'Action'}
+                          </Badge>
                         </div>
-                      )}
+                        <div className="text-xs text-[#808080] mt-1 line-clamp-2">
+                          {shot.description || shot.dialogueBlock?.dialogue || 'No description'}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-[10px] text-[#808080]">
+                            {shot.credits || 0} credits
+                          </span>
+                        </div>
+                      </div>
                     </div>
+                    
+                    {/* Right Side: Props Assignment - Right Aligned */}
+                    {sceneProps.length > 0 && (
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        {sceneProps.map((prop) => {
+                          const isAssigned = propsToShots[prop.id]?.includes(shot.slot) || false;
+                          return (
+                            <label
+                              key={prop.id}
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded border cursor-pointer transition-colors ${
+                                isAssigned
+                                  ? 'border-[#DC143C] bg-[#DC143C]/10'
+                                  : 'border-[#3F3F46] hover:border-[#808080]'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isAssigned}
+                                onChange={(e) => {
+                                  const assignedShots = propsToShots[prop.id] || [];
+                                  const newShots = e.target.checked
+                                    ? [...assignedShots, shot.slot]
+                                    : assignedShots.filter(s => s !== shot.slot);
+                                  onPropsToShotsChange({
+                                    ...propsToShots,
+                                    [prop.id]: newShots
+                                  });
+                                }}
+                                className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0"
+                              />
+                              {prop.imageUrl && (
+                                <img 
+                                  src={prop.imageUrl} 
+                                  alt={prop.name}
+                                  className="w-4 h-4 object-cover rounded"
+                                />
+                              )}
+                              <span className="text-[10px] text-[#FFFFFF] whitespace-nowrap">
+                                {prop.name}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
