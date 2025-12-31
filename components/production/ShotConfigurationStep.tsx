@@ -20,6 +20,9 @@ import { getCharactersFromActionShot, findCharacterById, getCharacterName, getCh
 import { toast } from 'sonner';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
+import { ReferencePreview } from './ReferencePreview';
+import { ReferenceShotSelector } from './ReferenceShotSelector';
+import { VideoGenerationSelector } from './VideoGenerationSelector';
 
 interface ShotConfigurationStepProps {
   shot: any;
@@ -88,6 +91,14 @@ interface ShotConfigurationStepProps {
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
   onPropImageChange?: (shotSlot: number, propId: string, imageId: string | undefined) => void;
+  // Reference Shot (First Frame) Model Selection
+  selectedReferenceShotModel?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>;
+  onReferenceShotModelChange?: (shotSlot: number, model: 'nano-banana-pro' | 'flux2-max-4k-16:9') => void;
+  // Video Generation Selection
+  selectedVideoType?: Record<number, 'cinematic-visuals' | 'natural-motion'>;
+  selectedVideoQuality?: Record<number, 'hd' | '4k'>;
+  onVideoTypeChange?: (shotSlot: number, videoType: 'cinematic-visuals' | 'natural-motion') => void;
+  onVideoQualityChange?: (shotSlot: number, quality: 'hd' | '4k') => void;
   // Navigation
   onPrevious: () => void;
   onNext: () => void;
@@ -148,6 +159,12 @@ export function ShotConfigurationStep({
   shotProps = {},
   onPropDescriptionChange,
   onPropImageChange,
+  selectedReferenceShotModel = {},
+  onReferenceShotModelChange,
+  selectedVideoType = {},
+  selectedVideoQuality = {},
+  onVideoTypeChange,
+  onVideoQualityChange,
   onPrevious,
   onNext,
   onShotSelect,
@@ -516,6 +533,85 @@ export function ShotConfigurationStep({
               <div className="text-xs text-[#808080]">Loading pricing...</div>
             </div>
           )}
+
+          {/* Reference Shot (First Frame) Model Selection */}
+          {onReferenceShotModelChange && (
+            <ReferenceShotSelector
+              shotSlot={shot.slot}
+              selectedModel={selectedReferenceShotModel[shot.slot]}
+              onModelChange={onReferenceShotModelChange}
+            />
+          )}
+
+          {/* Video Generation Selection */}
+          {onVideoTypeChange && onVideoQualityChange && (
+            <VideoGenerationSelector
+              shotSlot={shot.slot}
+              shotType={shot.type}
+              selectedVideoType={selectedVideoType[shot.slot]}
+              selectedQuality={selectedVideoQuality[shot.slot]}
+              onVideoTypeChange={onVideoTypeChange}
+              onQualityChange={onVideoQualityChange}
+            />
+          )}
+
+          {/* Reference Preview - Shows what references will be used for this shot */}
+          {(() => {
+            // Collect references for this shot
+            const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
+            
+            // Character references
+            const shotCharacters = selectedCharactersForShots[shot.slot] || [];
+            shotCharacters.forEach(charId => {
+              const char = allCharacters.find(c => c.id === charId);
+              if (char) {
+                const charRef = selectedCharacterReferences[shot.slot]?.[charId];
+                if (charRef?.imageUrl) {
+                  references.push({
+                    type: 'character',
+                    imageUrl: charRef.imageUrl,
+                    label: char.name || `Character ${charId}`,
+                    id: `char-${charId}`
+                  });
+                }
+              }
+            });
+            
+            // Location reference
+            const locationRef = selectedLocationReferences[shot.slot];
+            if (locationRef?.imageUrl) {
+              const location = sceneProps.find(loc => loc.id === shot.locationId);
+              references.push({
+                type: 'location',
+                imageUrl: locationRef.imageUrl,
+                label: location?.name || 'Location',
+                id: `loc-${shot.slot}`
+              });
+            }
+            
+            // Prop references
+            const shotPropsForThisShot = sceneProps.filter(prop => 
+              propsToShots[prop.id]?.includes(shot.slot)
+            );
+            shotPropsForThisShot.forEach(prop => {
+              const propConfig = shotProps[shot.slot]?.[prop.id];
+              if (propConfig?.selectedImageId) {
+                const propImage = prop.images?.find(img => img.s3Key === propConfig.selectedImageId);
+                if (propImage?.url) {
+                  references.push({
+                    type: 'prop',
+                    imageUrl: propImage.url,
+                    label: prop.name,
+                    id: `prop-${prop.id}`
+                  });
+                }
+              }
+            });
+            
+            return references.length > 0 ? (
+              <ReferencePreview references={references} className="mb-3" />
+            ) : null;
+          })()}
 
           {/* Navigation Buttons */}
           <div className="flex gap-3 pt-3 pb-12 border-t border-[#3F3F46]">

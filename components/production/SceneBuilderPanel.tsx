@@ -228,6 +228,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [shotCameraAngles, setShotCameraAngles] = useState<Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>>({});
   // Shot Duration state (per-shot, defaults to 'quick-cut' = ~5s)
   const [shotDurations, setShotDurations] = useState<Record<number, 'quick-cut' | 'extended-take'>>({});
+  // Reference Shot (First Frame) Model Selection (per-shot, defaults to 'nano-banana-pro')
+  const [selectedReferenceShotModels, setSelectedReferenceShotModels] = useState<Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>>({});
+  // Video Generation Type Selection (per-shot, defaults to 'cinematic-visuals')
+  const [selectedVideoTypes, setSelectedVideoTypes] = useState<Record<number, 'cinematic-visuals' | 'natural-motion'>>({});
+  // Video Quality Selection (per-shot, defaults to '4k')
+  const [selectedVideoQualities, setSelectedVideoQualities] = useState<Record<number, 'hd' | '4k'>>({});
   
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
@@ -341,8 +347,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
         if (!scene) {
           setSceneProps([]);
-          return;
-        }
+      return;
+    }
         
         // Get prop IDs from fountain tags (source of truth - manually linked via SceneDetailSidebar)
         const propIds = scene.fountain?.tags?.props || [];
@@ -429,16 +435,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
   const [hasConfirmedSceneSelection, setHasConfirmedSceneSelection] = useState(false);
 
-  // Auto-analyze the selected scene
+    // Auto-analyze the selected scene
   const analyzeScene = useCallback(async () => {
     if (!selectedSceneId || !projectId) {
       return;
     }
     
-    setIsAnalyzing(true);
-    setAnalysisError(null);
-    
-    try {
+      setIsAnalyzing(true);
+      setAnalysisError(null);
+      
+      try {
       const result = await SceneBuilderService.analyzeScene(projectId, selectedSceneId);
       
       if (result) {
@@ -658,8 +664,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           // 🔥 FIX: Defer state update to prevent React error #300
           setTimeout(() => {
             startTransition(() => {
-            setCharacters(characters);
-            setAllCharacters(characters); // Store for pronoun detection selector
+              setCharacters(characters);
+              setAllCharacters(characters); // Store for pronoun detection selector
             });
           }, 0);
       } catch (error) {
@@ -761,39 +767,39 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         try {
           const headshots = await SceneBuilderService.fetchCharacterHeadshots(characterId, projectId, getToken);
-          
-          if (headshots.length > 0) {
-            setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
             
-            // Auto-select highest priority headshot (lowest priority number)
-            const bestHeadshot = headshots.reduce((best: any, current: any) => 
-              (current.priority || 999) < (best.priority || 999) ? current : best
-            );
-            
-            // Store per-shot, per-character so each character in each shot can have its own selection
-            // Find all shots (dialogue or action) for this character and auto-select the same headshot
-            const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
-              s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
-            ) || [];
-            
-            // Update references for each shot, preserving existing character references
-            setSelectedCharacterReferences(prev => {
-              const updated = { ...prev };
-              shotsForCharacter.forEach((shot: any) => {
-                const shotRefs = updated[shot.slot] || {};
-                updated[shot.slot] = {
-                  ...shotRefs,
-                  [characterId]: {
-                    poseId: bestHeadshot.poseId,
-                    s3Key: bestHeadshot.s3Key,
-                    imageUrl: bestHeadshot.imageUrl
-                  }
-                };
+            if (headshots.length > 0) {
+              setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
+              
+              // Auto-select highest priority headshot (lowest priority number)
+              const bestHeadshot = headshots.reduce((best: any, current: any) => 
+                (current.priority || 999) < (best.priority || 999) ? current : best
+              );
+              
+              // Store per-shot, per-character so each character in each shot can have its own selection
+              // Find all shots (dialogue or action) for this character and auto-select the same headshot
+              const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
+                s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
+              ) || [];
+              
+              // Update references for each shot, preserving existing character references
+              setSelectedCharacterReferences(prev => {
+                const updated = { ...prev };
+                shotsForCharacter.forEach((shot: any) => {
+                  const shotRefs = updated[shot.slot] || {};
+                  updated[shot.slot] = {
+                    ...shotRefs,
+                    [characterId]: {
+                      poseId: bestHeadshot.poseId,
+                      s3Key: bestHeadshot.s3Key,
+                      imageUrl: bestHeadshot.imageUrl
+                    }
+                  };
+                });
+                return updated;
               });
-              return updated;
-            });
-          } else {
-            console.warn(`[SceneBuilderPanel] No headshots found for character ${characterId} after filtering`);
+            } else {
+              console.warn(`[SceneBuilderPanel] No headshots found for character ${characterId} after filtering`);
           }
         } catch (error) {
           console.error(`[SceneBuilderPanel] Failed to fetch headshots for character ${characterId}:`, error);
@@ -827,28 +833,28 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             if (headshots.length > 0) {
               setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
               
-            // Auto-select highest priority headshot for the first shot that uses this character
+              // Auto-select highest priority headshot for the first shot that uses this character
               const bestHeadshot = headshots.reduce((best: any, current: any) => 
                 (current.priority || 999) < (best.priority || 999) ? current : best
               );
               
-            // Find the first shot slot that selected this character
-            const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
-            if (shotSlot && characterId && !selectedCharacterReferences[Number(shotSlot)]?.[characterId]) {
-              setSelectedCharacterReferences(prev => {
-                const shotRefs = prev[Number(shotSlot)] || {};
-                return {
-                ...prev,
-                  [Number(shotSlot)]: {
-                    ...shotRefs,
-                [characterId]: {
-                  poseId: bestHeadshot.poseId,
-                  s3Key: bestHeadshot.s3Key,
-                  imageUrl: bestHeadshot.imageUrl
-                }
-            }
-                };
-              });
+              // Find the first shot slot that selected this character
+              const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
+              if (shotSlot && characterId && !selectedCharacterReferences[Number(shotSlot)]?.[characterId]) {
+                setSelectedCharacterReferences(prev => {
+                  const shotRefs = prev[Number(shotSlot)] || {};
+                  return {
+                    ...prev,
+                    [Number(shotSlot)]: {
+                      ...shotRefs,
+                      [characterId]: {
+                        poseId: bestHeadshot.poseId,
+                        s3Key: bestHeadshot.s3Key,
+                        imageUrl: bestHeadshot.imageUrl
+                      }
+                    }
+                  };
+                });
             }
           }
         } catch (error) {
@@ -915,19 +921,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           }
           
           // Initialize outfits for characters in this shot
-        sceneAnalysisResult.characters.forEach(char => {
+          sceneAnalysisResult.characters.forEach(char => {
             // Only set if character doesn't have an outfit selected for this shot yet
             if (!updated[shotSlot][char.id]) {
-            if (char.defaultOutfit) {
-              // Use default outfit if set
+              if (char.defaultOutfit) {
+                // Use default outfit if set
                 updated[shotSlot][char.id] = char.defaultOutfit;
-              hasChanges = true;
-            } else if (char.availableOutfits && char.availableOutfits.length > 0) {
-              // Auto-select first outfit if no default is set
+                hasChanges = true;
+              } else if (char.availableOutfits && char.availableOutfits.length > 0) {
+                // Auto-select first outfit if no default is set
                 updated[shotSlot][char.id] = char.availableOutfits[0];
-              hasChanges = true;
+                hasChanges = true;
+              }
             }
-          }
           });
         });
         
@@ -955,30 +961,30 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             
             // Only recover if still running (same logic as recoverWorkflowExecution)
             if (execution && ['running', 'queued', 'awaiting_user_decision'].includes(execution.status)) {
-              console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
-              setWorkflowExecutionId(savedExecutionId);
-              setIsGenerating(true);
-              setWorkflowStatus({
-                id: execution.executionId,
-                status: execution.status,
-                currentStep: execution.currentStep || 1,
-                totalSteps: execution.totalSteps || 5,
-                stepResults: execution.stepResults || [],
-                totalCreditsUsed: execution.totalCreditsUsed || 0,
-                finalOutputs: execution.finalOutputs || []
-              });
-              setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
+                console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
+                setWorkflowExecutionId(savedExecutionId);
+                setIsGenerating(true);
+                setWorkflowStatus({
+                  id: execution.executionId,
+                  status: execution.status,
+                  currentStep: execution.currentStep || 1,
+                  totalSteps: execution.totalSteps || 5,
+                  stepResults: execution.stepResults || [],
+                  totalCreditsUsed: execution.totalCreditsUsed || 0,
+                  finalOutputs: execution.finalOutputs || []
+                });
+                setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
               // Toast removed - progress indicator shows this status
-            } else {
-              // Execution completed or failed, remove from localStorage
-              localStorage.removeItem(`scene-builder-execution-${projectId}`);
-            }
+              } else {
+                // Execution completed or failed, remove from localStorage
+                localStorage.removeItem(`scene-builder-execution-${projectId}`);
+              }
           } catch (error: any) {
             // Execution not found or error, remove from localStorage
             console.warn('[SceneBuilderPanel] Execution not found or error:', error.message);
             localStorage.removeItem(`scene-builder-execution-${projectId}`);
           }
-            }
+        }
       } catch (error) {
         console.error('[SceneBuilderPanel] Failed to recover workflow execution:', error);
             // Execution not found, remove from localStorage
@@ -2506,33 +2512,33 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               <div className={`grid ${isMobile ? 'grid-cols-1 space-y-4' : 'grid-cols-2 gap-4'}`}>
                 {/* Left: Scene Navigator with Title/Description (1/2 width) */}
                 <div className={isMobile ? 'w-full' : 'col-span-1'}>
-                  <Card className="bg-[#141414] border-[#3F3F46]">
+              <Card className="bg-[#141414] border-[#3F3F46]">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm text-[#FFFFFF] flex items-center gap-2">
                         <Film className="w-4 h-4" />
                         Scene Selection
                       </CardTitle>
-                      <CardDescription className="text-[10px] text-[#808080]">
+                  <CardDescription className="text-[10px] text-[#808080]">
                         Choose a scene from your screenplay
-                      </CardDescription>
-                    </CardHeader>
+                  </CardDescription>
+                </CardHeader>
                     <CardContent>
-                      <SceneSelector
-                        selectedSceneId={selectedSceneId}
-                        onSceneSelect={(sceneId) => {
+                  <SceneSelector
+                    selectedSceneId={selectedSceneId}
+                    onSceneSelect={(sceneId) => {
                           if (sceneId) {
-                            setSelectedSceneId(sceneId);
+                      setSelectedSceneId(sceneId);
                             setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
                             setSceneAnalysisResult(null); // Clear previous analysis
                             setAnalysisError(null); // Clear any errors
-                            const scene = screenplay.scenes?.find(s => s.id === sceneId);
-                            if (scene) {
-                              // Load scene content into description
-                              const sceneText = scene.synopsis || 
-                                `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
-                              setSceneDescription(sceneText);
-                            }
-                          } else {
+                      const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                      if (scene) {
+                        // Load scene content into description
+                        const sceneText = scene.synopsis || 
+                          `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
+                        setSceneDescription(sceneText);
+                      }
+                      } else {
                             // If empty selection, clear everything
                             setSelectedSceneId(null);
                             setHasConfirmedSceneSelection(false);
@@ -2541,8 +2547,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                           }
                         }}
                         projectId={projectId}
-                        isMobile={isMobile}
-                      />
+                    isMobile={isMobile}
+                  />
                     </CardContent>
                   </Card>
                 </div>
@@ -2833,8 +2839,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                 </div>
                               ) : (
                                 <div className="text-xs text-[#808080] italic">No scene content available</div>
-                              )}
-                            </CardContent>
+                )}
+                </CardContent>
                           </Card>
                         </div>
                       );
@@ -3360,6 +3366,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                       return updated;
                     });
                   }}
+                  selectedReferenceShotModel={selectedReferenceShotModels}
+                  onReferenceShotModelChange={(shotSlot, model) => {
+                    setSelectedReferenceShotModels(prev => ({ ...prev, [shotSlot]: model }));
+                  }}
+                  selectedVideoType={selectedVideoTypes}
+                  selectedVideoQuality={selectedVideoQualities}
+                  onVideoTypeChange={(shotSlot, videoType) => {
+                    setSelectedVideoTypes(prev => ({ ...prev, [shotSlot]: videoType }));
+                  }}
+                  onVideoQualityChange={(shotSlot, quality) => {
+                    setSelectedVideoQualities(prev => ({ ...prev, [shotSlot]: quality }));
+                  }}
                   onPrevious={() => {
                     if (currentShotIndex > 0) {
                       setCurrentShotIndex(currentShotIndex - 1);
@@ -3439,7 +3457,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                           delete updatedShotRefs[characterId];
                         }
                         return {
-                        ...prev,
+                          ...prev,
                           [shotSlot]: Object.keys(updatedShotRefs).length > 0 ? updatedShotRefs : undefined
                         };
                       });
@@ -3455,7 +3473,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                         }
                         updated[shotSlot] = {
                           ...updated[shotSlot],
-                        [characterId]: outfitName || undefined
+                          [characterId]: outfitName || undefined
                         };
                         return updated;
                       });

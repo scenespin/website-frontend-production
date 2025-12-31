@@ -608,16 +608,22 @@ export function ShotConfigurationPanel({
         );
       })()}
 
-      {/* Pronoun Mapping Section */}
+      {/* Which Character? Section */}
       {hasPronouns && (
         <div className="pt-3 border-t border-[#3F3F46]">
+          <div className="mb-3">
+            <div className="text-xs font-medium text-[#FFFFFF] mb-1">Which Character?</div>
+            <div className="text-[10px] text-[#808080]">
+              The script uses words like 'she', 'he', and 'they'. Select which character each word refers to.
+            </div>
+          </div>
           {/* Show message for Narrate Shot (scene-voiceover) about adding characters */}
           {currentWorkflow === 'scene-voiceover' && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-              Map pronouns to characters that will appear in the scene. The narrator can also appear in the scene if selected.
+              Select which characters will appear in the scene. The narrator can also appear in the scene if selected.
             </div>
           )}
-          {/* Singular Pronouns Section */}
+          {/* Single Character Section */}
           {pronounInfo.pronouns.filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase())).length > 0 && (() => {
             // Track which characters have been rendered to avoid duplicates (including explicit characters)
             const renderedCharacters = new Set<string>();
@@ -643,7 +649,7 @@ export function ShotConfigurationPanel({
             return (
               <div className="space-y-4 pb-3 border-b border-[#3F3F46]">
                 <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
-                  Singular Pronouns
+                  Single Character
                 </div>
                 {pronounInfo.pronouns
                   .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
@@ -717,13 +723,13 @@ export function ShotConfigurationPanel({
             );
           })()}
 
-          {/* Plural Pronouns Section */}
+          {/* Multiple Characters Section */}
           {pronounInfo.pronouns.filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase())).length > 0 && (() => {
-            // Track which characters have been rendered (including explicit and singular pronouns)
+            // Track which characters have been rendered (including explicit and single character mappings)
             const renderedCharacters = new Set<string>();
             // Add explicit characters
             explicitCharacters.forEach(charId => renderedCharacters.add(charId));
-            // Add singular pronoun characters
+            // Add single character mappings
             pronounInfo.pronouns
               .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
               .forEach((pronoun: string) => {
@@ -738,7 +744,7 @@ export function ShotConfigurationPanel({
             return (
             <div className="space-y-4">
               <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
-                Plural Pronouns
+                Multiple Characters
               </div>
               {pronounInfo.pronouns
                 .filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase()))
