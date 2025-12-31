@@ -661,7 +661,7 @@ export function CharacterDetailModal({
     });
     
     return fallback;
-  }, [character.baseReference, character.references, character.poseReferences, character.angleReferences, mediaLibraryS3Keys]);
+  }, [character.baseReference, character.references, character.poseReferences, mediaLibraryS3Keys]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from character prop)
   const allImages = useMemo(() => {
