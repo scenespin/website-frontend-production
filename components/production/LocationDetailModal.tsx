@@ -351,153 +351,101 @@ export function LocationDetailModal({
     }
   };
   
-  // 🔥 SIMPLIFIED: Get angleVariations directly from location prop (backend already provides this with presigned URLs)
-  // Backend LocationBankService already enriches angleVariations with imageUrl and all metadata
-  const angleVariations = location.angleVariations || [];
+  // 🔥 PHASE 1: Media Library as Primary Source
+  // Query Media Library FIRST for active files (angles + backgrounds)
   
-  // 🔥 FIX: Create allCreationImages as separate variable (used in JSX for Creation section display)
-  // This is separate from allImages which is used for the gallery viewer
-  const allCreationImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];
+  // Feature 0179: Query Media Library to get active files for location
+  const { data: entityMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    isOpen && !!screenplayId,
+    true, // includeAllFolders
+    'location', // entityType
+    location.locationId // entityId
+  );
   
-  // Add baseReference (first Creation image)
-  if (location.baseReference) {
-    allCreationImages.push({
-      id: location.baseReference.id,
-      imageUrl: location.baseReference.imageUrl,
-      label: `${location.name} - Base Reference`,
-      isBase: true,
-      s3Key: location.baseReference.s3Key
-    });
-  }
+  // Fallback: If entity query returns 0 files, try querying all files (for old files without entityType/entityId)
+  const { data: allMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    isOpen && !!screenplayId && entityMediaFiles.length === 0,
+    true, // includeAllFolders
+    undefined, // No entityType filter
+    undefined // No entityId filter
+  );
   
-  // Add additional Creation images from Location Bank API
-  if (location.creationImages && Array.isArray(location.creationImages)) {
-    location.creationImages.forEach((img: LocationReference) => {
-      allCreationImages.push({
-        id: img.id,
-        imageUrl: img.imageUrl,
-        label: `${location.name} - Reference`,
-        isBase: false,
-        s3Key: img.s3Key
-      });
-    });
-  }
-  
-  // 🔥 IMPROVED: Organize angles and backgrounds by metadata combinations (timeOfDay + weather) for better visual grouping
-  // Group all angles and backgrounds by their metadata combinations - no tag-based filtering, just visual organization
-  const imagesByMetadata: Record<string, { angles: any[]; backgrounds: any[] }> = {};
-  
-  // Group angles
-  angleVariations.forEach((variation: any) => {
-    // Create a display-friendly key for grouping
-    const metadataParts = [
-      variation.timeOfDay ? variation.timeOfDay : null,
-      variation.weather ? variation.weather : null
-    ].filter(Boolean);
+  // Merge Media Library files
+  const mediaFiles = useMemo(() => {
+    const entityS3Keys = new Set(entityMediaFiles.map((f: any) => f.s3Key).filter(Boolean));
+    const locationIdPattern = `location/${location.locationId}/`;
     
-    const key = metadataParts.length > 0 
-      ? metadataParts.join(' • ') 
-      : 'No Metadata';
-    
-    if (!imagesByMetadata[key]) {
-      imagesByMetadata[key] = { angles: [], backgrounds: [] };
-    }
-    imagesByMetadata[key].angles.push(variation);
-  });
-  
-  // Group backgrounds (same metadata structure as angles)
-  if (location.backgrounds && Array.isArray(location.backgrounds)) {
-    location.backgrounds.forEach((background: LocationBackground) => {
-      const metadataParts = [
-        background.timeOfDay ? background.timeOfDay : null,
-        background.weather ? background.weather : null
-      ].filter(Boolean);
+    const filtered = allMediaFiles.filter((file: any) => {
+      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return false;
+      if (entityS3Keys.has(file.s3Key)) return false;
       
-      const key = metadataParts.length > 0 
-        ? metadataParts.join(' • ') 
-        : 'No Metadata';
-      
-      if (!imagesByMetadata[key]) {
-        imagesByMetadata[key] = { angles: [], backgrounds: [] };
+      const entityType = (file as any).entityType || file.metadata?.entityType;
+      const entityId = (file as any).entityId || file.metadata?.entityId;
+      if (entityType === 'location' && entityId === location.locationId) {
+        return true;
       }
-      imagesByMetadata[key].backgrounds.push(background);
+      return file.s3Key.includes(locationIdPattern);
     });
-  }
-  
-  // Sort groups: "No Metadata" last, then alphabetically
-  const sortedMetadataKeys = Object.keys(imagesByMetadata).sort((a, b) => {
-    if (a === 'No Metadata') return 1;
-    if (b === 'No Metadata') return -1;
-    return a.localeCompare(b);
-  });
-  
-  // Keep anglesByMetadata for backward compatibility with References tab
-  const anglesByMetadata: Record<string, any[]> = {};
-  sortedMetadataKeys.forEach(key => {
-    anglesByMetadata[key] = imagesByMetadata[key].angles;
-  });
-  
-  // 🔥 SIMPLIFIED: Always show 16:9 cropped version (final version for video)
-  // Note: allCreationImages is separate and used for the Creation section display
-  const allImages = useMemo(() => {
-    const images: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string; isRegenerated?: boolean; metadata?: any }> = [];
     
-    // Add Creation images (baseReference + creationImages) - same as allCreationImages but for gallery
-    if (location.baseReference) {
-      images.push({
+    return [...entityMediaFiles, ...filtered];
+  }, [entityMediaFiles, allMediaFiles, location.locationId, isOpen]);
+  
+  // Create metadata maps from location prop (DynamoDB) for enrichment
+  const dynamoDBMetadataMap = useMemo(() => {
+    const map = new Map<string, any>();
+    
+    // Add baseReference metadata
+    if (location.baseReference?.s3Key) {
+      map.set(location.baseReference.s3Key, {
         id: location.baseReference.id,
-        imageUrl: location.baseReference.imageUrl,
         label: `${location.name} - Base Reference`,
         isBase: true,
-        s3Key: location.baseReference.s3Key,
-        metadata: {
-          generationMethod: location.baseReference.generationMethod || 'upload'
-        }
+        isAngle: false,
+        isBackground: false,
+        generationMethod: location.baseReference.generationMethod || 'upload'
       });
     }
     
-    if (location.creationImages && Array.isArray(location.creationImages)) {
-      location.creationImages.forEach((img: LocationReference) => {
-        images.push({
+    // Add creationImages metadata
+    (location.creationImages || []).forEach((img: LocationReference) => {
+      if (img.s3Key) {
+        map.set(img.s3Key, {
           id: img.id,
-          imageUrl: img.imageUrl,
           label: `${location.name} - Reference`,
           isBase: false,
-          s3Key: img.s3Key,
-          metadata: {
-            generationMethod: img.generationMethod || 'upload'
-          }
+          isAngle: false,
+          isBackground: false,
+          generationMethod: img.generationMethod || 'upload'
         });
-      });
-    }
-    
-    // Add angle variations (always 16:9 cropped version)
-    angleVariations.forEach((variation: any) => {
-      // Extract isRegenerated from metadata (like Characters do)
-      const isRegenerated = variation.metadata?.isRegenerated || false;
-      
-      // ✅ SIMPLIFIED: Just use variation.imageUrl directly (like assets do)
-      // Images are now generated directly at 16:9 (or 21:9) - no cropping needed
-      // Backend already provides fresh presigned URLs in variation.imageUrl
-      images.push({
-        id: variation.id || `ref_${variation.s3Key}`,
-        imageUrl: variation.imageUrl || '', // Direct 16:9 image (no cropping logic needed)
-        label: `${location.name} - ${variation.angle} view`,
-        isBase: false,
-        s3Key: variation.s3Key,
-        isRegenerated: isRegenerated,
-        metadata: {
-          ...variation.metadata,
-          generationMethod: variation.generationMethod || 'angle-variation', // Store generationMethod for source badge
-          variation: variation // Store full variation for regeneration
-        }
-      });
+      }
     });
     
-    // Feature: Add background images (close-up views of specific areas)
-    if (location.backgrounds && Array.isArray(location.backgrounds)) {
-      location.backgrounds.forEach((background: LocationBackground) => {
-        // Get display label for background type
+    // Add angleVariations metadata (from DynamoDB)
+    (location.angleVariations || []).forEach((variation: LocationReference) => {
+      if (variation.s3Key) {
+        map.set(variation.s3Key, {
+          id: variation.id || `ref_${variation.s3Key}`,
+          label: `${location.name} - ${variation.angle} view`,
+          isBase: false,
+          isAngle: true,
+          isBackground: false,
+          angle: variation.angle,
+          timeOfDay: variation.timeOfDay,
+          weather: variation.weather,
+          generationMethod: variation.generationMethod || 'angle-variation',
+          isRegenerated: variation.metadata?.isRegenerated || false,
+          metadata: variation.metadata || {}
+        });
+      }
+    });
+    
+    // Add backgrounds metadata (from DynamoDB)
+    (location.backgrounds || []).forEach((background: LocationBackground) => {
+      if (background.s3Key) {
         const backgroundTypeLabels: Record<string, string> = {
           'window': 'Window',
           'wall': 'Wall',
@@ -511,34 +459,323 @@ export function LocationDetailModal({
         const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
         const descriptionLabel = background.description ? ` - ${background.description}` : '';
         
-        images.push({
+        map.set(background.s3Key, {
           id: background.id || `bg_${background.s3Key}`,
-          imageUrl: background.imageUrl || '',
           label: `${location.name} - ${typeLabel}${descriptionLabel}`,
           isBase: false,
-          s3Key: background.s3Key,
-          metadata: {
-            ...background.metadata,
-            generationMethod: background.generationMethod || 'background-generation',
-            backgroundType: background.backgroundType,
-            background: background // Store full background for reference
-          }
+          isAngle: false,
+          isBackground: true,
+          backgroundType: background.backgroundType,
+          timeOfDay: background.timeOfDay,
+          weather: background.weather,
+          generationMethod: background.generationMethod || 'background-generation',
+          metadata: background.metadata || {}
         });
+      }
+    });
+    
+    return map;
+  }, [location.baseReference, location.creationImages, location.angleVariations, location.backgrounds, location.name]);
+  
+  // Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
+  const imagesFromMediaLibrary = useMemo(() => {
+    const images: Array<{
+      id: string;
+      imageUrl: string;
+      s3Key: string;
+      label: string;
+      isBase: boolean;
+      isAngle?: boolean;
+      isBackground?: boolean;
+      angle?: string;
+      timeOfDay?: string;
+      weather?: string;
+      backgroundType?: string;
+      isRegenerated?: boolean;
+      metadata?: any;
+      index: number;
+    }> = [];
+    
+    let index = 0;
+    
+    // Process Media Library files
+    mediaFiles.forEach((file: any) => {
+      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
+      
+      // Get metadata from DynamoDB (location prop)
+      const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
+      
+      // Determine image type from Media Library metadata or DynamoDB
+      const isAngle = file.metadata?.source === 'angle-generation' ||
+                      file.metadata?.uploadMethod === 'angle-generation' ||
+                      (dynamoMetadata?.isAngle ?? false);
+      const isBackground = file.metadata?.source === 'background-generation' ||
+                           file.metadata?.uploadMethod === 'background-generation' ||
+                           (dynamoMetadata?.isBackground ?? false);
+      const isBase = dynamoMetadata?.isBase ?? false;
+      
+      // Get label from DynamoDB metadata or Media Library
+      const label = dynamoMetadata?.label ||
+                    file.fileName?.replace(/\.[^/.]+$/, '') ||
+                    'Image';
+      
+      images.push({
+        id: dynamoMetadata?.id || file.id || `img-${index}`,
+        imageUrl: '', // Will be generated from s3Key via presigned URL
+        s3Key: file.s3Key,
+        label,
+        isBase,
+        isAngle,
+        isBackground,
+        angle: dynamoMetadata?.angle,
+        timeOfDay: dynamoMetadata?.timeOfDay || file.metadata?.timeOfDay,
+        weather: dynamoMetadata?.weather || file.metadata?.weather,
+        backgroundType: dynamoMetadata?.backgroundType,
+        isRegenerated: dynamoMetadata?.isRegenerated,
+        metadata: { ...file.metadata, ...dynamoMetadata?.metadata },
+        index
+      });
+    });
+    
+    return images;
+  }, [mediaFiles, dynamoDBMetadataMap]);
+  
+  // Generate presigned URLs for Media Library images
+  const mediaLibraryS3Keys = useMemo(() =>
+    imagesFromMediaLibrary.map(img => img.s3Key).filter(Boolean),
+    [imagesFromMediaLibrary]
+  );
+  
+  const { data: mediaLibraryUrls = new Map() } = useBulkPresignedUrls(
+    mediaLibraryS3Keys.length > 0 ? mediaLibraryS3Keys : [],
+    isOpen && mediaLibraryS3Keys.length > 0
+  );
+  
+  // Enrich Media Library images with presigned URLs
+  const enrichedMediaLibraryImages = useMemo(() => {
+    return imagesFromMediaLibrary.map(img => ({
+      ...img,
+      imageUrl: mediaLibraryUrls.get(img.s3Key) || img.imageUrl || ''
+    }));
+  }, [imagesFromMediaLibrary, mediaLibraryUrls]);
+  
+  // 🔥 FALLBACK: Use location prop images if not in Media Library (for backward compatibility)
+  const fallbackImages = useMemo(() => {
+    const fallback: Array<{
+      id: string;
+      imageUrl: string;
+      s3Key?: string;
+      label: string;
+      isBase: boolean;
+      isAngle?: boolean;
+      isBackground?: boolean;
+      angle?: string;
+      timeOfDay?: string;
+      weather?: string;
+      backgroundType?: string;
+      isRegenerated?: boolean;
+      metadata?: any;
+      index: number;
+    }> = [];
+    const mediaLibraryS3KeysSet = new Set(mediaLibraryS3Keys);
+    
+    // Check baseReference
+    if (location.baseReference?.s3Key && !mediaLibraryS3KeysSet.has(location.baseReference.s3Key)) {
+      fallback.push({
+        id: location.baseReference.id,
+        imageUrl: location.baseReference.imageUrl || '',
+        s3Key: location.baseReference.s3Key,
+        label: `${location.name} - Base Reference`,
+        isBase: true,
+        isAngle: false,
+        isBackground: false,
+        index: 0
       });
     }
     
-    return images;
-  }, [location.angleVariations, location.baseReference, location.creationImages, location.backgrounds, location.name]);
-
-  // Feature 0179: Query Media Library to get thumbnails for location images
-  const { data: mediaFiles = [] } = useMediaFiles(
-    screenplayId || '',
-    undefined,
-    isOpen && !!screenplayId,
-    true, // includeAllFolders
-    'location', // entityType
-    location.locationId // entityId
-  );
+    // Check creationImages
+    (location.creationImages || []).forEach((img: LocationReference) => {
+      if (img.s3Key && !mediaLibraryS3KeysSet.has(img.s3Key)) {
+        fallback.push({
+          id: img.id,
+          imageUrl: img.imageUrl || '',
+          s3Key: img.s3Key,
+          label: `${location.name} - Reference`,
+          isBase: false,
+          isAngle: false,
+          isBackground: false,
+          index: fallback.length
+        });
+      }
+    });
+    
+    // Check angleVariations
+    (location.angleVariations || []).forEach((variation: LocationReference) => {
+      if (variation.s3Key && !mediaLibraryS3KeysSet.has(variation.s3Key)) {
+        const isRegenerated = variation.metadata?.isRegenerated || false;
+        fallback.push({
+          id: variation.id || `ref_${variation.s3Key}`,
+          imageUrl: variation.imageUrl || '',
+          s3Key: variation.s3Key,
+          label: `${location.name} - ${variation.angle} view`,
+          isBase: false,
+          isAngle: true,
+          isBackground: false,
+          angle: variation.angle,
+          timeOfDay: variation.timeOfDay,
+          weather: variation.weather,
+          isRegenerated,
+          metadata: variation.metadata || {},
+          index: fallback.length
+        });
+      }
+    });
+    
+    // Check backgrounds
+    (location.backgrounds || []).forEach((background: LocationBackground) => {
+      if (background.s3Key && !mediaLibraryS3KeysSet.has(background.s3Key)) {
+        const backgroundTypeLabels: Record<string, string> = {
+          'window': 'Window',
+          'wall': 'Wall',
+          'doorway': 'Doorway',
+          'texture': 'Texture',
+          'corner-detail': 'Corner Detail',
+          'furniture': 'Furniture',
+          'architectural-feature': 'Architectural Feature',
+          'custom': background.description || 'Custom Background'
+        };
+        const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
+        const descriptionLabel = background.description ? ` - ${background.description}` : '';
+        
+        fallback.push({
+          id: background.id || `bg_${background.s3Key}`,
+          imageUrl: background.imageUrl || '',
+          s3Key: background.s3Key,
+          label: `${location.name} - ${typeLabel}${descriptionLabel}`,
+          isBase: false,
+          isAngle: false,
+          isBackground: true,
+          backgroundType: background.backgroundType,
+          timeOfDay: background.timeOfDay,
+          weather: background.weather,
+          metadata: background.metadata || {},
+          index: fallback.length
+        });
+      }
+    });
+    
+    return fallback;
+  }, [location.baseReference, location.creationImages, location.angleVariations, location.backgrounds, location.name, mediaLibraryS3Keys]);
+  
+  // 🔥 COMBINED: Media Library images (primary) + Fallback images (from location prop)
+  const allImages = useMemo(() => {
+    return [...enrichedMediaLibraryImages, ...fallbackImages];
+  }, [enrichedMediaLibraryImages, fallbackImages]);
+  
+  // 🔥 FIX: Create allCreationImages as separate variable (used in JSX for Creation section display)
+  // This is separate from allImages which is used for the gallery viewer
+  const allCreationImages = useMemo(() => {
+    return allImages.filter(img => !img.isAngle && !img.isBackground);
+  }, [allImages]);
+  
+  // 🔥 DERIVED: Get angleVariations and backgrounds from allImages (for backward compatibility)
+  const angleVariations = useMemo(() => {
+    return allImages
+      .filter(img => img.isAngle)
+      .map(img => ({
+        id: img.id,
+        locationId: location.locationId,
+        imageUrl: img.imageUrl,
+        s3Key: img.s3Key || '',
+        angle: (img.angle || 'front') as LocationReference['angle'],
+        timeOfDay: img.timeOfDay,
+        weather: img.weather,
+        generationMethod: (img.metadata?.generationMethod || 'angle-variation') as LocationReference['generationMethod'],
+        creditsUsed: 0,
+        createdAt: img.metadata?.generatedAt || new Date().toISOString(),
+        metadata: {
+          ...img.metadata,
+          isRegenerated: img.isRegenerated
+        }
+      }));
+  }, [allImages, location.locationId]);
+  
+  const backgrounds = useMemo(() => {
+    return allImages
+      .filter(img => img.isBackground)
+      .map(img => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        s3Key: img.s3Key || '',
+        backgroundType: (img.backgroundType || 'custom') as LocationBackground['backgroundType'],
+        timeOfDay: img.timeOfDay,
+        weather: img.weather,
+        generationMethod: (img.metadata?.generationMethod || 'ai-generated') as LocationBackground['generationMethod'],
+        creditsUsed: 0,
+        createdAt: img.metadata?.generatedAt || new Date().toISOString(),
+        metadata: img.metadata || {}
+      }));
+  }, [allImages]);
+  
+  // 🔥 IMPROVED: Organize angles and backgrounds by metadata combinations (timeOfDay + weather) for better visual grouping
+  // Group all angles and backgrounds by their metadata combinations - no tag-based filtering, just visual organization
+  const imagesByMetadata: Record<string, { angles: any[]; backgrounds: any[] }> = useMemo(() => {
+    const grouped: Record<string, { angles: any[]; backgrounds: any[] }> = {};
+    
+    // Group angles from allImages
+    angleVariations.forEach((variation: any) => {
+      const metadataParts = [
+        variation.timeOfDay ? variation.timeOfDay : null,
+        variation.weather ? variation.weather : null
+      ].filter(Boolean);
+      
+      const key = metadataParts.length > 0 
+        ? metadataParts.join(' • ') 
+        : 'No Metadata';
+      
+      if (!grouped[key]) {
+        grouped[key] = { angles: [], backgrounds: [] };
+      }
+      grouped[key].angles.push(variation);
+    });
+    
+    // Group backgrounds from allImages
+    backgrounds.forEach((background: any) => {
+      const metadataParts = [
+        background.timeOfDay ? background.timeOfDay : null,
+        background.weather ? background.weather : null
+      ].filter(Boolean);
+      
+      const key = metadataParts.length > 0 
+        ? metadataParts.join(' • ') 
+        : 'No Metadata';
+      
+      if (!grouped[key]) {
+        grouped[key] = { angles: [], backgrounds: [] };
+      }
+      grouped[key].backgrounds.push(background);
+    });
+    
+    return grouped;
+  }, [angleVariations, backgrounds]);
+  
+  // Sort groups: "No Metadata" last, then alphabetically
+  const sortedMetadataKeys = useMemo(() => {
+    return Object.keys(imagesByMetadata).sort((a, b) => {
+      if (a === 'No Metadata') return 1;
+      if (b === 'No Metadata') return -1;
+      return a.localeCompare(b);
+    });
+  }, [imagesByMetadata]);
+  
+  // Keep anglesByMetadata for backward compatibility with References tab
+  const anglesByMetadata: Record<string, any[]> = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    sortedMetadataKeys.forEach(key => {
+      grouped[key] = imagesByMetadata[key].angles;
+    });
+    return grouped;
+  }, [imagesByMetadata, sortedMetadataKeys]);
 
   // Feature 0179: Create thumbnail S3 key map from Media Library
   const thumbnailS3KeyMap = useMemo(() => {
@@ -769,10 +1006,10 @@ export function LocationDetailModal({
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Description</label>
                         <p className="text-[#808080]">{location.description || 'No description'}</p>
                       </div>
-                      {location.angleVariations && location.angleVariations.length > 0 && (
+                      {angleVariations && angleVariations.length > 0 && (
                         <div>
                           <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Angle Variations</label>
-                          <p className="text-[#808080]">{location.angleVariations.length} angle{location.angleVariations.length !== 1 ? 's' : ''}</p>
+                          <p className="text-[#808080]">{angleVariations.length} angle{angleVariations.length !== 1 ? 's' : ''}</p>
                         </div>
                       )}
                     </div>
@@ -791,7 +1028,7 @@ export function LocationDetailModal({
               {activeTab === 'references' && (
                 <div className="p-6 space-y-6">
                   {/* Phase 2: Selection Mode Toggle & Bulk Actions */}
-                  {(angleVariations.length > 0 || (location.backgrounds && location.backgrounds.length > 0)) && (
+                  {(angleVariations.length > 0 || backgrounds.length > 0) && (
                     <div className="flex items-center justify-between mb-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
                       <div className="flex items-center gap-3">
                         <button
@@ -828,8 +1065,8 @@ export function LocationDetailModal({
                                     const id = v.id || `ref_${v.s3Key}`;
                                     allSelectableIds.add(id);
                                   });
-                                  if (location.backgrounds) {
-                                    location.backgrounds.forEach((b: LocationBackground) => {
+                                  if (backgrounds && backgrounds.length > 0) {
+                                    backgrounds.forEach((b: any) => {
                                       const id = b.id || `bg_${b.s3Key}`;
                                       allSelectableIds.add(id);
                                     });
@@ -843,7 +1080,7 @@ export function LocationDetailModal({
                                 }}
                                 className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#808080] hover:text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
                               >
-                                {selectedImageIds.size === (angleVariations.length + (location.backgrounds?.length || 0)) ? 'Deselect All' : 'Select All'}
+                                {selectedImageIds.size === (angleVariations.length + backgrounds.length) ? 'Deselect All' : 'Select All'}
                               </button>
                               <button
                                 onClick={() => setShowBulkDeleteConfirm(true)}
@@ -860,12 +1097,12 @@ export function LocationDetailModal({
                   )}
                   
                   {/* 🔥 SEPARATION: Production Hub Images - Angle Variations & Backgrounds (Editable/Deletable) */}
-                  {(angleVariations.length > 0 || (location.backgrounds && location.backgrounds.length > 0)) && (
+                  {(angleVariations.length > 0 || backgrounds.length > 0) && (
                     <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
                       <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
                         <div>
                           <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
-                            Production Hub Images ({angleVariations.length + (location.backgrounds?.length || 0)})
+                            Production Hub Images ({angleVariations.length + backgrounds.length})
                           </h3>
                           <p className="text-xs text-[#6B7280]">AI-generated angles and backgrounds - can be edited/deleted here</p>
                         </div>
@@ -1332,7 +1569,7 @@ export function LocationDetailModal({
                                                           }
                                                           
                                                           // Remove from backgrounds
-                                                          const updatedBackgrounds = (location.backgrounds || []).filter(
+                                                          const updatedBackgrounds = backgrounds.filter(
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
                                                           
@@ -1582,7 +1819,7 @@ export function LocationDetailModal({
                     }
                     
                     // Batch delete: Remove all selected angle variations in one update
-                    const updatedAngleVariations = location.angleVariations.filter((variation: any) => 
+                    const updatedAngleVariations = angleVariations.filter((variation: any) => 
                       !s3KeysToDelete.has(variation.s3Key)
                     );
                     

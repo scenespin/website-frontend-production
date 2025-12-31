@@ -13,7 +13,7 @@
  * Consistent with CharacterDetailModal and LocationDetailModal
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square } from 'lucide-react';
@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 
 /**
  * Get display label for provider ID
@@ -203,67 +204,284 @@ export default function AssetDetailModal({
   const categoryMeta = ASSET_CATEGORY_METADATA[asset.category];
   const assetImages = asset.images || []; // Safety check for undefined images
   
-  // 🔥 SIMPLIFIED: Get angleReferences directly from asset prop (backend already provides this with presigned URLs)
-  // Backend AssetBankService already enriches angleReferences with imageUrl and all metadata
-  const angleReferences = asset.angleReferences || [];
+  // 🔥 PHASE 1: Media Library as Primary Source
+  // Query Media Library FIRST for active files (creation images + angle references)
   
-  const canGenerateAngles = assetImages.length >= 1; // Need at least 1 image for angle generation
+  // Feature 0179: Query Media Library to get active files for asset
+  const { data: entityMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    isOpen && !!screenplayId,
+    true, // includeAllFolders
+    'asset', // entityType
+    asset.id // entityId
+  );
   
-  // 🔥 SIMPLIFIED: Separate Creation images from Production Hub angles
-  // Creation images: source='user-upload' OR no source
-  // Production Hub images: source='angle-generation' or 'image-generation' (AI-generated angles)
-  const creationImages = assetImages.filter((img: any) => {
-    const source = img.metadata?.source;
-    return !source || source === 'user-upload';
-  });
+  // Fallback: If entity query returns 0 files, try querying all files (for old files without entityType/entityId)
+  const { data: allMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    isOpen && !!screenplayId && entityMediaFiles.length === 0,
+    true, // includeAllFolders
+    undefined, // No entityType filter
+    undefined // No entityId filter
+  );
   
-  // 🔥 SIMPLIFIED: Convert angleReferences to angleImages format (backend already provides imageUrl)
-  const angleImages = angleReferences.map((ref: any) => ({
-    url: ref.imageUrl || '',
-    s3Key: ref.s3Key || '',
-    uploadedAt: ref.createdAt || new Date().toISOString(),
-    metadata: {
-      s3Key: ref.s3Key,
-      angle: ref.angle,
-      source: 'angle-generation', // Backend marks these as angle-generation
-      createdIn: 'production-hub',
-      creditsUsed: ref.creditsUsed || 0,
-      // 🔥 NEW: Include providerId and isRegenerated from backend metadata
-      providerId: ref.metadata?.providerId || ref.metadata?.generationMetadata?.providerId,
-      quality: ref.metadata?.quality || ref.metadata?.generationMetadata?.quality,
-      isRegenerated: ref.metadata?.isRegenerated || false
-    }
-  }));
+  // Merge Media Library files
+  const mediaFiles = useMemo(() => {
+    const entityS3Keys = new Set(entityMediaFiles.map((f: any) => f.s3Key).filter(Boolean));
+    const assetIdPattern = `asset/${asset.id}/`;
+    
+    const filtered = allMediaFiles.filter((file: any) => {
+      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return false;
+      if (entityS3Keys.has(file.s3Key)) return false;
+      
+      const entityType = (file as any).entityType || file.metadata?.entityType;
+      const entityId = (file as any).entityId || file.metadata?.entityId;
+      if (entityType === 'asset' && entityId === asset.id) {
+        return true;
+      }
+      return file.s3Key.includes(assetIdPattern);
+    });
+    
+    return [...entityMediaFiles, ...filtered];
+  }, [entityMediaFiles, allMediaFiles, asset.id, isOpen]);
   
-  // Convert Creation images to gallery format
-  const userImages = creationImages.map((img, idx) => ({
-    id: `img-${idx}`,
-    imageUrl: img.url,
-    label: `${asset.name} - Image ${idx + 1}`,
-    isBase: idx === 0,
-    s3Key: img.s3Key || img.metadata?.s3Key,
-    isAngleReference: false,
-    metadata: img.metadata
-  }));
+  // Create metadata maps from asset prop (DynamoDB) for enrichment
+  const dynamoDBMetadataMap = useMemo(() => {
+    const map = new Map<string, any>();
+    
+    // Add creation images metadata (from asset.images)
+    assetImages.forEach((img: any, idx: number) => {
+      const source = img.metadata?.source;
+      const isCreationImage = !source || source === 'user-upload';
+      
+      if (isCreationImage && (img.s3Key || img.metadata?.s3Key)) {
+        const s3Key = img.s3Key || img.metadata?.s3Key;
+        map.set(s3Key, {
+          id: `img-${idx}`,
+          label: `${asset.name} - Image ${idx + 1}`,
+          isBase: idx === 0,
+          isAngleReference: false,
+          isCreationImage: true,
+          metadata: img.metadata || {}
+        });
+      }
+    });
+    
+    // Add angleReferences metadata (from asset.angleReferences)
+    const angleReferences = asset.angleReferences || [];
+    angleReferences.forEach((ref: any) => {
+      if (ref.s3Key) {
+        map.set(ref.s3Key, {
+          id: ref.id || `angle-${ref.angle || 'unknown'}`,
+          label: `${asset.name} - ${ref.angle || 'Angle'} view`,
+          isBase: false,
+          isAngleReference: true,
+          isCreationImage: false,
+          angle: ref.angle,
+          isRegenerated: ref.metadata?.isRegenerated || false,
+          metadata: {
+            s3Key: ref.s3Key,
+            angle: ref.angle,
+            source: 'angle-generation',
+            createdIn: 'production-hub',
+            creditsUsed: ref.creditsUsed || 0,
+            providerId: ref.metadata?.providerId || ref.metadata?.generationMetadata?.providerId,
+            quality: ref.metadata?.quality || ref.metadata?.generationMetadata?.quality,
+            isRegenerated: ref.metadata?.isRegenerated || false
+          }
+        });
+      }
+    });
+    
+    return map;
+  }, [asset.images, asset.angleReferences, asset.name]);
   
-  // Convert Production Hub angle images to gallery format
-  const angleImageObjects = angleImages.map((img, idx) => {
-    // Find the original angleReference to get the backend id
-    const originalRef = angleReferences.find((ref: any) => ref.s3Key === img.s3Key);
-    // Extract isRegenerated from metadata (like Characters do)
-    const isRegenerated = img.metadata?.isRegenerated || (originalRef as any)?.metadata?.isRegenerated || false;
-    return {
-      id: originalRef?.id || `angle-${idx}`, // Use backend id if available
-      imageUrl: img.url,
-      label: `${asset.name} - ${img.metadata?.angle || 'Angle'} view`,
-      isBase: false,
-      s3Key: img.s3Key || img.metadata?.s3Key,
-      isAngleReference: true,
-      angle: img.metadata?.angle,
-      isRegenerated: isRegenerated, // 🔥 FIX: Extract as direct property like Characters
-      metadata: img.metadata
-    };
-  });
+  // Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
+  const imagesFromMediaLibrary = useMemo(() => {
+    const images: Array<{
+      id: string;
+      imageUrl: string;
+      s3Key: string;
+      label: string;
+      isBase: boolean;
+      isAngleReference?: boolean;
+      angle?: string;
+      isRegenerated?: boolean;
+      metadata?: any;
+      index: number;
+    }> = [];
+    
+    let index = 0;
+    
+    // Process Media Library files
+    mediaFiles.forEach((file: any) => {
+      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
+      
+      // Get metadata from DynamoDB (asset prop)
+      const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
+      
+      // Determine image type from Media Library metadata or DynamoDB
+      const isAngleReference = file.metadata?.source === 'angle-generation' ||
+                                file.metadata?.uploadMethod === 'angle-generation' ||
+                                (dynamoMetadata?.isAngleReference ?? false);
+      const isCreationImage = !isAngleReference;
+      const isBase = dynamoMetadata?.isBase ?? (index === 0 && isCreationImage);
+      
+      // Get label from DynamoDB metadata or Media Library
+      const label = dynamoMetadata?.label ||
+                    file.fileName?.replace(/\.[^/.]+$/, '') ||
+                    `${asset.name} - Image ${index + 1}`;
+      
+      images.push({
+        id: dynamoMetadata?.id || file.id || `img-${index}`,
+        imageUrl: '', // Will be generated from s3Key via presigned URL
+        s3Key: file.s3Key,
+        label,
+        isBase,
+        isAngleReference,
+        angle: dynamoMetadata?.angle || file.metadata?.angle,
+        isRegenerated: dynamoMetadata?.isRegenerated,
+        metadata: { ...file.metadata, ...dynamoMetadata?.metadata },
+        index
+      });
+      
+      index++;
+    });
+    
+    // Sort: creation images first (base first), then angle references
+    return images.sort((a, b) => {
+      if (a.isAngleReference !== b.isAngleReference) {
+        return a.isAngleReference ? 1 : -1; // Creation images first
+      }
+      if (a.isBase !== b.isBase) {
+        return a.isBase ? -1 : 1; // Base first
+      }
+      return a.index - b.index;
+    });
+  }, [mediaFiles, dynamoDBMetadataMap, asset.name]);
+  
+  // Generate presigned URLs for Media Library images
+  const mediaLibraryS3Keys = useMemo(() =>
+    imagesFromMediaLibrary.map(img => img.s3Key).filter(Boolean),
+    [imagesFromMediaLibrary]
+  );
+  
+  const { data: mediaLibraryUrls = new Map() } = useBulkPresignedUrls(
+    mediaLibraryS3Keys.length > 0 ? mediaLibraryS3Keys : [],
+    isOpen && mediaLibraryS3Keys.length > 0
+  );
+  
+  // Enrich Media Library images with presigned URLs
+  const enrichedMediaLibraryImages = useMemo(() => {
+    return imagesFromMediaLibrary.map(img => ({
+      ...img,
+      imageUrl: mediaLibraryUrls.get(img.s3Key) || img.imageUrl || ''
+    }));
+  }, [imagesFromMediaLibrary, mediaLibraryUrls]);
+  
+  // 🔥 FALLBACK: Use asset prop images if not in Media Library (for backward compatibility)
+  const fallbackImages = useMemo(() => {
+    const fallback: Array<{
+      id: string;
+      imageUrl: string;
+      s3Key?: string;
+      label: string;
+      isBase: boolean;
+      isAngleReference?: boolean;
+      angle?: string;
+      isRegenerated?: boolean;
+      metadata?: any;
+      index: number;
+    }> = [];
+    const mediaLibraryS3KeysSet = new Set(mediaLibraryS3Keys);
+    
+    // Check creation images
+    assetImages.forEach((img: any, idx: number) => {
+      const source = img.metadata?.source;
+      const isCreationImage = !source || source === 'user-upload';
+      
+      if (isCreationImage) {
+        const s3Key = img.s3Key || img.metadata?.s3Key;
+        if (s3Key && !mediaLibraryS3KeysSet.has(s3Key)) {
+          fallback.push({
+            id: `img-${idx}`,
+            imageUrl: img.url || '',
+            s3Key,
+            label: `${asset.name} - Image ${idx + 1}`,
+            isBase: idx === 0,
+            isAngleReference: false,
+            metadata: img.metadata || {},
+            index: fallback.length
+          });
+        }
+      }
+    });
+    
+    // Check angleReferences
+    const angleReferences = asset.angleReferences || [];
+    angleReferences.forEach((ref: any) => {
+      if (ref.s3Key && !mediaLibraryS3KeysSet.has(ref.s3Key)) {
+        const isRegenerated = ref.metadata?.isRegenerated || false;
+        fallback.push({
+          id: ref.id || `angle-${ref.angle || 'unknown'}`,
+          imageUrl: ref.imageUrl || '',
+          s3Key: ref.s3Key,
+          label: `${asset.name} - ${ref.angle || 'Angle'} view`,
+          isBase: false,
+          isAngleReference: true,
+          angle: ref.angle,
+          isRegenerated,
+          metadata: {
+            s3Key: ref.s3Key,
+            angle: ref.angle,
+            source: 'angle-generation',
+            createdIn: 'production-hub',
+            creditsUsed: ref.creditsUsed || 0,
+            providerId: ref.metadata?.providerId || ref.metadata?.generationMetadata?.providerId,
+            quality: ref.metadata?.quality || ref.metadata?.generationMetadata?.quality,
+            isRegenerated
+          },
+          index: fallback.length
+        });
+      }
+    });
+    
+    return fallback;
+  }, [asset.images, asset.angleReferences, asset.name, mediaLibraryS3Keys]);
+  
+  // 🔥 COMBINED: Media Library images (primary) + Fallback images (from asset prop)
+  const allImages = useMemo(() => {
+    return [...enrichedMediaLibraryImages, ...fallbackImages];
+  }, [enrichedMediaLibraryImages, fallbackImages]);
+  
+  // 🔥 DERIVED: Separate creation images and angle references for backward compatibility
+  const userImages = useMemo(() => {
+    return allImages.filter(img => !img.isAngleReference);
+  }, [allImages]);
+  
+  const angleImageObjects = useMemo(() => {
+    return allImages.filter(img => img.isAngleReference);
+  }, [allImages]);
+  
+  // 🔥 DERIVED: Get angleReferences for backward compatibility
+  const angleReferences = useMemo(() => {
+    return angleImageObjects.map(img => ({
+      id: img.id,
+      imageUrl: img.imageUrl,
+      s3Key: img.s3Key || '',
+      angle: (img.angle || 'front') as string,
+      createdAt: img.metadata?.generatedAt || new Date().toISOString(),
+      creditsUsed: img.metadata?.creditsUsed || 0,
+      metadata: {
+        ...img.metadata,
+        isRegenerated: img.isRegenerated
+      }
+    }));
+  }, [angleImageObjects]);
+  
+  const canGenerateAngles = userImages.length >= 1; // Need at least 1 creation image for angle generation
   
   // 🔥 DEBUG: Log asset images for troubleshooting
   useEffect(() => {
@@ -271,31 +489,17 @@ export default function AssetDetailModal({
       console.log('[AssetDetailModal] Asset images:', {
         assetId: asset.id,
         assetName: asset.name,
-        totalImagesCount: assetImages.length,
-        creationImagesCount: creationImages.length,
-        angleReferencesCount: angleReferences.length,
-        angleImagesCount: angleImages.length,
-        angleImageObjectsCount: angleImageObjects.length,
-        creationImages: creationImages.map((img: any, idx: number) => ({
-          index: idx,
-          url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
-          s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
-          source: img.metadata?.source || 'user-upload',
-          hasUrl: !!img.url
-        })),
-        angleImages: angleImages.map((img: any, idx: number) => ({
-          index: idx,
-          url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
-          s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
-          source: img.metadata?.source,
-          angle: img.metadata?.angle || img.angle,
-          hasUrl: !!img.url
-        })),
+        mediaLibraryFilesCount: mediaFiles.length,
+        imagesFromMediaLibraryCount: imagesFromMediaLibrary.length,
+        enrichedMediaLibraryImagesCount: enrichedMediaLibraryImages.length,
+        fallbackImagesCount: fallbackImages.length,
+        allImagesCount: allImages.length,
         userImagesCount: userImages.length,
+        angleImageObjectsCount: angleImageObjects.length,
         canGenerateAngles,
       });
     }
-  }, [isOpen, asset.id, assetImages.length, creationImages.length, angleImages.length]);
+  }, [isOpen, asset.id, asset.name, mediaFiles.length, imagesFromMediaLibrary.length, enrichedMediaLibraryImages.length, fallbackImages.length, allImages.length, userImages.length, angleImageObjects.length, canGenerateAngles]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -355,9 +559,6 @@ export default function AssetDetailModal({
       if (e.target) e.target.value = '';
     }
   };
-  
-  // Combined for main display (all images)
-  const allImages = [...userImages, ...angleImageObjects];
 
   // 🔥 Helper: Regenerate presigned URL from s3Key if image fails to load
   // Backend already provides fresh presigned URLs (24 hours) on every API call
