@@ -177,6 +177,7 @@ export function CharacterDetailModal({
     console.log('[CharacterDetailModal] Set regeneratingS3Key to:', s3KeyToTrack);
     
     // 🔥 FIX: Find the pose reference to get metadata (providerId, quality)
+    const rawPoseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
     const poseRef = rawPoseRefs.find((ref: any) => {
       const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
       return refS3Key.trim() === s3KeyToTrack;
