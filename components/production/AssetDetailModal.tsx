@@ -1163,7 +1163,7 @@ export default function AssetDetailModal({
                     </div>
                   )}
                   
-                  {angleImages.length === 0 && userImages.length === 0 && (
+                  {angleImageObjects.length === 0 && userImages.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
                       <p className="text-[#808080] mb-4">No reference images yet</p>
