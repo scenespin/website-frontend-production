@@ -557,8 +557,15 @@ export function CharacterDetailModal({
         outfitName = file.metadata?.outfitName || extractOutfitFromS3Key(file.s3Key) || 'default';
       }
       
+      // 🔥 FIX: Use s3Key as stable ID if no DynamoDB ID found (for newly uploaded images)
+      // This ensures uploaded images are clickable even before DynamoDB metadata is available
+      const stableId = dynamoMetadata?.id || 
+                       file.metadata?.referenceId || 
+                       `ref_${file.s3Key?.replace(/[^a-zA-Z0-9]/g, '_')}` || 
+                       `img-${index}`;
+      
       images.push({
-        id: dynamoMetadata?.id || file.id || `img-${index}`,
+        id: stableId,
         imageUrl: '', // Will be generated from s3Key via presigned URL
         s3Key: file.s3Key,
         label,
