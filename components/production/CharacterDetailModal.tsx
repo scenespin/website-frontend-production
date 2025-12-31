@@ -30,9 +30,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { ImageViewer, type ImageItem } from './ImageViewer';
-import Lightbox from 'yet-another-react-lightbox';
-import Zoom from 'yet-another-react-lightbox/plugins/zoom';
-import 'yet-another-react-lightbox/styles.css';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { VoiceAssignmentTab } from './VoiceAssignmentTab';
 import { VoiceBrowserModal } from './VoiceBrowserModal';
@@ -1094,6 +1091,19 @@ export function CharacterDetailModal({
                       availableOutfits={outfitNames}
                       entityName={character.name}
                       layout="grid-only"
+                      onImageClick={(index) => {
+                        // Find the actual image index in allImages based on filteredGalleryImages
+                        const clickedImage = filteredGalleryImages[index];
+                        const actualIndex = allImages.findIndex(img => 
+                          img.id === clickedImage.id || img.s3Key === (clickedImage as any).s3Key
+                        );
+                        if (actualIndex >= 0) {
+                          setPreviewImageIndex(actualIndex);
+                          // Determine outfit group if applicable
+                          const outfitName = clickedImage.outfitName || (clickedImage as any).metadata?.outfitName;
+                          setPreviewGroupName(outfitName || null);
+                        }
+                      }}
                     />
                   ) : galleryImages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -1830,69 +1840,58 @@ export function CharacterDetailModal({
         />
       )}
       
-      {/* Lightbox Viewer (replaces ImageViewer) */}
-      {previewImageIndex !== null && (() => {
-        // Get images for the current group (outfit) or all images
-        const currentGroupImages = previewGroupName && posesByOutfit[previewGroupName]
-          ? posesByOutfit[previewGroupName]
-          : allImages;
-        
-        // Convert to Lightbox slides format
-        const slides = currentGroupImages.map((img) => ({
-          src: img.imageUrl,
-          alt: img.label,
-          title: img.label,
-          // Store metadata for download
-          description: previewGroupName ? `${previewGroupName} • ${img.label}` : img.label
-        }));
-        
-        return (
-          <Lightbox
-            open={previewImageIndex !== null}
-            close={() => {
-              setPreviewImageIndex(null);
-              setPreviewGroupName(null);
-            }}
-            index={previewImageIndex}
-            slides={slides}
-            plugins={[Zoom]}
-            zoom={{
-              maxZoomPixelRatio: 3,
-              zoomInMultiplier: 2,
-              doubleTapDelay: 300,
-              doubleClickDelay: 300,
-              doubleClickMaxStops: 2,
-              keyboardMoveDistance: 50,
-              wheelZoomDistanceFactor: 100,
-              pinchZoomDistanceFactor: 100,
-              scrollToZoom: true,
-            }}
-            render={{
-              buttonPrev: () => null,
-              buttonNext: () => null,
-            }}
-            on={{
-              // Handle download - right-click or add custom button
-              view: ({ index }) => {
-                const img = currentGroupImages[index];
-                if (img) {
-                  const imgAny = img as any;
-                  const poseName = imgAny.poseId || imgAny.metadata?.poseId || img.label || 'pose';
-                  const outfitName = imgAny.outfitName || imgAny.metadata?.outfitName || '';
-                  const outfitPart = outfitName ? `_${outfitName.replace(/[^a-zA-Z0-9]/g, '-')}` : '';
-                  const filename = `${character.name}_${poseName.replace(/[^a-zA-Z0-9]/g, '-')}${outfitPart}_${Date.now()}.jpg`;
-                  downloadImageAsBlob(img.imageUrl, filename, img.s3Key).catch(() => {
-                    toast.error('Failed to download image');
-                  });
-                }
+      {/* ImageViewer */}
+      {previewImageIndex !== null && (
+        <ImageViewer
+          images={(() => {
+            // Get images for the current group (outfit) or all images
+            const currentGroupImages = previewGroupName && posesByOutfit[previewGroupName]
+              ? posesByOutfit[previewGroupName]
+              : allImages;
+            
+            return currentGroupImages.map((img): ImageItem => ({
+              id: img.id || img.s3Key || `img_${Date.now()}`,
+              url: img.imageUrl || '',
+              label: img.label || `${character.name} image`,
+              s3Key: img.s3Key,
+              metadata: {
+                poseId: (img as any).poseId || (img as any).metadata?.poseId,
+                outfitName: (img as any).outfitName || (img as any).metadata?.outfitName,
+                pose: (img as any).pose || (img as any).metadata?.pose
               }
-            }}
-            styles={{
-              container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
-            }}
-          />
-        );
-      })()}
+            }));
+          })()}
+          allImages={allImages.map((img): ImageItem => ({
+            id: img.id || img.s3Key || `img_${Date.now()}`,
+            url: img.imageUrl || '',
+            label: img.label || `${character.name} image`,
+            s3Key: img.s3Key,
+            metadata: {
+              poseId: (img as any).poseId || (img as any).metadata?.poseId,
+              outfitName: (img as any).outfitName || (img as any).metadata?.outfitName,
+              pose: (img as any).pose || (img as any).metadata?.pose
+            }
+          }))}
+          currentIndex={previewImageIndex}
+          isOpen={previewImageIndex !== null}
+          onClose={() => {
+            setPreviewImageIndex(null);
+            setPreviewGroupName(null);
+          }}
+          onDownload={async (image) => {
+            try {
+              const poseName = image.metadata?.poseId || image.metadata?.pose || 'pose';
+              const outfitName = image.metadata?.outfitName || '';
+              const outfitPart = outfitName ? `_${outfitName.replace(/[^a-zA-Z0-9]/g, '-')}` : '';
+              const filename = `${character.name}_${poseName.replace(/[^a-zA-Z0-9]/g, '-')}${outfitPart}_${Date.now()}.jpg`;
+              await downloadImageAsBlob(image.url, filename, image.s3Key);
+            } catch (error: any) {
+              toast.error('Failed to download image');
+            }
+          }}
+          groupName={previewGroupName || undefined}
+        />
+      )}
 
       {/* Phase 2: Bulk Delete Confirmation Dialog */}
       {showBulkDeleteConfirm && (

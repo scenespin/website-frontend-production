@@ -6,7 +6,7 @@
  * Features:
  * - Masonry layout with larger, more visible thumbnails
  * - Featured image area (first image displayed prominently)
- * - Lightbox viewing
+ * - ImageViewer integration (via onImageClick prop)
  * - Outfit filtering
  * - Responsive design
  * - Base image indicators
@@ -16,9 +16,6 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import Gallery from 'react-photo-gallery';
-import Lightbox from 'yet-another-react-lightbox';
-import Zoom from 'yet-another-react-lightbox/plugins/zoom';
-import 'yet-another-react-lightbox/styles.css';
 import { motion } from 'framer-motion';
 import { Sparkles, Upload as UploadIcon, ZoomIn } from 'lucide-react';
 
@@ -55,8 +52,6 @@ export function ModernGallery({
   layout = 'left',
   aspectRatio = '16:9'
 }: ModernGalleryProps) {
-  const [lightboxIndex, setLightboxIndex] = useState(-1);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [featuredIndex, setFeaturedIndex] = useState<number>(0);
 
   // Filter images by outfit
@@ -96,64 +91,27 @@ export function ModernGallery({
     }));
   }, [gridImages, filteredImages, featuredIndex, layout]);
 
-  // Open lightbox
-  const openLightbox = useCallback((event: any, { index }: { index: number }) => {
-    // Get actual index from photo metadata
-    const photo = photos[index];
-    const actualIndex = photo?.actualIndex ?? index;
-    setLightboxIndex(actualIndex);
-    setSelectedIndex(actualIndex);
-    if (onImageClick) {
-      onImageClick(actualIndex);
-    }
-  }, [onImageClick, photos]);
-
   // Handle featured image click
   const handleFeaturedClick = useCallback(() => {
-    // If onImageClick is provided, use external lightbox (ImageViewer) instead of built-in one
     if (onImageClick) {
       onImageClick(featuredIndex);
-    } else {
-      // Only open built-in lightbox if no external handler is provided
-      setLightboxIndex(featuredIndex);
-      setSelectedIndex(featuredIndex);
     }
   }, [featuredIndex, onImageClick]);
 
-  // Handle grid image click (opens lightbox directly for grid-only, updates featured for other layouts)
+  // Handle grid image click (opens ImageViewer for grid-only, updates featured for other layouts)
   const handleGridImageClick = useCallback((event: any, { index }: { index: number }) => {
     const photo = photos[index];
     const actualIndex = photo?.actualIndex ?? index;
     
     if (layout === 'grid-only') {
-      // If onImageClick is provided, use external lightbox (ImageViewer) instead of built-in one
       if (onImageClick) {
         onImageClick(actualIndex);
-      } else {
-        // Only open built-in lightbox if no external handler is provided
-        setLightboxIndex(actualIndex);
-        setSelectedIndex(actualIndex);
       }
     } else {
       // Update featured image for other layouts
       setFeaturedIndex(actualIndex);
     }
   }, [photos, layout, onImageClick]);
-
-  // Close lightbox
-  const closeLightbox = useCallback(() => {
-    setLightboxIndex(-1);
-    setSelectedIndex(null);
-  }, []);
-
-  // Lightbox slides (all images)
-  const slides = useMemo(() => {
-    return filteredImages.map(img => ({
-      src: img.imageUrl,
-      alt: img.label,
-      title: img.label
-    }));
-  }, [filteredImages]);
 
   // Custom image renderer with improved visibility
   const imageRenderer = useCallback(
@@ -288,35 +246,6 @@ export function ModernGallery({
             </div>
           </div>
         </motion.div>
-
-        {/* Lightbox with Zoom - Only render if not using external ImageViewer */}
-        {!onImageClick && (
-          <Lightbox
-            open={lightboxIndex >= 0}
-            close={closeLightbox}
-            index={lightboxIndex}
-            slides={slides}
-            plugins={[Zoom]}
-            zoom={{
-              maxZoomPixelRatio: 3,
-              zoomInMultiplier: 2,
-              doubleTapDelay: 300,
-              doubleClickDelay: 300,
-              doubleClickMaxStops: 2,
-              keyboardMoveDistance: 50,
-              wheelZoomDistanceFactor: 100,
-              pinchZoomDistanceFactor: 100,
-              scrollToZoom: true,
-            }}
-            render={{
-              buttonPrev: () => null,
-              buttonNext: () => null,
-            }}
-            styles={{
-              container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
-            }}
-          />
-        )}
       </div>
     );
   }
@@ -337,13 +266,8 @@ export function ModernGallery({
                   key={img.id}
                   className="relative group cursor-pointer aspect-square rounded-lg overflow-hidden border-2 border-[#3F3F46] hover:border-[#DC143C]/50 transition-all"
                   onClick={() => {
-                    // If onImageClick is provided, use external lightbox (ImageViewer) instead of built-in one
                     if (onImageClick) {
                       onImageClick(index);
-                    } else {
-                      // Only open built-in lightbox if no external handler is provided
-                      setLightboxIndex(index);
-                      setSelectedIndex(index);
                     }
                   }}
                 >
@@ -381,24 +305,6 @@ export function ModernGallery({
             })}
           </div>
         </motion.div>
-
-        {/* Lightbox with Zoom - Only render if not using external ImageViewer */}
-        {!onImageClick && (
-          <Lightbox
-            open={lightboxIndex >= 0}
-            close={closeLightbox}
-            index={lightboxIndex}
-            slides={slides}
-            plugins={[Zoom]}
-            render={{
-              buttonPrev: () => null,
-              buttonNext: () => null,
-            }}
-            styles={{
-              container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
-            }}
-          />
-        )}
       </div>
     );
   }
@@ -548,35 +454,6 @@ export function ModernGallery({
           )}
         </motion.div>
       </div>
-
-      {/* Lightbox with Zoom - Only render if not using external ImageViewer */}
-      {!onImageClick && (
-        <Lightbox
-          open={lightboxIndex >= 0}
-          close={closeLightbox}
-          index={lightboxIndex}
-          slides={slides}
-          plugins={[Zoom]}
-          zoom={{
-            maxZoomPixelRatio: 3,
-            zoomInMultiplier: 2,
-            doubleTapDelay: 300,
-            doubleClickDelay: 300,
-            doubleClickMaxStops: 2,
-            keyboardMoveDistance: 50,
-            wheelZoomDistanceFactor: 100,
-            pinchZoomDistanceFactor: 100,
-            scrollToZoom: true,
-          }}
-          render={{
-            buttonPrev: () => null,
-            buttonNext: () => null,
-          }}
-          styles={{
-            container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' }
-          }}
-        />
-      )}
     </div>
   );
 }
