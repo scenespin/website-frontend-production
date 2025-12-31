@@ -663,11 +663,35 @@ export function CharacterDetailModal({
     return fallback;
   }, [character.baseReference, character.references, character.poseReferences, mediaLibraryS3Keys]);
   
+  // Generate presigned URLs for fallback images that have s3Key but expired imageUrl
+  const fallbackS3Keys = useMemo(() => 
+    fallbackImages
+      .filter(img => img.s3Key && (!img.imageUrl || !img.imageUrl.startsWith('http')))
+      .map(img => img.s3Key)
+      .filter(Boolean),
+    [fallbackImages]
+  );
+  
+  const { data: fallbackUrls = new Map() } = useBulkPresignedUrls(
+    fallbackS3Keys.length > 0 ? fallbackS3Keys : [],
+    isOpen && fallbackS3Keys.length > 0
+  );
+  
+  // Enrich fallback images with presigned URLs
+  const enrichedFallbackImages = useMemo(() => {
+    return fallbackImages.map(img => ({
+      ...img,
+      imageUrl: img.s3Key && fallbackUrls.has(img.s3Key) 
+        ? fallbackUrls.get(img.s3Key) || img.imageUrl || ''
+        : img.imageUrl || ''
+    }));
+  }, [fallbackImages, fallbackUrls]);
+  
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from character prop)
   const allImages = useMemo(() => {
     // Prioritize Media Library images, then add fallback images
-    return [...enrichedMediaLibraryImages, ...fallbackImages];
-  }, [enrichedMediaLibraryImages, fallbackImages]);
+    return [...enrichedMediaLibraryImages, ...enrichedFallbackImages];
+  }, [enrichedMediaLibraryImages, enrichedFallbackImages]);
   
   // Keep old userReferences and poseReferences for backward compatibility (used in other parts of code)
   const userReferences = useMemo(() => {
