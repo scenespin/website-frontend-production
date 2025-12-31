@@ -65,11 +65,8 @@ interface UnifiedSceneConfigurationProps {
   getToken: () => Promise<string | null>;
   // Model Style Selector (global + per-shot overrides)
   // Resolution is global only, set in review step (not per-shot)
-  globalStyle?: 'cinematic' | 'photorealistic' | 'auto';
   globalResolution?: '1080p' | '4k'; // Global only, not per-shot
-  shotStyles?: Record<number, 'cinematic' | 'photorealistic' | 'auto'>;
-  onStyleChange?: (shotSlot: number, style: 'cinematic' | 'photorealistic' | 'auto' | undefined) => void;
-  // Camera Angle (per-shot)
+  // Camera Angle (per-shot) - moved to Video Generation section
   shotCameraAngles?: Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>;
   onCameraAngleChange?: (shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => void;
   // Props Configuration (per-shot)
@@ -108,10 +105,7 @@ export function UnifiedSceneConfiguration({
   isGenerating = false,
   screenplayId,
   getToken,
-  globalStyle = 'auto',
   globalResolution = '1080p', // Global only, not used per-shot
-  shotStyles = {},
-  onStyleChange,
   shotCameraAngles = {},
   onCameraAngleChange,
   sceneProps = [],
@@ -748,9 +742,6 @@ export function UnifiedSceneConfiguration({
                       onPronounExtrasPromptChange={(pronoun, prompt) => {
                         onPronounExtrasPromptChange?.(shot.slot, pronoun, prompt);
                       }}
-                      globalStyle={globalStyle}
-                      shotStyle={shotStyles[shot.slot]}
-                      onStyleChange={onStyleChange}
                       shotCameraAngle={shotCameraAngles[shot.slot]}
                       onCameraAngleChange={onCameraAngleChange}
                       sceneProps={sceneProps}
