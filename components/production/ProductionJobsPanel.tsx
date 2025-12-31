@@ -802,16 +802,6 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       (job.metadata?.locationId || job.inputs?.locationId || job.metadata?.inputs?.locationId) // Check metadata, inputs, and metadata.inputs
     );
     
-    // Check for location background jobs (metadata/inputs has locationId)
-    const completedLocationBackgroundJobs = jobs.filter(job => 
-      job.status === 'completed' && 
-      job.jobType === 'image-generation' &&
-      job.results?.backgroundReferences &&
-      Array.isArray(job.results.backgroundReferences) &&
-      job.results.backgroundReferences.length > 0 &&
-      (job.metadata?.locationId || job.inputs?.locationId || job.metadata?.inputs?.locationId) // Check metadata, inputs, and metadata.inputs
-    );
-    
     // Check for asset angle jobs (metadata/inputs has assetId)
     const completedAssetAngleJobs = jobs.filter(job => 
       job.status === 'completed' && 
