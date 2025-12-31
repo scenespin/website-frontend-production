@@ -174,6 +174,18 @@ export function LocationBankPanel({
                 const typeLabel = location.type === 'interior' ? 'INT.' : 
                                  location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
+                // Build metadata string with angles and backgrounds count
+                const angleCount = location.angleVariations?.length || 0;
+                const backgroundCount = location.backgrounds?.length || 0;
+                let metadata: string | undefined;
+                if (angleCount > 0 && backgroundCount > 0) {
+                  metadata = `${angleCount} angle${angleCount !== 1 ? 's' : ''}, ${backgroundCount} background${backgroundCount !== 1 ? 's' : ''}`;
+                } else if (angleCount > 0) {
+                  metadata = `${angleCount} angle${angleCount !== 1 ? 's' : ''}`;
+                } else if (backgroundCount > 0) {
+                  metadata = `${backgroundCount} background${backgroundCount !== 1 ? 's' : ''}`;
+                }
+
                 return (
                   <CinemaCard
                     key={location.locationId}
@@ -184,7 +196,7 @@ export function LocationBankPanel({
                     mainImage={allReferences.length > 0 ? allReferences[0] : null}
                     referenceImages={allReferences.slice(1)}
                     referenceCount={allReferences.length}
-                    metadata={location.angleVariations.length > 0 ? `${location.angleVariations.length} angles` : undefined}
+                    metadata={metadata}
                     description={location.description && location.description !== 'Imported from script' ? location.description : undefined}
                     cardType="location"
                     onClick={() => {
