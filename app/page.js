@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import config from "@/config";
 import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
@@ -9,798 +8,476 @@ export default function Page() {
   return (
     <>
       {/* Header */}
-      <header className="p-4 flex justify-between items-center max-w-7xl mx-auto">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold">
-            {config.appName}<span className="text-[#DC143C]">.ai</span>
-          </span>
-        </Link>
-        <Link href="/sign-in" className="btn btn-ghost">
-          Login
-        </Link>
+      <header className="bg-[#0A0A0A] border-b border-[#3F3F46] sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="text-2xl font-extrabold text-white">
+                {config.appName}<span className="text-[#DC143C]">.ai</span>
+              </span>
+            </Link>
+            <nav className="hidden md:flex items-center gap-6">
+              <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Features
+              </Link>
+              <Link href="#pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Pricing
+              </Link>
+              <Link href="/help" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Help
+              </Link>
+              <Link href="/sign-in" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Login
+              </Link>
+            </nav>
+            <Link href="/sign-in" className="md:hidden text-sm text-gray-300 hover:text-white transition-colors">
+              Login
+            </Link>
+          </div>
+        </div>
       </header>
 
-      <main>
+      <main className="bg-[#0A0A0A] text-white">
         {/* Hero Section */}
-        <section className="flex flex-col items-center justify-center text-center gap-8 px-8 py-16 max-w-5xl mx-auto">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-base-200 text-sm">
-            <span className="font-semibold">Founded 2025</span>
-            <span className="opacity-60">•</span>
-            <span className="opacity-80">Early Access</span>
-            <span className="opacity-60">•</span>
-            <span className="opacity-80">Building With Creators</span>
-          </div>
-
-          {/* Main Headline */}
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-            Professional Tools for Screenwriters,
-            <br />
-            Filmmakers & Creators
-          </h1>
-
-          <p className="text-xl md:text-2xl opacity-90 max-w-3xl">
-            58 AI Workflows + 68 Professional Compositions<br className="hidden sm:block" /> + Professional Studio Export
-            <br />
-            <strong className="text-[#DC143C]">The Complete Production Pipeline:<br className="hidden md:block" /> Write → Export</strong>
-          </p>
-
-          {/* Value Props */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl text-left mt-4">
-            <div className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <div>
-                <strong>Software is 100% FREE</strong>
-                <p className="text-sm opacity-70">58 workflows, 68 compositions, 30 transitions, 8-track timeline - $0 forever</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <div>
-                <strong>All Quality Tiers Unlocked</strong>
-                <p className="text-sm opacity-70">Professional 1080p, Premium 4K, Ultra Native 4K - no paywalls</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <div>
-                <strong>Only Pay for AI Compute</strong>
-                <p className="text-sm opacity-70">Pay-as-you-go credits. No subscriptions. No software fees.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <div>
-                <strong>No Vendor Lock-In</strong>
-                <p className="text-sm opacity-70">Export to PDF or Fountain format, GitHub backup - own your data</p>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <Link
-              className="btn btn-primary btn-lg"
-              href="/sign-up"
-            >
-              Get 50 Free Credits →
-            </Link>
-            <Link
-              className="btn btn-outline btn-lg"
-              href="#pricing"
-            >
-              See Pricing
-            </Link>
-          </div>
-
-          <p className="text-sm opacity-60 mt-2">
-            All features unlocked on signup. No credit card required.
-          </p>
-        </section>
-
-        {/* Revolutionary Features Banner */}
-        <section className="bg-base-200 py-16">
-          <div className="max-w-7xl mx-auto px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                🌟 Industry-First Technology
-              </h2>
-              <p className="text-lg opacity-80 max-w-3xl mx-auto">
-                <strong>Professional timeline editing with 16-bit HDR export.</strong> Export as professional EXR for color grading in DaVinci Resolve, After Effects, or Nuke.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="card bg-base-100 shadow-xl">
-                <div className="card-body">
-                  <div className="text-4xl mb-2">🔄</div>
-                  <h3 className="card-title text-lg">Seamless Timeline ↔ Composition</h3>
-                  <p className="text-sm opacity-80">
-                    Round-trip editing without data loss. Edit in composition, changes sync to timeline automatically.
-                  </p>
-                </div>
-              </div>
-
-              <div className="card bg-base-100 shadow-xl">
-                <div className="card-body">
-                  <div className="text-4xl mb-2">🤖</div>
-                  <h3 className="card-title text-lg">Intelligent Quality Optimization</h3>
-                  <p className="text-sm opacity-80">
-                    Smart scene analysis automatically optimizes quality for each shot. Professional results, minimal effort.
-                  </p>
-                </div>
-              </div>
-
-              <div className="card bg-base-100 shadow-xl">
-                <div className="card-body">
-                  <div className="text-4xl mb-2">📝</div>
-                  <h3 className="card-title text-lg">Screenplay-Driven Builder</h3>
-                  <p className="text-sm opacity-80">
-                    Generate complete scenes directly from script. Intelligent scene analysis, no wasted credits.
-                  </p>
-                </div>
-              </div>
-
-              <div className="card bg-base-100 shadow-xl">
-                <div className="card-body">
-                  <div className="text-4xl mb-2">🎨</div>
-                  <h3 className="card-title text-lg">Professional Studio Export</h3>
-                  <p className="text-sm opacity-80">
-                    Export your timeline as 16-bit HDR EXR for professional color grading. Perfect for agencies and studios.
-                  </p>
-                  <div className="badge badge-error gap-1 mt-2">🔥 Exclusive</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* NEW: Data Ownership & Collaboration Section */}
-        <section className="py-12 px-8 max-w-7xl mx-auto">
-          <div className="bg-gradient-to-br from-base-200 to-base-300 rounded-box p-6 md:p-8">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">🔐 You Own Everything</h2>
-              <p className="text-lg opacity-90 max-w-3xl mx-auto mb-2">
-                Unlike other platforms that lock your content behind proprietary formats,<br className="hidden md:block" />
-                <strong className="text-[#DC143C]">YOUR data stays in YOUR cloud</strong>
-              </p>
-              <p className="text-base opacity-70">
-                We streamlined GitHub for writers - manage everything from the software, no technical expertise needed
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {/* GitHub for Scripts & Timelines */}
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-5xl mb-3">📚</div>
-                  <h3 className="card-title text-xl mb-2">GitHub Version Control</h3>
-                  <p className="text-sm opacity-80 mb-4">
-                    Screenplay + Timeline backed up to <strong>YOUR GitHub repository</strong> every 10 seconds.
-                    Full version history, branch management, revert anytime.
-                  </p>
-                  <div className="space-y-2 text-xs opacity-70">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Auto-save every 10 seconds</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Complete Git version history</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Open JSON format (future-proof)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Zero vendor lock-in</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-5xl mb-3">☁️</div>
-                  <h3 className="card-title text-xl mb-2">Your Cloud Storage</h3>
-                  <p className="text-sm opacity-80 mb-4">
-                    Videos, audio, images stored in <strong>YOUR Google Drive or Dropbox</strong>.
-                    We store files for 7 days max, then YOU choose where they go.
-                  </p>
-                  <div className="space-y-2 text-xs opacity-70">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Choose Google Drive or Dropbox</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>100% off-site (your account)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>No files locked on our servers</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Export/switch anytime</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Collaboration Roles */}
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-5xl mb-3">👥</div>
-                  <h3 className="card-title text-xl mb-2">5 Collaboration Roles</h3>
-                  <p className="text-sm opacity-80 mb-4">
-                    <strong>Manage everything from the software</strong> - no GitHub expertise needed. Add teammates in seconds.
-                  </p>
-                  <div className="space-y-2 text-xs opacity-70">
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">🎬</span>
-                      <div>
-                        <strong>Director</strong> - Full access (script + assets)
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">✍️</span>
-                      <div>
-                        <strong>Writer</strong> - Edit screenplay + AI agents
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">🎬</span>
-                      <div>
-                        <strong>Asset Manager</strong> - Generate & manage assets
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">🎨</span>
-                      <div>
-                        <strong>Contributor</strong> - Upload assets only
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">👁️</span>
-                      <div>
-                        <strong>Viewer</strong> - Read-only access
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+        <section className="relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
             <div className="text-center">
-              <p className="text-lg font-semibold mb-4">
-                💡 <strong>We streamlined GitHub for writers</strong> - no technical knowledge required
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#3F3F46] text-sm mb-8">
+                <span className="font-semibold text-gray-300">Early Access</span>
+                <span className="text-gray-600">•</span>
+                <span className="text-gray-300">Building With Creators</span>
+              </div>
+
+              {/* Main Headline */}
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6">
+                Turn Your Screenplay Into a Movie
+              </h1>
+
+              <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8">
+                AI-powered production tools that bring your script to life. Create pilots, trailers, short films, or full features—all from your browser.
               </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Link href="/features" className="btn btn-primary">
-                  See All Features →
+
+              {/* CTAs */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                <Link
+                  href="/sign-up"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
+                >
+                  Start Free - 50 Credits
                 </Link>
-                <Link href="/help/collaboration" className="btn btn-outline">
-                  Learn About Collaboration
+                <Link
+                  href="#demo"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-lg"
+                >
+                  Watch Demo
                 </Link>
               </div>
-            </div>
-          </div>
-        </section>
 
-        {/* Savings Calculator */}
-        <section className="py-16 px-8 max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-extrabold mb-4">
-              End Subscription Fatigue
-            </h2>
-            <p className="text-xl opacity-90 max-w-3xl mx-auto mb-2">
-              <strong>Our software is 100% free.</strong> You only pay for the AI services you actually use.
-            </p>
-            <p className="text-lg opacity-70 max-w-2xl mx-auto">
-              While competitors charge $1,776/year just for software licenses, we give you everything for <strong>$0</strong>. Zero subscriptions. Zero licensing fees. Just pay-as-you-go for AI.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Traditional Stack */}
-            <div className="card bg-gradient-to-br from-error/20 to-error/10 shadow-xl border-2 border-error/30">
-              <div className="card-body">
-                <div className="badge badge-error mb-2">The Old Way 😫</div>
-                <h3 className="card-title text-2xl mb-2">Traditional Stack</h3>
-                <p className="text-sm opacity-70 mb-3">6 separate subscriptions. $1,776/year in software fees. <strong>BEFORE</strong> you even start creating.</p>
-                
-                <ul className="space-y-2">
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="opacity-80">Final Draft</span>
-                    <span className="font-semibold">$250/yr</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="opacity-80">Adobe Premiere</span>
-                    <span className="font-semibold">$263/yr</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="opacity-80">Adobe After Effects</span>
-                    <span className="font-semibold">$263/yr</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="opacity-80">Stock footage</span>
-                    <span className="font-semibold">$500/yr</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="opacity-80">Stock music/SFX</span>
-                    <span className="font-semibold">$300/yr</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="opacity-80">Cloud storage</span>
-                    <span className="font-semibold">$200/yr</span>
-                  </li>
-                  <li className="border-t border-error/30 pt-2 mt-2 flex justify-between items-center">
-                    <span className="font-bold">Total</span>
-                    <span className="font-bold text-xl text-error">$1,776/yr</span>
-                  </li>
-                  <li className="text-xs opacity-60 italic">
-                    ⚠️ Plus you still need to pay for AI services
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Wryda Revolutionary Model */}
-            <div className="card bg-gradient-to-br from-success/20 to-primary/20 shadow-xl border-2 border-success">
-              <div className="card-body">
-                <div className="badge badge-success mb-2">The Future ✨</div>
-                <h3 className="card-title text-2xl mb-2">{config.appName}: Software is FREE</h3>
-                <p className="text-sm opacity-80 mb-3">
-                  <strong>All features. All tools. All workflows.</strong> Everything unlocked for <span className="text-success font-bold">$0/year</span>. Only pay for AI when you use it.
-                </p>
-                
-                <ul className="space-y-2">
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="font-semibold">✅ Screenplay Editor</span>
-                    <span className="font-bold text-success">FREE</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="font-semibold">✅ 8-Track Timeline</span>
-                    <span className="font-bold text-success">FREE</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="font-semibold">✅ 68 Compositions</span>
-                    <span className="font-bold text-success">FREE</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="font-semibold">✅ Character Bank</span>
-                    <span className="font-bold text-success">FREE</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="font-semibold">✅ Upload Footage</span>
-                    <span className="font-bold text-success">FREE</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="font-semibold">✅ Cloud Export</span>
-                    <span className="font-bold text-success">FREE</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="font-semibold">✅ 58 AI Workflows</span>
-                    <span className="font-bold text-success">FREE</span>
-                  </li>
-                  <li className="border-t border-success/30 pt-2 mt-2 flex justify-between items-center">
-                    <span className="font-bold">Software Cost</span>
-                    <span className="font-bold text-xl text-success">$0/yr</span>
-                  </li>
-                  <li className="text-sm font-semibold text-success">
-                    💰 Save $1,776/year!
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <div className="card bg-gradient-to-r from-primary/10 to-secondary/10 shadow-xl border-2 border-primary/30 max-w-4xl mx-auto">
-              <div className="card-body">
-                <h3 className="text-2xl font-bold mb-4">🚀 The Revolution: Pay for Value, Not Access</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-                  <div>
-                    <div className="text-error font-bold mb-2">❌ Old Model</div>
-                    <ul className="text-sm space-y-1 opacity-80">
-                      <li>• Pay for software licenses</li>
-                      <li>• Monthly subscription treadmill</li>
-                      <li>• Paying even when not using</li>
-                      <li>• Expensive barriers to entry</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <div className="text-success font-bold mb-2">✅ {config.appName} Model</div>
-                    <ul className="text-sm space-y-1 opacity-80">
-                      <li>• Software is 100% free</li>
-                      <li>• Pay only for AI you use</li>
-                      <li>• Credits never expire</li>
-                      <li>• Start creating immediately</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <div className="text-primary font-bold mb-2">💡 Your Savings</div>
-                    <ul className="text-sm space-y-1 opacity-80">
-                      <li>• $0 software costs</li>
-                      <li>• No subscription fatigue</li>
-                      <li>• Only pay when creating</li>
-                      <li>• <strong className="text-success">Save $1,776/year</strong></li>
-                    </ul>
+              {/* Demo Video Placeholder */}
+              <div id="demo" className="mt-12 max-w-4xl mx-auto">
+                <div className="bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden aspect-video flex items-center justify-center relative group cursor-pointer hover:border-[#DC143C]/50 transition-colors">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#0A0A0A] to-[#1F1F1F] opacity-50"></div>
+                  <div className="relative z-10 text-center p-8">
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#DC143C] flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <svg className="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">Demo Video Coming Soon</h3>
+                    <p className="text-gray-400 text-sm">See how Wryda.ai turns your screenplay into a movie</p>
                   </div>
                 </div>
-                <div className="mt-6">
-                  <Link href="/sign-up" className="btn btn-primary btn-lg">
-                    Start Free - No Credit Card Required
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                      <path fillRule="evenodd" d="M5 10a.75.75 0 01.75-.75h6.638L10.23 7.29a.75.75 0 111.04-1.08l3.5 3.25a.75.75 0 010 1.08l-3.5 3.25a.75.75 0 11-1.04-1.08l2.158-1.96H5.75A.75.75 0 015 10z" clipRule="evenodd" />
-                    </svg>
-                  </Link>
+              </div>
+
+              {/* Value Props */}
+              <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>No credit card required</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>50 free credits to start</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Everything unlocked</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Professional Screenplay Editor Section */}
-        <section className="py-20 bg-gradient-to-b from-base-100 to-base-200">
-          <div className="max-w-7xl mx-auto px-4">
+        {/* Three Consistency Pillars */}
+        <section className="py-20 bg-[#141414]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                ✍️ Professional Screenplay Editor
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Professional Production Consistency
               </h2>
-              <p className="text-xl opacity-80 max-w-3xl mx-auto">
-                Industry-standard Fountain formatting with contextual navigation that keeps you in flow state. 
-                <strong className="text-[#DC143C]"> Write, visualize, and produce—all in one seamless workspace.</strong>
-              </p>
-              <p className="text-lg opacity-90 max-w-3xl mx-auto mt-4 px-4 py-3 bg-primary/10 rounded-lg border border-primary/20">
-                💡 <strong>Even if you never generate video:</strong> Free GitHub backup, auto-organization, 
-                and 5,000 AI rewrites make this worth trying. Everything else is a bonus.
+              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+                The only platform that maintains character, location, and prop consistency across every scene.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-              {/* Feature 1 */}
-              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-4xl mb-4">🎯</div>
-                  <h3 className="card-title mb-2">Contextual Navigation™</h3>
-                  <p className="opacity-80">
-                    Your cursor position syncs across every page. Jump from Scene 5 in the editor 
-                    to see Scene 5's characters instantly. Stay in flow state.
-                  </p>
-                  <div className="badge badge-primary mt-2">Exclusive to Wryda</div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* Character Consistency */}
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-4xl mb-4">👤</div>
+                <h3 className="text-xl font-bold mb-3">Character Consistency</h3>
+                <p className="text-gray-300 mb-4">
+                  Same character, same voice, same outfit across every scene. Virtual try-ons for wardrobe changes. One headshot → unlimited scenes.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Face consistency across all scenes</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Voice consistency with premade or cloned voices</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Outfit consistency with virtual try-ons</span>
+                  </li>
+                </ul>
               </div>
 
-              {/* Feature 2 */}
-              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-4xl mb-4">✨</div>
-                  <h3 className="card-title mb-2">AI Writing Agents</h3>
-                  <p className="opacity-80">
-                    Select text → AI rewrites it. Polish dialogue, expand scenes, improve pacing. 
-                    <strong className="text-primary"> Affordable pricing—1-5 credits per rewrite (50 free credits = 10-50 rewrites).</strong>
-                  </p>
-                  <div className="text-xs opacity-70 mt-2">💰 Quick polish: 1 credit | Complex scene: 5 credits</div>
-                </div>
+              {/* Location Consistency */}
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-4xl mb-4">📍</div>
+                <h3 className="text-xl font-bold mb-3">Location Consistency</h3>
+                <p className="text-gray-300 mb-4">
+                  Same location, multiple angles. Background consistency across shots. Upload once, use everywhere.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Multiple camera angles per location</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Background consistency across scenes</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Reuse locations across unlimited scenes</span>
+                  </li>
+                </ul>
               </div>
 
-              {/* Feature 3 */}
-              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-4xl mb-4">⚡</div>
-                  <h3 className="card-title mb-2">Industry-Standard Formatting</h3>
-                  <p className="opacity-80">
-                    Professional Fountain syntax with smart auto-formatting. 
-                    Tab for characters, Shift+Tab for scene headings. Export to PDF instantly.
-                  </p>
-                </div>
-              </div>
-
-              {/* Feature 4 */}
-              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-4xl mb-4">📊</div>
-                  <h3 className="card-title mb-2">Story Beat Integration</h3>
-                  <p className="opacity-80">
-                    Organize scenes with 8-act structure. Visual story flow overview 
-                    with proven beat sheets keeps your narrative on track.
-                  </p>
-                </div>
-              </div>
-
-              {/* Feature 5 */}
-              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-4xl mb-4">🎬</div>
-                  <h3 className="card-title mb-2">Scene Navigator</h3>
-                  <p className="opacity-80">
-                    Collapsible sidebar shows all scenes at a glance. 
-                    Auto-highlights current scene with character and location badges.
-                  </p>
-                </div>
-              </div>
-
-              {/* Feature 6 */}
-              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-4xl mb-4">📋</div>
-                  <h3 className="card-title mb-2">Import & Auto-Populate</h3>
-                  <p className="opacity-80">
-                    Paste any Fountain screenplay—it auto-extracts characters, locations, and scenes. 
-                    Instantly ready for video generation and production.
-                  </p>
-                  <div className="badge badge-primary mt-2">Works with Final Draft, Celtx, Fade In</div>
-                </div>
-              </div>
-
-              {/* Feature 7 */}
-              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-4xl mb-4">💾</div>
-                  <h3 className="card-title mb-2">Auto-Save + Free PDF Export</h3>
-                  <p className="opacity-80">
-                    Saves every 2 seconds automatically. Export to professional PDF 
-                    with custom watermarks—100% FREE, no plan gating.
-                  </p>
-                </div>
+              {/* Prop Consistency */}
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-4xl mb-4">🎬</div>
+                <h3 className="text-xl font-bold mb-3">Prop Consistency</h3>
+                <p className="text-gray-300 mb-4">
+                  Props stay consistent throughout. Digital prop department. Reuse across unlimited scenes.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>3D prop models for consistency</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Reuse props across scenes</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">•</span>
+                    <span>Digital asset library</span>
+                  </li>
+                </ul>
               </div>
             </div>
+          </div>
+        </section>
 
-            {/* Import Callout */}
-            <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-box p-8 mb-8 border-2 border-primary/20">
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                <div className="text-6xl">🚀</div>
-                <div className="flex-1 text-center md:text-left">
-                  <h3 className="text-2xl font-bold mb-2">Already Have a Script?</h3>
-                  <p className="text-lg opacity-90 mb-3">
-                    <strong>Paste your Fountain screenplay from Final Draft, Celtx, or Fade In</strong> and get instant value:
-                  </p>
-                  <div className="grid md:grid-cols-2 gap-4 mb-3">
-                    <div className="space-y-2">
-                      <div className="font-semibold text-sm opacity-70">🎬 Auto-Extract Everything:</div>
-                      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                        <div className="badge badge-sm badge-primary">👥 All Characters</div>
-                        <div className="badge badge-sm badge-secondary">📍 All Locations</div>
-                        <div className="badge badge-sm badge-accent">🎬 All Scenes</div>
-                        <div className="badge badge-sm badge-info">📊 Story Beats</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="font-semibold text-sm opacity-70">✨ AI Writing Agents (1-5 credits/use):</div>
-                      <div className="text-sm opacity-90">
-                        <strong className="text-primary">50 free credits = 10-50 AI rewrites.</strong> Polish dialogue, 
-                        expand scenes, fix grammar. Much more affordable than video generation.
-                      </div>
-                    </div>
+        {/* How It Works */}
+        <section className="py-20 bg-[#0A0A0A]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                How It Works
+              </h2>
+              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+                From screenplay to finished video in three simple steps.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
+                  1
+                </div>
+                <h3 className="text-xl font-bold mb-3">Write</h3>
+                <p className="text-gray-300">
+                  Write your screenplay or let AI help. Our specialized agents understand screenwriting and can teach you along the way.
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
+                  2
+                </div>
+                <h3 className="text-xl font-bold mb-3">Build</h3>
+                <p className="text-gray-300">
+                  Build your cast, locations, and props. Upload character images, define locations, and add props to your production hub.
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
+                  3
+                </div>
+                <h3 className="text-xl font-bold mb-3">Generate</h3>
+                <p className="text-gray-300">
+                  Generate complete scenes from your script. Our motion picture technology handles consistency automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* AI Writing Agents */}
+        <section className="py-20 bg-[#141414]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                AI Writing Agents
+              </h2>
+              <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-2">
+                5 Specialized Agents Powered by OpenAI, Anthropic, and Google
+              </p>
+              <p className="text-sm text-gray-400">
+                All agents understand your screenplay context and work together to help you write better scripts.
+              </p>
+            </div>
+
+            {/* Story Advisor - Featured */}
+            <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-8 mb-12">
+              <div className="flex items-start gap-4">
+                <div className="text-4xl">🌟</div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-2xl font-bold">Story Advisor</h3>
+                    <span className="px-2 py-1 bg-[#DC143C] text-white text-xs font-semibold rounded">Unique</span>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-4 mb-3">
-                    <div className="space-y-2">
-                      <div className="font-semibold text-sm opacity-70">📚 GitHub Backup (Free!):</div>
-                      <div className="text-sm opacity-90">
-                        Set up your GitHub repository in <strong className="text-primary">under 2 minutes</strong>. 
-                        Auto-save every 10 seconds. Full version history. Never lose your work again.
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="font-semibold text-sm opacity-70">📋 Export Options:</div>
-                      <div className="text-sm opacity-90">
-                        Professional PDF export with custom watermarks. Fountain format for screenplay. GitHub backup for version control.
-                        <strong className="text-primary"> All 100% FREE—no plan gating.</strong>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm opacity-70 italic">
-                    💡 Worth trying just for these three features alone. Video generation is pure bonus value.
+                  <p className="text-lg text-gray-300 mb-4">
+                    Reads your <strong className="text-white">entire screenplay</strong>. Analyzes structure across all acts, tracks character arcs throughout, identifies plot holes and inconsistencies.
                   </p>
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">&lt;2 min</div>
-                  <div className="text-sm opacity-80">To Full Backup</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Comparison */}
-            <div className="bg-base-300 rounded-box p-8 mb-8">
-              <h3 className="text-2xl font-bold text-center mb-6">Why Screenwriters Choose Wryda</h3>
-              <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 text-center">
-                <div>
-                  <div className="text-3xl font-bold text-[#DC143C] mb-2">$0</div>
-                  <div className="text-sm opacity-80">vs. $249 (Final Draft)</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-[#DC143C] mb-2">✨ AI Built-in</div>
-                  <div className="text-sm opacity-80">1-5 credits per rewrite</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-[#DC143C] mb-2">→ Video</div>
-                  <div className="text-sm opacity-80">Generate scenes from script</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-[#DC143C] mb-2">📋 Import</div>
-                  <div className="text-sm opacity-80">Paste & auto-populate</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-[#DC143C] mb-2">📚 GitHub</div>
-                  <div className="text-sm opacity-80">&lt;2 min to full backup</div>
+                  <p className="text-sm text-gray-400 italic mb-4">
+                    "Nothing like this exists for screenwriting. The Story Advisor holds your entire script in context and provides comprehensive analysis."
+                  </p>
+                  <ul className="space-y-2 text-sm text-gray-300">
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">✓</span>
+                      <span>Analyzes structure across all acts</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">✓</span>
+                      <span>Tracks character arcs throughout</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">✓</span>
+                      <span>Identifies plot holes and inconsistencies</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">✓</span>
+                      <span>Provides story-level feedback</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
 
-            {/* CTA */}
-            <div className="text-center">
-              <Link href="/sign-up" className="btn btn-primary btn-lg gap-2">
-                <span>Try the Editor Free</span>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Link>
-              <p className="text-sm opacity-60 mt-4">No credit card required • Start writing in seconds</p>
-              <p className="text-lg font-bold text-primary mt-4 max-w-2xl mx-auto">
-                Worth trying just for the free backup, organization, and AI writing tools. 
-                <br className="hidden sm:block" />
-                The video generation? That's just the icing on the cake. 🎂
+            {/* Other Agents Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">✍️</div>
+                <h3 className="text-lg font-bold mb-2">Screenwriter</h3>
+                <p className="text-sm text-gray-300">
+                  Continue scenes, expand dialogue, develop characters. Understands your screenplay context.
+                </p>
+              </div>
+
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">🎬</div>
+                <h3 className="text-lg font-bold mb-2">Director</h3>
+                <p className="text-sm text-gray-300">
+                  Generate full scenes with action, dialogue, and direction. Production-ready formatting.
+                </p>
+              </div>
+
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">💬</div>
+                <h3 className="text-lg font-bold mb-2">Dialogue</h3>
+                <p className="text-sm text-gray-300">
+                  Polish dialogue, match character voice, improve conversations. Character-aware rewriting.
+                </p>
+              </div>
+
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">✨</div>
+                <h3 className="text-lg font-bold mb-2">Rewrite</h3>
+                <p className="text-sm text-gray-300">
+                  Polish and refine. Fix pacing, improve clarity, enhance style. Professional editing.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="py-20 bg-[#0A0A0A]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Complete Production Platform
+              </h2>
+              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+                Everything you need to turn your screenplay into a movie.
               </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Feature Cards */}
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">👤</div>
+                <h3 className="text-lg font-bold mb-2">Character Images</h3>
+                <p className="text-sm text-gray-300">
+                  One headshot → unlimited scenes. Consistent characters across your entire production.
+                </p>
+              </div>
+
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">📍</div>
+                <h3 className="text-lg font-bold mb-2">Location Images</h3>
+                <p className="text-sm text-gray-300">
+                  Multiple angles per location. Consistent backgrounds across all scenes.
+                </p>
+              </div>
+
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">🎬</div>
+                <h3 className="text-lg font-bold mb-2">Prop Images</h3>
+                <p className="text-sm text-gray-300">
+                  Digital prop department. Reuse props across unlimited scenes.
+                </p>
+              </div>
+
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">🎥</div>
+                <h3 className="text-lg font-bold mb-2">Motion Picture Technology</h3>
+                <p className="text-sm text-gray-300">
+                  Generate complete scenes from your script. Professional video generation.
+                </p>
+              </div>
+
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">📖</div>
+                <h3 className="text-lg font-bold mb-2">Screenplay Readings</h3>
+                <p className="text-sm text-gray-300">
+                  AI voice actors read your script. Hear your dialogue come to life.
+                </p>
+              </div>
+
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">🎤</div>
+                <h3 className="text-lg font-bold mb-2">Voice Control</h3>
+                <p className="text-sm text-gray-300">
+                  Choose from premade voices or bring your own cloned voice.
+                </p>
+              </div>
+
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">☁️</div>
+                <h3 className="text-lg font-bold mb-2">Cloud Backup</h3>
+                <p className="text-sm text-gray-300">
+                  Automatic backup to Google Drive and Dropbox. Your screenplays and assets are always safe.
+                </p>
+              </div>
+
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">✍️</div>
+                <h3 className="text-lg font-bold mb-2">Screenplay Editor</h3>
+                <p className="text-sm text-gray-300">
+                  Professional Fountain format editor. Industry-standard formatting with AI assistance.
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Pricing Section */}
-        <Pricing />
+        <section id="pricing" className="py-20 bg-[#141414]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Everything is Free. You Only Pay for Credits.
+              </h2>
+              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+                All features unlocked. The only difference is credits per month.
+              </p>
+            </div>
 
-        {/* What You Get Section */}
-        <section className="py-16 px-8 max-w-7xl mx-auto">
-          <div className="text-center mb-12">
+            <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8 mb-8">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold mb-2">Free Tier</h3>
+                <p className="text-gray-300">50 credits to start + 10 credits/month</p>
+                <p className="text-sm text-gray-400 mt-2">Everything unlocked</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/sign-up"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors"
+                >
+                  Start Free
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors"
+                >
+                  See Full Pricing
+                </Link>
+              </div>
+            </div>
+
+            <Pricing />
+          </div>
+        </section>
+
+        {/* Social Proof / Early Access */}
+        <section className="py-20 bg-[#0A0A0A]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              What&apos;s Included (For Everyone)
+              Early Access - Join the Revolution
             </h2>
-            <p className="text-lg opacity-80">
-              Every tier gets full access. The only difference is credits per month.
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
+              We're building the future of AI-powered filmmaking. Be among the first to turn your screenplay into a movie.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="font-bold text-xl mb-4">🎬 Video Quality Tiers</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>Professional 1080p</strong> - 50 credits per 5s</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>Premium 4K</strong> - 75 credits per 5s</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>Ultra Native 4K</strong> - 150 credits per 5s</span>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-xl mb-4">📐 Aspect Ratios</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>16:9</strong> - Landscape (YouTube, Web)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>9:16</strong> - Vertical (TikTok, Reels)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>1:1</strong> - Square (Instagram)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>4:3</strong> - Classic (Facebook)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>21:9</strong> - Cinema (+15 credits)</span>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-xl mb-4">✨ All Features</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Professional Screenplay Editor</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Video Timeline Editor (8 tracks)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>65 Compositions + 30 Transitions (FREE)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>Text/Titles with Animations</strong> (12 templates, FREE)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span><strong>Upload Your Own Footage</strong> (FREE)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Character Bank (consistent characters)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>3D Model Export (500-1000 credits)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Voice Cloning (FREE - bring your ElevenLabs voice)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Cloud Storage (Drive/Dropbox)</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="text-center mt-12">
-            <p className="text-lg font-semibold text-[#DC143C]">
-              Free users get ALL of this. Pro/Ultra/Studio just get more credits.
-            </p>
+            <Link
+              href="/sign-up"
+              className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
+            >
+              Start Free - 50 Credits
+            </Link>
           </div>
         </section>
 
         {/* FAQ */}
-        <FAQ />
+        <section className="py-20 bg-[#141414]">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FAQ />
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
