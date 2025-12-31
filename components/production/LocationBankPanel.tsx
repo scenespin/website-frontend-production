@@ -185,7 +185,7 @@ export function LocationBankPanel({
                     referenceImages={allReferences.slice(1)}
                     referenceCount={allReferences.length}
                     metadata={location.angleVariations.length > 0 ? `${location.angleVariations.length} angles` : undefined}
-                    description={location.description}
+                    description={location.description && location.description !== 'Imported from script' ? location.description : undefined}
                     cardType="location"
                     onClick={() => {
                       setSelectedLocationId(location.locationId);
