@@ -24,6 +24,9 @@ export default function Features() {
               <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Features
               </Link>
+              <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Compare
+              </Link>
               <Link href="/#pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
               </Link>
@@ -125,24 +128,24 @@ export default function Features() {
                 <div className="text-4xl mb-4">🎬</div>
                 <h3 className="text-xl font-bold mb-3">Prop Consistency</h3>
                 <p className="text-gray-300 mb-4">
-                  Props stay consistent throughout. Digital prop department.
+                  Same prop, multiple angles. Background consistency across shots.
                 </p>
                 <ul className="space-y-2 text-sm text-gray-400">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>3D prop models for consistency</span>
+                    <span>Multiple angles per prop</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Reuse props across scenes</span>
+                    <span>Consistent appearance across scenes</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span>Reuse props across unlimited scenes</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
                     <span>Digital asset library</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Export to 3D formats (GLB/OBJ/USDZ)</span>
                   </li>
                 </ul>
               </div>
@@ -250,6 +253,11 @@ export default function Features() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FeatureCard
+                icon="✍️"
+                title="Screenplay Editor"
+                description="Professional Fountain format editor. Industry-standard format used by Final Draft, Celtx, and Fade In. Import/export compatible."
+              />
+              <FeatureCard
                 icon="👤"
                 title="Character Images"
                 description="One headshot → unlimited scenes. Consistent characters across your entire production."
@@ -262,7 +270,7 @@ export default function Features() {
               <FeatureCard
                 icon="🎬"
                 title="Prop Images"
-                description="Digital prop department. Reuse props across unlimited scenes."
+                description="Multiple angles per prop. Consistent appearance across scenes."
               />
               <FeatureCard
                 icon="🎥"
@@ -283,11 +291,6 @@ export default function Features() {
                 icon="☁️"
                 title="Cloud Backup"
                 description="Automatic backup to Google Drive and Dropbox. Your screenplays and assets are always safe."
-              />
-              <FeatureCard
-                icon="✍️"
-                title="Screenplay Editor"
-                description="Professional Fountain format editor. Industry-standard formatting with AI assistance."
               />
             </div>
           </div>

@@ -32,7 +32,7 @@ export default function ProductionPageGuide() {
 
         <article className="prose prose-lg max-w-none">
           <h1>🎬 Production Page - Complete Guide</h1>
-          <p className="lead">Your AI video generation hub. Generate professional videos with 58 pre-built workflows, including 7 cinema-grade HDR post-production workflows. Features script-based scene builder and character management - all seamlessly integrated with timeline editing.</p>
+          <p className="lead">Your AI video generation hub. Generate professional videos with Scene Builder, character management, and location/prop consistency - all seamlessly integrated with your screenplay.</p>
 
           <div className="alert alert-success my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

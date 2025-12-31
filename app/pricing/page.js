@@ -24,6 +24,9 @@ export default function PricingPage() {
               <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Features
               </Link>
+              <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Compare
+              </Link>
               <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
               </Link>
@@ -111,15 +114,15 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~60 Professional 1080p videos</span>
+                    <span>Generate complete scenes from screenplays</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~40 Premium 4K videos</span>
+                    <span>Create character & location angle packages</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~20 Ultra Native 4K videos</span>
+                    <span>Build production-ready content</span>
                   </li>
                 </ul>
                 <Link
@@ -146,15 +149,15 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~400 Professional 1080p videos</span>
+                    <span>High-volume scene generation</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~266 Premium 4K videos</span>
+                    <span>Extensive character & location libraries</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~133 Ultra Native 4K videos</span>
+                    <span>Multiple projects simultaneously</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -182,15 +185,15 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~1,500 Professional 1080p videos</span>
+                    <span>Enterprise-level production capacity</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~1,000 Premium 4K videos</span>
+                    <span>Unlimited character & location angle packages</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>~500 Ultra Native 4K videos</span>
+                    <span>Full feature film production capability</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -230,15 +233,19 @@ export default function PricingPage() {
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>5 professional quality videos</span>
+                    <span>Test scene generation workflows</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>25-50 AI images</span>
+                    <span>Create character & location angle packages</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>All quality tiers</span>
+                    <span>Generate AI images for production</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span>All quality tiers unlocked</span>
                   </li>
                 </ul>
                 <Link
@@ -262,11 +269,15 @@ export default function PricingPage() {
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>15 professional videos</span>
+                    <span>Generate multiple scenes from screenplays</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>75-150 AI images</span>
+                    <span>Build character & location libraries</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span>Create angle packages (3-10 angles each)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -291,11 +302,15 @@ export default function PricingPage() {
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>40+ professional videos</span>
+                    <span>Full production projects</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>200-400 AI images</span>
+                    <span>Complete character & location libraries</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span>Multiple angle packages (premium tiers)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -327,45 +342,48 @@ export default function PricingPage() {
 
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4">🎬 Video Generation</h3>
+                <h3 className="text-xl font-bold mb-4">🎬 Scene Generation</h3>
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li>
-                    <div className="font-semibold text-white mb-1">Professional 1080p</div>
-                    <div className="text-gray-400">50 credits per 5s • 100 credits per 10s</div>
+                    <div className="font-semibold text-white mb-1">Scene Builder</div>
+                    <div className="text-gray-400">Varies by complexity</div>
+                    <div className="text-xs text-gray-500 mt-1">50-400+ credits (shots, characters, dialogue)</div>
                   </li>
                   <li>
-                    <div className="font-semibold text-white mb-1">Premium 4K</div>
-                    <div className="text-gray-400">75 credits per 5s • 150 credits per 10s</div>
+                    <div className="font-semibold text-white mb-1">Video Generation</div>
+                    <div className="text-gray-400">50-150 credits per 5-10s</div>
+                    <div className="text-xs text-gray-500 mt-1">Professional 1080p to Ultra 4K</div>
                   </li>
                   <li>
-                    <div className="font-semibold text-white mb-1">Ultra Native 4K</div>
-                    <div className="text-gray-400">150 credits per 5s • 300 credits per 10s</div>
-                  </li>
-                  <li>
-                    <div className="font-semibold text-white mb-1">21:9 Cinema</div>
-                    <div className="text-gray-400">+15 credits per video</div>
+                    <div className="font-semibold text-white mb-1">Dialogue Scenes</div>
+                    <div className="text-gray-400">~150-400 credits per scene</div>
+                    <div className="text-xs text-gray-500 mt-1">Includes lip sync & audio</div>
                   </li>
                 </ul>
               </div>
 
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4">🖼️ Image Generation</h3>
+                <h3 className="text-xl font-bold mb-4">🖼️ Asset Generation</h3>
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li>
-                    <div className="font-semibold text-white mb-1">Fast Models</div>
-                    <div className="text-gray-400">1-5 credits per image</div>
+                    <div className="font-semibold text-white mb-1">Character Angle Packages</div>
+                    <div className="text-gray-400">60-200 credits</div>
+                    <div className="text-xs text-gray-500 mt-1">3-10 angles per package</div>
                   </li>
                   <li>
-                    <div className="font-semibold text-white mb-1">Standard Models</div>
-                    <div className="text-gray-400">5-15 credits per image</div>
+                    <div className="font-semibold text-white mb-1">Location Angle Packages</div>
+                    <div className="text-gray-400">60-200 credits</div>
+                    <div className="text-xs text-gray-500 mt-1">3-10 angles per package</div>
                   </li>
                   <li>
-                    <div className="font-semibold text-white mb-1">Premium Models</div>
-                    <div className="text-gray-400">20-50 credits per image</div>
+                    <div className="font-semibold text-white mb-1">Prop Angle Packages</div>
+                    <div className="text-gray-400">60-200 credits</div>
+                    <div className="text-xs text-gray-500 mt-1">3-10 angles per package</div>
                   </li>
                   <li>
-                    <div className="font-semibold text-white mb-1">Character/Location/Prop</div>
-                    <div className="text-gray-400">Varies by model</div>
+                    <div className="font-semibold text-white mb-1">Single Images</div>
+                    <div className="text-gray-400">15-50 credits</div>
+                    <div className="text-xs text-gray-500 mt-1">Varies by model</div>
                   </li>
                 </ul>
               </div>
@@ -379,11 +397,7 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>65 compositions, 30 transitions</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Screenplay + Timeline editor</span>
+                    <span>Screenplay editor</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>

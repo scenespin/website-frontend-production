@@ -76,14 +76,14 @@ export default function CreditsPage() {
                 </tr>
                 <tr>
                   <td><strong>Ultra</strong></td>
-                  <td>$99/mo</td>
-                  <td>12,000</td>
+                  <td>$149/mo</td>
+                  <td>20,000</td>
                   <td>17% better</td>
                 </tr>
                 <tr>
                   <td><strong>Studio</strong></td>
                   <td>$399/mo</td>
-                  <td>50,000</td>
+                  <td>75,000</td>
                   <td>20% better</td>
                 </tr>
               </tbody>
@@ -110,24 +110,19 @@ export default function CreditsPage() {
               </thead>
               <tbody>
                 <tr>
-                  <td><strong>Starter</strong></td>
-                  <td>1,000</td>
+                  <td><strong>Starter Pack</strong></td>
+                  <td>500</td>
                   <td>$10</td>
                 </tr>
                 <tr>
-                  <td><strong>Creator</strong></td>
-                  <td>5,000</td>
-                  <td>$50</td>
+                  <td><strong>Booster Pack</strong></td>
+                  <td>1,500</td>
+                  <td>$25</td>
                 </tr>
                 <tr>
-                  <td><strong>Pro</strong></td>
-                  <td>10,000</td>
-                  <td>$100</td>
-                </tr>
-                <tr>
-                  <td><strong>Studio</strong></td>
-                  <td>50,000</td>
-                  <td>$500</td>
+                  <td><strong>Mega Pack</strong></td>
+                  <td>4,000</td>
+                  <td>$60</td>
                 </tr>
               </tbody>
             </table>
@@ -195,66 +190,78 @@ export default function CreditsPage() {
             </table>
           </div>
 
-          <h3>Multi-Format Bundles</h3>
-          <div className="overflow-x-auto my-6">
-            <table className="table table-zebra">
-              <thead>
-                <tr>
-                  <th>Bundle</th>
-                  <th>Formats</th>
-                  <th>Credits</th>
-                  <th>Save</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>Social</strong></td>
-                  <td>16:9, 9:16, 1:1</td>
-                  <td>120</td>
-                  <td>30cr</td>
-                </tr>
-                <tr>
-                  <td><strong>Filmmaker</strong></td>
-                  <td>16:9, 21:9</td>
-                  <td>100</td>
-                  <td>15cr</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>Dialogue Generation</h3>
+          <h3>Scene Builder</h3>
           <div className="overflow-x-auto my-6">
             <table className="table table-zebra">
               <thead>
                 <tr>
                   <th>Type</th>
-                  <th>Duration</th>
+                  <th>Complexity</th>
                   <th>Credits</th>
                   <th>USD</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Standard</td>
-                  <td>≤8 sec</td>
-                  <td>400</td>
-                  <td>$4.00</td>
+                  <td>Simple Scene</td>
+                  <td>1-2 shots, no dialogue</td>
+                  <td>50-100</td>
+                  <td>$0.50-$1.00</td>
                 </tr>
                 <tr>
-                  <td>Extended</td>
-                  <td>9-12 sec</td>
-                  <td>700</td>
-                  <td>$7.00</td>
+                  <td>Dialogue Scene</td>
+                  <td>With characters & dialogue</td>
+                  <td>150-400</td>
+                  <td>$1.50-$4.00</td>
                 </tr>
                 <tr>
-                  <td>Cinema (+21:9)</td>
-                  <td>+8 sec</td>
-                  <td>+50</td>
-                  <td>+$0.50</td>
+                  <td>Complex Scene</td>
+                  <td>Multiple shots, characters, locations</td>
+                  <td>200-400+</td>
+                  <td>$2.00-$4.00+</td>
                 </tr>
               </tbody>
             </table>
+            <p className="text-sm opacity-70 mt-2">
+              <strong>Note:</strong> Scene Builder automatically calculates credits based on your scene's complexity, number of shots, characters, and dialogue.
+            </p>
+          </div>
+
+          <h3>Angle Packages</h3>
+          <div className="overflow-x-auto my-6">
+            <table className="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Package</th>
+                  <th>Angles</th>
+                  <th>Credits</th>
+                  <th>USD</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Basic</td>
+                  <td>3 angles</td>
+                  <td>60</td>
+                  <td>$0.60</td>
+                </tr>
+                <tr>
+                  <td>Standard</td>
+                  <td>6 angles</td>
+                  <td>120</td>
+                  <td>$1.20</td>
+                </tr>
+                <tr>
+                  <td>Premium</td>
+                  <td>10 angles</td>
+                  <td>200</td>
+                  <td>$2.00</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="text-sm opacity-70 mt-2">
+              Available for: Characters, Locations, and Props
+            </p>
           </div>
 
           <h3>Image Generation</h3>
@@ -293,30 +300,32 @@ export default function CreditsPage() {
               <div className="card-body">
                 <h3 className="card-title text-base">1. Start with Free</h3>
                 <ul className="text-sm space-y-1">
-                  <li>50 signup credits = 1 Professional video</li>
-                  <li>Test the platform</li>
-                  <li>Learn what works</li>
+                  <li>50 signup credits to test Scene Builder</li>
+                  <li>Try character/location angle packages</li>
+                  <li>Learn the platform</li>
                   <li>Upgrade when ready</li>
                 </ul>
               </div>
             </div>
             <div className="card bg-base-200">
               <div className="card-body">
-                <h3 className="card-title text-base">2. Use Professional Tier for Testing</h3>
+                <h3 className="card-title text-base">2. Build Your Asset Library</h3>
                 <ul className="text-sm space-y-1">
-                  <li>Cheapest option (50cr)</li>
-                  <li>Test prompts</li>
-                  <li>Verify results</li>
-                  <li>Then upgrade to Ultra for final</li>
+                  <li>Create character angle packages (60-200cr)</li>
+                  <li>Create location angle packages (60-200cr)</li>
+                  <li>Reuse across unlimited scenes</li>
+                  <li>One-time investment, lifetime use</li>
                 </ul>
               </div>
             </div>
             <div className="card bg-base-200">
               <div className="card-body">
-                <h3 className="card-title text-base">3. Use Bundles</h3>
+                <h3 className="card-title text-base">3. Start Simple, Scale Up</h3>
                 <ul className="text-sm space-y-1">
-                  <li>Social Bundle: 120cr for 3 formats</li>
-                  <li>Save 30cr vs generating separately</li>
+                  <li>Simple scenes: 50-100 credits</li>
+                  <li>Add complexity as you learn</li>
+                  <li>Dialogue scenes: 150-400 credits</li>
+                  <li>Complex scenes: 200-400+ credits</li>
                 </ul>
               </div>
             </div>
@@ -324,9 +333,10 @@ export default function CreditsPage() {
               <div className="card-body">
                 <h3 className="card-title text-base">4. Subscribe if Regular User</h3>
                 <ul className="text-sm space-y-1">
-                  <li>Pro: 3,000cr/mo = 60 videos</li>
+                  <li>Pro: 3,000cr/month</li>
                   <li>Better value than packs</li>
-                  <li>Plus exclusive features</li>
+                  <li>Credits roll over (up to plan limit)</li>
+                  <li>Cancel anytime</li>
                 </ul>
               </div>
             </div>
@@ -353,8 +363,8 @@ export default function CreditsPage() {
 
           <ul>
             <li>Pro: Roll over up to 3,000cr</li>
-            <li>Ultra: Roll over up to 12,000cr</li>
-            <li>Studio: Roll over up to 50,000cr</li>
+            <li>Ultra: Roll over up to 20,000cr</li>
+            <li>Studio: Roll over up to 75,000cr</li>
           </ul>
 
           <h3>Example:</h3>
@@ -362,7 +372,7 @@ export default function CreditsPage() {
             <li>Pro plan (3,000cr/month)</li>
             <li>Month 1: Use 2,000cr → Bank 1,000cr</li>
             <li>Month 2: Get 3,000cr → Total 4,000cr available</li>
-            <li>Month 3: Get 3,000cr → Capped at 6,000cr total</li>
+            <li>Month 3: Get 3,000cr → Capped at 3,000cr total (plan limit)</li>
           </ul>
 
           <h2>What&apos;s NOT Limited by Credits</h2>
@@ -372,11 +382,11 @@ export default function CreditsPage() {
                 <h3 className="card-title text-base">Always Free:</h3>
                 <ul className="text-sm space-y-1">
                   <li>✅ Screenplay editor (unlimited writing)</li>
-                  <li>✅ Timeline editor (unlimited editing)</li>
+                  <li>✅ All AI writing agents (5 agents)</li>
                   <li>✅ Project storage (unlimited projects)</li>
-                  <li>✅ Exports (download any format)</li>
-                  <li>✅ Collaboration features</li>
-                  <li>✅ Version control (GitHub)</li>
+                  <li>✅ Cloud Storage (Google Drive, Dropbox)</li>
+                  <li>✅ All quality tiers & aspect ratios</li>
+                  <li>✅ Project management & organization</li>
                 </ul>
               </div>
             </div>
@@ -384,10 +394,11 @@ export default function CreditsPage() {
               <div className="card-body">
                 <h3 className="card-title text-base">Credits Only For:</h3>
                 <ul className="text-sm space-y-1">
-                  <li>❌ AI video generation</li>
-                  <li>❌ AI image generation</li>
-                  <li>❌ AI dialogue generation</li>
-                  <li>❌ AI audio/music generation</li>
+                  <li>❌ Scene Builder (scene generation)</li>
+                  <li>❌ Video generation</li>
+                  <li>❌ Image generation</li>
+                  <li>❌ Angle packages (character/location/prop)</li>
+                  <li>❌ Dialogue generation (lip sync & audio)</li>
                 </ul>
               </div>
             </div>

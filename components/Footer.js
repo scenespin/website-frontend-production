@@ -63,6 +63,9 @@ const Footer = () => {
                 <Link href="/features" className="link link-hover">
                   Features
                 </Link>
+                <Link href="/compare" className="link link-hover">
+                  Compare
+                </Link>
               </div>
             </div>
 

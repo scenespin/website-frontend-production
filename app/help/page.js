@@ -77,7 +77,7 @@ export default function HelpCenter() {
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">🎬</div>
                     <h3 className="font-bold text-base">2. Production</h3>
-                    <p className="text-xs opacity-70">58 workflows, scene builder, characters & locations</p>
+                    <p className="text-xs opacity-70">Scene builder, characters & locations</p>
                     <div className="badge badge-sm badge-secondary mt-2">GENERATE</div>
                   </div>
                 </Link>
@@ -168,10 +168,10 @@ export default function HelpCenter() {
               time="15 min read"
             />
             <HelpArticleCard
-              href="/help/workflows"
-              title="AI Workflows Guide"
-              description="Use 58 pre-built professional workflows"
-              time="10 min read"
+              href="/help/fountain-format"
+              title="Fountain Format Deep Dive"
+              description="Why Fountain format gives you better AI results"
+              time="8 min read"
             />
           </div>
         </section>
