@@ -74,16 +74,6 @@ interface ShotConfigurationPanelProps {
   // Pronoun extras prompts (for skipped pronouns)
   pronounExtrasPrompts?: Record<string, string>; // { pronoun: prompt text }
   onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
-  // Model Style Selector (per-shot override - resolution is global only, set in review)
-  globalStyle?: ModelStyle; // Global style (from Step 1)
-  shotStyle?: ModelStyle; // Per-shot style override
-  onStyleChange?: (shotSlot: number, style: ModelStyle | undefined) => void; // undefined = use global
-  // Camera Angle (per-shot)
-  shotCameraAngle?: CameraAngle; // Per-shot camera angle (defaults to 'auto')
-  onCameraAngleChange?: (shotSlot: number, angle: CameraAngle | undefined) => void; // undefined = use 'auto'
-  // Shot Duration (per-shot)
-  shotDuration?: ShotDuration; // Per-shot duration (defaults to 'quick-cut' = ~5s)
-  onDurationChange?: (shotSlot: number, duration: ShotDuration | undefined) => void; // undefined = use 'quick-cut'
   // Props Configuration (per-shot)
   sceneProps?: Array<{ 
     id: string; 
@@ -135,13 +125,6 @@ export function ShotConfigurationPanel({
   onDialogueWorkflowPromptChange,
   pronounExtrasPrompts = {},
   onPronounExtrasPromptChange,
-  globalStyle = 'auto',
-  shotStyle,
-  onStyleChange,
-  shotCameraAngle,
-  onCameraAngleChange,
-  shotDuration,
-  onDurationChange,
   sceneProps = [],
   propsToShots = {},
   onPropsToShotsChange,
@@ -614,7 +597,7 @@ export function ShotConfigurationPanel({
           <div className="mb-3">
             <div className="text-xs font-medium text-[#FFFFFF] mb-1">Which Character?</div>
             <div className="text-[10px] text-[#808080]">
-              The script uses words like 'she', 'he', and 'they'. Select which character each word refers to.
+              Select which character each word in the script refers to.
             </div>
           </div>
           {/* Show message for Narrate Shot (scene-voiceover) about adding characters */}
@@ -703,7 +686,7 @@ export function ShotConfigurationPanel({
                               {renderCharacterImagesOnly(char.id, shot.slot, characterToPronouns.get(char.id)?.map(p => `"${p}"`) || [`"${pronoun}"`])}
                               {characterToPronouns.get(char.id)!.length > 1 && (
                                 <div className="text-[10px] text-[#808080] mt-2 italic">
-                                  This character is mapped to multiple pronouns: {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')}
+                                  This character is mapped to: {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')}
                                 </div>
                               )}
                             </div>
@@ -711,7 +694,7 @@ export function ShotConfigurationPanel({
                           {char && alreadyRendered && (
                             <div className="mt-3">
                               <div className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
-                                Character "{char.name}" images shown above (mapped to {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')})
+                                Character "{char.name}" images shown above (mapped to: {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')})
                               </div>
                             </div>
                           )}
@@ -814,100 +797,6 @@ export function ShotConfigurationPanel({
         </div>
       )}
 
-      {/* Model Style and Camera Angle - Moved to bottom before navigation */}
-      <div className="pt-3 border-t border-[#3F3F46] space-y-3">
-        {/* Model Style Override Section (Resolution is global only, set in review step) */}
-        {onStyleChange && (
-          <div>
-            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Model Style</div>
-            <select
-              value={shotStyle || globalStyle}
-              onChange={(e) => {
-                const style = e.target.value as ModelStyle;
-                if (style === globalStyle) {
-                  onStyleChange?.(shot.slot, undefined); // Remove override
-                } else {
-                  onStyleChange(shot.slot, style);
-                }
-              }}
-              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-            >
-              <option value={globalStyle}>Using default: {globalStyle}</option>
-              <option value="auto">Auto (Content-aware)</option>
-              <option value="cinematic">Cinematic</option>
-              <option value="photorealistic">Photorealistic</option>
-            </select>
-            {shotStyle && shotStyle !== globalStyle && (
-              <div className="text-[10px] text-[#808080] italic mt-1">
-                Override: Using {shotStyle} instead of default ({globalStyle})
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Camera Angle Section */}
-        {onCameraAngleChange && (
-          <div>
-            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Camera Angle</div>
-            <select
-              value={shotCameraAngle || 'auto'}
-              onChange={(e) => {
-                const angle = e.target.value as CameraAngle;
-                if (angle === 'auto') {
-                  onCameraAngleChange(shot.slot, undefined); // Remove override
-                } else {
-                  onCameraAngleChange(shot.slot, angle);
-                }
-              }}
-              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-            >
-              <option value="auto">Auto (Content-aware) - Default</option>
-              <option value="close-up">Close-up</option>
-              <option value="medium-shot">Medium Shot</option>
-              <option value="wide-shot">Wide Shot</option>
-              <option value="extreme-close-up">Extreme Close-up</option>
-              <option value="extreme-wide-shot">Extreme Wide Shot</option>
-              <option value="over-the-shoulder">Over-the-Shoulder</option>
-              <option value="low-angle">Low Angle</option>
-              <option value="high-angle">High Angle</option>
-              <option value="dutch-angle">Dutch Angle</option>
-            </select>
-            {shotCameraAngle && shotCameraAngle !== 'auto' && (
-              <div className="text-[10px] text-[#808080] italic mt-1">
-                Override: Using {shotCameraAngle.replace('-', ' ')} instead of auto-detection
-              </div>
-            )}
-            {!shotCameraAngle && (
-              <div className="text-[10px] text-[#808080] italic mt-1">
-                Using auto-detection (content-aware selection)
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Shot Duration Section - Moved after Camera Angle */}
-        {onDurationChange && (
-          <div>
-            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Duration</div>
-            <select
-              value={shotDuration || 'quick-cut'}
-              onChange={(e) => {
-                const duration = e.target.value as ShotDuration;
-                onDurationChange(shot.slot, duration);
-              }}
-              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-            >
-              <option value="quick-cut">Quick Cut (~5s)</option>
-              <option value="extended-take">Extended Take (~10s)</option>
-            </select>
-            <div className="text-[10px] text-[#808080] italic mt-1">
-              {shotDuration === 'quick-cut' 
-                ? 'Quick Cut: 4-5 seconds (default)'
-                : 'Extended Take: 8-10 seconds'}
-            </div>
-          </div>
-        )}
-      </div>
 
     </div>
   );

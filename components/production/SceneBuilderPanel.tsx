@@ -3286,19 +3286,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                       return updated;
                     });
                   }}
-                  globalStyle={globalStyle}
-                  shotStyle={shotStyles[currentShot.slot]}
-                  onStyleChange={(shotSlot, style) => {
-                    if (style === undefined) {
-                      setShotStyles(prev => {
-                        const updated = { ...prev };
-                        delete updated[shotSlot];
-                        return updated;
-                      });
-                    } else {
-                      setShotStyles(prev => ({ ...prev, [shotSlot]: style }));
-                    }
-                  }}
                   shotCameraAngle={shotCameraAngles[currentShot.slot]}
                   onCameraAngleChange={(shotSlot, angle) => {
                     if (angle === undefined) {

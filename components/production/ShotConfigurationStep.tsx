@@ -67,14 +67,10 @@ interface ShotConfigurationStepProps {
   // Pronoun extras
   pronounExtrasPrompts?: Record<string, string>;
   onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
-  // Model Style (global only, no per-shot resolution)
-  globalStyle?: 'cinematic' | 'photorealistic' | 'auto';
-  shotStyle?: 'cinematic' | 'photorealistic' | 'auto';
-  onStyleChange?: (shotSlot: number, style: 'cinematic' | 'photorealistic' | 'auto' | undefined) => void;
-  // Camera Angle
+  // Camera Angle (moved to Video Generation section)
   shotCameraAngle?: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto';
   onCameraAngleChange?: (shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => void;
-  // Shot Duration
+  // Shot Duration (moved to Video Generation section)
   shotDuration?: 'quick-cut' | 'extended-take';
   onDurationChange?: (shotSlot: number, duration: 'quick-cut' | 'extended-take' | undefined) => void;
   // Props
@@ -146,9 +142,6 @@ export function ShotConfigurationStep({
   onDialogueWorkflowPromptChange,
   pronounExtrasPrompts = {},
   onPronounExtrasPromptChange,
-  globalStyle = 'auto',
-  shotStyle,
-  onStyleChange,
   shotCameraAngle,
   onCameraAngleChange,
   shotDuration,
@@ -494,13 +487,6 @@ export function ShotConfigurationStep({
             onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
             pronounExtrasPrompts={pronounExtrasPrompts}
             onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-            globalStyle={globalStyle}
-            shotStyle={shotStyle}
-            onStyleChange={onStyleChange}
-            shotCameraAngle={shotCameraAngle}
-            onCameraAngleChange={onCameraAngleChange}
-            shotDuration={shotDuration}
-            onDurationChange={onDurationChange}
             sceneProps={sceneProps}
             propsToShots={propsToShots}
             onPropsToShotsChange={onPropsToShotsChange}
@@ -509,7 +495,91 @@ export function ShotConfigurationStep({
             onPropImageChange={onPropImageChange}
           />
 
-          {/* Cost Calculator - Prices from backend (margins hidden) */}
+          {/* Reference Shot (First Frame) Model Selection */}
+          {onReferenceShotModelChange && (
+            <>
+              <ReferenceShotSelector
+                shotSlot={shot.slot}
+                selectedModel={selectedReferenceShotModel[shot.slot]}
+                onModelChange={onReferenceShotModelChange}
+              />
+              {/* Reference Preview - Shows what references will be used for this shot (directly under Reference Shot) */}
+              {(() => {
+                // Collect references for this shot
+                const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
+                
+                // Character references
+                const shotCharacters = selectedCharactersForShots[shot.slot] || [];
+                shotCharacters.forEach(charId => {
+                  const char = allCharacters.find(c => c.id === charId);
+                  if (char) {
+                    const charRef = selectedCharacterReferences[shot.slot]?.[charId];
+                    if (charRef?.imageUrl) {
+                      references.push({
+                        type: 'character',
+                        imageUrl: charRef.imageUrl,
+                        label: char.name || `Character ${charId}`,
+                        id: `char-${charId}`
+                      });
+                    }
+                  }
+                });
+                
+                // Location reference
+                const locationRef = selectedLocationReferences[shot.slot];
+                if (locationRef?.imageUrl) {
+                  const location = sceneProps.find(loc => loc.id === shot.locationId);
+                  references.push({
+                    type: 'location',
+                    imageUrl: locationRef.imageUrl,
+                    label: location?.name || 'Location',
+                    id: `loc-${shot.slot}`
+                  });
+                }
+                
+                // Prop references
+                const shotPropsForThisShot = sceneProps.filter(prop => 
+                  propsToShots[prop.id]?.includes(shot.slot)
+                );
+                shotPropsForThisShot.forEach(prop => {
+                  const propConfig = shotProps[shot.slot]?.[prop.id];
+                  if (propConfig?.selectedImageId) {
+                    const propImage = prop.images?.find(img => img.s3Key === propConfig.selectedImageId);
+                    if (propImage?.url) {
+                      references.push({
+                        type: 'prop',
+                        imageUrl: propImage.url,
+                        label: prop.name,
+                        id: `prop-${prop.id}`
+                      });
+                    }
+                  }
+                });
+                
+                return references.length > 0 ? (
+                  <ReferencePreview references={references} className="mt-2 mb-3" />
+                ) : null;
+              })()}
+            </>
+          )}
+
+          {/* Video Generation Selection */}
+          {onVideoTypeChange && onVideoQualityChange && (
+            <VideoGenerationSelector
+              shotSlot={shot.slot}
+              shotType={shot.type}
+              selectedVideoType={selectedVideoType[shot.slot]}
+              selectedQuality={selectedVideoQuality[shot.slot]}
+              onVideoTypeChange={onVideoTypeChange}
+              onQualityChange={onVideoQualityChange}
+              shotCameraAngle={shotCameraAngle}
+              onCameraAngleChange={onCameraAngleChange}
+              shotDuration={shotDuration}
+              onDurationChange={onDurationChange}
+            />
+          )}
+
+          {/* Cost Calculator - Prices from backend (margins hidden) - Moved after Video Generation */}
           {pricing && (
             <div className="pt-3 border-t border-[#3F3F46]">
               <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
@@ -533,85 +603,6 @@ export function ShotConfigurationStep({
               <div className="text-xs text-[#808080]">Loading pricing...</div>
             </div>
           )}
-
-          {/* Reference Shot (First Frame) Model Selection */}
-          {onReferenceShotModelChange && (
-            <ReferenceShotSelector
-              shotSlot={shot.slot}
-              selectedModel={selectedReferenceShotModel[shot.slot]}
-              onModelChange={onReferenceShotModelChange}
-            />
-          )}
-
-          {/* Video Generation Selection */}
-          {onVideoTypeChange && onVideoQualityChange && (
-            <VideoGenerationSelector
-              shotSlot={shot.slot}
-              shotType={shot.type}
-              selectedVideoType={selectedVideoType[shot.slot]}
-              selectedQuality={selectedVideoQuality[shot.slot]}
-              onVideoTypeChange={onVideoTypeChange}
-              onQualityChange={onVideoQualityChange}
-            />
-          )}
-
-          {/* Reference Preview - Shows what references will be used for this shot */}
-          {(() => {
-            // Collect references for this shot
-            const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
-            
-            // Character references
-            const shotCharacters = selectedCharactersForShots[shot.slot] || [];
-            shotCharacters.forEach(charId => {
-              const char = allCharacters.find(c => c.id === charId);
-              if (char) {
-                const charRef = selectedCharacterReferences[shot.slot]?.[charId];
-                if (charRef?.imageUrl) {
-                  references.push({
-                    type: 'character',
-                    imageUrl: charRef.imageUrl,
-                    label: char.name || `Character ${charId}`,
-                    id: `char-${charId}`
-                  });
-                }
-              }
-            });
-            
-            // Location reference
-            const locationRef = selectedLocationReferences[shot.slot];
-            if (locationRef?.imageUrl) {
-              const location = sceneProps.find(loc => loc.id === shot.locationId);
-              references.push({
-                type: 'location',
-                imageUrl: locationRef.imageUrl,
-                label: location?.name || 'Location',
-                id: `loc-${shot.slot}`
-              });
-            }
-            
-            // Prop references
-            const shotPropsForThisShot = sceneProps.filter(prop => 
-              propsToShots[prop.id]?.includes(shot.slot)
-            );
-            shotPropsForThisShot.forEach(prop => {
-              const propConfig = shotProps[shot.slot]?.[prop.id];
-              if (propConfig?.selectedImageId) {
-                const propImage = prop.images?.find(img => img.s3Key === propConfig.selectedImageId);
-                if (propImage?.url) {
-                  references.push({
-                    type: 'prop',
-                    imageUrl: propImage.url,
-                    label: prop.name,
-                    id: `prop-${prop.id}`
-                  });
-                }
-              }
-            });
-            
-            return references.length > 0 ? (
-              <ReferencePreview references={references} className="mb-3" />
-            ) : null;
-          })()}
 
           {/* Navigation Buttons */}
           <div className="flex gap-3 pt-3 pb-12 border-t border-[#3F3F46]">

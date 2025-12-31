@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, Check } from 'lucide-react';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 
@@ -175,30 +174,14 @@ export function PronounMappingSection({
 
   return (
     <div className="space-y-3">
-      {/* Warning Message */}
-      <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-3 flex items-start gap-2">
-        <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <p className="text-xs font-medium text-yellow-200">
-            Pronouns detected: "{pronouns.join('", "')}"
-          </p>
-          <p className="text-[10px] text-yellow-300/80 mt-1">
-            Please map each pronoun to a character below.
-          </p>
-        </div>
-      </div>
-
-      {/* Pronoun Mapping Dropdowns */}
+      {/* Character Mapping Dropdowns */}
       <div className="space-y-3">
-        <div className="text-xs font-medium text-[#FFFFFF] mb-2">
-          Map Pronouns to Characters{pluralPronounsList.length > 0 ? ` (up to ${maxTotalCharacters} total)` : ''}
-        </div>
         
-        {/* Singular Pronouns Section */}
+        {/* Single Character Section */}
         {singularPronouns.length > 0 && (
           <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
             <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
-              Singular Pronouns
+              Single Character
             </div>
             {singularPronouns.map((pronoun) => {
               const pronounLower = pronoun.toLowerCase();
@@ -271,7 +254,7 @@ export function PronounMappingSection({
                             />
                             <div className={`text-[10px] mt-1 ${isEmpty ? 'text-[#DC143C]' : 'text-[#808080] italic'}`}>
                               {isEmpty 
-                                ? '⚠️ Description is required when skipping pronoun mapping.'
+                                ? '⚠️ Description is required when skipping.'
                                 : 'This description will be used in image and video generation prompts.'}
                             </div>
                             {!isEmpty && (
@@ -319,11 +302,11 @@ export function PronounMappingSection({
           </div>
         )}
         
-        {/* Plural Pronouns Section */}
+        {/* Multiple Characters Section */}
         {pluralPronounsList.length > 0 && (
           <div className="space-y-3">
             <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
-              Plural Pronouns
+              Multiple Characters
             </div>
             {pluralPronounsList.map((pronoun) => {
               const pronounLower = pronoun.toLowerCase();
@@ -341,7 +324,6 @@ export function PronounMappingSection({
                   <div className="space-y-2">
                     <label className="block text-xs text-[#808080]">
                       "{pronoun}"
-                      <span className="text-[10px] text-[#DC143C] ml-1">(plural)</span>
                     </label>
                     {/* Checkbox-based multi-select for plural pronouns */}
                     <div className="space-y-2">
@@ -530,7 +512,7 @@ export function PronounMappingSection({
       {allMapped && (
         <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-2 flex items-center gap-2">
           <span className="text-[10px] text-green-300">
-            ✓ All pronouns mapped
+            ✓ All words mapped
           </span>
         </div>
       )}

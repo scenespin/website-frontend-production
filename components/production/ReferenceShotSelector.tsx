@@ -46,7 +46,7 @@ export function ReferenceShotSelector({
   const currentModel = models.find(m => m.id === selectedModel) || models[0];
 
   return (
-    <div className="pb-3 border-b border-[#3F3F46]">
+    <div className="pb-3">
       <div className="text-xs font-medium text-[#FFFFFF] mb-2">Reference Shot</div>
       <div className="space-y-2">
         <Select
