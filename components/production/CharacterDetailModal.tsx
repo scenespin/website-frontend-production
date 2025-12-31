@@ -588,7 +588,20 @@ export function CharacterDetailModal({
   
   // 🔥 FALLBACK: Use character prop images if not in Media Library (for backward compatibility)
   const fallbackImages = useMemo(() => {
-    const fallback: typeof userReferences = [];
+    const fallback: Array<{
+      id: string;
+      imageUrl: string;
+      s3Key: string;
+      label: string;
+      isBase: boolean;
+      isPose: boolean;
+      outfitName?: string;
+      poseId?: string;
+      isRegenerated?: boolean;
+      regeneratedFrom?: string;
+      metadata?: any;
+      index: number;
+    }> = [];
     const mediaLibraryS3KeysSet = new Set(mediaLibraryS3Keys);
     
     // Check baseReference
