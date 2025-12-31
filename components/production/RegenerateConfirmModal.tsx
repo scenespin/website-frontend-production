@@ -15,7 +15,7 @@ interface RegenerateConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  imageType?: 'pose' | 'angle' | 'asset'; // Type of image being regenerated
+  imageType?: 'pose' | 'angle' | 'asset' | 'background'; // Type of image being regenerated
 }
 
 export function RegenerateConfirmModal({
@@ -60,7 +60,7 @@ export function RegenerateConfirmModal({
                     <AlertTriangle className="w-5 h-5 text-[#DC143C]" />
                   </div>
                   <h3 className="text-lg font-semibold text-white">
-                    Regenerate {imageType === 'pose' ? 'Pose' : imageType === 'angle' ? 'Angle' : imageType === 'asset' ? 'Asset' : 'Image'}?
+                    Regenerate {imageType === 'pose' ? 'Pose' : imageType === 'angle' ? 'Angle' : imageType === 'asset' ? 'Asset' : imageType === 'background' ? 'Background' : 'Image'}?
                   </h3>
                 </div>
                 <button
@@ -74,7 +74,7 @@ export function RegenerateConfirmModal({
               {/* Message */}
               <div className="mb-6">
                 <p className="text-[#D1D5DB] text-sm leading-relaxed">
-                  ⚠️ Regenerating this {imageType === 'pose' ? 'pose' : imageType === 'angle' ? 'angle' : imageType === 'asset' ? 'asset angle' : 'image'} will replace the existing one. The current image will be overwritten.
+                  ⚠️ Regenerating this {imageType === 'pose' ? 'pose' : imageType === 'angle' ? 'angle' : imageType === 'asset' ? 'asset angle' : imageType === 'background' ? 'background' : 'image'} will replace the existing one. The current image will be overwritten.
                 </p>
                 <p className="text-[#9CA3AF] text-sm mt-3">
                   If you'd like to keep it, please download it before regenerating.
