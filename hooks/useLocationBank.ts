@@ -48,6 +48,30 @@ export interface LocationReference {
   };
 }
 
+export interface LocationBackground {
+  id: string;
+  imageUrl: string;
+  s3Key: string; // Temporary storage with 7-day expiration (or current S3 key if not migrated)
+  // Cloud storage migration (Feature 0143) - Media Library is source of truth
+  cloudStorageLocation?: 'google-drive' | 'dropbox'; // Where file is permanently stored (from Media Library)
+  cloudFileId?: string; // File ID in cloud storage (Google Drive file ID or Dropbox path) (from Media Library)
+  backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
+  description?: string;
+  sourceType?: 'reference-images' | 'angle-variations';
+  sourceAngleId?: string;
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
+  generationMethod: 'ai-generated' | 'angle-crop' | 'upload';
+  creditsUsed: number;
+  createdAt: string;
+  metadata?: {
+    generationPrompt?: string;
+    providerId?: string;
+    quality?: 'standard' | 'high-quality';
+    sourceAngleIds?: string[];
+  };
+}
+
 export interface LocationProfile {
   locationId: string;
   screenplayId: string;
@@ -57,6 +81,7 @@ export interface LocationProfile {
   description: string;
   baseReference: LocationReference;
   angleVariations: LocationReference[];
+  backgrounds?: LocationBackground[]; // Background images for close-up shots
   totalCreditsSpent?: number;
   consistencyRating?: number;
   createdAt: string;
