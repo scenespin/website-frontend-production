@@ -31,6 +31,8 @@ export interface MediaFile {
   folderPath?: string[]; // Feature 0128: Breadcrumb path array for folder navigation
   metadata?: Record<string, any>; // Feature 0170: Generation metadata (entityType, sceneId, etc.)
   thumbnailS3Key?: string; // Feature 0174: Thumbnail S3 key (if thumbnail exists)
+  isArchived?: boolean; // Feature: Archive instead of delete - preserves history and metadata
+  archivedAt?: string; // Timestamp when file was archived
 }
 
 /**
