@@ -49,7 +49,7 @@ import { TrackHeader } from './TrackHeader';
 import { ExportModal, ExportSettings } from './ExportModal';  // NEW
 import { ExportProgressModal, ExportStatus } from './ExportProgressModal';  // NEW
 import { VideoPreviewModal } from './VideoPreviewModal';  // NEW
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { TransitionPicker } from './TransitionPicker';  // NEW: Feature 0065
 import { LUTPicker } from './LUTPicker';  // NEW: Feature 0065
 import { SpeedSelector } from './SpeedSelector';  // NEW: Feature 0103
@@ -75,6 +75,58 @@ interface EnhancedTimelineEditorProps {
 export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClips }: EnhancedTimelineEditorProps) {
   // Authentication
   const { getToken } = useAuth();
+  const { user } = useUser();
+  
+  // User credits and tier state
+  const [userCredits, setUserCredits] = useState<number | null>(null);
+  const [userTier, setUserTier] = useState<'Free' | 'Pro' | 'Ultra' | 'Studio'>('Free');
+  const [loadingUserData, setLoadingUserData] = useState(true);
+  
+  // Fetch user credits and tier
+  useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          setLoadingUserData(false);
+          return;
+        }
+        
+        // Fetch credits
+        const creditsResponse = await fetch('/api/user/credits', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (creditsResponse.ok) {
+          const creditsData = await creditsResponse.json();
+          setUserCredits(creditsData.data?.balance || 0);
+        }
+        
+        // Fetch user tier from user metadata or API
+        // Check if user has tier in public metadata
+        const tier = user?.publicMetadata?.plan_name as 'Free' | 'Pro' | 'Ultra' | 'Studio' | undefined;
+        if (tier) {
+          setUserTier(tier);
+        } else {
+          // Fallback: fetch from API
+          const userResponse = await fetch('/api/user/profile', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            setUserTier(userData.data?.plan_name || 'Free');
+          }
+        }
+      } catch (error) {
+        console.error('[Timeline] Failed to fetch user data:', error);
+      } finally {
+        setLoadingUserData(false);
+      }
+    }
+    
+    if (user) {
+      fetchUserData();
+    }
+  }, [user, getToken]);
   
   const timeline = useTimeline({
     projectId,
@@ -862,7 +914,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="h-full flex flex-col overflow-hidden bg-[#0A0A0A]">
       {/* Context Indicator Banner */}
       {editorContext.currentSceneName && (
         <div className="bg-info/10 border-b border-info/20 px-4 py-2 flex-shrink-0">
@@ -913,17 +965,17 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
       )}
       
       {/* Header */}
-      <Card className="flex-shrink-0 border-b rounded-none bg-slate-900 border-slate-700 shadow-md overflow-hidden">
+      <Card className="flex-shrink-0 border-b rounded-none bg-[#141414] border-white/10 shadow-md overflow-hidden">
         {/* Desktop Header Layout */}
         <div className="hidden md:flex items-center justify-between p-4 overflow-x-auto">
           {/* Left: Project Info */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            <Layers className="w-6 h-6 text-blue-600 dark:text-[#DC143C]" />
+            <Layers className="w-6 h-6 text-[#DC143C]" />
             <div>
-              <h2 className="text-lg font-bold text-slate-100 whitespace-nowrap">
+              <h2 className="text-lg font-bold text-[#FFFFFF] whitespace-nowrap">
                 {timeline.project.name}
               </h2>
-              <div className="flex items-center gap-3 text-xs text-slate-400 whitespace-nowrap">
+              <div className="flex items-center gap-3 text-xs text-[#B3B3B3] whitespace-nowrap">
                 <span className="font-mono">{timeline.project.resolution}</span>
                 <span className="font-mono">{timeline.project.aspectRatio}</span>
                 <span className="font-mono">{timeline.project.frameRate}fps</span>
@@ -1000,7 +1052,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             </Button>
 
             {/* NEW: Preview Mode Toggle (Feature 0103) */}
-            <div className="w-px h-6 bg-slate-700 mx-2" />
+            <div className="w-px h-6 bg-white/10 mx-2" />
             <Button
               variant={previewMode ? "default" : "ghost"}
               size="sm"
@@ -1029,9 +1081,9 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               )}
             </Button>
 
-            <div className="ml-4 text-sm font-mono text-slate-300">
+            <div className="ml-4 text-sm font-mono text-[#FFFFFF]">
               {formatTime(timeline.playheadPosition)} / {formatTime(timeline.totalDuration)}
-              <span className="ml-2 text-xs text-slate-500">
+              <span className="ml-2 text-xs text-[#808080]">
                 {formatFrame(timeline.playheadPosition)}
               </span>
             </div>
@@ -1066,7 +1118,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               <ZoomIn className="w-4 h-4" />
             </Button>
 
-            <div className="w-px h-6 bg-slate-700 mx-2" />
+            <div className="w-px h-6 bg-white/10 mx-2" />
             
             {/* NEW: Ripple Edit Mode Toggle (Feature 0103 Sprint 2) */}
             <Button
@@ -1088,7 +1140,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               <span className="hidden md:inline">Ripple</span>
             </Button>
 
-            <div className="w-px h-6 bg-slate-700 mx-2" />
+            <div className="w-px h-6 bg-white/10 mx-2" />
             
             {/* NEW: Desktop Tools Dropdown (Feature Parity with Mobile) */}
             <div className="relative hidden md:block">
@@ -1096,7 +1148,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                 variant="outline"
                 size="sm"
                 onClick={() => setShowDesktopToolsMenu(!showDesktopToolsMenu)}
-                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                className="border-[#DC143C]/30 text-[#DC143C] hover:bg-[#DC143C]/10"
                 title="All editing tools"
               >
                 <Layers className="w-4 h-4 mr-2" />
@@ -1112,16 +1164,16 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                   />
                   
                   {/* Dropdown Menu */}
-                  <div className="absolute top-full right-0 mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-[600px] overflow-y-auto">
+                  <div className="absolute top-full right-0 mt-2 w-80 bg-[#141414] border border-white/10 rounded-lg shadow-2xl z-50 max-h-[600px] overflow-y-auto">
                     {/* Header */}
-                    <div className="p-4 border-b border-slate-700">
-                      <h3 className="font-semibold text-lg text-slate-100">Timeline Tools</h3>
-                      <p className="text-xs text-slate-400 mt-1">Advanced editing features</p>
+                    <div className="p-4 border-b border-white/10">
+                      <h3 className="font-semibold text-lg text-[#FFFFFF]">Timeline Tools</h3>
+                      <p className="text-xs text-[#B3B3B3] mt-1">Advanced editing features</p>
                     </div>
                     
                     {/* Video Tools */}
                     <div className="p-4 space-y-2">
-                      <h4 className="text-sm font-semibold text-slate-300 mb-3">📹 Video Tools</h4>
+                      <h4 className="text-sm font-semibold text-[#FFFFFF] mb-3">📹 Video Tools</h4>
                       
                       <button
                         onClick={() => {
@@ -1133,14 +1185,14 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                           setShowDesktopToolsMenu(false);
                         }}
                         disabled={timeline.selectedClips.size !== 1}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-                          <Film className="w-5 h-5 text-indigo-400" />
+                        <div className="w-10 h-10 rounded-lg bg-[#DC143C]/10 flex items-center justify-center flex-shrink-0">
+                          <Film className="w-5 h-5 text-[#DC143C]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-200">Transitions</div>
-                          <div className="text-xs text-slate-400">55 Hollywood transitions</div>
+                          <div className="font-medium text-[#FFFFFF]">Transitions</div>
+                          <div className="text-xs text-[#B3B3B3]">55 Hollywood transitions</div>
                         </div>
                       </button>
                       
@@ -1154,14 +1206,14 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                           setShowDesktopToolsMenu(false);
                         }}
                         disabled={timeline.selectedClips.size !== 1}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                          <ImageIcon className="w-5 h-5 text-purple-400" />
+                        <div className="w-10 h-10 rounded-lg bg-[#00D9FF]/10 flex items-center justify-center flex-shrink-0">
+                          <ImageIcon className="w-5 h-5 text-[#00D9FF]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-200">Color Filters</div>
-                          <div className="text-xs text-slate-400">34 cinematic filters</div>
+                          <div className="font-medium text-[#FFFFFF]">Color Filters</div>
+                          <div className="text-xs text-[#B3B3B3]">34 cinematic filters</div>
                         </div>
                       </button>
                       
@@ -1182,14 +1234,14 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                           setShowDesktopToolsMenu(false);
                         }}
                         disabled={timeline.selectedClips.size !== 1}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
-                          <Clock className="w-5 h-5 text-orange-400" />
+                        <div className="w-10 h-10 rounded-lg bg-[#FFD700]/10 flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-5 h-5 text-[#FFD700]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-200">Speed Control</div>
-                          <div className="text-xs text-slate-400">0.25x - 4x speed</div>
+                          <div className="font-medium text-[#FFFFFF]">Speed Control</div>
+                          <div className="text-xs text-[#B3B3B3]">0.25x - 4x speed</div>
                         </div>
                       </button>
                       
@@ -1206,16 +1258,16 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                           setShowDesktopToolsMenu(false);
                         }}
                         disabled={timeline.selectedClips.size !== 1}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-10 h-10 rounded-lg bg-[#00D9FF]/10 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-200">Reverse</div>
-                          <div className="text-xs text-slate-400">Play clip backwards</div>
+                          <div className="font-medium text-[#FFFFFF]">Reverse</div>
+                          <div className="text-xs text-[#B3B3B3]">Play clip backwards</div>
                         </div>
                       </button>
                       
@@ -1229,63 +1281,63 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                           setShowDesktopToolsMenu(false);
                         }}
                         disabled={timeline.selectedClips.size !== 1}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center flex-shrink-0">
-                          <Sparkles className="w-5 h-5 text-pink-400" />
+                        <div className="w-10 h-10 rounded-lg bg-[#DC143C]/10 flex items-center justify-center flex-shrink-0">
+                          <Sparkles className="w-5 h-5 text-[#DC143C]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-200">Effects</div>
-                          <div className="text-xs text-slate-400">10 visual effects</div>
+                          <div className="font-medium text-[#FFFFFF]">Effects</div>
+                          <div className="text-xs text-[#B3B3B3]">10 visual effects</div>
                         </div>
                       </button>
                     </div>
                     
                     {/* Audio Tools */}
-                    <div className="p-4 border-t border-slate-700 space-y-2">
-                      <h4 className="text-sm font-semibold text-slate-300 mb-3">🎵 Audio Tools</h4>
+                    <div className="p-4 border-t border-white/10 space-y-2">
+                      <h4 className="text-sm font-semibold text-[#FFFFFF] mb-3">🎵 Audio Tools</h4>
                       
                       <button
                         onClick={() => {
                           setShowAudioAgent(true);
                           setShowDesktopToolsMenu(false);
                         }}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-left transition-colors"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#1F1F1F] hover:bg-[#2A2A2A] text-left transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                          <Music className="w-5 h-5 text-green-400" />
+                        <div className="w-10 h-10 rounded-lg bg-[#00D9FF]/10 flex items-center justify-center flex-shrink-0">
+                          <Music className="w-5 h-5 text-[#00D9FF]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-200">Audio Agent</div>
-                          <div className="text-xs text-slate-400">Generate music & SFX</div>
+                          <div className="font-medium text-[#FFFFFF]">Audio Agent</div>
+                          <div className="text-xs text-[#B3B3B3]">Generate music & SFX</div>
                         </div>
                       </button>
                     </div>
                     
                     {/* Timeline Settings */}
-                    <div className="p-4 border-t border-slate-700 space-y-2">
-                      <h4 className="text-sm font-semibold text-slate-300 mb-3">⚙️ Timeline Settings</h4>
+                    <div className="p-4 border-t border-white/10 space-y-2">
+                      <h4 className="text-sm font-semibold text-[#FFFFFF] mb-3">⚙️ Timeline Settings</h4>
                       
                       <button
                         onClick={() => {
                           setShowAudioTracks(!showAudioTracks);
                           setShowDesktopToolsMenu(false);
                         }}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-left transition-colors"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#1F1F1F] hover:bg-[#2A2A2A] text-left transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
-                          {showAudioTracks ? <Maximize2 className="w-5 h-5 text-slate-400" /> : <Minimize2 className="w-5 h-5 text-slate-400" />}
+                        <div className="w-10 h-10 rounded-lg bg-[#1F1F1F] flex items-center justify-center flex-shrink-0">
+                          {showAudioTracks ? <Maximize2 className="w-5 h-5 text-[#B3B3B3]" /> : <Minimize2 className="w-5 h-5 text-[#B3B3B3]" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-200">Audio Tracks</div>
-                          <div className="text-xs text-slate-400">{showAudioTracks ? 'Visible' : 'Hidden'}</div>
+                          <div className="font-medium text-[#FFFFFF]">Audio Tracks</div>
+                          <div className="text-xs text-[#B3B3B3]">{showAudioTracks ? 'Visible' : 'Hidden'}</div>
                         </div>
                       </button>
                     </div>
                     
                     {/* Help Text */}
-                    <div className="p-4 bg-slate-800/50 border-t border-slate-700">
-                      <p className="text-xs text-slate-400 text-center">
+                    <div className="p-4 bg-[#1F1F1F]/50 border-t border-white/10">
+                      <p className="text-xs text-[#B3B3B3] text-center">
                         Select a clip to enable editing tools
                       </p>
                     </div>
@@ -1305,7 +1357,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               Add Media
             </Button>
 
-            <div className="w-px h-6 bg-slate-700 mx-2" />
+            <div className="w-px h-6 bg-white/10 mx-2" />
 
             {/* NEW: Export Button */}
             <Button
@@ -1339,7 +1391,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                 }
               }}
               title="Export timeline to GitHub (optional)"
-              className="border-slate-600 hover:bg-slate-800"
+              className="border-white/10 hover:bg-[#1F1F1F]"
             >
               <Github className="w-4 h-4 mr-2" />
               Export to GitHub
@@ -1402,7 +1454,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                     toast.success(`📋 Copied ${count} clip${count > 1 ? 's' : ''}`);
                   }}
                   title="Copy selected clips (Ctrl/Cmd+C)"
-                  className="border-slate-300 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="border-white/10 text-[#B3B3B3] hover:bg-[#1F1F1F]"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   <span className="hidden md:inline">Copy</span>
@@ -1418,7 +1470,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                   }}
                   disabled={timeline.clipboard.length === 0}
                   title={timeline.clipboard.length > 0 ? "Paste clips at playhead (Ctrl/Cmd+V)" : "No clips in clipboard"}
-                  className="border-slate-300 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="border-white/10 text-[#B3B3B3] hover:bg-[#1F1F1F]"
                 >
                   <Clipboard className="w-4 h-4 mr-2" />
                   <span className="hidden md:inline">Paste</span>
@@ -1444,16 +1496,16 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
         </div>
 
         {/* Mobile Header Layout - Enhanced with all controls */}
-        <div className="md:hidden p-3 bg-slate-900 border-b border-slate-700">
+        <div className="md:hidden p-3 bg-[#141414] border-b border-white/10">
           {/* Row 1: Project Name & Stats */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Layers className="w-4 h-4 text-[#DC143C] flex-shrink-0" />
-              <h2 className="text-sm font-semibold text-slate-100 truncate">
+              <h2 className="text-sm font-semibold text-[#FFFFFF] truncate">
                 {timeline.project.name}
               </h2>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-400 flex-shrink-0">
+            <div className="flex items-center gap-3 text-xs text-[#B3B3B3] flex-shrink-0">
               <span className="font-mono">{formatTime(timeline.totalDuration)}</span>
               <ProjectCostBadge assets={timeline.assets} />
             </div>
@@ -1522,7 +1574,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             </div>
 
             {/* Center: Timecode */}
-            <div className="text-xs font-mono text-slate-300 bg-slate-800 px-2 py-1 rounded">
+            <div className="text-xs font-mono text-[#FFFFFF] bg-[#1F1F1F] px-2 py-1 rounded">
               {formatTime(timeline.playheadPosition)}
             </div>
 
@@ -1552,7 +1604,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
 
           {/* Row 3: Asset Stats (Optional - only shows if assets exist) */}
           {timeline.assets.length > 0 && (
-            <div className="flex items-center justify-center gap-3 mt-3 pt-3 border-t border-slate-700/50">
+            <div className="flex items-center justify-center gap-3 mt-3 pt-3 border-t border-white/10">
               <Badge variant="outline" className="text-[#DC143C] border-[#DC143C]/50 text-xs">
                 <Film className="w-3 h-3 mr-1" />
                 {assetCounts.video}
@@ -1575,16 +1627,16 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
         </div>
 
         {/* Asset Count Stats */}
-        <div className="px-4 pb-3 flex items-center gap-4 text-xs text-slate-400 hidden md:flex">
-          <Badge variant="outline" className="text-blue-600 border-blue-600">
+        <div className="px-4 pb-3 flex items-center gap-4 text-xs text-[#B3B3B3] hidden md:flex">
+          <Badge variant="outline" className="text-[#DC143C] border-[#DC143C]">
             <Film className="w-3 h-3 mr-1" />
             {assetCounts.video} Video
           </Badge>
-          <Badge variant="outline" className="text-green-600 border-green-600">
+          <Badge variant="outline" className="text-[#00D9FF] border-[#00D9FF]">
             <Music className="w-3 h-3 mr-1" />
             {assetCounts.audio + assetCounts.music} Audio
           </Badge>
-          <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+          <Badge variant="outline" className="text-[#FFD700] border-[#FFD700]">
             <ImageIcon className="w-3 h-3 mr-1" />
             {assetCounts.image} Image
           </Badge>
@@ -1599,15 +1651,15 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
       {/* Timeline Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Track Headers - Fixed sidebar that doesn't scroll horizontally */}
-        <div className="flex-shrink-0 w-24 bg-slate-900 border-r border-slate-700 overflow-y-hidden flex flex-col">
+        <div className="flex-shrink-0 w-24 bg-[#141414] border-r border-white/10 overflow-y-hidden flex flex-col">
           {/* Spacer for time ruler */}
-          <div className="h-10 border-b-2 border-slate-600 bg-slate-800 flex-shrink-0" />
+          <div className="h-10 border-b-2 border-white/10 bg-[#0A0A0A] flex-shrink-0" />
           
           {/* Scrollable track headers */}
           <div className="flex-1 overflow-y-auto custom-scrollbar" ref={trackHeadersRef}>
             {/* Video Track Headers */}
             {Array.from({ length: videoTrackCount }).map((_, trackNum) => (
-              <div key={`v-${trackNum}`} className="h-16 border-b border-slate-700">
+              <div key={`v-${trackNum}`} className="h-16 border-b border-white/10">
                 <TrackHeader
                   trackNumber={trackNum}
                   trackType="video"
@@ -1621,7 +1673,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
 
             {/* Audio Track Headers */}
             {showAudioTracks && Array.from({ length: audioTrackCount }).map((_, trackNum) => (
-              <div key={`a-${trackNum}`} className="h-12 border-b border-slate-700">
+              <div key={`a-${trackNum}`} className="h-12 border-b border-white/10">
                 <TrackHeader
                   trackNumber={trackNum}
                   trackType="audio"
@@ -1641,15 +1693,15 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
         <div className="flex-1 overflow-auto custom-scrollbar" ref={timelineRef}>
           <div className="relative" style={{ width: `${totalTimelineWidth}px` }}>
             {/* Time Ruler */}
-            <div className="sticky top-0 z-30 h-10 bg-slate-800 border-b-2 border-slate-600 flex items-center">
+            <div className="sticky top-0 z-30 h-10 bg-[#0A0A0A] border-b-2 border-white/10 flex items-center">
               {timeMarks.map(time => (
                 <div
                   key={time}
                   className="absolute flex flex-col items-center"
                   style={{ left: `${time * timeline.zoomLevel}px` }}
                 >
-                  <div className="h-3 w-px bg-slate-500" />
-                  <span className="text-xs font-mono text-slate-400 mt-1">
+                  <div className="h-3 w-px bg-white/20" />
+                  <span className="text-xs font-mono text-[#B3B3B3] mt-1">
                     {formatTime(time)}
                   </span>
                 </div>
@@ -1673,7 +1725,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                 return (
                   <div
                     key={`track-v-${trackNum}`}
-                    className={`relative h-16 border-b border-slate-700 ${
+                    className={`relative h-16 border-b border-white/10 ${
                       isVisible ? '' : 'opacity-30'
                     }`}
                   >
@@ -1702,14 +1754,14 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
 
             {/* Audio Tracks */}
             {showAudioTracks && (
-              <div className="relative border-t-2 border-slate-600">
+              <div className="relative border-t-2 border-white/10">
                 {Array.from({ length: audioTrackCount }).map((_, trackNum) => {
                   const trackAssets = audioAssets[trackNum];
                   
                   return (
                     <div
                       key={`track-a-${trackNum}`}
-                      className="relative h-12 border-b border-slate-700"
+                      className="relative h-12 border-b border-white/10"
                     >
                       {trackAssets.map(asset => (
                         <TimelineAssetComponent
@@ -1739,11 +1791,11 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             {timeline.assets.length === 0 && timeline.clips.length === 0 && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center p-8">
-                  <Layers className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                  <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  <Layers className="w-16 h-16 mx-auto text-[#808080] mb-4" />
+                  <h3 className="text-xl font-bold text-[#FFFFFF] mb-2">
                     No assets on timeline
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-500">
+                  <p className="text-sm text-[#B3B3B3]">
                     Import shots or drag media files here to begin editing
                   </p>
                 </div>
@@ -1778,8 +1830,8 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
           isOpen={showExportModal}
           onClose={() => setShowExportModal(false)}
           onExport={handleExport}
-          userCredits={1000}  // TODO: Fetch from user context
-          userTier="pro"  // TODO: Fetch from user context
+          userCredits={userCredits ?? 0}
+          userTier={userTier.toLowerCase() as 'free' | 'pro' | 'ultra' | 'studio'}
         />
       )}
 
