@@ -173,19 +173,35 @@ export function useFountainFormatting(
             const fullSelectionEnd = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionEnd);
             
             // Get selected text from full content
-            const selectedText = state.content.substring(fullSelectionStart, fullSelectionEnd);
+            let selectedText = state.content.substring(fullSelectionStart, fullSelectionEnd);
             
             // Check if already italic (wrapped in *text*)
-            const italicRegex = /^\*([^*]+)\*$/;
-            const isAlreadyItalic = italicRegex.test(selectedText);
+            // For multi-line selections, check if the entire block is wrapped (not per-line)
+            const trimmed = selectedText.trim();
+            const startsWithAsterisk = trimmed.startsWith('*');
+            const endsWithAsterisk = trimmed.endsWith('*');
+            
+            // Check if the entire selection is wrapped (not individual lines)
+            // Look for pattern: *text* where text can include newlines
+            // We need to check if the FIRST character after leading whitespace is * 
+            // and the LAST character before trailing whitespace is *
+            const leadingWhitespace = selectedText.match(/^\s*/)?.[0] || '';
+            const trailingWhitespace = selectedText.match(/\s*$/)?.[0] || '';
+            const contentWithoutWhitespace = selectedText.slice(leadingWhitespace.length, selectedText.length - trailingWhitespace.length);
+            
+            const isAlreadyItalic = contentWithoutWhitespace.startsWith('*') && 
+                                   contentWithoutWhitespace.endsWith('*') &&
+                                   contentWithoutWhitespace.length > 1; // At least *something*
             
             let newText: string;
             
             if (isAlreadyItalic) {
-                // Remove italics
-                newText = selectedText.replace(/^\*(.+)\*$/, '$1');
+                // Remove italics - remove outer asterisks while preserving whitespace
+                const unwrappedContent = contentWithoutWhitespace.slice(1, -1); // Remove first and last *
+                newText = leadingWhitespace + unwrappedContent + trailingWhitespace;
             } else {
-                // Add italics
+                // Add italics - wrap entire selection (including newlines) as one block
+                // This ensures multi-line selections are wrapped as: *line1\nline2*
                 newText = `*${selectedText}*`;
             }
             
