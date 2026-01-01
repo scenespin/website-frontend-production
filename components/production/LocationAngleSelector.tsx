@@ -10,6 +10,7 @@
 import React from 'react';
 import { Check, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 
 interface LocationAngleSelectorProps {
   locationId: string;
@@ -295,6 +296,21 @@ export function LocationAngleSelector({
     return groupedPhotos[selectedGroup] || [];
   }, [groupedPhotos, selectedGroup]);
 
+  // 🔥 NEW: Collect all thumbnail S3 keys for photos
+  const thumbnailS3Keys = React.useMemo(() => {
+    const keys: string[] = [];
+    allPhotos.forEach(photo => {
+      if (photo.s3Key) {
+        const thumbnailKey = photo.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
+        keys.push(`thumbnails/${thumbnailKey}`);
+      }
+    });
+    return keys;
+  }, [allPhotos]);
+
+  // 🔥 NEW: Fetch thumbnail URLs for all photos
+  const { data: thumbnailUrlsMap } = useBulkPresignedUrls(thumbnailS3Keys, thumbnailS3Keys.length > 0);
+
   const getAngleLabel = (angle: string): string => {
     const labels: Record<string, string> = {
       'front': 'Front View',
@@ -526,13 +542,29 @@ export function LocationAngleSelector({
             }`}
             title={`${photo.label}${photo.timeOfDay ? ` - ${photo.timeOfDay}` : ''}${photo.weather ? ` - ${photo.weather}` : ''}`}
           >
-            {photo.imageUrl ? (
-              <img
-                src={photo.imageUrl}
-                alt={photo.label}
-                className="w-full h-full object-cover rounded"
-              />
-            ) : (
+            {photo.imageUrl ? (() => {
+              // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
+              const thumbnailKey = photo.s3Key 
+                ? `thumbnails/${photo.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`
+                : null;
+              const thumbnailUrl = thumbnailKey && thumbnailUrlsMap?.get(thumbnailKey);
+              const displayUrl = thumbnailUrl || photo.imageUrl;
+              
+              return (
+                <img
+                  src={displayUrl}
+                  alt={photo.label}
+                  className="w-full h-full object-cover rounded"
+                  loading="lazy"
+                  onError={(e) => {
+                    // 🔥 NEW: Fallback to full image if thumbnail fails
+                    if (thumbnailUrl && displayUrl === thumbnailUrl) {
+                      (e.target as HTMLImageElement).src = photo.imageUrl;
+                    }
+                  }}
+                />
+              );
+            })() : (
               <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
                 {photo.label}
               </div>

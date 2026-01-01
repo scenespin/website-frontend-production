@@ -18,6 +18,7 @@ import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { findCharacterById, getCharacterSource } from './utils/sceneBuilderUtils';
 import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType } from './UnifiedDialogueDropdown';
+import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -123,8 +124,12 @@ export function ShotConfigurationPanel({
   characterOutfits,
   onCharacterReferenceChange,
   onCharacterOutfitChange,
+  selectedDialogueQuality,
   selectedDialogueWorkflow,
+  selectedBaseWorkflow,
+  onDialogueQualityChange,
   onDialogueWorkflowChange,
+  onBaseWorkflowChange,
   dialogueWorkflowPrompt,
   onDialogueWorkflowPromptChange,
   pronounExtrasPrompts = {},
@@ -144,6 +149,42 @@ export function ShotConfigurationPanel({
     : undefined;
   const workflowConfidence = sceneAnalysisResult.dialogue?.workflowTypeConfidence;
   const workflowReasoning = sceneAnalysisResult.dialogue?.workflowTypeReasoning;
+  
+  // 🔥 NEW: Collect all prop image thumbnail S3 keys
+  const propThumbnailS3Keys = React.useMemo(() => {
+    const keys: string[] = [];
+    const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
+    assignedProps.forEach(prop => {
+      const fullProp = prop as typeof prop & {
+        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+        images?: Array<{ url: string; s3Key?: string }>;
+      };
+      
+      // Add angleReferences s3Keys
+      if (fullProp.angleReferences) {
+        fullProp.angleReferences.forEach(ref => {
+          if (ref.s3Key) {
+            const thumbnailKey = ref.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
+            keys.push(`thumbnails/${thumbnailKey}`);
+          }
+        });
+      }
+      
+      // Add images[] s3Keys
+      if (fullProp.images) {
+        fullProp.images.forEach(img => {
+          if (img.s3Key) {
+            const thumbnailKey = img.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
+            keys.push(`thumbnails/${thumbnailKey}`);
+          }
+        });
+      }
+    });
+    return keys;
+  }, [sceneProps, propsToShots, shot.slot]);
+  
+  // 🔥 NEW: Fetch thumbnail URLs for all prop images
+  const { data: propThumbnailUrlsMap } = useBulkPresignedUrls(propThumbnailS3Keys, propThumbnailS3Keys.length > 0);
   
   // Reset character selection when workflow changes away from 'scene-voiceover'
   React.useEffect(() => {
@@ -327,7 +368,6 @@ export function ShotConfigurationPanel({
                 )}
               </div>
             )}
-          </div>
         </div>
       )}
 
@@ -453,11 +493,45 @@ export function ShotConfigurationPanel({
                                     }`}
                                     title={img.label || 'Prop image'}
                                   >
-                                    <img
-                                      src={img.imageUrl}
-                                      alt={img.label || prop.name}
-                                      className="w-full h-full object-cover rounded"
-                                    />
+                                    {(() => {
+                                      // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
+                                      // Find the s3Key for this image
+                                      const fullProp = prop as typeof prop & {
+                                        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+                                        images?: Array<{ url: string; s3Key?: string }>;
+                                      };
+                                      
+                                      let imageS3Key: string | null = null;
+                                      if (fullProp.angleReferences) {
+                                        const ref = fullProp.angleReferences.find(r => r.id === img.id);
+                                        if (ref?.s3Key) imageS3Key = ref.s3Key;
+                                      }
+                                      if (!imageS3Key && fullProp.images) {
+                                        const imgData = fullProp.images.find(i => i.url === img.id);
+                                        if (imgData?.s3Key) imageS3Key = imgData.s3Key;
+                                      }
+                                      
+                                      const thumbnailKey = imageS3Key 
+                                        ? `thumbnails/${imageS3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`
+                                        : null;
+                                      const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
+                                      const displayUrl = thumbnailUrl || img.imageUrl;
+                                      
+                                      return (
+                                        <img
+                                          src={displayUrl}
+                                          alt={img.label || prop.name}
+                                          className="w-full h-full object-cover rounded"
+                                          loading="lazy"
+                                          onError={(e) => {
+                                            // 🔥 NEW: Fallback to full image if thumbnail fails
+                                            if (thumbnailUrl && displayUrl === thumbnailUrl) {
+                                              (e.target as HTMLImageElement).src = img.imageUrl;
+                                            }
+                                          }}
+                                        />
+                                      );
+                                    })()}
                                     {isSelected && (
                                       <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
                                         <Check className="w-3 h-3 text-[#DC143C]" />
@@ -657,6 +731,7 @@ export function ShotConfigurationPanel({
                               onCharacterReferenceChange={onCharacterReferenceChange}
                               onCharacterOutfitChange={onCharacterOutfitChange}
                               allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                              hideSectionLabels={true}
                               pronounExtrasPrompts={pronounExtrasPrompts}
                               onPronounExtrasPromptChange={onPronounExtrasPromptChange}
                             />
@@ -742,6 +817,7 @@ export function ShotConfigurationPanel({
                             onCharacterReferenceChange={onCharacterReferenceChange}
                             onCharacterOutfitChange={onCharacterOutfitChange}
                             allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                            hideSectionLabels={true}
                             pronounExtrasPrompts={pronounExtrasPrompts}
                             onPronounExtrasPromptChange={onPronounExtrasPromptChange}
                           />

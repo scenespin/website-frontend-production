@@ -55,12 +55,14 @@ import { JobsDrawer } from './JobsDrawer';
 import { SceneBuilderDecisionModal } from '@/components/video/SceneBuilderDecisionModal';
 import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
 import { ShotConfigurationStep } from './ShotConfigurationStep';
+import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
 import { getScreenplay } from '@/utils/screenplayStorage';
+import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { SceneSelector } from './SceneSelector';
@@ -172,7 +174,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Per-shot dialogue workflow selection (overrides auto-detection) - NEW: Unified dropdown
   const [selectedDialogueQualities, setSelectedDialogueQualities] = useState<Record<number, 'premium' | 'reliable'>>({});
-  const [selectedDialogueWorkflows, setSelectedDialogueWorkflows] = useState<Record<number, string>>({});
+  const [selectedDialogueWorkflows, setSelectedDialogueWorkflows] = useState<Record<number, DialogueWorkflowType>>({});
   const [voiceoverBaseWorkflows, setVoiceoverBaseWorkflows] = useState<Record<number, string>>({});
   
   // Per-shot workflow overrides (for action shots and dialogue shots) - NEW: General workflow override
@@ -235,6 +237,23 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Video Quality Selection (per-shot, defaults to '4k')
   const [selectedVideoQualities, setSelectedVideoQualities] = useState<Record<number, 'hd' | '4k'>>({});
   
+  // 🔥 NEW: Collect all headshot thumbnail S3 keys
+  const headshotThumbnailS3Keys = React.useMemo(() => {
+    const keys: string[] = [];
+    Object.values(characterHeadshots).forEach(headshots => {
+      headshots.forEach(headshot => {
+        if (headshot.s3Key) {
+          const thumbnailKey = headshot.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
+          keys.push(`thumbnails/${thumbnailKey}`);
+        }
+      });
+    });
+    return keys;
+  }, [characterHeadshots]);
+
+  // 🔥 NEW: Fetch thumbnail URLs for all headshots
+  const { data: thumbnailUrlsMap } = useBulkPresignedUrls(headshotThumbnailS3Keys, headshotThumbnailS3Keys.length > 0);
+
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
     const scrollContainer = document.querySelector('.h-full.overflow-auto');
@@ -2959,6 +2978,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                       return headshotOutfit === selectedOutfit;
                     })
                   : allHeadshots;
+                
                 return (
                   <div key={charId} className="space-y-2">
                     {pronounsForChar && pronounsForChar.length > 0 && (
@@ -2981,6 +3001,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                               (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
                               (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
                             );
+                            
+                            // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
+                            const thumbnailKey = headshot.s3Key 
+                              ? `thumbnails/${headshot.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`
+                              : null;
+                            const thumbnailUrl = thumbnailKey && thumbnailUrlsMap?.get(thumbnailKey);
+                            const displayUrl = thumbnailUrl || headshot.imageUrl;
+                            
                             return (
                               <button
                                 key={uniqueKey}
@@ -3008,11 +3036,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                     : 'border-[#3F3F46] hover:border-[#808080]'
                                 }`}
                               >
-                                {headshot.imageUrl && (
+                                {displayUrl && (
                                   <img
-                                    src={headshot.imageUrl}
+                                    src={displayUrl}
                                     alt={headshot.label || `Headshot ${idx + 1}`}
                                     className="w-full h-full object-cover rounded"
+                                    loading="lazy"
                                   />
                                 )}
                                 {isSelected && (

@@ -23,6 +23,7 @@ import { useAuth } from '@clerk/nextjs';
 import { ReferencePreview } from './ReferencePreview';
 import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
+import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
 
 interface ShotConfigurationStepProps {
   shot: any;
@@ -61,10 +62,10 @@ interface ShotConfigurationStepProps {
   onCharacterOutfitChange: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
   // Dialogue workflows - NEW: Unified dropdown
   selectedDialogueQuality?: 'premium' | 'reliable';
-  selectedDialogueWorkflow?: string;
+  selectedDialogueWorkflow?: DialogueWorkflowType;
   selectedBaseWorkflow?: string; // For voiceover workflows
   onDialogueQualityChange?: (shotSlot: number, quality: 'premium' | 'reliable') => void;
-  onDialogueWorkflowChange?: (shotSlot: number, workflowType: string) => void;
+  onDialogueWorkflowChange?: (shotSlot: number, workflowType: DialogueWorkflowType) => void;
   onBaseWorkflowChange?: (shotSlot: number, baseWorkflow: string) => void; // For voiceover workflows
   dialogueWorkflowPrompt?: string;
   onDialogueWorkflowPromptChange?: (shotSlot: number, prompt: string) => void;

@@ -731,3 +731,51 @@ function detectFileType(fileType: string): 'video' | 'image' | 'audio' | 'other'
   return 'other';
 }
 
+/**
+ * Mutation hook for regenerating a thumbnail
+ * Feature: Thumbnail Regeneration Utility
+ */
+export function useRegenerateThumbnail() {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { success: boolean; thumbnailS3Key: string; message: string },
+    Error,
+    { s3Key: string; screenplayId: string; fileType?: 'image' | 'video' }
+  >({
+    mutationFn: async ({ s3Key, screenplayId, fileType }) => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${BACKEND_API_URL}/api/media/regenerate-thumbnail`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          s3Key,
+          screenplayId,
+          fileType
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to regenerate thumbnail' }));
+        throw new Error(errorData.error || `Failed to regenerate thumbnail: ${response.statusText}`);
+      }
+
+      return await response.json();
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate relevant queries to refresh thumbnail URLs
+      queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files'] });
+      console.log('[useRegenerateThumbnail] ✅ Thumbnail regenerated:', data.thumbnailS3Key);
+    },
+  });
+}
+
