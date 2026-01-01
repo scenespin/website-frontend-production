@@ -242,7 +242,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     const keys: string[] = [];
     Object.values(characterHeadshots).forEach(headshots => {
       headshots.forEach(headshot => {
-        if (headshot.s3Key) {
+        // Only add thumbnail key if s3Key exists and is not empty
+        if (headshot.s3Key && headshot.s3Key.trim() !== '') {
           const thumbnailKey = headshot.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
           keys.push(`thumbnails/${thumbnailKey}`);
         }
@@ -3003,11 +3004,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                             );
                             
                             // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
-                            const thumbnailKey = headshot.s3Key 
+                            const thumbnailKey = headshot.s3Key && headshot.s3Key.trim() !== ''
                               ? `thumbnails/${headshot.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`
                               : null;
                             const thumbnailUrl = thumbnailKey && thumbnailUrlsMap?.get(thumbnailKey);
                             const displayUrl = thumbnailUrl || headshot.imageUrl;
+                            
+                            // Check if this is the creation image (last resort)
+                            const isCreationImage = headshot.poseId === 'base-reference' || headshot.label === 'Creation Image (Last Resort)';
                             
                             return (
                               <button
@@ -3033,20 +3037,43 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                 className={`relative aspect-square rounded border-2 transition-all ${
                                   isSelected
                                     ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                    : isCreationImage
+                                    ? 'border-[#DC143C] border-dashed'
                                     : 'border-[#3F3F46] hover:border-[#808080]'
                                 }`}
                               >
-                                {displayUrl && (
+                                {displayUrl ? (
                                   <img
                                     src={displayUrl}
                                     alt={headshot.label || `Headshot ${idx + 1}`}
                                     className="w-full h-full object-cover rounded"
                                     loading="lazy"
+                                    onError={(e) => {
+                                      // 🔥 FIX: If thumbnail fails, try full image URL (if different)
+                                      const imgElement = e.target as HTMLImageElement;
+                                      if (thumbnailUrl && displayUrl === thumbnailUrl && headshot.imageUrl && headshot.imageUrl !== displayUrl) {
+                                        imgElement.src = headshot.imageUrl;
+                                      } else {
+                                        // If image fails completely, show placeholder
+                                        imgElement.style.display = 'none';
+                                        const placeholder = imgElement.nextElementSibling as HTMLElement;
+                                        if (placeholder) placeholder.classList.remove('hidden');
+                                      }
+                                    }}
                                   />
-                                )}
+                                ) : null}
+                                {/* Fallback placeholder if image fails to load */}
+                                <div className={`hidden w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[8px] text-[#808080] rounded ${!displayUrl ? '' : 'hidden'}`}>
+                                  {isCreationImage ? 'Creation Image' : 'No Image'}
+                                </div>
                                 {isSelected && (
                                   <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
                                     <Check className="w-3 h-3 text-[#DC143C]" />
+                                  </div>
+                                )}
+                                {isCreationImage && (
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-1">
+                                    <div className="text-[8px] text-white font-medium text-center">Creation Image (Last Resort)</div>
                                   </div>
                                 )}
                               </button>
@@ -3392,6 +3419,17 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                         }
                       }
                       return updated;
+                    });
+                  }}
+                  shotWorkflowOverride={shotWorkflowOverrides[currentShot.slot]}
+                  onShotWorkflowOverrideChange={(shotSlot, workflow) => {
+                    setShotWorkflowOverrides(prev => {
+                      if (!workflow || workflow === '') {
+                        const updated = { ...prev };
+                        delete updated[shotSlot];
+                        return updated;
+                      }
+                      return { ...prev, [shotSlot]: workflow };
                     });
                   }}
                   selectedReferenceShotModel={selectedReferenceShotModels}

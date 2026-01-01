@@ -19,6 +19,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import { findCharacterById, getCharacterSource } from './utils/sceneBuilderUtils';
 import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -93,6 +94,9 @@ interface ShotConfigurationPanelProps {
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>; // Per-shot prop configurations
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
   onPropImageChange?: (shotSlot: number, propId: string, imageId: string | undefined) => void; // Callback for prop image selection
+  // Workflow override for action shots
+  shotWorkflowOverride?: string; // Override workflow for this shot (for action shots)
+  onShotWorkflowOverrideChange?: (shotSlot: number, workflow: string) => void; // Callback for workflow override
 }
 
 export function ShotConfigurationPanel({
@@ -139,7 +143,9 @@ export function ShotConfigurationPanel({
   onPropsToShotsChange,
   shotProps = {},
   onPropDescriptionChange,
-  onPropImageChange
+  onPropImageChange,
+  shotWorkflowOverride,
+  onShotWorkflowOverrideChange
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -204,9 +210,329 @@ export function ShotConfigurationPanel({
   // For dialogue shots, get the speaking character ID
   const speakingCharacterId = shot.type === 'dialogue' ? shot.characterId : undefined;
 
+  // Helper function to get workflow label
+  const getWorkflowLabel = (workflow: string) => {
+    const labels: Record<string, string> = {
+      'action-line': 'Action Line',
+      'action-director': 'Action Director',
+      'reality-to-toon': 'Reality to Toon',
+      'anime-master': 'Anime Master',
+      'cartoon-classic': 'Cartoon Classic',
+      '3d-character': '3D Character',
+      'vfx-elements': 'VFX Elements',
+      'fantasy-epic': 'Fantasy Epic',
+      'superhero-transform': 'Superhero Transform',
+      'animal-kingdom': 'Animal Kingdom',
+      'style-chameleon': 'Style Chameleon',
+      'broll-master': 'B-Roll Master',
+      'complete-scene': 'Complete Scene'
+    };
+    return labels[workflow] || workflow;
+  };
+
+  // All available workflows for override dropdown (action shots only)
+  const ACTION_WORKFLOWS = [
+    { value: 'action-line', label: 'Action Line' },
+    { value: 'action-director', label: 'Action Director' },
+    { value: 'reality-to-toon', label: 'Reality to Toon' },
+    { value: 'anime-master', label: 'Anime Master' },
+    { value: 'cartoon-classic', label: 'Cartoon Classic' },
+    { value: '3d-character', label: '3D Character' },
+    { value: 'vfx-elements', label: 'VFX Elements' },
+    { value: 'fantasy-epic', label: 'Fantasy Epic' },
+    { value: 'superhero-transform', label: 'Superhero Transform' },
+    { value: 'animal-kingdom', label: 'Animal Kingdom' },
+    { value: 'style-chameleon', label: 'Style Chameleon' },
+    { value: 'broll-master', label: 'B-Roll Master' },
+    { value: 'complete-scene', label: 'Complete Scene' }
+  ];
+
   return (
     <div className="mt-3 space-y-4">
-      {/* Location Section - Always first, before Dialogue Workflow */}
+      {/* 🔥 REORDERED: Character(s) Section - First */}
+      {explicitCharacters.length > 0 && (() => {
+        // Track rendered characters globally across all sections (explicit, singular, plural)
+        const allRenderedCharacters = new Set<string>();
+        
+        // Collect characters from singular pronouns
+        pronounInfo.pronouns
+          .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
+          .forEach((pronoun: string) => {
+            const pronounLower = pronoun.toLowerCase();
+            const mapping = shotMappings[pronounLower];
+            const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+            if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
+              allRenderedCharacters.add(mappedCharacterId);
+            }
+          });
+        
+        // Collect characters from plural pronouns
+        pronounInfo.pronouns
+          .filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase()))
+          .forEach((pronoun: string) => {
+            const pronounLower = pronoun.toLowerCase();
+            const mapping = shotMappings[pronounLower];
+            if (mapping && mapping !== '__ignore__') {
+              const mappedCharacterIds = Array.isArray(mapping) ? mapping : [mapping];
+              mappedCharacterIds.forEach((charId: string) => {
+                if (charId && charId !== '__ignore__') {
+                  allRenderedCharacters.add(charId);
+                }
+              });
+            }
+          });
+        
+        return (
+        <div className="pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
+          {/* Show message for Narrate Shot (scene-voiceover) */}
+          {currentWorkflow === 'scene-voiceover' && (
+            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+              Narrator voice will overlay the scene. The narrator (speaking character) is greyed out below. To add the narrator to the scene, select them in the "Additional Characters" section below.
+            </div>
+          )}
+          {/* Show message for Hidden Mouth Dialogue (off-frame-voiceover) */}
+          {currentWorkflow === 'off-frame-voiceover' && (
+            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+              Character will not be visible (speaking off-screen). Character images are still needed for voice generation.
+            </div>
+          )}
+          <div className="space-y-4">
+            {explicitCharacters.map((charId) => {
+              // Grey out narrator when Narrate Shot (scene-voiceover) is selected (they're the narrator)
+              const isNarrator = currentWorkflow === 'scene-voiceover' && charId === speakingCharacterId;
+              // Check if narrator is also manually selected (will show normally in that section)
+              const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
+              // Check if this character is already rendered in pronoun sections
+              const alreadyRenderedInPronouns = allRenderedCharacters.has(charId);
+              return (
+                <div key={charId} className={`space-y-3 ${isNarrator ? 'opacity-50' : ''}`}>
+                  {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                  {isNarrator && (
+                    <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                      Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
+                    </div>
+                  )}
+                  {/* Always show images in Character(s) section, even if also mapped to pronoun */}
+                  {renderCharacterImagesOnly(charId, shot.slot)}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* 🔥 REORDERED: Which Character? Section - Second (Pronoun Mappings) */}
+      {hasPronouns && (
+        <div className="pt-3 border-t border-[#3F3F46]">
+          <div className="mb-3">
+            <div className="text-xs font-medium text-[#FFFFFF] mb-1">Which Character?</div>
+            <div className="text-[10px] text-[#808080]">
+              Select which character each word in the script refers to.
+            </div>
+          </div>
+          {/* Show message for Narrate Shot (scene-voiceover) about adding characters */}
+          {currentWorkflow === 'scene-voiceover' && (
+            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+              Select which characters will appear in the scene. The narrator can also appear in the scene if selected.
+            </div>
+          )}
+          {/* Single Character Section */}
+          {pronounInfo.pronouns.filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase())).length > 0 && (() => {
+            // Track which characters have been rendered to avoid duplicates (including explicit characters)
+            const renderedCharacters = new Set<string>();
+            // Add explicit characters to rendered set (they're shown in Character(s) section)
+            explicitCharacters.forEach(charId => renderedCharacters.add(charId));
+            const characterToPronouns = new Map<string, string[]>();
+            
+            // First pass: collect all character-to-pronoun mappings
+            pronounInfo.pronouns
+              .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
+              .forEach((pronoun: string) => {
+                const pronounLower = pronoun.toLowerCase();
+                const mapping = shotMappings[pronounLower];
+                const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+                if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
+                  if (!characterToPronouns.has(mappedCharacterId)) {
+                    characterToPronouns.set(mappedCharacterId, []);
+                  }
+                  characterToPronouns.get(mappedCharacterId)!.push(pronoun);
+                }
+              });
+            
+            return (
+              <div className="space-y-4 pb-3 border-b border-[#3F3F46]">
+                <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
+                  Single Character
+                </div>
+                {pronounInfo.pronouns
+                  .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
+                  .map((pronoun: string) => {
+                    const pronounLower = pronoun.toLowerCase();
+                    const mapping = shotMappings[pronounLower];
+                    const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+                    const isIgnored = mappedCharacterId === '__ignore__';
+                    const char = mappedCharacterId && !isIgnored 
+                      ? (sceneAnalysisResult?.characters.find((c: any) => c.id === mappedCharacterId) ||
+                         allCharacters.find((c: any) => c.id === mappedCharacterId))
+                      : null;
+                    
+                    // Check if this character has already been rendered
+                    const alreadyRendered = char && renderedCharacters.has(char.id);
+                    if (char && !alreadyRendered) {
+                      renderedCharacters.add(char.id);
+                    }
+                    
+                    return (
+                      <div key={pronoun} className="space-y-2">
+                        {/* Stacked layout: controls + photos vertically */}
+                        <div className="space-y-3">
+                          <div>
+                            <PronounMappingSection
+                              pronouns={[pronoun]}
+                              characters={getCharacterSource(allCharacters, sceneAnalysisResult)}
+                              selectedCharacters={selectedCharactersForShots[shot.slot] || []}
+                              pronounMappings={shotMappings}
+                              onPronounMappingChange={(p, characterIdOrIds) => {
+                                onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
+                              }}
+                              onCharacterSelectionChange={(characterIds) => {
+                                onCharactersForShotChange?.(shot.slot, characterIds);
+                              }}
+                              shotSlot={shot.slot}
+                              characterHeadshots={characterHeadshots}
+                              loadingHeadshots={loadingHeadshots}
+                              selectedCharacterReferences={selectedCharacterReferences}
+                              characterOutfits={characterOutfits}
+                              onCharacterReferenceChange={onCharacterReferenceChange}
+                              onCharacterOutfitChange={onCharacterOutfitChange}
+                              allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                              hideSectionLabels={true}
+                              pronounExtrasPrompts={pronounExtrasPrompts}
+                              onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                            />
+                          </div>
+                          {/* Images - only show if character is mapped and not already rendered */}
+                          {char && !alreadyRendered && (
+                            <div className="mt-3">
+                              {renderCharacterImagesOnly(char.id, shot.slot, characterToPronouns.get(char.id)?.map(p => `"${p}"`) || [`"${pronoun}"`])}
+                              {characterToPronouns.get(char.id)!.length > 1 && (
+                                <div className="text-[10px] text-[#808080] mt-2 italic">
+                                  This character is mapped to: {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {char && alreadyRendered && (
+                            <div className="mt-3">
+                              <div className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                                Character "{char.name}" images shown above (mapped to: {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')})
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            );
+          })()}
+
+          {/* Multiple Characters Section */}
+          {pronounInfo.pronouns.filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase())).length > 0 && (() => {
+            // Track which characters have been rendered (including explicit and single character mappings)
+            const renderedCharacters = new Set<string>();
+            // Add explicit characters
+            explicitCharacters.forEach(charId => renderedCharacters.add(charId));
+            // Add single character mappings
+            pronounInfo.pronouns
+              .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
+              .forEach((pronoun: string) => {
+                const pronounLower = pronoun.toLowerCase();
+                const mapping = shotMappings[pronounLower];
+                const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
+                if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
+                  renderedCharacters.add(mappedCharacterId);
+                }
+              });
+            
+            return (
+            <div className="space-y-4">
+              <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
+                Multiple Characters
+              </div>
+              {pronounInfo.pronouns
+                .filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase()))
+                .map((pronoun: string) => {
+                  const pronounLower = pronoun.toLowerCase();
+                  const mapping = shotMappings[pronounLower];
+                  const isIgnored = mapping === '__ignore__';
+                  const mappedCharacterIds = isIgnored ? [] : (Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []));
+                  
+                  return (
+                    <div key={pronoun} className="space-y-2">
+                      {/* Stacked layout: controls + photos vertically */}
+                      <div className="space-y-3">
+                        <div>
+                          <PronounMappingSection
+                            pronouns={[pronoun]}
+                            characters={getCharacterSource(allCharacters, sceneAnalysisResult)}
+                            selectedCharacters={selectedCharactersForShots[shot.slot] || []}
+                            pronounMappings={shotMappings}
+                            onPronounMappingChange={(p, characterIdOrIds) => {
+                              onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
+                            }}
+                            onCharacterSelectionChange={(characterIds) => {
+                              onCharactersForShotChange?.(shot.slot, characterIds);
+                            }}
+                            shotSlot={shot.slot}
+                            characterHeadshots={characterHeadshots}
+                            loadingHeadshots={loadingHeadshots}
+                            selectedCharacterReferences={selectedCharacterReferences}
+                            characterOutfits={characterOutfits}
+                            onCharacterReferenceChange={onCharacterReferenceChange}
+                            onCharacterOutfitChange={onCharacterOutfitChange}
+                            allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
+                            hideSectionLabels={true}
+                            pronounExtrasPrompts={pronounExtrasPrompts}
+                            onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                          />
+                        </div>
+                        {/* Images - only show if characters are mapped */}
+                        {mappedCharacterIds.length > 0 && (
+                          <div className="mt-3 space-y-3">
+                            {mappedCharacterIds.map((charId: string) => {
+                              const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
+                              if (!char) return null;
+                              const alreadyRendered = renderedCharacters.has(char.id);
+                              if (!alreadyRendered) {
+                                renderedCharacters.add(char.id);
+                              }
+                              return (
+                                <div key={charId}>
+                                  {!alreadyRendered && renderCharacterImagesOnly(charId, shot.slot, [`"${pronoun}"`])}
+                                  {alreadyRendered && (
+                                    <div className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                                      Character "{char.name}" images shown above (mapped to: "{pronoun}")
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* 🔥 REORDERED: Location Section - Third */}
       {shouldShowLocation && (
         <div className="pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
@@ -257,121 +583,7 @@ export function ShotConfigurationPanel({
         </div>
       )}
 
-      {/* Dialogue Workflow Selection - Only for dialogue shots - NEW: Unified Dropdown */}
-      {shot.type === 'dialogue' && onDialogueWorkflowChange && (
-        <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
-          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow Selection</div>
-          <UnifiedDialogueDropdown
-            shot={shot}
-            selectedQuality={selectedDialogueQuality}
-            selectedWorkflow={selectedDialogueWorkflow as DialogueWorkflowType}
-            selectedBaseWorkflow={selectedBaseWorkflow}
-            characterIds={[
-              ...(shot.characterId ? [shot.characterId] : []),
-              ...(selectedCharactersForShots[shot.slot] || [])
-            ]}
-            onQualityChange={(quality) => onDialogueQualityChange?.(shot.slot, quality)}
-            onWorkflowChange={(workflow) => onDialogueWorkflowChange(shot.slot, workflow)}
-            onBaseWorkflowChange={(baseWorkflow) => onBaseWorkflowChange?.(shot.slot, baseWorkflow)}
-            detectedWorkflow={detectedWorkflowType as DialogueWorkflowType}
-            workflowConfidence={workflowConfidence}
-            workflowReasoning={workflowReasoning}
-          />
-          {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover)
-              Note: Using backend identifiers 'off-frame-voiceover' and 'scene-voiceover' for logic */}
-          {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
-            <div className="mt-3">
-              <label className="block text-[10px] text-[#808080] mb-1.5">
-                Describe the alternate action in the scene:
-              </label>
-              <textarea
-                value={dialogueWorkflowPrompt || ''}
-                onChange={(e) => {
-                  onDialogueWorkflowPromptChange(shot.slot, e.target.value);
-                }}
-                placeholder={
-                  currentWorkflow === 'off-frame-voiceover'
-                    ? 'e.g., Character speaking from off-screen, back turned, or side profile...'
-                    : 'e.g., Narrator voice describing the scene. The narrator can appear in the scene or just narrate over it...'
-                }
-                rows={3}
-                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-              />
-              <div className="text-[10px] text-[#808080] italic mt-1">
-                This description will be used to generate the scene with the selected workflow.
-              </div>
-            </div>
-          )}
-            
-            {/* Additional Characters Section for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) - placed below prompt box */}
-            {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && shot.type === 'dialogue' && onCharactersForShotChange && (
-              <div className="mt-4">
-                <div className="mb-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                  {currentWorkflow === 'scene-voiceover' 
-                    ? 'Add characters that will appear in the scene. The narrator can also appear in the scene if selected.'
-                    : 'Add characters that will appear in the scene (off-screen or visible).'}
-                </div>
-                <div className="text-xs font-medium text-[#FFFFFF] mb-2">Additional Characters</div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => {
-                    const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
-                    return (
-                      <div key={char.id} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            const current = selectedCharactersForShots[shot.slot] || [];
-                            const updated = e.target.checked
-                              ? [...current, char.id]
-                              : current.filter((id: string) => id !== char.id);
-                            onCharactersForShotChange(shot.slot, updated);
-                          }}
-                          className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                        />
-                        <span className="text-xs text-[#FFFFFF] flex-1">
-                          {char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}
-                        </span>
-                        {isSelected && (
-                          <span className="text-[10px] text-[#DC143C]">✓</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
-                  <div className="mt-4 space-y-4">
-                    {selectedCharactersForShots[shot.slot].map((charId: string) => {
-                      const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
-                      if (!char) return null;
-                      return (
-                        <div key={charId}>
-                          {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {/* Character images for selected additional characters - stacked below */}
-                {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
-                  <div className="mt-4 space-y-4">
-                    {selectedCharactersForShots[shot.slot].map((charId: string) => {
-                      const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
-                      if (!char) return null;
-                      return (
-                        <div key={charId}>
-                          {renderCharacterImagesOnly(charId, shot.slot)}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-        </div>
-      )}
-
-      {/* Props Section - Only show props assigned to this shot */}
+      {/* 🔥 REORDERED: Props Section - Fourth */}
       {(() => {
         // Get props assigned to this shot
         const assignedProps = sceneProps.filter(prop => 
@@ -572,288 +784,157 @@ export function ShotConfigurationPanel({
         );
       })()}
 
-      {/* Character(s) Section */}
-      {explicitCharacters.length > 0 && (() => {
-        // Track rendered characters globally across all sections (explicit, singular, plural)
-        const allRenderedCharacters = new Set<string>();
-        
-        // Collect characters from singular pronouns
-        pronounInfo.pronouns
-          .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
-          .forEach((pronoun: string) => {
-            const pronounLower = pronoun.toLowerCase();
-            const mapping = shotMappings[pronounLower];
-            const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
-            if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
-              allRenderedCharacters.add(mappedCharacterId);
-            }
-          });
-        
-        // Collect characters from plural pronouns
-        pronounInfo.pronouns
-          .filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase()))
-          .forEach((pronoun: string) => {
-            const pronounLower = pronoun.toLowerCase();
-            const mapping = shotMappings[pronounLower];
-            if (mapping && mapping !== '__ignore__') {
-              const mappedCharacterIds = Array.isArray(mapping) ? mapping : [mapping];
-              mappedCharacterIds.forEach((charId: string) => {
-                if (charId && charId !== '__ignore__') {
-                  allRenderedCharacters.add(charId);
+      {/* 🔥 REORDERED: Dialogue Workflow Selection - Fifth (dialogue shots only) */}
+      {shot.type === 'dialogue' && onDialogueWorkflowChange && (
+        <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow Selection</div>
+          <UnifiedDialogueDropdown
+            shot={shot}
+            selectedQuality={selectedDialogueQuality}
+            selectedWorkflow={selectedDialogueWorkflow as DialogueWorkflowType}
+            selectedBaseWorkflow={selectedBaseWorkflow}
+            characterIds={[
+              ...(shot.characterId ? [shot.characterId] : []),
+              ...(selectedCharactersForShots[shot.slot] || [])
+            ]}
+            onQualityChange={(quality) => onDialogueQualityChange?.(shot.slot, quality)}
+            onWorkflowChange={(workflow) => onDialogueWorkflowChange(shot.slot, workflow)}
+            onBaseWorkflowChange={(baseWorkflow) => onBaseWorkflowChange?.(shot.slot, baseWorkflow)}
+            detectedWorkflow={detectedWorkflowType as DialogueWorkflowType}
+            workflowConfidence={workflowConfidence}
+            workflowReasoning={workflowReasoning}
+          />
+          {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover)
+              Note: Using backend identifiers 'off-frame-voiceover' and 'scene-voiceover' for logic */}
+          {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
+            <div className="mt-3">
+              <label className="block text-[10px] text-[#808080] mb-1.5">
+                Describe the alternate action in the scene:
+              </label>
+              <textarea
+                value={dialogueWorkflowPrompt || ''}
+                onChange={(e) => {
+                  onDialogueWorkflowPromptChange(shot.slot, e.target.value);
+                }}
+                placeholder={
+                  currentWorkflow === 'off-frame-voiceover'
+                    ? 'e.g., Character speaking from off-screen, back turned, or side profile...'
+                    : 'e.g., Narrator voice describing the scene. The narrator can appear in the scene or just narrate over it...'
                 }
-              });
-            }
-          });
-        
-        return (
-        <div className="pb-3 border-b border-[#3F3F46]">
-          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
-          {/* Show message for Narrate Shot (scene-voiceover) */}
-          {currentWorkflow === 'scene-voiceover' && (
-            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-              Narrator voice will overlay the scene. The narrator (speaking character) is greyed out below. To add the narrator to the scene, select them in the "Additional Characters" section below.
+                rows={3}
+                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+              />
+              <div className="text-[10px] text-[#808080] italic mt-1">
+                This description will be used to generate the scene with the selected workflow.
+              </div>
             </div>
           )}
-          {/* Show message for Hidden Mouth Dialogue (off-frame-voiceover) */}
-          {currentWorkflow === 'off-frame-voiceover' && (
-            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-              Character will not be visible (speaking off-screen). Character images are still needed for voice generation.
-            </div>
-          )}
-          <div className="space-y-4">
-            {explicitCharacters.map((charId) => {
-              // Grey out narrator when Narrate Shot (scene-voiceover) is selected (they're the narrator)
-              const isNarrator = currentWorkflow === 'scene-voiceover' && charId === speakingCharacterId;
-              // Check if narrator is also manually selected (will show normally in that section)
-              const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
-              // Check if this character is already rendered in pronoun sections
-              const alreadyRenderedInPronouns = allRenderedCharacters.has(charId);
-              return (
-                <div key={charId} className={`space-y-3 ${isNarrator ? 'opacity-50' : ''}`}>
-                  {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                  {isNarrator && (
-                    <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                      Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
-                    </div>
-                  )}
-                  {/* Always show images in Character(s) section, even if also mapped to pronoun */}
-                  {renderCharacterImagesOnly(charId, shot.slot)}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        );
-      })()}
-
-      {/* Which Character? Section */}
-      {hasPronouns && (
-        <div className="pt-3 border-t border-[#3F3F46]">
-          <div className="mb-3">
-            <div className="text-xs font-medium text-[#FFFFFF] mb-1">Which Character?</div>
-            <div className="text-[10px] text-[#808080]">
-              Select which character each word in the script refers to.
-            </div>
-          </div>
-          {/* Show message for Narrate Shot (scene-voiceover) about adding characters */}
-          {currentWorkflow === 'scene-voiceover' && (
-            <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-              Select which characters will appear in the scene. The narrator can also appear in the scene if selected.
-            </div>
-          )}
-          {/* Single Character Section */}
-          {pronounInfo.pronouns.filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase())).length > 0 && (() => {
-            // Track which characters have been rendered to avoid duplicates (including explicit characters)
-            const renderedCharacters = new Set<string>();
-            // Add explicit characters to rendered set (they're shown in Character(s) section)
-            explicitCharacters.forEach(charId => renderedCharacters.add(charId));
-            const characterToPronouns = new Map<string, string[]>();
             
-            // First pass: collect all character-to-pronoun mappings
-            pronounInfo.pronouns
-              .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
-              .forEach((pronoun: string) => {
-                const pronounLower = pronoun.toLowerCase();
-                const mapping = shotMappings[pronounLower];
-                const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
-                if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
-                  if (!characterToPronouns.has(mappedCharacterId)) {
-                    characterToPronouns.set(mappedCharacterId, []);
-                  }
-                  characterToPronouns.get(mappedCharacterId)!.push(pronoun);
-                }
-              });
-            
-            return (
-              <div className="space-y-4 pb-3 border-b border-[#3F3F46]">
-                <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
-                  Single Character
+            {/* Additional Characters Section for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) - placed below prompt box */}
+            {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && shot.type === 'dialogue' && onCharactersForShotChange && (
+              <div className="mt-4">
+                <div className="mb-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                  {currentWorkflow === 'scene-voiceover' 
+                    ? 'Add characters that will appear in the scene. The narrator can also appear in the scene if selected.'
+                    : 'Add characters that will appear in the scene (off-screen or visible).'}
                 </div>
-                {pronounInfo.pronouns
-                  .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
-                  .map((pronoun: string) => {
-                    const pronounLower = pronoun.toLowerCase();
-                    const mapping = shotMappings[pronounLower];
-                    const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
-                    const isIgnored = mappedCharacterId === '__ignore__';
-                    const char = mappedCharacterId && !isIgnored 
-                      ? (sceneAnalysisResult?.characters.find((c: any) => c.id === mappedCharacterId) ||
-                         allCharacters.find((c: any) => c.id === mappedCharacterId))
-                      : null;
-                    
-                    // Check if this character has already been rendered
-                    const alreadyRendered = char && renderedCharacters.has(char.id);
-                    if (char && !alreadyRendered) {
-                      renderedCharacters.add(char.id);
-                    }
-                    
+                <div className="text-xs font-medium text-[#FFFFFF] mb-2">Additional Characters</div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => {
+                    const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
                     return (
-                      <div key={pronoun} className="space-y-2">
-                        {/* Stacked layout: controls + photos vertically */}
-                        <div className="space-y-3">
-                          <div>
-                            <PronounMappingSection
-                              pronouns={[pronoun]}
-                              characters={getCharacterSource(allCharacters, sceneAnalysisResult)}
-                              selectedCharacters={selectedCharactersForShots[shot.slot] || []}
-                              pronounMappings={shotMappings}
-                              onPronounMappingChange={(p, characterIdOrIds) => {
-                                onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
-                              }}
-                              onCharacterSelectionChange={(characterIds) => {
-                                onCharactersForShotChange?.(shot.slot, characterIds);
-                              }}
-                              shotSlot={shot.slot}
-                              characterHeadshots={characterHeadshots}
-                              loadingHeadshots={loadingHeadshots}
-                              selectedCharacterReferences={selectedCharacterReferences}
-                              characterOutfits={characterOutfits}
-                              onCharacterReferenceChange={onCharacterReferenceChange}
-                              onCharacterOutfitChange={onCharacterOutfitChange}
-                              allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
-                              hideSectionLabels={true}
-                              pronounExtrasPrompts={pronounExtrasPrompts}
-                              onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                            />
-                          </div>
-                          {/* Images - only show if character is mapped and not already rendered */}
-                          {char && !alreadyRendered && (
-                            <div className="mt-3">
-                              {renderCharacterImagesOnly(char.id, shot.slot, characterToPronouns.get(char.id)?.map(p => `"${p}"`) || [`"${pronoun}"`])}
-                              {characterToPronouns.get(char.id)!.length > 1 && (
-                                <div className="text-[10px] text-[#808080] mt-2 italic">
-                                  This character is mapped to: {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {char && alreadyRendered && (
-                            <div className="mt-3">
-                              <div className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
-                                Character "{char.name}" images shown above (mapped to: {characterToPronouns.get(char.id)!.map(p => `"${p}"`).join(', ')})
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                      <div key={char.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const current = selectedCharactersForShots[shot.slot] || [];
+                            const updated = e.target.checked
+                              ? [...current, char.id]
+                              : current.filter((id: string) => id !== char.id);
+                            onCharactersForShotChange(shot.slot, updated);
+                          }}
+                          className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                        />
+                        <span className="text-xs text-[#FFFFFF] flex-1">
+                          {char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}
+                        </span>
+                        {isSelected && (
+                          <span className="text-[10px] text-[#DC143C]">✓</span>
+                        )}
                       </div>
                     );
                   })}
-              </div>
-            );
-          })()}
-
-          {/* Multiple Characters Section */}
-          {pronounInfo.pronouns.filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase())).length > 0 && (() => {
-            // Track which characters have been rendered (including explicit and single character mappings)
-            const renderedCharacters = new Set<string>();
-            // Add explicit characters
-            explicitCharacters.forEach(charId => renderedCharacters.add(charId));
-            // Add single character mappings
-            pronounInfo.pronouns
-              .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
-              .forEach((pronoun: string) => {
-                const pronounLower = pronoun.toLowerCase();
-                const mapping = shotMappings[pronounLower];
-                const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
-                if (mappedCharacterId && mappedCharacterId !== '__ignore__') {
-                  renderedCharacters.add(mappedCharacterId);
-                }
-              });
-            
-            return (
-            <div className="space-y-4">
-              <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
-                Multiple Characters
-              </div>
-              {pronounInfo.pronouns
-                .filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase()))
-                .map((pronoun: string) => {
-                  const pronounLower = pronoun.toLowerCase();
-                  const mapping = shotMappings[pronounLower];
-                  const isIgnored = mapping === '__ignore__';
-                  const mappedCharacterIds = isIgnored ? [] : (Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []));
-                  
-                  return (
-                    <div key={pronoun} className="space-y-2">
-                      {/* Stacked layout: controls + photos vertically */}
-                      <div className="space-y-3">
-                        <div>
-                          <PronounMappingSection
-                            pronouns={[pronoun]}
-                            characters={getCharacterSource(allCharacters, sceneAnalysisResult)}
-                            selectedCharacters={selectedCharactersForShots[shot.slot] || []}
-                            pronounMappings={shotMappings}
-                            onPronounMappingChange={(p, characterIdOrIds) => {
-                              onPronounMappingChange?.(shot.slot, p, characterIdOrIds);
-                            }}
-                            onCharacterSelectionChange={(characterIds) => {
-                              onCharactersForShotChange?.(shot.slot, characterIds);
-                            }}
-                            shotSlot={shot.slot}
-                            characterHeadshots={characterHeadshots}
-                            loadingHeadshots={loadingHeadshots}
-                            selectedCharacterReferences={selectedCharacterReferences}
-                            characterOutfits={characterOutfits}
-                            onCharacterReferenceChange={onCharacterReferenceChange}
-                            onCharacterOutfitChange={onCharacterOutfitChange}
-                            allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
-                            hideSectionLabels={true}
-                            pronounExtrasPrompts={pronounExtrasPrompts}
-                            onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                          />
+                </div>
+                {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
+                  <div className="mt-4 space-y-4">
+                    {selectedCharactersForShots[shot.slot].map((charId: string) => {
+                      const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
+                      if (!char) return null;
+                      return (
+                        <div key={charId}>
+                          {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
                         </div>
-                        {/* Images - show all mapped characters - stacked below, but skip if already rendered */}
-                        {mappedCharacterIds.length > 0 && (
-                          <div className="mt-3 space-y-4">
-                            {mappedCharacterIds.map((charId) => {
-                              const alreadyRendered = renderedCharacters.has(charId);
-                              if (alreadyRendered) {
-                                renderedCharacters.add(charId); // Track it anyway
-                                return (
-                                  <div key={charId} className="text-[10px] text-[#808080] italic p-2 bg-[#0A0A0A] border border-[#3F3F46] rounded">
-                                    Character images shown above (already mapped in another section)
-                                  </div>
-                                );
-                              }
-                              renderedCharacters.add(charId);
-                              return (
-                                <div key={charId}>
-                                  {renderCharacterImagesOnly(charId, shot.slot, [`"${pronoun}"`])}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-            );
-          })()}
+                      );
+                    })}
+                  </div>
+                )}
+                {/* Character images for selected additional characters - stacked below */}
+                {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
+                  <div className="mt-4 space-y-4">
+                    {selectedCharactersForShots[shot.slot].map((charId: string) => {
+                      const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
+                      if (!char) return null;
+                      return (
+                        <div key={charId}>
+                          {renderCharacterImagesOnly(charId, shot.slot)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       )}
 
+      {/* Workflow Override - For action shots only */}
+      {shot.type === 'action' && onShotWorkflowOverrideChange && (
+        <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Workflow Override</div>
+          <div className="text-[10px] text-[#808080] mb-2">
+            Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'action-line')}</span>
+          </div>
+          <Select
+            value={shotWorkflowOverride || shot.workflow || '__select__'}
+            onValueChange={(newWorkflow) => {
+              if (newWorkflow === '__select__' || newWorkflow === shot.workflow) {
+                // If user selects suggested workflow or placeholder, remove override
+                onShotWorkflowOverrideChange(shot.slot, '');
+              } else {
+                onShotWorkflowOverrideChange(shot.slot, newWorkflow);
+              }
+            }}
+          >
+            <SelectTrigger className="w-full h-9 text-sm">
+              <SelectValue placeholder="Select workflow..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__select__">Use suggested workflow</SelectItem>
+              {ACTION_WORKFLOWS
+                .filter(wf => wf.value !== shot.workflow)
+                .map(wf => (
+                  <SelectItem key={wf.value} value={wf.value}>
+                    {wf.label}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <div className="text-[10px] text-[#808080] italic mt-1">
+            Override the suggested workflow for this shot. Leave as default to use the suggested workflow.
+          </div>
+        </div>
+      )}
 
     </div>
   );

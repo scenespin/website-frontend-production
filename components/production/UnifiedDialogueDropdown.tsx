@@ -265,13 +265,18 @@ export function UnifiedDialogueDropdown({
                       Base Workflow:
                     </label>
                     <Select
-                      value={selectedBaseWorkflow || 'action-line'}
-                      onValueChange={(value) => onBaseWorkflowChange(value)}
+                      value={selectedBaseWorkflow || '__select__'}
+                      onValueChange={(value) => {
+                        // 🔥 FIX: Convert placeholder back to empty string, otherwise use the value
+                        const actualValue = value === '__select__' ? 'action-line' : value;
+                        onBaseWorkflowChange(actualValue);
+                      }}
                     >
                       <SelectTrigger className="w-full h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="__select__">Select a base workflow...</SelectItem>
                         {AVAILABLE_WORKFLOWS.map((wf) => (
                           <SelectItem key={wf.value} value={wf.value}>
                             {wf.label} {wf.value === 'action-line' ? '(suggested)' : ''}

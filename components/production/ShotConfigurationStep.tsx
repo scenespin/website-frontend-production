@@ -92,6 +92,9 @@ interface ShotConfigurationStepProps {
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
   onPropImageChange?: (shotSlot: number, propId: string, imageId: string | undefined) => void;
+  // Workflow override for action shots
+  shotWorkflowOverride?: string;
+  onShotWorkflowOverrideChange?: (shotSlot: number, workflow: string) => void;
   // Reference Shot (First Frame) Model Selection
   selectedReferenceShotModel?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>;
   onReferenceShotModelChange?: (shotSlot: number, model: 'nano-banana-pro' | 'flux2-max-4k-16:9') => void;
@@ -161,6 +164,8 @@ export function ShotConfigurationStep({
   shotProps = {},
   onPropDescriptionChange,
   onPropImageChange,
+  shotWorkflowOverride,
+  onShotWorkflowOverrideChange,
   selectedReferenceShotModel = {},
   onReferenceShotModelChange,
   selectedVideoType = {},
@@ -496,7 +501,9 @@ export function ShotConfigurationStep({
             characterOutfits={characterOutfits}
             onCharacterReferenceChange={onCharacterReferenceChange}
             onCharacterOutfitChange={onCharacterOutfitChange}
+            selectedDialogueQuality={selectedDialogueQuality}
             selectedDialogueWorkflow={selectedDialogueWorkflow}
+            onDialogueQualityChange={onDialogueQualityChange}
             onDialogueWorkflowChange={onDialogueWorkflowChange}
             dialogueWorkflowPrompt={dialogueWorkflowPrompt}
             onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
@@ -508,6 +515,8 @@ export function ShotConfigurationStep({
             shotProps={shotProps}
             onPropDescriptionChange={onPropDescriptionChange}
             onPropImageChange={onPropImageChange}
+            shotWorkflowOverride={shotWorkflowOverride}
+            onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
           />
 
           {/* Reference Shot (First Frame) Model Selection */}
@@ -523,9 +532,28 @@ export function ShotConfigurationStep({
                 // Collect references for this shot
                 const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
                 
-                // Character references
-                const shotCharacters = selectedCharactersForShots[shot.slot] || [];
-                shotCharacters.forEach(charId => {
+                // Character references - include explicit characters, pronoun-mapped characters, and additional characters
+                const allShotCharacters = new Set<string>();
+                
+                // Add explicit characters
+                explicitCharacters.forEach(charId => allShotCharacters.add(charId));
+                
+                // Add characters from pronoun mappings
+                Object.values(shotMappings || {}).forEach(mapping => {
+                  if (mapping && mapping !== '__ignore__') {
+                    if (Array.isArray(mapping)) {
+                      mapping.forEach(charId => allShotCharacters.add(charId));
+                    } else {
+                      allShotCharacters.add(mapping);
+                    }
+                  }
+                });
+                
+                // Add additional characters
+                (selectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
+                
+                // Collect references for all characters
+                allShotCharacters.forEach(charId => {
                   const char = allCharacters.find(c => c.id === charId);
                   if (char) {
                     const charRef = selectedCharacterReferences[shot.slot]?.[charId];
