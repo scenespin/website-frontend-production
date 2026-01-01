@@ -84,12 +84,13 @@ export async function createCreditCheckoutSession(
     const response = await secureFetch('/api/billing/checkout/credits', {
         method: 'POST',
         body: JSON.stringify({
-            packageKey,
+            packageId: packageKey, // Backend expects packageId
             successUrl,
             cancelUrl,
         }),
     });
-    return response.url;
+    // Backend returns { success: true, data: { sessionId, url } }
+    return response.data?.url || response.url || '';
 }
 
 /**
@@ -177,7 +178,15 @@ export async function getAutoRechargeSettings(): Promise<AutoRechargeSettings> {
     const response = await secureFetch('/api/credits/auto-recharge/status', {
         method: 'GET',
     });
-    return response.autoRecharge;
+    // Backend returns { enabled, threshold, package, payment_method_id } directly (not wrapped)
+    // But check if it's wrapped in data first
+    const data = response.data || response;
+    return {
+        enabled: data.enabled || false,
+        threshold: data.threshold || 0,
+        package: data.package || null,
+        paymentMethodId: data.payment_method_id || null,
+    };
 }
 
 /**
@@ -192,7 +201,7 @@ export async function enableAutoRecharge(
         method: 'POST',
         body: JSON.stringify({
             threshold,
-            packageKey,
+            packageId: packageKey, // Backend expects packageId
             paymentMethodId,
         }),
     });
@@ -212,24 +221,25 @@ export async function disableAutoRecharge(): Promise<void> {
  */
 export const CREDIT_PACKAGES = {
     starter: {
-        credits: 100,
-        priceUSD: 5,
+        credits: 500,
+        priceUSD: 10,
         label: 'Starter Pack',
-        bestFor: 'Try a few more videos',
+        bestFor: 'Trying premium features',
     },
     booster: {
-        credits: 500,
-        priceUSD: 20,
+        credits: 1500,
+        priceUSD: 25,
         label: 'Booster Pack',
         popular: true,
-        bestFor: 'Finish your storyboard',
+        bestFor: 'Active creation month',
+        savings: '17% discount',
     },
     mega: {
-        credits: 1500,
-        priceUSD: 50,
+        credits: 4000,
+        priceUSD: 60,
         label: 'Mega Pack',
         bestFor: 'Heavy production month',
-        savings: '17% discount',
+        savings: '25% discount',
     },
 } as const;
 

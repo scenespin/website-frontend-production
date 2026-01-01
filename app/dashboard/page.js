@@ -26,6 +26,8 @@ import {
   Settings,
   MoreVertical
 } from 'lucide-react';
+import CreditWidget from '@/components/billing/CreditWidget';
+import LowCreditBanner from '@/components/billing/LowCreditBanner';
 
 export default function Dashboard() {
   const { user } = useUser();
@@ -794,6 +796,9 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">
+        {/* Low Credit Banner */}
+        <LowCreditBanner />
+
         {/* Streamlined Header with Stats Bar */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -807,11 +812,7 @@ export default function Dashboard() {
           
           {/* Compact Stats Bar */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50">
-              <Zap className="w-4 h-4 text-cinema-red" />
-              <span className="text-sm font-semibold text-base-content">{credits?.balance?.toLocaleString() || '0'}</span>
-              <span className="text-xs text-base-content/60">credits</span>
-            </div>
+            <CreditWidget />
             <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50">
               <FileText className="w-4 h-4 text-primary" />
               <span className="text-sm font-semibold text-base-content">{projects.length}</span>
