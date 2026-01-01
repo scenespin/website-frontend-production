@@ -92,11 +92,21 @@ export default function ScreenplayReadingModal({
   }>>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   
+  // Confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'selectAll' | 'generate' | null>(null);
+  const [pendingSceneCount, setPendingSceneCount] = useState(0);
+  
   // Audio player state
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  
+  // Constants for estimates
+  const ESTIMATED_CREDITS_PER_SCENE = 50; // Rough estimate
+  const ESTIMATED_MINUTES_PER_SCENE = 2; // Rough estimate
+  const LARGE_SELECTION_WARNING_THRESHOLD = 20; // Show warning if selecting more than this
 
   // Fetch scenes when modal opens
   useEffect(() => {
@@ -301,13 +311,36 @@ export default function ScreenplayReadingModal({
   };
 
   const handleSelectAll = () => {
-    setSelectedSceneIds(scenes.map(s => s.id));
+    const allSceneIds = scenes.map(s => s.id);
+    
+    // Show confirmation if selecting many scenes (warning threshold)
+    if (allSceneIds.length > LARGE_SELECTION_WARNING_THRESHOLD) {
+      setPendingAction('selectAll');
+      setPendingSceneCount(allSceneIds.length);
+      setShowConfirmModal(true);
+    } else {
+      setSelectedSceneIds(allSceneIds);
+    }
   };
 
   const handleDeselectAll = () => {
     setSelectedSceneIds([]);
   };
+  
+  const handleConfirmSelectAll = () => {
+    setSelectedSceneIds(scenes.map(s => s.id));
+    setShowConfirmModal(false);
+    setPendingAction(null);
+    setPendingSceneCount(0);
+  };
 
+  // Calculate estimated credits and time
+  const calculateEstimates = (sceneCount: number) => {
+    const estimatedCredits = sceneCount * ESTIMATED_CREDITS_PER_SCENE;
+    const estimatedMinutes = sceneCount * ESTIMATED_MINUTES_PER_SCENE;
+    return { estimatedCredits, estimatedMinutes };
+  };
+  
   // Handle generation
   const handleGenerate = async () => {
     if (selectedSceneIds.length === 0) {
@@ -315,6 +348,13 @@ export default function ScreenplayReadingModal({
       return;
     }
 
+    // Always show confirmation modal with scene count
+    setPendingAction('generate');
+    setPendingSceneCount(selectedSceneIds.length);
+    setShowConfirmModal(true);
+  };
+  
+  const executeGeneration = async () => {
     setIsGenerating(true);
     setGenerationProgress({ current: 0, total: selectedSceneIds.length });
 
@@ -403,6 +443,23 @@ export default function ScreenplayReadingModal({
       setIsGenerating(false);
       setGenerationProgress(null);
     }
+  };
+  
+  const handleConfirmGenerate = async () => {
+    setShowConfirmModal(false);
+    const action = pendingAction;
+    setPendingAction(null);
+    setPendingSceneCount(0);
+    
+    if (action === 'generate') {
+      await executeGeneration();
+    }
+  };
+  
+  const handleCancelConfirm = () => {
+    setShowConfirmModal(false);
+    setPendingAction(null);
+    setPendingSceneCount(0);
   };
 
   // Audio player controls
@@ -652,9 +709,21 @@ export default function ScreenplayReadingModal({
                       {/* Scene Selection */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-semibold flex items-center gap-2">
-                            📖 Select Scenes
-                          </h3>
+                          <div>
+                            <h3 className="font-semibold flex items-center gap-2">
+                              📖 Select Scenes
+                            </h3>
+                            {selectedSceneIds.length > 0 && (
+                              <p className="text-sm text-base-content/60 mt-1">
+                                {selectedSceneIds.length} of {scenes.length} scene{scenes.length !== 1 ? 's' : ''} selected
+                                {selectedSceneIds.length > LARGE_SELECTION_WARNING_THRESHOLD && (
+                                  <span className="text-yellow-600 ml-2">
+                                    (Large selection - review before generating)
+                                  </span>
+                                )}
+                              </p>
+                            )}
+                          </div>
                           <div className="flex gap-2">
                             <button
                               onClick={handleSelectAll}
@@ -670,6 +739,38 @@ export default function ScreenplayReadingModal({
                             </button>
                           </div>
                         </div>
+                        
+                        {/* Selection Summary & Warnings */}
+                        {selectedSceneIds.length > 0 && (() => {
+                          const { estimatedCredits, estimatedMinutes } = calculateEstimates(selectedSceneIds.length);
+                          const isLargeSelection = selectedSceneIds.length > LARGE_SELECTION_WARNING_THRESHOLD;
+                          
+                          return (
+                            <div className={`mb-3 p-3 rounded-lg border ${
+                              isLargeSelection 
+                                ? 'bg-yellow-900/20 border-yellow-700/50' 
+                                : 'bg-base-200 border-base-300'
+                            }`}>
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-4">
+                                  <div>
+                                    <span className="text-base-content/60">Estimated Credits:</span>
+                                    <span className="ml-2 font-semibold">{estimatedCredits.toLocaleString()}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-base-content/60">Est. Time:</span>
+                                    <span className="ml-2 font-semibold">~{estimatedMinutes} min</span>
+                                  </div>
+                                </div>
+                              </div>
+                              {isLargeSelection && (
+                                <p className="text-xs text-yellow-200 mt-2">
+                                  ⚠️ This is a large selection. You'll be asked to confirm before generating. Review your selection above if needed.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
                         
                         {isLoadingScenes ? (
                           <div className="flex items-center justify-center p-8">
@@ -1001,6 +1102,123 @@ export default function ScreenplayReadingModal({
             characterDemographics={characterVoiceBrowserOpen ? getCharacterDemographics(characterVoiceBrowserOpen) : undefined}
           />
         )}
+        
+        {/* Confirmation Modal */}
+        <Transition appear show={showConfirmModal} as={Fragment}>
+          <Dialog as="div" className="relative z-[60]" onClose={handleCancelConfirm}>
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+            </Transition.Child>
+            
+            <div className="fixed inset-0 overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4">
+                <Transition.Child
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <Dialog.Panel className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-base-100 shadow-xl transition-all">
+                    <div className="p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <AlertCircle className="w-6 h-6 text-yellow-600" />
+                        <Dialog.Title className="text-xl font-bold">
+                          {pendingAction === 'selectAll' ? 'Select All Scenes?' : 'Confirm Generation'}
+                        </Dialog.Title>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {pendingAction === 'selectAll' ? (
+                          <>
+                            <p className="text-base-content/80">
+                              You are about to select <strong className="text-base-content">{pendingSceneCount} scene{pendingSceneCount !== 1 ? 's' : ''}</strong>.
+                            </p>
+                            {pendingSceneCount > LARGE_SELECTION_WARNING_THRESHOLD && (
+                              <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-3">
+                                <p className="text-sm text-yellow-200">
+                                  ⚠️ This is a large selection. This job will be processed asynchronously and may take a while. 
+                                  You can review your selected scenes above before confirming.
+                                </p>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-base-content/80">
+                              You are about to generate audio for <strong className="text-base-content">{pendingSceneCount} scene{pendingSceneCount !== 1 ? 's' : ''}</strong>.
+                            </p>
+                            
+                            {(() => {
+                              const { estimatedCredits, estimatedMinutes } = calculateEstimates(pendingSceneCount);
+                              const isLargeSelection = pendingSceneCount > LARGE_SELECTION_WARNING_THRESHOLD;
+                              
+                              return (
+                                <div className="space-y-3">
+                                  <div className="bg-base-200 rounded-lg p-4 space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-base-content/60">Estimated Credits:</span>
+                                      <span className="font-semibold">{estimatedCredits.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-base-content/60">Estimated Time:</span>
+                                      <span className="font-semibold">~{estimatedMinutes} minutes</span>
+                                    </div>
+                                  </div>
+                                  
+                                  {isLargeSelection && (
+                                    <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-3">
+                                      <p className="text-sm text-yellow-200">
+                                        ⚠️ This is a large selection. Review your selected scenes above if you need to adjust before confirming.
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-3">
+                                    <p className="text-sm text-blue-200">
+                                      💡 {isLargeSelection 
+                                        ? 'Large jobs are processed asynchronously. You\'ll be redirected to the Jobs tab to monitor progress.'
+                                        : 'This job will be processed. You\'ll be redirected to the Jobs tab to monitor progress.'}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </>
+                        )}
+                      </div>
+                      
+                      <div className="flex gap-3 mt-6">
+                        <button
+                          onClick={handleCancelConfirm}
+                          className="flex-1 px-4 py-2 bg-base-200 hover:bg-base-300 rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={pendingAction === 'selectAll' ? handleConfirmSelectAll : handleConfirmGenerate}
+                          className="flex-1 px-4 py-2 bg-primary text-primary-content rounded-lg hover:bg-primary-focus transition-colors"
+                        >
+                          {pendingAction === 'selectAll' ? 'Select All' : 'Confirm & Generate'}
+                        </button>
+                      </div>
+                    </div>
+                  </Dialog.Panel>
+                </Transition.Child>
+              </div>
+            </div>
+          </Dialog>
+        </Transition>
       </Dialog>
     </Transition>
   );
