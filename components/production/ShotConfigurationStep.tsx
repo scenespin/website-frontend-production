@@ -59,9 +59,13 @@ interface ShotConfigurationStepProps {
   characterOutfits: Record<number, Record<string, string>>;
   onCharacterReferenceChange: (shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   onCharacterOutfitChange: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
-  // Dialogue workflows
+  // Dialogue workflows - NEW: Unified dropdown
+  selectedDialogueQuality?: 'premium' | 'reliable';
   selectedDialogueWorkflow?: string;
+  selectedBaseWorkflow?: string; // For voiceover workflows
+  onDialogueQualityChange?: (shotSlot: number, quality: 'premium' | 'reliable') => void;
   onDialogueWorkflowChange?: (shotSlot: number, workflowType: string) => void;
+  onBaseWorkflowChange?: (shotSlot: number, baseWorkflow: string) => void; // For voiceover workflows
   dialogueWorkflowPrompt?: string;
   onDialogueWorkflowPromptChange?: (shotSlot: number, prompt: string) => void;
   // Pronoun extras
@@ -136,8 +140,12 @@ export function ShotConfigurationStep({
   characterOutfits,
   onCharacterReferenceChange,
   onCharacterOutfitChange,
+  selectedDialogueQuality,
   selectedDialogueWorkflow,
+  selectedBaseWorkflow,
+  onDialogueQualityChange,
   onDialogueWorkflowChange,
+  onBaseWorkflowChange,
   dialogueWorkflowPrompt,
   onDialogueWorkflowPromptChange,
   pronounExtrasPrompts = {},
@@ -551,32 +559,50 @@ export function ShotConfigurationStep({
                     images?: Array<{ url: string; s3Key?: string }>;
                   };
                   
-                  if (propConfig?.selectedImageId) {
-                    // Check angleReferences first (Production Hub images)
-                    // selectedImageId can match: ref.id, ref.s3Key, or image.url
-                    const angleRef = fullProp.angleReferences?.find(ref => 
-                      ref.id === propConfig.selectedImageId || 
-                      ref.s3Key === propConfig.selectedImageId
-                    );
-                    if (angleRef?.imageUrl) {
-                      propImageUrl = angleRef.imageUrl;
-                    } else {
-                      // Check images array (Creation images)
-                      // selectedImageId can match: img.url or img.s3Key
-                      const propImage = fullProp.images?.find(img => 
-                        img.url === propConfig.selectedImageId || 
-                        img.s3Key === propConfig.selectedImageId
-                      );
-                      if (propImage?.url) {
-                        propImageUrl = propImage.url;
-                      } else if (prop.imageUrl === propConfig.selectedImageId) {
-                        // Check if selectedImageId matches the default imageUrl
-                        propImageUrl = prop.imageUrl;
-                      }
+                  // Build available images list (same logic as ShotConfigurationPanel)
+                  const availableImages: Array<{ id: string; imageUrl: string }> = [];
+                  
+                  // Add angleReferences first (Production Hub images)
+                  if (fullProp.angleReferences && fullProp.angleReferences.length > 0) {
+                    fullProp.angleReferences.forEach(ref => {
+                      availableImages.push({
+                        id: ref.id,
+                        imageUrl: ref.imageUrl
+                      });
+                    });
+                  }
+                  
+                  // Add images array (Creation images) if no angleReferences
+                  if (availableImages.length === 0 && fullProp.images && fullProp.images.length > 0) {
+                    fullProp.images.forEach(img => {
+                      availableImages.push({
+                        id: img.url,
+                        imageUrl: img.url
+                      });
+                    });
+                  }
+                  
+                  // If no images available, use the default imageUrl
+                  if (availableImages.length === 0 && prop.imageUrl) {
+                    availableImages.push({
+                      id: prop.imageUrl,
+                      imageUrl: prop.imageUrl
+                    });
+                  }
+                  
+                  // Determine which image is selected (same logic as ShotConfigurationPanel)
+                  // If selectedImageId exists, use it; otherwise, first image is auto-selected
+                  const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                  
+                  if (selectedImageId) {
+                    // Find the selected image
+                    const selectedImage = availableImages.find(img => img.id === selectedImageId);
+                    if (selectedImage) {
+                      propImageUrl = selectedImage.imageUrl;
                     }
                   }
                   
-                  // If no selected image but prop has a direct imageUrl, use that as fallback
+                  // Final fallback: if still no image URL, use prop.imageUrl
                   if (!propImageUrl && prop.imageUrl) {
                     propImageUrl = prop.imageUrl;
                   }
