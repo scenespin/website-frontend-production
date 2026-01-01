@@ -5,7 +5,7 @@
  * Files are stored in user's private repository
  */
 
-interface GitHubConfig {
+export interface GitHubConfig {
     token: string;
     owner: string;
     repo: string;
