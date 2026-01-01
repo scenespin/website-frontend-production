@@ -53,7 +53,7 @@ export default function ShortcutsPage() {
                 <tr><td>Toggle scene navigator</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">E</kbd></td></tr>
                 <tr><td>Export PDF</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">P</kbd></td></tr>
                 <tr><td>Undo</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td></tr>
-                <tr><td>Redo</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td></tr>
+                <tr><td>Redo</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Y</kbd> or <kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td></tr>
               </tbody>
             </table>
           </div>

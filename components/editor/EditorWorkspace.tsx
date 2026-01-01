@@ -33,7 +33,7 @@ import type { Scene } from '../../types/screenplay';
  */
 export default function EditorWorkspace() {
     const router = useRouter();
-    const { state, setContent, setCurrentLine, replaceSelection, insertText, isEditorFullscreen, setIsEditorFullscreen } = useEditor();
+    const { state, setContent, setCurrentLine, replaceSelection, insertText, isEditorFullscreen, setIsEditorFullscreen, undo, redo } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
@@ -360,6 +360,25 @@ export default function EditorWorkspace() {
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Handle undo/redo even when textarea is focused (prevent browser default)
+            if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+                // Ctrl/Cmd + Z = Undo
+                if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
+                    e.preventDefault();
+                    undo();
+                }
+                return;
+            }
+            
+            if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z = Redo
+                if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
+                    e.preventDefault();
+                    redo();
+                }
+                return;
+            }
+            
             // Don't intercept if user is typing in an input/textarea
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
                 // Allow Ctrl+F in inputs/textareas (browser default)
@@ -392,7 +411,7 @@ export default function EditorWorkspace() {
         
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    }, [undo, redo]);
     
     return (
         <div className="h-screen flex flex-col bg-base-100">

@@ -380,7 +380,7 @@ export default function ScreenplayEditorPage() {
                 </tr>
                 <tr>
                   <td>Redo</td>
-                  <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td>
+                  <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Y</kbd> or <kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td>
                   <td>Redo last undone change</td>
                 </tr>
                 <tr>
