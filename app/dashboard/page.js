@@ -44,8 +44,9 @@ export default function Dashboard() {
   const [currentScreenplayId, setCurrentScreenplayId] = useState(null);
   // Feature 0130: Use screenplayId (not projectId) for consistency
   const [deletingScreenplayId, setDeletingScreenplayId] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingScreenplayId, setEditingScreenplayId] = useState(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(null); // { screenplayId, name }
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   // 🔥 FIX: Removed sessionStorage tracking for deleted screenplays
   // Backend filters by status='active', so deleted items won't appear on next page load
   // No need for client-side tracking - database is source of truth
@@ -137,8 +138,8 @@ export default function Dashboard() {
       if (eventDetail?.screenplayId) {
         console.log('[Dashboard] Screenplay updated event received, updating state directly:', eventDetail.screenplayId);
         
-        // Update state directly instead of refreshing (avoids overwriting optimistic updates)
-        setProjects(prev => prev.map(p => {
+        // Helper function to update a screenplay in an array
+        const updateScreenplayInArray = (arr) => arr.map(p => {
           const screenplayId = p.id || p.screenplay_id;
           if (screenplayId === eventDetail.screenplayId) {
             const updated = {
@@ -151,7 +152,12 @@ export default function Dashboard() {
             return updated;
           }
           return p;
-        }));
+        });
+        
+        // Update all three state arrays to keep UI in sync
+        setProjects(prev => updateScreenplayInArray(prev));
+        setOwnedScreenplays(prev => updateScreenplayInArray(prev));
+        setCollaboratedScreenplays(prev => updateScreenplayInArray(prev));
       }
     };
     
@@ -522,15 +528,13 @@ export default function Dashboard() {
     }
   };
 
-  const handleDeleteProject = async (screenplayId, projectName) => {
-    // Feature 0130: Parameter is actually screenplayId (not projectId)
-    if (!showDeleteConfirm || showDeleteConfirm !== screenplayId) {
-      // First click - show confirmation
-      setShowDeleteConfirm(screenplayId);
-      return;
-    }
+  const handleDeleteClick = (screenplayId, projectName) => {
+    // Open the delete confirmation modal
+    setDeleteConfirmModal({ screenplayId, name: projectName });
+    setDeleteConfirmInput('');
+  };
 
-    // Second click - actually delete
+  const handleDeleteProject = async (screenplayId) => {
     setDeletingScreenplayId(screenplayId);
     try {
       // Feature 0130: Only use screenplays API - no project API fallback
@@ -597,7 +601,8 @@ export default function Dashboard() {
       // Backend filters by status='active', so deleted items won't appear on next page load
       setProjects(prev => prev.filter(p => p.id !== screenplayId && p.screenplay_id !== screenplayId));
       
-      setShowDeleteConfirm(null);
+      setDeleteConfirmModal(null);
+      setDeleteConfirmInput('');
       toast.success('Deleted successfully');
       
       // Dispatch screenplayDeleted event to notify editor
@@ -622,6 +627,19 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmModal) return;
+    
+    // Verify the name matches exactly
+    if (deleteConfirmInput.trim() !== deleteConfirmModal.name.trim()) {
+      toast.error('Screenplay name does not match. Please type the exact name to confirm deletion.');
+      return;
+    }
+
+    // Proceed with deletion
+    await handleDeleteProject(deleteConfirmModal.screenplayId);
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-base-100 flex items-center justify-center">
@@ -642,6 +660,86 @@ export default function Dashboard() {
         userCredits={credits?.balance || 50}
       />
       
+      {/* Delete Confirmation Modal - Requires Typing Name */}
+      {deleteConfirmModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-base-200 border border-red-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="p-3 bg-red-500/20 rounded-lg flex-shrink-0">
+                <Trash2 className="w-6 h-6 text-red-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-base-content mb-2">
+                  Delete Screenplay?
+                </h3>
+                <p className="text-sm text-base-content/70 mb-4">
+                  This action <strong className="text-red-500">cannot be undone</strong>. Deleting this screenplay will permanently remove:
+                </p>
+                <ul className="text-sm text-base-content/60 space-y-1 mb-4 ml-4 list-disc">
+                  <li>All screenplay content and scenes</li>
+                  <li>All images and assets</li>
+                  <li>All characters and locations</li>
+                  <li>All video generations</li>
+                  <li>All project data</li>
+                </ul>
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
+                  <p className="text-sm font-medium text-red-500 mb-2">
+                    To confirm deletion, type the screenplay name:
+                  </p>
+                  <p className="text-xs font-mono text-base-content/80 bg-base-300 px-2 py-1 rounded">
+                    {deleteConfirmModal.name}
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={deleteConfirmInput}
+                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                  placeholder="Type screenplay name to confirm"
+                  className="w-full px-4 py-2.5 bg-base-300 border border-base-400 rounded-lg text-base-content placeholder:text-base-content/40 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && deleteConfirmInput.trim() === deleteConfirmModal.name.trim()) {
+                      handleDeleteConfirm();
+                    } else if (e.key === 'Escape') {
+                      setDeleteConfirmModal(null);
+                      setDeleteConfirmInput('');
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setDeleteConfirmModal(null);
+                  setDeleteConfirmInput('');
+                }}
+                className="px-4 py-2 bg-base-300 hover:bg-base-400 text-base-content rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={
+                  deleteConfirmInput.trim() !== deleteConfirmModal.name.trim() || 
+                  deletingScreenplayId === deleteConfirmModal.screenplayId
+                }
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                {deletingScreenplayId === deleteConfirmModal.screenplayId ? (
+                  <span className="flex items-center gap-2">
+                    <span className="loading loading-spinner loading-xs"></span>
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete Forever'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Settings Modal */}
       {editingScreenplayId && (
         <ScreenplaySettingsModal
@@ -696,122 +794,49 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">
-        {/* Minimal Header with Greeting */}
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-base-content mb-1">
-            Welcome back, {user?.firstName || 'Creator'}
-          </h1>
-          <p className="text-sm md:text-base text-base-content/60">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
-        {/* Quick Stats - Minimal Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {/* Credits */}
-          <div className="group relative overflow-hidden rounded-2xl bg-base-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-cinema-red/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-cinema-red/10 rounded-lg">
-                  <Zap className="w-5 h-5 text-cinema-red" />
-                </div>
-                <p className="text-sm font-medium text-base-content/60">Credits</p>
-              </div>
-              <p className="text-3xl font-semibold text-base-content mb-1">
-                {credits?.balance?.toLocaleString() || '0'}
-              </p>
-              <p className="text-xs text-base-content/50">Available balance</p>
-            </div>
+        {/* Streamlined Header with Stats Bar */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-semibold text-base-content mb-1">
+              Welcome back, {user?.firstName || 'Creator'}
+            </h1>
+            <p className="text-sm md:text-base text-base-content/60">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
           </div>
-
-          {/* Projects */}
-          <div className="group relative overflow-hidden rounded-2xl bg-base-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <p className="text-sm font-medium text-base-content/60">Projects</p>
-              </div>
-              <p className="text-3xl font-semibold text-base-content mb-1">
-                {projects.length}
-              </p>
-              <p className="text-xs text-base-content/50">Active screenplays</p>
+          
+          {/* Compact Stats Bar */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50">
+              <Zap className="w-4 h-4 text-cinema-red" />
+              <span className="text-sm font-semibold text-base-content">{credits?.balance?.toLocaleString() || '0'}</span>
+              <span className="text-xs text-base-content/60">credits</span>
             </div>
-          </div>
-
-          {/* Videos */}
-          <div className="group relative overflow-hidden rounded-2xl bg-base-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-accent/10 rounded-lg">
-                  <Video className="w-5 h-5 text-accent" />
-                </div>
-                <p className="text-sm font-medium text-base-content/60">Videos</p>
-              </div>
-              <p className="text-3xl font-semibold text-base-content mb-1">
-                {recentVideos.length}
-              </p>
-              <p className="text-xs text-base-content/50">Total created</p>
+            <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50">
+              <FileText className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-base-content">{projects.length}</span>
+              <span className="text-xs text-base-content/60">projects</span>
             </div>
+            {recentVideos.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50">
+                <Video className="w-4 h-4 text-accent" />
+                <span className="text-sm font-semibold text-base-content">{recentVideos.length}</span>
+                <span className="text-xs text-base-content/60">videos</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Quick Actions - Modern Minimal */}
-        <div>
-          <h2 className="text-lg font-semibold text-base-content mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <Link 
-              href="/editor" 
-              className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-cinema-red to-cinema-red/90 p-6 text-base-content hover:shadow-lg transition-all duration-300"
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-              <FileText className="w-6 h-6 mb-3 relative z-10" />
-              <h3 className="font-semibold text-base mb-1 relative z-10">Write Screenplay</h3>
-              <p className="text-xs text-base-content/80 relative z-10">Create a new script</p>
-            </Link>
-            
-            <Link 
-              href="/produce" 
-              className="group relative overflow-hidden rounded-xl bg-base-200 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-cinema-red/5 rounded-full -mr-12 -mt-12"></div>
-              <Video className="w-6 h-6 mb-3 text-cinema-red relative z-10" />
-              <h3 className="font-semibold text-base mb-1 text-base-content relative z-10">Generate Video</h3>
-              <p className="text-xs text-base-content/60 relative z-10">AI-powered creation</p>
-            </Link>
-            
-            <Link 
-              href="/composition" 
-              className="group relative overflow-hidden rounded-xl bg-base-200 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12"></div>
-              <Clapperboard className="w-6 h-6 mb-3 text-primary relative z-10" />
-              <h3 className="font-semibold text-base mb-1 text-base-content relative z-10">Compose Clips</h3>
-              <p className="text-xs text-base-content/60 relative z-10">Edit and combine</p>
-            </Link>
-            
-            <Link 
-              href="/timeline" 
-              className="group relative overflow-hidden rounded-xl bg-base-200 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 rounded-full -mr-12 -mt-12"></div>
-              <Clock className="w-6 h-6 mb-3 text-accent relative z-10" />
-              <h3 className="font-semibold text-base mb-1 text-base-content relative z-10">Edit Timeline</h3>
-              <p className="text-xs text-base-content/60 relative z-10">Fine-tune edits</p>
-            </Link>
-          </div>
-        </div>
-
-        {/* Phase 4.5: My Projects Section */}
+        {/* Projects Section - Moved to Top */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-base-content">My Projects</h2>
+            <div>
+              <h2 className="text-xl font-semibold text-base-content">My Projects</h2>
+              <p className="text-sm text-base-content/60 mt-1">Manage your screenplays and continue your work</p>
+            </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm shadow-sm hover:shadow-md"
             >
               <Plus className="w-4 h-4" />
               New Project
@@ -819,7 +844,7 @@ export default function Dashboard() {
           </div>
           
           {ownedScreenplays.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {ownedScreenplays.filter(project => project != null).map((project) => {
                 // Feature 0130: Use screenplayId (not projectId) - projects are actually screenplays
                 // Check if this screenplay's screenplay_id matches the current screenplay
@@ -828,97 +853,75 @@ export default function Dashboard() {
                 const isCurrent = currentScreenplayId === projectScreenplayId || 
                                  (typeof window !== 'undefined' && localStorage.getItem('current_screenplay_id') === projectScreenplayId);
                 const isDeleting = deletingScreenplayId === screenplayId;
-                const showConfirm = showDeleteConfirm === screenplayId;
+                const lastUpdated = new Date(project.updated_at || project.created_at);
+                const isRecent = (Date.now() - lastUpdated.getTime()) < 7 * 24 * 60 * 60 * 1000; // Within 7 days
                 
                 return (
                   <div
                     key={screenplayId}
-                    className="flex items-center justify-between p-5 bg-base-200 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/50 group"
+                    className={`flex items-center justify-between p-4 bg-base-200 rounded-lg hover:shadow-sm hover:bg-base-300/50 transition-all duration-200 border ${
+                      isCurrent ? 'border-cinema-red/30 shadow-sm' : 'border-base-300/30'
+                    } group`}
                   >
                     <Link
                       href={`/write?project=${screenplayId}`}
-                      className="flex items-center gap-4 flex-1 min-w-0"
+                      className="flex items-center gap-3 flex-1 min-w-0"
                     >
-                      <div className="p-3 bg-cinema-red/10 rounded-lg group-hover:bg-cinema-red/20 transition-colors flex-shrink-0">
-                        <FileText className="w-5 h-5 text-cinema-red" />
+                      <div className={`p-2.5 rounded-lg flex-shrink-0 transition-colors ${
+                        isCurrent ? 'bg-cinema-red/20' : 'bg-cinema-red/10 group-hover:bg-cinema-red/20'
+                      }`}>
+                        <FileText className="w-4 h-4 text-cinema-red" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-base text-base-content group-hover:text-cinema-red transition-colors truncate">
                             {project.name || project.title || 'Untitled Project'}
                           </h3>
                           {isCurrent && (
-                            <span className="badge badge-sm badge-primary">Current</span>
+                            <span className="badge badge-sm badge-cinema-red text-xs">Current</span>
                           )}
-                          <span className="badge badge-sm badge-primary/20 text-primary">Owner</span>
+                          {isRecent && !isCurrent && (
+                            <span className="badge badge-sm badge-ghost text-xs">Recent</span>
+                          )}
                         </div>
-                        <p className="text-sm text-base-content/60">
-                          {new Date(project.updated_at || project.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <p className="text-xs text-base-content/50">
+                            Updated {lastUpdated.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: lastUpdated.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined })}
+                          </p>
+                          {project.genre && (
+                            <span className="text-xs text-base-content/40">• {project.genre}</span>
+                          )}
+                        </div>
                       </div>
                     </Link>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      {!showConfirm ? (
-                        <>
-                          {project.status && project.status !== 'active' && (
-                            <span className={`badge badge-sm ${
-                              project.status === 'archived' ? 'badge-warning' : 
-                              project.status === 'deleted' ? 'badge-error' : 
-                              'badge-ghost'
-                            }`}>
-                              {project.status}
-                            </span>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingScreenplayId(screenplayId);
-                            }}
-                            className="p-2 rounded-lg hover:bg-primary/20 text-base-content/60 hover:text-primary transition-colors"
-                            title="Edit screenplay settings"
-                          >
-                            <Settings className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProject(screenplayId, project.name || project.title || 'Untitled Project');
-                            }}
-                            disabled={isDeleting}
-                            className="p-2 rounded-lg hover:bg-red-500/20 text-base-content/60 hover:text-red-500 transition-colors disabled:opacity-50"
-                            title="Delete screenplay"
-                          >
-                            {isDeleting ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </button>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-red-500">Delete?</span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProject(screenplayId, project.name || project.title || 'Untitled Project');
-                            }}
-                            disabled={isDeleting}
-                            className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors disabled:opacity-50"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowDeleteConfirm(null);
-                            }}
-                            className="px-3 py-1 text-xs bg-base-300 hover:bg-base-100 rounded transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setEditingScreenplayId(screenplayId);
+                        }}
+                        className="p-2 rounded-md hover:bg-base-300 text-base-content/50 hover:text-base-content transition-colors opacity-0 group-hover:opacity-100"
+                        title="Edit screenplay settings"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleDeleteClick(screenplayId, project.name || project.title || 'Untitled Project');
+                        }}
+                        disabled={isDeleting}
+                        className="p-2 rounded-md hover:bg-red-500/20 text-base-content/50 hover:text-red-500 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                        title="Delete screenplay"
+                      >
+                        {isDeleting ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
                 );
@@ -931,11 +934,56 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Quick Actions - Compact and Streamlined */}
+        <div>
+          <h2 className="text-lg font-semibold text-base-content mb-3">Quick Actions</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Link 
+              href="/editor" 
+              className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-cinema-red to-cinema-red/90 p-4 text-base-content hover:shadow-lg transition-all duration-300 border border-cinema-red/20"
+            >
+              <FileText className="w-5 h-5 mb-2" />
+              <h3 className="font-semibold text-sm mb-0.5">Write Screenplay</h3>
+              <p className="text-xs text-base-content/80">Create a new script</p>
+            </Link>
+            
+            <Link 
+              href="/produce" 
+              className="group relative overflow-hidden rounded-lg bg-base-200 p-4 hover:shadow-md transition-all duration-300 border border-base-300/50"
+            >
+              <Video className="w-5 h-5 mb-2 text-cinema-red" />
+              <h3 className="font-semibold text-sm mb-0.5 text-base-content">Generate Video</h3>
+              <p className="text-xs text-base-content/60">AI-powered creation</p>
+            </Link>
+            
+            <Link 
+              href="/composition" 
+              className="group relative overflow-hidden rounded-lg bg-base-200 p-4 hover:shadow-md transition-all duration-300 border border-base-300/50"
+            >
+              <Clapperboard className="w-5 h-5 mb-2 text-primary" />
+              <h3 className="font-semibold text-sm mb-0.5 text-base-content">Compose Clips</h3>
+              <p className="text-xs text-base-content/60">Edit and combine</p>
+            </Link>
+            
+            <Link 
+              href="/timeline" 
+              className="group relative overflow-hidden rounded-lg bg-base-200 p-4 hover:shadow-md transition-all duration-300 border border-base-300/50"
+            >
+              <Clock className="w-5 h-5 mb-2 text-accent" />
+              <h3 className="font-semibold text-sm mb-0.5 text-base-content">Edit Timeline</h3>
+              <p className="text-xs text-base-content/60">Fine-tune edits</p>
+            </Link>
+          </div>
+        </div>
+
         {/* Phase 4.5: Shared with Me Section */}
         {collaboratedScreenplays.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-base-content">Shared with Me</h2>
+              <div>
+                <h2 className="text-lg font-semibold text-base-content">Shared with Me</h2>
+                <p className="text-sm text-base-content/60 mt-1">Projects shared by collaborators</p>
+              </div>
             </div>
             
             <div className="space-y-3">
