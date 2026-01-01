@@ -577,6 +577,119 @@ export async function deleteBranch(
 }
 
 /**
+ * Get commit history for a specific file
+ * 
+ * @param config GitHub configuration
+ * @param path File path (e.g., 'screenplay.fountain')
+ * @param branch Branch to get commits from (default: 'main')
+ * @param limit Maximum number of commits to return (default: 10)
+ * @returns Array of commits with sha, message, author, date
+ */
+export async function getFileCommits(
+    config: GitHubConfig,
+    path: string,
+    branch?: string,
+    limit: number = 10
+): Promise<Array<{
+    sha: string;
+    message: string;
+    author: {
+        name: string;
+        email: string;
+        date: string;
+    };
+    date: string;
+}>> {
+    const { token, owner, repo } = config;
+    const targetBranch = branch || 'main';
+    
+    try {
+        const response = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/commits?path=${encodeURIComponent(path)}&sha=${targetBranch}&per_page=${limit}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`GitHub API error: ${error.message || response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        const commits = data.map((commit: any) => ({
+            sha: commit.sha,
+            message: commit.commit.message,
+            author: {
+                name: commit.commit.author.name,
+                email: commit.commit.author.email,
+                date: commit.commit.author.date
+            },
+            date: commit.commit.author.date
+        }));
+        
+        console.log(`[GitHub] Retrieved ${commits.length} commits for ${path}`);
+        return commits;
+        
+    } catch (error) {
+        console.error('[GitHub] Get file commits failed:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get file content from a specific commit
+ * 
+ * @param config GitHub configuration
+ * @param path File path (e.g., 'screenplay.fountain')
+ * @param commitSha Commit SHA to get file from
+ * @returns File content
+ */
+export async function getFileFromCommit(
+    config: GitHubConfig,
+    path: string,
+    commitSha: string
+): Promise<string> {
+    const { token, owner, repo } = config;
+    
+    try {
+        const response = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${commitSha}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('File not found in that commit');
+            }
+            const error = await response.json();
+            throw new Error(`GitHub API error: ${error.message || response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Decode base64 content
+        const content = atob(data.content);
+        
+        console.log(`[GitHub] Retrieved file from commit ${commitSha.substring(0, 7)}`);
+        return content;
+        
+    } catch (error) {
+        console.error('[GitHub] Get file from commit failed:', error);
+        throw error;
+    }
+}
+
+/**
  * Create multiple file changes in a single commit
  * Useful for atomic updates across structure files
  * 

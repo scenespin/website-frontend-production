@@ -18,6 +18,8 @@ import RewriteModal from '../modals/RewriteModal';
 import ScreenwriterModal from '../modals/ScreenwriterModal';
 import DirectorModal from '../modals/DirectorModal';
 import DialogueModal from '../modals/DialogueModal';
+import FindReplaceModal from './FindReplaceModal';
+import VersionHistoryModal from './VersionHistoryModal';
 import { saveToGitHub } from '@/utils/github';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
@@ -57,6 +59,12 @@ export default function EditorWorkspace() {
     
     // Dialogue modal state
     const [isDialogueModalOpen, setIsDialogueModalOpen] = useState(false);
+    
+    // Find/Replace modal state
+    const [isFindReplaceModalOpen, setIsFindReplaceModalOpen] = useState(false);
+    
+    // Version History modal state
+    const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false);
     
     // Get screenplayId and sceneId from URL params (for collaboration and scene navigation)
     // Feature 0130: Use useSearchParams() for reactive URL parameter reading
@@ -352,13 +360,26 @@ export default function EditorWorkspace() {
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Don't intercept if user is typing in an input/textarea
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                // Allow Ctrl+F in inputs/textareas (browser default)
+                if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+                    return; // Let browser handle it
+                }
+            }
+            
+            // Cmd/Ctrl + F = Find/Replace
+            if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+                e.preventDefault();
+                setIsFindReplaceModalOpen(true);
+            }
             // Cmd/Ctrl + E = Toggle scene navigator
-            if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+            else if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
                 e.preventDefault();
                 setIsSceneNavVisible(prev => !prev);
             }
             // Cmd/Ctrl + P = Export PDF
-            if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+            else if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
                 e.preventDefault();
                 setShowExportModal(true);
             }
@@ -409,6 +430,21 @@ export default function EditorWorkspace() {
                         onSave={handleManualSave}
                         isEditorFullscreen={isEditorFullscreen}
                         onToggleEditorFullscreen={() => setIsEditorFullscreen(!isEditorFullscreen)}
+                        onOpenFindReplace={() => setIsFindReplaceModalOpen(true)}
+                        onToggleItalics={() => {
+                            // Trigger Ctrl+I programmatically
+                            const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+                            if (textarea) {
+                                const event = new KeyboardEvent('keydown', {
+                                    key: 'i',
+                                    ctrlKey: true,
+                                    bubbles: true,
+                                    cancelable: true
+                                });
+                                textarea.dispatchEvent(event);
+                            }
+                        }}
+                        onOpenVersionHistory={() => setIsVersionHistoryModalOpen(true)}
                     />
                     
                     {/* Word Count & Duration - Below Toolbar */}
@@ -579,6 +615,18 @@ Tip:
                 cursorPosition={state.cursorPosition || 0}
                 selectionRange={selectionRange}
                 onInsert={handleDialogueInsert}
+            />
+            
+            {/* Find/Replace Modal */}
+            <FindReplaceModal
+                isOpen={isFindReplaceModalOpen}
+                onClose={() => setIsFindReplaceModalOpen(false)}
+            />
+            
+            {/* Version History Modal */}
+            <VersionHistoryModal
+                isOpen={isVersionHistoryModalOpen}
+                onClose={() => setIsVersionHistoryModalOpen(false)}
             />
             
         </div>

@@ -7,7 +7,9 @@ import {
     getNextElementType,
     formatElement,
     FountainElementType,
-    getVisibleLineNumber
+    getVisibleLineNumber,
+    stripTagsForDisplay,
+    mapDisplayPositionToFullContent
 } from '@/utils/fountain';
 
 interface UseFountainFormattingReturn {
@@ -25,7 +27,7 @@ interface UseFountainFormattingReturn {
 export function useFountainFormatting(
     textareaRef: RefObject<HTMLTextAreaElement>
 ): UseFountainFormattingReturn {
-    const { state, setContent, setCursorPosition, setCurrentElementType } = useEditor();
+    const { state, setContent, setCursorPosition, setCurrentElementType, replaceSelection } = useEditor();
     
     // Current element type
     const [currentType, setCurrentType] = useState<FountainElementType>('action');
@@ -116,7 +118,92 @@ export function useFountainFormatting(
             setCurrentType('scene_heading');
             setCurrentElementType('scene_heading');
         }
-    }, [textareaRef, state.content, setContent, setCursorPosition, setCurrentElementType]);
+        
+        // Ctrl/Cmd + Enter - New scene heading
+        else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault();
+            
+            // Insert new line with "INT. " or "EXT. " prefix
+            const newLinePrefix = 'INT. ';
+            const newContent = textBeforeCursor + '\n' + newLinePrefix + textAfterCursor;
+            setContent(newContent);
+            
+            // Move cursor to after the prefix
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    const newPos = cursorPos + 1 + newLinePrefix.length;
+                    textareaRef.current.selectionStart = newPos;
+                    textareaRef.current.selectionEnd = newPos;
+                    setCursorPosition(newPos);
+                }
+            }, 0);
+            
+            setCurrentType('scene_heading');
+            setCurrentElementType('scene_heading');
+        }
+        
+        // Ctrl/Cmd + I - Toggle italics
+        else if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+            e.preventDefault();
+            
+            const displayContent = stripTagsForDisplay(state.content);
+            const displaySelectionStart = textarea.selectionStart; // Position in displayContent
+            const displaySelectionEnd = textarea.selectionEnd; // Position in displayContent
+            const hasSelection = displaySelectionStart !== displaySelectionEnd;
+            
+            if (!hasSelection) {
+                // No selection - just insert italic markers at cursor
+                const fullCursorPos = mapDisplayPositionToFullContent(displayContent, state.content, cursorPos);
+                const newContent = state.content.substring(0, fullCursorPos) + '*|*' + state.content.substring(fullCursorPos);
+                setContent(newContent);
+                
+                setTimeout(() => {
+                    if (textareaRef.current) {
+                        const newPos = cursorPos + 1;
+                        textareaRef.current.selectionStart = newPos;
+                        textareaRef.current.selectionEnd = newPos;
+                        setCursorPosition(newPos);
+                    }
+                }, 0);
+                return;
+            }
+            
+            // Map display positions to full content positions
+            const fullSelectionStart = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionStart);
+            const fullSelectionEnd = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionEnd);
+            
+            // Get selected text from full content
+            const selectedText = state.content.substring(fullSelectionStart, fullSelectionEnd);
+            
+            // Check if already italic (wrapped in *text*)
+            const italicRegex = /^\*([^*]+)\*$/;
+            const isAlreadyItalic = italicRegex.test(selectedText);
+            
+            let newText: string;
+            
+            if (isAlreadyItalic) {
+                // Remove italics
+                newText = selectedText.replace(/^\*(.+)\*$/, '$1');
+            } else {
+                // Add italics
+                newText = `*${selectedText}*`;
+            }
+            
+            // Replace selection using replaceSelection function
+            replaceSelection(newText, fullSelectionStart, fullSelectionEnd);
+            
+            // Update cursor position - new text length in display content
+            const newDisplayLength = stripTagsForDisplay(newText).length;
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    const newEnd = displaySelectionStart + newDisplayLength;
+                    textareaRef.current.selectionStart = newEnd;
+                    textareaRef.current.selectionEnd = newEnd;
+                    setCursorPosition(newEnd);
+                }
+            }, 0);
+        }
+    }, [textareaRef, state.content, setContent, setCursorPosition, setCurrentElementType, replaceSelection]);
     
     /**
      * Detect the current element type at cursor position

@@ -15,6 +15,9 @@ interface EditorToolbarProps {
     onSave?: () => void;
     isEditorFullscreen?: boolean;
     onToggleEditorFullscreen?: () => void;
+    onOpenFindReplace?: () => void;
+    onToggleItalics?: () => void;
+    onOpenVersionHistory?: () => void;
 }
 
 /**
@@ -132,7 +135,7 @@ function ExportToGitHubButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen }: EditorToolbarProps) {
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, onOpenFindReplace, onToggleItalics, onOpenVersionHistory }: EditorToolbarProps) {
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
     const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner } = useScreenplay();
     
@@ -332,6 +335,20 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                 </div>
+                
+                {/* Find/Replace */}
+                {onOpenFindReplace && (
+                    <div className="tooltip tooltip-bottom" data-tip="Find & Replace • Ctrl+F">
+                        <button
+                            onClick={onOpenFindReplace}
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
 
                 {/* Divider - only visible on larger screens */}
                 <div className="hidden sm:block h-8 w-px bg-base-300"></div>
@@ -367,6 +384,19 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             <span className="text-[9px] hidden sm:inline">PAREN</span>
                         </button>
                     </div>
+                    
+                    {/* Italics */}
+                    {onToggleItalics && (
+                        <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I • *text*">
+                            <button
+                                onClick={onToggleItalics}
+                                className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-base italic font-semibold">I</span>
+                                <span className="text-[9px] hidden sm:inline">ITALIC</span>
+                            </button>
+                        </div>
+                    )}
                     
                     {/* More formats toggle */}
                     <div className="tooltip tooltip-bottom" data-tip="More Formats • Notes, Transitions, Centered, etc.">
@@ -471,6 +501,28 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 
                 {/* Divider */}
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
+                
+                {/* Version History */}
+                {onOpenVersionHistory && (() => {
+                    const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
+                    const hasGitHub = !!githubConfigStr;
+                    
+                    if (!hasGitHub) return null;
+                    
+                    return (
+                        <div className="tooltip tooltip-bottom" data-tip="Version History • View commit history">
+                            <button
+                                onClick={onOpenVersionHistory}
+                                className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-[9px] hidden sm:inline">HISTORY</span>
+                            </button>
+                        </div>
+                    );
+                })()}
                 
                 {/* Feature 0111: Optional Export to GitHub - Emoji (opens in new window) */}
                 <div className="tooltip tooltip-bottom" data-tip="Export to GitHub (Optional) • Opens in new window">
