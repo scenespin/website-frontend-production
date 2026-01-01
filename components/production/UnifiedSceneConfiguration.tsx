@@ -63,7 +63,6 @@ interface UnifiedSceneConfigurationProps {
   isGenerating?: boolean;
   screenplayId?: string;
   getToken: () => Promise<string | null>;
-  // Model Style Selector (global + per-shot overrides)
   // Resolution is global only, set in review step (not per-shot)
   globalResolution?: '1080p' | '4k'; // Global only, not per-shot
   // Camera Angle (per-shot) - moved to Video Generation section

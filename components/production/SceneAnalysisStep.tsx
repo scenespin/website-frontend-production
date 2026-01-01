@@ -6,7 +6,6 @@
  * Features:
  * - Scene analysis display
  * - Shot selection checkboxes (all selected by default)
- * - Global Model Style Selector (Cinematic/Photorealistic/Auto)
  * - Props-to-Shots assignment (if props exist)
  * - Continue to shot configuration
  */
