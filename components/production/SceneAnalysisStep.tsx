@@ -19,7 +19,6 @@ import { Loader2, ArrowRight, Film, Sparkles, Check } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { toast } from 'sonner';
 
-export type ModelStyle = 'cinematic' | 'photorealistic' | 'auto';
 export type Resolution = '1080p' | '4k';
 
 interface SceneAnalysisStepProps {
