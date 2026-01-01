@@ -68,7 +68,6 @@ import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
-import { UnifiedSceneConfiguration } from './UnifiedSceneConfiguration';
 import { SceneAnalysisStep } from './SceneAnalysisStep';
 import { SceneReviewStep } from './SceneReviewStep';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
@@ -209,9 +208,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Wizard flow state
   const [wizardStep, setWizardStep] = useState<'analysis' | 'shot-config' | 'review'>('analysis');
   const [currentShotIndex, setCurrentShotIndex] = useState<number>(0);
-  const [useWizard, setUseWizard] = useState(true); // Toggle between wizard and old UI
   
-  // Step navigation (for existing 2-step flow)
+  // Step navigation (for wizard flow)
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   
   // Resolution is global only, set in review step (not per-shot)
@@ -970,7 +968,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   totalCreditsUsed: execution.totalCreditsUsed || 0,
                   finalOutputs: execution.finalOutputs || []
                 });
-                setCurrentStep(2); // Stay on Step 2 (generation happens in UnifiedSceneConfiguration)
+                setCurrentStep(2); // Stay on Step 2 (wizard flow)
               // Toast removed - progress indicator shows this status
               } else {
                 // Execution completed or failed, remove from localStorage
@@ -2069,7 +2067,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           finalOutputs: []
         });
         // Move to a "generating" view - hide wizard, show progress
-        setCurrentStep(2); // Stay on Step 2 (UnifiedSceneConfiguration handles generation)
+        setCurrentStep(2); // Stay on Step 2 (wizard flow)
         // Toast removed - progress indicator shows generation status
       
     } catch (error) {
@@ -3415,169 +3413,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               />
             )}
 
-            {/* Legacy: Step 2: Unified Scene Configuration (fallback if not using wizard) */}
-            {currentStep === 2 && wizardStep !== 'shot-config' && wizardStep !== 'review' && selectedSceneId && sceneAnalysisResult && (
-              <>
-                  <UnifiedSceneConfiguration
-                    sceneAnalysisResult={sceneAnalysisResult}
-                    qualityTier={qualityTier}
-                    onQualityTierChange={setQualityTier}
-                    selectedCharacterReferences={selectedCharacterReferences}
-                    onCharacterReferenceChange={(shotSlot, characterId, reference) => {
-                      setSelectedCharacterReferences(prev => {
-                        const shotRefs = prev[shotSlot] || {};
-                        const updatedShotRefs = reference 
-                          ? { ...shotRefs, [characterId]: reference }
-                          : { ...shotRefs };
-                        // Remove characterId key if reference is undefined
-                        if (!reference) {
-                          delete updatedShotRefs[characterId];
-                        }
-                        return {
-                          ...prev,
-                          [shotSlot]: Object.keys(updatedShotRefs).length > 0 ? updatedShotRefs : undefined
-                        };
-                      });
-                    }}
-                    characterHeadshots={characterHeadshots}
-                    loadingHeadshots={loadingHeadshots}
-                    characterOutfits={characterOutfits}
-                    onCharacterOutfitChange={(shotSlot, characterId, outfitName) => {
-                      setCharacterOutfits(prev => {
-                        const updated = { ...prev };
-                        if (!updated[shotSlot]) {
-                          updated[shotSlot] = {};
-                        }
-                        updated[shotSlot] = {
-                          ...updated[shotSlot],
-                          [characterId]: outfitName || undefined
-                        };
-                        return updated;
-                      });
-                    }}
-                    selectedLocationReferences={selectedLocationReferences}
-                    onLocationAngleChange={(shotSlot, locationId, angle) => {
-                      setSelectedLocationReferences(prev => ({
-                        ...prev,
-                        [shotSlot]: angle
-                      }));
-                    }}
-                    selectedCharactersForShots={selectedCharactersForShots}
-                    onCharactersForShotChange={(shotSlot, characterIds) => {
-                      setSelectedCharactersForShots(prev => ({
-                        ...prev,
-                        [shotSlot]: characterIds
-                      }));
-                    }}
-                    pronounMappingsForShots={pronounMappingsForShots}
-                    onPronounMappingChange={(shotSlot, pronoun, characterIdOrIds) => {
-                      setPronounMappingsForShots(prev => {
-                        const shotMappings = prev[shotSlot] || {};
-                        const newMappings = { ...shotMappings };
-                        if (characterIdOrIds) {
-                          newMappings[pronoun] = characterIdOrIds; // Can be string or string[]
-                        } else {
-                          delete newMappings[pronoun];
-                        }
-                        return {
-                          ...prev,
-                          [shotSlot]: Object.keys(newMappings).length > 0 ? newMappings : undefined
-                        };
-                      });
-                    }}
-                    allCharacters={allCharacters}
-                    selectedDialogueWorkflows={selectedDialogueWorkflows}
-                    onDialogueWorkflowChange={(shotSlot, workflowType) => {
-                      setSelectedDialogueWorkflows(prev => ({
-                        ...prev,
-                        [shotSlot]: workflowType
-                      }));
-                    }}
-                    dialogueWorkflowPrompts={dialogueWorkflowPrompts}
-                    onDialogueWorkflowPromptChange={(shotSlot, prompt) => {
-                      setDialogueWorkflowPrompts(prev => ({
-                        ...prev,
-                        [shotSlot]: prompt
-                      }));
-                    }}
-                    pronounExtrasPrompts={pronounExtrasPrompts}
-                    onPronounExtrasPromptChange={(shotSlot, pronoun, prompt) => {
-                      setPronounExtrasPrompts(prev => {
-                        const shotPrompts = prev[shotSlot] || {};
-                        const updated = { ...prev };
-                        updated[shotSlot] = {
-                          ...shotPrompts,
-                          [pronoun]: prompt
-                        };
-                        // Remove empty prompts
-                        if (!prompt || prompt.trim() === '') {
-                          delete updated[shotSlot][pronoun];
-                          if (Object.keys(updated[shotSlot]).length === 0) {
-                            delete updated[shotSlot];
-                          }
-                        }
-                        return updated;
-                      });
-                    }}
-                    enabledShots={enabledShots}
-                    onEnabledShotsChange={setEnabledShots}
-                    onGenerate={handleGenerate}
-                    isGenerating={isGenerating}
-                    screenplayId={projectId}
-                    getToken={getToken}
-                    globalResolution={globalResolution}
-                    shotCameraAngles={shotCameraAngles}
-                    onCameraAngleChange={(shotSlot, angle) => {
-                      if (angle === undefined) {
-                        setShotCameraAngles(prev => {
-                          const updated = { ...prev };
-                          delete updated[shotSlot];
-                          return updated;
-                        });
-                      } else {
-                        setShotCameraAngles(prev => ({ ...prev, [shotSlot]: angle }));
-                      }
-                    }}
-                    sceneProps={sceneProps}
-                    propsToShots={propsToShots}
-                    shotProps={shotProps}
-                    onPropDescriptionChange={(shotSlot, propId, description) => {
-                      setShotProps(prev => {
-                        const shotConfig = prev[shotSlot] || {};
-                        const updated = { ...prev };
-                        updated[shotSlot] = {
-                          ...shotConfig,
-                          [propId]: {
-                            ...shotConfig[propId],
-                            usageDescription: description || undefined
-                          }
-                        };
-                        // Remove empty descriptions
-                        if (!description || description.trim() === '') {
-                          delete updated[shotSlot][propId];
-                          if (Object.keys(updated[shotSlot]).length === 0) {
-                            delete updated[shotSlot];
-                          }
-                        }
-                        return updated;
-                      });
-                    }}
-                  />
-
-                {/* Back Button */}
-                <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardContent className="pt-3 pb-3">
-                    <Button
-                      onClick={() => setCurrentStep(1)}
-                      variant="outline"
-                      className="w-full h-11 text-sm px-4 py-2.5 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
-                    >
-                      ← Back
-                    </Button>
-                  </CardContent>
-                </Card>
-              </>
-            )}
+            {/* Legacy Unified Configuration removed - using wizard flow only */}
 
           </motion.div>
         )}
