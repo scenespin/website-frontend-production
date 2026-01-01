@@ -53,6 +53,13 @@ export default function CollaborationHelpPage() {
 
         <h2>📋 Collaboration Roles & Permissions</h2>
         <p>We offer 4 role-based permission levels to match your team structure:</p>
+        <div className="alert alert-info my-6">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div>
+            <div className="font-bold">Updated Role Structure</div>
+            <div className="text-sm">We've simplified our roles: Director, Writer, Producer, and Viewer. The Producer role combines asset management and production coordination capabilities.</div>
+          </div>
+        </div>
 
         {/* Director */}
         <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30 mb-6">
@@ -132,14 +139,14 @@ export default function CollaborationHelpPage() {
           </div>
         </div>
 
-        {/* Asset Manager - NEW! */}
+        {/* Producer - NEW! */}
         <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30 mb-6">
           <div className="card-body">
             <h3 className="text-2xl font-bold text-purple-400 flex items-center gap-2 mt-0">
-              <span>🎬</span> Asset Manager (Generate & Manage Assets)
+              <span>🎬</span> Producer (Manage Production Assets)
             </h3>
             <p className="text-sm opacity-90">
-              Specialized role for VFX artists, production designers, and asset coordinators. Can generate all AI assets (characters, locations, props, 3D models) but cannot edit screenplay or generate video.
+              Specialized role for production coordinators, asset managers, and team members who manage production assets. Can upload and manage media files, access Production Hub, but cannot edit screenplay or use AI writing agents.
             </p>
             
             <h4 className="font-semibold text-base mt-4 mb-2">GitHub Permissions:</h4>
@@ -162,54 +169,14 @@ export default function CollaborationHelpPage() {
 
             <h4 className="font-semibold text-base mt-4 mb-2">Screenplay Permissions:</h4>
             <ul className="text-sm space-y-1 mb-0">
-              <li>✅ Generate character banks & pose packages</li>
-              <li>✅ Generate location references</li>
-              <li>✅ Generate props with Asset Bank</li>
-              <li>✅ Export 3D models (characters, locations, props)</li>
-              <li>✅ Access Production page & tools</li>
+              <li>✅ Access Production Hub (characters, locations, props)</li>
+              <li>✅ Upload creation images (character/location boards)</li>
+              <li>✅ Manage media files and assets</li>
               <li>✅ View screenplay (read-only for context)</li>
-              <li>❌ Cannot edit screenplay or timeline</li>
+              <li>❌ Cannot edit screenplay text</li>
+              <li>❌ Cannot use AI writing agents</li>
               <li>❌ Cannot generate video content</li>
               <li>❌ Cannot delete project or manage team</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Asset Contributor */}
-        <div className="card bg-gradient-to-br from-green-500/10 to-green-600/10 border-2 border-green-500/30 mb-6">
-          <div className="card-body">
-            <h3 className="text-2xl font-bold text-green-400 flex items-center gap-2 mt-0">
-              <span>🎨</span> Asset Contributor (Upload Assets)
-            </h3>
-            <p className="text-sm opacity-90">
-              Can upload images, videos, audio, and reference materials. Cannot edit the screenplay text.
-            </p>
-            
-            <h4 className="font-semibold text-base mt-4 mb-2">GitHub Permissions:</h4>
-            <ul className="text-sm space-y-1 mb-0">
-              <li>✅ <strong>Read</strong> access to repository</li>
-              <li>✅ Clone and pull changes</li>
-              <li>✅ View screenplay (read-only)</li>
-              <li>❌ Cannot push commits</li>
-              <li>❌ Cannot modify screenplay</li>
-            </ul>
-
-            <h4 className="font-semibold text-base mt-4 mb-2">Cloud Storage Permissions:</h4>
-            <ul className="text-sm space-y-1 mb-0">
-              <li>✅ <strong>Contributor</strong> access</li>
-              <li>✅ Upload images, videos, audio</li>
-              <li>✅ Add reference materials</li>
-              <li>✅ Download existing assets</li>
-              <li>❌ Cannot delete or modify screenplay files</li>
-            </ul>
-
-            <h4 className="font-semibold text-base mt-4 mb-2">Screenplay Permissions:</h4>
-            <ul className="text-sm space-y-1 mb-0">
-              <li>✅ View screenplay (read-only)</li>
-              <li>✅ Upload character reference images</li>
-              <li>✅ Upload location photos</li>
-              <li>❌ Cannot edit screenplay text</li>
-              <li>❌ Cannot generate AI content</li>
             </ul>
           </div>
         </div>
@@ -279,15 +246,15 @@ export default function CollaborationHelpPage() {
         <h3>Workflow 2: Full Production Team</h3>
         <ul>
           <li><strong>Director:</strong> Director role (full control)</li>
-          <li><strong>Writer:</strong> Script Writer role (screenplay edits)</li>
-          <li><strong>Production Designer:</strong> Asset Contributor role (upload locations, set designs)</li>
-          <li><strong>Producer/Investor:</strong> Viewer role (review progress)</li>
+          <li><strong>Writer:</strong> Writer role (screenplay edits)</li>
+          <li><strong>Production Designer:</strong> Producer role (manage assets, upload locations, set designs)</li>
+          <li><strong>Investor/Stakeholder:</strong> Viewer role (review progress)</li>
         </ul>
 
         <h3>Workflow 3: Writer + Virtual Assistant</h3>
         <ul>
           <li><strong>Writer:</strong> Director role (you)</li>
-          <li><strong>VA:</strong> Asset Contributor role (uploads research, reference images)</li>
+          <li><strong>VA:</strong> Producer role (uploads research, reference images, manages assets)</li>
           <li><strong>Process:</strong> VA uploads materials, you write with full context</li>
         </ul>
 

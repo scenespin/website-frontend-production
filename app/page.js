@@ -438,18 +438,12 @@ export default function Page() {
                 <p className="text-gray-300">50 credits to start + 10 credits/month</p>
                 <p className="text-sm text-gray-400 mt-2">Everything unlocked</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex justify-center">
                 <Link
                   href="/sign-up"
                   className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors"
                 >
                   Start Free
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="inline-flex items-center justify-center px-6 py-3 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors"
-                >
-                  See Full Pricing
                 </Link>
               </div>
             </div>

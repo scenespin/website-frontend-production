@@ -276,22 +276,15 @@ export default function CreditsPage() {
               </thead>
               <tbody>
                 <tr>
-                  <td>Fast</td>
-                  <td>1-5</td>
-                  <td>$0.01-$0.05</td>
-                </tr>
-                <tr>
-                  <td>Standard</td>
-                  <td>5-15</td>
-                  <td>$0.05-$0.15</td>
-                </tr>
-                <tr>
-                  <td>Premium</td>
-                  <td>20-50</td>
-                  <td>$0.20-$0.50</td>
+                  <td>All Models</td>
+                  <td>15-50</td>
+                  <td>$0.15-$0.50</td>
                 </tr>
               </tbody>
             </table>
+            <p className="text-sm opacity-70 mt-2">
+              <strong>Note:</strong> Credit cost varies by model and image complexity.
+            </p>
           </div>
 
           <h2>Credit Management Tips</h2>
