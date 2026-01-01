@@ -1157,7 +1157,7 @@ export async function listScreenplayCollaborators(
 export async function addScreenplayCollaborator(
   screenplayId: string,
   email: string,
-  role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer',
+  role: 'director' | 'writer' | 'producer' | 'viewer',
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Screenplay> {
   try {
@@ -1231,7 +1231,7 @@ export async function removeScreenplayCollaborator(
 export async function updateCollaboratorRole(
   screenplayId: string,
   identifier: string, // email or user_id
-  role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer',
+  role: 'director' | 'writer' | 'producer' | 'viewer',
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Screenplay> {
   try {
