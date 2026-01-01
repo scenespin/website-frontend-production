@@ -525,15 +525,15 @@ export default function ComparePage() {
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Switch between OpenAI, Anthropic, and Google models—all within our specialized agents</span>
+                    <span>Switch between OpenAI, Anthropic, and Google models within our specialized agents</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>5 screenplay-trained agents that understand Fountain format, character arcs, and story structure</span>
+                    <span>5 screenplay-trained agents understand Fountain format, character arcs, and story structure</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Story Advisor reads your entire screenplay—context that general AI tools can't access</span>
+                    <span>Story Advisor reads your entire screenplay—context general AI tools can't access</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -541,7 +541,7 @@ export default function ComparePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Scene Builder generates complete video scenes directly from your screenplay</span>
+                    <span>Scene Builder generates complete video scenes from your screenplay</span>
                   </li>
                 </ul>
               </div>
