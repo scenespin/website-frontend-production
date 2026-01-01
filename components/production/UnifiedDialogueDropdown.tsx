@@ -12,6 +12,7 @@
 
 import React, { useMemo } from 'react';
 import { Info } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export type DialogueQuality = 'premium' | 'reliable';
 export type DialogueWorkflowType = 
@@ -263,17 +264,21 @@ export function UnifiedDialogueDropdown({
                     <label className="block text-[10px] text-[#808080] mb-1.5">
                       Base Workflow:
                     </label>
-                    <select
+                    <Select
                       value={selectedBaseWorkflow || 'action-line'}
-                      onChange={(e) => onBaseWorkflowChange(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+                      onValueChange={(value) => onBaseWorkflowChange(value)}
                     >
-                      {AVAILABLE_WORKFLOWS.map((wf) => (
-                        <option key={wf.value} value={wf.value}>
-                          {wf.label} {wf.value === 'action-line' ? '(suggested)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AVAILABLE_WORKFLOWS.map((wf) => (
+                          <SelectItem key={wf.value} value={wf.value}>
+                            {wf.label} {wf.value === 'action-line' ? '(suggested)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <div className="text-[10px] text-[#808080] italic mt-1">
                       This will generate a {AVAILABLE_WORKFLOWS.find(wf => wf.value === (selectedBaseWorkflow || 'action-line'))?.label || 'selected workflow'} video and add voiceover audio to it.
                     </div>

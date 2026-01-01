@@ -13,6 +13,7 @@ import { validateDialogueContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getTimingMessage } from '@/utils/modelTiming';
 import toast from 'react-hot-toast';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -456,36 +457,42 @@ Rules:
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Model Selector */}
-                    <select
+                    <Select
                       value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
+                      onValueChange={(value) => setSelectedModel(value)}
                       disabled={isLoading}
-                      className="select select-bordered select-sm text-xs max-w-[140px]"
-                      title="Select AI model"
                     >
-                      {/* Group by provider for better organization */}
-                      <optgroup label="Anthropic (Claude)">
-                        {LLM_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name} {model.recommended ? '⭐' : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="OpenAI (GPT)">
-                        {LLM_MODELS.filter(m => m.provider === 'OpenAI').map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Google (Gemini)">
-                        {LLM_MODELS.filter(m => m.provider === 'Google').map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
+                      <SelectTrigger className="max-w-[140px] h-8 text-xs" title="Select AI model">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {/* Group by provider for better organization */}
+                        <SelectGroup>
+                          <SelectLabel>Anthropic (Claude)</SelectLabel>
+                          {LLM_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
+                              {model.name} {model.recommended ? '⭐' : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>OpenAI (GPT)</SelectLabel>
+                          {LLM_MODELS.filter(m => m.provider === 'OpenAI').map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
+                              {model.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>Google (Gemini)</SelectLabel>
+                          {LLM_MODELS.filter(m => m.provider === 'Google').map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
+                              {model.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                     <button
                       onClick={onClose}
                       disabled={isLoading}
@@ -519,16 +526,20 @@ Rules:
                       <label className="label">
                         <span className="label-text">Act</span>
                       </label>
-                      <select
-                        value={act}
-                        onChange={(e) => setAct(Number(e.target.value))}
+                      <Select
+                        value={act.toString()}
+                        onValueChange={(value) => setAct(Number(value))}
                         disabled={isLoading}
-                        className="select select-bordered w-full"
                       >
-                        <option value={1}>Act 1</option>
-                        <option value={2}>Act 2</option>
-                        <option value={3}>Act 3</option>
-                      </select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Act 1</SelectItem>
+                          <SelectItem value="2">Act 2</SelectItem>
+                          <SelectItem value="3">Act 3</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Characters */}

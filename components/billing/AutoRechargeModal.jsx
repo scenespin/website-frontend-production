@@ -11,6 +11,7 @@ import {
   createCustomerPortalSession,
   CREDIT_PACKAGES 
 } from '@/lib/stripe-client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const THRESHOLD_OPTIONS = [
   { value: 0, label: '0 credits (when out of credits)' },
@@ -161,17 +162,21 @@ export default function AutoRechargeModal({ isOpen, onClose, onSuccess, currentS
                     <p className="text-xs text-base-content/60">
                       Buy more credits when balance falls below:
                     </p>
-                    <select
-                      value={threshold}
-                      onChange={(e) => setThreshold(Number(e.target.value))}
-                      className="w-full px-4 py-2 bg-base-200 border border-base-300 rounded-lg text-base-content focus:outline-none focus:ring-2 focus:ring-cinema-red"
+                    <Select
+                      value={threshold.toString()}
+                      onValueChange={(value) => setThreshold(Number(value))}
                     >
-                      {THRESHOLD_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {THRESHOLD_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value.toString()}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Package Selection */}

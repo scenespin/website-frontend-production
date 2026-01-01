@@ -1831,7 +1831,13 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
           onClose={() => setShowExportModal(false)}
           onExport={handleExport}
           userCredits={userCredits ?? 0}
-          userTier={userTier.toLowerCase() as 'free' | 'pro' | 'ultra' | 'studio'}
+          userTier={(() => {
+            const tier = userTier.toLowerCase();
+            if (tier === 'ultra' || tier === 'studio') {
+              return 'enterprise' as const;
+            }
+            return tier as 'free' | 'pro' | 'enterprise';
+          })()}
         />
       )}
 

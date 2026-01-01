@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Users, UserPlus, Trash2, Edit3, AlertCircle, Loader2, Shield, Eye, Pencil } from 'lucide-react';
 import { useProjectCollaborators } from '@/hooks/useProjectCollaborators';
 import { AddCollaboratorModal } from './AddCollaboratorModal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function CollaborationPanel({ projectId, isOwner = true }) {
   const { collaborators, roles, loading, error, addCollaborator, removeCollaborator, updateRole } =
@@ -161,17 +162,21 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
 
                       {/* Role Badge */}
                       {editingRole === collab.user_identifier ? (
-                        <select
+                        <Select
                           value={collab.role_label}
-                          onChange={(e) => handleUpdateRole(collab.user_identifier, e.target.value)}
-                          className="px-2 py-1 bg-[#1a1625] border border-purple-500/20 rounded text-sm text-base-content focus:outline-none focus:border-purple-500/50"
+                          onValueChange={(value) => handleUpdateRole(collab.user_identifier, value)}
                         >
-                          {roles.map((role) => (
-                            <option key={role.id} value={role.id}>
-                              {role.name}
-                            </option>
-                          ))}
-                        </select>
+                          <SelectTrigger className="px-2 py-1 bg-[#1a1625] border border-purple-500/20 rounded text-sm h-8 focus:outline-none focus:border-purple-500/50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {roles.map((role) => (
+                              <SelectItem key={role.id} value={role.id}>
+                                {role.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <div className="flex items-center gap-2 flex-wrap">
                           <span

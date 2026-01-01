@@ -25,6 +25,7 @@ import type { Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
@@ -325,10 +326,9 @@ export function SceneReviewStep({
                       {onShotWorkflowOverrideChange && (
                         <div>
                           <label className="block text-[10px] text-[#808080] mb-1">Override Workflow:</label>
-                          <select
+                          <Select
                             value={shotWorkflowOverrides[shot.slot] || shot.workflow || ''}
-                            onChange={(e) => {
-                              const newWorkflow = e.target.value;
+                            onValueChange={(newWorkflow) => {
                               if (newWorkflow === shot.workflow) {
                                 // If user selects suggested workflow, remove override
                                 onShotWorkflowOverrideChange(shot.slot, '');
@@ -336,19 +336,23 @@ export function SceneReviewStep({
                                 onShotWorkflowOverrideChange(shot.slot, newWorkflow);
                               }
                             }}
-                            className="w-full px-2 py-1 bg-[#1A1A1A] border border-[#3F3F46] rounded text-[10px] text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
                           >
-                            <option value={shot.workflow || ''}>
-                              {getWorkflowLabel(shot.workflow || 'action-line')} (suggested)
-                            </option>
-                            {ALL_WORKFLOWS
-                              .filter(wf => wf.value !== shot.workflow)
-                              .map(wf => (
-                                <option key={wf.value} value={wf.value}>
-                                  {wf.label}
-                                </option>
-                              ))}
-                          </select>
+                            <SelectTrigger className="w-full h-7 text-[10px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={shot.workflow || ''}>
+                                {getWorkflowLabel(shot.workflow || 'action-line')} (suggested)
+                              </SelectItem>
+                              {ALL_WORKFLOWS
+                                .filter(wf => wf.value !== shot.workflow)
+                                .map(wf => (
+                                  <SelectItem key={wf.value} value={wf.value}>
+                                    {wf.label}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
                           {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
                             <div className="text-[10px] text-[#DC143C] mt-1">
                               Override active: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])}
@@ -425,14 +429,18 @@ export function SceneReviewStep({
               <label className="text-xs text-[#808080] whitespace-nowrap">
                 Resolution:
               </label>
-              <select
+              <Select
                 value={globalResolution}
-                onChange={(e) => onGlobalResolutionChange(e.target.value as Resolution)}
-                className="px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+                onValueChange={(value) => onGlobalResolutionChange(value as Resolution)}
               >
-                <option value="1080p">HD</option>
-                <option value="4k">4K</option>
-              </select>
+                <SelectTrigger className="w-[100px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1080p">HD</SelectItem>
+                  <SelectItem value="4k">4K</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             {/* Cost Calculator - Prices from backend (margins hidden) */}

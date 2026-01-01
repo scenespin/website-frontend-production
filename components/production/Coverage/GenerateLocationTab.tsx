@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import LocationAnglePackageSelector from '../LocationAnglePackageSelector';
 import LocationBackgroundPackageSelector from '../LocationBackgroundPackageSelector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface GenerateLocationTabProps {
   locationId: string;
@@ -499,17 +500,21 @@ export function GenerateLocationTab({
                 No models available for this quality tier
               </div>
             ) : (
-              <select
+              <Select
                 value={providerId}
-                onChange={(e) => setProviderId(e.target.value)}
-                className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+                onValueChange={(value) => setProviderId(value)}
               >
-                {models.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name} ({model.credits} credits)
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name} ({model.credits} credits)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             {selectedModel && (
               <p className="mt-1 text-xs text-[#808080]">
@@ -594,37 +599,45 @@ export function GenerateLocationTab({
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs text-[#808080] mb-1.5">Filter by Time of Day</label>
-                        <select
+                        <Select
                           value={filterTimeOfDay}
-                          onChange={(e) => {
-                            setFilterTimeOfDay(e.target.value as any);
+                          onValueChange={(value) => {
+                            setFilterTimeOfDay(value as any);
                             clearAngleSelections(); // Clear selections when filter changes
                           }}
-                          className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
                         >
-                          <option value="">All times</option>
-                          <option value="morning">Morning</option>
-                          <option value="afternoon">Afternoon</option>
-                          <option value="evening">Evening</option>
-                          <option value="night">Night</option>
-                        </select>
+                          <SelectTrigger className="w-full h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All times</SelectItem>
+                            <SelectItem value="morning">Morning</SelectItem>
+                            <SelectItem value="afternoon">Afternoon</SelectItem>
+                            <SelectItem value="evening">Evening</SelectItem>
+                            <SelectItem value="night">Night</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <label className="block text-xs text-[#808080] mb-1.5">Filter by Weather</label>
-                        <select
+                        <Select
                           value={filterWeather}
-                          onChange={(e) => {
-                            setFilterWeather(e.target.value as any);
+                          onValueChange={(value) => {
+                            setFilterWeather(value as any);
                             clearAngleSelections(); // Clear selections when filter changes
                           }}
-                          className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
                         >
-                          <option value="">All weather</option>
-                          <option value="sunny">Sunny</option>
-                          <option value="cloudy">Cloudy</option>
-                          <option value="rainy">Rainy</option>
-                          <option value="snowy">Snowy</option>
-                        </select>
+                          <SelectTrigger className="w-full h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All weather</SelectItem>
+                            <SelectItem value="sunny">Sunny</SelectItem>
+                            <SelectItem value="cloudy">Cloudy</SelectItem>
+                            <SelectItem value="rainy">Rainy</SelectItem>
+                            <SelectItem value="snowy">Snowy</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     
@@ -791,37 +804,45 @@ export function GenerateLocationTab({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-[#808080] mb-2">Time of Day (Optional)</label>
-            <select
+            <Select
               value={timeOfDay}
-              onChange={(e) => {
-                setTimeOfDay(e.target.value as any);
+              onValueChange={(value) => {
+                setTimeOfDay(value as any);
                 setHasManuallySetTimeOfDay(true);
               }}
-              className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
             >
-              <option value="">None</option>
-              <option value="morning">Morning</option>
-              <option value="afternoon">Afternoon</option>
-              <option value="evening">Evening</option>
-              <option value="night">Night</option>
-            </select>
+              <SelectTrigger className="w-full h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                <SelectItem value="morning">Morning</SelectItem>
+                <SelectItem value="afternoon">Afternoon</SelectItem>
+                <SelectItem value="evening">Evening</SelectItem>
+                <SelectItem value="night">Night</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="block text-xs text-[#808080] mb-2">Weather (Optional)</label>
-            <select
+            <Select
               value={weather}
-              onChange={(e) => {
-                setWeather(e.target.value as any);
+              onValueChange={(value) => {
+                setWeather(value as any);
                 setHasManuallySetWeather(true);
               }}
-              className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
             >
-              <option value="">None</option>
-              <option value="sunny">Sunny</option>
-              <option value="cloudy">Cloudy</option>
-              <option value="rainy">Rainy</option>
-              <option value="snowy">Snowy</option>
-            </select>
+              <SelectTrigger className="w-full h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                <SelectItem value="sunny">Sunny</SelectItem>
+                <SelectItem value="cloudy">Cloudy</SelectItem>
+                <SelectItem value="rainy">Rainy</SelectItem>
+                <SelectItem value="snowy">Snowy</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

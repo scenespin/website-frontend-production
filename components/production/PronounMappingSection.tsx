@@ -3,6 +3,7 @@
 import React from 'react';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Character {
   id: string;
@@ -32,6 +33,8 @@ interface PronounMappingSectionProps {
   // Pronoun extras prompts (for skipped pronouns - describes what the pronoun refers to)
   pronounExtrasPrompts?: Record<string, string>; // { "they": "the couple standing in line behind them" }
   onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
+  // Hide section labels (used when component is called from parent that manages its own section labels)
+  hideSectionLabels?: boolean;
 }
 
 export function PronounMappingSection({
@@ -51,7 +54,8 @@ export function PronounMappingSection({
   onCharacterOutfitChange,
   allCharactersWithOutfits = [],
   pronounExtrasPrompts = {},
-  onPronounExtrasPromptChange
+  onPronounExtrasPromptChange,
+  hideSectionLabels = false
 }: PronounMappingSectionProps) {
   // Get outfit for a character in this shot
   const getOutfitForCharacter = (charId: string): string | undefined => {
@@ -180,9 +184,11 @@ export function PronounMappingSection({
         {/* Single Character Section */}
         {singularPronouns.length > 0 && (
           <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
-            <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
-              Single Character
-            </div>
+            {!hideSectionLabels && (
+              <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
+                Single Character
+              </div>
+            )}
             {singularPronouns.map((pronoun) => {
               const pronounLower = pronoun.toLowerCase();
               const mapping = pronounMappings[pronounLower];
@@ -203,24 +209,27 @@ export function PronounMappingSection({
                       "{pronoun}"
                     </label>
                     {/* Single-select dropdown for singular pronouns */}
-                    <select
+                    <Select
                       value={mappedCharacterId || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
+                      onValueChange={(value) => {
                         // Special value "__ignore__" means user wants to ignore this pronoun
                         const characterId = value === '__ignore__' ? '__ignore__' : (value || undefined);
                         onPronounMappingChange(pronounLower, characterId);
                       }}
-                      className="flex-1 px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
                     >
-                      <option value="">-- Select character --</option>
-                      <option value="__ignore__">-- Skip (extras/background only) --</option>
-                      {availableChars.map((char) => (
-                        <option key={char.id} value={char.id}>
-                          {char.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="flex-1 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">-- Select character --</SelectItem>
+                        <SelectItem value="__ignore__">-- Skip (extras/background only) --</SelectItem>
+                        {availableChars.map((char) => (
+                          <SelectItem key={char.id} value={char.id}>
+                            {char.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   {/* Show prompt box for skipped pronouns - REQUIRED */}
@@ -305,9 +314,11 @@ export function PronounMappingSection({
         {/* Multiple Characters Section */}
         {pluralPronounsList.length > 0 && (
           <div className="space-y-3">
-            <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
-              Multiple Characters
-            </div>
+            {!hideSectionLabels && (
+              <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
+                Multiple Characters
+              </div>
+            )}
             {pluralPronounsList.map((pronoun) => {
               const pronounLower = pronoun.toLowerCase();
               const mapping = pronounMappings[pronounLower];
