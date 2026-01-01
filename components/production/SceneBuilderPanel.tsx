@@ -214,15 +214,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Step navigation (for existing 2-step flow)
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   
-  // Model Style Selector state (global + per-shot overrides)
   // Resolution is global only, set in review step (not per-shot)
-  const [globalStyle, setGlobalStyle] = useState<'cinematic' | 'photorealistic' | 'auto'>('auto');
   const [globalResolution, setGlobalResolution] = useState<'1080p' | '4k'>('4k');
   
   // Location opt-out state (for shots where user doesn't want to use location image)
   const [locationOptOuts, setLocationOptOuts] = useState<Record<number, boolean>>({});
   const [locationDescriptions, setLocationDescriptions] = useState<Record<number, string>>({});
-  const [shotStyles, setShotStyles] = useState<Record<number, 'cinematic' | 'photorealistic' | 'auto'>>({});
   
   // Camera Angle state (per-shot, defaults to 'auto')
   const [shotCameraAngles, setShotCameraAngles] = useState<Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>>({});
@@ -1988,10 +1985,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         selectedDialogueWorkflows: Object.keys(selectedDialogueWorkflows).length > 0 ? selectedDialogueWorkflows : undefined, // Per-shot dialogue workflow selection: { shotSlot: workflowType }
         dialogueWorkflowPrompts: Object.keys(dialogueWorkflowPrompts).length > 0 ? dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
         pronounExtrasPrompts: Object.keys(pronounExtrasPrompts).length > 0 ? pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
-        // Model Style Selector (global + per-shot overrides)
-        globalStyle: globalStyle !== 'auto' ? globalStyle : undefined, // Only send if not 'auto'
         globalResolution: globalResolution !== '1080p' ? globalResolution : undefined, // Only send if not default (set in review step)
-        shotStyles: Object.keys(shotStyles).length > 0 ? shotStyles : undefined, // Per-shot style overrides: { shotSlot: style }
         // Note: Resolution is global only (no per-shot resolution) - set in review step before generation
         // Camera Angles (per-shot, defaults to 'auto' if not specified)
         shotCameraAngles: Object.keys(shotCameraAngles).length > 0 ? shotCameraAngles : undefined, // Per-shot camera angle overrides: { shotSlot: angle }
@@ -2705,8 +2699,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                           }
                         }}
                         isAnalyzing={isAnalyzing}
-                        globalStyle={globalStyle}
-                        onGlobalStyleChange={setGlobalStyle}
                         sceneProps={sceneProps}
                         propsToShots={propsToShots}
                         onPropsToShotsChange={setPropsToShots}
@@ -3395,10 +3387,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               <SceneReviewStep
                 sceneAnalysisResult={sceneAnalysisResult}
                 enabledShots={enabledShots}
-                globalStyle={globalStyle}
                 globalResolution={globalResolution}
                 onGlobalResolutionChange={setGlobalResolution}
-                shotStyles={shotStyles}
                 shotCameraAngles={shotCameraAngles}
                 shotDurations={shotDurations}
                 selectedCharacterReferences={selectedCharacterReferences}
@@ -3535,20 +3525,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     isGenerating={isGenerating}
                     screenplayId={projectId}
                     getToken={getToken}
-                    globalStyle={globalStyle}
                     globalResolution={globalResolution}
-                    shotStyles={shotStyles}
-                    onStyleChange={(shotSlot, style) => {
-                      if (style === undefined) {
-                        setShotStyles(prev => {
-                          const updated = { ...prev };
-                          delete updated[shotSlot];
-                          return updated;
-                        });
-                      } else {
-                        setShotStyles(prev => ({ ...prev, [shotSlot]: style }));
-                      }
-                    }}
                     shotCameraAngles={shotCameraAngles}
                     onCameraAngleChange={(shotSlot, angle) => {
                       if (angle === undefined) {

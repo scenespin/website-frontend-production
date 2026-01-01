@@ -28,9 +28,6 @@ interface SceneAnalysisStepProps {
   onEnabledShotsChange: (shots: number[]) => void;
   onNext: () => void;
   isAnalyzing: boolean;
-  // Model Style Selector (global only - resolution moved to review step)
-  globalStyle: ModelStyle;
-  onGlobalStyleChange: (style: ModelStyle) => void;
   // Props-to-Shots Assignment
   sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
   propsToShots: Record<string, number[]>; // propId -> shot slots
@@ -43,8 +40,6 @@ export function SceneAnalysisStep({
   onEnabledShotsChange,
                 onNext,
                 isAnalyzing,
-                globalStyle,
-                onGlobalStyleChange,
                 sceneProps = [],
                 propsToShots,
                 onPropsToShotsChange
@@ -113,25 +108,6 @@ export function SceneAnalysisStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Global Model Style Selector */}
-          <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
-            <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
-              Model Style (applies to all shots)
-            </label>
-            <select
-              value={globalStyle}
-              onChange={(e) => onGlobalStyleChange(e.target.value as ModelStyle)}
-              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-            >
-              <option value="auto">Auto (Content-aware)</option>
-              <option value="cinematic">Cinematic</option>
-              <option value="photorealistic">Photorealistic</option>
-            </select>
-            <div className="text-[10px] text-[#808080] italic mt-1">
-              You can override style for individual shots in shot configuration steps. Resolution will be set in the review step.
-            </div>
-          </div>
-
           {/* Shot Breakdown with Checkboxes */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">

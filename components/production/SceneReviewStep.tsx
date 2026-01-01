@@ -30,11 +30,9 @@ interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
   enabledShots: number[];
   // Global settings
-  globalStyle: ModelStyle;
   globalResolution: Resolution;
   onGlobalResolutionChange: (resolution: Resolution) => void;
   // Per-shot overrides (no resolution - global only, set in review step)
-  shotStyles?: Record<number, ModelStyle>;
   shotCameraAngles?: Record<number, CameraAngle>;
   shotDurations?: Record<number, 'quick-cut' | 'extended-take'>;
   // Character mappings
@@ -63,10 +61,8 @@ interface SceneReviewStepProps {
 export function SceneReviewStep({
   sceneAnalysisResult,
   enabledShots,
-  globalStyle,
   globalResolution,
   onGlobalResolutionChange,
-  shotStyles = {},
   shotCameraAngles = {},
   shotDurations = {},
   selectedCharacterReferences,
@@ -231,7 +227,6 @@ export function SceneReviewStep({
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {selectedShots.map((shot: any) => {
-                const shotStyle = shotStyles[shot.slot];
                 const shotCameraAngle = shotCameraAngles[shot.slot];
                 const shotDuration = shotDurations[shot.slot] || 'quick-cut';
                 const shotDialogueWorkflow = selectedDialogueWorkflows[shot.slot];
@@ -265,14 +260,9 @@ export function SceneReviewStep({
                     </div>
 
                     {/* Shot Overrides */}
-                    {(shotStyle || shotCameraAngle) && (
+                    {shotCameraAngle && shotCameraAngle !== 'auto' && (
                       <div className="text-[10px] text-[#808080] space-y-1">
-                        {shotStyle && (
-                          <div>Style: <span className="text-[#FFFFFF]">{shotStyle}</span> (override)</div>
-                        )}
-                        {shotCameraAngle && shotCameraAngle !== 'auto' && (
-                          <div>Camera: <span className="text-[#FFFFFF]">{shotCameraAngle.replace('-', ' ')}</span></div>
-                        )}
+                        <div>Camera: <span className="text-[#FFFFFF]">{shotCameraAngle.replace('-', ' ')}</span></div>
                       </div>
                     )}
 
