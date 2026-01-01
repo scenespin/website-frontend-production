@@ -262,10 +262,17 @@ function addWatermark(
         const sin = Math.sin(radians);
         
         // Apply transformation: translate to center, rotate, then position image
-        // Transformation matrix array: [a, b, c, d, e, f]
+        // Transformation matrix object format for jsPDF
         // a = cos, b = sin, c = -sin, d = cos (rotation)
-        // e, f = translation to center
-        doc.setCurrentTransformationMatrix([cos, sin, -sin, cos, centerX, centerY]);
+        // e = centerX (translation X), f = centerY (translation Y)
+        doc.setCurrentTransformationMatrix({
+          a: cos,
+          b: sin,
+          c: -sin,
+          d: cos,
+          e: centerX,
+          f: centerY
+        } as any);
         
         // Draw image centered at origin (after transformation)
         // Position is relative to the transformed coordinate system
