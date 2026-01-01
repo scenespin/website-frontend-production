@@ -1,7 +1,7 @@
 /**
- * Admin Health API Proxy
+ * Admin Abuse Ban User API Proxy
  * 
- * Proxies GET /api/admin/health to backend API
+ * Proxies POST /api/admin/abuse/ban to backend API
  * 
  * ADMIN ONLY - Requires admin authentication
  */
@@ -9,38 +9,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Verify user is authenticated
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get the token from the Authorization header that the client sent
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
     
     if (!token) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
-    // Forward request to backend
+    const body = await request.json();
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-    const url = `${backendUrl}/api/admin/health`;
+    const url = `${backendUrl}/api/admin/abuse/ban`;
 
     const response = await fetch(url, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -56,21 +49,11 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('[Admin Health Proxy] Error:', error);
+    console.error('[Admin Abuse Ban Proxy] Error:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
 

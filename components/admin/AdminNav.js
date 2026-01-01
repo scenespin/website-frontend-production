@@ -10,7 +10,8 @@ import {
   Settings,
   Home,
   TrendingUp,
-  Coins
+  Coins,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function AdminNav() {
@@ -22,6 +23,7 @@ export default function AdminNav() {
     { href: '/admin/analytics', icon: BarChart3, label: 'Workflow Analytics' },
     { href: '/admin/pricing', icon: Coins, label: 'API Pricing' },
     { href: '/admin/affiliates', icon: DollarSign, label: 'Affiliate Program' },
+    { href: '/admin/abuse', icon: AlertTriangle, label: 'Abuse Management' },
     { href: '/admin/voice-consents', icon: Shield, label: 'Voice Consents' },
     { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },

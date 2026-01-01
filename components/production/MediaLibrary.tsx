@@ -631,17 +631,36 @@ export default function MediaLibrary({
     : isLoading;
   const displayError = mutationError || filesError?.message || null;
   
-  // Phase 2C: Generate bulk presigned URLs for grid view thumbnails (S3 files only)
+  // Phase 2C: Generate bulk presigned URLs for grid view (S3 files only)
+  // 🔥 OPTIMIZATION: Use thumbnails in grid view, full images in list view and when viewing
   const s3Files = displayFiles.filter(f => (f.storageType === 'local' || f.storageType === 'wryda-temp') && f.s3Key);
   const s3Keys = s3Files.map(f => f.s3Key!);
+  
+  // Get thumbnail S3 keys for files that have thumbnails
+  const thumbnailS3Keys = s3Files
+    .filter(f => f.thumbnailS3Key)
+    .map(f => f.thumbnailS3Key!);
+  
+  // Generate presigned URLs for thumbnails (grid view) or full images (list view)
+  const keysToFetch = viewMode === 'grid' && thumbnailS3Keys.length > 0 
+    ? thumbnailS3Keys  // Use thumbnails in grid view if available
+    : s3Keys;           // Use full images in list view or if no thumbnails
+  
   const { data: bulkPresignedUrls } = useBulkPresignedUrls(
-    s3Keys,
-    viewMode === 'grid' && s3Keys.length > 0 // Only fetch when in grid view and we have S3 files
+    keysToFetch,
+    keysToFetch.length > 0 // Only fetch when we have keys
   );
   
   // Helper function to get file URL (presigned for S3, original for cloud storage)
-  const getFileUrl = (file: MediaFile): string | undefined => {
+  // 🔥 OPTIMIZATION: Returns thumbnail URL in grid view if available, full image otherwise
+  const getFileUrl = (file: MediaFile, useThumbnail: boolean = false): string | undefined => {
     if (file.storageType === 'local' || file.storageType === 'wryda-temp') {
+      // In grid view, prefer thumbnail if available
+      if (useThumbnail && file.thumbnailS3Key && bulkPresignedUrls) {
+        const thumbnailUrl = (bulkPresignedUrls as Map<string, string>).get(file.thumbnailS3Key);
+        if (thumbnailUrl) return thumbnailUrl;
+      }
+      // Fallback to full image
       if (file.s3Key && bulkPresignedUrls) {
         return (bulkPresignedUrls as Map<string, string>).get(file.s3Key);
       }
@@ -2293,7 +2312,9 @@ export default function MediaLibrary({
                       {/* Thumbnail */}
                       <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
                         {(() => {
-                          const fileUrl = getFileUrl(file);
+                          // 🔥 OPTIMIZATION: Use thumbnails in grid view, full images in list view
+                          const useThumbnail = viewMode === 'grid';
+                          const fileUrl = getFileUrl(file, useThumbnail);
                           return file.fileType === 'image' && fileUrl ? (
                             <img
                               src={fileUrl}
@@ -2457,7 +2478,8 @@ export default function MediaLibrary({
           <ImageViewer
             images={imageFiles.map((file): ImageItem => ({
               id: file.id,
-              url: file.fileUrl || file.thumbnailUrl || '',
+              // 🔥 FIX: Always use full image URL in ImageViewer (not thumbnail)
+              url: getFileUrl(file, false) || file.fileUrl || file.thumbnailUrl || '',
               label: file.fileName,
               s3Key: file.s3Key,
               metadata: { fileType: file.fileType, fileSize: file.fileSize }
@@ -2557,7 +2579,7 @@ export default function MediaLibrary({
               {previewFile.fileType === 'image' && (
                 <div className="relative">
                   <img 
-                    src={previewFile.fileUrl || previewFile.thumbnailUrl || ''} 
+                    src={getFileUrl(previewFile, false) || previewFile.fileUrl || previewFile.thumbnailUrl || ''} 
                     alt={previewFile.fileName}
                     className="w-full h-auto rounded-lg max-h-[70vh] object-contain mx-auto bg-[#0A0A0A]"
                     onError={(e) => {
