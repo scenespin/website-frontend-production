@@ -138,6 +138,16 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
                       `Scene_${scene.number}_Shot_${shot.shotNumber}.mp4`
                     )}
                     onViewMetadata={() => onViewMetadata?.(shot.metadata)}
+                    onRegenerate={(shot) => {
+                      // TODO: Implement regeneration API call
+                      console.log('[SceneCard] Regenerate shot:', shot);
+                    }}
+                    onReshoot={(shot) => {
+                      // TODO: Implement reshoot (opens Scene Builder wizard)
+                      console.log('[SceneCard] Reshoot shot:', shot);
+                    }}
+                    screenplayId={screenplayId}
+                    sceneId={scene.id}
                   />
                 ))}
               </div>

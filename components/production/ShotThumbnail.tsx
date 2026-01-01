@@ -8,8 +8,9 @@
  */
 
 import React, { useState } from 'react';
-import { Play, Info, Download } from 'lucide-react';
+import { Play, Info, Download, RefreshCw, Film, HelpCircle } from 'lucide-react';
 import { VideoThumbnail } from './VideoThumbnail';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ShotThumbnailProps {
   shot: {
@@ -20,10 +21,15 @@ interface ShotThumbnailProps {
       fileType: string;
     };
     timestamp?: string;
+    metadata?: any; // Generation metadata for regeneration
   };
   presignedUrl?: string;
   onDownload?: () => void;
   onViewMetadata?: () => void;
+  onRegenerate?: (shot: any) => void; // Regenerate with same setup
+  onReshoot?: (shot: any) => void; // Reshoot with new setup
+  screenplayId?: string;
+  sceneId?: string;
 }
 
 export function ShotThumbnail({
@@ -31,6 +37,10 @@ export function ShotThumbnail({
   presignedUrl,
   onDownload,
   onViewMetadata,
+  onRegenerate,
+  onReshoot,
+  screenplayId,
+  sceneId,
 }: ShotThumbnailProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
@@ -78,6 +88,80 @@ export function ShotThumbnail({
           )}
         </div>
         <div className="flex items-center gap-1">
+          {/* Regenerate/Reshoot Buttons */}
+          {(onRegenerate || onReshoot) && (
+            <TooltipProvider>
+              <div className="flex items-center gap-1 border-r border-[#3F3F46] pr-1 mr-1">
+                {onRegenerate && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRegenerate(shot);
+                        }}
+                        className="p-1.5 hover:bg-[#3F3F46] rounded transition-colors"
+                        title="Regenerate Shot"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-[#808080]" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <div className="text-xs">
+                        <div className="font-semibold mb-1">Regenerate Shot</div>
+                        <div className="text-[#808080]">Uses same setup (faster, same references). Like a retake.</div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {onReshoot && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReshoot(shot);
+                        }}
+                        className="p-1.5 hover:bg-[#3F3F46] rounded transition-colors"
+                        title="Reshoot Shot"
+                      >
+                        <Film className="w-3.5 h-3.5 text-[#808080]" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <div className="text-xs">
+                        <div className="font-semibold mb-1">Reshoot Shot</div>
+                        <div className="text-[#808080]">New setup (different first frame/video). Like a reshoot.</div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="p-1.5 hover:bg-[#3F3F46] rounded transition-colors"
+                      title="Help"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 text-[#808080]" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <div className="text-xs space-y-2">
+                      <div>
+                        <div className="font-semibold mb-1">Regenerate vs Reshoot</div>
+                        <div className="text-[#808080]">
+                          <strong>Regenerate:</strong> Uses same setup (faster, same references). Like a retake.
+                        </div>
+                        <div className="text-[#808080] mt-1">
+                          <strong>Reshoot:</strong> New setup (different first frame/video). Like a reshoot.
+                        </div>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+          )}
           {onViewMetadata && (
             <button
               onClick={(e) => {

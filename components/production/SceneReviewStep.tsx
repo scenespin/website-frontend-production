@@ -43,6 +43,9 @@ interface SceneReviewStepProps {
   // Dialogue workflows
   selectedDialogueWorkflows: Record<number, string>;
   dialogueWorkflowPrompts: Record<number, string>;
+  // Per-shot workflow overrides (for action shots and dialogue shots)
+  shotWorkflowOverrides?: Record<number, string>;
+  onShotWorkflowOverrideChange?: (shotSlot: number, workflow: string) => void;
   // Pronoun mappings
   pronounMappingsForShots: Record<number, Record<string, string | string[]>>;
   pronounExtrasPrompts: Record<number, Record<string, string>>;
@@ -70,6 +73,8 @@ export function SceneReviewStep({
   selectedLocationReferences,
   selectedDialogueWorkflows,
   dialogueWorkflowPrompts,
+  shotWorkflowOverrides = {},
+  onShotWorkflowOverrideChange,
   pronounMappingsForShots,
   pronounExtrasPrompts,
   selectedCharactersForShots,
@@ -140,11 +145,50 @@ export function SceneReviewStep({
   const getWorkflowLabel = (workflow: string) => {
     const labels: Record<string, string> = {
       'first-frame-lipsync': 'Dialogue (Lip Sync)',
+      'extreme-closeup': 'Extreme Close-Up (Face)',
+      'extreme-closeup-mouth': 'Extreme Close-Up (Mouth)',
       'off-frame-voiceover': 'Hidden Mouth Dialogue',
-      'scene-voiceover': 'Narrate Shot'
+      'scene-voiceover': 'Narrate Shot',
+      'action-line': 'Action Line',
+      'action-director': 'Action Director',
+      'reality-to-toon': 'Reality to Toon',
+      'anime-master': 'Anime Master',
+      'cartoon-classic': 'Cartoon Classic',
+      '3d-character': '3D Character',
+      'vfx-elements': 'VFX Elements',
+      'fantasy-epic': 'Fantasy Epic',
+      'superhero-transform': 'Superhero Transform',
+      'animal-kingdom': 'Animal Kingdom',
+      'style-chameleon': 'Style Chameleon',
+      'broll-master': 'B-Roll Master',
+      'complete-scene': 'Complete Scene'
     };
     return labels[workflow] || workflow;
   };
+  
+  // All available workflows for override dropdown
+  const ALL_WORKFLOWS = [
+    // Dialogue workflows
+    { value: 'first-frame-lipsync', label: 'Dialogue (Lip Sync)', category: 'dialogue' },
+    { value: 'extreme-closeup', label: 'Extreme Close-Up (Face)', category: 'dialogue' },
+    { value: 'extreme-closeup-mouth', label: 'Extreme Close-Up (Mouth)', category: 'dialogue' },
+    { value: 'off-frame-voiceover', label: 'Hidden Mouth Dialogue', category: 'dialogue' },
+    { value: 'scene-voiceover', label: 'Narrate Shot', category: 'dialogue' },
+    // Action workflows
+    { value: 'action-line', label: 'Action Line', category: 'action' },
+    { value: 'action-director', label: 'Action Director', category: 'action' },
+    { value: 'reality-to-toon', label: 'Reality to Toon', category: 'action' },
+    { value: 'anime-master', label: 'Anime Master', category: 'action' },
+    { value: 'cartoon-classic', label: 'Cartoon Classic', category: 'action' },
+    { value: '3d-character', label: '3D Character', category: 'action' },
+    { value: 'vfx-elements', label: 'VFX Elements', category: 'action' },
+    { value: 'fantasy-epic', label: 'Fantasy Epic', category: 'action' },
+    { value: 'superhero-transform', label: 'Superhero Transform', category: 'action' },
+    { value: 'animal-kingdom', label: 'Animal Kingdom', category: 'action' },
+    { value: 'style-chameleon', label: 'Style Chameleon', category: 'action' },
+    { value: 'broll-master', label: 'B-Roll Master', category: 'action' },
+    { value: 'complete-scene', label: 'Complete Scene', category: 'action' }
+  ];
 
   // Calculate total duration
   const totalDuration = selectedShots.reduce((total: number, shot: any) => {
@@ -266,10 +310,51 @@ export function SceneReviewStep({
                       </div>
                     )}
 
-                    {/* Dialogue Workflow */}
+                    {/* Workflow Override - NEW: For both dialogue and action shots */}
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-[#808080]">
+                        Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'action-line')}</span>
+                      </div>
+                      {onShotWorkflowOverrideChange && (
+                        <div>
+                          <label className="block text-[10px] text-[#808080] mb-1">Override Workflow:</label>
+                          <select
+                            value={shotWorkflowOverrides[shot.slot] || shot.workflow || ''}
+                            onChange={(e) => {
+                              const newWorkflow = e.target.value;
+                              if (newWorkflow === shot.workflow) {
+                                // If user selects suggested workflow, remove override
+                                onShotWorkflowOverrideChange(shot.slot, '');
+                              } else {
+                                onShotWorkflowOverrideChange(shot.slot, newWorkflow);
+                              }
+                            }}
+                            className="w-full px-2 py-1 bg-[#1A1A1A] border border-[#3F3F46] rounded text-[10px] text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
+                          >
+                            <option value={shot.workflow || ''}>
+                              {getWorkflowLabel(shot.workflow || 'action-line')} (suggested)
+                            </option>
+                            {ALL_WORKFLOWS
+                              .filter(wf => wf.value !== shot.workflow)
+                              .map(wf => (
+                                <option key={wf.value} value={wf.value}>
+                                  {wf.label}
+                                </option>
+                              ))}
+                          </select>
+                          {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
+                            <div className="text-[10px] text-[#DC143C] mt-1">
+                              Override active: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dialogue Workflow (for display only - override is above) */}
                     {shotDialogueWorkflow && (
                       <div className="text-[10px] text-[#808080]">
-                        Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shotDialogueWorkflow)}</span>
+                        Dialogue Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shotDialogueWorkflow)}</span>
                         {shotDialoguePrompt && (
                           <div className="mt-1 text-[#808080] italic">"{shotDialoguePrompt.substring(0, 50)}..."</div>
                         )}

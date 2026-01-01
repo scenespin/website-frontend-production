@@ -673,12 +673,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
   }, [jobs, showSafetyDialog, isOpen]);
 
-  /**
-   * Retry failed job
-   */
-  const handleRetry = async (jobId: string) => {
-    toast.info('Retry functionality coming soon!');
-  };
+  // REMOVED: Retry functionality - regeneration/reshoot is now handled in storyboard
 
   /**
    * Delete job (local only - jobs are session-based, everything saves elsewhere)
@@ -837,15 +832,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 ml-2">
-                    {job.status === 'failed' && (
-                      <button
-                        onClick={() => handleRetry(job.jobId)}
-                        className="p-1 rounded hover:bg-[#1F1F1F] text-[#808080] hover:text-[#E5E7EB] transition-colors"
-                        title="Retry"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                      </button>
-                    )}
+                    {/* REMOVED: Retry button - regeneration/reshoot is now handled in storyboard */}
                     <button
                       onClick={() => handleDelete(job.jobId)}
                       className="p-1 rounded hover:bg-red-900/30 text-red-400 hover:text-red-300 transition-colors"

@@ -930,12 +930,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     }
   }, [jobs, showSafetyDialog]);
 
-  /**
-   * Retry failed job
-   */
-  const handleRetry = async (jobId: string) => {
-    toast.info('Retry functionality coming soon!');
-  };
+  // REMOVED: Retry functionality - regeneration/reshoot is now handled in storyboard
 
   /**
    * Delete job
@@ -1071,16 +1066,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1">
-                  {job.status === 'failed' && (
-                    <button
-                      onClick={() => handleRetry(job.jobId)}
-                      className="p-2 rounded-lg hover:bg-slate-700
-                               text-slate-400 hover:text-white transition-colors"
-                      title="Retry"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                    </button>
-                  )}
+                  {/* REMOVED: Retry button - regeneration/reshoot is now handled in storyboard */}
                   <button
                     onClick={() => handleDelete(job.jobId)}
                     className="p-2 rounded-lg hover:bg-red-900/30

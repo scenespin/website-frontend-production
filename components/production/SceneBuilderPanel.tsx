@@ -170,8 +170,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Structure: shotSlot -> characterId -> outfitName
   const [characterOutfits, setCharacterOutfits] = useState<Record<number, Record<string, string>>>({});
   
-  // Per-shot dialogue workflow selection (overrides auto-detection)
+  // Per-shot dialogue workflow selection (overrides auto-detection) - NEW: Unified dropdown
+  const [selectedDialogueQualities, setSelectedDialogueQualities] = useState<Record<number, 'premium' | 'reliable'>>({});
   const [selectedDialogueWorkflows, setSelectedDialogueWorkflows] = useState<Record<number, string>>({});
+  const [voiceoverBaseWorkflows, setVoiceoverBaseWorkflows] = useState<Record<number, string>>({});
+  
+  // Per-shot workflow overrides (for action shots and dialogue shots) - NEW: General workflow override
+  const [shotWorkflowOverrides, setShotWorkflowOverrides] = useState<Record<number, string>>({});
   
   // Per-shot dialogue workflow override prompts
   const [dialogueWorkflowPrompts, setDialogueWorkflowPrompts] = useState<Record<number, string>>({});
@@ -1980,7 +1985,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         selectedCharactersForShots: Object.keys(selectedCharactersForShots).length > 0 ? selectedCharactersForShots : undefined, // Pronoun Detection: Multi-character selection per shot
         pronounMappingsForShots: Object.keys(pronounMappingsForShots).length > 0 ? pronounMappingsForShots : undefined, // Pronoun-to-character mappings: { shotSlot: { pronoun: characterId } }
         characterOutfits: Object.keys(characterOutfits).length > 0 ? characterOutfits : undefined, // Per-shot, per-character outfit selection: { shotSlot: { characterId: outfitName } }
+        selectedDialogueQualities: Object.keys(selectedDialogueQualities).length > 0 ? selectedDialogueQualities : undefined, // NEW: Per-shot dialogue quality selection (Premium vs Reliable): { shotSlot: 'premium' | 'reliable' }
         selectedDialogueWorkflows: Object.keys(selectedDialogueWorkflows).length > 0 ? selectedDialogueWorkflows : undefined, // Per-shot dialogue workflow selection: { shotSlot: workflowType }
+        voiceoverBaseWorkflows: Object.keys(voiceoverBaseWorkflows).length > 0 ? voiceoverBaseWorkflows : undefined, // NEW: Per-shot voiceover base workflows (for Narrate Shot and Hidden Mouth Dialogue): { shotSlot: baseWorkflow }
+        shotWorkflowOverrides: Object.keys(shotWorkflowOverrides).length > 0 ? shotWorkflowOverrides : undefined, // NEW: Per-shot workflow overrides (for action shots and dialogue shots): { shotSlot: workflow }
         dialogueWorkflowPrompts: Object.keys(dialogueWorkflowPrompts).length > 0 ? dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
         pronounExtrasPrompts: Object.keys(pronounExtrasPrompts).length > 0 ? pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
         globalResolution: globalResolution !== '1080p' ? globalResolution : undefined, // Only send if not default (set in review step)
@@ -3244,11 +3252,25 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                       return updated;
                     });
                   }}
+                  selectedDialogueQuality={selectedDialogueQualities[currentShot.slot]}
                   selectedDialogueWorkflow={selectedDialogueWorkflows[currentShot.slot]}
+                  selectedBaseWorkflow={voiceoverBaseWorkflows[currentShot.slot]}
+                  onDialogueQualityChange={(shotSlot, quality) => {
+                    setSelectedDialogueQualities(prev => ({
+                      ...prev,
+                      [shotSlot]: quality
+                    }));
+                  }}
                   onDialogueWorkflowChange={(shotSlot, workflowType) => {
                     setSelectedDialogueWorkflows(prev => ({
                       ...prev,
                       [shotSlot]: workflowType
+                    }));
+                  }}
+                  onBaseWorkflowChange={(shotSlot, baseWorkflow) => {
+                    setVoiceoverBaseWorkflows(prev => ({
+                      ...prev,
+                      [shotSlot]: baseWorkflow
                     }));
                   }}
                   dialogueWorkflowPrompt={dialogueWorkflowPrompts[currentShot.slot]}
@@ -3394,6 +3416,17 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                 selectedLocationReferences={selectedLocationReferences}
                 selectedDialogueWorkflows={selectedDialogueWorkflows}
                 dialogueWorkflowPrompts={dialogueWorkflowPrompts}
+                shotWorkflowOverrides={shotWorkflowOverrides}
+                onShotWorkflowOverrideChange={(shotSlot, workflow) => {
+                  setShotWorkflowOverrides(prev => {
+                    if (!workflow || workflow === '') {
+                      const updated = { ...prev };
+                      delete updated[shotSlot];
+                      return updated;
+                    }
+                    return { ...prev, [shotSlot]: workflow };
+                  });
+                }}
                 pronounMappingsForShots={pronounMappingsForShots}
                 pronounExtrasPrompts={pronounExtrasPrompts}
                 selectedCharactersForShots={selectedCharactersForShots}

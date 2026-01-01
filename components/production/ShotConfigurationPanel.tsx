@@ -17,6 +17,7 @@ import { LocationAngleSelector } from './LocationAngleSelector';
 import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { findCharacterById, getCharacterSource } from './utils/sceneBuilderUtils';
+import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType } from './UnifiedDialogueDropdown';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -63,9 +64,13 @@ interface ShotConfigurationPanelProps {
   characterOutfits: Record<number, Record<string, string>>; // Per-shot, per-character: shotSlot -> characterId -> outfitName
   onCharacterReferenceChange: (shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   onCharacterOutfitChange: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
-  // Dialogue workflow selection (per-shot)
-  selectedDialogueWorkflow?: string; // Selected workflow for this shot (overrides auto-detection)
-  onDialogueWorkflowChange?: (shotSlot: number, workflowType: string) => void;
+  // Dialogue workflow selection (per-shot) - NEW: Unified dropdown
+  selectedDialogueQuality?: DialogueQuality; // 'premium' or 'reliable'
+  selectedDialogueWorkflow?: DialogueWorkflowType; // Selected workflow for this shot (overrides auto-detection)
+  selectedBaseWorkflow?: string; // For voiceover workflows (e.g., 'action-line', 'reality-to-toon')
+  onDialogueQualityChange?: (shotSlot: number, quality: DialogueQuality) => void;
+  onDialogueWorkflowChange?: (shotSlot: number, workflowType: DialogueWorkflowType) => void;
+  onBaseWorkflowChange?: (shotSlot: number, baseWorkflow: string) => void; // For voiceover workflows
   // Dialogue workflow override prompts (for Hidden Mouth Dialogue and Narrate Shot)
   // Note: Backend identifiers are 'off-frame-voiceover' and 'scene-voiceover'
   dialogueWorkflowPrompt?: string; // User-provided description of alternate action
@@ -211,74 +216,51 @@ export function ShotConfigurationPanel({
         </div>
       )}
 
-      {/* Dialogue Workflow Selection - Only for dialogue shots */}
+      {/* Dialogue Workflow Selection - Only for dialogue shots - NEW: Unified Dropdown */}
       {shot.type === 'dialogue' && onDialogueWorkflowChange && (
         <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
-          <div>
-            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow</div>
-            <select
-              value={currentWorkflow}
-              onChange={(e) => {
-                onDialogueWorkflowChange(shot.slot, e.target.value);
-              }}
-              className="w-full px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
-            >
-              {/* Note: Display labels differ from backend identifiers for better UX
-                  Backend identifiers: 'off-frame-voiceover', 'scene-voiceover'
-                  Display labels: 'Hidden Mouth Dialogue', 'Narrate Shot' */}
-              <option value="first-frame-lipsync">Dialogue (Lip Sync)</option>
-              <option value="extreme-closeup">Extreme Close-Up (Face)</option>
-              <option value="extreme-closeup-mouth">Extreme Close-Up (Mouth Only)</option>
-              <option value="off-frame-voiceover">Hidden Mouth Dialogue</option>
-              <option value="scene-voiceover">Narrate Shot</option>
-            </select>
-            {detectedWorkflowType && !selectedDialogueWorkflow && (
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-[10px] text-[#808080]">Auto-detected:</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                  workflowConfidence === 'high' ? 'bg-green-500/20 text-green-400' :
-                  workflowConfidence === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-orange-500/20 text-orange-400'
-                }`}>
-                  {workflowConfidence === 'high' ? 'High' : workflowConfidence === 'medium' ? 'Medium' : 'Low'} confidence
-                </span>
-                {workflowReasoning && (
-                  <span className="text-[10px] text-[#808080] italic" title={workflowReasoning}>
-                    (ℹ️)
-                  </span>
-                )}
-              </div>
-            )}
-            {selectedDialogueWorkflow && selectedDialogueWorkflow !== detectedWorkflowType && (
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow Selection</div>
+          <UnifiedDialogueDropdown
+            shot={shot}
+            selectedQuality={selectedDialogueQuality}
+            selectedWorkflow={selectedDialogueWorkflow as DialogueWorkflowType}
+            selectedBaseWorkflow={selectedBaseWorkflow}
+            characterIds={[
+              ...(shot.characterId ? [shot.characterId] : []),
+              ...(selectedCharactersForShots[shot.slot] || [])
+            ]}
+            onQualityChange={(quality) => onDialogueQualityChange?.(shot.slot, quality)}
+            onWorkflowChange={(workflow) => onDialogueWorkflowChange(shot.slot, workflow)}
+            onBaseWorkflowChange={(baseWorkflow) => onBaseWorkflowChange?.(shot.slot, baseWorkflow)}
+            detectedWorkflow={detectedWorkflowType as DialogueWorkflowType}
+            workflowConfidence={workflowConfidence}
+            workflowReasoning={workflowReasoning}
+          />
+          {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover)
+              Note: Using backend identifiers 'off-frame-voiceover' and 'scene-voiceover' for logic */}
+          {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
+            <div className="mt-3">
+              <label className="block text-[10px] text-[#808080] mb-1.5">
+                Describe the alternate action in the scene:
+              </label>
+              <textarea
+                value={dialogueWorkflowPrompt || ''}
+                onChange={(e) => {
+                  onDialogueWorkflowPromptChange(shot.slot, e.target.value);
+                }}
+                placeholder={
+                  currentWorkflow === 'off-frame-voiceover'
+                    ? 'e.g., Character speaking from off-screen, back turned, or side profile...'
+                    : 'e.g., Narrator voice describing the scene. The narrator can appear in the scene or just narrate over it...'
+                }
+                rows={3}
+                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+              />
               <div className="text-[10px] text-[#808080] italic mt-1">
-                Override: Using selected workflow instead of auto-detected
+                This description will be used to generate the scene with the selected workflow.
               </div>
-            )}
-            {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover)
-                Note: Using backend identifiers 'off-frame-voiceover' and 'scene-voiceover' for logic */}
-            {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
-              <div className="mt-3">
-                <label className="block text-[10px] text-[#808080] mb-1.5">
-                  Describe the alternate action in the scene:
-                </label>
-                <textarea
-                  value={dialogueWorkflowPrompt || ''}
-                  onChange={(e) => {
-                    onDialogueWorkflowPromptChange(shot.slot, e.target.value);
-                  }}
-                  placeholder={
-                    currentWorkflow === 'off-frame-voiceover'
-                      ? 'e.g., Character speaking from off-screen, back turned, or side profile...'
-                      : 'e.g., Narrator voice describing the scene. The narrator can appear in the scene or just narrate over it...'
-                  }
-                  rows={3}
-                  className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-                />
-                <div className="text-[10px] text-[#808080] italic mt-1">
-                  This description will be used to generate the scene with the selected workflow.
-                </div>
-              </div>
-            )}
+            </div>
+          )}
             
             {/* Additional Characters Section for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) - placed below prompt box */}
             {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && shot.type === 'dialogue' && onCharactersForShotChange && (
