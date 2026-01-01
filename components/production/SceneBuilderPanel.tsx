@@ -199,7 +199,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>>({});
   const [loadingHeadshots, setLoadingHeadshots] = useState<Record<string, boolean>>({});
   
-  // UnifiedSceneConfiguration: Track which shots are enabled
+  // Track which shots are enabled (for wizard flow)
   const [enabledShots, setEnabledShots] = useState<number[]>([]);
   
   // UI State: Collapsible sections
