@@ -188,17 +188,19 @@ export function useFountainFormatting(
                 textareaSelection: textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
             });
             
-            // If selection ends with a newline and includes content from next line, 
-            // trim the trailing newline to avoid including unintended text
-            // This handles cases where user selects a line but selection includes trailing newline
-            if (selectedText.endsWith('\n') && selectedText.split('\n').length > 1) {
-                // Check if the last "line" is actually empty (just the newline)
-                const lines = selectedText.split('\n');
-                if (lines[lines.length - 1] === '') {
-                    // Remove trailing newline to avoid including next line
-                    selectedText = selectedText.slice(0, -1);
-                    console.log('[Italics] Trimmed trailing newline from selection');
-                }
+            // Handle trailing newline: if selection is a single line that ends with newline,
+            // we need to preserve the line break structure
+            const hasTrailingNewline = selectedText.endsWith('\n');
+            const lines = selectedText.split('\n');
+            const lastLineIsEmpty = lines.length > 1 && lines[lines.length - 1] === '';
+            let shouldAddNewlineAfterWrap = false;
+            
+            if (hasTrailingNewline && lines.length === 2 && lastLineIsEmpty) {
+                // Single line with trailing newline - remove newline from selection
+                // but we'll add it back AFTER the closing asterisk to preserve line structure
+                selectedText = selectedText.slice(0, -1);
+                shouldAddNewlineAfterWrap = true;
+                console.log('[Italics] Single line with trailing newline - will add newline after wrap');
             }
             
             // Check if already italic (wrapped in *text*)
@@ -226,9 +228,15 @@ export function useFountainFormatting(
                 const unwrappedContent = contentWithoutWhitespace.slice(1, -1); // Remove first and last *
                 newText = leadingWhitespace + unwrappedContent + trailingWhitespace;
             } else {
-                // Add italics - wrap entire selection (including newlines) as one block
-                // This ensures multi-line selections are wrapped as: *line1\nline2*
-                newText = `*${selectedText}*`;
+                // Add italics - wrap entire selection as one block
+                // If we removed a trailing newline from a single-line selection, add it back after the closing asterisk
+                // This preserves line structure: *(text)*\n instead of *(text\n)*
+                if (shouldAddNewlineAfterWrap) {
+                    newText = `*${selectedText}*\n`;
+                } else {
+                    // Multi-line or no trailing newline: wrap as-is
+                    newText = `*${selectedText}*`;
+                }
             }
             
             // Replace selection using replaceSelection function
