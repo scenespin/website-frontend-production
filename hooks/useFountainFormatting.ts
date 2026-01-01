@@ -188,6 +188,29 @@ export function useFountainFormatting(
                 textareaSelection: textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
             });
             
+            // Handle whitespace: trim trailing spaces from word selections
+            // When selecting a word, browsers often include the trailing space
+            // e.g., "slides " should become "*slides* " not "*slides *"
+            const isSingleLine = !selectedText.includes('\n');
+            const isShortSelection = selectedText.length < 50; // Likely a word/phrase, not a paragraph
+            const trimmedText = selectedText.trim();
+            const hasTrailingSpace = selectedText.endsWith(' ') && !selectedText.endsWith('\n');
+            const hasLeadingSpace = selectedText.startsWith(' ') && !selectedText.startsWith('\n');
+            
+            let trailingSpaceToRestore = '';
+            if (isSingleLine && isShortSelection && hasTrailingSpace && !hasLeadingSpace) {
+                // Single word with trailing space - trim it and restore after closing asterisk
+                trailingSpaceToRestore = ' ';
+                selectedText = selectedText.slice(0, -1);
+                console.log('[Italics] Trimmed trailing space from word selection');
+            } else if (isSingleLine && isShortSelection && hasTrailingSpace && hasLeadingSpace) {
+                // Both leading and trailing spaces - preserve leading, trim trailing
+                const leadingSpace = selectedText.match(/^ +/)?.[0] || '';
+                selectedText = leadingSpace + trimmedText;
+                trailingSpaceToRestore = ' ';
+                console.log('[Italics] Trimmed trailing space, preserved leading space');
+            }
+            
             // Handle trailing newline: if selection is a single line that ends with newline,
             // we need to preserve the line break structure
             const hasTrailingNewline = selectedText.endsWith('\n');
@@ -229,12 +252,15 @@ export function useFountainFormatting(
                 newText = leadingWhitespace + unwrappedContent + trailingWhitespace;
             } else {
                 // Add italics - wrap entire selection as one block
-                // If we removed a trailing newline from a single-line selection, add it back after the closing asterisk
-                // This preserves line structure: *(text)*\n instead of *(text\n)*
+                // If we removed trailing whitespace, add it back after the closing asterisk
+                // This preserves spacing: *word* instead of *word *
                 if (shouldAddNewlineAfterWrap) {
-                    newText = `*${selectedText}*\n`;
+                    newText = `*${selectedText}*\n${trailingSpaceToRestore}`;
+                } else if (trailingSpaceToRestore) {
+                    // Word selection with trailing space - restore space after closing asterisk
+                    newText = `*${selectedText}*${trailingSpaceToRestore}`;
                 } else {
-                    // Multi-line or no trailing newline: wrap as-is
+                    // Multi-line or no trailing whitespace: wrap as-is
                     newText = `*${selectedText}*`;
                 }
             }
