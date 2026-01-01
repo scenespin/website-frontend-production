@@ -394,7 +394,7 @@ export default function ComparePage() {
                 <div className="text-3xl mb-3">🎬</div>
                 <h3 className="text-xl font-bold mb-3">Scene Builder</h3>
                 <p className="text-gray-300 text-sm">
-                  The only platform that generates complete video scenes directly from your screenplay. Scene Builder analyzes your script and orchestrates multiple AI providers to create professional, consistent scene packages—something no other tool can do.
+                  The only platform that generates complete video scenes directly from your screenplay. Our motion picture technology brings your script to life with professional, consistent scene packages—something no other tool can do.
                 </p>
               </div>
 

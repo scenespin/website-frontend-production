@@ -1,8 +1,5 @@
 import Link from "next/link";
 import config from "@/config";
-import Pricing from "@/components/Pricing";
-import FAQ from "@/components/FAQ";
-import Footer from "@/components/Footer";
 
 export default function Page() {
   return (
@@ -457,18 +454,25 @@ export default function Page() {
               </div>
             </div>
 
-            <Pricing />
+            <div className="text-center">
+              <Link
+                href="/pricing"
+                className="inline-flex items-center justify-center px-8 py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-lg"
+              >
+                See Full Pricing Details
+              </Link>
+            </div>
           </div>
         </section>
 
-        {/* Social Proof / Early Access */}
+        {/* Final CTA */}
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Early Access - Join the Revolution
+              Ready to Turn Your Screenplay Into a Movie?
             </h2>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
-              We're building the future of AI-powered filmmaking. Be among the first to turn your screenplay into a movie.
+              Join creators who are using AI to bring their scripts to life. Start free with 50 credits.
             </p>
             <Link
               href="/sign-up"
@@ -478,17 +482,7 @@ export default function Page() {
             </Link>
           </div>
         </section>
-
-        {/* FAQ */}
-        <section className="py-20 bg-[#141414]">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <FAQ />
-          </div>
-        </section>
       </main>
-
-      {/* Footer */}
-      <Footer />
     </>
   );
 }
