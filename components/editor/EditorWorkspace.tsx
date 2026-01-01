@@ -360,8 +360,11 @@ export default function EditorWorkspace() {
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Normalize key to lowercase for case-insensitive matching (works with Caps Lock)
+            const key = e.key.toLowerCase();
+            
             // Handle undo/redo even when textarea is focused (prevent browser default)
-            if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+            if ((e.metaKey || e.ctrlKey) && key === 'z' && !e.shiftKey) {
                 // Ctrl/Cmd + Z = Undo
                 if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
                     e.preventDefault();
@@ -370,7 +373,7 @@ export default function EditorWorkspace() {
                 return;
             }
             
-            if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+            if ((e.metaKey || e.ctrlKey) && (key === 'y' || (key === 'z' && e.shiftKey))) {
                 // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z = Redo
                 if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
                     e.preventDefault();
@@ -382,28 +385,28 @@ export default function EditorWorkspace() {
             // Don't intercept if user is typing in an input/textarea
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
                 // Allow Ctrl+F in inputs/textareas (browser default)
-                if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+                if ((e.metaKey || e.ctrlKey) && key === 'f') {
                     return; // Let browser handle it
                 }
             }
             
             // Cmd/Ctrl + F = Find/Replace
-            if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+            if ((e.metaKey || e.ctrlKey) && key === 'f') {
                 e.preventDefault();
                 setIsFindReplaceModalOpen(true);
             }
             // Cmd/Ctrl + E = Toggle scene navigator
-            else if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+            else if ((e.metaKey || e.ctrlKey) && key === 'e') {
                 e.preventDefault();
                 setIsSceneNavVisible(prev => !prev);
             }
             // Cmd/Ctrl + P = Export PDF
-            else if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+            else if ((e.metaKey || e.ctrlKey) && key === 'p') {
                 e.preventDefault();
                 setShowExportModal(true);
             }
             // Cmd/Ctrl + H = Version History
-            else if ((e.metaKey || e.ctrlKey) && e.key === 'h') {
+            else if ((e.metaKey || e.ctrlKey) && key === 'h') {
                 e.preventDefault();
                 setIsVersionHistoryModalOpen(true);
             }

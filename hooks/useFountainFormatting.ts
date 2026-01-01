@@ -121,6 +121,7 @@ export function useFountainFormatting(
         
         // Ctrl/Cmd + Enter - New scene heading
         else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            // Note: 'Enter' is not affected by Caps Lock, so no need to lowercase
             e.preventDefault();
             
             // Insert new line with "INT. " or "EXT. " prefix
@@ -142,8 +143,8 @@ export function useFountainFormatting(
             setCurrentElementType('scene_heading');
         }
         
-        // Ctrl/Cmd + I - Toggle italics
-        else if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+        // Ctrl/Cmd + I - Toggle italics (case-insensitive for Caps Lock)
+        else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'i') {
             e.preventDefault();
             
             const displayContent = stripTagsForDisplay(state.content);
