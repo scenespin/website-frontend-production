@@ -4222,6 +4222,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         timing?: { startMinute: number; durationMinutes: number; pageNumber?: number };
         estimatedPageCount?: number;
         group_label?: string;
+        props?: string[]; // Preserve prop associations during rescan
     }
     
     const preserveSceneMetadata = useCallback((
@@ -4260,7 +4261,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     videoAssets: bestMatch.videoAssets,
                     timing: bestMatch.timing,
                     estimatedPageCount: bestMatch.estimatedPageCount,
-                    group_label: bestMatch.group_label
+                    group_label: bestMatch.group_label,
+                    props: bestMatch.fountain?.tags?.props // Preserve prop associations
                 });
             }
         });
@@ -4970,7 +4972,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         endLine: parsedScene.endLine,
                         tags: {
                             characters: characterIds,
-                            location: locationId
+                            location: locationId,
+                            // Preserve props from matched scene (production planning metadata)
+                            ...(preserved?.props && preserved.props.length > 0 ? { props: preserved.props } : {})
                         }
                     },
                     images: preserved?.images,
