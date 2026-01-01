@@ -293,6 +293,7 @@ export default function ScreenplayEditorPage() {
                   <li>See character list</li>
                   <li>Jump to character&apos;s scenes</li>
                   <li>Track dialogue count</li>
+                  <li>"Not in script" badge shows characters created but not yet in screenplay</li>
                 </ul>
               </div>
             </div>
@@ -321,30 +322,66 @@ export default function ScreenplayEditorPage() {
           </div>
 
           <h2>Keyboard Shortcuts</h2>
+          <p className="text-sm opacity-80 mb-4">Speed up your workflow with these essential shortcuts. All shortcuts work with <kbd className="kbd kbd-sm">Ctrl</kbd> on Windows/Linux or <kbd className="kbd kbd-sm">Cmd</kbd> on Mac.</p>
           <div className="overflow-x-auto my-8">
             <table className="table table-zebra">
               <thead>
                 <tr>
                   <th>Action</th>
                   <th>Shortcut</th>
+                  <th>Description</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>Force character name</td>
                   <td><kbd className="kbd kbd-sm">Tab</kbd></td>
+                  <td>Format current line as CHARACTER (all caps)</td>
                 </tr>
                 <tr>
-                  <td>Force action</td>
+                  <td>Force scene heading</td>
                   <td><kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Tab</kbd></td>
+                  <td>Format current line as SCENE HEADING</td>
                 </tr>
                 <tr>
                   <td>New scene heading</td>
                   <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Enter</kbd></td>
+                  <td>Insert new line with "INT. " prefix</td>
+                </tr>
+                <tr>
+                  <td>Italics (toggle)</td>
+                  <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">I</kbd></td>
+                  <td>Wrap/unwrap selected text with *italics* markers</td>
                 </tr>
                 <tr>
                   <td>Find/replace</td>
                   <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">F</kbd></td>
+                  <td>Open find & replace modal with search options</td>
+                </tr>
+                <tr>
+                  <td>Save</td>
+                  <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">S</kbd></td>
+                  <td>Manual save to database/GitHub</td>
+                </tr>
+                <tr>
+                  <td>Toggle scene navigator</td>
+                  <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">E</kbd></td>
+                  <td>Show/hide scene navigator sidebar</td>
+                </tr>
+                <tr>
+                  <td>Export PDF</td>
+                  <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">P</kbd></td>
+                  <td>Export screenplay as PDF</td>
+                </tr>
+                <tr>
+                  <td>Undo</td>
+                  <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td>
+                  <td>Undo last change (50-state history)</td>
+                </tr>
+                <tr>
+                  <td>Redo</td>
+                  <td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td>
+                  <td>Redo last undone change</td>
                 </tr>
                 <tr>
                   <td>Go to scene</td>
@@ -361,6 +398,32 @@ export default function ScreenplayEditorPage() {
               </tbody>
             </table>
           </div>
+          
+          <h2>Rescan Behavior</h2>
+          <div className="alert alert-info my-6 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <div className="font-bold">How Rescan Works</div>
+              <div className="text-sm mt-2">
+                <p className="mb-2"><strong>Adds:</strong> New characters and locations found in the script</p>
+                <p className="mb-2"><strong>Updates:</strong> Character/location names and descriptions (only if script version is longer/better)</p>
+                <p className="mb-2"><strong>Preserves:</strong> Custom fields (address, atmosphere notes, costume details), images, reference library, and all metadata</p>
+                <p className="mb-2"><strong>Never Deletes:</strong> Characters or locations that are no longer in the script remain in your database</p>
+                <p className="mb-2"><strong>"Not in script" Label:</strong> Characters and locations that don&apos;t appear in the current script are marked with a gray "Not in script" badge in the Character and Location boards. They remain in your database and can be used for production planning.</p>
+                <p className="mt-2 text-xs opacity-80">Rescan is safe to use—it only adds and updates, never removes your data.</p>
+              </div>
+            </div>
+          </div>
+          
+          <h3>Restoring Versions from GitHub</h3>
+          <p className="text-sm opacity-80 mb-4">When you restore a previous version from GitHub:</p>
+          <ul className="text-sm list-disc list-inside space-y-1 mb-4">
+            <li>Only the editor content (screenplay text) is restored</li>
+            <li>Characters, locations, and assets in the database are not affected</li>
+            <li>After restoring, you can click "Rescan" to update characters/locations from the restored script</li>
+            <li>Rescan will add new entities and update existing ones, but never delete anything</li>
+            <li>Entities not in the restored script will show the "Not in script" badge until they appear in the script again</li>
+          </ul>
 
           <h2>Export Options</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 not-prose my-8">
@@ -405,20 +468,39 @@ export default function ScreenplayEditorPage() {
           </div>
 
           <h3>Setup:</h3>
-          <ol>
-            <li>Connect GitHub account</li>
-            <li>Create repository</li>
-            <li>Enable auto-commit</li>
-            <li>Write normally</li>
+          <ol className="text-sm space-y-1">
+            <li>Connect GitHub account (one-time setup)</li>
+            <li>Create repository (or use existing)</li>
+            <li>Manual export available anytime</li>
+            <li>Version history accessible in editor</li>
           </ol>
 
           <h3>Features:</h3>
           <ul>
-            <li>Auto-commit every save</li>
-            <li>See full history</li>
-            <li>Revert any change</li>
-            <li>Collaborate with pull requests</li>
+            <li>View commit history directly in the editor</li>
+            <li>Restore any previous version with one click</li>
+            <li>Compare changes between versions on GitHub</li>
+            <li>Manual export to GitHub (optional)</li>
+            <li>Full version control without leaving the app</li>
           </ul>
+          
+          <h3>How to Use:</h3>
+          <ol className="text-sm space-y-2">
+            <li>Connect your GitHub account (one-time setup)</li>
+            <li>Click the "Version History" button in the toolbar (clock icon)</li>
+            <li>View last 10 commits with messages, authors, and dates</li>
+            <li>Click "Restore" to load any previous version</li>
+            <li>Click "View on GitHub" to see full commit details</li>
+            <li>Click "Compare" to see changes between versions</li>
+          </ol>
+          
+          <div className="alert alert-warning my-6 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+              <div className="font-bold">Restore Warning</div>
+              <div className="text-sm mt-1">Restoring a version will overwrite your current editor content. If you have unsaved changes, you'll be asked to confirm before restoring.</div>
+            </div>
+          </div>
 
           <h2>📖 The 8-Scene Story Structure</h2>
           <p>Wryda uses a proven story structure designed for lean, high-impact screenplays—perfect for indie filmmakers, YouTubers, and modern storytellers.</p>
@@ -526,6 +608,7 @@ export default function ScreenplayEditorPage() {
                     <li>Add location photos & notes</li>
                     <li>See which scenes happen where</li>
                     <li>Generate shooting schedule by location</li>
+                    <li>"Not in script" badge shows locations created but not yet in screenplay</li>
                     <li>Track continuity details (props, weather, etc.)</li>
                   </ul>
                 </div>

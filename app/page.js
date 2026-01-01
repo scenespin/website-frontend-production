@@ -356,8 +356,11 @@ export default function Page() {
               <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-3xl mb-3">✍️</div>
                 <h3 className="text-lg font-bold mb-2">Screenplay Editor</h3>
-                <p className="text-sm text-gray-300">
+                <p className="text-sm text-gray-300 mb-2">
                   Professional Fountain format editor. Industry-standard format used by Final Draft, Celtx, and Fade In. Import/export compatible.
+                </p>
+                <p className="text-xs text-gray-400">
+                  GitHub version control • Find & replace • Text formatting • Auto-save every 2s
                 </p>
               </div>
 

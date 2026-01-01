@@ -45,17 +45,15 @@ export default function ShortcutsPage() {
               </thead>
               <tbody>
                 <tr><td>Force character name</td><td><kbd className="kbd kbd-sm">Tab</kbd></td></tr>
-                <tr><td>Force action</td><td><kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Tab</kbd></td></tr>
+                <tr><td>Force scene heading</td><td><kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Tab</kbd></td></tr>
                 <tr><td>New scene heading</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Enter</kbd></td></tr>
-                <tr><td>Toggle comment</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">/</kbd></td></tr>
+                <tr><td>Italics (toggle)</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">I</kbd></td></tr>
                 <tr><td>Find/replace</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">F</kbd></td></tr>
-                <tr><td>Go to scene</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">G</kbd></td></tr>
-                <tr><td>Go to line</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">L</kbd></td></tr>
-                <tr><td>Next scene</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">]</kbd></td></tr>
-                <tr><td>Previous scene</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">[</kbd></td></tr>
+                <tr><td>Save</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">S</kbd></td></tr>
+                <tr><td>Toggle scene navigator</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">E</kbd></td></tr>
+                <tr><td>Export PDF</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">P</kbd></td></tr>
                 <tr><td>Undo</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td></tr>
                 <tr><td>Redo</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Z</kbd></td></tr>
-                <tr><td>Duplicate line</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">D</kbd></td></tr>
               </tbody>
             </table>
           </div>
