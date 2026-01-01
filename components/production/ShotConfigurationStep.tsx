@@ -543,16 +543,52 @@ export function ShotConfigurationStep({
                 );
                 shotPropsForThisShot.forEach(prop => {
                   const propConfig = shotProps[shot.slot]?.[prop.id];
+                  let propImageUrl: string | undefined;
+                  
+                  // Type assertion to ensure we have the full prop type
+                  const fullProp = prop as typeof prop & {
+                    angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+                    images?: Array<{ url: string; s3Key?: string }>;
+                  };
+                  
                   if (propConfig?.selectedImageId) {
-                    const propImage = prop.images?.find(img => img.s3Key === propConfig.selectedImageId);
-                    if (propImage?.url) {
-                      references.push({
-                        type: 'prop',
-                        imageUrl: propImage.url,
-                        label: prop.name,
-                        id: `prop-${prop.id}`
-                      });
+                    // Check angleReferences first (Production Hub images)
+                    // selectedImageId can match: ref.id, ref.s3Key, or image.url
+                    const angleRef = fullProp.angleReferences?.find(ref => 
+                      ref.id === propConfig.selectedImageId || 
+                      ref.s3Key === propConfig.selectedImageId
+                    );
+                    if (angleRef?.imageUrl) {
+                      propImageUrl = angleRef.imageUrl;
+                    } else {
+                      // Check images array (Creation images)
+                      // selectedImageId can match: img.url or img.s3Key
+                      const propImage = fullProp.images?.find(img => 
+                        img.url === propConfig.selectedImageId || 
+                        img.s3Key === propConfig.selectedImageId
+                      );
+                      if (propImage?.url) {
+                        propImageUrl = propImage.url;
+                      } else if (prop.imageUrl === propConfig.selectedImageId) {
+                        // Check if selectedImageId matches the default imageUrl
+                        propImageUrl = prop.imageUrl;
+                      }
                     }
+                  }
+                  
+                  // If no selected image but prop has a direct imageUrl, use that as fallback
+                  if (!propImageUrl && prop.imageUrl) {
+                    propImageUrl = prop.imageUrl;
+                  }
+                  
+                  // Add to references if we have an image URL
+                  if (propImageUrl) {
+                    references.push({
+                      type: 'prop',
+                      imageUrl: propImageUrl,
+                      label: prop.name,
+                      id: `prop-${prop.id}`
+                    });
                   }
                 });
                 
