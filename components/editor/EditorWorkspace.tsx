@@ -383,6 +383,11 @@ export default function EditorWorkspace() {
                 e.preventDefault();
                 setShowExportModal(true);
             }
+            // Cmd/Ctrl + H = Version History
+            else if ((e.metaKey || e.ctrlKey) && e.key === 'h') {
+                e.preventDefault();
+                setIsVersionHistoryModalOpen(true);
+            }
         };
         
         window.addEventListener('keydown', handleKeyDown);
