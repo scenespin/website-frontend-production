@@ -148,7 +148,7 @@ export default function ComparePage() {
                       <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Limited</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
                       <span className="text-gray-500">No</span>
@@ -187,10 +187,10 @@ export default function ComparePage() {
 
                   {/* Video Generation */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 font-semibold bg-[#141414]">AI Video Generation</td>
+                    <td className="p-4 font-semibold bg-[#141414]">Scene Builder (AI Video Generation)</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
-                      <span className="text-[#DC143C] font-bold">✓ Complete</span>
-                      <div className="text-xs text-gray-400 mt-1">Scene Builder</div>
+                      <span className="text-[#DC143C] font-bold">✓ Groundbreaking</span>
+                      <div className="text-xs text-gray-400 mt-1">Only Wryda.ai - Generate complete scenes from screenplay</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
                       <span className="text-gray-500">No</span>
@@ -392,9 +392,9 @@ export default function ComparePage() {
             <div className="mt-16 grid md:grid-cols-3 gap-8">
               <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
                 <div className="text-3xl mb-3">🎬</div>
-                <h3 className="text-xl font-bold mb-3">Write AND Produce</h3>
+                <h3 className="text-xl font-bold mb-3">Scene Builder</h3>
                 <p className="text-gray-300 text-sm">
-                  We're the only platform that doesn't stop at writing. Generate complete scenes from your screenplay with character, location, and prop consistency.
+                  The only platform that generates complete video scenes directly from your screenplay. Scene Builder analyzes your script and orchestrates multiple AI providers to create professional, consistent scene packages—something no other tool can do.
                 </p>
               </div>
 
@@ -520,28 +520,28 @@ export default function ComparePage() {
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8">
                 <h3 className="text-2xl font-bold mb-4">vs. AI Writing Tools (ChatGPT, Claude, etc.)</h3>
                 <p className="text-gray-300 mb-4">
-                  <strong className="text-white">They're general-purpose. We're built specifically for screenplays.</strong>
+                  <strong className="text-white">We use the same powerful models, but in a screenplay-specific environment that understands your entire project.</strong>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Fountain format native (industry standard)</span>
+                    <span>Switch between OpenAI, Anthropic, and Google models—all within our specialized agents</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>5 specialized AI agents for screenwriting</span>
+                    <span>5 screenplay-trained agents that understand Fountain format, character arcs, and story structure</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Story Advisor (reads entire screenplay context)</span>
+                    <span>Story Advisor reads your entire screenplay—context that general AI tools can't access</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Scene-to-video generation (they can't do this)</span>
+                    <span>Integrated with your characters, locations, and scenes—everything works together</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Character/location/prop consistency (unique to us)</span>
+                    <span>Scene Builder generates complete video scenes—requires the full production environment we've built</span>
                   </li>
                 </ul>
               </div>
