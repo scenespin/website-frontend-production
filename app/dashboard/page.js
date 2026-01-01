@@ -935,48 +935,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Quick Actions - Compact and Streamlined */}
-        <div>
-          <h2 className="text-lg font-semibold text-base-content mb-3">Quick Actions</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Link 
-              href="/editor" 
-              className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-cinema-red to-cinema-red/90 p-4 text-base-content hover:shadow-lg transition-all duration-300 border border-cinema-red/20"
-            >
-              <FileText className="w-5 h-5 mb-2" />
-              <h3 className="font-semibold text-sm mb-0.5">Write Screenplay</h3>
-              <p className="text-xs text-base-content/80">Create a new script</p>
-            </Link>
-            
-            <Link 
-              href="/produce" 
-              className="group relative overflow-hidden rounded-lg bg-base-200 p-4 hover:shadow-md transition-all duration-300 border border-base-300/50"
-            >
-              <Video className="w-5 h-5 mb-2 text-cinema-red" />
-              <h3 className="font-semibold text-sm mb-0.5 text-base-content">Generate Video</h3>
-              <p className="text-xs text-base-content/60">AI-powered creation</p>
-            </Link>
-            
-            <Link 
-              href="/composition" 
-              className="group relative overflow-hidden rounded-lg bg-base-200 p-4 hover:shadow-md transition-all duration-300 border border-base-300/50"
-            >
-              <Clapperboard className="w-5 h-5 mb-2 text-primary" />
-              <h3 className="font-semibold text-sm mb-0.5 text-base-content">Compose Clips</h3>
-              <p className="text-xs text-base-content/60">Edit and combine</p>
-            </Link>
-            
-            <Link 
-              href="/timeline" 
-              className="group relative overflow-hidden rounded-lg bg-base-200 p-4 hover:shadow-md transition-all duration-300 border border-base-300/50"
-            >
-              <Clock className="w-5 h-5 mb-2 text-accent" />
-              <h3 className="font-semibold text-sm mb-0.5 text-base-content">Edit Timeline</h3>
-              <p className="text-xs text-base-content/60">Fine-tune edits</p>
-            </Link>
-          </div>
-        </div>
-
         {/* Phase 4.5: Shared with Me Section */}
         {collaboratedScreenplays.length > 0 && (
           <div>

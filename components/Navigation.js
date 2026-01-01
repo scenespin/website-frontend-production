@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useAuth, UserButton } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { 
@@ -254,10 +254,10 @@ export default function Navigation() {
                     <span>Playground</span>
                   </Link>
 
-                  {/* Credit Balance Display - Clickable */}
+                  {/* Credit Balance Display - Clickable (goes to dashboard where CreditWidget handles it) */}
                   {user && (
                     <Link
-                      href="/buy-credits"
+                      href="/dashboard"
                       className="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors cursor-pointer"
                     >
                       <Coins className="w-4 h-4 text-cinema-gold" />
@@ -273,7 +273,14 @@ export default function Navigation() {
                   )}
                 </>
               )}
-              <UserButton afterSignOutUrl="/" />
+              {/* Custom Account Button - Replaces Clerk UserButton */}
+              <Link
+                href="/account"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-cinema-red hover:bg-cinema-red/90 transition-colors text-white font-bold text-sm"
+                title="Account Settings"
+              >
+                {user?.firstName?.charAt(0) || user?.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
+              </Link>
             </div>
           </div>
         </div>
@@ -385,9 +392,9 @@ export default function Navigation() {
                 Playground
               </Link>
               
-              {/* Credit Balance - Clickable */}
+              {/* Credit Balance - Clickable (goes to dashboard) */}
               <Link
-                href="/buy-credits"
+                href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors"
               >
