@@ -389,14 +389,14 @@ export function UploadWardrobeTab({
             <div>
               {existingOutfits.length > 0 ? (
                 <Select
-                  value={selectedExistingOutfit}
-                  onValueChange={(value) => setSelectedExistingOutfit(value)}
+                  value={selectedExistingOutfit || '__select__'}
+                  onValueChange={(value) => setSelectedExistingOutfit(value === '__select__' ? '' : value)}
                 >
                   <SelectTrigger className="w-full h-9 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Select an outfit...</SelectItem>
+                    <SelectItem value="__select__">Select an outfit...</SelectItem>
                     {existingOutfits.map(outfit => (
                       <SelectItem key={outfit} value={outfit}>{outfit}</SelectItem>
                     ))}

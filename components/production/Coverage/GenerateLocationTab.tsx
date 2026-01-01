@@ -600,9 +600,9 @@ export function GenerateLocationTab({
                       <div>
                         <label className="block text-xs text-[#808080] mb-1.5">Filter by Time of Day</label>
                         <Select
-                          value={filterTimeOfDay}
+                          value={filterTimeOfDay || '__all__'}
                           onValueChange={(value) => {
-                            setFilterTimeOfDay(value as any);
+                            setFilterTimeOfDay(value === '__all__' ? '' : (value as any));
                             clearAngleSelections(); // Clear selections when filter changes
                           }}
                         >
@@ -610,7 +610,7 @@ export function GenerateLocationTab({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">All times</SelectItem>
+                            <SelectItem value="__all__">All times</SelectItem>
                             <SelectItem value="morning">Morning</SelectItem>
                             <SelectItem value="afternoon">Afternoon</SelectItem>
                             <SelectItem value="evening">Evening</SelectItem>
@@ -621,9 +621,9 @@ export function GenerateLocationTab({
                       <div>
                         <label className="block text-xs text-[#808080] mb-1.5">Filter by Weather</label>
                         <Select
-                          value={filterWeather}
+                          value={filterWeather || '__all__'}
                           onValueChange={(value) => {
-                            setFilterWeather(value as any);
+                            setFilterWeather(value === '__all__' ? '' : (value as any));
                             clearAngleSelections(); // Clear selections when filter changes
                           }}
                         >
@@ -631,7 +631,7 @@ export function GenerateLocationTab({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">All weather</SelectItem>
+                            <SelectItem value="__all__">All weather</SelectItem>
                             <SelectItem value="sunny">Sunny</SelectItem>
                             <SelectItem value="cloudy">Cloudy</SelectItem>
                             <SelectItem value="rainy">Rainy</SelectItem>
@@ -805,9 +805,9 @@ export function GenerateLocationTab({
           <div>
             <label className="block text-xs text-[#808080] mb-2">Time of Day (Optional)</label>
             <Select
-              value={timeOfDay}
+              value={timeOfDay || '__none__'}
               onValueChange={(value) => {
-                setTimeOfDay(value as any);
+                setTimeOfDay(value === '__none__' ? '' : (value as any));
                 setHasManuallySetTimeOfDay(true);
               }}
             >
@@ -815,7 +815,7 @@ export function GenerateLocationTab({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 <SelectItem value="morning">Morning</SelectItem>
                 <SelectItem value="afternoon">Afternoon</SelectItem>
                 <SelectItem value="evening">Evening</SelectItem>
@@ -826,9 +826,9 @@ export function GenerateLocationTab({
           <div>
             <label className="block text-xs text-[#808080] mb-2">Weather (Optional)</label>
             <Select
-              value={weather}
+              value={weather || '__none__'}
               onValueChange={(value) => {
-                setWeather(value as any);
+                setWeather(value === '__none__' ? '' : (value as any));
                 setHasManuallySetWeather(true);
               }}
             >
@@ -836,7 +836,7 @@ export function GenerateLocationTab({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 <SelectItem value="sunny">Sunny</SelectItem>
                 <SelectItem value="cloudy">Cloudy</SelectItem>
                 <SelectItem value="rainy">Rainy</SelectItem>

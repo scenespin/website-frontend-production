@@ -1217,9 +1217,9 @@ export function CharacterDetailModal({
                         <div className="flex items-center gap-2">
                           <label className="text-sm text-[#808080]">Filter by Outfit:</label>
                           <Select
-                            value={selectedOutfitGallery || ''}
+                            value={selectedOutfitGallery || '__all__'}
                             onValueChange={(value) => {
-                              const newValue = value || null;
+                              const newValue = value === '__all__' ? null : value;
                               setSelectedOutfitGallery(newValue);
                               setSelectedImageId(null);
                             }}
@@ -1228,7 +1228,7 @@ export function CharacterDetailModal({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">All Outfits ({galleryImages.length})</SelectItem>
+                              <SelectItem value="__all__">All Outfits ({galleryImages.length})</SelectItem>
                               {outfitNames.map((outfitName) => {
                                 const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === outfitName).length;
                                 let outfitDisplayName: string;
@@ -1460,9 +1460,9 @@ export function CharacterDetailModal({
                           
                           return availableOutfits.length > 0 ? (
                             <Select
-                              value={displayPhysicalAttributes.typicalClothing || ''}
+                              value={displayPhysicalAttributes.typicalClothing || '__none__'}
                               onValueChange={async (value) => {
-                                const newValue = value || undefined;
+                                const newValue = value === '__none__' ? undefined : value;
                                 await onUpdate(character.id, {
                                   physicalAttributes: {
                                     ...displayPhysicalAttributes,
@@ -1475,7 +1475,7 @@ export function CharacterDetailModal({
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">None (no default)</SelectItem>
+                                <SelectItem value="__none__">None (no default)</SelectItem>
                                 {availableOutfits.map((outfit) => (
                                   <SelectItem key={outfit} value={outfit}>
                                     {outfit}
@@ -1590,14 +1590,14 @@ export function CharacterDetailModal({
                         <div className="mb-4">
                           <label className="text-xs text-[#808080] mb-2 block">Filter by outfit:</label>
                           <Select
-                            value={selectedOutfitReferences || ''}
-                            onValueChange={(value) => setSelectedOutfitReferences(value || null)}
+                            value={selectedOutfitReferences || '__all__'}
+                            onValueChange={(value) => setSelectedOutfitReferences(value === '__all__' ? null : value)}
                           >
                             <SelectTrigger className="w-full h-10 px-3 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#8B5CF6] focus:outline-none">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">All Outfits ({poseReferences.length})</SelectItem>
+                              <SelectItem value="__all__">All Outfits ({poseReferences.length})</SelectItem>
                               {outfitNames.map((outfitName) => {
                                 const outfitPoses = posesByOutfit[outfitName] || [];
                                 let outfitDisplayName: string;

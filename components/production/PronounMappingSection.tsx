@@ -210,18 +210,23 @@ export function PronounMappingSection({
                     </label>
                     {/* Single-select dropdown for singular pronouns */}
                     <Select
-                      value={mappedCharacterId || ''}
+                      value={mappedCharacterId || '__select__'}
                       onValueChange={(value) => {
-                        // Special value "__ignore__" means user wants to ignore this pronoun
-                        const characterId = value === '__ignore__' ? '__ignore__' : (value || undefined);
-                        onPronounMappingChange(pronounLower, characterId);
+                        // Special values: "__select__" = no selection, "__ignore__" = skip
+                        if (value === '__select__') {
+                          onPronounMappingChange(pronounLower, undefined);
+                        } else if (value === '__ignore__') {
+                          onPronounMappingChange(pronounLower, '__ignore__');
+                        } else {
+                          onPronounMappingChange(pronounLower, value);
+                        }
                       }}
                     >
                       <SelectTrigger className="flex-1 h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">-- Select character --</SelectItem>
+                        <SelectItem value="__select__">-- Select character --</SelectItem>
                         <SelectItem value="__ignore__">-- Skip (extras/background only) --</SelectItem>
                         {availableChars.map((char) => (
                           <SelectItem key={char.id} value={char.id}>
