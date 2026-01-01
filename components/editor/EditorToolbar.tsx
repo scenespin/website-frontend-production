@@ -13,7 +13,6 @@ interface EditorToolbarProps {
     onExportPDF?: () => void;
     onOpenCollaboration?: () => void;
     onSave?: () => void;
-    onReadScreenplay?: () => void;
     isEditorFullscreen?: boolean;
     onToggleEditorFullscreen?: () => void;
 }
@@ -133,7 +132,7 @@ function ExportToGitHubButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, onReadScreenplay, isEditorFullscreen = false, onToggleEditorFullscreen }: EditorToolbarProps) {
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen }: EditorToolbarProps) {
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
     const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner } = useScreenplay();
     
@@ -548,19 +547,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         >
                             <span className="text-base">⬇️</span>
                             <span className="text-[9px] hidden sm:inline">PDF</span>
-                        </button>
-                    </div>
-                )}
-                
-                {/* Read Screenplay button - Emoji */}
-                {onReadScreenplay && (
-                    <div className="tooltip tooltip-bottom" data-tip="Read Screenplay • Generate audio with character voices">
-                        <button
-                            onClick={onReadScreenplay}
-                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-base">🔊</span>
-                            <span className="text-[9px] hidden sm:inline">READ</span>
                         </button>
                     </div>
                 )}

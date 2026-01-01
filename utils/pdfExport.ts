@@ -187,6 +187,36 @@ function inchesToPoints(inches: number): number {
 }
 
 /**
+ * Prepare image data for jsPDF
+ * Handles data URLs and extracts format information
+ */
+function prepareImageForPDF(image: string): { imageData: string; format: string } {
+  // If it's a data URL, extract format and return as-is (jsPDF handles data URLs)
+  if (image.startsWith('data:image/')) {
+    const formatMatch = image.match(/data:image\/([^;]+)/);
+    let format = 'PNG'; // Default
+    
+    if (formatMatch) {
+      const detectedFormat = formatMatch[1].toUpperCase();
+      // jsPDF supports: PNG, JPEG, JPG, WEBP
+      if (detectedFormat === 'JPEG' || detectedFormat === 'JPG') {
+        format = 'JPEG';
+      } else if (detectedFormat === 'PNG') {
+        format = 'PNG';
+      } else if (detectedFormat === 'WEBP') {
+        format = 'WEBP';
+      }
+    }
+    
+    return { imageData: image, format };
+  }
+  
+  // If it's a base64 string without prefix, assume PNG
+  // If it's a URL, jsPDF will handle it
+  return { imageData: image, format: 'PNG' };
+}
+
+/**
  * Add watermark to PDF page (text or image)
  * 🎨 FREE FOR ALL USERS - No plan restrictions!
  */
@@ -207,37 +237,34 @@ function addWatermark(
   const pageWidth = inchesToPoints(SCREENPLAY_FORMAT.pageWidth);
   const pageHeight = inchesToPoints(SCREENPLAY_FORMAT.pageHeight);
   
-  // Save current state
-  doc.saveGraphicsState();
-  
-  // Set opacity
-  doc.setGState(doc.GState({ opacity }));
-  
   const centerX = pageWidth / 2;
   const centerY = pageHeight / 2;
   
   if (image) {
     // Image watermark
     try {
+      // Prepare image data and format
+      const { imageData, format } = prepareImageForPDF(image);
+      
       const imgWidth = inchesToPoints(imageWidth);
       const imgHeight = inchesToPoints(imageHeight);
       
-      // Calculate position (centered)
-      const x = centerX - imgWidth / 2;
-      const y = centerY - imgHeight / 2;
+      // Save graphics state for opacity and transformation
+      doc.saveGraphicsState();
       
-      // Add image with rotation
+      // Set opacity using GState
+      doc.setGState(doc.GState({ opacity }));
+      
       if (angle !== 0) {
-        // Rotate around center
-        doc.saveGraphicsState();
-        doc.setGState(doc.GState({ opacity }));
-        
-        // Translate to center, rotate, translate back
+        // Rotate around center using transformation matrix
         const radians = (angle * Math.PI) / 180;
         const cos = Math.cos(radians);
         const sin = Math.sin(radians);
         
-        // Transform matrix: [cos, sin, -sin, cos, x, y]
+        // Apply transformation: translate to center, rotate, then position image
+        // Transformation matrix: [a, b, c, d, e, f]
+        // a = cos, b = sin, c = -sin, d = cos (rotation)
+        // e, f = translation to center
         doc.setCurrentTransformationMatrix({
           a: cos,
           b: sin,
@@ -245,37 +272,62 @@ function addWatermark(
           d: cos,
           e: centerX,
           f: centerY
-        } as any);
-        doc.addImage(image, 'PNG', -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+        });
         
-        doc.restoreGraphicsState();
+        // Draw image centered at origin (after transformation)
+        // Position is relative to the transformed coordinate system
+        doc.addImage(imageData, format, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
       } else {
-        doc.addImage(image, 'PNG', x, y, imgWidth, imgHeight);
+        // No rotation - simple centered placement
+        const x = centerX - imgWidth / 2;
+        const y = centerY - imgHeight / 2;
+        doc.addImage(imageData, format, x, y, imgWidth, imgHeight);
       }
+      
+      // Restore graphics state
+      doc.restoreGraphicsState();
     } catch (error) {
       console.error('[PDF Watermark] Failed to add image:', error);
+      console.error('[PDF Watermark] Error details:', {
+        errorMessage: error instanceof Error ? error.message : String(error),
+        imageType: typeof image,
+        imageLength: image?.length,
+        imagePreview: image?.substring(0, 100),
+        hasDataUrl: image?.startsWith('data:')
+      });
+      
+      // Restore state before fallback
+      try {
+        doc.restoreGraphicsState();
+      } catch (e) {
+        // Ignore restore errors
+      }
+      
       // Fallback to text watermark if image fails
       if (text) {
+        doc.saveGraphicsState();
+        doc.setGState(doc.GState({ opacity }));
         doc.setTextColor(150, 150, 150);
         doc.setFontSize(fontSize);
         doc.text(text, centerX, centerY, {
           align: 'center',
           angle,
         });
+        doc.restoreGraphicsState();
       }
     }
   } else if (text) {
     // Text watermark
+    doc.saveGraphicsState();
+    doc.setGState(doc.GState({ opacity }));
     doc.setTextColor(150, 150, 150);
     doc.setFontSize(fontSize);
     doc.text(text, centerX, centerY, {
       align: 'center',
       angle,
     });
+    doc.restoreGraphicsState();
   }
-  
-  // Restore state
-  doc.restoreGraphicsState();
 }
 
 /**
