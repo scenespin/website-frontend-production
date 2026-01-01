@@ -178,7 +178,7 @@ interface ScreenplayContextType {
     
     // Feature 0122: Role-Based Collaboration System - Phase 3B
     // Permission State
-    currentUserRole: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer' | null;
+    currentUserRole: 'director' | 'writer' | 'producer' | 'viewer' | null;
     isOwner: boolean;
     permissionsLoading: boolean; // Track if permissions are being loaded
     canEditScript: boolean;
@@ -196,7 +196,7 @@ interface ScreenplayContextType {
     collaborators: Array<{
         user_id?: string;
         email: string;
-        role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
+        role: 'director' | 'writer' | 'producer' | 'viewer';
         added_at: string;
         added_by?: string;
     }>;
@@ -204,9 +204,9 @@ interface ScreenplayContextType {
     // Collaboration Management Functions
     loadCollaboratorPermissions: (screenplayId: string) => Promise<void>;
     loadCollaborators: (screenplayId: string) => Promise<void>;
-    addCollaborator: (email: string, role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer') => Promise<void>;
+    addCollaborator: (email: string, role: 'director' | 'writer' | 'producer' | 'viewer') => Promise<void>;
     removeCollaborator: (identifier: string) => Promise<void>;
-    updateCollaboratorRole: (identifier: string, newRole: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer') => Promise<void>;
+    updateCollaboratorRole: (identifier: string, newRole: 'director' | 'writer' | 'producer' | 'viewer') => Promise<void>;
     getAvailableRoles: () => Promise<Array<{
         id: string;
         name: string;
@@ -324,7 +324,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Feature 0122: Role-Based Collaboration System - Phase 3B
     // Permission State
-    const [currentUserRole, setCurrentUserRole] = useState<'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer' | null>(null);
+    const [currentUserRole, setCurrentUserRole] = useState<'director' | 'writer' | 'producer' | 'viewer' | null>(null);
     const [isOwner, setIsOwner] = useState(false);
     const [permissionsLoading, setPermissionsLoading] = useState(false); // Track if permissions are being loaded
     const permissionsLoadingRef = useRef<string | null>(null); // Track which screenplayId is currently loading permissions
@@ -343,7 +343,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [collaborators, setCollaborators] = useState<Array<{
         user_id?: string;
         email: string;
-        role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
+        role: 'director' | 'writer' | 'producer' | 'viewer';
         added_at: string;
         added_by?: string;
     }>>([]);
@@ -5312,16 +5312,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         // This ensures UI updates immediately based on role
                         // Strip "(inferred)" suffix if present (from backend fallback)
                         const cleanRole = role ? role.replace(/\s*\(inferred\)$/i, '') : null;
-                        if (cleanRole && ['director', 'writer', 'asset-manager', 'contributor', 'viewer'].includes(cleanRole)) {
-                            setCurrentUserRole(cleanRole as 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer');
+                        if (cleanRole && ['director', 'writer', 'producer', 'viewer'].includes(cleanRole)) {
+                            setCurrentUserRole(cleanRole as 'director' | 'writer' | 'producer' | 'viewer');
                         } else {
                             // Fallback: determine role from permissions (check canEditScript first for speed)
                             if (perms.canEditScript === true) {
                                 setCurrentUserRole('writer');
-                            } else if (perms.canManageAssets === true) {
-                                setCurrentUserRole('asset-manager');
-                            } else if (perms.canManageOwnAssets === true || perms.canUploadAssets === true) {
-                                setCurrentUserRole('contributor');
+                            } else if (perms.canManageAssets === true || perms.canAccessProductionHub === true) {
+                                setCurrentUserRole('producer');
                             } else {
                                 setCurrentUserRole('viewer');
                             }
@@ -5413,7 +5411,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     /**
      * Add a collaborator to the screenplay
      */
-    const addCollaborator = useCallback(async (email: string, role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer') => {
+    const addCollaborator = useCallback(async (email: string, role: 'director' | 'writer' | 'producer' | 'viewer') => {
         if (!screenplayId) {
             throw new Error('No screenplay selected');
         }
@@ -5453,7 +5451,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     /**
      * Update a collaborator's role
      */
-    const updateCollaboratorRoleFn = useCallback(async (identifier: string, newRole: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer') => {
+    const updateCollaboratorRoleFn = useCallback(async (identifier: string, newRole: 'director' | 'writer' | 'producer' | 'viewer') => {
         if (!screenplayId) {
             throw new Error('No screenplay selected');
         }

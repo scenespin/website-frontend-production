@@ -61,12 +61,12 @@ const DEFAULT_ROLES = [
     },
   },
   {
-    id: 'contributor',
-    name: '🎨 Asset Contributor',
-    description: 'Can manage assets but cannot edit screenplay',
+    id: 'producer',
+    name: '🎬 Producer',
+    description: 'Production Hub: Generate and manage assets, view script (read-only). No script editing or AI writing agents.',
     capabilities: {
       canEditScript: false,
-      canViewScript: false,
+      canViewScript: true,
       canManageAssets: true,
       canViewAssets: true,
     },

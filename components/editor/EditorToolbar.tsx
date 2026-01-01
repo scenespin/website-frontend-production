@@ -140,12 +140,11 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     // Logic:
     // 1. If permissions are loaded and canEditScript is true → show buttons
     // 2. If we know the role is writer/director → show buttons
-    // 3. If we know the role is viewer/contributor/asset-manager (non-editing roles) → hide buttons immediately
+    // 3. If we know the role is viewer/producer (non-editing roles) → hide buttons immediately
     // 4. If permissions are loading AND we don't know the role yet AND user is not owner → show buttons optimistically
     // This prevents buttons from flashing for viewers - once role is known, we use it immediately
     const isNonEditingRole = currentUserRole === 'viewer' || 
-                             currentUserRole === 'contributor' || 
-                             currentUserRole === 'asset-manager';
+                             currentUserRole === 'producer';
     
     const effectiveCanEditScript = !isNonEditingRole && (
         canEditScript || 

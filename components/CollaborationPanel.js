@@ -54,7 +54,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
       return 'bg-[#DC143C]/10 text-blue-400 border-blue-500/20';
     } else if (roleLower.includes('writer')) {
       return 'bg-green-500/10 text-green-400 border-green-500/20';
-    } else if (roleLower.includes('contributor')) {
+    } else if (roleLower.includes('producer')) {
       return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
     }
     return 'bg-base-content/10 text-base-content/60 border-base-content/20';

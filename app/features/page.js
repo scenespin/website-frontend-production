@@ -252,10 +252,46 @@ export default function Features() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Expanded Screenplay Editor Card */}
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors md:col-span-2 lg:col-span-2">
+                <div className="text-3xl mb-3">✍️</div>
+                <h3 className="text-lg font-bold mb-3">Screenplay Editor</h3>
+                <p className="text-sm text-gray-300 mb-4">
+                  Professional Fountain format editor with industry-leading collaboration and smart automation.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span><strong className="text-gray-300">Smart Import:</strong> Paste your script → characters, locations, and scenes auto-populate</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span><strong className="text-gray-300">Real-Time Collaboration:</strong> See collaborators' cursors, edit together seamlessly</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span><strong className="text-gray-300">Professional Export:</strong> PDF with bookmarks, text/image watermarking (free for all)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span><strong className="text-gray-300">Auto-Save:</strong> Never lose work—saves every 2 seconds locally, 60 seconds to cloud</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span><strong className="text-gray-300">Fountain Format:</strong> Compatible with Final Draft, Celtx, and Fade In</span>
+                  </li>
+                </ul>
+              </div>
+
               <FeatureCard
-                icon="✍️"
-                title="Screenplay Editor"
-                description="Professional Fountain format editor. Industry-standard format used by Final Draft, Celtx, and Fade In. Import/export compatible."
+                icon="🤝"
+                title="Real-Time Collaboration"
+                description="See collaborators' cursors as they edit. Multi-user editing with automatic sync across all screens. Work together seamlessly—no conflicts."
+              />
+              <FeatureCard
+                icon="⚡"
+                title="Smart Import"
+                description="Paste your Fountain script and watch characters, locations, and scenes automatically populate. Zero manual setup required."
               />
               <FeatureCard
                 icon="👤"
@@ -289,8 +325,8 @@ export default function Features() {
               />
               <FeatureCard
                 icon="☁️"
-                title="Cloud Backup"
-                description="Automatic backup to Google Drive and Dropbox. Your screenplays and assets are always safe."
+                title="Cloud Storage"
+                description="Automatic backup of large media files to Google Drive and Dropbox. Your production assets are always safe."
               />
             </div>
           </div>

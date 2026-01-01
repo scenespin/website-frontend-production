@@ -75,7 +75,7 @@ export interface GitHubConfig {
 export interface Collaborator {
   user_id?: string;
   email: string;
-  role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
+  role: 'director' | 'writer' | 'producer' | 'viewer';
   added_at: string;
   added_by?: string;
 }

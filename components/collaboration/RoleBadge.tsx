@@ -3,7 +3,7 @@
 import React from 'react';
 import { Crown, PenTool, Package, Upload, Eye } from 'lucide-react';
 
-export type ScreenplayRole = 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
+export type ScreenplayRole = 'director' | 'writer' | 'producer' | 'viewer';
 
 interface RoleBadgeProps {
   role: ScreenplayRole | null;
@@ -27,19 +27,12 @@ const roleConfig = {
     textColor: 'text-blue-100',
     borderColor: 'border-blue-400'
   },
-  'asset-manager': {
-    label: 'Asset Manager',
+  producer: {
+    label: 'Producer',
     icon: Package,
     color: 'bg-green-500',
     textColor: 'text-green-100',
     borderColor: 'border-green-400'
-  },
-  contributor: {
-    label: 'Contributor',
-    icon: Upload,
-    color: 'bg-orange-500',
-    textColor: 'text-orange-100',
-    borderColor: 'border-orange-400'
   },
   viewer: {
     label: 'Viewer',
