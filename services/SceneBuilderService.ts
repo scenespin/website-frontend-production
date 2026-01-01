@@ -50,12 +50,14 @@ export interface ShotPricing {
   shotSlot: number;
   hdPrice: number;
   k4Price: number;
+  firstFramePrice: number;
 }
 
 export interface ScenePricingResult {
   shots: ShotPricing[];
   totalHdPrice: number;
   totalK4Price: number;
+  totalFirstFramePrice: number;
 }
 
 export class SceneBuilderService {
@@ -701,7 +703,8 @@ export class SceneBuilderService {
   static async calculatePricing(
     shots: Array<{ slot: number; credits: number }>,
     shotDurations?: Record<number, 'quick-cut' | 'extended-take'>,
-    getTokenFn?: (options: { template: string }) => Promise<string | null>
+    getTokenFn?: (options: { template: string }) => Promise<string | null>,
+    referenceShotModels?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>
   ): Promise<ScenePricingResult> {
     if (!getTokenFn) {
       throw new Error('getToken function is required');
@@ -717,7 +720,8 @@ export class SceneBuilderService {
       },
       body: JSON.stringify({
         shots,
-        shotDurations
+        shotDurations,
+        referenceShotModels
       })
     });
     

@@ -75,29 +75,59 @@ export function VideoGenerationSelector({
         {onCameraAngleChange && (
           <div>
             <label className="text-[10px] text-[#808080] mb-1.5 block">Camera Angle</label>
-            <select
+            <Select
               value={shotCameraAngle || 'auto'}
-              onChange={(e) => {
-                const angle = e.target.value as 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto';
+              onValueChange={(value) => {
+                const angle = value as 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto';
                 if (angle === 'auto') {
                   onCameraAngleChange(shotSlot, undefined);
                 } else {
                   onCameraAngleChange(shotSlot, angle);
                 }
               }}
-              className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
             >
-              <option value="auto">Auto (Content-aware) - Default</option>
-              <option value="close-up">Close-up</option>
-              <option value="medium-shot">Medium Shot</option>
-              <option value="wide-shot">Wide Shot</option>
-              <option value="extreme-close-up">Extreme Close-up</option>
-              <option value="extreme-wide-shot">Extreme Wide Shot</option>
-              <option value="over-the-shoulder">Over-the-Shoulder</option>
-              <option value="low-angle">Low Angle</option>
-              <option value="high-angle">High Angle</option>
-              <option value="dutch-angle">Dutch Angle</option>
-            </select>
+              <SelectTrigger className="w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9">
+                <SelectValue>
+                  <span className="text-xs">
+                    {shotCameraAngle && shotCameraAngle !== 'auto' 
+                      ? shotCameraAngle.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+                      : 'Auto (Content-aware) - Default'}
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-[#1A1A1A] border-[#3F3F46]">
+                <SelectItem value="auto" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Auto (Content-aware) - Default
+                </SelectItem>
+                <SelectItem value="close-up" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Close-up
+                </SelectItem>
+                <SelectItem value="medium-shot" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Medium Shot
+                </SelectItem>
+                <SelectItem value="wide-shot" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Wide Shot
+                </SelectItem>
+                <SelectItem value="extreme-close-up" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Extreme Close-up
+                </SelectItem>
+                <SelectItem value="extreme-wide-shot" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Extreme Wide Shot
+                </SelectItem>
+                <SelectItem value="over-the-shoulder" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Over-the-Shoulder
+                </SelectItem>
+                <SelectItem value="low-angle" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Low Angle
+                </SelectItem>
+                <SelectItem value="high-angle" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  High Angle
+                </SelectItem>
+                <SelectItem value="dutch-angle" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  Dutch Angle
+                </SelectItem>
+              </SelectContent>
+            </Select>
             {shotCameraAngle && shotCameraAngle !== 'auto' ? (
               <div className="text-[10px] text-[#808080] italic mt-1">
                 Override: Using {shotCameraAngle.replace('-', ' ')} instead of auto-detection
@@ -187,17 +217,34 @@ export function VideoGenerationSelector({
         {onDurationChange && (
           <div>
             <label className="text-[10px] text-[#808080] mb-1.5 block">Shot Duration</label>
-            <select
+            <Select
               value={shotDuration || 'quick-cut'}
-              onChange={(e) => {
-                const duration = e.target.value as 'quick-cut' | 'extended-take';
-                onDurationChange(shotSlot, duration);
+              onValueChange={(value) => {
+                onDurationChange(shotSlot, value as 'quick-cut' | 'extended-take');
               }}
-              className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors"
             >
-              <option value="quick-cut">Quick Cut (~5s)</option>
-              <option value="extended-take">Extended Take (~10s)</option>
-            </select>
+              <SelectTrigger className="w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9">
+                <SelectValue>
+                  <span className="text-xs">
+                    {shotDuration === 'extended-take' ? 'Extended Take (~10s)' : 'Quick Cut (~5s)'}
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-[#1A1A1A] border-[#3F3F46]">
+                <SelectItem value="quick-cut" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Quick Cut (~5s)</span>
+                    <span className="text-[10px] text-[#808080]">4-5 seconds (default)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="extended-take" className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Extended Take (~10s)</span>
+                    <span className="text-[10px] text-[#808080]">8-10 seconds</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
             <div className="text-[10px] text-[#808080] italic mt-1">
               {shotDuration === 'quick-cut' 
                 ? 'Quick Cut: 4-5 seconds (default)'

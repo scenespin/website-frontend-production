@@ -3433,6 +3433,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                 sceneProps={sceneProps}
                 propsToShots={propsToShots}
                 shotProps={shotProps}
+                selectedReferenceShotModels={selectedReferenceShotModels}
                 onBack={() => {
                   scrollToTop();
                   const shots = sceneAnalysisResult.shotBreakdown?.shots || [];

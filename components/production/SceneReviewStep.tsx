@@ -54,6 +54,8 @@ interface SceneReviewStepProps {
   sceneProps?: Array<{ id: string; name: string; imageUrl?: string; s3Key?: string }>;
   propsToShots: Record<string, number[]>;
   shotProps: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
+  // Reference Shot Models (First Frame)
+  selectedReferenceShotModels?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>;
   // Actions
   onBack: () => void;
   onGenerate: () => void;
@@ -81,13 +83,14 @@ export function SceneReviewStep({
   sceneProps = [],
   propsToShots,
   shotProps,
+  selectedReferenceShotModels = {},
   onBack,
   onGenerate,
   isGenerating = false,
   allCharacters = []
 }: SceneReviewStepProps) {
   const { getToken } = useAuth();
-  const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number } | null>(null);
+  const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   
   // Fetch pricing from backend (server-side margin calculation)
@@ -106,12 +109,14 @@ export function SceneReviewStep({
         const pricingResult = await SceneBuilderService.calculatePricing(
           selectedShots.map((shot: any) => ({ slot: shot.slot, credits: shot.credits || 0 })),
           shotDurations,
-          getToken
+          getToken,
+          selectedReferenceShotModels
         );
         
         setPricing({
           totalHdPrice: pricingResult.totalHdPrice,
-          totalK4Price: pricingResult.totalK4Price
+          totalK4Price: pricingResult.totalK4Price,
+          totalFirstFramePrice: pricingResult.totalFirstFramePrice
         });
       } catch (error) {
         console.error('Failed to fetch pricing:', error);
@@ -122,7 +127,7 @@ export function SceneReviewStep({
     };
     
     fetchPricing();
-  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, getToken]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, getToken]);
   
   if (!sceneAnalysisResult) {
     return (
@@ -229,7 +234,9 @@ export function SceneReviewStep({
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#808080]">Estimated Cost:</span>
                     <span className={`text-sm font-medium ${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
-                      {globalResolution === '4k' ? pricing.totalK4Price : pricing.totalHdPrice} credits
+                      {globalResolution === '4k' 
+                        ? pricing.totalFirstFramePrice + pricing.totalK4Price 
+                        : pricing.totalFirstFramePrice + pricing.totalHdPrice} credits
                     </span>
                   </div>
                 )}
@@ -433,19 +440,39 @@ export function SceneReviewStep({
               <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-3 space-y-2">
                 <div className="text-sm font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#808080]">HD:</span>
+                  <span className="text-xs text-[#808080]">First Frame:</span>
+                  <span className="text-sm font-medium text-[#FFFFFF]">
+                    {pricing.totalFirstFramePrice} credits
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#808080]">HD Video:</span>
                   <span className={`text-sm font-medium ${globalResolution === '1080p' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
                     {pricing.totalHdPrice} credits
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#808080]">4K:</span>
+                  <span className="text-xs text-[#808080]">4K Video:</span>
                   <span className={`text-sm font-medium ${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
                     {pricing.totalK4Price} credits
                   </span>
                 </div>
+                <div className="pt-2 border-t border-[#3F3F46]">
+                  <div className="flex items-center justify-between text-sm font-medium">
+                    <span className="text-[#FFFFFF]">HD Total:</span>
+                    <span className={`${globalResolution === '1080p' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
+                      {pricing.totalFirstFramePrice + pricing.totalHdPrice} credits
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm font-medium mt-1">
+                    <span className="text-[#FFFFFF]">4K Total:</span>
+                    <span className={`${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
+                      {pricing.totalFirstFramePrice + pricing.totalK4Price} credits
+                    </span>
+                  </div>
+                </div>
                 <div className="text-[10px] text-[#808080] italic mt-2 pt-2 border-t border-[#3F3F46]">
-                  Selected: {globalResolution === '4k' ? '4K' : 'HD'} ({globalResolution === '4k' ? pricing.totalK4Price : pricing.totalHdPrice} credits)
+                  Selected: {globalResolution === '4k' ? '4K' : 'HD'} ({globalResolution === '4k' ? pricing.totalFirstFramePrice + pricing.totalK4Price : pricing.totalFirstFramePrice + pricing.totalHdPrice} credits)
                 </div>
               </div>
             )}

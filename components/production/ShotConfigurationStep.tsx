@@ -175,7 +175,7 @@ export function ShotConfigurationStep({
 }: ShotConfigurationStepProps) {
   const { getToken } = useAuth();
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [pricing, setPricing] = useState<{ hdPrice: number; k4Price: number } | null>(null);
+  const [pricing, setPricing] = useState<{ hdPrice: number; k4Price: number; firstFramePrice: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   
   // Helper function to scroll to top of the scroll container
@@ -195,15 +195,21 @@ export function ShotConfigurationStep({
       
       setIsLoadingPricing(true);
       try {
+        const referenceShotModel = selectedReferenceShotModel[shot.slot];
         const pricingResult = await SceneBuilderService.calculatePricing(
           [{ slot: shot.slot, credits: shot.credits }],
           shotDuration ? { [shot.slot]: shotDuration } : undefined,
-          getToken
+          getToken,
+          referenceShotModel ? { [shot.slot]: referenceShotModel } : undefined
         );
         
         const shotPricing = pricingResult.shots.find(s => s.shotSlot === shot.slot);
         if (shotPricing) {
-          setPricing({ hdPrice: shotPricing.hdPrice, k4Price: shotPricing.k4Price });
+          setPricing({ 
+            hdPrice: shotPricing.hdPrice, 
+            k4Price: shotPricing.k4Price,
+            firstFramePrice: shotPricing.firstFramePrice
+          });
         }
       } catch (error) {
         console.error('Failed to fetch pricing:', error);
@@ -215,7 +221,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shotDuration, getToken]);
+  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModel, getToken]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -647,12 +653,26 @@ export function ShotConfigurationStep({
               <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#808080]">HD:</span>
+                  <span className="text-[#808080]">First Frame:</span>
+                  <span className="text-[#FFFFFF] font-medium">{pricing.firstFramePrice} credits</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#808080]">HD Video:</span>
                   <span className="text-[#FFFFFF] font-medium">{pricing.hdPrice} credits</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#808080]">4K:</span>
+                  <span className="text-[#808080]">4K Video:</span>
                   <span className="text-[#FFFFFF] font-medium">{pricing.k4Price} credits</span>
+                </div>
+                <div className="pt-2 border-t border-[#3F3F46]">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-[#FFFFFF]">HD Total:</span>
+                    <span className="text-[#FFFFFF]">{pricing.firstFramePrice + pricing.hdPrice} credits</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-medium mt-1">
+                    <span className="text-[#FFFFFF]">4K Total:</span>
+                    <span className="text-[#DC143C]">{pricing.firstFramePrice + pricing.k4Price} credits</span>
+                  </div>
                 </div>
                 <div className="text-[10px] text-[#808080] italic mt-1">
                   Final resolution selected on review page
