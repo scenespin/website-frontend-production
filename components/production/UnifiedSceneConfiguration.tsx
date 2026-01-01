@@ -741,8 +741,6 @@ export function UnifiedSceneConfiguration({
                       onPronounExtrasPromptChange={(pronoun, prompt) => {
                         onPronounExtrasPromptChange?.(shot.slot, pronoun, prompt);
                       }}
-                      shotCameraAngle={shotCameraAngles[shot.slot]}
-                      onCameraAngleChange={onCameraAngleChange}
                       sceneProps={sceneProps}
                       propsToShots={propsToShots}
                       shotProps={shotProps}
