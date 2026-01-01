@@ -316,7 +316,7 @@ export default function Features() {
               <FeatureCard
                 icon="📖"
                 title="Screenplay Readings"
-                description="AI voice actors read your script. Hear your dialogue come to life."
+                description="AI voice actors read your script. Use premade voices or bring your own cloned voice. Hear your dialogue come to life."
               />
               <FeatureCard
                 icon="🎤"

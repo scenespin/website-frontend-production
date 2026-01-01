@@ -96,7 +96,10 @@ export default function PricingPage() {
                 Monthly Subscriptions
               </h2>
               <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-                Better credit value. Credits roll over (up to plan limit). Cancel anytime.
+                Volume discounts on credits. Credits roll over month-to-month (up to 2x your monthly amount). Cancel anytime.
+              </p>
+              <p className="text-sm text-gray-400 max-w-2xl mx-auto mt-2">
+                Everything is free. You only pay for credits. The only difference is credits per month and volume discount. All features unlocked for everyone.
               </p>
             </div>
 
@@ -107,6 +110,11 @@ export default function PricingPage() {
                 <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
                   <p className="text-sm font-semibold">3,000 credits/month</p>
                 </div>
+                <div className="mb-4 p-3 bg-[#141414] rounded-lg">
+                  <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
+                  <p className="text-sm font-semibold text-white">3% off pay-as-you-go</p>
+                  <p className="text-xs text-gray-500 mt-1">$0.0097 per credit (vs $0.01)</p>
+                </div>
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -114,15 +122,11 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Generate complete scenes from screenplays</span>
+                    <span>Credits roll over up to 6,000 (2x monthly)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Create character & location angle packages</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Build production-ready content</span>
+                    <span>All features unlocked</span>
                   </li>
                 </ul>
                 <Link
@@ -142,6 +146,11 @@ export default function PricingPage() {
                 <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
                   <p className="text-sm font-semibold">20,000 credits/month</p>
                 </div>
+                <div className="mb-4 p-3 bg-[#141414] rounded-lg">
+                  <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
+                  <p className="text-sm font-semibold text-white">25% off pay-as-you-go</p>
+                  <p className="text-xs text-gray-500 mt-1">$0.00745 per credit (vs $0.01)</p>
+                </div>
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -149,19 +158,11 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>High-volume scene generation</span>
+                    <span>Credits roll over up to 40,000 (2x monthly)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Extensive character & location libraries</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Multiple projects simultaneously</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Perfect for studios & agencies</span>
+                    <span>All features unlocked</span>
                   </li>
                 </ul>
                 <Link
@@ -178,6 +179,11 @@ export default function PricingPage() {
                 <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
                   <p className="text-sm font-semibold">75,000 credits/month</p>
                 </div>
+                <div className="mb-4 p-3 bg-[#141414] rounded-lg">
+                  <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
+                  <p className="text-sm font-semibold text-white">47% off pay-as-you-go</p>
+                  <p className="text-xs text-gray-500 mt-1">$0.00532 per credit (vs $0.01)</p>
+                </div>
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -185,19 +191,11 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Enterprise-level production capacity</span>
+                    <span>Credits roll over up to 150,000 (2x monthly)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Unlimited character & location angle packages</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Full feature film production capability</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Massive production capacity</span>
+                    <span>All features unlocked</span>
                   </li>
                 </ul>
                 <Link

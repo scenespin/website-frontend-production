@@ -397,7 +397,7 @@ export default function Page() {
                 <div className="text-3xl mb-3">📖</div>
                 <h3 className="text-lg font-bold mb-2">Screenplay Readings</h3>
                 <p className="text-sm text-gray-300">
-                  AI voice actors read your script. Hear your dialogue come to life.
+                  AI voice actors read your script. Use premade voices or bring your own cloned voice. Hear your dialogue come to life.
                 </p>
               </div>
 

@@ -60,7 +60,7 @@ export default function ComparePage() {
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse rounded-lg overflow-hidden border border-[#3F3F46]">
                 <thead>
                   <tr className="border-b-2 border-[#3F3F46]">
                     <th className="text-left p-4 bg-[#141414] font-bold">Feature</th>
@@ -541,7 +541,7 @@ export default function ComparePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Scene Builder generates complete video scenes—requires the full production environment we've built</span>
+                    <span>Scene Builder generates complete video scenes directly from your screenplay</span>
                   </li>
                 </ul>
               </div>
