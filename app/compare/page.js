@@ -3,8 +3,8 @@ import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
 
 export const metadata = getSEOTags({
-  title: `Wryda.ai vs Final Draft, Celtx, StudioBinder & More | ${config.appName}`,
-  description: "Compare Wryda.ai to Final Draft, Celtx, StudioBinder, WriterDuet, Fade In, and other screenwriting software. See why Wryda.ai is the only platform that helps you write AND produce.",
+  title: `What Makes Wryda.ai Unique | Screenplay to Video Platform | ${config.appName}`,
+  description: "The only platform that generates video from screenplays. Character consistency, screenplay-aware AI, and production workflow—all in one place. See what makes Wryda.ai different.",
   canonicalUrlRelative: "/compare",
 });
 
@@ -46,12 +46,12 @@ export default function ComparePage() {
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-              Wryda.ai vs. The Competition
+              What Makes Wryda.ai Unique
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              They help you write. We help you write <strong className="text-white">AND</strong> produce.
-              <br />
               The only platform that turns your screenplay into a movie.
+              <br />
+              <strong className="text-white">We're not competing. We're creating a new category.</strong>
             </p>
           </div>
         </section>
@@ -417,15 +417,79 @@ export default function ComparePage() {
           </div>
         </section>
 
-        {/* SEO Positioning Section */}
+        {/* Unique Capabilities Section */}
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Why Choose Wryda.ai?
+                The Only Platform That...
+              </h2>
+              <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-12">
+                We combine features that have never been combined before. Here's what makes us different.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
+                <div className="text-3xl mb-3">🎬</div>
+                <h3 className="text-xl font-bold mb-2">Generates Video From Screenplays</h3>
+                <p className="text-sm text-gray-300">
+                  The only platform that understands screenplay structure and generates complete video scenes directly from your script.
+                </p>
+              </div>
+
+              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
+                <div className="text-3xl mb-3">👤</div>
+                <h3 className="text-xl font-bold mb-2">Character Consistency Across Scenes</h3>
+                <p className="text-sm text-gray-300">
+                  Maintains the same character face, voice, and outfit across every scene—something no other platform can do.
+                </p>
+              </div>
+
+              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
+                <div className="text-3xl mb-3">🧠</div>
+                <h3 className="text-xl font-bold mb-2">Screenplay-Aware AI</h3>
+                <p className="text-sm text-gray-300">
+                  Our AI agents understand Fountain format, character arcs, and your entire screenplay—not just generic text.
+                </p>
+              </div>
+
+              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
+                <div className="text-3xl mb-3">🔗</div>
+                <h3 className="text-xl font-bold mb-2">Integrated Production Workflow</h3>
+                <p className="text-sm text-gray-300">
+                  Screenplay → Characters → Locations → Video. Everything connected in one platform.
+                </p>
+              </div>
+
+              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
+                <div className="text-3xl mb-3">🌟</div>
+                <h3 className="text-xl font-bold mb-2">Story Advisor</h3>
+                <p className="text-sm text-gray-300">
+                  The only AI that reads your entire screenplay and analyzes structure, character arcs, and plot consistency.
+                </p>
+              </div>
+
+              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
+                <div className="text-3xl mb-3">📍</div>
+                <h3 className="text-xl font-bold mb-2">Location & Prop Consistency</h3>
+                <p className="text-sm text-gray-300">
+                  Multiple angles per location, consistent backgrounds, and prop packages—all automatically maintained.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* How We're Different Section */}
+        <section className="py-20 bg-[#0A0A0A]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                How We're Different
               </h2>
               <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-                We're not just another screenwriting tool. We're the only platform that takes you from script to screen.
+                Other tools solve one problem. We solve the entire production workflow.
               </p>
             </div>
 
