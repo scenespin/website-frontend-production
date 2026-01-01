@@ -175,6 +175,32 @@ export function useFountainFormatting(
             // Get selected text from full content
             let selectedText = state.content.substring(fullSelectionStart, fullSelectionEnd);
             
+            // Debug: Log selection to help diagnose issues
+            console.log('[Italics] Selection debug:', {
+                displayStart: displaySelectionStart,
+                displayEnd: displaySelectionEnd,
+                fullStart: fullSelectionStart,
+                fullEnd: fullSelectionEnd,
+                selectedText: JSON.stringify(selectedText),
+                selectedTextLength: selectedText.length,
+                includesNewline: selectedText.includes('\n'),
+                lines: selectedText.split('\n').length,
+                textareaSelection: textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
+            });
+            
+            // If selection ends with a newline and includes content from next line, 
+            // trim the trailing newline to avoid including unintended text
+            // This handles cases where user selects a line but selection includes trailing newline
+            if (selectedText.endsWith('\n') && selectedText.split('\n').length > 1) {
+                // Check if the last "line" is actually empty (just the newline)
+                const lines = selectedText.split('\n');
+                if (lines[lines.length - 1] === '') {
+                    // Remove trailing newline to avoid including next line
+                    selectedText = selectedText.slice(0, -1);
+                    console.log('[Italics] Trimmed trailing newline from selection');
+                }
+            }
+            
             // Check if already italic (wrapped in *text*)
             // For multi-line selections, check if the entire block is wrapped (not per-line)
             const trimmed = selectedText.trim();
