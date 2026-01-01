@@ -26,6 +26,7 @@ import { Check, Coins, Clock, ChevronDown, ChevronUp, Film, Sparkles } from 'luc
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
+import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { categorizeCharacters } from './utils/characterCategorization';
 
 interface UnifiedSceneConfigurationProps {
@@ -746,6 +747,24 @@ export function UnifiedSceneConfiguration({
                       shotProps={shotProps}
                       onPropDescriptionChange={onPropDescriptionChange}
                     />
+                    
+                    {/* Video Generation Settings (Camera Angle, Video Type, Quality, Duration) */}
+                    {shot.type !== 'dialogue' && onCameraAngleChange && (
+                      <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                        <VideoGenerationSelector
+                          shotSlot={shot.slot}
+                          shotType={shot.type}
+                          selectedVideoType={undefined} // Not used in unified config, defaults to cinematic-visuals
+                          selectedQuality={undefined} // Not used in unified config, defaults to 4k
+                          onVideoTypeChange={() => {}} // Not used in unified config
+                          onQualityChange={() => {}} // Not used in unified config
+                          shotCameraAngle={shotCameraAngles[shot.slot]}
+                          onCameraAngleChange={onCameraAngleChange}
+                          shotDuration={undefined} // Not used in unified config, defaults to quick-cut
+                          onDurationChange={() => {}} // Not used in unified config
+                        />
+                      </div>
+                    )}
                       );
                     })()}
 
