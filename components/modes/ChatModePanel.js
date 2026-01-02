@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -28,6 +28,13 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
+  
+  // 🔥 CRITICAL: Memoize filtered messages to prevent new array reference on every render
+  // This prevents library components from seeing "changed" arrays and triggering loops
+  const chatMessages = useMemo(() => 
+    state.messages.filter(m => m.mode === 'chat'),
+    [state.messages]
+  );
   
   // Auto-scroll to bottom ONLY while streaming (so user can see new content)
   // Once streaming stops, don't auto-scroll (allows copy/paste without chat jumping)
@@ -134,8 +141,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       }
       
       // Get conversation history for token calculation
-      // Memoize filtered messages to prevent unnecessary recalculations
-      const chatMessages = state.messages.filter(m => m.mode === 'chat');
+      // Use memoized chatMessages to prevent unnecessary recalculations
       const conversationHistory = chatMessages.map(m => ({
         role: m.role,
         content: m.content
@@ -467,10 +473,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       
       {/* Chat Messages Area - ChatGPT/Claude Style */}
       <div className="flex-1 chat-scroll-container">
-        {(() => {
-          // Memoize filtered messages to prevent recalculating on every render
-          const chatMessages = state.messages.filter(m => m.mode === 'chat');
-          return chatMessages.map((message, index) => {
+        {chatMessages.map((message, index) => {
             const isUser = message.role === 'user';
             const isLastAssistantMessage = 
               !isUser && 
@@ -502,8 +505,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                 </div>
               </div>
             );
-          });
-        })()}
+          })}
         
         {/* Streaming text - show insert button while streaming AND after streaming completes if it's screenplay content */}
         {state.streamingText && state.streamingText.trim().length > 0 && (
@@ -535,10 +537,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             'Ask for advice, analysis, or creative guidance about your screenplay'
           )}
         </span>
-        {(() => {
-          const chatMessages = state.messages.filter(m => m.mode === 'chat');
-          return chatMessages.length > 0;
-        })() && (
+        {chatMessages.length > 0 && (
           <button
             onClick={() => clearMessagesForMode('chat')}
             className="btn btn-xs btn-ghost gap-1 sm:gap-1.5 text-[#9CA3AF] hover:text-[#E5E7EB] flex-shrink-0"
