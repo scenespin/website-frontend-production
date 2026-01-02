@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
 
 // ============================================================================
 // TYPES
@@ -339,7 +339,9 @@ export function ChatProvider({ children, initialContext = null }) {
     dispatch({ type: 'CLOSE_MENUS' });
   }, []);
   
-  const value = {
+  // 🔥 CRITICAL FIX: Memoize the context value to prevent infinite re-renders
+  // The value object was being recreated on every render, causing all consumers to re-render
+  const value = useMemo(() => ({
     state,
     addMessage,
     setMessages,
@@ -366,7 +368,34 @@ export function ChatProvider({ children, initialContext = null }) {
     toggleModeMenu,
     toggleSettingsMenu,
     closeMenus,
-  };
+  }), [
+    state,
+    addMessage,
+    setMessages,
+    clearMessages,
+    clearMessagesForMode,
+    setStreaming,
+    setMode,
+    setModel,
+    setInput,
+    setPlaceholder,
+    setAttachedFiles,
+    addAttachedFile,
+    removeAttachedFile,
+    setSelectedTextContext,
+    setSceneContext,
+    setAutoContext,
+    setContextEnabled,
+    setWasInRewriteMode,
+    clearContext,
+    setWorkflow,
+    setWorkflowCompletion,
+    clearWorkflow,
+    setEntityContextBanner,
+    toggleModeMenu,
+    toggleSettingsMenu,
+    closeMenus,
+  ]);
   
   return (
     <ChatContext.Provider value={value}>
