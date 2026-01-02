@@ -560,19 +560,21 @@ function UnifiedChatPanelInner({
   // MODE RENDERING
   // ============================================================================
 
+  // Memoize commonProps to prevent new object reference on every render
+  const commonProps = useMemo(() => ({
+    onInsert,
+    editorContent,
+    cursorPosition,
+    onWorkflowComplete: (type, parsedData) => {
+      onWorkflowComplete?.(type, parsedData);
+      closeDrawer(); // Close drawer after workflow completion
+    }
+  }), [onInsert, editorContent, cursorPosition, onWorkflowComplete, closeDrawer]);
+
   /**
    * Render the active mode panel
    */
   const renderModePanel = () => {
-    const commonProps = {
-      onInsert,
-      editorContent,
-      cursorPosition,
-      onWorkflowComplete: (type, parsedData) => {
-        onWorkflowComplete?.(type, parsedData);
-        closeDrawer(); // Close drawer after workflow completion
-      }
-    };
 
     switch (state.activeMode) {
       case 'image':
