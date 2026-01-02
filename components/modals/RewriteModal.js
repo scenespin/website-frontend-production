@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { X, Loader2, Sparkles, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
@@ -687,39 +687,16 @@ export default function RewriteModal({
                   <div className="flex items-center gap-2">
                     {/* Model Selector */}
                     <Select
+                      key={`model-selector-${isOpen}`}
                       value={selectedModel}
-                      onValueChange={(value) => setSelectedModel(value)}
+                      onValueChange={handleModelChange}
                       disabled={isLoading}
                     >
                       <SelectTrigger className="max-w-[140px] h-8 text-xs" title="Select AI model">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {/* Group by provider for better organization */}
-                        <SelectGroup>
-                          <SelectLabel>Anthropic (Claude)</SelectLabel>
-                          {LLM_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
-                            <SelectItem key={model.id} value={model.id}>
-                              {model.name} {model.recommended ? '⭐' : ''}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectLabel>OpenAI (GPT)</SelectLabel>
-                          {LLM_MODELS.filter(m => m.provider === 'OpenAI').map((model) => (
-                            <SelectItem key={model.id} value={model.id}>
-                              {model.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectLabel>Google (Gemini)</SelectLabel>
-                          {LLM_MODELS.filter(m => m.provider === 'Google').map((model) => (
-                            <SelectItem key={model.id} value={model.id}>
-                              {model.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
+                        {selectContentChildren}
                       </SelectContent>
                     </Select>
                     <button
