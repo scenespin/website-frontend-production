@@ -23,6 +23,7 @@ import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
 import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
+import { cn } from '@/lib/utils';
 
 // The Intelligent Agent System + Generation Features
 // AGENTS (with LLM selector): Story Advisor, Character, Location, Audio, Workflows, Try-On
@@ -101,6 +102,7 @@ function ModeSelector() {
   console.log('[ModeSelector] 🔄 RENDER');
   const { state, setMode } = useChatContext();
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
   
   // Memoize arrays to prevent unnecessary re-renders
   const availableModes = useMemo(() => getAvailableModesForPage(pathname), [pathname]);
@@ -110,26 +112,76 @@ function ModeSelector() {
   const handleModeChange = (mode) => {
     console.log('[ModeSelector] Mode change:', mode);
     setMode(mode);
+    setIsOpen(false);
   };
   
-  // 🔥 TEMP: Replace DaisyUI dropdown with simple native select to test if it's causing the infinite loop
+  const currentModeConfig = MODE_CONFIG[state.activeMode];
+  const CurrentIcon = currentModeConfig?.icon || MessageSquare;
+  
   return (
-    <select
-      value={state.activeMode}
-      onChange={(e) => handleModeChange(e.target.value)}
-      className="btn btn-sm btn-ghost text-xs"
-    >
-      {agents.map((mode) => (
-        <option key={mode} value={mode}>
-          {MODE_CONFIG[mode]?.label || mode}
-        </option>
-      ))}
-      {features.map((mode) => (
-        <option key={mode} value={mode}>
-          {MODE_CONFIG[mode]?.label || mode}
-        </option>
-      ))}
-    </select>
+    <div className="dropdown dropdown-top">
+      <label 
+        tabIndex={0} 
+        className="btn btn-sm btn-ghost gap-1 text-xs"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {currentModeConfig && <CurrentIcon className="w-3.5 h-3.5" />}
+        <span>{currentModeConfig?.label || state.activeMode}</span>
+        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
+      </label>
+      {isOpen && (
+        <ul 
+          tabIndex={0} 
+          className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-52 mt-1 border border-base-300 z-50 max-h-96 overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {agents.length > 0 && (
+            <>
+              <li className="menu-title">
+                <span className="text-xs font-bold text-base-content/60">AI Agents</span>
+              </li>
+              {agents.map((mode) => {
+                const Icon = MODE_CONFIG[mode]?.icon;
+                const isActive = state.activeMode === mode;
+                return (
+                  <li key={mode}>
+                    <button
+                      onClick={() => handleModeChange(mode)}
+                      className={`flex items-center gap-2 ${isActive ? 'active bg-cinema-red/20' : ''}`}
+                    >
+                      {Icon && <Icon className="w-4 h-4" />}
+                      <span>{MODE_CONFIG[mode]?.label || mode}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </>
+          )}
+          {features.length > 0 && (
+            <>
+              <li className="menu-title">
+                <span className="text-xs font-bold text-base-content/60">Generation</span>
+              </li>
+              {features.map((mode) => {
+                const Icon = MODE_CONFIG[mode]?.icon;
+                const isActive = state.activeMode === mode;
+                return (
+                  <li key={mode}>
+                    <button
+                      onClick={() => handleModeChange(mode)}
+                      className={`flex items-center gap-2 ${isActive ? 'active bg-cinema-red/20' : ''}`}
+                    >
+                      {Icon && <Icon className="w-4 h-4" />}
+                      <span>{MODE_CONFIG[mode]?.label || mode}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </>
+          )}
+        </ul>
+      )}
+    </div>
   );
 }
 
