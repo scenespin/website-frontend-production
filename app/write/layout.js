@@ -2,7 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import AgentDrawer from "@/components/AgentDrawer";
 import UnifiedChatPanel from "@/components/UnifiedChatPanel";
@@ -16,10 +16,17 @@ export default function WriteLayout({ children }) {
   const router = useRouter();
   const { state: editorState, insertText, replaceSelection, isEditorFullscreen } = useEditor();
 
+  // 🔥 CRITICAL FIX: Use refs for editorState values to prevent onInsert from being recreated
+  // cursorPosition changes on every selection, which was causing infinite re-renders
+  const editorStateRef = useRef(editorState);
+  useEffect(() => {
+    editorStateRef.current = editorState;
+  }, [editorState]);
+
   // 🔥 CRITICAL FIX: ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // This prevents React error #310 (hooks order violation)
   // Memoize onInsert to prevent new function reference on every render
-  // This prevents UnifiedChatPanel's commonProps from being recreated, which causes infinite loops
+  // Use refs instead of direct state to prevent recreation when cursor/content change
   const onInsert = useCallback((text, options) => {
     // If this is a rewrite (selected text exists), use replaceSelection
     if (options?.isRewrite && options?.selectionRange) {
@@ -28,15 +35,16 @@ export default function WriteLayout({ children }) {
       const cleanedText = text.trim();
       replaceSelection(cleanedText, start, end);
     } else {
-      // Regular insert: Insert text at current cursor position, or at end if no cursor
-      const position = editorState.cursorPosition ?? editorState.content.length;
+      // Regular insert: Use ref to get current values without depending on them
+      const currentState = editorStateRef.current;
+      const position = currentState.cursorPosition ?? currentState.content.length;
       // Add newline before insertion for separation (unless at start of file)
-      const contentBefore = editorState.content.substring(0, position);
+      const contentBefore = currentState.content.substring(0, position);
       const needsNewlineBefore = position > 0 && !contentBefore.endsWith('\n\n');
       const textToInsert = needsNewlineBefore ? '\n\n' + text : text;
       insertText(textToInsert, position);
     }
-  }, [editorState.cursorPosition, editorState.content, insertText, replaceSelection]);
+  }, [insertText, replaceSelection]); // Only depend on stable functions, not state values
 
   // Memoize editorContent and cursorPosition to prevent unnecessary re-renders
   // Only create new references when values actually change
