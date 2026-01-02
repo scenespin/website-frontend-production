@@ -16,27 +16,9 @@ export default function WriteLayout({ children }) {
   const router = useRouter();
   const { state: editorState, insertText, replaceSelection, isEditorFullscreen } = useEditor();
 
-  useEffect(() => {
-    if (isLoaded && !userId) {
-      router.push('/sign-in');
-    }
-  }, [isLoaded, userId, router]);
-
-  // Show loading while checking auth
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-base-100 flex items-center justify-center">
-        <div className="loading loading-spinner loading-lg text-primary"></div>
-      </div>
-    );
-  }
-
-  // Don't render if not authenticated (will redirect)
-  if (!userId) {
-    return null;
-  }
-
-  // 🔥 CRITICAL FIX: Memoize onInsert to prevent new function reference on every render
+  // 🔥 CRITICAL FIX: ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  // This prevents React error #310 (hooks order violation)
+  // Memoize onInsert to prevent new function reference on every render
   // This prevents UnifiedChatPanel's commonProps from being recreated, which causes infinite loops
   const onInsert = useCallback((text, options) => {
     // If this is a rewrite (selected text exists), use replaceSelection
@@ -60,6 +42,26 @@ export default function WriteLayout({ children }) {
   // Only create new references when values actually change
   const editorContent = useMemo(() => editorState.content, [editorState.content]);
   const cursorPosition = useMemo(() => editorState.cursorPosition, [editorState.cursorPosition]);
+
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      router.push('/sign-in');
+    }
+  }, [isLoaded, userId, router]);
+
+  // Show loading while checking auth
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-base-100 flex items-center justify-center">
+        <div className="loading loading-spinner loading-lg text-primary"></div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!userId) {
+    return null;
+  }
 
   // Note: ScreenplayProvider and EditorProvider are already provided by LayoutClient.js (root layout)
   // DO NOT wrap with duplicate providers here as it creates duplicate contexts
