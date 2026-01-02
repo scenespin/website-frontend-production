@@ -503,7 +503,7 @@ function UnifiedChatPanelInner({
   }, []); // Run once on mount
   
   // Set correct default agent when drawer opens (based on page)
-  const { isDrawerOpen } = useDrawer();
+  // Note: isDrawerOpen is already declared on line 218
   useEffect(() => {
     if (isDrawerOpen) {
       // If selectedTextContext exists, we're in rewrite mode - don't override mode
