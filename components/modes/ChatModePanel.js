@@ -467,13 +467,14 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       
       {/* Chat Messages Area - ChatGPT/Claude Style */}
       <div className="flex-1 chat-scroll-container">
-        {state.messages
-          .filter(m => m.mode === 'chat')
-          .map((message, index) => {
+        {(() => {
+          // Memoize filtered messages to prevent recalculating on every render
+          const chatMessages = state.messages.filter(m => m.mode === 'chat');
+          return chatMessages.map((message, index) => {
             const isUser = message.role === 'user';
             const isLastAssistantMessage = 
               !isUser && 
-              index === state.messages.filter(m => m.mode === 'chat').length - 1;
+              index === chatMessages.length - 1;
             
             // Story Advisor: No insert buttons (consultation only, no Fountain generation)
             
@@ -501,7 +502,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                 </div>
               </div>
             );
-          })}
+          });
+        })()}
         
         {/* Streaming text - show insert button while streaming AND after streaming completes if it's screenplay content */}
         {state.streamingText && state.streamingText.trim().length > 0 && (
