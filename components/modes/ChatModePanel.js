@@ -112,7 +112,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         }
       }
     }
-  }, [editorContent, cursorPosition, setSceneContext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorContent, cursorPosition]);
+  // Note: setSceneContext is intentionally omitted from deps - it's a stable context setter
   
   // Handle sending messages to AI
   const handleSend = async (prompt) => {

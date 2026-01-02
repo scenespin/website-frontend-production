@@ -329,7 +329,9 @@ function UnifiedChatPanelInner({
       console.warn('[UnifiedChatPanel] ⚠️ Needs context but no editorContent provided');
       setSceneContext(null);
     }
-  }, [state.activeMode, editorContent, cursorPosition, setSceneContext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.activeMode, editorContent, cursorPosition]);
+  // Note: setSceneContext is intentionally omitted from deps - it's a stable context setter
 
   // ============================================================================
   // INITIALIZATION EFFECTS
