@@ -430,6 +430,9 @@ CRITICAL SPACING RULES (Fountain.io spec):
           // Then normalize: remove multiple consecutive blank lines (max 2 blank lines = 1 blank line)
           let formattedContent = formattedLines.join('\n');
           
+          // Remove double dashes (--) - human writing doesn't use this
+          formattedContent = formattedContent.replace(/--/g, '—'); // Replace with em dash
+          
           // Normalize excessive blank lines: replace 3+ consecutive newlines with just 2 (one blank line)
           formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
           
@@ -477,6 +480,16 @@ CRITICAL SPACING RULES (Fountain.io spec):
 
           // Close modal
           onClose();
+
+          // Fix hanging issue: Restore focus to editor and allow React to process state updates
+          setTimeout(() => {
+            // Restore focus to the editor textarea
+            const textarea = document.querySelector('textarea[data-editor="fountain"]') || 
+                           document.querySelector('textarea');
+            if (textarea) {
+              textarea.focus();
+            }
+          }, 100);
 
           // Show success toast
           toast.success('Content generated and inserted');

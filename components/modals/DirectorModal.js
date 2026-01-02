@@ -459,6 +459,16 @@ Rules:
           // Close modal
           onClose();
 
+          // Fix hanging issue: Restore focus to editor and allow React to process state updates
+          setTimeout(() => {
+            // Restore focus to the editor textarea
+            const textarea = document.querySelector('textarea[data-editor="fountain"]') || 
+                           document.querySelector('textarea');
+            if (textarea) {
+              textarea.focus();
+            }
+          }, 100);
+
           // Show success toast
           toast.success(`Generated ${sceneCount} scene${sceneCount > 1 ? 's' : ''}`);
         },

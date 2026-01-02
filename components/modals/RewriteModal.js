@@ -50,6 +50,9 @@ function cleanFountainOutput(text) {
     .replace(/```[a-z]*\n/g, '')
     .replace(/```/g, '');
   
+  // Remove double dashes (--) - human writing doesn't use this
+  cleaned = cleaned.replace(/--/g, '—'); // Replace with em dash
+  
   // Remove common AI response patterns that aren't screenplay content
   const unwantedPatterns = [
     /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK)[\s:]*/i,
@@ -584,6 +587,16 @@ export default function RewriteModal({
           
           // Close modal
           onClose();
+
+          // Fix hanging issue: Restore focus to editor and allow React to process state updates
+          setTimeout(() => {
+            // Restore focus to the editor textarea
+            const textarea = document.querySelector('textarea[data-editor="fountain"]') || 
+                           document.querySelector('textarea');
+            if (textarea) {
+              textarea.focus();
+            }
+          }, 100);
           
           // Show success toast
           toast.success('Text rewritten successfully');

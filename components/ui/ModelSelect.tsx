@@ -68,7 +68,7 @@ export function ModelSelect({
           <Listbox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-base-200 py-1 text-xs shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
             {providers.map((provider) => (
               <div key={provider}>
-                <div className="px-3 py-2 text-xs font-semibold text-base-content/60 uppercase tracking-wider border-b border-base-300">
+                <div className="px-3 py-2 text-xs font-semibold text-base-content/60 uppercase tracking-wider border-b border-base-300 whitespace-nowrap">
                   {provider === 'Anthropic' ? 'Anthropic (Claude)' : provider === 'OpenAI' ? 'OpenAI (GPT)' : 'Google (Gemini)'}
                 </div>
                 {groupedModels[provider].map((model) => (

@@ -128,10 +128,13 @@ export function formatFountainSpacing(contentArray) {
 
   // Join lines with newlines (empty strings create blank lines)
   let formattedContent = formattedLines.join('\n');
-
+  
+  // Remove double dashes (--) - human writing doesn't use this
+  formattedContent = formattedContent.replace(/--/g, '—'); // Replace with em dash
+  
   // Normalize excessive blank lines: replace 3+ consecutive newlines with just 2 (one blank line)
   formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
-
+  
   return formattedContent.trim();
 }
 

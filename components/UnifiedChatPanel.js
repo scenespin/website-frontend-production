@@ -24,7 +24,6 @@ import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
 import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
-import { cn } from '@/lib/utils';
 
 // The Intelligent Agent System + Generation Features
 // AGENTS (with LLM selector): Story Advisor, Character, Location, Audio, Workflows, Try-On
