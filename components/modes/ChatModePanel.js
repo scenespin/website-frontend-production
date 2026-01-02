@@ -14,7 +14,7 @@ import toast from 'react-hot-toast';
 
 // Story Advisor: No Fountain parsing needed (consultation only, no content generation)
 
-export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
+function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
   console.log('[ChatModePanel] 🔄 RENDER', { hasEditorContent: !!editorContent, cursorPosition });
   const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext, setSelectedTextContext } = useChatContext();
   const { closeDrawer } = useDrawer();
