@@ -55,6 +55,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   
   // Detect scene context when drawer opens or editor content/cursor changes
   // If cursorPosition is undefined, try to detect from editor content (find last scene heading)
+  const previousContextRef = useRef(null);
   useEffect(() => {
     if (editorContent) {
       // If cursor position is available, use it; otherwise, try to detect from content
@@ -83,16 +84,32 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       }
       
       if (detectedContext) {
-        setSceneContext({
+        const contextData = {
           heading: detectedContext.heading,
           act: detectedContext.act,
           characters: detectedContext.characters,
           pageNumber: detectedContext.pageNumber,
           totalPages: detectedContext.totalPages
-        });
-        console.log('[ChatModePanel] Scene context detected:', detectedContext.heading, 'cursorPosition:', cursorPosition);
+        };
+        
+        // 🔥 FIX: Only update if context actually changed (deep comparison)
+        const contextKey = JSON.stringify(contextData);
+        const previousKey = previousContextRef.current ? JSON.stringify(previousContextRef.current) : null;
+        
+        if (contextKey !== previousKey) {
+          setSceneContext(contextData);
+          previousContextRef.current = contextData;
+          console.log('[ChatModePanel] Scene context detected:', detectedContext.heading, 'cursorPosition:', cursorPosition);
+        } else {
+          console.log('[ChatModePanel] Scene context unchanged, skipping update');
+        }
       } else {
-        console.warn('[ChatModePanel] No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
+        // Only clear if we had context before
+        if (previousContextRef.current !== null) {
+          console.warn('[ChatModePanel] No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
+          setSceneContext(null);
+          previousContextRef.current = null;
+        }
       }
     }
   }, [editorContent, cursorPosition, setSceneContext]);
