@@ -225,26 +225,84 @@ export function ShotConfigurationPanel({
       'animal-kingdom': 'Animal Kingdom',
       'style-chameleon': 'Style Chameleon',
       'broll-master': 'B-Roll Master',
-      'complete-scene': 'Complete Scene'
+      'complete-scene': 'Complete Scene',
+      'hollywood-standard': 'Hollywood Standard'
     };
     return labels[workflow] || workflow;
   };
 
   // All available workflows for override dropdown (action shots only)
   const ACTION_WORKFLOWS = [
-    { value: 'action-line', label: 'Action Line' },
-    { value: 'action-director', label: 'Action Director' },
-    { value: 'reality-to-toon', label: 'Reality to Toon' },
-    { value: 'anime-master', label: 'Anime Master' },
-    { value: 'cartoon-classic', label: 'Cartoon Classic' },
-    { value: '3d-character', label: '3D Character' },
-    { value: 'vfx-elements', label: 'VFX Elements' },
-    { value: 'fantasy-epic', label: 'Fantasy Epic' },
-    { value: 'superhero-transform', label: 'Superhero Transform' },
-    { value: 'animal-kingdom', label: 'Animal Kingdom' },
-    { value: 'style-chameleon', label: 'Style Chameleon' },
-    { value: 'broll-master', label: 'B-Roll Master' },
-    { value: 'complete-scene', label: 'Complete Scene' }
+    { 
+      value: 'action-line', 
+      label: 'Action Line',
+      description: 'Standard action shots with realistic motion and natural character movement. Best for everyday scenes, conversations, and straightforward actions.'
+    },
+    { 
+      value: 'action-director', 
+      label: 'Action Director',
+      description: 'Cinematic action sequences with dynamic camera work and dramatic pacing. Ideal for intense scenes, chase sequences, and high-energy moments.'
+    },
+    { 
+      value: 'reality-to-toon', 
+      label: 'Reality to Toon',
+      description: 'Transforms realistic scenes into cartoon-style animation. Perfect for comedic moments, animated sequences, or stylized storytelling.'
+    },
+    { 
+      value: 'anime-master', 
+      label: 'Anime Master',
+      description: 'Japanese anime-style animation with expressive characters and vibrant visuals. Great for dramatic scenes, emotional moments, and stylized action.'
+    },
+    { 
+      value: 'cartoon-classic', 
+      label: 'Cartoon Classic',
+      description: 'Classic cartoon animation style with exaggerated expressions and movements. Ideal for comedic scenes, children\'s content, and lighthearted moments.'
+    },
+    { 
+      value: '3d-character', 
+      label: '3D Character',
+      description: 'Three-dimensional character animation with depth and dimension. Best for scenes requiring realistic 3D character movement and interaction.'
+    },
+    { 
+      value: 'vfx-elements', 
+      label: 'VFX Elements',
+      description: 'Visual effects and special effects integration. Perfect for scenes with magic, sci-fi elements, explosions, or other visual effects.'
+    },
+    { 
+      value: 'fantasy-epic', 
+      label: 'Fantasy Epic',
+      description: 'Epic fantasy scenes with magical elements, mythical creatures, and grand scale. Ideal for fantasy stories, adventure sequences, and magical moments.'
+    },
+    { 
+      value: 'superhero-transform', 
+      label: 'Superhero Transform',
+      description: 'Superhero-style transformations and power displays. Great for transformation scenes, power demonstrations, and superhero action.'
+    },
+    { 
+      value: 'animal-kingdom', 
+      label: 'Animal Kingdom',
+      description: 'Animal-focused scenes with realistic or stylized animal characters. Perfect for nature scenes, animal interactions, and wildlife content.'
+    },
+    { 
+      value: 'style-chameleon', 
+      label: 'Style Chameleon',
+      description: 'Adaptive style that matches your scene\'s tone and mood. Versatile workflow that adjusts to different scene requirements.'
+    },
+    { 
+      value: 'broll-master', 
+      label: 'B-Roll Master',
+      description: 'B-roll and establishing shots with smooth camera movement. Ideal for location shots, transitions, and scene-setting footage.'
+    },
+    { 
+      value: 'complete-scene', 
+      label: 'Complete Scene',
+      description: 'Comprehensive scene generation with full context and detail. Best for complex scenes requiring multiple elements and interactions.'
+    },
+    { 
+      value: 'hollywood-standard', 
+      label: 'Hollywood Standard',
+      description: 'Professional Hollywood-style production with cinematic quality and polished visuals. Perfect for high-production-value scenes and dramatic storytelling.'
+    }
   ];
 
   return (
@@ -939,6 +997,19 @@ export function ShotConfigurationPanel({
           <div className="text-[10px] text-[#808080] italic mt-1">
             Override the suggested workflow for this shot. Select the suggested workflow to use the default.
           </div>
+          
+          {/* Workflow Description - shown when workflow is overridden */}
+          {shotWorkflowOverride && shotWorkflowOverride !== shot.workflow && (
+            <div className="mt-3 p-3 bg-[#3F3F46]/30 border border-[#808080]/30 rounded">
+              <div className="text-[10px] font-medium text-[#FFFFFF] mb-1.5">
+                {getWorkflowLabel(shotWorkflowOverride)} Workflow:
+              </div>
+              <div className="text-[10px] text-[#808080] leading-relaxed">
+                {ACTION_WORKFLOWS.find(wf => wf.value === shotWorkflowOverride)?.description || 
+                 'This workflow will generate the scene based on your description below.'}
+              </div>
+            </div>
+          )}
           
           {/* Description and Additional Characters - shown when workflow is overridden */}
           {shotWorkflowOverride && shotWorkflowOverride !== shot.workflow && (
