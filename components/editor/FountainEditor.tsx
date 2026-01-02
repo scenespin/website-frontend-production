@@ -79,6 +79,14 @@ export default function FountainEditor({
         [state.content]
     );
     
+    // Memoized synced display content (for cursor position calculations)
+    // Other users' cursor positions are based on the synced content from the server,
+    // so we must use lastSyncedContent (not local displayContent) to calculate pixel positions correctly
+    const syncedDisplayContent = useMemo(
+        () => stripTagsForDisplay(lastSyncedContent),
+        [lastSyncedContent]
+    );
+    
     // 🔥 FIX: Preserve cursor position when content is updated from version polling
     // When React updates the textarea's value prop, the browser resets cursor to the end.
     // We need to preserve and restore the cursor position after programmatic content updates.
@@ -564,10 +572,14 @@ export default function FountainEditor({
                     spellCheck={true}
                 />
                 {/* Feature 0134: Cursor Overlay - Shows other users' cursor positions */}
+                {/* 🔥 FIX: Use syncedDisplayContent (synced content from server) for cursor calculations
+                    Other users' cursor positions are based on the synced content from the server,
+                    not the local displayContent which may include unsaved changes. Using synced content
+                    ensures cursor positions match the content that the other users are seeing. */}
                 {otherUsersCursors && otherUsersCursors.length > 0 && !state.highlightRange && (
                     <CursorOverlay
                         textareaRef={textareaRef}
-                        content={displayContent}
+                        content={syncedDisplayContent}
                         cursors={otherUsersCursors}
                     />
                 )}

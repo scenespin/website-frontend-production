@@ -30,6 +30,7 @@ function CursorOverlayInner({
   const [scrollState, setScrollState] = useState({ scrollTop: 0, scrollLeft: 0 });
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastCalculatedCursorsRef = useRef<string>(''); // Track last cursor set to avoid unnecessary recalculations
+  const lastCalculatedContentRef = useRef<string>(''); // Track last content used for calculations
   const isCalculatingRef = useRef(false); // Prevent concurrent calculations
   const previousCursorsRef = useRef<CursorPosition[]>([]); // Track previous cursors array for stable comparison
 
@@ -40,18 +41,36 @@ function CursorOverlayInner({
     return cursorsKeyString;
   }, [cursorsKeyString]);
   
-  // Update cursor positions when cursors change
-  // FIX: Use cursorsKey (stable key) instead of cursors array to prevent infinite loops
-  // Content is NOT in dependencies - it's captured from closure to avoid recalculating on every keystroke
+  // Update cursor positions when cursors change OR when synced content changes
+  // 🔥 FIX: Recalculate when content changes (synced content updates from server)
+  // This ensures cursor positions are correct when content syncs, even if cursor positions haven't changed
   useEffect(() => {
     // Check if cursors actually changed by comparing keys
     const currentKey = cursorsKey;
     const previousKey = lastCalculatedCursorsRef.current;
+    const currentContent = content;
+    const previousContent = lastCalculatedContentRef.current;
     
-    // Skip if cursors haven't actually changed (deep comparison)
-    if (previousKey === currentKey && previousKey !== '') {
-      console.log('[CursorOverlay] Cursors unchanged (deep comparison), skipping recalculation');
+    // Recalculate if cursors changed OR if synced content changed
+    const cursorsChanged = previousKey !== currentKey;
+    const contentChanged = previousContent !== currentContent;
+    
+    // Skip if neither cursors nor content changed
+    if (!cursorsChanged && !contentChanged && previousKey !== '') {
+      console.log('[CursorOverlay] Cursors and content unchanged, skipping recalculation');
       return;
+    }
+    
+    // Update refs
+    if (cursorsChanged) {
+      lastCalculatedCursorsRef.current = currentKey;
+    }
+    if (contentChanged) {
+      lastCalculatedContentRef.current = currentContent;
+      console.log('[CursorOverlay] Synced content changed, recalculating cursor positions', {
+        previousLength: previousContent.length,
+        currentLength: currentContent.length
+      });
     }
     
     // Update ref with new key
@@ -151,7 +170,7 @@ function CursorOverlayInner({
     requestAnimationFrame(() => {
       calculatePositions();
     });
-  }, [textareaRef, cursorsKey]); // Use stable cursorsKey - only changes when cursors actually change
+  }, [textareaRef, cursorsKey, content]); // Include content to recalculate when synced content changes
 
   // Recalculate on window resize
   useEffect(() => {
