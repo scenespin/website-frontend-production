@@ -564,7 +564,8 @@ export default function FountainEditor({
                     spellCheck={true}
                 />
                 {/* Feature 0134: Cursor Overlay - Shows other users' cursor positions */}
-                {otherUsersCursors && otherUsersCursors.length > 0 && (
+                {/* 🔥 FIX: Temporarily disable cursor overlay when highlighting to prevent infinite loops */}
+                {otherUsersCursors && otherUsersCursors.length > 0 && !state.highlightRange && (
                     <CursorOverlay
                         textareaRef={textareaRef}
                         content={stripTagsForDisplay(lastSyncedContent)}

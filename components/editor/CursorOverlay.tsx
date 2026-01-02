@@ -401,18 +401,38 @@ function CursorOverlayInner({
   );
 }
 
-// Wrap with React.memo to prevent re-renders when cursors array reference changes but data hasn't
-export default React.memo(CursorOverlayInner, (prevProps, nextProps) => {
-  // Custom comparison: only re-render if cursor data actually changed
-  const prevKey = prevProps.cursors.map(c => `${c.userId}:${c.position}`).join(',');
-  const nextKey = nextProps.cursors.map(c => `${c.userId}:${c.position}`).join(',');
+// Wrap with React.memo using useMemo for stable key comparison
+// This prevents the comparison function from running .map() on every render
+const CursorOverlayMemo = React.memo(CursorOverlayInner, (prevProps, nextProps) => {
+  // Quick reference check first (most common case)
+  if (prevProps.cursors === nextProps.cursors && 
+      prevProps.content === nextProps.content && 
+      prevProps.textareaRef === nextProps.textareaRef) {
+    return true; // Skip re-render - nothing changed
+  }
   
-  // Also check if content or textareaRef changed
+  // Only do deep comparison if references changed
+  if (prevProps.cursors.length !== nextProps.cursors.length) {
+    return false; // Re-render - length changed
+  }
+  
+  // Compare cursor data without creating new arrays
+  for (let i = 0; i < prevProps.cursors.length; i++) {
+    const prev = prevProps.cursors[i];
+    const next = nextProps.cursors[i];
+    if (prev.userId !== next.userId || prev.position !== next.position) {
+      return false; // Re-render - cursor data changed
+    }
+  }
+  
+  // Check content and ref
   if (prevProps.content !== nextProps.content || prevProps.textareaRef !== nextProps.textareaRef) {
     return false; // Re-render if content or ref changed
   }
   
-  // Only skip re-render if cursor data is the same
-  return prevKey === nextKey;
+  // Everything is the same - skip re-render
+  return true;
 });
+
+export default CursorOverlayMemo;
 
