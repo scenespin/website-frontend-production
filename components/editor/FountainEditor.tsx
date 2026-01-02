@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useLayoutEffect, useMemo, ChangeEvent } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { stripTagsForDisplay, getVisibleLineNumber, mapDisplayPositionToFullContent } from '@/utils/fountain';
+import { stripTagsForDisplay, getVisibleLineNumber, mapDisplayPositionToFullContent, mapFullContentPositionToDisplay } from '@/utils/fountain';
 import { AutoSaveManager } from '@/utils/AutoSaveManager';
 
 // Custom hooks
@@ -242,12 +242,35 @@ export default function FountainEditor({
         if (state.highlightRange && textareaRef.current) {
             console.log('[FountainEditor] Highlight range set:', state.highlightRange);
             
-            // Set cursor to end of inserted text
+            // Convert highlight range from full content positions to display content positions
+            // highlightRange is stored in fullContent coordinates (with tags)
+            // but textarea displays displayContent (without tags), so we need to convert
+            const displayHighlightStart = mapFullContentPositionToDisplay(
+                displayContent,
+                state.content,
+                state.highlightRange.start
+            );
+            const displayHighlightEnd = mapFullContentPositionToDisplay(
+                displayContent,
+                state.content,
+                state.highlightRange.end
+            );
+            
+            console.log('[FountainEditor] Converted highlight range:', {
+                full: state.highlightRange,
+                display: { start: displayHighlightStart, end: displayHighlightEnd }
+            });
+            
+            // Set cursor to end of inserted text (using display position)
             setTimeout(() => {
                 if (textareaRef.current && state.highlightRange) {
-                    textareaRef.current.selectionStart = state.highlightRange.end;
-                    textareaRef.current.selectionEnd = state.highlightRange.end;
+                    // Select the highlighted text in the textarea (for visual feedback)
+                    textareaRef.current.selectionStart = displayHighlightStart;
+                    textareaRef.current.selectionEnd = displayHighlightEnd;
                     textareaRef.current.focus({ preventScroll: false });
+                    
+                    // Scroll into view if needed
+                    textareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             }, 50);
             
@@ -260,7 +283,7 @@ export default function FountainEditor({
             
             return () => clearTimeout(timer);
         }
-    }, [state.highlightRange, clearHighlight]);
+    }, [state.highlightRange, displayContent, state.content, clearHighlight]);
     
     // Scene navigation effect - uses navigation hook
     useEffect(() => {

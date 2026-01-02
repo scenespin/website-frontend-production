@@ -446,6 +446,104 @@ export function stripTagsForDisplay(content: string): string {
 }
 
 /**
+ * Maps a character position from fullContent (with tags) to displayContent (without tags)
+ * This is the reverse of mapDisplayPositionToFullContent
+ * 
+ * @param displayContent Content without tags (what user sees)
+ * @param fullContent Content with tags (actual state)
+ * @param fullPosition Character position in fullContent
+ * @returns Character position in displayContent
+ */
+export function mapFullContentPositionToDisplay(
+    displayContent: string,
+    fullContent: string,
+    fullPosition: number
+): number {
+    // Clamp position to valid range
+    const clampedPosition = Math.max(0, Math.min(fullPosition, fullContent.length));
+    
+    // If positions are the same length, they're already aligned (no tags)
+    if (displayContent.length === fullContent.length) {
+        return clampedPosition;
+    }
+    
+    // Split both into lines
+    const displayLines = displayContent.split('\n');
+    const fullLines = fullContent.split('\n');
+    
+    // Find which line and character position in fullContent
+    let charCount = 0;
+    let fullLineIndex = 0;
+    let charInLine = 0;
+    
+    for (let i = 0; i < fullLines.length; i++) {
+        const lineLength = fullLines[i].length;
+        const lineLengthWithNewline = lineLength + (i < fullLines.length - 1 ? 1 : 0); // Last line has no newline
+        
+        if (charCount + lineLengthWithNewline > clampedPosition) {
+            fullLineIndex = i;
+            charInLine = Math.min(clampedPosition - charCount, lineLength);
+            break;
+        }
+        
+        charCount += lineLengthWithNewline;
+    }
+    
+    // If position is at the end, use last line
+    if (clampedPosition >= fullContent.length) {
+        fullLineIndex = fullLines.length - 1;
+        charInLine = fullLines[fullLineIndex]?.length || 0;
+    }
+    
+    // If the line is a tag, find the nearest non-tag line
+    if (isFountainTag(fullLines[fullLineIndex])) {
+        // Find the next non-tag line, or previous if at end
+        let found = false;
+        for (let i = fullLineIndex; i < fullLines.length; i++) {
+            if (!isFountainTag(fullLines[i])) {
+                fullLineIndex = i;
+                charInLine = 0; // Start at beginning of line
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            // Go backwards
+            for (let i = fullLineIndex - 1; i >= 0; i--) {
+                if (!isFountainTag(fullLines[i])) {
+                    fullLineIndex = i;
+                    charInLine = fullLines[i].length; // End of line
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Count how many display lines (non-tag lines) come before this full line
+    let displayLineIndex = 0;
+    for (let i = 0; i < fullLineIndex; i++) {
+        if (!isFountainTag(fullLines[i])) {
+            displayLineIndex++;
+        }
+    }
+    
+    // Clamp displayLineIndex to valid range
+    displayLineIndex = Math.min(displayLineIndex, displayLines.length - 1);
+    
+    // Calculate position in displayContent
+    let displayPosition = 0;
+    for (let i = 0; i < displayLineIndex; i++) {
+        displayPosition += displayLines[i].length + 1; // +1 for newline
+    }
+    
+    // Add character position within the line (clamped to line length)
+    const displayLine = displayLines[displayLineIndex] || '';
+    displayPosition += Math.min(charInLine, displayLine.length);
+    
+    return Math.min(displayPosition, displayContent.length);
+}
+
+/**
  * Maps a character position from displayContent (without tags) to state.content (with tags)
  * This is needed because tags are entire lines that are filtered out for display
  * 
