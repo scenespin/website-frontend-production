@@ -384,6 +384,17 @@ export function CharacterDetailModal({
     const outfitSet = new Set<string>();
     const characterName = character.name;
     
+    // 🔥 NEW: Normalize outfit name to handle case sensitivity and separator differences
+    const normalizeOutfitName = (name: string): string => {
+      if (!name) return '';
+      // Normalize: lowercase, replace underscores/spaces with consistent format, trim
+      return name
+        .toLowerCase()
+        .replace(/[_\s]+/g, '_') // Replace spaces and multiple underscores with single underscore
+        .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+        .trim();
+    };
+    
     mediaFiles.forEach((file: any) => {
       // Check if file belongs to this character
       const metadata = file.metadata || {};
@@ -394,13 +405,23 @@ export function CharacterDetailModal({
           if (outfitsIndex >= 0 && outfitsIndex + 1 < file.folderPath.length) {
             const outfitName = file.folderPath[outfitsIndex + 1];
             if (outfitName && outfitName !== 'Outfits') {
-              outfitSet.add(outfitName);
+              // 🔥 FIX: Normalize before adding to prevent duplicates
+              const normalized = normalizeOutfitName(outfitName);
+              if (normalized) {
+                // Store original name but use normalized for deduplication
+                // We'll use a Map to preserve the original casing for display
+                outfitSet.add(normalized);
+              }
             }
           }
         }
         // Also check metadata.outfitName (from pose generation)
         if (metadata.outfitName) {
-          outfitSet.add(metadata.outfitName);
+          // 🔥 FIX: Normalize before adding to prevent duplicates
+          const normalized = normalizeOutfitName(metadata.outfitName);
+          if (normalized) {
+            outfitSet.add(normalized);
+          }
         }
       }
     });
@@ -767,13 +788,30 @@ export function CharacterDetailModal({
   // Get outfit names sorted (default first, then alphabetically)
   // Combine Media Library folder names with posesByOutfit keys
   const outfitNames = useMemo(() => {
+    // 🔥 NEW: Normalize outfit name to handle case sensitivity and separator differences
+    const normalizeOutfitName = (name: string): string => {
+      if (!name) return '';
+      // Normalize: lowercase, replace underscores/spaces with consistent format, trim
+      return name
+        .toLowerCase()
+        .replace(/[_\s]+/g, '_') // Replace spaces and multiple underscores with single underscore
+        .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+        .trim();
+    };
+    
     const allOutfits = new Set<string>();
     
-    // Add outfits from Media Library folders
-    mediaLibraryOutfitNames.forEach(outfit => allOutfits.add(outfit));
+    // Add outfits from Media Library folders (already normalized in mediaLibraryOutfitNames)
+    mediaLibraryOutfitNames.forEach(outfit => {
+      const normalized = normalizeOutfitName(outfit);
+      if (normalized) allOutfits.add(normalized);
+    });
     
-    // Add outfits from posesByOutfit (from pose metadata)
-    Object.keys(posesByOutfit).forEach(outfit => allOutfits.add(outfit));
+    // Add outfits from posesByOutfit (from pose metadata) - normalize them too
+    Object.keys(posesByOutfit).forEach(outfit => {
+      const normalized = normalizeOutfitName(outfit);
+      if (normalized) allOutfits.add(normalized);
+    });
     
     const outfits = Array.from(allOutfits);
     const defaultOutfit = outfits.find(o => o === 'default' || o.toLowerCase() === 'default');

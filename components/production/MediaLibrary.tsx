@@ -2320,14 +2320,23 @@ export default function MediaLibrary({
                           // 🔥 OPTIMIZATION: Use thumbnails in grid view, full images in list view
                           const useThumbnail = viewMode === 'grid';
                           const fileUrl = getFileUrl(file, useThumbnail);
+                          const hasValidUrl = fileUrl && (file.fileType === 'image' || file.fileType === 'video' || file.thumbnailUrl);
+                          
                           return file.fileType === 'image' && fileUrl ? (
                             <img
                               src={fileUrl}
                               alt={file.fileName}
                               className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                              onLoad={(e) => {
+                                // 🔥 FIX: Hide fallback icon when image loads successfully
+                                const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                                if (fallback) fallback.classList.add('hidden');
+                              }}
                               onError={(e) => {
+                                // 🔥 FIX: Show fallback icon when image fails to load
                                 (e.target as HTMLImageElement).style.display = 'none';
-                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                                if (fallback) fallback.classList.remove('hidden');
                               }}
                             />
                           ) : file.fileType === 'video' && fileUrl ? (
@@ -2341,11 +2350,27 @@ export default function MediaLibrary({
                               src={file.thumbnailUrl}
                               alt={file.fileName}
                               className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                              onLoad={(e) => {
+                                // 🔥 FIX: Hide fallback icon when image loads successfully
+                                const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                                if (fallback) fallback.classList.add('hidden');
+                              }}
+                              onError={(e) => {
+                                // 🔥 FIX: Show fallback icon when image fails to load
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                                if (fallback) fallback.classList.remove('hidden');
+                              }}
                             />
                           ) : null;
                         })()}
-                        {/* Fallback icon */}
-                        <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(file.fileType === 'image' && getFileUrl(file)) || (file.fileType === 'video' && getFileUrl(file)) ? 'hidden' : ''}`}>
+                        {/* Fallback icon - hidden by default if we have a valid URL */}
+                        <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(() => {
+                          const useThumbnail = viewMode === 'grid';
+                          const fileUrl = getFileUrl(file, useThumbnail);
+                          const hasValidUrl = fileUrl && (file.fileType === 'image' || file.fileType === 'video' || file.thumbnailUrl);
+                          return hasValidUrl ? 'hidden' : '';
+                        })()}`}>
                           {getFileIcon(file.fileType)}
                         </div>
                       </div>
