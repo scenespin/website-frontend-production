@@ -260,6 +260,9 @@ function UnifiedChatPanelInner({
   onWorkflowComplete
 }) {
   const { state, setMode, setInput, setSelectedTextContext, setEntityContextBanner, setSceneContext, clearContext, addMessage, closeMenus, setStreaming } = useChatContext();
+  
+  // 🔥 FIX: Track previous context to prevent unnecessary updates
+  const previousContextRef = useRef(null);
   const { startWorkflow } = useChatMode();
   const { getToken } = useAuth();
   const { canUseAI } = useScreenplay();
@@ -379,12 +382,25 @@ function UnifiedChatPanelInner({
           pageNumber: sceneCtx.pageNumber,
           totalPages: sceneCtx.totalPages
         };
-        console.log('[UnifiedChatPanel] ✅ Scene context detected and set:', contextData);
-        setSceneContext(contextData);
+        
+        // 🔥 FIX: Only update if context actually changed (deep comparison)
+        const contextKey = JSON.stringify(contextData);
+        const previousKey = previousContextRef.current ? JSON.stringify(previousContextRef.current) : null;
+        
+        if (contextKey !== previousKey) {
+          console.log('[UnifiedChatPanel] ✅ Scene context detected and set:', contextData);
+          setSceneContext(contextData);
+          previousContextRef.current = contextData;
+        } else {
+          console.log('[UnifiedChatPanel] Scene context unchanged, skipping update');
+        }
       } else {
-        console.warn('[UnifiedChatPanel] ⚠️ No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
-        // Clear context if we can't detect it
-        setSceneContext(null);
+        // Only clear if we had context before
+        if (previousContextRef.current !== null) {
+          console.warn('[UnifiedChatPanel] ⚠️ No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
+          setSceneContext(null);
+          previousContextRef.current = null;
+        }
       }
     } else if (needsContext && !editorContent) {
       console.warn('[UnifiedChatPanel] ⚠️ Needs context but no editorContent provided');
