@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, Edit3 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -53,6 +53,12 @@ export default function ScreenwriterModal({
     }
     return chatState.selectedModel || 'claude-sonnet-4-5-20250929';
   });
+
+  // 🔥 CRITICAL FIX: Memoize filtered model arrays to prevent Radix UI Select from seeing new arrays on every render
+  // This prevents infinite re-render loops when the modal opens
+  const anthropicModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Anthropic'), []);
+  const openAIModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'OpenAI'), []);
+  const googleModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Google'), []);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -572,7 +578,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                         {/* Group by provider for better organization */}
                         <SelectGroup>
                           <SelectLabel>Anthropic (Claude)</SelectLabel>
-                          {LLM_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
+                          {anthropicModels.map((model) => (
                             <SelectItem key={model.id} value={model.id}>
                               {model.name} {model.recommended ? '⭐' : ''}
                             </SelectItem>
@@ -580,7 +586,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                         </SelectGroup>
                         <SelectGroup>
                           <SelectLabel>OpenAI (GPT)</SelectLabel>
-                          {LLM_MODELS.filter(m => m.provider === 'OpenAI').map((model) => (
+                          {openAIModels.map((model) => (
                             <SelectItem key={model.id} value={model.id}>
                               {model.name}
                             </SelectItem>
@@ -588,7 +594,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                         </SelectGroup>
                         <SelectGroup>
                           <SelectLabel>Google (Gemini)</SelectLabel>
-                          {LLM_MODELS.filter(m => m.provider === 'Google').map((model) => (
+                          {googleModels.map((model) => (
                             <SelectItem key={model.id} value={model.id}>
                               {model.name}
                             </SelectItem>
