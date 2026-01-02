@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useMemo, memo } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -97,21 +97,16 @@ const LLM_MODELS = [
 // MODE SELECTOR COMPONENT
 // ============================================================================
 
-const ModeSelector = memo(function ModeSelector() {
+function ModeSelector() {
   const { state, setMode } = useChatContext();
-  const pathname = usePathname(); // Get current page path
+  const pathname = usePathname();
   
-  // 🔥 FIX: Memoize mode filtering to prevent unnecessary recalculations
-  const availableModes = useMemo(() => getAvailableModesForPage(pathname), [pathname]);
-  
-  // Separate agents from features (only from available modes) - memoized
-  const agents = useMemo(() => availableModes.filter(mode => MODE_CONFIG[mode]?.isAgent), [availableModes]);
-  const features = useMemo(() => availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent), [availableModes]);
+  const availableModes = getAvailableModesForPage(pathname);
+  const agents = availableModes.filter(mode => MODE_CONFIG[mode]?.isAgent);
+  const features = availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent);
   
   const handleModeChange = (mode) => {
     setMode(mode);
-    // Auto-close dropdown after selection
-    document.activeElement?.blur();
   };
   
   return (
@@ -122,7 +117,6 @@ const ModeSelector = memo(function ModeSelector() {
         <ChevronDown className="w-3.5 h-3.5" />
       </label>
       <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-[#1F1F1F] rounded-box w-64 mb-2 border border-[#3F3F46] max-h-[80vh] overflow-y-auto">
-        {/* AI AGENTS Section */}
         {agents.length > 0 && (
           <>
             <li className="menu-title">
@@ -148,8 +142,6 @@ const ModeSelector = memo(function ModeSelector() {
             })}
           </>
         )}
-        
-        {/* GENERATION FEATURES Section */}
         {features.length > 0 && (
           <>
             <li className="menu-title mt-2">
@@ -178,7 +170,7 @@ const ModeSelector = memo(function ModeSelector() {
       </ul>
     </div>
   );
-});
+}
 
 // ============================================================================
 // LLM MODEL SELECTOR COMPONENT (Text Generation Only)
@@ -263,9 +255,6 @@ function UnifiedChatPanelInner({
   
   // 🔥 FIX: Track previous context to prevent unnecessary updates
   const previousContextRef = useRef(null);
-  // 🔥 FIX: Track previous editorContent and cursorPosition to prevent unnecessary effect runs
-  const previousEditorContentRef = useRef(null);
-  const previousCursorPositionRef = useRef(null);
   const { startWorkflow } = useChatMode();
   const { getToken } = useAuth();
   const { canUseAI } = useScreenplay();
@@ -339,36 +328,6 @@ function UnifiedChatPanelInner({
     // Only detect context for AI agents that need screenplay context
     const needsContext = MODE_CONFIG[state.activeMode]?.isAgent;
     
-    // 🔥 FIX: Skip if editorContent and cursorPosition haven't actually changed
-    const editorContentChanged = editorContent !== previousEditorContentRef.current;
-    const cursorPositionChanged = cursorPosition !== previousCursorPositionRef.current;
-    const activeModeChanged = state.activeMode !== previousContextRef.current?.lastActiveMode;
-    
-    if (!needsContext || !editorContent || (!editorContentChanged && !cursorPositionChanged && !activeModeChanged)) {
-      // Update refs even if we're skipping
-      previousEditorContentRef.current = editorContent;
-      previousCursorPositionRef.current = cursorPosition;
-      if (previousContextRef.current) {
-        previousContextRef.current.lastActiveMode = state.activeMode;
-      }
-      return;
-    }
-    
-    // Update refs before processing
-    previousEditorContentRef.current = editorContent;
-    previousCursorPositionRef.current = cursorPosition;
-    
-    console.log('[UnifiedChatPanel] Context detection check:', {
-      needsContext,
-      hasEditorContent: !!editorContent,
-      editorContentLength: editorContent?.length,
-      cursorPosition,
-      activeMode: state.activeMode,
-      editorContentChanged,
-      cursorPositionChanged,
-      activeModeChanged
-    });
-    
     if (needsContext && editorContent) {
       // Try to detect context - use cursor position if available, otherwise find last scene
       let sceneCtx = null;
@@ -415,13 +374,9 @@ function UnifiedChatPanelInner({
         if (contextKey !== previousKey) {
           console.log('[UnifiedChatPanel] ✅ Scene context detected and set:', contextData);
           setSceneContext(contextData);
-          previousContextRef.current = { ...contextData, lastActiveMode: state.activeMode };
+          previousContextRef.current = contextData;
         } else {
           console.log('[UnifiedChatPanel] Scene context unchanged, skipping update');
-          // Still update lastActiveMode in ref
-          if (previousContextRef.current) {
-            previousContextRef.current.lastActiveMode = state.activeMode;
-          }
         }
       } else {
         // Only clear if we had context before
