@@ -215,7 +215,7 @@ function UnifiedChatPanelInner({
   const pathname = usePathname(); // Get current page path for default mode
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
-  const { closeDrawer } = useDrawer();
+  const { closeDrawer, isDrawerOpen } = useDrawer();
   
   // State for attachments and voice input
   const [attachedFiles, setAttachedFiles] = useState([]);
