@@ -227,6 +227,47 @@ export default function RewriteModal({
     }
     return chatState.selectedModel || 'claude-sonnet-4-5-20250929';
   });
+
+  // 🔥 CRITICAL FIX: Memoize filtered model arrays to prevent Radix UI Select from seeing new arrays on every render
+  // This prevents infinite re-render loops when the modal opens
+  const anthropicModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Anthropic'), []);
+  const openAIModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'OpenAI'), []);
+  const googleModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Google'), []);
+
+  // 🔥 CRITICAL FIX: Memoize onValueChange callback to prevent Radix UI Select from seeing new function on every render
+  const handleModelChange = useCallback((value) => {
+    setSelectedModel(value);
+  }, []);
+
+  // 🔥 CRITICAL FIX: Memoize SelectContent children to prevent Radix UI from seeing new React elements on every render
+  const selectContentChildren = useMemo(() => (
+    <>
+      <SelectGroup>
+        <SelectLabel>Anthropic (Claude)</SelectLabel>
+        {anthropicModels.map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            {model.name} {model.recommended ? '⭐' : ''}
+          </SelectItem>
+        ))}
+      </SelectGroup>
+      <SelectGroup>
+        <SelectLabel>OpenAI (GPT)</SelectLabel>
+        {openAIModels.map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            {model.name}
+          </SelectItem>
+        ))}
+      </SelectGroup>
+      <SelectGroup>
+        <SelectLabel>Google (Gemini)</SelectLabel>
+        {googleModels.map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            {model.name}
+          </SelectItem>
+        ))}
+      </SelectGroup>
+    </>
+  ), [anthropicModels, openAIModels, googleModels]);
   
   // Save model selection to localStorage
   useEffect(() => {
