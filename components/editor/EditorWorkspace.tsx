@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -604,15 +604,17 @@ Tip:
                 isMobile={isMobile}
             />
             
-            {/* Rewrite Modal */}
-            <RewriteModal
-                isOpen={isRewriteModalOpen}
-                onClose={() => setIsRewriteModalOpen(false)}
-                selectedText={selectedText || ''}
-                selectionRange={selectionRange || { start: 0, end: 0 }}
-                editorContent={state.content}
-                onReplace={handleRewriteReplace}
-            />
+            {/* Rewrite Modal - Only mount when open to prevent hooks from running */}
+            {isRewriteModalOpen && (
+                <RewriteModal
+                    isOpen={isRewriteModalOpen}
+                    onClose={() => setIsRewriteModalOpen(false)}
+                    selectedText={selectedText || ''}
+                    selectionRange={selectionRange || { start: 0, end: 0 }}
+                    editorContent={state.content}
+                    onReplace={handleRewriteReplace}
+                />
+            )}
             
             {/* Screenwriter Modal - Only mount when open to prevent hooks from running */}
             {isScreenwriterModalOpen && (
