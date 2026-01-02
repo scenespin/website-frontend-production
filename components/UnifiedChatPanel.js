@@ -98,6 +98,7 @@ const LLM_MODELS = [
 // ============================================================================
 
 function ModeSelector() {
+  console.log('[ModeSelector] 🔄 RENDER');
   const { state, setMode } = useChatContext();
   const pathname = usePathname();
   
@@ -106,6 +107,7 @@ function ModeSelector() {
   const features = availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent);
   
   const handleModeChange = (mode) => {
+    console.log('[ModeSelector] Mode change:', mode);
     setMode(mode);
   };
   
@@ -135,6 +137,7 @@ function ModeSelector() {
 // ============================================================================
 
 function LLMModelSelector() {
+  console.log('[LLMModelSelector] 🔄 RENDER');
   const chatContext = useChatContext();
   const { state, setModel } = chatContext;
   
@@ -143,6 +146,7 @@ function LLMModelSelector() {
   const currentModel = LLM_MODELS.find(m => m.id === selectedModel) || LLM_MODELS[0];
   
   const handleModelChange = (modelId) => {
+    console.log('[LLMModelSelector] Model change:', modelId);
     // Update both local state (for UI) and context (for API calls)
     setModel(modelId);
     // Auto-close dropdown after selection
@@ -191,6 +195,13 @@ function UnifiedChatPanelInner({
   onWorkflowComplete
 }) {
   const { state, setMode, setInput, setSelectedTextContext, setEntityContextBanner, setSceneContext, clearContext, addMessage, closeMenus, setStreaming } = useChatContext();
+  
+  console.log('[UnifiedChatPanelInner] 🔄 RENDER', {
+    activeMode: state.activeMode,
+    hasEditorContent: !!editorContent,
+    cursorPosition,
+    selectedTextContext: selectedTextContext?.substring(0, 20)
+  });
   
   // 🔥 FIX: Track previous context to prevent unnecessary updates
   const previousContextRef = useRef(null);
@@ -400,7 +411,9 @@ function UnifiedChatPanelInner({
         setMode('chat');
       }
     }
-  }, [selectedTextContext, state.activeMode, state.selectionRange, setMode, setSelectedTextContext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTextContext, state.activeMode, state.selectionRange]);
+  // Note: setMode and setSelectedTextContext are stable context setters, intentionally omitted
 
   // ============================================================================
   // SMART DEFAULT MODE (Issue #1 Fix)
@@ -416,7 +429,9 @@ function UnifiedChatPanelInner({
       console.log('[UnifiedChatPanel] Current mode not available on this page, switching to:', defaultMode);
       setMode(defaultMode);
     }
-  }, [pathname, state.activeMode, setMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, state.activeMode]);
+  // Note: setMode is a stable context setter, intentionally omitted
 
   // ============================================================================
   // WORKFLOW AUTO-START (Issue #2 Fix)
