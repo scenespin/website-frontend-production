@@ -7,6 +7,7 @@ import Navigation from "@/components/Navigation";
 import AgentDrawer from "@/components/AgentDrawer";
 import UnifiedChatPanel from "@/components/UnifiedChatPanel";
 import { useEditor } from "@/contexts/EditorContext";
+import { useDrawer } from "@/contexts/DrawerContext";
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ export default function WriteLayout({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
   const { state: editorState, insertText, replaceSelection, isEditorFullscreen } = useEditor();
+  const { isDrawerOpen } = useDrawer();
 
   // 🔥 CRITICAL FIX: Use refs for editorState values to prevent onInsert from being recreated
   // cursorPosition changes on every selection, which was causing infinite re-renders
@@ -78,11 +80,15 @@ export default function WriteLayout({ children }) {
       {!isEditorFullscreen && <Navigation />}
       {children}
       <AgentDrawer>
-        <UnifiedChatPanel 
-          editorContent={editorContent}
-          cursorPosition={cursorPosition}
-          onInsert={onInsert}
-        />
+        {/* 🔥 CRITICAL: Only mount UnifiedChatPanel when drawer is open to prevent effects from running */}
+        {/* This prevents infinite loops when FAB buttons trigger state updates */}
+        {isDrawerOpen && (
+          <UnifiedChatPanel 
+            editorContent={editorContent}
+            cursorPosition={cursorPosition}
+            onInsert={onInsert}
+          />
+        )}
       </AgentDrawer>
     </div>
   );
