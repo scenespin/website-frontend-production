@@ -1045,6 +1045,15 @@ function SceneAudioPlayer({
               return;
             }
             
+            console.log('[SceneAudioPlayer] Requesting presigned URL for s3Key:', {
+              s3Key: sceneFile.s3Key,
+              s3KeyLength: sceneFile.s3Key?.length,
+              startsWithMedia: sceneFile.s3Key?.startsWith('media/'),
+              firstChars: sceneFile.s3Key?.substring(0, 50),
+              sceneFileId: sceneFile.id,
+              fileName: sceneFile.fileName
+            });
+            
             const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
               method: 'POST',
               headers: {
