@@ -170,49 +170,6 @@ function LLMModelSelector() {
       })}
     </select>
   );
-  
-  /* ORIGINAL DAISYUI DROPDOWN - COMMENTED OUT FOR TESTING
-  return (
-    <div className="dropdown dropdown-top">
-      <label tabIndex={0} className="btn btn-sm btn-ghost gap-1 text-[#E5E7EB] hover:text-[#FFFFFF]">
-        <span className="text-xs font-medium">{currentModel.name}</span>
-        <ChevronDown className="w-3.5 h-3.5" />
-      </label>
-      <ul tabIndex={0} className="dropdown-content menu p-1 shadow-lg bg-[#1F1F1F] rounded-box w-56 mb-2 border border-[#3F3F46] max-h-80 overflow-y-auto overflow-x-hidden">
-        {/* Group by provider - Users choose their preferred AI style */}
-        {['Anthropic', 'OpenAI', 'Google'].map(provider => {
-          const providerModels = LLM_MODELS.filter(m => m.provider === provider);
-          return (
-            <li key={provider} className="w-full">
-              <div className="px-2 py-1">
-                <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide">{provider}</span>
-              </div>
-              {providerModels.map(model => (
-                <button
-                  key={model.id}
-                  onClick={() => handleModelChange(model.id)}
-                  className={`flex items-center justify-between gap-1.5 py-1 px-2 w-full hover:bg-[#2A2A2A] rounded text-left ${
-                    selectedModel === model.id ? 'bg-cinema-red/10' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    <span className="text-[11px] font-medium truncate">{model.name}</span>
-                    {model.recommended && (
-                      <span className="text-[10px]">✨</span>
-                    )}
-                  </div>
-                  {model.description && (
-                    <span className="text-[9px] opacity-50 truncate max-w-[120px]">{model.description}</span>
-                  )}
-                </button>
-              ))}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-  */
 }
 
 // ============================================================================
