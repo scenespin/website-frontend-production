@@ -279,14 +279,23 @@ function UnifiedChatPanelInner({
 
   // Detect current scene context from editor (for AI agents only)
   // 🔥 CRITICAL: Only run when drawer is open to prevent unnecessary updates
+  // 🔥 CRITICAL: Add debounce to prevent rapid-fire updates when drawer opens
+  const sceneContextTimeoutRef = useRef(null);
   useEffect(() => {
+    // Clear any pending scene context detection
+    if (sceneContextTimeoutRef.current) {
+      clearTimeout(sceneContextTimeoutRef.current);
+    }
+    
     // Skip if drawer is not open - prevents running when component is mounted but not visible
     if (!isDrawerOpen) {
       return;
     }
     
-    // Only detect context for AI agents that need screenplay context
-    const needsContext = MODE_CONFIG[state.activeMode]?.isAgent;
+    // Debounce scene context detection to prevent rapid updates when drawer opens
+    sceneContextTimeoutRef.current = setTimeout(() => {
+      // Only detect context for AI agents that need screenplay context
+      const needsContext = MODE_CONFIG[state.activeMode]?.isAgent;
     
     if (needsContext && editorContent) {
       // Try to detect context - use cursor position if available, otherwise find last scene
