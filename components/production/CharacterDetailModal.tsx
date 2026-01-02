@@ -537,6 +537,29 @@ export function CharacterDetailModal({
     mediaFiles.forEach((file: any) => {
       if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
       
+      // 🔥 FIX: Exclude clothing references from gallery and references tab
+      // Clothing references are stored in folders like "Clothing_Reference" or "Clothing References"
+      // They should be saved in the archive but not displayed in the gallery
+      if (file.folderPath && Array.isArray(file.folderPath)) {
+        const isClothingReference = file.folderPath.some((folder: string) => 
+          folder && (
+            folder.toLowerCase().includes('clothing') && 
+            (folder.toLowerCase().includes('reference') || folder.toLowerCase().includes('ref'))
+          )
+        );
+        if (isClothingReference) {
+          return; // Skip clothing references
+        }
+      }
+      
+      // Also check metadata for clothing reference indicator
+      if (file.metadata?.isClothingReference === true || 
+          file.metadata?.referenceType === 'clothing' ||
+          file.fileName?.toLowerCase().includes('clothing_reference') ||
+          file.fileName?.toLowerCase().includes('clothing-reference')) {
+        return; // Skip clothing references
+      }
+      
       // Get metadata from DynamoDB (character prop)
       const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
       
@@ -716,8 +739,24 @@ export function CharacterDetailModal({
   }, [enrichedMediaLibraryImages, enrichedFallbackImages]);
   
   // Keep old userReferences and poseReferences for backward compatibility (used in other parts of code)
+  // 🔥 FIX: Filter out clothing references from userReferences (creation images only)
   const userReferences = useMemo(() => {
-    return allImages.filter(img => !img.isPose && !img.isBase);
+    return allImages.filter(img => {
+      // Exclude poses and base references
+      if (img.isPose || img.isBase) return false;
+      
+      // 🔥 FIX: Exclude clothing references from creation images
+      // Check if image is a clothing reference by checking metadata or s3Key
+      if (img.metadata?.isClothingReference === true || 
+          img.metadata?.referenceType === 'clothing' ||
+          img.s3Key?.toLowerCase().includes('clothing_reference') ||
+          img.s3Key?.toLowerCase().includes('clothing-reference') ||
+          img.label?.toLowerCase().includes('clothing reference')) {
+        return false;
+      }
+      
+      return true;
+    });
   }, [allImages]);
   
   const poseReferences: PoseReferenceWithOutfit[] = useMemo(() => {
