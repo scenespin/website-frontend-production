@@ -906,10 +906,10 @@ export function ShotConfigurationPanel({
             Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'action-line')}</span>
           </div>
           <Select
-            value={shotWorkflowOverride || shot.workflow || '__select__'}
+            value={shotWorkflowOverride || shot.workflow || 'action-line'}
             onValueChange={(newWorkflow) => {
-              if (newWorkflow === '__select__' || newWorkflow === shot.workflow) {
-                // If user selects suggested workflow or placeholder, remove override
+              if (newWorkflow === shot.workflow) {
+                // If user selects suggested workflow, remove override
                 onShotWorkflowOverrideChange(shot.slot, '');
               } else {
                 onShotWorkflowOverrideChange(shot.slot, newWorkflow);
@@ -917,10 +917,16 @@ export function ShotConfigurationPanel({
             }}
           >
             <SelectTrigger className="w-full h-9 text-sm">
-              <SelectValue placeholder="Select workflow..." />
+              <SelectValue>
+                {shotWorkflowOverride && shotWorkflowOverride !== shot.workflow
+                  ? getWorkflowLabel(shotWorkflowOverride)
+                  : getWorkflowLabel(shot.workflow || 'action-line') + ' (suggested)'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__select__">Use suggested workflow</SelectItem>
+              <SelectItem value={shot.workflow || 'action-line'}>
+                {getWorkflowLabel(shot.workflow || 'action-line')} (suggested)
+              </SelectItem>
               {ACTION_WORKFLOWS
                 .filter(wf => wf.value !== shot.workflow)
                 .map(wf => (
@@ -931,8 +937,65 @@ export function ShotConfigurationPanel({
             </SelectContent>
           </Select>
           <div className="text-[10px] text-[#808080] italic mt-1">
-            Override the suggested workflow for this shot. Leave as default to use the suggested workflow.
+            Override the suggested workflow for this shot. Select the suggested workflow to use the default.
           </div>
+          
+          {/* Description and Additional Characters - shown when workflow is overridden */}
+          {shotWorkflowOverride && shotWorkflowOverride !== shot.workflow && (
+            <>
+              <div className="mt-4">
+                <label className="block text-[10px] text-[#808080] mb-1.5">
+                  Describe the alternate action in the scene:
+                </label>
+                <textarea
+                  value={dialogueWorkflowPrompt || ''}
+                  onChange={(e) => {
+                    onDialogueWorkflowPromptChange?.(shot.slot, e.target.value);
+                  }}
+                  placeholder="e.g., Character performing a different action than suggested, or scene with different style..."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                />
+                <div className="text-[10px] text-[#808080] italic mt-1">
+                  This description will be used to generate the scene with the selected workflow.
+                </div>
+              </div>
+              
+              {/* Additional Characters Section */}
+              {onCharactersForShotChange && (
+                <div className="mt-4">
+                  <div className="mb-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                    Add characters that will appear in the scene with the overridden workflow.
+                  </div>
+                  <div className="text-xs font-medium text-[#FFFFFF] mb-2">Additional Characters</div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => {
+                      const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
+                      return (
+                        <div key={char.id} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              const current = selectedCharactersForShots[shot.slot] || [];
+                              const updated = e.target.checked
+                                ? [...current, char.id]
+                                : current.filter((id: string) => id !== char.id);
+                              onCharactersForShotChange(shot.slot, updated);
+                            }}
+                            className="w-3.5 h-3.5 text-[#DC143C] border-[#3F3F46] rounded focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                          />
+                          <label className="text-xs text-[#FFFFFF] cursor-pointer flex-1">
+                            {char.name}
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 

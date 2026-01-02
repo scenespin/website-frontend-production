@@ -528,7 +528,7 @@ export function PronounMappingSection({
       {allMapped && (
         <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-2 flex items-center gap-2">
           <span className="text-[10px] text-green-300">
-            ✓ All words mapped
+            ✓ All pronouns mapped
           </span>
         </div>
       )}
