@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -560,16 +560,20 @@ function UnifiedChatPanelInner({
   // MODE RENDERING
   // ============================================================================
 
+  // 🔥 CRITICAL: Memoize onWorkflowComplete callback to prevent infinite loops
+  // This callback is passed to mode panels and must be stable
+  const handleWorkflowComplete = useCallback((type, parsedData) => {
+    onWorkflowComplete?.(type, parsedData);
+    closeDrawer(); // Close drawer after workflow completion
+  }, [onWorkflowComplete, closeDrawer]);
+
   // Memoize commonProps to prevent new object reference on every render
   const commonProps = useMemo(() => ({
     onInsert,
     editorContent,
     cursorPosition,
-    onWorkflowComplete: (type, parsedData) => {
-      onWorkflowComplete?.(type, parsedData);
-      closeDrawer(); // Close drawer after workflow completion
-    }
-  }), [onInsert, editorContent, cursorPosition, onWorkflowComplete, closeDrawer]);
+    onWorkflowComplete: handleWorkflowComplete
+  }), [onInsert, editorContent, cursorPosition, handleWorkflowComplete]);
 
   /**
    * Render the active mode panel
