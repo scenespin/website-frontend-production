@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -551,4 +551,16 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     </div>
   );
 }
+
+// 🔥 CRITICAL: Memoize component to prevent unnecessary re-renders
+// This prevents library components from seeing "changed" props and triggering infinite loops
+export const ChatModePanel = memo(ChatModePanelInner, (prevProps, nextProps) => {
+  // Only re-render if these specific props actually change
+  return (
+    prevProps.editorContent === nextProps.editorContent &&
+    prevProps.cursorPosition === nextProps.cursorPosition &&
+    prevProps.onInsert === nextProps.onInsert &&
+    prevProps.onWorkflowComplete === nextProps.onWorkflowComplete
+  );
+});
 
