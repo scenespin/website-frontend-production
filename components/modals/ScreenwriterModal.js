@@ -602,6 +602,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                   <div className="flex items-center gap-2">
                     {/* Model Selector */}
                     <Select
+                      key={`model-selector-${isOpen}`}
                       value={selectedModel}
                       onValueChange={handleModelChange}
                       disabled={isLoading}
