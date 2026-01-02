@@ -278,7 +278,13 @@ function UnifiedChatPanelInner({
   // ============================================================================
 
   // Detect current scene context from editor (for AI agents only)
+  // 🔥 CRITICAL: Only run when drawer is open to prevent unnecessary updates
   useEffect(() => {
+    // Skip if drawer is not open - prevents running when component is mounted but not visible
+    if (!isDrawerOpen) {
+      return;
+    }
+    
     // Only detect context for AI agents that need screenplay context
     const needsContext = MODE_CONFIG[state.activeMode]?.isAgent;
     
@@ -349,7 +355,7 @@ function UnifiedChatPanelInner({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.activeMode, editorContent, cursorPosition]);
+  }, [isDrawerOpen, state.activeMode, editorContent, cursorPosition]);
   // Note: setSceneContext is intentionally omitted from deps - it's a stable context setter
 
   // ============================================================================
