@@ -106,6 +106,42 @@ export function SceneAnalysisStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Props Selection (if props exist) */}
+          {sceneProps.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-[#FFFFFF]">
+                  Props Assignment ({sceneProps.length} props)
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      // Select All: Assign all props to all enabled shots
+                      const allSlots = enabledShots.length > 0 ? enabledShots : shots.map((s: any) => s.slot);
+                      const newPropsToShots: Record<string, number[]> = {};
+                      sceneProps.forEach(prop => {
+                        newPropsToShots[prop.id] = [...allSlots];
+                      });
+                      onPropsToShotsChange(newPropsToShots);
+                    }}
+                    className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Deselect All: Remove all props from all shots
+                      onPropsToShotsChange({});
+                    }}
+                    className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Shot Breakdown with Checkboxes */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
