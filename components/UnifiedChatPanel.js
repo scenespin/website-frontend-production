@@ -109,6 +109,27 @@ function ModeSelector() {
     setMode(mode);
   };
   
+  // 🔥 TEMP: Replace DaisyUI dropdown with simple native select to test if it's causing the infinite loop
+  return (
+    <select
+      value={state.activeMode}
+      onChange={(e) => handleModeChange(e.target.value)}
+      className="btn btn-sm btn-ghost text-xs"
+    >
+      {agents.map((mode) => (
+        <option key={mode} value={mode}>
+          {MODE_CONFIG[mode]?.label || mode}
+        </option>
+      ))}
+      {features.map((mode) => (
+        <option key={mode} value={mode}>
+          {MODE_CONFIG[mode]?.label || mode}
+        </option>
+      ))}
+    </select>
+  );
+  
+  /* ORIGINAL DAISYUI DROPDOWN - COMMENTED OUT FOR TESTING
   return (
     <div className="dropdown dropdown-top">
       <label tabIndex={0} className="btn btn-sm btn-ghost gap-1">
@@ -170,6 +191,7 @@ function ModeSelector() {
       </ul>
     </div>
   );
+  */
 }
 
 // ============================================================================
