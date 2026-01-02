@@ -76,6 +76,7 @@ export function ImageViewer({
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
   const [preloadedUrls, setPreloadedUrls] = useState<Set<string>>(new Set());
+  const [hoveredDirection, setHoveredDirection] = useState<'prev' | 'next' | null>(null); // 🔥 NEW: Track hover state for smart preloading
   const { getToken } = useAuth();
   
   // Detect media type from URL or metadata
@@ -148,37 +149,53 @@ export function ImageViewer({
     return viewAll && allImages ? allImages : images;
   }, [viewAll, allImages, images]);
 
-  // Preload next and previous images for faster navigation
+  // 🔥 NEW: Smart preloading function - preloads a specific image by index
+  const preloadImage = useCallback((imageIndex: number) => {
+    if (imageIndex < 0 || imageIndex >= displayImages.length) return;
+    
+    const image = displayImages[imageIndex];
+    if (!image || getMediaType(image) !== 'image') return;
+    
+    // Get the URL (handle presigned URLs if needed)
+    const url = image.url || imageUrls.get(image.id);
+    if (!url || preloadedUrls.has(url)) return;
+    
+    // Preload the image
+    const img = new Image();
+    img.src = url;
+    setPreloadedUrls(prev => new Set(prev).add(url));
+  }, [displayImages, preloadedUrls, imageUrls, getMediaType]);
+
+  // 🔥 NEW: Smart preloading with delay - only preloads after 500ms delay
   useEffect(() => {
     if (!isOpen || displayImages.length === 0) return;
 
-    const preloadUrls: string[] = [];
-    
-    // Preload next image
-    if (currentIndex < displayImages.length - 1) {
-      const nextImage = displayImages[currentIndex + 1];
-      if (nextImage && getMediaType(nextImage) === 'image') {
-        preloadUrls.push(nextImage.url);
+    // Clear any existing timeout
+    const timeoutId = setTimeout(() => {
+      // Preload next image (if not already preloaded)
+      if (currentIndex < displayImages.length - 1) {
+        preloadImage(currentIndex + 1);
       }
-    }
-    
-    // Preload previous image
-    if (currentIndex > 0) {
-      const prevImage = displayImages[currentIndex - 1];
-      if (prevImage && getMediaType(prevImage) === 'image') {
-        preloadUrls.push(prevImage.url);
+      
+      // Preload previous image (if not already preloaded)
+      if (currentIndex > 0) {
+        preloadImage(currentIndex - 1);
       }
-    }
+    }, 500); // Wait 500ms before preloading
 
-    // Preload images
-    preloadUrls.forEach(url => {
-      if (url && !preloadedUrls.has(url)) {
-        const img = new Image();
-        img.src = url;
-        setPreloadedUrls(prev => new Set(prev).add(url));
-      }
-    });
-  }, [isOpen, currentIndex, displayImages, preloadedUrls, getMediaType]);
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, currentIndex, displayImages, preloadImage]);
+
+  // 🔥 NEW: Immediate preloading on hover over navigation arrows
+  useEffect(() => {
+    if (!isOpen || !hoveredDirection) return;
+
+    if (hoveredDirection === 'next' && currentIndex < displayImages.length - 1) {
+      preloadImage(currentIndex + 1);
+    } else if (hoveredDirection === 'prev' && currentIndex > 0) {
+      preloadImage(currentIndex - 1);
+    }
+  }, [hoveredDirection, currentIndex, displayImages, preloadImage, isOpen]);
   
   // When switching between group and all, find the current image in the new list
   useEffect(() => {
@@ -635,6 +652,8 @@ export function ImageViewer({
                 e.stopPropagation();
                 handlePrevious();
               }}
+              onMouseEnter={() => setHoveredDirection('prev')} // 🔥 NEW: Preload on hover
+              onMouseLeave={() => setHoveredDirection(null)}
               className="absolute left-4 z-20 p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors group"
               aria-label="Previous image"
             >
@@ -647,6 +666,8 @@ export function ImageViewer({
                 e.stopPropagation();
                 handleNext();
               }}
+              onMouseEnter={() => setHoveredDirection('next')} // 🔥 NEW: Preload on hover
+              onMouseLeave={() => setHoveredDirection(null)}
               className="absolute right-4 z-20 p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors group"
               aria-label="Next image"
             >
