@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment, useMemo } from 'react';
+import { useState, useEffect, Fragment, useMemo, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, Film, Plus, Minus } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -62,6 +62,11 @@ export default function DirectorModal({
   const anthropicModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Anthropic'), []);
   const openAIModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'OpenAI'), []);
   const googleModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Google'), []);
+
+  // 🔥 CRITICAL FIX: Memoize onValueChange callback to prevent Radix UI Select from seeing new function on every render
+  const handleModelChange = useCallback((value) => {
+    setSelectedModel(value);
+  }, []);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -549,7 +554,7 @@ Rules:
                     {/* Model Selector */}
                     <Select
                       value={selectedModel}
-                      onValueChange={(value) => setSelectedModel(value)}
+                      onValueChange={handleModelChange}
                       disabled={isLoading}
                     >
                       <SelectTrigger className="max-w-[140px] h-8 text-xs" title="Select AI model">

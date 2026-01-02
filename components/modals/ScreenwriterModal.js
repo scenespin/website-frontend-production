@@ -60,6 +60,11 @@ export default function ScreenwriterModal({
   const openAIModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'OpenAI'), []);
   const googleModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Google'), []);
 
+  // 🔥 CRITICAL FIX: Memoize onValueChange callback to prevent Radix UI Select from seeing new function on every render
+  const handleModelChange = useCallback((value) => {
+    setSelectedModel(value);
+  }, []);
+
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -568,7 +573,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                     {/* Model Selector */}
                     <Select
                       value={selectedModel}
-                      onValueChange={(value) => setSelectedModel(value)}
+                      onValueChange={handleModelChange}
                       disabled={isLoading}
                     >
                       <SelectTrigger className="max-w-[140px] h-8 text-xs" title="Select AI model">
