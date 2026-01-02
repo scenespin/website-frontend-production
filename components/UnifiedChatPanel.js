@@ -326,8 +326,12 @@ function UnifiedChatPanelInner({
         }
       }
     } else if (needsContext && !editorContent) {
-      console.warn('[UnifiedChatPanel] ⚠️ Needs context but no editorContent provided');
-      setSceneContext(null);
+      // Only clear if we had context before (prevent unnecessary updates)
+      if (previousContextRef.current !== null) {
+        console.warn('[UnifiedChatPanel] ⚠️ Needs context but no editorContent provided');
+        setSceneContext(null);
+        previousContextRef.current = null;
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.activeMode, editorContent, cursorPosition]);

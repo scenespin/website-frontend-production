@@ -104,7 +104,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           console.log('[ChatModePanel] Scene context unchanged, skipping update');
         }
       } else {
-        // Only clear if we had context before
+        // Only clear if we had context before (prevent unnecessary updates)
         if (previousContextRef.current !== null) {
           console.warn('[ChatModePanel] No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
           setSceneContext(null);
