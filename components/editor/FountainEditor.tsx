@@ -564,14 +564,14 @@ export default function FountainEditor({
                     spellCheck={true}
                 />
                 {/* Feature 0134: Cursor Overlay - Shows other users' cursor positions */}
-                {/* 🔥 FIX: Temporarily disable cursor overlay when highlighting to prevent infinite loops */}
-                {otherUsersCursors && otherUsersCursors.length > 0 && !state.highlightRange && (
+                {/* 🔥 TEMPORARILY DISABLED: Investigating infinite loop issue */}
+                {/* {otherUsersCursors && otherUsersCursors.length > 0 && !state.highlightRange && (
                     <CursorOverlay
                         textareaRef={textareaRef}
                         content={stripTagsForDisplay(lastSyncedContent)}
                         cursors={otherUsersCursors}
                     />
-                )}
+                )} */}
             </div>
             
             {/* Entity Autocomplete - @ mentions */}
