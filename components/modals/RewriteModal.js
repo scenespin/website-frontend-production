@@ -589,14 +589,19 @@ export default function RewriteModal({
           onClose();
 
           // Fix hanging issue: Restore focus to editor and allow React to process state updates
-          setTimeout(() => {
-            // Restore focus to the editor textarea
-            const textarea = document.querySelector('textarea[data-editor="fountain"]') || 
-                           document.querySelector('textarea');
-            if (textarea) {
-              textarea.focus();
-            }
-          }, 100);
+          // Use requestAnimationFrame to ensure DOM is ready after modal closes
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              // Restore focus to the editor textarea
+              const textarea = document.querySelector('textarea[placeholder*="screenplay"]') || 
+                             document.querySelector('textarea');
+              if (textarea) {
+                textarea.focus();
+                // Also ensure the editor is interactive
+                textarea.click();
+              }
+            }, 50);
+          });
           
           // Show success toast
           toast.success('Text rewritten successfully');
