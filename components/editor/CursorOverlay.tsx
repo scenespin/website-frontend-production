@@ -20,7 +20,7 @@ interface CursorOverlayProps {
   cursors: CursorPosition[];
 }
 
-export default function CursorOverlay({
+function CursorOverlayInner({
   textareaRef,
   content,
   cursors
@@ -31,12 +31,19 @@ export default function CursorOverlay({
   const isCalculatingRef = useRef(false); // Prevent concurrent calculations
   const previousCursorsRef = useRef<CursorPosition[]>([]); // Track previous cursors array for stable comparison
 
+  // Create stable key for cursors to detect actual changes (not just reference changes)
+  // Compute the key string first, then use it as the dependency
+  const cursorsKeyString = cursors.map(c => `${c.userId}:${c.position}`).join(',');
+  const cursorsKey = useMemo(() => {
+    return cursorsKeyString;
+  }, [cursorsKeyString]);
+  
   // Update cursor positions when cursors change
   // FIX: Use cursorsKey (stable key) instead of cursors array to prevent infinite loops
   // Content is NOT in dependencies - it's captured from closure to avoid recalculating on every keystroke
   useEffect(() => {
     // Check if cursors actually changed by comparing keys
-    const currentKey = cursors.map(c => `${c.userId}:${c.position}`).join(',');
+    const currentKey = cursorsKey;
     const previousKey = lastCalculatedCursorsRef.current;
     
     // Skip if cursors haven't actually changed (deep comparison)
@@ -142,7 +149,7 @@ export default function CursorOverlay({
     requestAnimationFrame(() => {
       calculatePositions();
     });
-  }, [textareaRef, cursors]); // Depend on cursors, but check key inside to prevent unnecessary recalculations
+  }, [textareaRef, cursorsKey]); // Use stable cursorsKey - only changes when cursors actually change
 
   // Recalculate on window resize
   useEffect(() => {
@@ -393,4 +400,19 @@ export default function CursorOverlay({
     </div>
   );
 }
+
+// Wrap with React.memo to prevent re-renders when cursors array reference changes but data hasn't
+export default React.memo(CursorOverlayInner, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if cursor data actually changed
+  const prevKey = prevProps.cursors.map(c => `${c.userId}:${c.position}`).join(',');
+  const nextKey = nextProps.cursors.map(c => `${c.userId}:${c.position}`).join(',');
+  
+  // Also check if content or textareaRef changed
+  if (prevProps.content !== nextProps.content || prevProps.textareaRef !== nextProps.textareaRef) {
+    return false; // Re-render if content or ref changed
+  }
+  
+  // Only skip re-render if cursor data is the same
+  return prevKey === nextKey;
+});
 
