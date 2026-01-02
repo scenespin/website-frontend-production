@@ -111,6 +111,12 @@ export default function FountainEditor({
         if (!textarea) return;
         
         const handleSelectionChange = () => {
+            // 🔥 FIX: Skip if we're currently setting highlight (prevents infinite loop)
+            // This matches the guard in the props version of handleSelectionChange
+            if (isSettingHighlightRef.current) {
+                return;
+            }
+            
             if (textarea) {
                 savedCursorPositionRef.current = textarea.selectionStart;
             }

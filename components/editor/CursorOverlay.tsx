@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { CursorPosition } from '@/types/collaboration';
 import { getCursorPixelPosition, getSelectionPixelRange } from '@/utils/cursorPositionToPixels';
 import { getUserColor } from '@/utils/userColors';
@@ -32,9 +32,22 @@ export default function CursorOverlay({
   const previousCursorsRef = useRef<CursorPosition[]>([]); // Track previous cursors array for stable comparison
 
   // Update cursor positions when cursors change
-  // FIX: Use stable comparison to prevent infinite loops from array reference changes
+  // FIX: Use cursorsKey (stable key) instead of cursors array to prevent infinite loops
   // Content is NOT in dependencies - it's captured from closure to avoid recalculating on every keystroke
   useEffect(() => {
+    // Check if cursors actually changed by comparing keys
+    const currentKey = cursors.map(c => `${c.userId}:${c.position}`).join(',');
+    const previousKey = lastCalculatedCursorsRef.current;
+    
+    // Skip if cursors haven't actually changed (deep comparison)
+    if (previousKey === currentKey && previousKey !== '') {
+      console.log('[CursorOverlay] Cursors unchanged (deep comparison), skipping recalculation');
+      return;
+    }
+    
+    // Update ref with new key
+    lastCalculatedCursorsRef.current = currentKey;
+    
     // Prevent concurrent calculations
     if (isCalculatingRef.current) {
       console.log('[CursorOverlay] Calculation already in progress, skipping');
@@ -51,35 +64,13 @@ export default function CursorOverlay({
     if (cursors.length === 0) {
       console.log('[CursorOverlay] No cursors, clearing positions');
       setCursorPositions(new Map());
-      lastCalculatedCursorsRef.current = '';
       return;
     }
-
-    // Create a stable key for the current cursor set to detect actual changes
-    // Use JSON.stringify for deep comparison to avoid issues with array reference changes
-    const cursorsKey = JSON.stringify(cursors.map(c => ({ userId: c.userId, position: c.position })));
-    const isFirstCalculation = lastCalculatedCursorsRef.current === '';
-    const cursorsChanged = lastCalculatedCursorsRef.current !== cursorsKey;
-    
-    // Also check if the cursors array reference changed but content is the same
-    const previousCursorsKey = JSON.stringify(previousCursorsRef.current.map(c => ({ userId: c.userId, position: c.position })));
-    const cursorsActuallyChanged = cursorsKey !== previousCursorsKey;
-
-    // Only recalculate if cursors actually changed (deep comparison)
-    if (!isFirstCalculation && !cursorsActuallyChanged) {
-      console.log('[CursorOverlay] Cursors unchanged (deep comparison), skipping recalculation');
-      return;
-    }
-    
-    // Update previous cursors ref
-    previousCursorsRef.current = cursors;
 
     console.log('[CursorOverlay] Calculating positions for', cursors.length, 'cursor(s)', {
       contentLength: content.length,
       textareaExists: !!textarea,
-      textareaValueLength: textarea.value?.length || 0,
-      cursorsChanged,
-      isFirstCalculation
+      textareaValueLength: textarea.value?.length || 0
     });
 
     // Set flag to prevent concurrent calculations
@@ -144,7 +135,6 @@ export default function CursorOverlay({
       });
       
       setCursorPositions(newPositions);
-      lastCalculatedCursorsRef.current = cursorsKey;
       isCalculatingRef.current = false;
     };
 
@@ -152,7 +142,7 @@ export default function CursorOverlay({
     requestAnimationFrame(() => {
       calculatePositions();
     });
-  }, [textareaRef, cursors]); // Only depend on cursors array - content is captured from closure
+  }, [textareaRef, cursors]); // Depend on cursors, but check key inside to prevent unnecessary recalculations
 
   // Recalculate on window resize
   useEffect(() => {
