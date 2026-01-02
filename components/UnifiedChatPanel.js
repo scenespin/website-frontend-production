@@ -213,6 +213,29 @@ function LLMModelSelector() {
     document.activeElement?.blur();
   };
   
+  // 🔥 TEMP: Replace DaisyUI dropdown with simple native select to test if it's causing the infinite loop
+  return (
+    <select
+      value={selectedModel}
+      onChange={(e) => handleModelChange(e.target.value)}
+      className="btn btn-sm btn-ghost text-xs"
+    >
+      {['Anthropic', 'OpenAI', 'Google'].map(provider => {
+        const providerModels = LLM_MODELS.filter(m => m.provider === provider);
+        return (
+          <optgroup key={provider} label={provider}>
+            {providerModels.map(model => (
+              <option key={model.id} value={model.id}>
+                {model.name} {model.recommended ? '⭐' : ''}
+              </option>
+            ))}
+          </optgroup>
+        );
+      })}
+    </select>
+  );
+  
+  /* ORIGINAL DAISYUI DROPDOWN - COMMENTED OUT FOR TESTING
   return (
     <div className="dropdown dropdown-top">
       <label tabIndex={0} className="btn btn-sm btn-ghost gap-1 text-[#E5E7EB] hover:text-[#FFFFFF]">
@@ -253,6 +276,7 @@ function LLMModelSelector() {
       </ul>
     </div>
   );
+  */
 }
 
 // ============================================================================
