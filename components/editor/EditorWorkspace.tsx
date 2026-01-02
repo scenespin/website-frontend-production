@@ -614,35 +614,41 @@ Tip:
                 onReplace={handleRewriteReplace}
             />
             
-            {/* Screenwriter Modal */}
-            <ScreenwriterModal
-                isOpen={isScreenwriterModalOpen}
-                onClose={() => setIsScreenwriterModalOpen(false)}
-                editorContent={state.content}
-                cursorPosition={state.cursorPosition || 0}
-                selectionRange={selectionRange}
-                onInsert={handleScreenwriterInsert}
-            />
+            {/* Screenwriter Modal - Only mount when open to prevent hooks from running */}
+            {isScreenwriterModalOpen && (
+                <ScreenwriterModal
+                    isOpen={isScreenwriterModalOpen}
+                    onClose={() => setIsScreenwriterModalOpen(false)}
+                    editorContent={state.content}
+                    cursorPosition={state.cursorPosition || 0}
+                    selectionRange={selectionRange}
+                    onInsert={handleScreenwriterInsert}
+                />
+            )}
             
-            {/* Director Modal */}
-            <DirectorModal
-                isOpen={isDirectorModalOpen}
-                onClose={() => setIsDirectorModalOpen(false)}
-                editorContent={state.content}
-                cursorPosition={state.cursorPosition || 0}
-                selectionRange={selectionRange}
-                onInsert={handleDirectorInsert}
-            />
+            {/* Director Modal - Only mount when open to prevent hooks from running */}
+            {isDirectorModalOpen && (
+                <DirectorModal
+                    isOpen={isDirectorModalOpen}
+                    onClose={() => setIsDirectorModalOpen(false)}
+                    editorContent={state.content}
+                    cursorPosition={state.cursorPosition || 0}
+                    selectionRange={selectionRange}
+                    onInsert={handleDirectorInsert}
+                />
+            )}
             
-            {/* Dialogue Modal */}
-            <DialogueModal
-                isOpen={isDialogueModalOpen}
-                onClose={() => setIsDialogueModalOpen(false)}
-                editorContent={state.content}
-                cursorPosition={state.cursorPosition || 0}
-                selectionRange={selectionRange}
-                onInsert={handleDialogueInsert}
-            />
+            {/* Dialogue Modal - Only mount when open to prevent hooks from running */}
+            {isDialogueModalOpen && (
+                <DialogueModal
+                    isOpen={isDialogueModalOpen}
+                    onClose={() => setIsDialogueModalOpen(false)}
+                    editorContent={state.content}
+                    cursorPosition={state.cursorPosition || 0}
+                    selectionRange={selectionRange}
+                    onInsert={handleDialogueInsert}
+                />
+            )}
             
             {/* Find/Replace Modal */}
             <FindReplaceModal
