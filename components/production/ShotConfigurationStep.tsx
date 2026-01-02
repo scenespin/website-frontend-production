@@ -202,11 +202,13 @@ export function ShotConfigurationStep({
       setIsLoadingPricing(true);
       try {
         const referenceShotModel = selectedReferenceShotModel[shot.slot];
+        const videoType = selectedVideoType[shot.slot];
         const pricingResult = await SceneBuilderService.calculatePricing(
           [{ slot: shot.slot, credits: shot.credits }],
           shotDuration ? { [shot.slot]: shotDuration } : undefined,
           getToken,
-          referenceShotModel ? { [shot.slot]: referenceShotModel } : undefined
+          referenceShotModel ? { [shot.slot]: referenceShotModel } : undefined,
+          videoType ? { [shot.slot]: videoType } : undefined
         );
         
         const shotPricing = pricingResult.shots.find(s => s.shotSlot === shot.slot);
@@ -227,7 +229,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModel, getToken]);
+  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModel, selectedVideoType, selectedVideoQuality, getToken]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -682,7 +684,7 @@ export function ShotConfigurationStep({
               <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#808080]">First Frame:</span>
+                  <span className="text-[#808080]">Reference Shot:</span>
                   <span className="text-[#FFFFFF] font-medium">{pricing.firstFramePrice} credits</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
@@ -696,11 +698,15 @@ export function ShotConfigurationStep({
                 <div className="pt-2 border-t border-[#3F3F46]">
                   <div className="flex items-center justify-between text-xs font-medium">
                     <span className="text-[#FFFFFF]">HD Total:</span>
-                    <span className="text-[#FFFFFF]">{pricing.firstFramePrice + pricing.hdPrice} credits</span>
+                    <span className={selectedVideoQuality[shot.slot] === 'hd' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}>
+                      {pricing.firstFramePrice + pricing.hdPrice} credits
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-xs font-medium mt-1">
                     <span className="text-[#FFFFFF]">4K Total:</span>
-                    <span className="text-[#DC143C]">{pricing.firstFramePrice + pricing.k4Price} credits</span>
+                    <span className={selectedVideoQuality[shot.slot] === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}>
+                      {pricing.firstFramePrice + pricing.k4Price} credits
+                    </span>
                   </div>
                 </div>
                 <div className="text-[10px] text-[#808080] italic mt-1">

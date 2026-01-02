@@ -704,7 +704,8 @@ export class SceneBuilderService {
     shots: Array<{ slot: number; credits: number }>,
     shotDurations?: Record<number, 'quick-cut' | 'extended-take'>,
     getTokenFn?: (options: { template: string }) => Promise<string | null>,
-    referenceShotModels?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>
+    referenceShotModels?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>,
+    videoTypes?: Record<number, 'cinematic-visuals' | 'natural-motion'>
   ): Promise<ScenePricingResult> {
     if (!getTokenFn) {
       throw new Error('getToken function is required');
@@ -721,7 +722,8 @@ export class SceneBuilderService {
       body: JSON.stringify({
         shots,
         shotDurations,
-        referenceShotModels
+        referenceShotModels,
+        videoTypes
       })
     });
     
