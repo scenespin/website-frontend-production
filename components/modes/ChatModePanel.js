@@ -134,12 +134,12 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       }
       
       // Get conversation history for token calculation
-      const conversationHistory = state.messages
-        .filter(m => m.mode === 'chat')
-        .map(m => ({
-          role: m.role,
-          content: m.content
-        }));
+      // Memoize filtered messages to prevent unnecessary recalculations
+      const chatMessages = state.messages.filter(m => m.mode === 'chat');
+      const conversationHistory = chatMessages.map(m => ({
+        role: m.role,
+        content: m.content
+      }));
       
       // Base system prompt (without screenplay content)
       const systemPromptBase = `You are a professional screenplay consultant. Provide advice, analysis, and creative guidance. Do NOT generate Fountain format — that's handled by other tools.
@@ -535,7 +535,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             'Ask for advice, analysis, or creative guidance about your screenplay'
           )}
         </span>
-        {state.messages.filter(m => m.mode === 'chat').length > 0 && (
+        {(() => {
+          const chatMessages = state.messages.filter(m => m.mode === 'chat');
+          return chatMessages.length > 0;
+        })() && (
           <button
             onClick={() => clearMessagesForMode('chat')}
             className="btn btn-xs btn-ghost gap-1 sm:gap-1.5 text-[#9CA3AF] hover:text-[#E5E7EB] flex-shrink-0"
