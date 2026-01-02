@@ -322,17 +322,6 @@ export function SceneAnalysisStep({
     </div>
   );
 }
-
-
-                            className={`text-[10px] ${
-                              shot.type === 'dialogue'
-                                ? 'border-blue-500 text-blue-400'
-                                : 'border-green-500 text-green-400'
-                            }`}
-                          >
-                            {shot.type === 'dialogue' ? 'Dialogue' : 'Action'}
-                          </Badge>
-                        </div>
                         <div className="text-xs text-[#808080] mt-1 line-clamp-2">
                           {shot.description || shot.dialogueBlock?.dialogue || 'No description'}
                         </div>
