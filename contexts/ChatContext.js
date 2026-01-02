@@ -341,6 +341,7 @@ export function ChatProvider({ children, initialContext = null }) {
   
   // 🔥 CRITICAL FIX: Memoize the context value to prevent infinite re-renders
   // The value object was being recreated on every render, causing all consumers to re-render
+  // Only include 'state' in dependencies - all functions are already memoized with useCallback
   const value = useMemo(() => ({
     state,
     addMessage,
@@ -368,34 +369,7 @@ export function ChatProvider({ children, initialContext = null }) {
     toggleModeMenu,
     toggleSettingsMenu,
     closeMenus,
-  }), [
-    state,
-    addMessage,
-    setMessages,
-    clearMessages,
-    clearMessagesForMode,
-    setStreaming,
-    setMode,
-    setModel,
-    setInput,
-    setPlaceholder,
-    setAttachedFiles,
-    addAttachedFile,
-    removeAttachedFile,
-    setSelectedTextContext,
-    setSceneContext,
-    setAutoContext,
-    setContextEnabled,
-    setWasInRewriteMode,
-    clearContext,
-    setWorkflow,
-    setWorkflowCompletion,
-    clearWorkflow,
-    setEntityContextBanner,
-    toggleModeMenu,
-    toggleSettingsMenu,
-    closeMenus,
-  ]);
+  }), [state]); // Only state changes - all functions are stable (useCallback with empty deps)
   
   return (
     <ChatContext.Provider value={value}>

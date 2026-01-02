@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -102,9 +102,10 @@ function ModeSelector() {
   const { state, setMode } = useChatContext();
   const pathname = usePathname();
   
-  const availableModes = getAvailableModesForPage(pathname);
-  const agents = availableModes.filter(mode => MODE_CONFIG[mode]?.isAgent);
-  const features = availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent);
+  // Memoize arrays to prevent unnecessary re-renders
+  const availableModes = useMemo(() => getAvailableModesForPage(pathname), [pathname]);
+  const agents = useMemo(() => availableModes.filter(mode => MODE_CONFIG[mode]?.isAgent), [availableModes]);
+  const features = useMemo(() => availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent), [availableModes]);
   
   const handleModeChange = (mode) => {
     console.log('[ModeSelector] Mode change:', mode);
@@ -153,6 +154,9 @@ function LLMModelSelector() {
     document.activeElement?.blur();
   };
   
+  // Memoize providers array to prevent new array reference on every render
+  const providers = useMemo(() => ['Anthropic', 'OpenAI', 'Google'], []);
+  
   // 🔥 TEMP: Replace DaisyUI dropdown with simple native select to test if it's causing the infinite loop
   return (
     <select
@@ -160,7 +164,7 @@ function LLMModelSelector() {
       onChange={(e) => handleModelChange(e.target.value)}
       className="btn btn-sm btn-ghost text-xs"
     >
-      {['Anthropic', 'OpenAI', 'Google'].map(provider => {
+      {providers.map(provider => {
         const providerModels = LLM_MODELS.filter(m => m.provider === provider);
         return (
           <optgroup key={provider} label={provider}>
