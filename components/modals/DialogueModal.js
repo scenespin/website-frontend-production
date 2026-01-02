@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
