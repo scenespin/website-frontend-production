@@ -2,7 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import Navigation from "@/components/Navigation";
 import AgentDrawer from "@/components/AgentDrawer";
 import UnifiedChatPanel from "@/components/UnifiedChatPanel";
@@ -36,6 +36,31 @@ export default function WriteLayout({ children }) {
     return null;
   }
 
+  // 🔥 CRITICAL FIX: Memoize onInsert to prevent new function reference on every render
+  // This prevents UnifiedChatPanel's commonProps from being recreated, which causes infinite loops
+  const onInsert = useCallback((text, options) => {
+    // If this is a rewrite (selected text exists), use replaceSelection
+    if (options?.isRewrite && options?.selectionRange) {
+      const { start, end } = options.selectionRange;
+      // Clean the text and replace the selection
+      const cleanedText = text.trim();
+      replaceSelection(cleanedText, start, end);
+    } else {
+      // Regular insert: Insert text at current cursor position, or at end if no cursor
+      const position = editorState.cursorPosition ?? editorState.content.length;
+      // Add newline before insertion for separation (unless at start of file)
+      const contentBefore = editorState.content.substring(0, position);
+      const needsNewlineBefore = position > 0 && !contentBefore.endsWith('\n\n');
+      const textToInsert = needsNewlineBefore ? '\n\n' + text : text;
+      insertText(textToInsert, position);
+    }
+  }, [editorState.cursorPosition, editorState.content, insertText, replaceSelection]);
+
+  // Memoize editorContent and cursorPosition to prevent unnecessary re-renders
+  // Only create new references when values actually change
+  const editorContent = useMemo(() => editorState.content, [editorState.content]);
+  const cursorPosition = useMemo(() => editorState.cursorPosition, [editorState.cursorPosition]);
+
   // Note: ScreenplayProvider and EditorProvider are already provided by LayoutClient.js (root layout)
   // DO NOT wrap with duplicate providers here as it creates duplicate contexts
   return (
@@ -44,25 +69,9 @@ export default function WriteLayout({ children }) {
       {children}
       <AgentDrawer>
         <UnifiedChatPanel 
-          editorContent={editorState.content}
-          cursorPosition={editorState.cursorPosition}
-          onInsert={(text, options) => {
-            // If this is a rewrite (selected text exists), use replaceSelection
-            if (options?.isRewrite && options?.selectionRange) {
-              const { start, end } = options.selectionRange;
-              // Clean the text and replace the selection
-              const cleanedText = text.trim();
-              replaceSelection(cleanedText, start, end);
-            } else {
-              // Regular insert: Insert text at current cursor position, or at end if no cursor
-              const position = editorState.cursorPosition ?? editorState.content.length;
-              // Add newline before insertion for separation (unless at start of file)
-              const contentBefore = editorState.content.substring(0, position);
-              const needsNewlineBefore = position > 0 && !contentBefore.endsWith('\n\n');
-              const textToInsert = needsNewlineBefore ? '\n\n' + text : text;
-              insertText(textToInsert, position);
-            }
-          }}
+          editorContent={editorContent}
+          cursorPosition={cursorPosition}
+          onInsert={onInsert}
         />
       </AgentDrawer>
     </div>
