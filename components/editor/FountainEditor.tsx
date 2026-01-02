@@ -567,7 +567,7 @@ export default function FountainEditor({
                 {otherUsersCursors && otherUsersCursors.length > 0 && !state.highlightRange && (
                     <CursorOverlay
                         textareaRef={textareaRef}
-                        content={stripTagsForDisplay(lastSyncedContent)}
+                        content={displayContent}
                         cursors={otherUsersCursors}
                     />
                 )}
