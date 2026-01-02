@@ -166,6 +166,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     
     // Feature 0134: Store other users' cursor positions (for rendering)
     const [otherUsersCursors, setOtherUsersCursors] = useState<CursorPosition[]>([]);
+    const previousOtherUsersCursorsRef = useRef<CursorPosition[]>([]); // Track previous cursors for deep comparison
     
     // Feature 0134: Track last synced content from server (for cursor position calculations)
     // This is separate from state.content which includes unsaved local changes
@@ -2279,18 +2280,29 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     return !isOwnCursor && !isStale;
                 });
                 
-                // Update state with active cursors
-                setOtherUsersCursors(activeOtherCursors);
+                // Only update state if cursors actually changed (deep comparison)
+                // This prevents infinite loops from array reference changes
+                const previousCursorsKey = JSON.stringify(previousOtherUsersCursorsRef.current.map(c => ({ userId: c.userId, position: c.position })));
+                const newCursorsKey = JSON.stringify(activeOtherCursors.map(c => ({ userId: c.userId, position: c.position })));
+                const cursorsChanged = previousCursorsKey !== newCursorsKey;
                 
-                // Debug logging
-                console.log(`[EditorContext] Cursor polling: received ${cursors.length} cursor(s), filtered to ${activeOtherCursors.length} other user(s)`, {
-                    totalCursors: cursors.length,
-                    otherUsers: activeOtherCursors.length,
-                    currentUserId,
-                    currentUserIdType: typeof currentUserId,
-                    cursorUserIds: cursors.map(c => ({ userId: c.userId, userIdType: typeof c.userId, position: c.position, lastSeen: c.lastSeen })),
-                    activeOtherUserIds: activeOtherCursors.map(c => ({ userId: c.userId, userIdType: typeof c.userId, position: c.position }))
-                });
+                if (cursorsChanged) {
+                    setOtherUsersCursors(activeOtherCursors);
+                    previousOtherUsersCursorsRef.current = activeOtherCursors;
+                    
+                    // Debug logging
+                    console.log(`[EditorContext] Cursor polling: received ${cursors.length} cursor(s), filtered to ${activeOtherCursors.length} other user(s)`, {
+                        totalCursors: cursors.length,
+                        otherUsers: activeOtherCursors.length,
+                        currentUserId,
+                        currentUserIdType: typeof currentUserId,
+                        cursorUserIds: cursors.map(c => ({ userId: c.userId, userIdType: typeof c.userId, position: c.position, lastSeen: c.lastSeen })),
+                        activeOtherUserIds: activeOtherCursors.map(c => ({ userId: c.userId, userIdType: typeof c.userId, position: c.position }))
+                    });
+                } else {
+                    // Cursors unchanged - skip state update to prevent unnecessary re-renders
+                    console.log(`[EditorContext] Cursor polling: cursors unchanged, skipping state update`);
+                }
                 
                 if (activeOtherCursors.length > 0) {
                     console.log(`[EditorContext] Found ${activeOtherCursors.length} other user(s) with active cursors`);
