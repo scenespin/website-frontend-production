@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo, memo } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -97,16 +97,16 @@ const LLM_MODELS = [
 // MODE SELECTOR COMPONENT
 // ============================================================================
 
-function ModeSelector() {
+const ModeSelector = memo(function ModeSelector() {
   const { state, setMode } = useChatContext();
   const pathname = usePathname(); // Get current page path
   
-  // Filter modes based on current page
-  const availableModes = getAvailableModesForPage(pathname);
+  // 🔥 FIX: Memoize mode filtering to prevent unnecessary recalculations
+  const availableModes = useMemo(() => getAvailableModesForPage(pathname), [pathname]);
   
-  // Separate agents from features (only from available modes)
-  const agents = availableModes.filter(mode => MODE_CONFIG[mode]?.isAgent);
-  const features = availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent);
+  // Separate agents from features (only from available modes) - memoized
+  const agents = useMemo(() => availableModes.filter(mode => MODE_CONFIG[mode]?.isAgent), [availableModes]);
+  const features = useMemo(() => availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent), [availableModes]);
   
   const handleModeChange = (mode) => {
     setMode(mode);
@@ -178,7 +178,7 @@ function ModeSelector() {
       </ul>
     </div>
   );
-}
+});
 
 // ============================================================================
 // LLM MODEL SELECTOR COMPONENT (Text Generation Only)
