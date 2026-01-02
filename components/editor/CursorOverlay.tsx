@@ -30,6 +30,10 @@ export default function CursorOverlay({
   const lastCalculatedCursorsRef = useRef<string>(''); // Track last cursor set to avoid unnecessary recalculations
 
   // Update cursor positions when content or cursors change
+  // FIX: Removed 'content' from dependencies to prevent infinite loops
+  // Content changes on every keystroke/formatting, but cursor positions only need to update
+  // when cursors array changes or textarea ref changes. Content is used inside the effect
+  // but doesn't need to trigger recalculation on every change.
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) {
@@ -63,6 +67,7 @@ export default function CursorOverlay({
       // Collaborator cursor positions are based on the synced content from the server,
       // not the local textarea.value which may include unsaved changes from the current user.
       // Using textarea.value would cause collaborator cursors to move incorrectly when the current user types.
+      // Note: 'content' is captured from closure, not from dependencies, to avoid infinite loops
       const actualContent = content;
 
       const newPositions = new Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>();
@@ -132,11 +137,12 @@ export default function CursorOverlay({
       calculatePositions();
       lastCalculatedCursorsRef.current = cursorsKey;
     } else {
-      // Debounce for content changes (typing, etc.)
+      // Debounce for content changes (typing, etc.) - but only if cursors haven't changed
+      // This prevents infinite loops from content changes
       updateTimerRef.current = setTimeout(() => {
         calculatePositions();
         lastCalculatedCursorsRef.current = cursorsKey;
-      }, 50); // 50ms debounce for content updates
+      }, 100); // Increased debounce to 100ms to prevent rapid recalculations
     }
 
     return () => {
@@ -144,7 +150,7 @@ export default function CursorOverlay({
         clearTimeout(updateTimerRef.current);
       }
     };
-  }, [textareaRef, cursors, content]); // Use synced content for all calculations
+  }, [textareaRef, cursors]); // Removed 'content' from dependencies to prevent infinite loops
 
   // Recalculate on window resize
   useEffect(() => {
