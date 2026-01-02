@@ -239,12 +239,11 @@ export default function FountainEditor({
     }, []);
     
     // Auto-clear highlight after 3 seconds
-    useEffect(() => {
-        if (state.highlightRange && textareaRef.current && !isSettingHighlightRef.current) {
+    // Use useLayoutEffect for DOM-only operations that shouldn't trigger React updates
+    // This prevents infinite loops by running synchronously after DOM mutations but before paint
+    useLayoutEffect(() => {
+        if (state.highlightRange && textareaRef.current) {
             console.log('[FountainEditor] Highlight range set:', state.highlightRange);
-            
-            // Set flag to prevent re-triggering from selection changes
-            isSettingHighlightRef.current = true;
             
             // Convert highlight range from full content positions to display content positions
             // highlightRange is stored in fullContent coordinates (with tags)
@@ -269,43 +268,44 @@ export default function FountainEditor({
             const validStart = Math.max(0, Math.min(displayHighlightStart, displayContent.length));
             const validEnd = Math.max(validStart, Math.min(displayHighlightEnd, displayContent.length));
             
-            // Set cursor to end of inserted text (using display position)
-            // Use requestAnimationFrame to avoid triggering React updates during render
-            const timeoutId = setTimeout(() => {
-                if (textareaRef.current && state.highlightRange) {
-                    try {
-                        // Select the highlighted text in the textarea (for visual feedback)
-                        textareaRef.current.selectionStart = validStart;
+            // Set flag to prevent handleSelectionChange from processing this programmatic selection
+            isSettingHighlightRef.current = true;
+            
+            try {
+                // Select the highlighted text in the textarea (for visual feedback)
+                // This is a DOM-only operation that shouldn't trigger React state updates
+                textareaRef.current.selectionStart = validStart;
+                textareaRef.current.selectionEnd = validEnd;
+                
+                // Position cursor at end of highlight (not selecting)
+                // This gives visual feedback without keeping selection active
+                setTimeout(() => {
+                    if (textareaRef.current && state.highlightRange) {
+                        textareaRef.current.selectionStart = validEnd;
                         textareaRef.current.selectionEnd = validEnd;
                         textareaRef.current.focus({ preventScroll: false });
-                    } catch (error) {
-                        console.error('[FountainEditor] Error setting highlight selection:', error);
-                    } finally {
-                        // Reset flag after a delay to allow selection to settle
-                        setTimeout(() => {
-                            isSettingHighlightRef.current = false;
-                        }, 200);
+                        isSettingHighlightRef.current = false;
                     }
-                } else {
-                    isSettingHighlightRef.current = false;
-                }
-            }, 50);
-            
-            // Clear highlight after 3 seconds
+                }, 100);
+            } catch (error) {
+                console.error('[FountainEditor] Error setting highlight selection:', error);
+                isSettingHighlightRef.current = false;
+            }
+        }
+    }, [state.highlightRange, displayContent, state.content]);
+    
+    // Separate effect for auto-clearing highlight (doesn't manipulate DOM)
+    useEffect(() => {
+        if (state.highlightRange) {
             const timer = setTimeout(() => {
                 if (isMountedRef.current) {
                     clearHighlight();
-                    isSettingHighlightRef.current = false;
                 }
             }, 3000);
             
-            return () => {
-                clearTimeout(timeoutId);
-                clearTimeout(timer);
-                isSettingHighlightRef.current = false;
-            };
+            return () => clearTimeout(timer);
         }
-    }, [state.highlightRange, displayContent, state.content, clearHighlight]);
+    }, [state.highlightRange, clearHighlight]);
     
     // Scene navigation effect - uses navigation hook
     useEffect(() => {
