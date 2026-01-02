@@ -106,12 +106,12 @@ export function SceneAnalysisStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Props Selection (if props exist) */}
+          {/* Props Assignment Section (if props exist) */}
           {sceneProps.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-[#FFFFFF]">
-                  Props Assignment ({sceneProps.length} props)
+                  Props Assignment ({sceneProps.length} {sceneProps.length === 1 ? 'prop' : 'props'})
                 </label>
                 <div className="flex gap-2">
                   <button
@@ -138,6 +138,48 @@ export function SceneAnalysisStep({
                     Deselect All
                   </button>
                 </div>
+              </div>
+              {/* Props List with Checkboxes */}
+              <div className="space-y-2 p-2 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                {sceneProps.map((prop) => {
+                  // Check if prop is assigned to all enabled shots (or all shots if none enabled)
+                  const targetShots = enabledShots.length > 0 ? enabledShots : shots.map((s: any) => s.slot);
+                  const isAssignedToAll = targetShots.length > 0 && 
+                    targetShots.every(slot => propsToShots[prop.id]?.includes(slot));
+                  
+                  return (
+                    <label
+                      key={prop.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-[#1A1A1A] p-1.5 rounded transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isAssignedToAll}
+                        onChange={(e) => {
+                          const assignedShots = propsToShots[prop.id] || [];
+                          const newShots = e.target.checked
+                            ? [...new Set([...assignedShots, ...targetShots])] // Add to all target shots
+                            : assignedShots.filter(s => !targetShots.includes(s)); // Remove from target shots
+                          onPropsToShotsChange({
+                            ...propsToShots,
+                            [prop.id]: newShots
+                          });
+                        }}
+                        className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                      />
+                      {prop.imageUrl && (
+                        <img 
+                          src={prop.imageUrl} 
+                          alt={prop.name}
+                          className="w-4 h-4 object-cover rounded"
+                        />
+                      )}
+                      <span className="text-xs text-[#FFFFFF]">
+                        {prop.name}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -204,6 +246,84 @@ export function SceneAnalysisStep({
                           </span>
                           <Badge
                             variant="outline"
+                            className={`text-[10px] ${
+                              shot.type === 'dialogue'
+                                ? 'border-blue-500 text-blue-400'
+                                : 'border-green-500 text-green-400'
+                            }`}
+                          >
+                            {shot.type === 'dialogue' ? 'Dialogue' : 'Action'}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-[#808080] mt-1 line-clamp-2">
+                          {shot.description || shot.dialogueBlock?.dialogue || 'No description'}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-[10px] text-[#808080]">
+                            {shot.credits || 0} credits
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Right Side: Props Assignment - Right Aligned */}
+                    {sceneProps.length > 0 && (
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        {sceneProps.map((prop) => {
+                          const isAssigned = propsToShots[prop.id]?.includes(shot.slot) || false;
+                          return (
+                            <label
+                              key={prop.id}
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded border cursor-pointer transition-colors ${
+                                isAssigned
+                                  ? 'border-[#DC143C] bg-[#DC143C]/10'
+                                  : 'border-[#3F3F46] hover:border-[#808080]'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isAssigned}
+                                onChange={(e) => {
+                                  const assignedShots = propsToShots[prop.id] || [];
+                                  const newShots = e.target.checked
+                                    ? [...assignedShots, shot.slot]
+                                    : assignedShots.filter(s => s !== shot.slot);
+                                  onPropsToShotsChange({
+                                    ...propsToShots,
+                                    [prop.id]: newShots
+                                  });
+                                }}
+                                className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0"
+                              />
+                              {prop.imageUrl && (
+                                <img 
+                                  src={prop.imageUrl} 
+                                  alt={prop.name}
+                                  className="w-4 h-4 object-cover rounded"
+                                />
+                              )}
+                              <span className="text-[10px] text-[#FFFFFF] whitespace-nowrap">
+                                {prop.name}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Continue Button - Moved to Scene Preview section */}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
                             className={`text-[10px] ${
                               shot.type === 'dialogue'
                                 ? 'border-blue-500 text-blue-400'
