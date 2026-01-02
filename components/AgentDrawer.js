@@ -142,10 +142,15 @@ export default function AgentDrawer({ children }) {
             )}
           </div>
 
-          {/* Content */}
+          {/* Content - Only render when drawer is open to prevent unnecessary re-renders */}
           {isDrawerOpen && (
             <div className="h-[calc(100%-64px)] overflow-auto pb-6">
               {children}
+            </div>
+          )}
+          {!isDrawerOpen && (
+            <div className="h-[calc(100%-64px)] flex items-center justify-center">
+              <span className="text-sm text-base-content/60">Tap to open AI Assistant</span>
             </div>
           )}
         </div>
@@ -185,10 +190,16 @@ export default function AgentDrawer({ children }) {
                </button>
              </div>
 
-        {/* Content */}
-        <div className="h-[calc(100%-64px)] overflow-auto pb-6">
-          {children}
-        </div>
+        {/* Content - Only render when drawer is open to prevent unnecessary re-renders */}
+        {isDrawerOpen ? (
+          <div className="h-[calc(100%-64px)] overflow-auto pb-6">
+            {children}
+          </div>
+        ) : (
+          <div className="h-[calc(100%-64px)] flex items-center justify-center">
+            <span className="text-sm text-base-content/60">Click to open Story Advisor</span>
+          </div>
+        )}
       </div>
 
       {/* Floating Open Button (Desktop - when closed) */}
