@@ -26,6 +26,8 @@ function CursorOverlayInner({
   cursors
 }: CursorOverlayProps) {
   const [cursorPositions, setCursorPositions] = useState<Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>>(new Map());
+  // 🔥 FIX: Add scroll state to force re-renders when scroll changes
+  const [scrollState, setScrollState] = useState({ scrollTop: 0, scrollLeft: 0 });
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastCalculatedCursorsRef = useRef<string>(''); // Track last cursor set to avoid unnecessary recalculations
   const isCalculatingRef = useRef(false); // Prevent concurrent calculations
@@ -238,11 +240,14 @@ function CursorOverlayInner({
     };
 
     const handleScroll = () => {
-      // Don't update overlay position on scroll - just trigger cursor recalculation
-      // The overlay position doesn't change, only the cursor positions within it
-      // Note: We don't need to do anything here - the main useEffect will recalculate
-      // positions when content or cursors change, and scroll is handled in the render
-      // by adjusting positions with scroll offset
+      // 🔥 FIX: Update scroll state to trigger re-render so cursor positions adjust for scroll
+      const textarea = textareaRef.current;
+      if (textarea) {
+        setScrollState({
+          scrollTop: textarea.scrollTop,
+          scrollLeft: textarea.scrollLeft
+        });
+      }
     };
 
     window.addEventListener('resize', handleResize);
@@ -254,6 +259,17 @@ function CursorOverlayInner({
       window.removeEventListener('resize', handleResize);
       textarea.removeEventListener('scroll', handleScroll);
     };
+  }, [textareaRef]);
+
+  // 🔥 FIX: Initialize scroll state from textarea on mount
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      setScrollState({
+        scrollTop: textarea.scrollTop,
+        scrollLeft: textarea.scrollLeft
+      });
+    }
   }, [textareaRef]);
 
   const textarea = textareaRef.current;
@@ -305,8 +321,9 @@ function CursorOverlayInner({
         // (not the viewport). The hidden div shows content from the top, so position.y
         // represents where the cursor is in the full content.
         // We need to subtract scroll to get the position relative to the visible viewport.
-        const scrollY = textarea.scrollTop;
-        const scrollX = textarea.scrollLeft;
+        // 🔥 FIX: Use scrollState to ensure we get the latest scroll values on every render
+        const scrollY = scrollState.scrollTop;
+        const scrollX = scrollState.scrollLeft;
         
         // Adjust coordinates for scroll: position is in content space, subtract scroll to get viewport space
         const adjustedX = position.x - scrollX;
@@ -401,38 +418,8 @@ function CursorOverlayInner({
   );
 }
 
-// Wrap with React.memo using useMemo for stable key comparison
-// This prevents the comparison function from running .map() on every render
-const CursorOverlayMemo = React.memo(CursorOverlayInner, (prevProps, nextProps) => {
-  // Quick reference check first (most common case)
-  if (prevProps.cursors === nextProps.cursors && 
-      prevProps.content === nextProps.content && 
-      prevProps.textareaRef === nextProps.textareaRef) {
-    return true; // Skip re-render - nothing changed
-  }
-  
-  // Only do deep comparison if references changed
-  if (prevProps.cursors.length !== nextProps.cursors.length) {
-    return false; // Re-render - length changed
-  }
-  
-  // Compare cursor data without creating new arrays
-  for (let i = 0; i < prevProps.cursors.length; i++) {
-    const prev = prevProps.cursors[i];
-    const next = nextProps.cursors[i];
-    if (prev.userId !== next.userId || prev.position !== next.position) {
-      return false; // Re-render - cursor data changed
-    }
-  }
-  
-  // Check content and ref
-  if (prevProps.content !== nextProps.content || prevProps.textareaRef !== nextProps.textareaRef) {
-    return false; // Re-render if content or ref changed
-  }
-  
-  // Everything is the same - skip re-render
-  return true;
-});
-
-export default CursorOverlayMemo;
+// 🔥 FIX: Remove React.memo to allow re-renders on scroll state changes
+// Scroll state changes need to trigger re-renders so cursor positions adjust correctly
+// The component is already optimized with useMemo for cursor calculations and stable keys
+export default CursorOverlayInner;
 

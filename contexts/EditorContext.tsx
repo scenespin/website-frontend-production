@@ -2266,15 +2266,23 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 const now = Date.now();
                 const activeOtherCursors = cursors.filter(cursor => {
                     // Filter out own cursor
-                    const isOwnCursor = cursor.userId === currentUserId;
+                    // 🔥 FIX: Use string comparison to handle potential type mismatches
+                    const isOwnCursor = String(cursor.userId) === String(currentUserId);
                     if (isOwnCursor) {
-                        console.warn(`[EditorContext] ⚠️ Filtering out own cursor: currentUserId=${currentUserId} (${typeof currentUserId}), cursor.userId=${cursor.userId} (${typeof cursor.userId}), match=${cursor.userId === currentUserId}, strictMatch=${cursor.userId === currentUserId}`);
+                        console.warn(`[EditorContext] ⚠️ Filtering out own cursor: currentUserId=${currentUserId} (${typeof currentUserId}), cursor.userId=${cursor.userId} (${typeof cursor.userId}), match=${String(cursor.userId) === String(currentUserId)}`);
                     }
                     
                     // Filter out stale cursors (older than 30 seconds - matches backend timeout)
                     const isStale = now - cursor.lastSeen > 30000;
                     if (isStale) {
                         console.log(`[EditorContext] Filtering out stale cursor: userId=${cursor.userId}, age=${now - cursor.lastSeen}ms`);
+                    }
+                    
+                    // 🔥 DEBUG: Log all cursor filtering decisions
+                    if (!isOwnCursor && !isStale) {
+                        console.log(`[EditorContext] ✅ Keeping cursor: userId=${cursor.userId}, position=${cursor.position}, lastSeen=${cursor.lastSeen}ms ago`);
+                    } else {
+                        console.log(`[EditorContext] ❌ Filtering cursor: userId=${cursor.userId}, isOwnCursor=${isOwnCursor}, isStale=${isStale}`);
                     }
                     
                     return !isOwnCursor && !isStale;
