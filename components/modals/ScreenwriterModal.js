@@ -65,6 +65,36 @@ export default function ScreenwriterModal({
     setSelectedModel(value);
   }, []);
 
+  // 🔥 CRITICAL FIX: Memoize SelectContent children to prevent Radix UI from seeing new React elements on every render
+  const selectContentChildren = useMemo(() => (
+    <>
+      <SelectGroup>
+        <SelectLabel>Anthropic (Claude)</SelectLabel>
+        {anthropicModels.map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            {model.name} {model.recommended ? '⭐' : ''}
+          </SelectItem>
+        ))}
+      </SelectGroup>
+      <SelectGroup>
+        <SelectLabel>OpenAI (GPT)</SelectLabel>
+        {openAIModels.map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            {model.name}
+          </SelectItem>
+        ))}
+      </SelectGroup>
+      <SelectGroup>
+        <SelectLabel>Google (Gemini)</SelectLabel>
+        {googleModels.map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            {model.name}
+          </SelectItem>
+        ))}
+      </SelectGroup>
+    </>
+  ), [anthropicModels, openAIModels, googleModels]);
+
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
