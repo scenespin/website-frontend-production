@@ -228,19 +228,33 @@ export class SceneBuilderService {
       }
     }
     
-    // Filter to headshot poses only
+    // Filter to headshot poses only, but be lenient - include images without poseId if they have imageUrl
+    // This ensures user-uploaded images are included even if they don't have a matching poseId
     const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
     const headshotPoses = allPoseReferences.filter((ref: any) => {
       const poseId = ref.poseId || ref.metadata?.poseId;
-      return poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
+      const imageUrl = ref.imageUrl || ref.metadata?.imageUrl;
+      
+      // Include if it has a matching headshot poseId
+      if (poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()))) {
+        return true;
+      }
+      
+      // Also include if it has an imageUrl but no poseId (user-uploaded images)
+      // This ensures all Production Hub images are available for selection
+      if (!poseId && imageUrl) {
+        return true;
+      }
+      
+      return false;
     });
     
     // Transform to headshot format
     const beforeFinalDedup = headshotPoses
       .map((ref: any) => ({
         poseId: ref.poseId || ref.metadata?.poseId,
-        s3Key: ref.s3Key,
-        imageUrl: ref.imageUrl,
+        s3Key: ref.s3Key || ref.metadata?.s3Key,
+        imageUrl: ref.imageUrl || ref.metadata?.imageUrl,
         label: ref.label || ref.metadata?.poseName || 'Headshot',
         priority: ref.priority || 999,
         outfitName: ref.outfitName || ref.metadata?.outfitName
@@ -257,16 +271,25 @@ export class SceneBuilderService {
       })
       .slice(0, 10); // Limit to 10 headshots
     
-    // If no Production Hub images exist, include baseReference (creation image) as last resort
-    if (headshots.length === 0 && character.baseReference?.imageUrl) {
-      headshots.push({
-        poseId: 'base-reference',
-        s3Key: character.baseReference.s3Key || '',
-        imageUrl: character.baseReference.imageUrl,
-        label: 'Creation Image (Last Resort)',
-        priority: 9999, // Lowest priority (highest number) - this is last resort
-        outfitName: undefined
-      });
+    // Always include baseReference (creation image) if it exists, as a fallback option
+    // This ensures users can always see and select the creation image even if Production Hub images exist
+    if (character.baseReference?.imageUrl) {
+      // Check if baseReference is already in headshots (avoid duplicates)
+      const baseRefExists = headshots.some((h: any) => 
+        h.poseId === 'base-reference' || 
+        (h.imageUrl === character.baseReference.imageUrl)
+      );
+      
+      if (!baseRefExists) {
+        headshots.push({
+          poseId: 'base-reference',
+          s3Key: character.baseReference.s3Key || '',
+          imageUrl: character.baseReference.imageUrl,
+          label: 'Creation Image (Last Resort)',
+          priority: 9999, // Lowest priority (highest number) - this is last resort
+          outfitName: undefined
+        });
+      }
     }
     
     return headshots;

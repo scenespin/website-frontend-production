@@ -1364,10 +1364,25 @@ function UnifiedChatPanelInner({
 // MAIN EXPORT WITH CONTEXT PROVIDER
 // ============================================================================
 
+// 🔥 CRITICAL: Memoize UnifiedChatPanelInner to prevent unnecessary re-renders
+// This prevents library components from seeing "changed" props and triggering infinite loops
+const UnifiedChatPanelInnerMemo = memo(UnifiedChatPanelInner, (prevProps, nextProps) => {
+  // Only re-render if these specific props actually change
+  return (
+    prevProps.editorContent === nextProps.editorContent &&
+    prevProps.cursorPosition === nextProps.cursorPosition &&
+    prevProps.onInsert === nextProps.onInsert &&
+    prevProps.onWorkflowComplete === nextProps.onWorkflowComplete &&
+    prevProps.selectedTextContext === nextProps.selectedTextContext &&
+    prevProps.initialPrompt === nextProps.initialPrompt &&
+    prevProps.initialMode === nextProps.initialMode
+  );
+});
+
 export default function UnifiedChatPanel(props) {
   return (
     <ChatProvider initialContext={props.sceneContext}>
-      <UnifiedChatPanelInner {...props} />
+      <UnifiedChatPanelInnerMemo {...props} />
     </ChatProvider>
   );
 }
