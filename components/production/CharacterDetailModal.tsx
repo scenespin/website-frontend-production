@@ -575,16 +575,28 @@ export function CharacterDetailModal({
                     'Image';
       
       // Get outfit from DynamoDB metadata or Media Library folder
-      let outfitName = dynamoMetadata?.outfitName;
-      if (!outfitName && file.folderPath && Array.isArray(file.folderPath)) {
+      // 🔥 FIX: Store both original and normalized outfit name
+      let outfitNameOriginal = dynamoMetadata?.outfitName;
+      if (!outfitNameOriginal && file.folderPath && Array.isArray(file.folderPath)) {
         const outfitsIndex = file.folderPath.indexOf('Outfits');
         if (outfitsIndex >= 0 && outfitsIndex + 1 < file.folderPath.length) {
-          outfitName = file.folderPath[outfitsIndex + 1];
+          outfitNameOriginal = file.folderPath[outfitsIndex + 1];
         }
       }
-      if (!outfitName) {
-        outfitName = file.metadata?.outfitName || extractOutfitFromS3Key(file.s3Key) || 'default';
+      if (!outfitNameOriginal) {
+        outfitNameOriginal = file.metadata?.outfitName || extractOutfitFromS3Key(file.s3Key) || 'default';
       }
+      
+      // Normalize outfit name for matching (but preserve original for display)
+      const normalizeOutfitName = (name: string): string => {
+        if (!name) return '';
+        return name
+          .toLowerCase()
+          .replace(/[_\s]+/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .trim();
+      };
+      const outfitName = normalizeOutfitName(outfitNameOriginal);
       
       // 🔥 FIX: Use s3Key as stable ID if no DynamoDB ID found (for newly uploaded images)
       // This ensures uploaded images are clickable even before DynamoDB metadata is available
@@ -600,11 +612,12 @@ export function CharacterDetailModal({
         label,
         isBase,
         isPose,
-        outfitName,
+        outfitName, // Normalized for matching
+        outfitNameOriginal: outfitNameOriginal, // Original for display
         poseId: dynamoMetadata?.poseId,
         isRegenerated: dynamoMetadata?.isRegenerated,
         regeneratedFrom: dynamoMetadata?.regeneratedFrom,
-        metadata: { ...file.metadata, ...dynamoMetadata?.metadata },
+        metadata: { ...file.metadata, ...dynamoMetadata?.metadata, outfitNameOriginal },
         index
       });
     });
@@ -781,6 +794,16 @@ export function CharacterDetailModal({
   
   // 🔥 NEW: Group poses by outfit, and pair regenerated poses with originals
   const posesByOutfit = useMemo(() => {
+    // 🔥 FIX: Normalize outfit names for grouping
+    const normalizeOutfitName = (name: string): string => {
+      if (!name) return '';
+      return name
+        .toLowerCase()
+        .replace(/[_\s]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .trim();
+    };
+    
     const grouped: Record<string, PoseReferenceWithOutfit[]> = {};
     
     // First, separate original poses from regenerated ones
@@ -797,7 +820,7 @@ export function CharacterDetailModal({
     
     // Group original poses by outfit, and add regenerated versions right after each original
     originalPoses.forEach(pose => {
-      const outfit = pose.outfitName || 'default';
+      const outfit = normalizeOutfitName(pose.outfitName || 'default');
       if (!grouped[outfit]) {
         grouped[outfit] = [];
       }
@@ -813,7 +836,7 @@ export function CharacterDetailModal({
     // Add any regenerated poses that don't have a matching original (shouldn't happen, but safety)
     regeneratedPoses.forEach(regenerated => {
       if (!originalPoses.some(orig => orig.s3Key === regenerated.regeneratedFrom)) {
-        const outfit = regenerated.outfitName || 'default';
+        const outfit = normalizeOutfitName(regenerated.outfitName || 'default');
         if (!grouped[outfit]) {
           grouped[outfit] = [];
         }
@@ -885,6 +908,12 @@ export function CharacterDetailModal({
         return 'pose-generation';
       }
       
+      // 🔥 FIX: If not a pose and no generation method, it's a user upload
+      // Check if it's explicitly marked as AI-generated in metadata
+      if (img.isPose === false && !method) {
+        return 'user-upload';
+      }
+      
       // Default to user-upload for uploaded images (when no method specified)
       return 'user-upload';
     },
@@ -893,11 +922,22 @@ export function CharacterDetailModal({
   });
   
   // Filter gallery images by outfit
+  // 🔥 FIX: Normalize both sides when comparing outfit names
   const filteredGalleryImages = useMemo(() => {
     if (!selectedOutfitGallery) return galleryImages;
+    const normalizeOutfitName = (name: string): string => {
+      if (!name) return '';
+      return name
+        .toLowerCase()
+        .replace(/[_\s]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .trim();
+    };
+    const normalizedSelected = normalizeOutfitName(selectedOutfitGallery);
     return galleryImages.filter(img => {
       const imgOutfit = img.outfitName || 'default';
-      return imgOutfit === selectedOutfitGallery;
+      const normalizedImgOutfit = normalizeOutfitName(imgOutfit);
+      return normalizedImgOutfit === normalizedSelected;
     });
   }, [galleryImages, selectedOutfitGallery]);
   
@@ -1683,8 +1723,9 @@ export function CharacterDetailModal({
                                     ? displayPhysicalAttributes.typicalClothing
                                     : 'Default Outfit';
                                 } else {
+                                  // 🔥 FIX: Handle both underscores and hyphens in outfit names
                                   outfitDisplayName = outfitName
-                                    .split('-')
+                                    .split(/[-_]/)
                                     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                                     .join(' ');
                                 }
@@ -1700,8 +1741,27 @@ export function CharacterDetailModal({
                       )}
                       
                       {/* Production Hub Images Grid - Filtered by selected outfit */}
+                      {/* 🔥 FIX: Normalize outfit names when filtering */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {(selectedOutfitReferences ? posesByOutfit[selectedOutfitReferences] || [] : poseReferences).map((img) => {
+                        {(() => {
+                          const normalizeOutfitName = (name: string): string => {
+                            if (!name) return '';
+                            return name
+                              .toLowerCase()
+                              .replace(/[_\s]+/g, '_')
+                              .replace(/^_+|_+$/g, '')
+                              .trim();
+                          };
+                          const filteredPoses = selectedOutfitReferences 
+                            ? (() => {
+                                const normalizedSelected = normalizeOutfitName(selectedOutfitReferences);
+                                return poseReferences.filter(img => {
+                                  const imgOutfit = img.outfitName || 'default';
+                                  return normalizeOutfitName(imgOutfit) === normalizedSelected;
+                                });
+                              })()
+                            : poseReferences;
+                          return filteredPoses.map((img) => {
                           // All images in poseReferences are Production Hub images (editable/deletable)
                           const isSelected = selectedImageIds.has(img.id);
                           return (
