@@ -611,31 +611,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {/* Group by provider for better organization */}
-                        <SelectGroup>
-                          <SelectLabel>Anthropic (Claude)</SelectLabel>
-                          {anthropicModels.map((model) => (
-                            <SelectItem key={model.id} value={model.id}>
-                              {model.name} {model.recommended ? '⭐' : ''}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectLabel>OpenAI (GPT)</SelectLabel>
-                          {openAIModels.map((model) => (
-                            <SelectItem key={model.id} value={model.id}>
-                              {model.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectLabel>Google (Gemini)</SelectLabel>
-                          {googleModels.map((model) => (
-                            <SelectItem key={model.id} value={model.id}>
-                              {model.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
+                        {selectContentChildren}
                       </SelectContent>
                     </Select>
                     <button
