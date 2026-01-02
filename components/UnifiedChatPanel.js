@@ -363,6 +363,13 @@ function UnifiedChatPanelInner({
         previousContextRef.current = null;
       }
     }
+    }, 100); // 100ms debounce to prevent rapid updates
+    
+    return () => {
+      if (sceneContextTimeoutRef.current) {
+        clearTimeout(sceneContextTimeoutRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDrawerOpen, state.activeMode, editorContent, cursorPosition]);
   // Note: setSceneContext is intentionally omitted from deps - it's a stable context setter
