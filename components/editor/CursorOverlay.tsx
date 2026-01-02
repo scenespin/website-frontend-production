@@ -28,13 +28,19 @@ export default function CursorOverlay({
   const [cursorPositions, setCursorPositions] = useState<Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>>(new Map());
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastCalculatedCursorsRef = useRef<string>(''); // Track last cursor set to avoid unnecessary recalculations
+  const isCalculatingRef = useRef(false); // Prevent concurrent calculations
+  const previousCursorsRef = useRef<CursorPosition[]>([]); // Track previous cursors array for stable comparison
 
-  // Update cursor positions when content or cursors change
-  // FIX: Removed 'content' from dependencies to prevent infinite loops
-  // Content changes on every keystroke/formatting, but cursor positions only need to update
-  // when cursors array changes or textarea ref changes. Content is used inside the effect
-  // but doesn't need to trigger recalculation on every change.
+  // Update cursor positions when cursors change
+  // FIX: Use stable comparison to prevent infinite loops from array reference changes
+  // Content is NOT in dependencies - it's captured from closure to avoid recalculating on every keystroke
   useEffect(() => {
+    // Prevent concurrent calculations
+    if (isCalculatingRef.current) {
+      console.log('[CursorOverlay] Calculation already in progress, skipping');
+      return;
+    }
+
     const textarea = textareaRef.current;
     if (!textarea) {
       console.log('[CursorOverlay] Textarea ref is null, clearing positions');
@@ -45,28 +51,52 @@ export default function CursorOverlay({
     if (cursors.length === 0) {
       console.log('[CursorOverlay] No cursors, clearing positions');
       setCursorPositions(new Map());
+      lastCalculatedCursorsRef.current = '';
       return;
     }
+
+    // Create a stable key for the current cursor set to detect actual changes
+    // Use JSON.stringify for deep comparison to avoid issues with array reference changes
+    const cursorsKey = JSON.stringify(cursors.map(c => ({ userId: c.userId, position: c.position })));
+    const isFirstCalculation = lastCalculatedCursorsRef.current === '';
+    const cursorsChanged = lastCalculatedCursorsRef.current !== cursorsKey;
+    
+    // Also check if the cursors array reference changed but content is the same
+    const previousCursorsKey = JSON.stringify(previousCursorsRef.current.map(c => ({ userId: c.userId, position: c.position })));
+    const cursorsActuallyChanged = cursorsKey !== previousCursorsKey;
+
+    // Only recalculate if cursors actually changed (deep comparison)
+    if (!isFirstCalculation && !cursorsActuallyChanged) {
+      console.log('[CursorOverlay] Cursors unchanged (deep comparison), skipping recalculation');
+      return;
+    }
+    
+    // Update previous cursors ref
+    previousCursorsRef.current = cursors;
 
     console.log('[CursorOverlay] Calculating positions for', cursors.length, 'cursor(s)', {
       contentLength: content.length,
       textareaExists: !!textarea,
-      textareaValueLength: textarea.value?.length || 0
+      textareaValueLength: textarea.value?.length || 0,
+      cursorsChanged,
+      isFirstCalculation
     });
 
-    // Calculate positions immediately (no debounce) to avoid race conditions
-    // The calculation is fast enough that debouncing isn't necessary
+    // Set flag to prevent concurrent calculations
+    isCalculatingRef.current = true;
+
+    // Calculate positions
     const calculatePositions = () => {
       const textarea = textareaRef.current;
       if (!textarea) {
         console.warn('[CursorOverlay] Textarea ref became null during calculation');
+        isCalculatingRef.current = false;
         return;
       }
 
       // 🔥 FIX: Use synced content for all cursor position calculations
       // Collaborator cursor positions are based on the synced content from the server,
       // not the local textarea.value which may include unsaved changes from the current user.
-      // Using textarea.value would cause collaborator cursors to move incorrectly when the current user types.
       // Note: 'content' is captured from closure, not from dependencies, to avoid infinite loops
       const actualContent = content;
 
@@ -102,13 +132,6 @@ export default function CursorOverlay({
               selectionStart,
               selectionEnd
             });
-            
-            console.log('[CursorOverlay] Calculated position for cursor', cursor.userId, position);
-          } else {
-            console.warn('[CursorOverlay] Failed to calculate position for cursor', cursor.userId, {
-              position: cursor.position,
-              contentLength: actualContent.length
-            });
           }
         } catch (error) {
           console.error('[CursorOverlay] Error calculating position for cursor', cursor.userId, error);
@@ -119,38 +142,17 @@ export default function CursorOverlay({
         cursorsProcessed: cursors.length,
         positionsCalculated: newPositions.size
       });
+      
       setCursorPositions(newPositions);
-    };
-
-    // Create a stable key for the current cursor set to detect changes
-    const cursorsKey = cursors.map(c => `${c.userId}:${c.position}`).join('|');
-    const isFirstCalculation = lastCalculatedCursorsRef.current === '';
-    const cursorsChanged = lastCalculatedCursorsRef.current !== cursorsKey;
-
-    // Debounce rapid updates (e.g., during typing) but calculate immediately on first change or when cursors change
-    if (updateTimerRef.current) {
-      clearTimeout(updateTimerRef.current);
-    }
-
-    if (isFirstCalculation || cursorsChanged) {
-      // Calculate immediately for first calculation or when cursor set changes
-      calculatePositions();
       lastCalculatedCursorsRef.current = cursorsKey;
-    } else {
-      // Debounce for content changes (typing, etc.) - but only if cursors haven't changed
-      // This prevents infinite loops from content changes
-      updateTimerRef.current = setTimeout(() => {
-        calculatePositions();
-        lastCalculatedCursorsRef.current = cursorsKey;
-      }, 100); // Increased debounce to 100ms to prevent rapid recalculations
-    }
-
-    return () => {
-      if (updateTimerRef.current) {
-        clearTimeout(updateTimerRef.current);
-      }
+      isCalculatingRef.current = false;
     };
-  }, [textareaRef, cursors]); // Removed 'content' from dependencies to prevent infinite loops
+
+    // Use requestAnimationFrame to batch the state update
+    requestAnimationFrame(() => {
+      calculatePositions();
+    });
+  }, [textareaRef, cursors]); // Only depend on cursors array - content is captured from closure
 
   // Recalculate on window resize
   useEffect(() => {
