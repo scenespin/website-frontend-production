@@ -263,6 +263,9 @@ function UnifiedChatPanelInner({
   
   // 🔥 FIX: Track previous context to prevent unnecessary updates
   const previousContextRef = useRef(null);
+  // 🔥 FIX: Track previous editorContent and cursorPosition to prevent unnecessary effect runs
+  const previousEditorContentRef = useRef(null);
+  const previousCursorPositionRef = useRef(null);
   const { startWorkflow } = useChatMode();
   const { getToken } = useAuth();
   const { canUseAI } = useScreenplay();
@@ -336,12 +339,34 @@ function UnifiedChatPanelInner({
     // Only detect context for AI agents that need screenplay context
     const needsContext = MODE_CONFIG[state.activeMode]?.isAgent;
     
+    // 🔥 FIX: Skip if editorContent and cursorPosition haven't actually changed
+    const editorContentChanged = editorContent !== previousEditorContentRef.current;
+    const cursorPositionChanged = cursorPosition !== previousCursorPositionRef.current;
+    const activeModeChanged = state.activeMode !== previousContextRef.current?.lastActiveMode;
+    
+    if (!needsContext || !editorContent || (!editorContentChanged && !cursorPositionChanged && !activeModeChanged)) {
+      // Update refs even if we're skipping
+      previousEditorContentRef.current = editorContent;
+      previousCursorPositionRef.current = cursorPosition;
+      if (previousContextRef.current) {
+        previousContextRef.current.lastActiveMode = state.activeMode;
+      }
+      return;
+    }
+    
+    // Update refs before processing
+    previousEditorContentRef.current = editorContent;
+    previousCursorPositionRef.current = cursorPosition;
+    
     console.log('[UnifiedChatPanel] Context detection check:', {
       needsContext,
       hasEditorContent: !!editorContent,
       editorContentLength: editorContent?.length,
       cursorPosition,
-      activeMode: state.activeMode
+      activeMode: state.activeMode,
+      editorContentChanged,
+      cursorPositionChanged,
+      activeModeChanged
     });
     
     if (needsContext && editorContent) {
@@ -390,9 +415,13 @@ function UnifiedChatPanelInner({
         if (contextKey !== previousKey) {
           console.log('[UnifiedChatPanel] ✅ Scene context detected and set:', contextData);
           setSceneContext(contextData);
-          previousContextRef.current = contextData;
+          previousContextRef.current = { ...contextData, lastActiveMode: state.activeMode };
         } else {
           console.log('[UnifiedChatPanel] Scene context unchanged, skipping update');
+          // Still update lastActiveMode in ref
+          if (previousContextRef.current) {
+            previousContextRef.current.lastActiveMode = state.activeMode;
+          }
         }
       } else {
         // Only clear if we had context before
