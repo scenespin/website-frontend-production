@@ -330,8 +330,9 @@ export function CharacterPoseCropModal({
                     {!imageLoaded && (
                       <div className="text-[#808080]">Loading image...</div>
                     )}
-                    {/* Render image once - ReactCrop will wrap it when loaded */}
-                    {imageLoaded && crop ? (
+                    {/* 🔥 FIX: Always render ReactCrop when image is loaded, even if crop is undefined */}
+                    {/* This allows users to click and drag to create a crop area */}
+                    {imageLoaded ? (
                       <div className="w-full h-full flex items-center justify-center">
                         <ReactCrop
                           crop={crop}
@@ -399,6 +400,7 @@ export function CharacterPoseCropModal({
                             ref={imgRef}
                             src={imageUrl}
                             alt="Crop"
+                            onLoad={onImageLoad}
                             onError={async () => {
                               console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
                               if (poseS3Key) {
