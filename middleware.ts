@@ -6,6 +6,10 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/features(.*)',              // Features page (marketing)
+  '/compare(.*)',                // Compare page (marketing)
+  '/pricing(.*)',                // Pricing page (marketing)
+  '/help(.*)',                   // Help center and all help pages (marketing/documentation)
   '/api/gallery(.*)',           // Feature 0112: Workflow gallery
   '/api/waitlist(.*)',           // Waitlist signup
   '/api/affiliates(.*)',         // Affiliate tracking  
