@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment, useMemo, useCallback } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, Edit3 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -12,7 +12,7 @@ import { validateScreenwriterContent } from '@/utils/jsonValidator';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getTimingMessage } from '@/utils/modelTiming';
 import toast from 'react-hot-toast';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ModelSelect } from '@/components/ui/ModelSelect';
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -54,46 +54,10 @@ export default function ScreenwriterModal({
     return chatState.selectedModel || 'claude-sonnet-4-5-20250929';
   });
 
-  // 🔥 CRITICAL FIX: Memoize filtered model arrays to prevent Radix UI Select from seeing new arrays on every render
-  // This prevents infinite re-render loops when the modal opens
-  const anthropicModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Anthropic'), []);
-  const openAIModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'OpenAI'), []);
-  const googleModels = useMemo(() => LLM_MODELS.filter(m => m.provider === 'Google'), []);
-
-  // 🔥 CRITICAL FIX: Memoize onValueChange callback to prevent Radix UI Select from seeing new function on every render
-  const handleModelChange = useCallback((value) => {
+  // Simple handler - Headless UI doesn't have the infinite loop issues that Radix UI had
+  const handleModelChange = (value) => {
     setSelectedModel(value);
-  }, []);
-
-  // 🔥 CRITICAL FIX: Memoize SelectContent children to prevent Radix UI from seeing new React elements on every render
-  const selectContentChildren = useMemo(() => (
-    <>
-      <SelectGroup>
-        <SelectLabel>Anthropic (Claude)</SelectLabel>
-        {anthropicModels.map((model) => (
-          <SelectItem key={model.id} value={model.id}>
-            {model.name} {model.recommended ? '⭐' : ''}
-          </SelectItem>
-        ))}
-      </SelectGroup>
-      <SelectGroup>
-        <SelectLabel>OpenAI (GPT)</SelectLabel>
-        {openAIModels.map((model) => (
-          <SelectItem key={model.id} value={model.id}>
-            {model.name}
-          </SelectItem>
-        ))}
-      </SelectGroup>
-      <SelectGroup>
-        <SelectLabel>Google (Gemini)</SelectLabel>
-        {googleModels.map((model) => (
-          <SelectItem key={model.id} value={model.id}>
-            {model.name}
-          </SelectItem>
-        ))}
-      </SelectGroup>
-    </>
-  ), [anthropicModels, openAIModels, googleModels]);
+  };
 
   // Reset state when modal closes
   useEffect(() => {
@@ -600,20 +564,14 @@ CRITICAL SPACING RULES (Fountain.io spec):
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Model Selector */}
-                    <Select
-                      key={`model-selector-${isOpen}`}
+                    {/* Model Selector - Using Headless UI instead of Radix UI to avoid infinite loops */}
+                    <ModelSelect
                       value={selectedModel}
-                      onValueChange={handleModelChange}
+                      onChange={handleModelChange}
+                      models={LLM_MODELS}
                       disabled={isLoading}
-                    >
-                      <SelectTrigger className="max-w-[140px] h-8 text-xs" title="Select AI model">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectContentChildren}
-                      </SelectContent>
-                    </Select>
+                      className="max-w-[140px]"
+                    />
                     <button
                       onClick={onClose}
                       disabled={isLoading}
