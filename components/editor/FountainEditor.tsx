@@ -58,6 +58,7 @@ export default function FountainEditor({
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null!);
     const isMountedRef = useRef(true);
+    const isSettingHighlightRef = useRef(false);
     
     // Auto-save manager
     const autoSaveManager = useRef<AutoSaveManager>(
@@ -239,8 +240,11 @@ export default function FountainEditor({
     
     // Auto-clear highlight after 3 seconds
     useEffect(() => {
-        if (state.highlightRange && textareaRef.current) {
+        if (state.highlightRange && textareaRef.current && !isSettingHighlightRef.current) {
             console.log('[FountainEditor] Highlight range set:', state.highlightRange);
+            
+            // Set flag to prevent re-triggering from selection changes
+            isSettingHighlightRef.current = true;
             
             // Convert highlight range from full content positions to display content positions
             // highlightRange is stored in fullContent coordinates (with tags)
@@ -261,16 +265,29 @@ export default function FountainEditor({
                 display: { start: displayHighlightStart, end: displayHighlightEnd }
             });
             
+            // Validate positions are within bounds
+            const validStart = Math.max(0, Math.min(displayHighlightStart, displayContent.length));
+            const validEnd = Math.max(validStart, Math.min(displayHighlightEnd, displayContent.length));
+            
             // Set cursor to end of inserted text (using display position)
-            setTimeout(() => {
+            // Use requestAnimationFrame to avoid triggering React updates during render
+            const timeoutId = setTimeout(() => {
                 if (textareaRef.current && state.highlightRange) {
-                    // Select the highlighted text in the textarea (for visual feedback)
-                    textareaRef.current.selectionStart = displayHighlightStart;
-                    textareaRef.current.selectionEnd = displayHighlightEnd;
-                    textareaRef.current.focus({ preventScroll: false });
-                    
-                    // Scroll into view if needed
-                    textareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    try {
+                        // Select the highlighted text in the textarea (for visual feedback)
+                        textareaRef.current.selectionStart = validStart;
+                        textareaRef.current.selectionEnd = validEnd;
+                        textareaRef.current.focus({ preventScroll: false });
+                    } catch (error) {
+                        console.error('[FountainEditor] Error setting highlight selection:', error);
+                    } finally {
+                        // Reset flag after a delay to allow selection to settle
+                        setTimeout(() => {
+                            isSettingHighlightRef.current = false;
+                        }, 200);
+                    }
+                } else {
+                    isSettingHighlightRef.current = false;
                 }
             }, 50);
             
@@ -278,10 +295,15 @@ export default function FountainEditor({
             const timer = setTimeout(() => {
                 if (isMountedRef.current) {
                     clearHighlight();
+                    isSettingHighlightRef.current = false;
                 }
             }, 3000);
             
-            return () => clearTimeout(timer);
+            return () => {
+                clearTimeout(timeoutId);
+                clearTimeout(timer);
+                isSettingHighlightRef.current = false;
+            };
         }
     }, [state.highlightRange, displayContent, state.content, clearHighlight]);
     
@@ -437,7 +459,8 @@ export default function FountainEditor({
     
     // Handle cursor position changes
     const handleSelectionChange = () => {
-        if (!textareaRef.current) return;
+        // Skip if we're currently setting highlight (prevents infinite loop)
+        if (isSettingHighlightRef.current || !textareaRef.current) return;
         
         const cursorPos = textareaRef.current.selectionStart;
         
