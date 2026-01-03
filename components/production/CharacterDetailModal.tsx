@@ -2041,7 +2041,6 @@ export function CharacterDetailModal({
                           </div>
                         </div>
                       );
-                        })}
                         })()}
                       </div>
                     </div>
