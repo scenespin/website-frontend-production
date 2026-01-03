@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
-    const { locationProfile, packageId, angles, quality, providerId } = body; // 🔥 FIX: Include providerId
+    const { locationProfile, packageId, angles, quality, providerId, additionalPrompt } = body; // 🔥 FIX: Include providerId and additionalPrompt
 
     if (!locationProfile) {
       return NextResponse.json(
@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
         packageId, // NEW: Forward packageId
         angles, // Keep for backward compatibility
         quality, // NEW: Forward quality tier
-        providerId // 🔥 FIX: Forward providerId to backend
+        providerId, // 🔥 FIX: Forward providerId to backend
+        additionalPrompt // 🔥 FIX: Forward additionalPrompt to backend
       }),
     });
 

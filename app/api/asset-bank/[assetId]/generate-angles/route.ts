@@ -46,7 +46,7 @@ export async function POST(
 
     // Get request body
     const body = await request.json();
-    const { packageId, quality, providerId } = body; // 🔥 FIX: Include providerId
+    const { packageId, quality, providerId, additionalPrompt } = body; // 🔥 FIX: Include providerId and additionalPrompt
 
     if (!packageId) {
       return NextResponse.json(
@@ -86,7 +86,8 @@ export async function POST(
       body: JSON.stringify({
         packageId,
         quality: quality || 'standard',
-        providerId // 🔥 FIX: Forward providerId to backend
+        providerId, // 🔥 FIX: Forward providerId to backend
+        additionalPrompt // 🔥 FIX: Forward additionalPrompt to backend
       }),
     });
 
