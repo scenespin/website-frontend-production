@@ -62,7 +62,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
 import { getScreenplay } from '@/utils/screenplayStorage';
-import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { SceneSelector } from './SceneSelector';
@@ -206,6 +206,37 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>>({});
   const [loadingHeadshots, setLoadingHeadshots] = useState<Record<string, boolean>>({});
   
+  // 🔥 NEW: Track character IDs for Media Library query
+  const [characterIdsForMediaLibrary, setCharacterIdsForMediaLibrary] = useState<string[]>([]);
+  
+  // 🔥 NEW: Query Media Library for all character images (single query for efficiency)
+  const { data: allCharacterMediaFiles = [] } = useMediaFiles(
+    projectId,
+    undefined,
+    characterIdsForMediaLibrary.length > 0, // Only query when we have character IDs
+    false,
+    'character' // entityType only, no entityId (get all character images)
+  );
+  
+  // 🔥 NEW: Filter Media Library files by character IDs
+  const characterMediaFiles = React.useMemo(() => {
+    if (!allCharacterMediaFiles || characterIdsForMediaLibrary.length === 0) return [];
+    return allCharacterMediaFiles.filter((file: any) => 
+      characterIdsForMediaLibrary.includes(file.metadata?.entityId || file.entityId)
+    );
+  }, [allCharacterMediaFiles, characterIdsForMediaLibrary]);
+  
+  // 🔥 NEW: Build character thumbnailS3KeyMap from Media Library results
+  const characterThumbnailS3KeyMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    characterMediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) {
+        map.set(file.s3Key, file.thumbnailS3Key);
+      }
+    });
+    return map;
+  }, [characterMediaFiles]);
+  
   // Track which shots are enabled (for wizard flow)
   const [enabledShots, setEnabledShots] = useState<number[]>([]);
   
@@ -237,20 +268,109 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Video Quality Selection (per-shot, defaults to '4k')
   const [selectedVideoQualities, setSelectedVideoQualities] = useState<Record<number, 'hd' | '4k'>>({});
   
-  // 🔥 NEW: Collect all headshot thumbnail S3 keys
+  // 🔥 NEW: Map Media Library files to character headshot structure
+  useEffect(() => {
+    if (characterMediaFiles.length === 0 || characterIdsForMediaLibrary.length === 0) return;
+    
+    // Helper function to map Media Library files to headshot structure
+    const mapMediaFilesToHeadshots = (mediaFiles: any[], characterId: string) => {
+      const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
+      
+      const headshots: Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }> = [];
+      
+      mediaFiles.forEach((file: any) => {
+        if ((file.metadata?.entityId || file.entityId) === characterId) {
+          const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
+          const isHeadshot = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
+          const isProductionHub = file.metadata?.createdIn === 'production-hub' || 
+                                   file.metadata?.source === 'pose-generation' ||
+                                   file.metadata?.uploadMethod === 'pose-generation';
+          
+          // Include headshot poses or Production Hub images without poseId
+          if (isHeadshot || (isProductionHub && !poseId)) {
+            headshots.push({
+              poseId: poseId || file.s3Key, // Use s3Key as fallback ID for backend compatibility
+              s3Key: file.s3Key,
+              imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
+              label: file.metadata?.poseName || file.metadata?.angle || 'Headshot',
+              priority: file.metadata?.priority || 999,
+              outfitName: file.metadata?.outfitName
+            });
+          }
+        }
+      });
+      
+      // Sort by priority (lower number = higher priority)
+      headshots.sort((a, b) => (a.priority || 999) - (b.priority || 999));
+      
+      return headshots.slice(0, 10); // Limit to 10 headshots
+    };
+    
+    // Build headshots for each character from Media Library
+    const newHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>> = {};
+    
+    characterIdsForMediaLibrary.forEach(characterId => {
+      const characterFiles = characterMediaFiles.filter((file: any) => 
+        (file.metadata?.entityId || file.entityId) === characterId
+      );
+      
+      if (characterFiles.length > 0) {
+        const headshots = mapMediaFilesToHeadshots(characterFiles, characterId);
+        if (headshots.length > 0) {
+          newHeadshots[characterId] = headshots;
+        }
+      }
+    });
+    
+    // Update headshots state
+    if (Object.keys(newHeadshots).length > 0) {
+      setCharacterHeadshots(prev => ({ ...prev, ...newHeadshots }));
+      
+      // Auto-select highest priority headshot for each character
+      Object.entries(newHeadshots).forEach(([characterId, headshots]) => {
+        if (headshots.length > 0) {
+          const bestHeadshot = headshots[0]; // Already sorted by priority
+          
+          // Find all shots for this character and auto-select the best headshot
+          const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
+            s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
+          ) || [];
+          
+          setSelectedCharacterReferences(prev => {
+            const updated = { ...prev };
+            shotsForCharacter.forEach((shot: any) => {
+              const shotRefs = updated[shot.slot] || {};
+              updated[shot.slot] = {
+                ...shotRefs,
+                [characterId]: {
+                  poseId: bestHeadshot.poseId,
+                  s3Key: bestHeadshot.s3Key,
+                  imageUrl: bestHeadshot.imageUrl
+                }
+              };
+            });
+            return updated;
+          });
+        }
+      });
+    }
+  }, [characterMediaFiles, characterIdsForMediaLibrary, sceneAnalysisResult?.shotBreakdown?.shots]);
+  
+  // 🔥 NEW: Collect all headshot thumbnail S3 keys from Media Library map
   const headshotThumbnailS3Keys = React.useMemo(() => {
     const keys: string[] = [];
     Object.values(characterHeadshots).forEach(headshots => {
       headshots.forEach(headshot => {
-        // Only add thumbnail key if s3Key exists and is not empty
-        if (headshot.s3Key && headshot.s3Key.trim() !== '') {
-          const thumbnailKey = headshot.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
-          keys.push(`thumbnails/${thumbnailKey}`);
+        if (headshot.s3Key && characterThumbnailS3KeyMap.has(headshot.s3Key)) {
+          const thumbnailS3Key = characterThumbnailS3KeyMap.get(headshot.s3Key);
+          if (thumbnailS3Key) {
+            keys.push(thumbnailS3Key);
+          }
         }
       });
     });
     return keys;
-  }, [characterHeadshots]);
+  }, [characterHeadshots, characterThumbnailS3KeyMap]);
 
   // 🔥 NEW: Fetch thumbnail URLs for all headshots
   const { data: thumbnailUrlsMap } = useBulkPresignedUrls(headshotThumbnailS3Keys, headshotThumbnailS3Keys.length > 0);
@@ -281,6 +401,149 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   }>>([]);
   const [propsToShots, setPropsToShots] = useState<Record<string, number[]>>({}); // propId -> shot slots
   const [shotProps, setShotProps] = useState<Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>>({}); // Per-shot prop configs
+  
+  // 🔥 NEW: Track prop IDs for Media Library query
+  const [propIds, setPropIds] = useState<string[]>([]);
+  
+  // 🔥 NEW: Query Media Library for all asset images (single query for efficiency)
+  const { data: allAssetMediaFiles = [] } = useMediaFiles(
+    projectId,
+    undefined,
+    propIds.length > 0, // Only query when we have prop IDs
+    false,
+    'asset' // entityType only, no entityId (get all asset images)
+  );
+  
+  // 🔥 NEW: Filter Media Library files by prop IDs and build thumbnailS3KeyMap
+  const propMediaFiles = React.useMemo(() => {
+    if (!allAssetMediaFiles || propIds.length === 0) return [];
+    return allAssetMediaFiles.filter((file: any) => 
+      propIds.includes(file.metadata?.entityId || file.entityId)
+    );
+  }, [allAssetMediaFiles, propIds]);
+  
+  // 🔥 NEW: Build thumbnailS3KeyMap from Media Library results
+  const propThumbnailS3KeyMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    propMediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) {
+        map.set(file.s3Key, file.thumbnailS3Key);
+      }
+    });
+    return map;
+  }, [propMediaFiles]);
+  
+  // 🔥 NEW: Track location ID for Media Library query
+  const locationId = sceneAnalysisResult?.location?.id;
+  
+  // 🔥 NEW: Query Media Library for location images
+  const { data: locationMediaFiles = [] } = useMediaFiles(
+    projectId,
+    undefined,
+    !!locationId, // Only query when we have a location ID
+    false,
+    'location',
+    locationId // Query for specific location
+  );
+  
+  // 🔥 NEW: Build location thumbnailS3KeyMap from Media Library results
+  const locationThumbnailS3KeyMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    locationMediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) {
+        map.set(file.s3Key, file.thumbnailS3Key);
+      }
+    });
+    return map;
+  }, [locationMediaFiles]);
+  
+  // 🔥 NEW: Map Media Library files to location structure (angleVariations and backgrounds)
+  const locationDataFromMediaLibrary = React.useMemo(() => {
+    if (!locationId || locationMediaFiles.length === 0) return null;
+    
+    const angleVariations: Array<{
+      angleId?: string;
+      angle: string;
+      s3Key: string;
+      imageUrl: string;
+      label?: string;
+      timeOfDay?: string;
+      weather?: string;
+    }> = [];
+    
+    const backgrounds: Array<{
+      id: string;
+      imageUrl: string;
+      s3Key: string;
+      backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
+      sourceType?: 'reference-images' | 'angle-variations';
+      sourceAngleId?: string;
+      metadata?: {
+        providerId?: string;
+        quality?: 'standard' | 'high-quality';
+      };
+      timeOfDay?: string;
+      weather?: string;
+    }> = [];
+    
+    locationMediaFiles.forEach((file: any) => {
+      if ((file.metadata?.entityId || file.entityId) === locationId) {
+        const isBackground = file.metadata?.backgroundType || 
+                             file.metadata?.source === 'background-generation' ||
+                             file.metadata?.uploadMethod === 'background-generation';
+        
+        if (isBackground) {
+          // Background image
+          backgrounds.push({
+            id: file.s3Key, // Use s3Key as ID for backend compatibility
+            imageUrl: file.s3Url || '',
+            s3Key: file.s3Key,
+            backgroundType: file.metadata?.backgroundType || 'custom',
+            sourceType: file.metadata?.sourceType,
+            sourceAngleId: file.metadata?.sourceAngleId,
+            metadata: {
+              providerId: file.metadata?.providerId,
+              quality: file.metadata?.quality
+            },
+            timeOfDay: file.metadata?.timeOfDay,
+            weather: file.metadata?.weather
+          });
+        } else {
+          // Angle variation
+          angleVariations.push({
+            angleId: file.s3Key, // Use s3Key as ID for backend compatibility
+            angle: file.metadata?.angle || 'unknown',
+            s3Key: file.s3Key,
+            imageUrl: file.s3Url || '',
+            label: file.metadata?.angle || undefined,
+            timeOfDay: file.metadata?.timeOfDay,
+            weather: file.metadata?.weather
+          });
+        }
+      }
+    });
+    
+    return { angleVariations, backgrounds };
+  }, [locationId, locationMediaFiles]);
+  
+  // 🔥 NEW: Merge Media Library location data with sceneAnalysisResult
+  const enrichedSceneAnalysisResult = React.useMemo(() => {
+    if (!sceneAnalysisResult || !locationDataFromMediaLibrary) return sceneAnalysisResult;
+    
+    return {
+      ...sceneAnalysisResult,
+      location: {
+        ...sceneAnalysisResult.location,
+        // Use Media Library data if available, otherwise fall back to database data
+        angleVariations: locationDataFromMediaLibrary.angleVariations.length > 0 
+          ? locationDataFromMediaLibrary.angleVariations 
+          : sceneAnalysisResult.location.angleVariations || [],
+        backgrounds: locationDataFromMediaLibrary.backgrounds.length > 0
+          ? locationDataFromMediaLibrary.backgrounds
+          : sceneAnalysisResult.location.backgrounds || []
+      }
+    };
+  }, [sceneAnalysisResult, locationDataFromMediaLibrary]);
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
   const [isLoadingSceneContent, setIsLoadingSceneContent] = useState<Record<string, boolean>>({}); // sceneId -> loading state
   
@@ -367,29 +630,99 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
         if (!scene) {
           setSceneProps([]);
-      return;
-    }
+          setPropIds([]);
+          return;
+        }
         
         // Get prop IDs from fountain tags (source of truth - manually linked via SceneDetailSidebar)
-        const propIds = scene.fountain?.tags?.props || [];
+        const fetchedPropIds = scene.fountain?.tags?.props || [];
+        setPropIds(fetchedPropIds); // 🔥 NEW: Set propIds for Media Library query
         
-        if (propIds.length > 0) {
-          console.log('[SceneBuilderPanel] Fetching props for scene:', selectedSceneId, 'Prop IDs:', propIds);
-          const props = await SceneBuilderService.fetchSceneProps(propIds, getToken);
+        if (fetchedPropIds.length > 0) {
+          console.log('[SceneBuilderPanel] Fetching props for scene:', selectedSceneId, 'Prop IDs:', fetchedPropIds);
+          const props = await SceneBuilderService.fetchSceneProps(fetchedPropIds, getToken);
           console.log('[SceneBuilderPanel] Fetched props:', props);
           setSceneProps(props);
-      } else {
+        } else {
           console.log('[SceneBuilderPanel] No props found for scene:', selectedSceneId);
           setSceneProps([]);
         }
       } catch (error) {
-        console.error('[SceneBuilderPanel] Failed to fetch scene props:', error);
+        console.error('[SceneBuilderPanel] Failed to fetch props:', error);
         setSceneProps([]);
+        setPropIds([]);
       }
     }
     
     fetchSceneProps();
   }, [selectedSceneId, projectId, screenplay.scenes, getToken]);
+  
+  // 🔥 NEW: Map Media Library files to prop structure (angleReferences/images)
+  useEffect(() => {
+    if (sceneProps.length === 0 || propMediaFiles.length === 0) return;
+    
+    // Helper function to map Media Library files to prop structure
+    const mapMediaFilesToPropStructure = (mediaFiles: any[], propId: string) => {
+      const angleReferences: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }> = [];
+      const images: Array<{ url: string; s3Key?: string }> = [];
+      
+      mediaFiles.forEach((file: any) => {
+        if ((file.metadata?.entityId || file.entityId) === propId) {
+          const isProductionHub = file.metadata?.createdIn === 'production-hub' || 
+                                   file.metadata?.source === 'angle-generation' ||
+                                   file.metadata?.uploadMethod === 'angle-generation';
+          
+          if (isProductionHub) {
+            // Production Hub image -> angleReferences
+            // Use s3Key as ID for backend workflow compatibility (backend matches by ID in asset.angleReferences)
+            angleReferences.push({
+              id: file.s3Key, // Use s3Key as ID for backend compatibility (backend can match by s3Key)
+              s3Key: file.s3Key,
+              imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
+              label: file.metadata?.angle || undefined
+            });
+          } else {
+            // Creation image -> images[]
+            // Use s3Key as URL for backend workflow compatibility (backend matches img.url === selectedImageId)
+            images.push({
+              url: file.s3Key, // Use s3Key as URL for backend compatibility
+              s3Key: file.s3Key
+            });
+          }
+        }
+      });
+      
+      return { angleReferences, images };
+    };
+    
+    // Enrich props with Media Library data (Media Library is source of truth)
+    const enrichedProps = sceneProps.map(prop => {
+      const propMediaFilesForProp = propMediaFiles.filter((file: any) => 
+        (file.metadata?.entityId || file.entityId) === prop.id
+      );
+      
+      if (propMediaFilesForProp.length === 0) {
+        // No Media Library files found, keep original prop structure (fallback)
+        return prop;
+      }
+      
+      const { angleReferences: mlAngleReferences, images: mlImages } = mapMediaFilesToPropStructure(propMediaFilesForProp, prop.id);
+      
+      // Use Media Library data as source of truth
+      return {
+        ...prop,
+        angleReferences: mlAngleReferences.length > 0 ? mlAngleReferences : prop.angleReferences,
+        images: mlImages.length > 0 ? mlImages : prop.images
+      };
+    });
+    
+    // Only update if structure changed (avoid infinite loop)
+    const hasChanges = JSON.stringify(enrichedProps) !== JSON.stringify(sceneProps);
+    if (hasChanges) {
+      console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedProps);
+      setSceneProps(enrichedProps);
+    }
+  }, [propMediaFiles, sceneProps]);
 
   // Fetch full scene content when scene is selected
   useEffect(() => {
@@ -779,114 +1112,30 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       if (uniqueCharacterIds.length === 0) return;
       
-      for (const characterId of uniqueCharacterIds) {
-        // Skip if already loaded or loading
-        if (!isValidCharacterId(characterId) || characterHeadshots[characterId] || loadingHeadshots[characterId]) continue;
-        
-        setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
-        
-        try {
-          const headshots = await SceneBuilderService.fetchCharacterHeadshots(characterId, projectId, getToken);
-            
-            if (headshots.length > 0) {
-              setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
-              
-              // Auto-select highest priority headshot (lowest priority number)
-              const bestHeadshot = headshots.reduce((best: any, current: any) => 
-                (current.priority || 999) < (best.priority || 999) ? current : best
-              );
-              
-              // Store per-shot, per-character so each character in each shot can have its own selection
-              // Find all shots (dialogue or action) for this character and auto-select the same headshot
-              const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
-                s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
-              ) || [];
-              
-              // Update references for each shot, preserving existing character references
-              setSelectedCharacterReferences(prev => {
-                const updated = { ...prev };
-                shotsForCharacter.forEach((shot: any) => {
-                  const shotRefs = updated[shot.slot] || {};
-                  updated[shot.slot] = {
-                    ...shotRefs,
-                    [characterId]: {
-                      poseId: bestHeadshot.poseId,
-                      s3Key: bestHeadshot.s3Key,
-                      imageUrl: bestHeadshot.imageUrl
-                    }
-                  };
-                });
-                return updated;
-              });
-            } else {
-              console.warn(`[SceneBuilderPanel] No headshots found for character ${characterId} after filtering`);
-          }
-        } catch (error) {
-          console.error(`[SceneBuilderPanel] Failed to fetch headshots for character ${characterId}:`, error);
-        } finally {
-          setLoadingHeadshots(prev => ({ ...prev, [characterId]: false }));
-        }
-      }
+      // 🔥 NEW: Set character IDs for Media Library query (instead of fetching from database)
+      setCharacterIdsForMediaLibrary(uniqueCharacterIds);
     }
     
     fetchHeadshotsForDialogueShots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, sceneAnalysisResult?.shotBreakdown?.shots, selectedCharactersForShots]);
   
-  // Fetch headshots for characters selected via pronoun detection
+  // 🔥 NEW: Update character IDs for Media Library when pronoun-selected characters change
+  // (Media Library query will handle fetching, no need for separate database fetch)
   useEffect(() => {
-    async function fetchHeadshotsForPronounSelectedCharacters() {
-      if (!projectId || !selectedCharactersForShots) return;
-      
-      // Get all unique character IDs from pronoun-selected characters
-      const pronounSelectedCharacterIds = [...new Set(Object.values(selectedCharactersForShots).flat())].filter(id => id !== '__ignore__');
-      
-      for (const characterId of pronounSelectedCharacterIds) {
-        // Skip '__ignore__', invalid IDs, or if already loaded or loading
-        if (characterId === '__ignore__' || !characterId || characterHeadshots[characterId] || loadingHeadshots[characterId]) continue;
-        
-        setLoadingHeadshots(prev => ({ ...prev, [characterId]: true }));
-        
-        try {
-          const headshots = await SceneBuilderService.fetchCharacterHeadshots(characterId, projectId, getToken);
-            
-            if (headshots.length > 0) {
-              setCharacterHeadshots(prev => ({ ...prev, [characterId]: headshots }));
-              
-              // Auto-select highest priority headshot for the first shot that uses this character
-              const bestHeadshot = headshots.reduce((best: any, current: any) => 
-                (current.priority || 999) < (best.priority || 999) ? current : best
-              );
-              
-              // Find the first shot slot that selected this character
-              const shotSlot = Object.entries(selectedCharactersForShots).find(([_, ids]) => ids.includes(characterId))?.[0];
-              if (shotSlot && characterId && !selectedCharacterReferences[Number(shotSlot)]?.[characterId]) {
-                setSelectedCharacterReferences(prev => {
-                  const shotRefs = prev[Number(shotSlot)] || {};
-                  return {
-                    ...prev,
-                    [Number(shotSlot)]: {
-                      ...shotRefs,
-                      [characterId]: {
-                        poseId: bestHeadshot.poseId,
-                        s3Key: bestHeadshot.s3Key,
-                        imageUrl: bestHeadshot.imageUrl
-                      }
-                    }
-                  };
-                });
-            }
-          }
-        } catch (error) {
-          console.error(`[SceneBuilderPanel] Failed to fetch headshots for pronoun-selected character ${characterId}:`, error);
-        } finally {
-          setLoadingHeadshots(prev => ({ ...prev, [characterId]: false }));
-        }
-      }
-    }
+    if (!selectedCharactersForShots) return;
     
-    fetchHeadshotsForPronounSelectedCharacters();
-  }, [projectId, selectedCharactersForShots, characterHeadshots, loadingHeadshots, selectedCharacterReferences, getToken]);
+    // Get all unique character IDs from pronoun-selected characters
+    const pronounSelectedCharacterIds = [...new Set(Object.values(selectedCharactersForShots).flat())].filter(id => id !== '__ignore__' && isValidCharacterId(id));
+    
+    if (pronounSelectedCharacterIds.length > 0) {
+      // Update character IDs for Media Library query (will be merged with existing IDs in the main effect)
+      setCharacterIdsForMediaLibrary(prev => {
+        const combined = [...new Set([...prev, ...pronounSelectedCharacterIds])];
+        return combined;
+      });
+    }
+  }, [selectedCharactersForShots]);
   
   // Check voice profile when character is selected
   useEffect(() => {
@@ -2713,7 +2962,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     {/* Left: Scene Analysis Step (1/2 width) */}
                     <div className={isMobile ? 'w-full' : 'col-span-1'}>
                       <SceneAnalysisStep
-                        sceneAnalysisResult={sceneAnalysisResult}
+                        sceneAnalysisResult={enrichedSceneAnalysisResult || sceneAnalysisResult}
                         enabledShots={enabledShots}
                         onEnabledShotsChange={setEnabledShots}
                         onNext={() => {
@@ -3207,7 +3456,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               return (
                 <ShotConfigurationStep
                   shot={currentShot}
-                  sceneAnalysisResult={sceneAnalysisResult}
+                  sceneAnalysisResult={enrichedSceneAnalysisResult || sceneAnalysisResult}
                   shotIndex={currentShotIndex}
                   totalShots={enabledShotsList.length}
                   explicitCharacters={explicitCharacters}
@@ -3376,6 +3625,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   sceneProps={sceneProps}
                   propsToShots={propsToShots}
                   shotProps={shotProps}
+                  propThumbnailS3KeyMap={propThumbnailS3KeyMap}
                   onPropDescriptionChange={(shotSlot, propId, description) => {
                     setShotProps(prev => {
                       const shotConfig = prev[shotSlot] || {};
@@ -3472,7 +3722,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             {/* Review Step */}
             {wizardStep === 'review' && selectedSceneId && sceneAnalysisResult && (
               <SceneReviewStep
-                sceneAnalysisResult={sceneAnalysisResult}
+                sceneAnalysisResult={enrichedSceneAnalysisResult || sceneAnalysisResult}
                 enabledShots={enabledShots}
                 globalResolution={globalResolution}
                 onGlobalResolutionChange={setGlobalResolution}

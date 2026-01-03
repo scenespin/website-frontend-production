@@ -94,6 +94,7 @@ interface ShotConfigurationPanelProps {
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>; // Per-shot prop configurations
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
   onPropImageChange?: (shotSlot: number, propId: string, imageId: string | undefined) => void; // Callback for prop image selection
+  propThumbnailS3KeyMap?: Map<string, string>; // 🔥 NEW: Map of s3Key -> thumbnailS3Key from Media Library
   // Workflow override for action shots
   shotWorkflowOverride?: string; // Override workflow for this shot (for action shots)
   onShotWorkflowOverrideChange?: (shotSlot: number, workflow: string) => void; // Callback for workflow override
@@ -145,7 +146,8 @@ export function ShotConfigurationPanel({
   onPropDescriptionChange,
   onPropImageChange,
   shotWorkflowOverride,
-  onShotWorkflowOverrideChange
+  onShotWorkflowOverrideChange,
+  propThumbnailS3KeyMap
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -156,8 +158,9 @@ export function ShotConfigurationPanel({
   const workflowConfidence = sceneAnalysisResult.dialogue?.workflowTypeConfidence;
   const workflowReasoning = sceneAnalysisResult.dialogue?.workflowTypeReasoning;
   
-  // 🔥 NEW: Collect all prop image thumbnail S3 keys
+  // 🔥 NEW: Collect all prop image thumbnail S3 keys from Media Library map
   const propThumbnailS3Keys = React.useMemo(() => {
+    if (!propThumbnailS3KeyMap) return [];
     const keys: string[] = [];
     const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
     assignedProps.forEach(prop => {
@@ -166,28 +169,32 @@ export function ShotConfigurationPanel({
         images?: Array<{ url: string; s3Key?: string }>;
       };
       
-      // Add angleReferences s3Keys
+      // Add angleReferences thumbnail s3Keys from Media Library map
       if (fullProp.angleReferences) {
         fullProp.angleReferences.forEach(ref => {
-          if (ref.s3Key) {
-            const thumbnailKey = ref.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
-            keys.push(`thumbnails/${thumbnailKey}`);
+          if (ref.s3Key && propThumbnailS3KeyMap.has(ref.s3Key)) {
+            const thumbnailS3Key = propThumbnailS3KeyMap.get(ref.s3Key);
+            if (thumbnailS3Key) {
+              keys.push(thumbnailS3Key);
+            }
           }
         });
       }
       
-      // Add images[] s3Keys
+      // Add images[] thumbnail s3Keys from Media Library map
       if (fullProp.images) {
         fullProp.images.forEach(img => {
-          if (img.s3Key) {
-            const thumbnailKey = img.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
-            keys.push(`thumbnails/${thumbnailKey}`);
+          if (img.s3Key && propThumbnailS3KeyMap.has(img.s3Key)) {
+            const thumbnailS3Key = propThumbnailS3KeyMap.get(img.s3Key);
+            if (thumbnailS3Key) {
+              keys.push(thumbnailS3Key);
+            }
           }
         });
       }
     });
     return keys;
-  }, [sceneProps, propsToShots, shot.slot]);
+  }, [sceneProps, propsToShots, shot.slot, propThumbnailS3KeyMap]);
   
   // 🔥 NEW: Fetch thumbnail URLs for all prop images
   const { data: propThumbnailUrlsMap } = useBulkPresignedUrls(propThumbnailS3Keys, propThumbnailS3Keys.length > 0);
@@ -781,9 +788,12 @@ export function ShotConfigurationPanel({
                                         if (imgData?.s3Key) imageS3Key = imgData.s3Key;
                                       }
                                       
-                                      const thumbnailKey = imageS3Key 
-                                        ? `thumbnails/${imageS3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`
-                                        : null;
+                                      // 🔥 NEW: Use Media Library thumbnailS3KeyMap to get thumbnail key
+                                      let thumbnailKey: string | null = null;
+                                      if (imageS3Key && propThumbnailS3KeyMap?.has(imageS3Key)) {
+                                        thumbnailKey = propThumbnailS3KeyMap.get(imageS3Key) || null;
+                                      }
+                                      
                                       const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
                                       const displayUrl = thumbnailUrl || img.imageUrl;
                                       

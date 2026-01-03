@@ -92,6 +92,7 @@ interface ShotConfigurationStepProps {
   shotProps?: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
   onPropImageChange?: (shotSlot: number, propId: string, imageId: string | undefined) => void;
+  propThumbnailS3KeyMap?: Map<string, string>; // 🔥 NEW: Map of s3Key -> thumbnailS3Key from Media Library
   // Workflow override for action shots
   shotWorkflowOverride?: string;
   onShotWorkflowOverrideChange?: (shotSlot: number, workflow: string) => void;
@@ -166,6 +167,7 @@ export function ShotConfigurationStep({
   onPropImageChange,
   shotWorkflowOverride,
   onShotWorkflowOverrideChange,
+  propThumbnailS3KeyMap,
   selectedReferenceShotModel = {},
   onReferenceShotModelChange,
   selectedVideoType = {},
@@ -519,6 +521,7 @@ export function ShotConfigurationStep({
             onPropImageChange={onPropImageChange}
             shotWorkflowOverride={shotWorkflowOverride}
             onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
+            propThumbnailS3KeyMap={propThumbnailS3KeyMap}
           />
 
           {/* Reference Shot (First Frame) Model Selection */}
