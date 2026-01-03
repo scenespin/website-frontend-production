@@ -493,6 +493,132 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // 🔥 NEW: Track location ID for Media Library query (moved here to fix build error)
   const locationId = sceneAnalysisResult?.location?.id;
   
+  // 🔥 NEW: Query Media Library for location images
+  const { data: locationMediaFiles = [] } = useMediaFiles(
+    projectId,
+    undefined,
+    !!locationId, // Only query when we have a location ID
+    false,
+    'location',
+    locationId // Query for specific location
+  );
+  
+  // 🔥 NEW: Build location thumbnailS3KeyMap from Media Library results
+  const locationThumbnailS3KeyMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    locationMediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) {
+        map.set(file.s3Key, file.thumbnailS3Key);
+      }
+    });
+    return map;
+  }, [locationMediaFiles]);
+  
+  // 🔥 NEW: Map Media Library files to location structure (angleVariations and backgrounds)
+  const locationDataFromMediaLibrary = React.useMemo(() => {
+    if (!locationId || locationMediaFiles.length === 0) return null;
+    
+    const angleVariations: Array<{
+      angleId?: string;
+      angle: string;
+      s3Key: string;
+      imageUrl: string;
+      label?: string;
+      timeOfDay?: string;
+      weather?: string;
+    }> = [];
+    
+    const backgrounds: Array<{
+      id: string;
+      imageUrl: string;
+      s3Key: string;
+      backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
+      sourceType?: 'reference-images' | 'angle-variations';
+      sourceAngleId?: string;
+      metadata?: {
+        providerId?: string;
+        quality?: 'standard' | 'high-quality';
+      };
+      timeOfDay?: string;
+      weather?: string;
+    }> = [];
+    
+    locationMediaFiles.forEach((file: any) => {
+      if ((file.metadata?.entityId || file.entityId) === locationId) {
+        // 🔥 FIX: Comprehensive background detection - check all possible metadata fields
+        const isBackground = file.metadata?.backgroundType || 
+                             file.metadata?.source === 'background-generation' ||
+                             file.metadata?.uploadMethod === 'background-generation' ||
+                             file.metadata?.generationMethod === 'background-generation' ||
+                             (file.folderPath && file.folderPath.some((path: string) => path.toLowerCase().includes('background')));
+        
+        if (isBackground) {
+          // Background image
+          backgrounds.push({
+            id: file.s3Key, // Use s3Key as ID for backend compatibility
+            imageUrl: file.s3Url || '',
+            s3Key: file.s3Key,
+            backgroundType: file.metadata?.backgroundType || 'custom',
+            sourceType: file.metadata?.sourceType,
+            sourceAngleId: file.metadata?.sourceAngleId,
+            metadata: {
+              providerId: file.metadata?.providerId,
+              quality: file.metadata?.quality
+            },
+            timeOfDay: file.metadata?.timeOfDay,
+            weather: file.metadata?.weather
+          });
+        } else {
+          // Angle variation
+          angleVariations.push({
+            angleId: file.s3Key, // Use s3Key as ID for backend compatibility
+            angle: file.metadata?.angle || 'unknown',
+            s3Key: file.s3Key,
+            imageUrl: file.s3Url || '',
+            label: file.metadata?.angle || undefined,
+            timeOfDay: file.metadata?.timeOfDay,
+            weather: file.metadata?.weather
+          });
+        }
+      }
+    });
+    
+    return { angleVariations, backgrounds };
+  }, [locationId, locationMediaFiles]);
+  
+  // 🔥 NEW: Merge Media Library location data with sceneAnalysisResult
+  const enrichedSceneAnalysisResult = React.useMemo(() => {
+    if (!sceneAnalysisResult) return sceneAnalysisResult;
+    
+    // If we have Media Library data, use it; otherwise use database data
+    const finalAngleVariations = locationDataFromMediaLibrary?.angleVariations.length > 0 
+      ? locationDataFromMediaLibrary.angleVariations 
+      : sceneAnalysisResult.location.angleVariations || [];
+    
+    const finalBackgrounds = locationDataFromMediaLibrary?.backgrounds.length > 0
+      ? locationDataFromMediaLibrary.backgrounds
+      : sceneAnalysisResult.location.backgrounds || [];
+    
+    console.log('[SceneBuilderPanel] Location data:', {
+      locationId,
+      mediaLibraryAngles: locationDataFromMediaLibrary?.angleVariations.length || 0,
+      mediaLibraryBackgrounds: locationDataFromMediaLibrary?.backgrounds.length || 0,
+      databaseAngles: sceneAnalysisResult.location.angleVariations?.length || 0,
+      databaseBackgrounds: sceneAnalysisResult.location.backgrounds?.length || 0,
+      finalAngles: finalAngleVariations.length,
+      finalBackgrounds: finalBackgrounds.length
+    });
+    
+    return {
+      ...sceneAnalysisResult,
+      location: {
+        ...sceneAnalysisResult.location,
+        angleVariations: finalAngleVariations,
+        backgrounds: finalBackgrounds
+      }
+    };
+  }, [sceneAnalysisResult, locationDataFromMediaLibrary, locationId]);
+  
   // Toggle workflow selection
   const toggleWorkflow = (workflowId: string) => {
     setSelectedWorkflows(prev => 
