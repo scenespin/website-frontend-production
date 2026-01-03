@@ -510,6 +510,25 @@ export default function AssetDetailModal({
     defaultAspectRatio: { width: 4, height: 3 }
   });
   
+  // 🔥 NEW: Use thumbnail mapping for References tab (angleImageObjects)
+  const { galleryImages: referenceGalleryImages } = useThumbnailMapping({
+    thumbnailS3KeyMap,
+    images: angleImageObjects,
+    isOpen: isOpen && activeTab === 'references',
+    getThumbnailS3KeyFromMetadata: (img) => (img as any).metadata?.thumbnailS3Key || null,
+    getImageSource: () => 'pose-generation', // All angleImageObjects are AI-generated
+    defaultAspectRatio: { width: 4, height: 3 }
+  });
+  
+  // 🔥 NEW: Create a map for quick lookup of thumbnail URLs by image ID
+  const referenceThumbnailMap = useMemo(() => {
+    const map = new Map<string, string>();
+    referenceGalleryImages.forEach((galleryImg) => {
+      map.set(galleryImg.id, galleryImg.thumbnailUrl || galleryImg.imageUrl);
+    });
+    return map;
+  }, [referenceGalleryImages]);
+  
   const canGenerateAngles = userImages.length >= 1; // Need at least 1 creation image for angle generation
   
   // 🔥 DEBUG: Log asset images for troubleshooting
@@ -902,6 +921,8 @@ export default function AssetDetailModal({
                         {angleImageObjects.map((img) => {
                           // All angleImages are Production Hub images (editable/deletable)
                           const isSelected = selectedImageIds.has(img.id);
+                          // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
+                          const displayUrl = referenceThumbnailMap.get(img.id) || img.imageUrl;
                           return (
                             <div
                               key={img.id}
@@ -954,14 +975,22 @@ export default function AssetDetailModal({
                                 </div>
                               )}
                               <img
-                                src={img.imageUrl}
+                                src={displayUrl}
                                 alt={img.label}
                                 className={`w-full h-full object-cover ${
                                   regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim()
                                     ? 'animate-pulse opacity-75'
                                     : ''
                                 }`}
-                                onError={(e) => handleImageError(e, img)}
+                                loading="lazy"
+                                onError={(e) => {
+                                  // 🔥 NEW: Fallback to full image if thumbnail fails
+                                  if (displayUrl !== img.imageUrl) {
+                                    (e.target as HTMLImageElement).src = img.imageUrl;
+                                  } else {
+                                    handleImageError(e, img);
+                                  }
+                                }}
                               />
                               {/* Shimmer overlay for regenerating images */}
                               {regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim() && (

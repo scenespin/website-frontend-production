@@ -803,6 +803,34 @@ export function LocationDetailModal({
     defaultAspectRatio: { width: 16, height: 9 }
   });
   
+  // 🔥 NEW: Use thumbnail mapping for References tab (angleVariations and backgrounds)
+  const referencesImages = useMemo(() => {
+    return [...angleVariations, ...backgrounds].map((item: any) => ({
+      id: item.id || `ref_${item.s3Key}`,
+      s3Key: item.s3Key,
+      imageUrl: item.imageUrl,
+      label: item.angle || item.backgroundType || 'Location image'
+    }));
+  }, [angleVariations, backgrounds]);
+  
+  const { galleryImages: referenceGalleryImages } = useThumbnailMapping({
+    thumbnailS3KeyMap,
+    images: referencesImages,
+    isOpen: isOpen && activeTab === 'references',
+    getThumbnailS3KeyFromMetadata: (img) => (img as any).metadata?.thumbnailS3Key || null,
+    getImageSource: () => undefined, // Don't show source badge
+    defaultAspectRatio: { width: 16, height: 9 }
+  });
+  
+  // 🔥 NEW: Create a map for quick lookup of thumbnail URLs by image ID
+  const referenceThumbnailMap = useMemo(() => {
+    const map = new Map<string, string>();
+    referenceGalleryImages.forEach((galleryImg) => {
+      map.set(galleryImg.id, galleryImg.thumbnailUrl || galleryImg.imageUrl);
+    });
+    return map;
+  }, [referenceGalleryImages]);
+  
   // Convert type for display
   const typeLabel = location.type === 'interior' ? 'INT.' : 
                    location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
@@ -1128,6 +1156,8 @@ export function LocationDetailModal({
                           if (!img) return null;
                           const imgId = img.id || `ref_${variation.s3Key}`;
                           const isSelected = selectedImageIds.has(imgId);
+                          // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
+                          const displayUrl = referenceThumbnailMap.get(imgId) || img.imageUrl;
                           
                           return (
                             <div
@@ -1181,13 +1211,20 @@ export function LocationDetailModal({
                                 </div>
                               )}
                               <img
-                                src={img.imageUrl}
+                                src={displayUrl}
                                 alt={img.label}
                                 className={`w-full h-full object-cover ${
                                   regeneratingS3Key && regeneratingS3Key.trim() === (variation.s3Key || '').trim()
                                     ? 'animate-pulse opacity-75'
                                     : ''
                                 }`}
+                                loading="lazy"
+                                onError={(e) => {
+                                  // 🔥 NEW: Fallback to full image if thumbnail fails
+                                  if (displayUrl !== img.imageUrl) {
+                                    (e.target as HTMLImageElement).src = img.imageUrl;
+                                  }
+                                }}
                               />
                               {/* Shimmer overlay for regenerating images */}
                               {regeneratingS3Key && regeneratingS3Key.trim() === (variation.s3Key || '').trim() && (
@@ -1379,6 +1416,8 @@ export function LocationDetailModal({
                                       if (!img) return null;
                                       const imgId = img.id || `bg_${background.s3Key}`;
                                       const isSelected = selectedImageIds.has(imgId);
+                                      // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
+                                      const displayUrl = referenceThumbnailMap.get(imgId) || img.imageUrl;
                                       
                                       // Get display label for background type
                                       const backgroundTypeLabels: Record<string, string> = {
@@ -1433,9 +1472,16 @@ export function LocationDetailModal({
                                             </div>
                                           )}
                                           <img
-                                            src={img.imageUrl}
+                                            src={displayUrl}
                                             alt={img.label}
                                             className="w-full h-full object-cover"
+                                            loading="lazy"
+                                            onError={(e) => {
+                                              // 🔥 NEW: Fallback to full image if thumbnail fails
+                                              if (displayUrl !== img.imageUrl) {
+                                                (e.target as HTMLImageElement).src = img.imageUrl;
+                                              }
+                                            }}
                                           />
                                           {/* Top-right label: Background Type */}
                                           <div className="absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-[#10B981]">

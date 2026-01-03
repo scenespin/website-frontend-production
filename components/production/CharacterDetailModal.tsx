@@ -922,6 +922,26 @@ export function CharacterDetailModal({
     defaultAspectRatio: { width: 4, height: 3 }
   });
   
+  // 🔥 NEW: Use thumbnail mapping for References tab (poseReferences)
+  const { galleryImages: referenceGalleryImages } = useThumbnailMapping({
+    thumbnailS3KeyMap,
+    images: poseReferences,
+    isOpen: isOpen && activeTab === 'references',
+    getThumbnailS3KeyFromMetadata: (img) => (img as any).metadata?.thumbnailS3Key || null,
+    getImageSource: () => 'pose-generation', // All poseReferences are AI-generated
+    getOutfitName: (img) => img.outfitName || 'default',
+    defaultAspectRatio: { width: 4, height: 3 }
+  });
+  
+  // 🔥 NEW: Create a map for quick lookup of thumbnail URLs by image ID
+  const referenceThumbnailMap = useMemo(() => {
+    const map = new Map<string, string>();
+    referenceGalleryImages.forEach((galleryImg) => {
+      map.set(galleryImg.id, galleryImg.thumbnailUrl || galleryImg.imageUrl);
+    });
+    return map;
+  }, [referenceGalleryImages]);
+  
   // Filter gallery images by outfit
   // 🔥 FIX: Normalize both sides when comparing outfit names
   const filteredGalleryImages = useMemo(() => {
@@ -1776,6 +1796,8 @@ export function CharacterDetailModal({
                           return filteredPoses.map((img) => {
                           // All images in poseReferences are Production Hub images (editable/deletable)
                           const isSelected = selectedImageIds.has(img.id);
+                          // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
+                          const displayUrl = referenceThumbnailMap.get(img.id) || img.imageUrl;
                           return (
                             <div
                               key={img.id}
@@ -1816,9 +1838,16 @@ export function CharacterDetailModal({
                                 </div>
                               )}
                               <img
-                                src={img.imageUrl}
+                                src={displayUrl}
                                 alt={img.label}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  // 🔥 NEW: Fallback to full image if thumbnail fails
+                                  if (displayUrl !== img.imageUrl) {
+                                    (e.target as HTMLImageElement).src = img.imageUrl;
+                                  }
+                                }}
                                 onClick={() => {
                                   if (!selectionMode) {
                                     // Original click behavior (view image)
