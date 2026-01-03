@@ -1162,7 +1162,7 @@ export function LocationDetailModal({
                           return (
                             <div
                               key={imgId}
-                              className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors cursor-pointer ${
+                              className={`relative group aspect-video bg-[#141414] border rounded-lg overflow-hidden transition-colors cursor-pointer ${
                                 selectionMode
                                   ? isSelected
                                     ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
@@ -1221,8 +1221,8 @@ export function LocationDetailModal({
                                 style={{
                                   // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
                                   imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
-                                  maxWidth: '200px',
-                                  maxHeight: '200px'
+                                  maxWidth: '640px',
+                                  maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
                                 }}
                                 loading="lazy"
                                 onError={(e) => {
@@ -1442,7 +1442,7 @@ export function LocationDetailModal({
                                       return (
                                         <div
                                           key={imgId}
-                                          className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
+                                          className={`relative group aspect-video bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
                                             selectionMode
                                               ? isSelected
                                                 ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
@@ -1669,7 +1669,7 @@ export function LocationDetailModal({
                         {allCreationImages.map((img) => (
                           <div
                             key={img.id}
-                            className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75"
+                            className="relative group aspect-video bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75"
                           >
                             <img
                               src={img.imageUrl}

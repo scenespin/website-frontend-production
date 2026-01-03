@@ -1802,7 +1802,7 @@ export function CharacterDetailModal({
                           return (
                             <div
                               key={img.id}
-                              className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
+                              className={`relative group aspect-video bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
                                 selectionMode
                                   ? isSelected
                                     ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
@@ -1845,8 +1845,8 @@ export function CharacterDetailModal({
                                 style={{
                                   // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
                                   imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
-                                  maxWidth: '200px',
-                                  maxHeight: '200px'
+                                  maxWidth: '640px',
+                                  maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
                                 }}
                                 loading="lazy"
                                 onError={(e) => {
