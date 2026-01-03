@@ -103,11 +103,28 @@ function ModeSelector() {
   const { state, setMode } = useChatContext();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
   
   // Memoize arrays to prevent unnecessary re-renders
   const availableModes = useMemo(() => getAvailableModesForPage(pathname), [pathname]);
   const agents = useMemo(() => availableModes.filter(mode => MODE_CONFIG[mode]?.isAgent), [availableModes]);
   const features = useMemo(() => availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent), [availableModes]);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen]);
   
   const handleModeChange = (mode) => {
     console.log('[ModeSelector] Mode change:', mode);
@@ -118,12 +135,17 @@ function ModeSelector() {
   const currentModeConfig = MODE_CONFIG[state.activeMode];
   const CurrentIcon = currentModeConfig?.icon || MessageSquare;
   
+  console.log('[ModeSelector] Available agents:', agents, 'Available modes:', availableModes);
+  
   return (
-    <div className="dropdown dropdown-top">
+    <div ref={dropdownRef} className="dropdown dropdown-top relative">
       <label 
         tabIndex={0} 
-        className="btn btn-sm btn-ghost gap-1 text-xs"
-        onClick={() => setIsOpen(!isOpen)}
+        className="btn btn-sm btn-ghost gap-1 text-xs cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
       >
         {currentModeConfig && <CurrentIcon className="w-3.5 h-3.5" />}
         <span>{currentModeConfig?.label || state.activeMode}</span>
@@ -132,10 +154,11 @@ function ModeSelector() {
       {isOpen && (
         <ul 
           tabIndex={0} 
-          className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-52 mt-1 border border-base-300 z-50 max-h-96 overflow-y-auto"
+          className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-52 mt-1 border border-base-300 z-[100] max-h-96 overflow-y-auto pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
-          {agents.length > 0 && (
+          {agents.length > 0 ? (
             <>
               <li className="menu-title">
                 <span className="text-xs font-bold text-base-content/60">AI Agents</span>
@@ -146,8 +169,13 @@ function ModeSelector() {
                 return (
                   <li key={mode}>
                     <button
-                      onClick={() => handleModeChange(mode)}
-                      className={`flex items-center gap-2 ${isActive ? 'active bg-cinema-red/20' : ''}`}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleModeChange(mode);
+                      }}
+                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
                     >
                       {Icon && <Icon className="w-4 h-4" />}
                       <span>{MODE_CONFIG[mode]?.label || mode}</span>
@@ -156,6 +184,8 @@ function ModeSelector() {
                 );
               })}
             </>
+          ) : (
+            <li className="px-2 py-1 text-xs text-base-content/60">No agents available</li>
           )}
           {features.length > 0 && (
             <>
