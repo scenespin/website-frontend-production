@@ -14,7 +14,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ArrowRight, Film, Sparkles, Check } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Loader2, ArrowRight, Film, Sparkles, Check, Box, X } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { toast } from 'sonner';
 
@@ -266,50 +267,57 @@ export function SceneAnalysisStep({
                       </div>
                     </div>
                     
-                    {/* Right Side: Props Assignment - Right Aligned */}
-                    {sceneProps.length > 0 && (
-                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                        {sceneProps.map((prop) => {
-                          const isAssigned = propsToShots[prop.id]?.includes(shot.slot) || false;
-                          return (
-                            <label
-                              key={prop.id}
-                              className={`flex items-center gap-1.5 px-2 py-1 rounded border cursor-pointer transition-colors ${
-                                isAssigned
-                                  ? 'border-[#DC143C] bg-[#DC143C]/10'
-                                  : 'border-[#3F3F46] hover:border-[#808080]'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isAssigned}
-                                onChange={(e) => {
-                                  const assignedShots = propsToShots[prop.id] || [];
-                                  const newShots = e.target.checked
-                                    ? [...assignedShots, shot.slot]
-                                    : assignedShots.filter(s => s !== shot.slot);
-                                  onPropsToShotsChange({
-                                    ...propsToShots,
-                                    [prop.id]: newShots
-                                  });
-                                }}
-                                className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0"
-                              />
-                              {prop.imageUrl && (
-                                <img 
-                                  src={prop.imageUrl} 
-                                  alt={prop.name}
-                                  className="w-4 h-4 object-cover rounded"
-                                />
-                              )}
-                              <span className="text-[10px] text-[#FFFFFF] whitespace-nowrap">
-                                {prop.name}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
+                    {/* Right Side: Props Assignment - Badges (only show assigned props) */}
+                    {sceneProps.length > 0 && (() => {
+                      // Get props assigned to this shot
+                      const assignedProps = sceneProps.filter(prop => 
+                        propsToShots[prop.id]?.includes(shot.slot)
+                      );
+                      
+                      if (assignedProps.length === 0) return null;
+                      
+                      return (
+                        <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0 justify-end max-w-[120px]">
+                          {assignedProps.map((prop) => (
+                            <Tooltip key={prop.id}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => {
+                                    // Remove this prop from this shot
+                                    const assignedShots = propsToShots[prop.id] || [];
+                                    const newShots = assignedShots.filter(s => s !== shot.slot);
+                                    const updatedPropsToShots = { ...propsToShots };
+                                    if (newShots.length > 0) {
+                                      updatedPropsToShots[prop.id] = newShots;
+                                    } else {
+                                      delete updatedPropsToShots[prop.id];
+                                    }
+                                    onPropsToShotsChange(updatedPropsToShots);
+                                  }}
+                                  className="group relative flex items-center justify-center w-6 h-6 rounded border border-[#DC143C] bg-[#DC143C]/10 hover:bg-[#DC143C]/20 transition-colors cursor-pointer"
+                                  title={`Click to remove ${prop.name}`}
+                                >
+                                  {prop.imageUrl ? (
+                                    <img 
+                                      src={prop.imageUrl} 
+                                      alt={prop.name}
+                                      className="w-4 h-4 object-cover rounded"
+                                    />
+                                  ) : (
+                                    <Box className="w-3 h-3 text-[#DC143C]" />
+                                  )}
+                                  <X className="absolute -top-1 -right-1 w-2.5 h-2.5 text-[#DC143C] opacity-0 group-hover:opacity-100 transition-opacity bg-[#0A0A0A] rounded-full" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-[#1A1A1A] text-[#FFFFFF] border border-[#3F3F46]">
+                                <p className="text-xs font-medium">{prop.name}</p>
+                                <p className="text-[10px] text-[#808080] mt-0.5">Click to remove</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
