@@ -982,6 +982,12 @@ export default function AssetDetailModal({
                                     ? 'animate-pulse opacity-75'
                                     : ''
                                 }`}
+                                style={{
+                                  // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
+                                  imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
+                                  maxWidth: '200px',
+                                  maxHeight: '200px'
+                                }}
                                 loading="lazy"
                                 onError={(e) => {
                                   // 🔥 NEW: Fallback to full image if thumbnail fails

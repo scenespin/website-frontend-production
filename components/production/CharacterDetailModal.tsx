@@ -1774,7 +1774,8 @@ export function CharacterDetailModal({
                       
                       {/* Production Hub Images Grid - Filtered by selected outfit */}
                       {/* 🔥 FIX: Normalize outfit names when filtering */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {/* 🔥 FIX: Use more columns for smaller thumbnails (match ModernGallery grid-only layout) */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
                         {(() => {
                           const normalizeOutfitName = (name: string): string => {
                             if (!name) return '';
@@ -1841,6 +1842,12 @@ export function CharacterDetailModal({
                                 src={displayUrl}
                                 alt={img.label}
                                 className="w-full h-full object-cover"
+                                style={{
+                                  // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
+                                  imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
+                                  maxWidth: '200px',
+                                  maxHeight: '200px'
+                                }}
                                 loading="lazy"
                                 onError={(e) => {
                                   // 🔥 NEW: Fallback to full image if thumbnail fails

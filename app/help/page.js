@@ -30,7 +30,7 @@ export default function HelpCenter() {
           <p className="text-xl opacity-80 max-w-3xl mx-auto">
             Everything you need to create professional AI-powered video content.
             <br />
-            From your first video to advanced production techniques.
+            From screenplay to screen in minutes.
           </p>
         </section>
 
@@ -68,7 +68,7 @@ export default function HelpCenter() {
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">✍️</div>
                     <h3 className="font-bold text-base">1. Write</h3>
-                    <p className="text-xs opacity-70">Screenplay editor with 3 AI writing agents</p>
+                    <p className="text-xs opacity-70">Fountain format editor with 3 AI agents</p>
                     <div className="badge badge-sm badge-primary mt-2">START HERE</div>
                   </div>
                 </Link>
@@ -77,7 +77,7 @@ export default function HelpCenter() {
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">🎬</div>
                     <h3 className="font-bold text-base">2. Production</h3>
-                    <p className="text-xs opacity-70">Scene builder, characters & locations</p>
+                    <p className="text-xs opacity-70">58+ workflows, scene builder, characters, locations</p>
                     <div className="badge badge-sm badge-secondary mt-2">GENERATE</div>
                   </div>
                 </Link>
@@ -86,7 +86,7 @@ export default function HelpCenter() {
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">🎨</div>
                     <h3 className="font-bold text-base">3. Composition</h3>
-                    <p className="text-xs opacity-70">Split-screens, grids, paced sequences</p>
+                    <p className="text-xs opacity-70">12+ layouts: split-screens, grids, sequences</p>
                     <div className="badge badge-sm badge-accent mt-2">LAYOUTS</div>
                   </div>
                 </Link>
@@ -112,123 +112,115 @@ export default function HelpCenter() {
           </div>
         </section>
 
-        {/* Level 1: Getting Started */}
+        {/* Getting Started */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-2">🚀 Level 1: Getting Started</h2>
-          <p className="text-sm opacity-70 mb-6">New users - First 30 minutes</p>
+          <h2 className="text-3xl font-bold mb-2">🚀 Getting Started</h2>
+          <p className="text-sm opacity-70 mb-6">New to Wryda? Start here</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <HelpArticleCard
               href="/help/welcome"
               title="Welcome to Wryda.ai"
-              description="Understand what Wryda.ai is and what you can do"
+              description="What Wryda.ai is and what you can create"
               time="3 min read"
             />
             <HelpArticleCard
               href="/help/quick-start"
               title="Quick Start Guide"
-              description="Generate your first video in 5 minutes"
+              description="Create your first video in 5 minutes"
+              time="5 min read"
+            />
+            <HelpArticleCard
+              href="/help/credits"
+              title="Credit System"
+              description="How credits work and what they buy"
               time="5 min read"
             />
             <HelpArticleCard
               href="/help/quality-tiers"
-              title="Understanding Quality Tiers"
-              description="Choose the right quality for your needs"
+              title="Quality Tiers"
+              description="Choose the right quality for your project"
               time="3 min read"
-            />
-            <HelpArticleCard
-              href="/help/credits"
-              title="Credit System Explained"
-              description="How credits work and what they buy"
-              time="5 min read"
             />
           </div>
         </section>
 
-        {/* Level 2: Core Features */}
+        {/* Core Features */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-2">📘 Level 2: Core Features</h2>
-          <p className="text-sm opacity-70 mb-6">Learning the platform - First week</p>
+          <h2 className="text-3xl font-bold mb-2">✨ Core Features</h2>
+          <p className="text-sm opacity-70 mb-6">Learn the main tools and workflows</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <HelpArticleCard
-              href="/help/fountain-format"
-              title="Why Fountain Format?"
-              description="Learn how screenplay format gives you better AI results and instant imports"
-              time="8 min read"
-            />
-            <HelpArticleCard
-              href="/help/video-generation"
-              title="AI Video Generation"
-              description="Master text-to-video, image-to-video, and character consistency"
-              time="10 min read"
-            />
             <HelpArticleCard
               href="/help/screenplay-editor"
               title="Screenplay Editor"
-              description="Professional Fountain format editing and GitHub integration"
+              description="Fountain format editing with 3 AI writing agents"
+              time="10 min read"
+            />
+            <HelpArticleCard
+              href="/help/production"
+              title="Production Studio"
+              description="AI video generation with 3 providers (Veo, Luma, Runway)"
+              time="12 min read"
+            />
+            <HelpArticleCard
+              href="/help/workflows"
+              title="AI Workflows"
+              description="58+ guided workflows for every video type"
+              time="8 min read"
+            />
+            <HelpArticleCard
+              href="/help/composition"
+              title="Composition Studio"
+              description="12+ layouts for split-screens, grids, and sequences"
+              time="10 min read"
+            />
+            <HelpArticleCard
+              href="/help/advanced/timeline-mastery"
+              title="Timeline Editor"
+              description="8-track video editing with transitions and export"
               time="15 min read"
             />
             <HelpArticleCard
               href="/help/fountain-format"
-              title="Fountain Format Deep Dive"
-              description="Why Fountain format gives you better AI results"
+              title="Fountain Format"
+              description="Why screenplay format gives better AI results"
               time="8 min read"
             />
           </div>
         </section>
 
-        {/* Level 3: Advanced Techniques */}
+        {/* Advanced & Reference */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-2">📗 Level 3: Advanced Techniques</h2>
-          <p className="text-sm opacity-70 mb-6">Power users - Ongoing</p>
+          <h2 className="text-3xl font-bold mb-2">📚 Advanced & Reference</h2>
+          <p className="text-sm opacity-70 mb-6">Power user techniques and quick reference</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <HelpArticleCard
               href="/help/advanced/character-consistency"
               title="Character Consistency"
-              description="Keep characters looking the same across multiple shots"
+              description="Keep characters looking the same across shots"
               time="12 min read"
             />
             <HelpArticleCard
               href="/help/advanced/multi-shot-scenes"
-              title="Multi-Shot Scene Building"
-              description="Create complex scenes with multiple camera angles"
+              title="Multi-Shot Scenes"
+              description="Create complex scenes with multiple angles"
               time="15 min read"
-            />
-            <HelpArticleCard
-              href="/help/advanced/timeline-mastery"
-              title="Timeline Editing Mastery"
-              description="Professional multi-track editing techniques"
-              time="20 min read"
-            />
-            <HelpArticleCard
-              href="/help/advanced/dialogue-generation"
-              title="Dialogue Generation"
-              description="Create realistic character conversations with lip-sync"
-              time="10 min read"
-            />
-          </div>
-        </section>
-
-        {/* Level 4: Reference */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-2">📙 Level 4: Reference</h2>
-          <p className="text-sm opacity-70 mb-6">Quick lookup - As needed</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <HelpArticleCard
-              href="/help/reference/pricing"
-              title="Pricing Reference"
-              description="Complete pricing breakdown and credit costs"
-              time="5 min read"
             />
             <HelpArticleCard
               href="/help/reference/shortcuts"
               title="Keyboard Shortcuts"
-              description="Speed up your workflow with shortcuts"
+              description="Speed up your workflow"
               time="3 min read"
             />
             <HelpArticleCard
               href="/help/reference/formats"
               title="Export Formats"
-              description="All export options and format specifications"
+              description="All export options and specifications"
+              time="5 min read"
+            />
+            <HelpArticleCard
+              href="/help/reference/pricing"
+              title="Pricing Reference"
+              description="Complete pricing and credit costs"
               time="5 min read"
             />
             <HelpArticleCard

@@ -1218,6 +1218,12 @@ export function LocationDetailModal({
                                     ? 'animate-pulse opacity-75'
                                     : ''
                                 }`}
+                                style={{
+                                  // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
+                                  imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
+                                  maxWidth: '200px',
+                                  maxHeight: '200px'
+                                }}
                                 loading="lazy"
                                 onError={(e) => {
                                   // 🔥 NEW: Fallback to full image if thumbnail fails
@@ -1410,7 +1416,8 @@ export function LocationDetailModal({
                                   {variations.length > 0 && (
                                     <p className="text-xs text-[#808080] uppercase tracking-wide">Backgrounds</p>
                                   )}
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                  {/* 🔥 FIX: Use more columns for smaller thumbnails (match ModernGallery) */}
+                                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
                                     {backgrounds.map((background: LocationBackground) => {
                                       const img = allImages.find(i => i.s3Key === background.s3Key && !i.isBase);
                                       if (!img) return null;
@@ -1475,6 +1482,12 @@ export function LocationDetailModal({
                                             src={displayUrl}
                                             alt={img.label}
                                             className="w-full h-full object-cover"
+                                            style={{
+                                              // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
+                                              imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
+                                              maxWidth: '200px',
+                                              maxHeight: '200px'
+                                            }}
                                             loading="lazy"
                                             onError={(e) => {
                                               // 🔥 NEW: Fallback to full image if thumbnail fails
