@@ -265,10 +265,12 @@ export function UnifiedDialogueDropdown({
                       Base Workflow:
                     </label>
                     <Select
+                      key={`base-workflow-${shot.slot}-${selectedWorkflow}`} // Force re-render when workflow changes
                       value={selectedBaseWorkflow || 'action-line'}
                       onValueChange={(value) => {
                         // Allow selecting any workflow, including action-line
                         if (onBaseWorkflowChange) {
+                          console.log('[UnifiedDialogueDropdown] Base workflow changed:', value);
                           onBaseWorkflowChange(value);
                         }
                       }}
