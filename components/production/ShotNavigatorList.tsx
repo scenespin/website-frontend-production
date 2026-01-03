@@ -21,6 +21,7 @@ interface ShotNavigatorListProps {
   isMobile?: boolean;
   completedShots?: Set<number>; // Shots that are completely filled out
   enabledShots?: number[]; // All enabled shots (for determining "next" shot)
+  // Feature 0182: Continuation (REMOVED - deferred to post-launch)
 }
 
 export function ShotNavigatorList({
@@ -153,7 +154,7 @@ export function ShotNavigatorList({
               )}
 
               {/* Credits Badge */}
-              <div className="flex items-center gap-1 mt-1">
+              <div className="flex items-center gap-1 mt-1 flex-wrap">
                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080]">
                   {credits} credits
                 </Badge>

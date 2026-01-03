@@ -20,6 +20,8 @@ import { findCharacterById, getCharacterSource } from './utils/sceneBuilderUtils
 import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -98,6 +100,10 @@ interface ShotConfigurationPanelProps {
   // Workflow override for action shots
   shotWorkflowOverride?: string; // Override workflow for this shot (for action shots)
   onShotWorkflowOverrideChange?: (shotSlot: number, workflow: string) => void; // Callback for workflow override
+  // Feature 0182: Tab structure
+  activeTab?: 'basic' | 'advanced'; // Which tab is currently active
+  isDialogueShot?: boolean; // Whether this is a dialogue shot (for conditional tab labels)
+  // Feature 0182: Continuation (REMOVED - deferred to post-launch)
 }
 
 export function ShotConfigurationPanel({
@@ -147,7 +153,9 @@ export function ShotConfigurationPanel({
   onPropImageChange,
   shotWorkflowOverride,
   onShotWorkflowOverrideChange,
-  propThumbnailS3KeyMap
+  propThumbnailS3KeyMap,
+  activeTab = 'basic',
+  isDialogueShot = false
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -312,8 +320,28 @@ export function ShotConfigurationPanel({
     }
   ];
 
+  // Feature 0182: Conditional rendering based on active tab
+  // For dialogue shots: Basic = LIP SYNC, Advanced = NON-LIP SYNC
+  // For action shots: Basic = standard config, Advanced = workflow override + continuation
+  
+  // Determine what to show in each tab
+  const showBasicContent = activeTab === 'basic';
+  const showAdvancedContent = activeTab === 'advanced';
+  
+  // For dialogue shots: Basic tab shows lip sync workflow, Advanced shows non-lip sync options
+  const isDialogueBasicTab = isDialogueShot && showBasicContent;
+  const isDialogueAdvancedTab = isDialogueShot && showAdvancedContent;
+  
+  // For action shots: Basic shows standard config, Advanced shows workflow override
+  const isActionBasicTab = !isDialogueShot && showBasicContent;
+  const isActionAdvancedTab = !isDialogueShot && showAdvancedContent;
+  
+
   return (
     <div className="mt-3 space-y-4">
+      {/* Feature 0182: Standard configuration - Show in Basic tab for action shots, always for dialogue */}
+      {(isActionBasicTab || isDialogueShot) && (
+        <>
       {/* 🔥 REORDERED: Character(s) Section - First */}
       {explicitCharacters.length > 0 && (() => {
         // Track rendered characters globally across all sections (explicit, singular, plural)
@@ -851,9 +879,12 @@ export function ShotConfigurationPanel({
           </div>
         );
       })()}
+        </>
+      )}
 
       {/* 🔥 REORDERED: Dialogue Workflow Selection - Fifth (dialogue shots only) */}
-      {shot.type === 'dialogue' && onDialogueWorkflowChange && (
+      {/* Feature 0182: Show in Basic tab for LIP SYNC OPTIONS (first-frame-lipsync) */}
+      {isDialogueBasicTab && shot.type === 'dialogue' && onDialogueWorkflowChange && currentWorkflow === 'first-frame-lipsync' && (
         <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow Selection</div>
           <UnifiedDialogueDropdown
@@ -872,8 +903,95 @@ export function ShotConfigurationPanel({
             workflowConfidence={workflowConfidence}
             workflowReasoning={workflowReasoning}
           />
-          {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover)
-              Note: Using backend identifiers 'off-frame-voiceover' and 'scene-voiceover' for logic */}
+        </div>
+      )}
+
+      {/* Feature 0182: NON-LIP SYNC OPTIONS - Show in Advanced tab for dialogue shots */}
+      {isDialogueAdvancedTab && shot.type === 'dialogue' && onDialogueWorkflowChange && (
+        <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">NON-LIP SYNC OPTIONS</div>
+          
+          {/* Radio buttons for Narrate Shot / Hidden Mouth Dialogue */}
+          <div className="space-y-3">
+            <div 
+              className={`p-3 border rounded cursor-pointer transition-colors ${
+                currentWorkflow === 'scene-voiceover' 
+                  ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                  : 'border-[#3F3F46] hover:border-[#808080]'
+              }`}
+              onClick={() => onDialogueWorkflowChange(shot.slot, 'scene-voiceover')}
+            >
+              <div className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name={`dialogue-workflow-${shot.slot}`}
+                  checked={currentWorkflow === 'scene-voiceover'}
+                  onChange={() => onDialogueWorkflowChange(shot.slot, 'scene-voiceover')}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="text-xs font-medium text-[#FFFFFF] mb-1">Narrate Shot (Scene Voiceover)</div>
+                  <div className="text-[10px] text-[#808080]">
+                    Create any shot type + add voiceover. The narrator can appear in the scene or just narrate over it.
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div 
+              className={`p-3 border rounded cursor-pointer transition-colors ${
+                currentWorkflow === 'off-frame-voiceover' 
+                  ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                  : 'border-[#3F3F46] hover:border-[#808080]'
+              }`}
+              onClick={() => onDialogueWorkflowChange(shot.slot, 'off-frame-voiceover')}
+            >
+              <div className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name={`dialogue-workflow-${shot.slot}`}
+                  checked={currentWorkflow === 'off-frame-voiceover'}
+                  onChange={() => onDialogueWorkflowChange(shot.slot, 'off-frame-voiceover')}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="text-xs font-medium text-[#FFFFFF] mb-1">Hidden Mouth Dialogue (Off-Frame Voiceover)</div>
+                  <div className="text-[10px] text-[#808080]">
+                    Character speaking off-screen, back turned, or side profile. Create any shot type + add voiceover.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Base Workflow Dropdown */}
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Base Workflow:</label>
+            <Select
+              value={selectedBaseWorkflow || 'action-line'}
+              onValueChange={(value) => onBaseWorkflowChange?.(shot.slot, value)}
+            >
+              <SelectTrigger className="w-full h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="action-line">Action Line (suggested)</SelectItem>
+                {ACTION_WORKFLOWS.filter(wf => wf.value !== 'action-line').map(wf => (
+                  <SelectItem key={wf.value} value={wf.value}>{wf.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-[10px] text-[#808080] mt-1">
+              This will generate a {getWorkflowLabel(selectedBaseWorkflow || 'action-line')} video and add voiceover audio to it.
+            </div>
+            {shotWorkflowOverride && (
+              <div className="text-[10px] text-[#DC143C] mt-1">
+                Override: Using selected workflow instead of auto-detected
+              </div>
+            )}
+          </div>
+
+          {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) */}
           {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
             <div className="mt-3">
               <label className="block text-[10px] text-[#808080] mb-1.5">
@@ -966,8 +1084,11 @@ export function ShotConfigurationPanel({
         </div>
       )}
 
-      {/* Workflow Override - For action shots only */}
-      {shot.type === 'action' && onShotWorkflowOverrideChange && (
+      {/* Feature 0182: Advanced Options for Action/Establishing Shots */}
+      {isActionAdvancedTab && shot.type !== 'dialogue' && (
+        <>
+      {/* Feature 0182: Workflow Override - For action shots only, show in Advanced tab */}
+      {isActionAdvancedTab && shot.type === 'action' && onShotWorkflowOverrideChange && (
         <div className="space-y-2 pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Workflow Override</div>
           <div className="text-[10px] text-[#808080] mb-2">
@@ -1078,6 +1199,9 @@ export function ShotConfigurationPanel({
             </>
           )}
         </div>
+      )}
+
+        </>
       )}
 
     </div>
