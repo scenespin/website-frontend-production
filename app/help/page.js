@@ -4,7 +4,7 @@ import config from "@/config";
 
 export const metadata = getSEOTags({
   title: `Help Center | ${config.appName}`,
-  description: "Complete documentation for Wryda.ai - AI-powered video production, screenplay writing, timeline editing, and more. Learn everything from getting started to advanced techniques.",
+  description: "Get help with Wryda.ai - Learn how to write screenplays, generate videos, and create professional content with AI.",
   canonicalUrlRelative: "/help",
 });
 
@@ -28,206 +28,82 @@ export default function HelpCenter() {
             📚 Help Center
           </h1>
           <p className="text-xl opacity-80 max-w-3xl mx-auto">
-            Everything you need to create professional AI-powered video content.
+            Everything you need to turn your screenplay into a movie.
             <br />
-            From screenplay to screen in minutes.
+            From your first video to advanced production techniques.
           </p>
         </section>
 
-        {/* Quick Links */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <QuickLinkCard
-            href="/help/quick-start"
-            icon="🚀"
-            title="Quick Start"
-            description="Create your first video in 5 minutes"
+        {/* Main Help Sections */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+          <HelpSectionCard
+            href="/help/writing"
+            icon="✍️"
+            title="Writing"
+            description="Screenplay editor, Fountain format, and 5 AI writing agents"
+            features={[
+              "Professional screenplay editor",
+              "5 AI writing agents (Story Advisor, Screenwriter, Director, Dialogue, Rewrite)",
+              "Fountain format support",
+              "GitHub version control"
+            ]}
           />
-          <QuickLinkCard
-            href="/help/credits"
-            icon="💳"
-            title="Credits System"
-            description="Understand how credits work"
-          />
-          <QuickLinkCard
-            href="/help/video-generation"
+          <HelpSectionCard
+            href="/help/production"
             icon="🎬"
-            title="Video Generation"
-            description="Master AI video creation"
+            title="Production"
+            description="Video generation, 58+ workflows, and consistency systems"
+            features={[
+              "3 AI video providers (Veo, Luma, Runway)",
+              "58+ guided workflows",
+              "Character, location & prop consistency",
+              "Scene Builder (Motion Picture Technology)"
+            ]}
+          />
+          <HelpSectionCard
+            href="/help/editing"
+            icon="🎨"
+            title="Editing"
+            description="Composition studio and timeline editor"
+            features={[
+              "12+ composition layouts",
+              "8-track timeline editor",
+              "Transitions & effects",
+              "Multi-format export"
+            ]}
+          />
+          <HelpSectionCard
+            href="/help/faq"
+            icon="❓"
+            title="FAQ"
+            description="Common questions and troubleshooting"
+            features={[
+              "Getting started",
+              "Credits & pricing",
+              "Common issues",
+              "Quick answers"
+            ]}
           />
         </section>
 
-        {/* Production Workflow - Mirrors App Navigation */}
+        {/* Quick Links */}
         <section className="mb-16">
-          <div className="card bg-gradient-to-br from-[#DC143C]/10 to-slate-800 border-2 border-[#DC143C]/30">
-            <div className="card-body">
-              <h2 className="text-3xl font-bold mb-2">🎬 Complete Production Workflow</h2>
-              <p className="text-sm opacity-70 mb-6">Follow the same navigation you'll use in the app - Write → Production → Composition → Timeline</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Link href="/help/screenplay-editor" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-[#DC143C]/30">
-                  <div className="card-body items-center text-center">
-                    <div className="text-4xl mb-2">✍️</div>
-                    <h3 className="font-bold text-base">1. Write</h3>
-                    <p className="text-xs opacity-70">Fountain format editor with 3 AI agents</p>
-                    <div className="badge badge-sm badge-primary mt-2">START HERE</div>
-                  </div>
-                </Link>
-
-                <Link href="/help/production" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-pink-500/30">
-                  <div className="card-body items-center text-center">
-                    <div className="text-4xl mb-2">🎬</div>
-                    <h3 className="font-bold text-base">2. Production</h3>
-                    <p className="text-xs opacity-70">58+ workflows, scene builder, characters, locations</p>
-                    <div className="badge badge-sm badge-secondary mt-2">GENERATE</div>
-                  </div>
-                </Link>
-
-                <Link href="/help/composition" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-blue-500/30">
-                  <div className="card-body items-center text-center">
-                    <div className="text-4xl mb-2">🎨</div>
-                    <h3 className="font-bold text-base">3. Composition</h3>
-                    <p className="text-xs opacity-70">12+ layouts: split-screens, grids, sequences</p>
-                    <div className="badge badge-sm badge-accent mt-2">LAYOUTS</div>
-                  </div>
-                </Link>
-
-                <Link href="/help/advanced/timeline-mastery" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-green-500/30">
-                  <div className="card-body items-center text-center">
-                    <div className="text-4xl mb-2">🎞️</div>
-                    <h3 className="font-bold text-base">4. Timeline</h3>
-                    <p className="text-xs opacity-70">8-track editing, transitions, export</p>
-                    <div className="badge badge-sm badge-success mt-2">FINISH</div>
-                  </div>
-                </Link>
-              </div>
-
-              <div className="alert alert-info mt-6 not-prose">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <div>
-                  <div className="font-bold">💡 This mirrors your actual workflow!</div>
-                  <div className="text-sm">When you sign up, you'll see the same navigation: Write → Production → Composition → Timeline. Learn it here, use it seamlessly in the app!</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Getting Started */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-2">🚀 Getting Started</h2>
-          <p className="text-sm opacity-70 mb-6">New to Wryda? Start here</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <HelpArticleCard
-              href="/help/welcome"
-              title="Welcome to Wryda.ai"
-              description="What Wryda.ai is and what you can create"
-              time="3 min read"
+          <h2 className="text-2xl font-bold mb-6">Quick Links</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <QuickLinkCard
+              href="/help/writing"
+              title="Create Your First Screenplay"
+              description="Learn the basics of writing with our editor"
             />
-            <HelpArticleCard
-              href="/help/quick-start"
-              title="Quick Start Guide"
-              description="Create your first video in 5 minutes"
-              time="5 min read"
-            />
-            <HelpArticleCard
-              href="/help/credits"
-              title="Credit System"
-              description="How credits work and what they buy"
-              time="5 min read"
-            />
-            <HelpArticleCard
-              href="/help/quality-tiers"
-              title="Quality Tiers"
-              description="Choose the right quality for your project"
-              time="3 min read"
-            />
-          </div>
-        </section>
-
-        {/* Core Features */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-2">✨ Core Features</h2>
-          <p className="text-sm opacity-70 mb-6">Learn the main tools and workflows</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <HelpArticleCard
-              href="/help/screenplay-editor"
-              title="Screenplay Editor"
-              description="Fountain format editing with 3 AI writing agents"
-              time="10 min read"
-            />
-            <HelpArticleCard
+            <QuickLinkCard
               href="/help/production"
-              title="Production Studio"
-              description="AI video generation with 3 providers (Veo, Luma, Runway)"
-              time="12 min read"
+              title="Generate Your First Video"
+              description="Turn your screenplay into video"
             />
-            <HelpArticleCard
-              href="/help/workflows"
-              title="AI Workflows"
-              description="58+ guided workflows for every video type"
-              time="8 min read"
-            />
-            <HelpArticleCard
-              href="/help/composition"
-              title="Composition Studio"
-              description="12+ layouts for split-screens, grids, and sequences"
-              time="10 min read"
-            />
-            <HelpArticleCard
-              href="/help/advanced/timeline-mastery"
-              title="Timeline Editor"
-              description="8-track video editing with transitions and export"
-              time="15 min read"
-            />
-            <HelpArticleCard
-              href="/help/fountain-format"
-              title="Fountain Format"
-              description="Why screenplay format gives better AI results"
-              time="8 min read"
-            />
-          </div>
-        </section>
-
-        {/* Advanced & Reference */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-2">📚 Advanced & Reference</h2>
-          <p className="text-sm opacity-70 mb-6">Power user techniques and quick reference</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <HelpArticleCard
-              href="/help/advanced/character-consistency"
-              title="Character Consistency"
-              description="Keep characters looking the same across shots"
-              time="12 min read"
-            />
-            <HelpArticleCard
-              href="/help/advanced/multi-shot-scenes"
-              title="Multi-Shot Scenes"
-              description="Create complex scenes with multiple angles"
-              time="15 min read"
-            />
-            <HelpArticleCard
-              href="/help/reference/shortcuts"
-              title="Keyboard Shortcuts"
-              description="Speed up your workflow"
-              time="3 min read"
-            />
-            <HelpArticleCard
-              href="/help/reference/formats"
-              title="Export Formats"
-              description="All export options and specifications"
-              time="5 min read"
-            />
-            <HelpArticleCard
-              href="/help/reference/pricing"
-              title="Pricing Reference"
-              description="Complete pricing and credit costs"
-              time="5 min read"
-            />
-            <HelpArticleCard
-              href="/help/reference/troubleshooting"
-              title="Troubleshooting"
-              description="Common issues and solutions"
-              time="10 min read"
+            <QuickLinkCard
+              href="/help/faq"
+              title="Understanding Credits"
+              description="How credits work and what they buy"
             />
           </div>
         </section>
@@ -252,32 +128,40 @@ export default function HelpCenter() {
   );
 }
 
-function QuickLinkCard({ href, icon, title, description }) {
+function HelpSectionCard({ href, icon, title, description, features }) {
   return (
-    <Link href={href} className="card bg-gradient-to-br from-primary/10 to-secondary/10 hover:shadow-xl transition-shadow">
-      <div className="card-body text-center">
-        <div className="text-5xl mb-2">{icon}</div>
-        <h3 className="card-title justify-center text-lg">{title}</h3>
-        <p className="text-sm opacity-80">{description}</p>
-      </div>
-    </Link>
-  );
-}
-
-function HelpArticleCard({ href, title, description, time }) {
-  return (
-    <Link href={href} className="card bg-base-200 hover:bg-base-300 transition-colors">
+    <Link href={href} className="card bg-gradient-to-br from-primary/10 to-secondary/10 hover:shadow-xl transition-shadow border-2 border-primary/30">
       <div className="card-body">
-        <h3 className="card-title text-base">{title}</h3>
-        <p className="text-sm opacity-70">{description}</p>
-        <div className="card-actions justify-between items-center mt-2">
-          <span className="text-xs opacity-60">{time}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 opacity-50">
-            <path fillRule="evenodd" d="M5 10a.75.75 0 01.75-.75h6.638L10.23 7.29a.75.75 0 111.04-1.08l3.5 3.25a.75.75 0 010 1.08l-3.5 3.25a.75.75 0 11-1.04-1.08l2.158-1.96H5.75A.75.75 0 015 10z" clipRule="evenodd" />
-          </svg>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="text-5xl">{icon}</div>
+          <div>
+            <h3 className="card-title text-2xl">{title}</h3>
+            <p className="text-sm opacity-70">{description}</p>
+          </div>
+        </div>
+        <ul className="space-y-2">
+          {features.map((feature, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-sm">
+              <span className="text-primary">✓</span>
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="card-actions justify-end mt-4">
+          <span className="text-sm opacity-60">Learn more →</span>
         </div>
       </div>
     </Link>
   );
 }
 
+function QuickLinkCard({ href, title, description }) {
+  return (
+    <Link href={href} className="card bg-base-200 hover:bg-base-300 transition-colors">
+      <div className="card-body">
+        <h3 className="card-title text-base">{title}</h3>
+        <p className="text-sm opacity-70">{description}</p>
+      </div>
+    </Link>
+  );
+}
