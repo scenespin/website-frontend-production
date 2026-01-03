@@ -724,11 +724,14 @@ export class SceneBuilderService {
    * SECURITY: All margin calculations are done server-side
    */
   static async calculatePricing(
-    shots: Array<{ slot: number; credits: number }>,
+    shots: Array<{ slot: number; credits: number; type?: string }>,
     shotDurations?: Record<number, 'quick-cut' | 'extended-take'>,
     getTokenFn?: (options: { template: string }) => Promise<string | null>,
     referenceShotModels?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>,
-    videoTypes?: Record<number, 'cinematic-visuals' | 'natural-motion'>
+    videoTypes?: Record<number, 'cinematic-visuals' | 'natural-motion'>,
+    dialogueQualities?: Record<number, 'premium' | 'reliable'>,
+    dialogueWorkflows?: Record<number, string>,
+    voiceoverBaseWorkflows?: Record<number, string>
   ): Promise<ScenePricingResult> {
     if (!getTokenFn) {
       throw new Error('getToken function is required');
@@ -746,7 +749,10 @@ export class SceneBuilderService {
         shots,
         shotDurations,
         referenceShotModels,
-        videoTypes
+        videoTypes,
+        dialogueQualities,
+        dialogueWorkflows,
+        voiceoverBaseWorkflows
       })
     });
     

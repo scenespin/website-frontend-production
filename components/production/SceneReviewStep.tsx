@@ -43,6 +43,8 @@ interface SceneReviewStepProps {
   selectedLocationReferences: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>;
   // Dialogue workflows
   selectedDialogueWorkflows: Record<number, string>;
+  selectedDialogueQualities?: Record<number, 'premium' | 'reliable'>;
+  voiceoverBaseWorkflows?: Record<number, string>;
   dialogueWorkflowPrompts: Record<number, string>;
   // Per-shot workflow overrides (for action shots and dialogue shots)
   shotWorkflowOverrides?: Record<number, string>;
@@ -75,6 +77,8 @@ export function SceneReviewStep({
   characterOutfits,
   selectedLocationReferences,
   selectedDialogueWorkflows,
+  selectedDialogueQualities,
+  voiceoverBaseWorkflows,
   dialogueWorkflowPrompts,
   shotWorkflowOverrides = {},
   onShotWorkflowOverrideChange,
@@ -108,10 +112,14 @@ export function SceneReviewStep({
       setIsLoadingPricing(true);
       try {
         const pricingResult = await SceneBuilderService.calculatePricing(
-          selectedShots.map((shot: any) => ({ slot: shot.slot, credits: shot.credits || 0 })),
+          selectedShots.map((shot: any) => ({ slot: shot.slot, credits: shot.credits || 0, type: shot.type })),
           shotDurations,
           getToken,
-          selectedReferenceShotModels
+          selectedReferenceShotModels,
+          undefined, // videoTypes
+          selectedDialogueQualities,
+          selectedDialogueWorkflows,
+          voiceoverBaseWorkflows
         );
         
         setPricing({
@@ -128,7 +136,7 @@ export function SceneReviewStep({
     };
     
     fetchPricing();
-  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, getToken]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, getToken]);
   
   if (!sceneAnalysisResult) {
     return (

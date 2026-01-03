@@ -3754,6 +3754,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                 characterOutfits={characterOutfits}
                 selectedLocationReferences={selectedLocationReferences}
                 selectedDialogueWorkflows={selectedDialogueWorkflows}
+                selectedDialogueQualities={selectedDialogueQualities}
+                voiceoverBaseWorkflows={voiceoverBaseWorkflows}
                 dialogueWorkflowPrompts={dialogueWorkflowPrompts}
                 shotWorkflowOverrides={shotWorkflowOverrides}
                 onShotWorkflowOverrideChange={(shotSlot, workflow) => {
