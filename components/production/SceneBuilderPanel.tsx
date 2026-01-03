@@ -269,92 +269,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [selectedVideoQualities, setSelectedVideoQualities] = useState<Record<number, 'hd' | '4k'>>({});
   
   // 🔥 NEW: Map Media Library files to character headshot structure
-  useEffect(() => {
-    if (characterMediaFiles.length === 0 || characterIdsForMediaLibrary.length === 0) return;
-    
-    // Helper function to map Media Library files to headshot structure
-    const mapMediaFilesToHeadshots = (mediaFiles: any[], characterId: string) => {
-      const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
-      
-      const headshots: Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }> = [];
-      
-      mediaFiles.forEach((file: any) => {
-        if ((file.metadata?.entityId || file.entityId) === characterId) {
-          const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
-          const isHeadshot = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
-          const isProductionHub = file.metadata?.createdIn === 'production-hub' || 
-                                   file.metadata?.source === 'pose-generation' ||
-                                   file.metadata?.uploadMethod === 'pose-generation';
-          
-          // Include headshot poses or Production Hub images without poseId
-          if (isHeadshot || (isProductionHub && !poseId)) {
-            headshots.push({
-              poseId: poseId || file.s3Key, // Use s3Key as fallback ID for backend compatibility
-              s3Key: file.s3Key,
-              imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
-              label: file.metadata?.poseName || file.metadata?.angle || 'Headshot',
-              priority: file.metadata?.priority || 999,
-              outfitName: file.metadata?.outfitName
-            });
-          }
-        }
-      });
-      
-      // Sort by priority (lower number = higher priority)
-      headshots.sort((a, b) => (a.priority || 999) - (b.priority || 999));
-      
-      return headshots.slice(0, 10); // Limit to 10 headshots
-    };
-    
-    // Build headshots for each character from Media Library
-    const newHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>> = {};
-    
-    characterIdsForMediaLibrary.forEach(characterId => {
-      const characterFiles = characterMediaFiles.filter((file: any) => 
-        (file.metadata?.entityId || file.entityId) === characterId
-      );
-      
-      if (characterFiles.length > 0) {
-        const headshots = mapMediaFilesToHeadshots(characterFiles, characterId);
-        if (headshots.length > 0) {
-          newHeadshots[characterId] = headshots;
-        }
-      }
-    });
-    
-    // Update headshots state
-    if (Object.keys(newHeadshots).length > 0) {
-      setCharacterHeadshots(prev => ({ ...prev, ...newHeadshots }));
-      
-      // Auto-select highest priority headshot for each character
-      Object.entries(newHeadshots).forEach(([characterId, headshots]) => {
-        if (headshots.length > 0) {
-          const bestHeadshot = headshots[0]; // Already sorted by priority
-          
-          // Find all shots for this character and auto-select the best headshot
-          const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
-            s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
-          ) || [];
-          
-          setSelectedCharacterReferences(prev => {
-            const updated = { ...prev };
-            shotsForCharacter.forEach((shot: any) => {
-              const shotRefs = updated[shot.slot] || {};
-              updated[shot.slot] = {
-                ...shotRefs,
-                [characterId]: {
-                  poseId: bestHeadshot.poseId,
-                  s3Key: bestHeadshot.s3Key,
-                  imageUrl: bestHeadshot.imageUrl
-                }
-              };
-            });
-            return updated;
-          });
-        }
-      });
-    }
-  }, [characterMediaFiles, characterIdsForMediaLibrary, sceneAnalysisResult?.shotBreakdown?.shots]);
+  // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
   
   // 🔥 NEW: Collect all headshot thumbnail S3 keys from Media Library map
   const headshotThumbnailS3Keys = React.useMemo(() => {
@@ -433,8 +348,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     return map;
   }, [propMediaFiles]);
   
-  // 🔥 NEW: Track location ID for Media Library query
-  const locationId = sceneAnalysisResult?.location?.id;
+  // 🔥 NEW: Track location ID for Media Library query (moved to after sceneAnalysisResult declaration)
   
   // 🔥 NEW: Query Media Library for location images
   const { data: locationMediaFiles = [] } = useMediaFiles(
@@ -613,6 +527,97 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       setSelectedWorkflows(combinableWorkflows);
     }
   }, [sceneAnalysisResult]);
+
+  // 🔥 NEW: Map Media Library files to character headshot structure (moved here to fix build error)
+  useEffect(() => {
+    if (characterMediaFiles.length === 0 || characterIdsForMediaLibrary.length === 0) return;
+    
+    // Helper function to map Media Library files to headshot structure
+    const mapMediaFilesToHeadshots = (mediaFiles: any[], characterId: string) => {
+      const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
+      
+      const headshots: Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }> = [];
+      
+      mediaFiles.forEach((file: any) => {
+        if ((file.metadata?.entityId || file.entityId) === characterId) {
+          const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
+          const isHeadshot = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
+          const isProductionHub = file.metadata?.createdIn === 'production-hub' || 
+                                   file.metadata?.source === 'pose-generation' ||
+                                   file.metadata?.uploadMethod === 'pose-generation';
+          
+          // Include headshot poses or Production Hub images without poseId
+          if (isHeadshot || (isProductionHub && !poseId)) {
+            headshots.push({
+              poseId: poseId || file.s3Key, // Use s3Key as fallback ID for backend compatibility
+              s3Key: file.s3Key,
+              imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
+              label: file.metadata?.poseName || file.metadata?.angle || 'Headshot',
+              priority: file.metadata?.priority || 999,
+              outfitName: file.metadata?.outfitName
+            });
+          }
+        }
+      });
+      
+      // Sort by priority (lower number = higher priority)
+      headshots.sort((a, b) => (a.priority || 999) - (b.priority || 999));
+      
+      return headshots.slice(0, 10); // Limit to 10 headshots
+    };
+    
+    // Build headshots for each character from Media Library
+    const newHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>> = {};
+    
+    characterIdsForMediaLibrary.forEach(characterId => {
+      const characterFiles = characterMediaFiles.filter((file: any) => 
+        (file.metadata?.entityId || file.entityId) === characterId
+      );
+      
+      if (characterFiles.length > 0) {
+        const headshots = mapMediaFilesToHeadshots(characterFiles, characterId);
+        if (headshots.length > 0) {
+          newHeadshots[characterId] = headshots;
+        }
+      }
+    });
+    
+    // Update headshots state
+    if (Object.keys(newHeadshots).length > 0) {
+      setCharacterHeadshots(prev => ({ ...prev, ...newHeadshots }));
+      
+      // Auto-select highest priority headshot for each character
+      Object.entries(newHeadshots).forEach(([characterId, headshots]) => {
+        if (headshots.length > 0) {
+          const bestHeadshot = headshots[0]; // Already sorted by priority
+          
+          // Find all shots for this character and auto-select the best headshot
+          const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
+            s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
+          ) || [];
+          
+          setSelectedCharacterReferences(prev => {
+            const updated = { ...prev };
+            shotsForCharacter.forEach((shot: any) => {
+              const shotRefs = updated[shot.slot] || {};
+              updated[shot.slot] = {
+                ...shotRefs,
+                [characterId]: {
+                  poseId: bestHeadshot.poseId,
+                  s3Key: bestHeadshot.s3Key,
+                  imageUrl: bestHeadshot.imageUrl
+                }
+              };
+            });
+            return updated;
+          });
+        }
+      });
+    }
+  }, [characterMediaFiles, characterIdsForMediaLibrary, sceneAnalysisResult?.shotBreakdown?.shots]);
+
+  // 🔥 NEW: Track location ID for Media Library query (moved here to fix build error)
+  const locationId = sceneAnalysisResult?.location?.id;
   
   // Toggle workflow selection
   const toggleWorkflow = (workflowId: string) => {

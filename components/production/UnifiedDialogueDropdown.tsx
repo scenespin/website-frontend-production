@@ -268,11 +268,13 @@ export function UnifiedDialogueDropdown({
                       value={selectedBaseWorkflow || 'action-line'}
                       onValueChange={(value) => {
                         // Allow selecting any workflow, including action-line
-                        onBaseWorkflowChange(value);
+                        if (onBaseWorkflowChange) {
+                          onBaseWorkflowChange(value);
+                        }
                       }}
                     >
                       <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue />
+                        <SelectValue placeholder="Select base workflow" />
                       </SelectTrigger>
                       <SelectContent>
                         {AVAILABLE_WORKFLOWS.map((wf) => (
