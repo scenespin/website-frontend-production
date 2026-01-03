@@ -1395,13 +1395,24 @@ export function CharacterDetailModal({
                           return;
                         }
                         
-                        // Find in allImages by stable identifier (id or s3Key)
-                        const actualIndex = allImages.findIndex(img => {
+                        // 🔥 FIX: Find index in galleryImages (unfiltered) first, then fallback to allImages
+                        // This ensures we get the correct index even when filtered
+                        let actualIndex = galleryImages.findIndex(img => {
                           if (img.id === clickedImage.id) return true;
                           const clickedS3Key = clickedImage.s3Key;
                           if (clickedS3Key && img.s3Key === clickedS3Key) return true;
                           return false;
                         });
+                        
+                        // If not found in galleryImages, try allImages
+                        if (actualIndex < 0) {
+                          actualIndex = allImages.findIndex(img => {
+                            if (img.id === clickedImage.id) return true;
+                            const clickedS3Key = clickedImage.s3Key;
+                            if (clickedS3Key && img.s3Key === clickedS3Key) return true;
+                            return false;
+                          });
+                        }
                         
                         if (actualIndex >= 0 && actualIndex < allImages.length) {
                           setPreviewImageIndex(actualIndex);
@@ -2025,6 +2036,10 @@ export function CharacterDetailModal({
                                             });
                                           }
                                           
+                                          // 🔥 FIX: Invalidate queries to refresh UI immediately
+                                          queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          
                                           toast.success('Image deleted');
                                         } catch (error: any) {
                                           console.error('[CharacterDetailModal] Failed to delete image:', error);
@@ -2315,6 +2330,10 @@ export function CharacterDetailModal({
                       poseReferences: updatedPoseReferences,
                       references: updatedReferences
                     });
+                    
+                    // 🔥 FIX: Invalidate queries to refresh UI immediately
+                    queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                     
                     // Clear selection and exit selection mode
                     setSelectedImageIds(new Set());

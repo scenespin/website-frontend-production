@@ -1563,7 +1563,10 @@ export function LocationDetailModal({
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
+                                                          // 🔥 FIX: Invalidate location queries to refresh UI immediately
+                                                          queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
                                                           console.error('[LocationDetailModal] Failed to delete background image:', error);
