@@ -494,7 +494,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-[#3F3F46] bg-[#141414] flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-white">Screenplay Readings</h2>
+          <h2 className="text-xl font-semibold text-white">Table Reads</h2>
           <p className="text-sm text-gray-400 mt-1">
             {readings.length} {readings.length === 1 ? 'reading' : 'readings'}
           </p>
