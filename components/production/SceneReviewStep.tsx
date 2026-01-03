@@ -318,47 +318,13 @@ export function SceneReviewStep({
                       </div>
                     )}
 
-                    {/* Workflow Override - NEW: For both dialogue and action shots */}
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-[#808080]">
-                        Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'action-line')}</span>
-                      </div>
-                      {onShotWorkflowOverrideChange && (
-                        <div>
-                          <label className="block text-[10px] text-[#808080] mb-1">Override Workflow:</label>
-                          <Select
-                            value={shotWorkflowOverrides[shot.slot] || shot.workflow || ''}
-                            onValueChange={(newWorkflow) => {
-                              if (newWorkflow === shot.workflow) {
-                                // If user selects suggested workflow, remove override
-                                onShotWorkflowOverrideChange(shot.slot, '');
-                              } else {
-                                onShotWorkflowOverrideChange(shot.slot, newWorkflow);
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-full h-7 text-[10px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={shot.workflow || ''}>
-                                {getWorkflowLabel(shot.workflow || 'action-line')} (suggested)
-                              </SelectItem>
-                              {ALL_WORKFLOWS
-                                .filter(wf => wf.value !== shot.workflow)
-                                .map(wf => (
-                                  <SelectItem key={wf.value} value={wf.value}>
-                                    {wf.label}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                          {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
-                            <div className="text-[10px] text-[#DC143C] mt-1">
-                              Override active: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])}
-                            </div>
-                          )}
-                        </div>
+                    {/* Workflow - Display only (no override in review step) */}
+                    <div className="text-[10px] text-[#808080]">
+                      Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'action-line')}</span>
+                      {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
+                        <span className="text-[#DC143C] ml-2">
+                          (Override: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])})
+                        </span>
                       )}
                     </div>
 

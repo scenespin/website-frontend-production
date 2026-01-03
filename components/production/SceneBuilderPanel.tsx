@@ -488,9 +488,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     locationMediaFiles.forEach((file: any) => {
       if ((file.metadata?.entityId || file.entityId) === locationId) {
+        // 🔥 FIX: Comprehensive background detection - check all possible metadata fields
         const isBackground = file.metadata?.backgroundType || 
                              file.metadata?.source === 'background-generation' ||
-                             file.metadata?.uploadMethod === 'background-generation';
+                             file.metadata?.uploadMethod === 'background-generation' ||
+                             file.metadata?.generationMethod === 'background-generation' ||
+                             (file.folderPath && file.folderPath.some((path: string) => path.toLowerCase().includes('background')));
         
         if (isBackground) {
           // Background image
@@ -528,22 +531,36 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // 🔥 NEW: Merge Media Library location data with sceneAnalysisResult
   const enrichedSceneAnalysisResult = React.useMemo(() => {
-    if (!sceneAnalysisResult || !locationDataFromMediaLibrary) return sceneAnalysisResult;
+    if (!sceneAnalysisResult) return sceneAnalysisResult;
+    
+    // If we have Media Library data, use it; otherwise use database data
+    const finalAngleVariations = locationDataFromMediaLibrary?.angleVariations.length > 0 
+      ? locationDataFromMediaLibrary.angleVariations 
+      : sceneAnalysisResult.location.angleVariations || [];
+    
+    const finalBackgrounds = locationDataFromMediaLibrary?.backgrounds.length > 0
+      ? locationDataFromMediaLibrary.backgrounds
+      : sceneAnalysisResult.location.backgrounds || [];
+    
+    console.log('[SceneBuilderPanel] Location data:', {
+      locationId,
+      mediaLibraryAngles: locationDataFromMediaLibrary?.angleVariations.length || 0,
+      mediaLibraryBackgrounds: locationDataFromMediaLibrary?.backgrounds.length || 0,
+      databaseAngles: sceneAnalysisResult.location.angleVariations?.length || 0,
+      databaseBackgrounds: sceneAnalysisResult.location.backgrounds?.length || 0,
+      finalAngles: finalAngleVariations.length,
+      finalBackgrounds: finalBackgrounds.length
+    });
     
     return {
       ...sceneAnalysisResult,
       location: {
         ...sceneAnalysisResult.location,
-        // Use Media Library data if available, otherwise fall back to database data
-        angleVariations: locationDataFromMediaLibrary.angleVariations.length > 0 
-          ? locationDataFromMediaLibrary.angleVariations 
-          : sceneAnalysisResult.location.angleVariations || [],
-        backgrounds: locationDataFromMediaLibrary.backgrounds.length > 0
-          ? locationDataFromMediaLibrary.backgrounds
-          : sceneAnalysisResult.location.backgrounds || []
+        angleVariations: finalAngleVariations,
+        backgrounds: finalBackgrounds
       }
     };
-  }, [sceneAnalysisResult, locationDataFromMediaLibrary]);
+  }, [sceneAnalysisResult, locationDataFromMediaLibrary, locationId]);
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
   const [isLoadingSceneContent, setIsLoadingSceneContent] = useState<Record<string, boolean>>({}); // sceneId -> loading state
   
