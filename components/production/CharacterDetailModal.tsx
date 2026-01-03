@@ -524,6 +524,7 @@ export function CharacterDetailModal({
       isBase: boolean;
       isPose: boolean;
       outfitName?: string;
+      outfitNameOriginal?: string; // Original outfit name for display
       poseId?: string;
       isRegenerated?: boolean;
       regeneratedFrom?: string;
