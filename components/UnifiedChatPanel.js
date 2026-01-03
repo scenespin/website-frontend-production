@@ -135,15 +135,17 @@ function ModeSelector() {
   const currentModeConfig = MODE_CONFIG[state.activeMode];
   const CurrentIcon = currentModeConfig?.icon || MessageSquare;
   
-  console.log('[ModeSelector] Available agents:', agents, 'Available modes:', availableModes);
+  console.log('[ModeSelector] Available agents:', agents, 'Available modes:', availableModes, 'isOpen:', isOpen);
   
   return (
-    <div ref={dropdownRef} className="dropdown dropdown-top relative">
+    <div ref={dropdownRef} className="relative">
       <label 
         tabIndex={0} 
         className="btn btn-sm btn-ghost gap-1 text-xs cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
+          e.preventDefault();
+          console.log('[ModeSelector] Toggle dropdown, current isOpen:', isOpen);
           setIsOpen(!isOpen);
         }}
       >
@@ -154,7 +156,8 @@ function ModeSelector() {
       {isOpen && (
         <ul 
           tabIndex={0} 
-          className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-52 mt-1 border border-base-300 z-[100] max-h-96 overflow-y-auto pointer-events-auto"
+          className="absolute bottom-full left-0 mb-1 menu p-2 shadow-lg bg-base-200 rounded-box w-52 border border-base-300 z-[9999] max-h-96 overflow-y-auto pointer-events-auto"
+          style={{ position: 'absolute' }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
