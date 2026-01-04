@@ -637,7 +637,7 @@ export default function FountainEditor({
                                     code: 'Tab',
                                     preventDefault: () => {},
                                     stopPropagation: () => {}
-                                } as KeyboardEvent<HTMLTextAreaElement>;
+                                } as React.KeyboardEvent<HTMLTextAreaElement>;
                                 
                                 // Call handleTab with synthetic event (reuses all Tab logic)
                                 if (wrydaTab.handleTab(syntheticEvent)) {
