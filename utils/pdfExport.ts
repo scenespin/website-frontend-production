@@ -243,11 +243,41 @@ function addWatermark(
   if (image) {
     // Image watermark
     try {
+      // Validate image data
+      if (!image || typeof image !== 'string') {
+        throw new Error('Invalid image data: must be a string');
+      }
+      
+      if (!image.startsWith('data:image/') && !image.startsWith('http')) {
+        throw new Error('Invalid image format: must be a data URL or HTTP URL');
+      }
+      
+      console.log('[PDF Watermark] Adding image watermark...', {
+        hasDataUrl: image.startsWith('data:'),
+        imageLength: image.length,
+        imagePreview: image.substring(0, 50) + '...',
+        imageWidth,
+        imageHeight,
+        opacity,
+        angle,
+      });
+      
       // Prepare image data and format
       const { imageData, format } = prepareImageForPDF(image);
       
+      console.log('[PDF Watermark] Image prepared:', {
+        format,
+        dataLength: imageData.length,
+        dataPreview: imageData.substring(0, 50) + '...',
+      });
+      
       const imgWidth = inchesToPoints(imageWidth);
       const imgHeight = inchesToPoints(imageHeight);
+      
+      console.log('[PDF Watermark] Image dimensions (points):', {
+        width: imgWidth,
+        height: imgHeight,
+      });
       
       // Save graphics state for opacity and transformation
       doc.saveGraphicsState();
@@ -260,6 +290,8 @@ function addWatermark(
         const radians = (angle * Math.PI) / 180;
         const cos = Math.cos(radians);
         const sin = Math.sin(radians);
+        
+        console.log('[PDF Watermark] Applying rotation:', { angle, radians, cos, sin });
         
         // Apply transformation: translate to center, rotate, then position image
         // Transformation matrix object format for jsPDF
@@ -277,34 +309,44 @@ function addWatermark(
         // Draw image centered at origin (after transformation)
         // Position is relative to the transformed coordinate system
         doc.addImage(imageData, format, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight);
+        console.log('[PDF Watermark] Image added with rotation');
       } else {
         // No rotation - simple centered placement
         const x = centerX - imgWidth / 2;
         const y = centerY - imgHeight / 2;
+        console.log('[PDF Watermark] Adding image without rotation at:', { x, y });
         doc.addImage(imageData, format, x, y, imgWidth, imgHeight);
+        console.log('[PDF Watermark] Image added successfully');
       }
       
       // Restore graphics state
       doc.restoreGraphicsState();
+      console.log('[PDF Watermark] Watermark added successfully');
     } catch (error) {
       console.error('[PDF Watermark] Failed to add image:', error);
       console.error('[PDF Watermark] Error details:', {
         errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
         imageType: typeof image,
         imageLength: image?.length,
         imagePreview: image?.substring(0, 100),
-        hasDataUrl: image?.startsWith('data:')
+        hasDataUrl: image?.startsWith('data:'),
+        imageWidth,
+        imageHeight,
+        opacity,
+        angle,
       });
       
       // Restore state before fallback
       try {
         doc.restoreGraphicsState();
       } catch (e) {
-        // Ignore restore errors
+        console.error('[PDF Watermark] Failed to restore graphics state:', e);
       }
       
       // Fallback to text watermark if image fails
       if (text) {
+        console.log('[PDF Watermark] Falling back to text watermark');
         doc.saveGraphicsState();
         doc.setGState(doc.GState({ opacity }));
         doc.setTextColor(150, 150, 150);
@@ -314,6 +356,9 @@ function addWatermark(
           angle,
         });
         doc.restoreGraphicsState();
+      } else {
+        // If no text fallback, throw error to surface the issue
+        throw new Error(`Failed to add image watermark: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   } else if (text) {

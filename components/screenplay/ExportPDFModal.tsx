@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, FileDown, Loader2, Check, Upload } from 'lucide-react';
 import { downloadScreenplayPDF } from '@/utils/pdfExport';
 
@@ -27,54 +27,191 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
   const [watermarkImage, setWatermarkImage] = useState<string | null>(null);
   const [watermarkOpacity, setWatermarkOpacity] = useState(0.1);
   const [watermarkImageSize, setWatermarkImageSize] = useState(3); // inches
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // File input ref for proper handling
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    setImageUploadError(null);
+    
+    if (!file) {
+      console.log('[PDF Export] No file selected');
+      return;
+    }
+    
+    console.log('[PDF Export] File selected:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
     
     // Check file type
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file (PNG, JPG, etc.)');
+      const error = 'Please upload an image file (PNG, JPG, GIF, etc.)';
+      console.error('[PDF Export] Invalid file type:', file.type);
+      setImageUploadError(error);
+      alert(error);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       return;
     }
     
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image too large. Please upload an image under 5MB.');
+      const error = 'Image too large. Please upload an image under 5MB.';
+      console.error('[PDF Export] File too large:', file.size);
+      setImageUploadError(error);
+      alert(error);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       return;
     }
     
     // Convert to base64 - ensure PNG format for PDF compatibility
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      // If image is not PNG, convert it
-      if (result.startsWith('data:image/') && !result.startsWith('data:image/png')) {
-        // Convert to PNG using canvas
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            const pngDataUrl = canvas.toDataURL('image/png');
-            setWatermarkImage(pngDataUrl);
-          }
-        };
-        img.src = result;
-      } else {
-        setWatermarkImage(result);
+    
+    reader.onerror = (error) => {
+      console.error('[PDF Export] FileReader error:', error);
+      const errorMsg = 'Failed to read image file. Please try again.';
+      setImageUploadError(errorMsg);
+      alert(errorMsg);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
     };
+    
+    reader.onload = (event) => {
+      try {
+        const result = event.target?.result as string;
+        if (!result) {
+          throw new Error('No data from FileReader');
+        }
+        
+        console.log('[PDF Export] File read successfully, converting to PNG...');
+        
+        // Create preview immediately
+        setImagePreview(result);
+        
+        // If image is not PNG, convert it
+        if (result.startsWith('data:image/') && !result.startsWith('data:image/png')) {
+          console.log('[PDF Export] Converting non-PNG image to PNG format');
+          // Convert to PNG using canvas
+          const img = new Image();
+          
+          img.onerror = (error) => {
+            console.error('[PDF Export] Image load error:', error);
+            const errorMsg = 'Failed to load image. Please try a different file.';
+            setImageUploadError(errorMsg);
+            alert(errorMsg);
+            setImagePreview(null);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+          };
+          
+          img.onload = () => {
+            try {
+              console.log('[PDF Export] Image loaded, creating canvas...', {
+                width: img.width,
+                height: img.height,
+              });
+              
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              
+              if (!ctx) {
+                throw new Error('Could not get canvas context');
+              }
+              
+              // Draw image to canvas
+              ctx.drawImage(img, 0, 0);
+              
+              // Convert to PNG
+              const pngDataUrl = canvas.toDataURL('image/png');
+              console.log('[PDF Export] Image converted to PNG successfully');
+              
+              setWatermarkImage(pngDataUrl);
+              setImagePreview(pngDataUrl);
+              setImageUploadError(null);
+            } catch (error) {
+              console.error('[PDF Export] Canvas conversion error:', error);
+              const errorMsg = 'Failed to convert image. Please try a PNG file.';
+              setImageUploadError(errorMsg);
+              alert(errorMsg);
+              setImagePreview(null);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }
+          };
+          
+          img.src = result;
+        } else {
+          // Already PNG or valid format
+          console.log('[PDF Export] Image is already in compatible format');
+          setWatermarkImage(result);
+          setImageUploadError(null);
+        }
+      } catch (error) {
+        console.error('[PDF Export] Error processing image:', error);
+        const errorMsg = 'Failed to process image. Please try again.';
+        setImageUploadError(errorMsg);
+        alert(errorMsg);
+        setImagePreview(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+    
     reader.readAsDataURL(file);
+  };
+  
+  const handleRemoveImage = () => {
+    setWatermarkImage(null);
+    setImagePreview(null);
+    setImageUploadError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
   
   const handleExport = async () => {
     if (!screenplay.trim()) {
       alert('No screenplay content to export');
       return;
+    }
+    
+    // Validate watermark image if image type is selected
+    if (includeWatermark && watermarkType === 'image') {
+      if (!watermarkImage) {
+        alert('Please upload an image for the watermark');
+        return;
+      }
+      
+      // Validate image format
+      if (!watermarkImage.startsWith('data:image/')) {
+        alert('Invalid image format. Please upload the image again.');
+        return;
+      }
+      
+      console.log('[PDF Export] Validating watermark image before export...', {
+        hasImage: !!watermarkImage,
+        imageLength: watermarkImage.length,
+        imageType: watermarkImage.substring(0, 20),
+        imageWidth: watermarkImageSize,
+        imageHeight: watermarkImageSize,
+        opacity: watermarkOpacity,
+      });
     }
     
     setIsExporting(true);
@@ -84,6 +221,11 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
       
       if (includeWatermark) {
         if (watermarkType === 'image' && watermarkImage) {
+          console.log('[PDF Export] Creating image watermark...', {
+            imageLength: watermarkImage.length,
+            imagePreview: watermarkImage.substring(0, 50) + '...',
+          });
+          
           watermark = {
             image: watermarkImage,
             opacity: watermarkOpacity,
@@ -104,6 +246,12 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
       // Generate filename
       const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       
+      console.log('[PDF Export] Starting PDF export...', {
+        filename,
+        hasWatermark: !!watermark,
+        watermarkType: watermark?.image ? 'image' : watermark?.text ? 'text' : 'none',
+      });
+      
       // Export with full bookmark support
       await downloadScreenplayPDF(
         screenplay,
@@ -116,6 +264,7 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
         }
       );
       
+      console.log('[PDF Export] PDF exported successfully');
       setExported(true);
       
       // Close modal after brief delay
@@ -125,7 +274,13 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
       
     } catch (error) {
       console.error('[PDF Export] Failed:', error);
-      alert('Failed to export PDF. Please try again.');
+      console.error('[PDF Export] Error details:', {
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        watermarkType,
+        hasWatermarkImage: !!watermarkImage,
+      });
+      alert(`Failed to export PDF: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the console for details.`);
     } finally {
       setIsExporting(false);
     }
@@ -272,22 +427,69 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                     <label htmlFor="watermark-image" className="text-sm font-medium text-base-content">
                       Upload Logo/Image
                     </label>
-                    <label className="btn btn-outline w-full cursor-pointer">
-                      <Upload className="w-4 h-4 mr-2" />
-                      {watermarkImage ? 'Change Image' : 'Choose Image'}
-                      <input
-                        id="watermark-image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </label>
-                    {watermarkImage && (
-                      <p className="text-xs text-success">✓ Image uploaded successfully</p>
+                    
+                    {/* File Input Button */}
+                    <div className="flex gap-2">
+                      <label 
+                        htmlFor="watermark-image" 
+                        className="btn btn-outline flex-1 cursor-pointer"
+                        onClick={(e) => {
+                          // Prevent label from triggering if clicking on button text
+                          if (e.target !== e.currentTarget) {
+                            fileInputRef.current?.click();
+                          }
+                        }}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {watermarkImage ? 'Change Image' : 'Choose Image'}
+                      </label>
+                      {watermarkImage && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="btn btn-ghost btn-sm"
+                          title="Remove image"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    <input
+                      ref={fileInputRef}
+                      id="watermark-image"
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    
+                    {/* Image Preview */}
+                    {imagePreview && (
+                      <div className="relative border border-base-300 rounded-lg p-2 bg-base-200">
+                        <img
+                          src={imagePreview}
+                          alt="Watermark preview"
+                          className="max-h-32 mx-auto object-contain rounded"
+                        />
+                        <p className="text-xs text-success mt-2 text-center">
+                          ✓ Image uploaded successfully
+                        </p>
+                      </div>
                     )}
+                    
+                    {/* Error Message */}
+                    {imageUploadError && (
+                      <div className="alert alert-error py-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-xs">{imageUploadError}</span>
+                      </div>
+                    )}
+                    
                     <p className="text-xs text-base-content/60">
-                      PNG, JPG, or GIF. Max 5MB.
+                      PNG, JPG, GIF, or WebP. Max 5MB. Transparent backgrounds work best.
                     </p>
                   </div>
                 )}
