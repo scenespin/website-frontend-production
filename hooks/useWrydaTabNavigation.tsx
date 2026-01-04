@@ -206,6 +206,44 @@ export function useWrydaTabNavigation(
     }, []);
 
     /**
+     * Format scene heading type according to industry standards
+     * - INT → INT.
+     * - EXT → EXT.
+     * - INT/EXT → INT./EXT.
+     * - I/E → I./E.
+     * - EST → EST.
+     */
+    const formatSceneHeadingType = useCallback((type: string): string => {
+        const upper = type.toUpperCase().trim();
+        
+        // Handle INT/EXT variations (industry standard: INT./EXT.)
+        if (upper.includes('INT/EXT') || upper.includes('INT./EXT')) {
+            // Normalize to INT./EXT. (periods after each abbreviation)
+            return 'INT./EXT.';
+        }
+        
+        // Handle I/E variations (industry standard: I./E.)
+        if (upper.includes('I/E') || upper.includes('I./E')) {
+            // Normalize to I./E. (periods after each abbreviation)
+            return 'I./E.';
+        }
+        
+        // Handle simple types (INT, EXT, EST)
+        if (upper.startsWith('INT') && !upper.includes('/')) {
+            return 'INT.';
+        }
+        if (upper.startsWith('EXT') && !upper.includes('/')) {
+            return 'EXT.';
+        }
+        if (upper.startsWith('EST')) {
+            return 'EST.';
+        }
+        
+        // Default: add period if missing, but preserve structure
+        return upper.endsWith('.') ? upper : upper + '.';
+    }, []);
+
+    /**
      * Handle SmartType selection
      */
     const handleSmartTypeSelect = useCallback((item: { id: string; label: string; type: 'location' | 'time' }) => {
@@ -461,44 +499,6 @@ export function useWrydaTabNavigation(
         
         return true;
     }, [state.content, getCursorPosition, setContent, setCursorPosition]);
-
-    /**
-     * Format scene heading type according to industry standards
-     * - INT → INT.
-     * - EXT → EXT.
-     * - INT/EXT → INT./EXT.
-     * - I/E → I./E.
-     * - EST → EST.
-     */
-    const formatSceneHeadingType = useCallback((type: string): string => {
-        const upper = type.toUpperCase().trim();
-        
-        // Handle INT/EXT variations (industry standard: INT./EXT.)
-        if (upper.includes('INT/EXT') || upper.includes('INT./EXT')) {
-            // Normalize to INT./EXT. (periods after each abbreviation)
-            return 'INT./EXT.';
-        }
-        
-        // Handle I/E variations (industry standard: I./E.)
-        if (upper.includes('I/E') || upper.includes('I./E')) {
-            // Normalize to I./E. (periods after each abbreviation)
-            return 'I./E.';
-        }
-        
-        // Handle simple types (INT, EXT, EST)
-        if (upper.startsWith('INT') && !upper.includes('/')) {
-            return 'INT.';
-        }
-        if (upper.startsWith('EXT') && !upper.includes('/')) {
-            return 'EXT.';
-        }
-        if (upper.startsWith('EST')) {
-            return 'EST.';
-        }
-        
-        // Default: add period if missing, but preserve structure
-        return upper.endsWith('.') ? upper : upper + '.';
-    }, []);
 
     /**
      * Check if a line looks like it could be a scene heading (even if incomplete)
