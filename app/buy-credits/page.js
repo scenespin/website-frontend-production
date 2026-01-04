@@ -13,6 +13,9 @@ export default function BuyCreditsPage() {
   const [loadingCredits, setLoadingCredits] = useState(true);
   const [showModal, setShowModal] = useState(true); // Auto-open modal
 
+  // Note: Auth token getter is set up globally in LayoutClient
+  // No need to set it up again here
+
   useEffect(() => {
     if (user?.id) {
       fetchCredits();
@@ -22,10 +25,6 @@ export default function BuyCreditsPage() {
   async function fetchCredits() {
     try {
       setLoadingCredits(true);
-      const { setAuthTokenGetter } = await import('@/lib/api');
-      const { getToken } = await import('@clerk/nextjs');
-      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
-
       const response = await api.user.getCredits();
       const creditsData = response.data.data;
       setCredits(creditsData?.balance || 0);
