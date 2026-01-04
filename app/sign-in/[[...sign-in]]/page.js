@@ -6,21 +6,21 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-100">
       {/* Header */}
-      <header className="p-4 max-w-7xl mx-auto flex justify-between items-center">
+      <header className="p-3 md:p-4 max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold">
+          <span className="text-xl sm:text-2xl font-extrabold">
             {config.appName}<span className="text-[#DC143C]">.ai</span>
           </span>
         </Link>
-        <Link href="/sign-up" className="btn btn-ghost">
+        <Link href="/sign-up" className="btn btn-ghost text-sm md:text-base min-h-[44px] px-3 md:px-4">
           Create an account
         </Link>
       </header>
 
       {/* Main Content */}
-      <div className="flex items-center justify-center px-4 py-8 w-full">
+      <div className="flex items-center justify-center px-4 py-6 md:py-8 w-full min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-md mx-auto">
-          <div className="bg-base-100 rounded-box shadow-2xl p-6 md:p-8 mx-auto">
+          <div className="bg-base-100 rounded-box shadow-2xl p-4 sm:p-6 md:p-8 mx-auto">
             <SignIn 
               appearance={{
                 baseTheme: undefined,

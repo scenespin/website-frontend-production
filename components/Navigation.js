@@ -24,7 +24,9 @@ import {
   Image,
   Plus,
   Clapperboard,
-  Archive
+  Archive,
+  Package,
+  BookOpen as BookOpenIcon
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -156,6 +158,7 @@ export default function Navigation() {
         { name: 'Write', href: buildEditorHref('/write'), icon: FileText, description: 'Screenplay editor (Fountain format)' },
         { name: 'Characters', href: buildEditorHref('/characters'), icon: Users, description: 'Cast management' },
         { name: 'Locations', href: buildEditorHref('/locations'), icon: MapPin, description: 'Scene settings' },
+        { name: 'Props', href: buildEditorHref('/props'), icon: Package, description: 'Props & assets' },
       ]
     },
     {
@@ -164,8 +167,10 @@ export default function Navigation() {
       href: '/produce',
       // Mobile-only sub-items (for accordion)
       subItems: [
-        { name: 'Produce Studio', href: '/produce', icon: Video, description: 'Character, location & prop banks' },
-        { name: 'Workflows', href: '/workflows', icon: Zap, description: 'Guided production' },
+        { name: 'Characters', href: '/produce?tab=character-bank', icon: Users, description: 'Character bank' },
+        { name: 'Locations', href: '/produce?tab=location-bank', icon: MapPin, description: 'Location bank' },
+        { name: 'Props', href: '/produce?tab=asset-bank', icon: Package, description: 'Prop bank' },
+        { name: 'Table Reads', href: '/produce?tab=readings', icon: BookOpenIcon, description: 'Screenplay readings' },
       ]
     },
     {
@@ -241,19 +246,10 @@ export default function Navigation() {
               </nav>
             </div>
 
-            {/* Right Side: Playground + Credits (clickable) + User Button */}
+            {/* Right Side: Credits (clickable) + User Button */}
             <div className="flex items-center gap-3">
               {user && (
                 <>
-                  {/* Playground Button */}
-                  <Link
-                    href="/playground"
-                    className="flex items-center gap-2 px-3 py-1.5 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors font-medium text-sm"
-                  >
-                    <Zap className="w-4 h-4" />
-                    <span>Playground</span>
-                  </Link>
-
                   {/* Credit Balance Display - Clickable (goes to dashboard where CreditWidget handles it) */}
                   {user && (
                     <Link
@@ -302,7 +298,8 @@ export default function Navigation() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="btn btn-ghost btn-square"
+            className="btn btn-ghost btn-square min-h-[44px] min-w-[44px]"
+            aria-label="Toggle mobile menu"
           >
             {mobileMenuOpen ? (
               <X className="w-6 h-6" />
@@ -323,7 +320,7 @@ export default function Navigation() {
                   <div className="space-y-1">
                     <button
                       onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
-                      className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors w-full ${
+                      className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors w-full min-h-[44px] ${
                         isParentActive(item)
                           ? 'bg-cinema-red text-base-content'
                           : 'text-base-content hover:bg-base-300'
@@ -344,7 +341,7 @@ export default function Navigation() {
                             key={subItem.name}
                             href={subItem.href}
                             onClick={() => setMobileMenuOpen(false)}
-                            className={`flex items-start gap-3 px-3 py-2 rounded-lg transition-colors ${
+                            className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px] ${
                               isActive(subItem.href)
                                 ? 'bg-cinema-red/20 text-cinema-red'
                                 : 'text-base-content hover:bg-base-300'
@@ -367,7 +364,7 @@ export default function Navigation() {
                   <Link
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors min-h-[44px] ${
                       isActive(item.href)
                         ? 'bg-cinema-red text-base-content'
                         : 'text-base-content hover:bg-base-300'
@@ -380,23 +377,13 @@ export default function Navigation() {
               </div>
             ))}
             
-            {/* Mobile Credit Balance (Clickable) & Playground Button */}
+            {/* Mobile Credit Balance (Clickable) */}
             <div className="pt-2 border-t border-base-300 space-y-2">
-              {/* Playground Button */}
-              <Link
-                href="/playground"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn btn-block gap-2 bg-cinema-red hover:opacity-90 text-base-content border-none"
-              >
-                <Zap className="w-4 h-4" />
-                Playground
-              </Link>
-              
               {/* Credit Balance - Clickable (goes to dashboard) */}
               <Link
                 href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors min-h-[44px]"
               >
                 <Coins className="w-4 h-4 text-cinema-gold" />
                 <span className="text-sm font-semibold">

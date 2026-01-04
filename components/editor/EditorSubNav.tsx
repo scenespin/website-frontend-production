@@ -205,66 +205,8 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
         </div>
       </div>
 
-      {/* Mobile Dropdown */}
-      <div className={cn(
-        "md:hidden border-b border-base-300 bg-base-200",
-        className
-      )}>
-        <div className="px-4 py-2 border-b border-base-300">
-          <EditableScreenplayTitle />
-        </div>
-        <div className="px-4 py-2">
-          <div className="dropdown w-full">
-            <button
-              tabIndex={0}
-              onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
-              className="btn btn-ghost w-full justify-between normal-case text-base"
-            >
-              <div className="flex items-center gap-2">
-                {activeTabData && <activeTabData.icon className="w-5 h-5" />}
-                <span className="font-semibold">{activeTabData?.label || 'Editor'}</span>
-              </div>
-              <ChevronDown className={cn(
-                "w-4 h-4 transition-transform",
-                isMobileDropdownOpen && "rotate-180"
-              )} />
-            </button>
-            {isMobileDropdownOpen && (
-              <ul
-                tabIndex={0}
-                className="dropdown-content menu p-2 shadow-lg bg-base-100 rounded-box w-full mt-2 z-50"
-              >
-                {TABS.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = currentTab === tab.id;
-                  const href = currentScreenplayId 
-                    ? `${tab.href}?project=${currentScreenplayId}`
-                    : tab.href;
-
-                  return (
-                    <li key={tab.id}>
-                      <Link
-                        href={href}
-                        className={cn(
-                          "flex items-center gap-3",
-                          isActive && "active bg-cinema-red/10 text-cinema-red font-semibold"
-                        )}
-                        onClick={() => setIsMobileDropdownOpen(false)}
-                      >
-                        <Icon className={cn("w-5 h-5", tab.color)} />
-                        <div>
-                          <div className="font-medium">{tab.label}</div>
-                          <div className="text-xs opacity-60">{tab.description}</div>
-                        </div>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Mobile Dropdown - Hidden on mobile per user request */}
+      {/* Removed mobile dropdown to save space */}
 
       {/* Collaboration Panel */}
       <CollaborationPanel

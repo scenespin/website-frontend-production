@@ -204,7 +204,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                     {/* Header - Simplified, matches LocationBoard */}
                     {showHeader && (
                         <div className="mb-6">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div>
                                     <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
                                         Character Board
@@ -213,7 +213,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                         Track character arcs throughout your screenplay
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 flex-shrink-0">
                                     {/* Sort Selector */}
                                     <div className="flex items-center gap-2">
                                         <ArrowUpDown size={16} style={{ color: '#9CA3AF' }} />

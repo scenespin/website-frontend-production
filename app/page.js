@@ -50,11 +50,11 @@ export default function Page() {
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
                 Turn Your Screenplay Into a Movie
               </h1>
 
-              <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8">
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
                 AI-powered production tools that bring your script to life. Create pilots, trailers, short films, or full features—all from your browser.
               </p>
 
@@ -62,13 +62,13 @@ export default function Page() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                 <Link
                   href="/sign-up"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
+                  className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
                   Start Free - 50 Credits
                 </Link>
                 <Link
                   href="#demo"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-lg"
+                  className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
                   Watch Demo
                 </Link>
@@ -91,21 +91,21 @@ export default function Page() {
               </div>
 
               {/* Value Props */}
-              <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
+              <div className="flex flex-wrap justify-center gap-4 md:gap-6 text-xs sm:text-sm text-gray-400 px-4">
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
                   <span>No credit card required</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
                   <span>50 free credits to start</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Everything unlocked</span>
@@ -118,20 +118,20 @@ export default function Page() {
         {/* Three Consistency Pillars */}
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <div className="text-center mb-12 md:mb-16 px-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
                 Professional Production Consistency
               </h2>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
                 The only platform that maintains character, location, and prop consistency across every scene.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
               {/* Character Consistency */}
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8 hover:border-[#DC143C]/50 transition-colors">
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-4xl mb-4">👤</div>
-                <h3 className="text-xl font-bold mb-3">Character Consistency</h3>
+                <h3 className="text-lg md:text-xl font-bold mb-3">Character Consistency</h3>
                 <p className="text-gray-300 mb-4">
                   Same character, same voice, same outfit across every scene. Virtual try-ons for wardrobe changes. One headshot → unlimited scenes.
                 </p>
@@ -152,9 +152,9 @@ export default function Page() {
               </div>
 
               {/* Location Consistency */}
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8 hover:border-[#DC143C]/50 transition-colors">
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-4xl mb-4">📍</div>
-                <h3 className="text-xl font-bold mb-3">Location Consistency</h3>
+                <h3 className="text-lg md:text-xl font-bold mb-3">Location Consistency</h3>
                 <p className="text-gray-300 mb-4">
                   Same location, multiple angles. Background consistency across shots. Upload once, use everywhere.
                 </p>
@@ -175,9 +175,9 @@ export default function Page() {
               </div>
 
               {/* Prop Consistency */}
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8 hover:border-[#DC143C]/50 transition-colors">
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-4xl mb-4">🎬</div>
-                <h3 className="text-xl font-bold mb-3">Prop Consistency</h3>
+                <h3 className="text-lg md:text-xl font-bold mb-3">Prop Consistency</h3>
                 <p className="text-gray-300 mb-4">
                   Same prop, multiple angles. Background consistency across shots. Upload once, use everywhere.
                 </p>
@@ -207,16 +207,16 @@ export default function Page() {
         {/* How It Works */}
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <div className="text-center mb-12 md:mb-16 px-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
                 How It Works
               </h2>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
                 From screenplay to finished video in three simple steps.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
               <div className="text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
                   1
@@ -253,20 +253,20 @@ export default function Page() {
         {/* AI Writing Agents */}
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <div className="text-center mb-12 md:mb-16 px-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
                 AI Writing Agents
               </h2>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-2">
+              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-2">
                 5 Specialized Agents Powered by OpenAI, Anthropic, and Google
               </p>
-              <p className="text-sm text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-400">
                 All agents understand your screenplay context and work together to help you write better scripts.
               </p>
             </div>
 
             {/* Story Advisor - Featured */}
-            <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-8 mb-12">
+            <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6 md:p-8 mb-8 md:mb-12 mx-4 md:mx-0">
               <div className="flex items-start gap-4">
                 <div className="text-4xl">🌟</div>
                 <div className="flex-1">
@@ -303,7 +303,7 @@ export default function Page() {
             </div>
 
             {/* Other Agents Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4">
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-3xl mb-3">✍️</div>
                 <h3 className="text-lg font-bold mb-2">Screenwriter</h3>
@@ -342,16 +342,16 @@ export default function Page() {
         {/* Features Grid */}
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <div className="text-center mb-12 md:mb-16 px-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
                 Complete Production Platform
               </h2>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
                 Everything you need to turn your screenplay into a movie.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4">
               {/* Feature Cards - Screenplay Editor First */}
               <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-3xl mb-3">✍️</div>
@@ -426,35 +426,35 @@ export default function Page() {
         {/* Pricing Section */}
         <section id="pricing" className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <div className="text-center mb-12 md:mb-16 px-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
                 Everything is Free. You Only Pay for Credits.
               </h2>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
                 All features unlocked. The only difference is credits per month.
               </p>
             </div>
 
-            <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8 mb-8">
+            <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 mb-6 md:mb-8 mx-4 md:mx-0">
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold mb-2">Free Tier</h3>
-                <p className="text-gray-300">50 credits to start + 10 credits/month</p>
-                <p className="text-sm text-gray-400 mt-2">Everything unlocked</p>
+                <h3 className="text-xl md:text-2xl font-bold mb-2">Free Tier</h3>
+                <p className="text-base md:text-lg text-gray-300">50 credits to start + 10 credits/month</p>
+                <p className="text-xs md:text-sm text-gray-400 mt-2">Everything unlocked</p>
               </div>
               <div className="flex justify-center">
                 <Link
                   href="/sign-up"
-                  className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] w-full sm:w-auto max-w-xs"
                 >
                   Start Free
                 </Link>
               </div>
             </div>
 
-            <div className="text-center">
+            <div className="text-center px-4">
               <Link
                 href="/pricing"
-                className="inline-flex items-center justify-center px-8 py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-lg"
+                className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
               >
                 See Full Pricing Details
               </Link>
@@ -465,15 +465,15 @@ export default function Page() {
         {/* Final CTA */}
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
               Ready to Turn Your Screenplay Into a Movie?
             </h2>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
+            <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8">
               Join creators who are using AI to bring their scripts to life. Start free with 50 credits.
             </p>
             <Link
               href="/sign-up"
-              className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
+              className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
             >
               Start Free - 50 Credits
             </Link>

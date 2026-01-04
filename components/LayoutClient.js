@@ -15,6 +15,7 @@ import { DrawerProvider } from "@/contexts/DrawerContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { QueryClientProvider } from "@/providers/QueryClientProvider";
 import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
+import { MobileBanner } from "@/components/ui/MobileBanner";
 
 // Auth Initializer: Sets up Clerk token getter for API calls
 // This MUST run before any API calls are made
@@ -179,6 +180,9 @@ const ClientLayout = ({ children }) => {
 
           {/* Show a progress bar at the top when navigating between pages */}
           <NextTopLoader color={config.colors.main} showSpinner={false} />
+
+          {/* Mobile banner - recommends desktop for best experience */}
+          <MobileBanner />
 
           {/* Content inside app/page.js files  */}
           {children}

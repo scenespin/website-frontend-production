@@ -21,29 +21,29 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-100">
       {/* Header */}
-      <header className="p-4 max-w-7xl mx-auto flex justify-between items-center">
+      <header className="p-3 md:p-4 max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold">
+          <span className="text-xl sm:text-2xl font-extrabold">
             {config.appName}<span className="text-[#DC143C]">.ai</span>
           </span>
         </Link>
-        <Link href="/sign-in" className="btn btn-ghost">
+        <Link href="/sign-in" className="btn btn-ghost text-sm md:text-base min-h-[44px] px-3 md:px-4">
           Already have an account?
         </Link>
       </header>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8 md:py-16">
-        <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-start">
+      <div className="max-w-6xl mx-auto px-4 py-6 md:py-8 lg:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-12 items-start">
           
           {/* LEFT: Value Proposition - DYNAMIC BASED ON PLAN */}
           <div className="space-y-6 order-2 md:order-1">
             {/* Main Headline - Dynamic */}
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
                 {selectedPlan.signupHeadline || "Start Creating Professional Videos"}
               </h1>
-              <p className="text-lg opacity-80">
+              <p className="text-base sm:text-lg opacity-80">
                 {selectedPlan.signupSubheadline || "Join the future of AI-powered video production. Everything unlocked from day one."}
               </p>
             </div>
@@ -185,7 +185,7 @@ export default function SignUpPage() {
 
           {/* RIGHT: Clerk Signup */}
           <div className="order-1 md:order-2 flex flex-col items-center md:items-start">
-            <div className="w-full max-w-md bg-base-100 rounded-box shadow-2xl p-6 md:p-8">
+            <div className="w-full max-w-md bg-base-100 rounded-box shadow-2xl p-4 sm:p-6 md:p-8">
               <SignUp 
                 appearance={{
                   baseTheme: undefined,
