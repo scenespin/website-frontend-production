@@ -226,9 +226,12 @@ export function useWrydaTabNavigation(
             // Insert location into scene heading - rebuild from scratch to avoid formatting issues
             const parts = parseSceneHeading(currentLineText);
             
-            // Update parts with new location
+            // Clean location - remove any trailing dashes or spaces that might cause double dashes
+            const cleanLocation = item.label.trim().replace(/[\s-]+$/, '');
+            
+            // Update parts with new location and formatted type
             const updatedParts = updateSceneHeadingParts(parts, {
-                location: item.label,
+                location: cleanLocation,
                 type: formatSceneHeadingType(parts.type) // Ensure type is formatted
             });
             

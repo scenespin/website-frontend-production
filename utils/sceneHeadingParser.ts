@@ -256,6 +256,11 @@ export function formatSceneHeadingType(type: string): string {
     }
     
     // Default: add period if missing, but preserve structure
+    // Special case: if input is "IN" (2 chars), it's likely a truncated "INT", so return "INT."
+    if (upper === 'IN' && normalized.length === 2) {
+        return 'INT.';
+    }
+    
     return upper.endsWith('.') ? upper : upper + '.';
 }
 

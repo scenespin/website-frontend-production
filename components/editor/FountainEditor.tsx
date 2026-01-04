@@ -621,29 +621,31 @@ export default function FountainEditor({
                                 
                                 // Update content and cursor position
                                 setContent(newValue);
+                                
+                                // Wait for state to update before calling handleTab (mobile-specific timing issue)
+                                // Desktop Tab key doesn't have this issue since it doesn't modify content first
                                 setTimeout(() => {
                                     if (textarea) {
                                         const newPos = cursorPos - 1;
                                         textarea.selectionStart = newPos;
                                         textarea.selectionEnd = newPos;
                                         setCursorPosition(newPos);
+                                        
+                                        // Create synthetic Tab event to reuse existing Tab logic
+                                        // Must be called after state update so handleTab sees the correct content
+                                        const syntheticEvent = {
+                                            ...e,
+                                            key: 'Tab',
+                                            code: 'Tab',
+                                            preventDefault: () => {},
+                                            stopPropagation: () => {}
+                                        } as React.KeyboardEvent<HTMLTextAreaElement>;
+                                        
+                                        // Call handleTab with synthetic event (reuses all Tab logic)
+                                        wrydaTab.handleTab(syntheticEvent);
                                     }
                                 }, 0);
                                 
-                                // Create synthetic Tab event to reuse existing Tab logic
-                                const syntheticEvent = {
-                                    ...e,
-                                    key: 'Tab',
-                                    code: 'Tab',
-                                    preventDefault: () => {},
-                                    stopPropagation: () => {}
-                                } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                
-                                // Call handleTab with synthetic event (reuses all Tab logic)
-                                if (wrydaTab.handleTab(syntheticEvent)) {
-                                    console.log('[WrydaTab] $ symbol handled by Tab navigation');
-                                    return;
-                                }
                                 return;
                             }
                             // If not in scene heading, allow $ to be typed normally
