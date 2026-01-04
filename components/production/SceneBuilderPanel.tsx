@@ -77,7 +77,7 @@ import { SceneAnalysisStep } from './SceneAnalysisStep';
 import { SceneReviewStep } from './SceneReviewStep';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 import { categorizeCharacters } from './utils/characterCategorization';
-import { SceneBuilderProvider } from '@/contexts/SceneBuilderContext';
+import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
 import {
   getFullShotText,
