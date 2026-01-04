@@ -97,31 +97,34 @@ export function MobileDebugPanel() {
       const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || 'unknown';
       const method = args[1]?.method || 'GET';
       
-      setLogs(prev => [...prev, {
+      const apiLog: LogEntry = {
         id: logIdRef.current++,
-        type: 'api',
+        type: 'api' as const,
         message: `${method} ${url}`,
         timestamp: new Date()
-      }].slice(-100));
+      };
+      setLogs(prev => [...prev, apiLog].slice(-100));
 
       try {
         const response = await originalFetch(...args);
         
-        setLogs(prev => [...prev, {
+        const responseLog: LogEntry = {
           id: logIdRef.current++,
-          type: response.ok ? 'log' : 'error',
+          type: (response.ok ? 'log' : 'error') as 'log' | 'error',
           message: `${method} ${url} → ${response.status} ${response.statusText}`,
           timestamp: new Date()
-        }].slice(-100));
+        };
+        setLogs(prev => [...prev, responseLog].slice(-100));
 
         return response;
       } catch (error: any) {
-        setLogs(prev => [...prev, {
+        const errorLog: LogEntry = {
           id: logIdRef.current++,
-          type: 'error',
+          type: 'error' as const,
           message: `${method} ${url} → ERROR: ${error.message}`,
           timestamp: new Date()
-        }].slice(-100));
+        };
+        setLogs(prev => [...prev, errorLog].slice(-100));
         throw error;
       }
     };
