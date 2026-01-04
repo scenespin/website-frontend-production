@@ -619,7 +619,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         });
       }
     });
-  }, [characterHeadshotsFromHook, sceneAnalysisResult]);
+  }, [characterHeadshots, sceneAnalysisResult]);
 
   // 🔥 NEW: Track location ID for Media Library query
   const locationId = sceneAnalysisResult?.location?.id;
