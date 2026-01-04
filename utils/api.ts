@@ -131,6 +131,34 @@ export async function secureFetch(path: string, options: RequestInit = {}) {
         if (response.status === 402) {
             // Payment Required - insufficient credits
             const data = await response.json();
+            
+            // Try to extract credit information from error message
+            let requiredCredits = null;
+            let availableCredits = null;
+            const message = data.message || '';
+            
+            // Parse error message for credit details (format: "Need X credits, have Y")
+            const needMatch = message.match(/Need (\d+)/i);
+            const haveMatch = message.match(/have (\d+)/i);
+            if (needMatch) requiredCredits = parseInt(needMatch[1], 10);
+            if (haveMatch) availableCredits = parseInt(haveMatch[1], 10);
+            
+            // Also check if credits are in the response data
+            if (data.requiredCredits) requiredCredits = data.requiredCredits;
+            if (data.availableCredits) availableCredits = data.availableCredits;
+            
+            // Trigger global insufficient credits modal
+            if (typeof window !== 'undefined') {
+                // Dispatch custom event that LayoutClient can listen to
+                window.dispatchEvent(new CustomEvent('insufficient-credits', {
+                    detail: {
+                        requiredCredits,
+                        availableCredits,
+                        message: data.message || 'Insufficient credits to complete this operation'
+                    }
+                }));
+            }
+            
             throw new Error(`INSUFFICIENT_CREDITS: ${data.message}`);
         }
 

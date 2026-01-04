@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { Crisp } from "crisp-sdk-web";
@@ -163,6 +163,67 @@ const GlobalErrorHandler = () => {
 // 10. ChatProvider: Provides chat context for AI workflows
 // 11. QueryClientProvider: Provides React Query client for Media Library and other queries
 // Note: No SessionProvider needed - Clerk handles auth via ClerkProvider in layout.js
+// Global Insufficient Credits Handler
+// Listens for insufficient credits events and shows modal
+const InsufficientCreditsHandler = () => {
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    requiredCredits: null,
+    availableCredits: null,
+    operation: null
+  });
+
+  useEffect(() => {
+    const handleInsufficientCredits = (event) => {
+      const { requiredCredits, availableCredits, message } = event.detail;
+      setModalState({
+        isOpen: true,
+        requiredCredits,
+        availableCredits,
+        operation: message || 'complete this operation'
+      });
+    };
+
+    window.addEventListener('insufficient-credits', handleInsufficientCredits);
+    return () => {
+      window.removeEventListener('insufficient-credits', handleInsufficientCredits);
+    };
+  }, []);
+
+  const closeModal = () => {
+    setModalState({
+      isOpen: false,
+      requiredCredits: null,
+      availableCredits: null,
+      operation: null
+    });
+  };
+
+  // Dynamically import modal to avoid SSR issues
+  const [ModalComponent, setModalComponent] = useState(null);
+  useEffect(() => {
+    if (modalState.isOpen) {
+      import('@/components/billing/InsufficientCreditsModal').then((mod) => {
+        setModalComponent(() => mod.default);
+      });
+    }
+  }, [modalState.isOpen]);
+
+  return (
+    <>
+      {ModalComponent && modalState.isOpen && (
+        <ModalComponent
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          requiredCredits={modalState.requiredCredits}
+          availableCredits={modalState.availableCredits}
+          operation={modalState.operation}
+        />
+      )}
+    </>
+  );
+};
+
 const ClientLayout = ({ children }) => {
   return (
     <QueryClientProvider>
@@ -175,6 +236,9 @@ const ClientLayout = ({ children }) => {
           
           {/* Global error handler to capture full stack traces */}
           <GlobalErrorHandler />
+          
+          {/* Global insufficient credits handler */}
+          <InsufficientCreditsHandler />
           
           {/* Initialize auth token getter before any API calls */}
           <AuthInitializer />
