@@ -28,6 +28,81 @@ import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
 import { cn } from '@/lib/utils';
 
+// Resolution Selector Component (Custom DaisyUI Dropdown)
+function ResolutionSelector({ value, onChange }: { value: Resolution; onChange: (value: Resolution) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const resolutions = [
+    { value: '1080p' as const, label: 'HD' },
+    { value: '4k' as const, label: '4K' }
+  ];
+
+  const currentLabel = resolutions.find(r => r.value === value)?.label || 'HD';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen]);
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        }}
+        className="w-[100px] h-8 text-xs px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+      >
+        <span>{currentLabel}</span>
+        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
+      </button>
+      {isOpen && (
+        <ul
+          className="absolute top-full left-0 mt-1 w-[100px] menu p-2 shadow-lg bg-[#1F1F1F] rounded-box border border-[#3F3F46] z-[9999] max-h-96 overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {resolutions.map((res) => (
+            <li key={res.value}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange(res.value);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs",
+                  value === res.value
+                    ? "bg-[#DC143C]/20 text-[#FFFFFF]"
+                    : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
+                )}
+              >
+                {res.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
   enabledShots: number[];
