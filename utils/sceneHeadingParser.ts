@@ -52,11 +52,11 @@ export function parseSceneHeading(line: string): SceneHeadingParts {
     if (partialMatch) {
         // If the "location" starts with "/", it's likely part of the type (e.g., "int/ext" was split)
         // Reconstruct the full type
-        let type = partialMatch[1].toUpperCase();
+        let type: string = partialMatch[1].toUpperCase();
         let location = partialMatch[2]?.trim() || '';
         
         // Handle case where "int/ext" was split: type="INT", location="/ext"
-        if (location.startsWith('/') && (type === 'INT' || type === 'EXT')) {
+        if (location.startsWith('/')) {
             // This is actually INT/EXT or I/E, reconstruct it
             if (type === 'INT' && location.match(/^\/EXT/i)) {
                 type = 'INT/EXT';
