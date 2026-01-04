@@ -210,7 +210,9 @@ export function ShotConfigurationStep({
   const finalLocationDescriptions = state.locationDescriptions;
   const finalSelectedCharactersForShots = state.selectedCharactersForShots;
   const finalCharacterHeadshots = state.characterHeadshots;
+  const finalLoadingHeadshots = state.loadingHeadshots;
   const finalSelectedCharacterReferences = state.selectedCharacterReferences;
+  const finalCharacterOutfits = state.characterOutfits;
   const shotPronounExtrasPrompts = (state.pronounExtrasPrompts[shotSlot] || {});
   
   // Create handlers that use context actions
