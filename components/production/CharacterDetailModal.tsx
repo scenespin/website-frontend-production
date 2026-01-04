@@ -1886,15 +1886,15 @@ export function CharacterDetailModal({
                                   </div>
                                 );
                               })()}
-                              <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
+                              <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity pointer-events-none ${
                                 selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                               }`}>
-                                <div className="absolute bottom-2 left-2 right-2">
+                                <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
                                   <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
                                 </div>
                                 {/* Delete button - all Production Hub images can be deleted - only show when not in selection mode */}
                                 {!img.isBase && !selectionMode && (
-                              <div className="absolute top-2 right-2">
+                              <div className="absolute top-2 right-2 pointer-events-auto">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <button
@@ -2075,7 +2075,10 @@ export function CharacterDetailModal({
                                           // 🔥 FIX: Invalidate queries to refresh UI immediately
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          await Promise.all([
+                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
+                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+                                          ]);
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {

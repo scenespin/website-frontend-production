@@ -1287,15 +1287,15 @@ export function LocationDetailModal({
                                   </div>
                                 );
                               })()}
-                              <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
+                              <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity pointer-events-none ${
                                 selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                               }`}>
-                                <div className="absolute bottom-2 left-2 right-2">
+                                <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
                                   <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
                                 </div>
                                 {/* Delete button - all Production Hub images can be deleted - only show when not in selection mode */}
                                 {!selectionMode && (
-                                <div className="absolute top-2 right-2">
+                                <div className="absolute top-2 right-2 pointer-events-auto">
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <button
@@ -1474,13 +1474,22 @@ export function LocationDetailModal({
                                       return (
                                         <div
                                           key={imgId}
-                                          className={`relative group aspect-video bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
+                                          className={`relative group aspect-video bg-[#141414] border rounded-lg overflow-hidden transition-colors cursor-pointer ${
                                             selectionMode
                                               ? isSelected
                                                 ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                                                 : 'border-[#3F3F46] hover:border-[#DC143C]/50'
                                               : 'border-[#3F3F46] hover:border-[#DC143C]'
                                           }`}
+                                          onClick={(e) => {
+                                            if (!selectionMode && e.target === e.currentTarget) {
+                                              // If clicking the container (not the image), trigger image click
+                                              const imgElement = e.currentTarget.querySelector('img');
+                                              if (imgElement) {
+                                                imgElement.click();
+                                              }
+                                            }
+                                          }}
                                         >
                                           {/* Phase 2: Checkbox overlay in selection mode */}
                                           {selectionMode && (
@@ -1559,15 +1568,15 @@ export function LocationDetailModal({
                                               </div>
                                             );
                                           })()}
-                                          <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
+                                          <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity pointer-events-none ${
                                             selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                                           }`}>
-                                            <div className="absolute bottom-2 left-2 right-2">
+                                            <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
                                               <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
                                             </div>
                                             {/* Delete button - only show when not in selection mode */}
                                             {!selectionMode && (
-                                              <div className="absolute top-2 right-2">
+                                              <div className="absolute top-2 right-2 pointer-events-auto">
                                                 <DropdownMenu>
                                                   <DropdownMenuTrigger asChild>
                                                     <button
