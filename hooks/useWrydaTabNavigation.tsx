@@ -407,23 +407,34 @@ export function useWrydaTabNavigation(
      * Main Tab handler
      */
     const handleTab = useCallback((e: KeyboardEvent<HTMLTextAreaElement>): boolean => {
-        if (!textareaRef.current) return false;
+        console.log('[WrydaTab] handleTab called');
+        if (!textareaRef.current) {
+            console.log('[WrydaTab] No textarea ref');
+            return false;
+        }
         
         const lineInfo = getCurrentLineInfo();
-        if (!lineInfo) return false;
+        if (!lineInfo) {
+            console.log('[WrydaTab] No line info');
+            return false;
+        }
         
         const elementType = detectElementType(lineInfo.currentLineText);
+        console.log('[WrydaTab] Element type detected:', elementType, 'Line:', lineInfo.currentLineText);
         
         // Handle scene heading navigation
         if (elementType === 'scene_heading') {
+            console.log('[WrydaTab] Handling scene heading tab');
             return handleSceneHeadingTab(e, lineInfo.currentLineText, lineInfo.cursorPos);
         }
         
         // Handle element transitions
         if (elementType === 'dialogue' || elementType === 'character' || elementType === 'action') {
+            console.log('[WrydaTab] Handling element transition:', elementType);
             return handleElementTransition(e, lineInfo.currentLineText, elementType);
         }
         
+        console.log('[WrydaTab] No handler for element type:', elementType);
         return false;
     }, [getCurrentLineInfo, handleSceneHeadingTab, handleElementTransition]);
 

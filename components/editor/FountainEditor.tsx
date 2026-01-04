@@ -249,6 +249,15 @@ export default function FountainEditor({
     const wrydaTab = useWrydaTabNavigation(textareaRef);
     const WRYDA_TAB_ENABLED = process.env.NEXT_PUBLIC_WRYDA_TAB === 'true';
     
+    // Debug: Log feature flag status
+    useEffect(() => {
+        console.log('[WrydaTab] Feature flag status:', {
+            enabled: WRYDA_TAB_ENABLED,
+            envValue: process.env.NEXT_PUBLIC_WRYDA_TAB,
+            type: typeof process.env.NEXT_PUBLIC_WRYDA_TAB
+        });
+    }, [WRYDA_TAB_ENABLED]);
+    
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -571,8 +580,12 @@ export default function FountainEditor({
                     onKeyDown={(e) => {
                         // Try Wryda Tab navigation first if enabled
                         if (WRYDA_TAB_ENABLED && e.key === 'Tab' && !e.shiftKey) {
+                            console.log('[WrydaTab] Tab key pressed, attempting to handle...');
                             if (wrydaTab.handleTab(e)) {
+                                console.log('[WrydaTab] Tab handled by Wryda Tab navigation');
                                 return; // Handled by Wryda Tab navigation
+                            } else {
+                                console.log('[WrydaTab] Tab not handled, falling back to standard behavior');
                             }
                         }
                         // Fall back to standard formatting
