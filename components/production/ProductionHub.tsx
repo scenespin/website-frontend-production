@@ -115,11 +115,25 @@ export function ProductionHub({}: ProductionHubProps) {
       return;
     }
     
-    const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
+    const tabFromUrl = searchParams.get('tab') as string | null;
     
-    if (tabFromUrl && ['characters', 'locations', 'assets', 'readings'].includes(tabFromUrl)) {
+    // Map URL tab values to internal tab IDs
+    const tabMap: Record<string, ProductionTab> = {
+      'character-bank': 'characters',
+      'location-bank': 'locations',
+      'asset-bank': 'assets',
+      'readings': 'readings',
+      // Also support direct tab names for backwards compatibility
+      'characters': 'characters',
+      'locations': 'locations',
+      'assets': 'assets',
+    };
+    
+    const mappedTab = tabFromUrl ? tabMap[tabFromUrl] : null;
+    
+    if (mappedTab && ['characters', 'locations', 'assets', 'readings'].includes(mappedTab)) {
       // Only update if different to prevent React error #300 (circular updates)
-      setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
+      setActiveTab(prevTab => prevTab !== mappedTab ? mappedTab : prevTab);
     } else {
       // If no tab in URL, set to 'characters' (but only if not already 'characters' to prevent unnecessary updates)
       setActiveTab(prevTab => prevTab !== 'characters' ? 'characters' : prevTab);

@@ -553,8 +553,8 @@ export function ImageViewer({
       >
         {/* Container with border for visual containment */}
         <div className="flex-1 flex flex-col bg-[#0A0A0A] border-2 border-[#3F3F46] rounded-lg overflow-hidden shadow-2xl relative">
-        {/* Header - Minimal, shows on hover */}
-        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity group-hover:opacity-100 opacity-70 rounded-t-lg">
+        {/* Header - Minimal, shows on hover (always visible on mobile) */}
+        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity group-hover:opacity-100 md:opacity-70 opacity-100 rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-semibold text-white truncate max-w-md">

@@ -286,7 +286,7 @@ export default function Navigation() {
       <div className="md:hidden bg-[#0A0A0A] border-b border-white/10">
         <div className="flex items-center justify-between h-16 px-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
             <div className="w-8 h-8 bg-cinema-red rounded-lg flex items-center justify-center">
               <span className="text-base-content font-bold">W</span>
             </div>

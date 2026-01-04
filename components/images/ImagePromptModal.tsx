@@ -198,41 +198,41 @@ export function ImagePromptModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-base-300 border border-base-content/20 rounded-lg shadow-2xl w-full max-w-2xl mx-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A0A0A]/95 backdrop-blur-sm">
+            <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-2xl w-full max-w-2xl mx-4">
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-base-content/20 flex justify-between items-center">
+                <div className="px-6 py-4 border-b border-[#3F3F46] flex justify-between items-center bg-[#141414]">
                     <div>
-                        <h2 className="text-xl font-semibold text-base-content">
+                        <h2 className="text-xl font-semibold text-[#FFFFFF]">
                             Generate {entityType === 'character' ? 'Character' : entityType === 'location' ? 'Location' : 'Asset'} Image
                         </h2>
-                        <p className="text-sm text-base-content/60 mt-1">
+                        <p className="text-sm text-[#808080] mt-1">
                             AI will generate an image based on {entityData.name || 'this ' + entityType}
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-base-content/60 hover:text-base-content transition-colors"
+                        className="text-[#808080] hover:text-[#FFFFFF] transition-colors p-2 hover:bg-[#1F1F1F] rounded"
                     >
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-4 bg-[#0A0A0A]">
                     <div>
-                        <label className="block text-sm font-medium text-base-content/70 mb-2">
+                        <label className="block text-sm font-medium text-[#E5E7EB] mb-2">
                             Prompt (you can edit this)
                         </label>
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder="Describe the image you want to generate..."
-                            className="w-full px-4 py-3 bg-base-content/20 border border-base-content/30 rounded-lg text-base-content placeholder-base-content/40 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#DC143C] resize-none"
                             rows={6}
                             disabled={isLoading}
                         />
-                        <p className="text-xs text-base-content/50 mt-2">
+                        <p className="text-xs text-[#808080] mt-2">
                             The prompt has been pre-filled based on {entityType} details. Edit as needed.
                         </p>
                     </div>
@@ -247,7 +247,7 @@ export function ImagePromptModal({
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className="px-4 py-2 rounded-lg font-medium transition-all bg-base-content/20 text-base-content hover:bg-base-content/30 disabled:opacity-50"
+                            className="px-4 py-2 rounded-lg font-medium transition-all bg-[#1F1F1F] text-[#E5E7EB] hover:bg-[#2F2F2F] disabled:opacity-50"
                         >
                             Cancel
                         </button>
@@ -256,8 +256,8 @@ export function ImagePromptModal({
                             disabled={isLoading || !prompt.trim()}
                             className={`px-6 py-2 rounded-lg font-medium transition-all ${
                                 isLoading || !prompt.trim()
-                                    ? 'bg-base-content/40 text-base-content/60 cursor-not-allowed'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-blue-500/50'
+                                    ? 'bg-[#3F3F46] text-[#6B7280] cursor-not-allowed'
+                                    : 'bg-[#DC143C] text-white hover:bg-[#B01030] shadow-lg hover:shadow-[#DC143C]/50'
                             }`}
                         >
                             {isLoading ? (
