@@ -218,6 +218,8 @@ function LLMModelSelector() {
   console.log('[LLMModelSelector] 🔄 RENDER');
   const chatContext = useChatContext();
   const { state, setModel } = chatContext;
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
   
   // Use context state, fallback to default if not set
   const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
@@ -225,35 +227,94 @@ function LLMModelSelector() {
   
   const handleModelChange = (modelId) => {
     console.log('[LLMModelSelector] Model change:', modelId);
-    // Update both local state (for UI) and context (for API calls)
     setModel(modelId);
-    // Auto-close dropdown after selection
-    document.activeElement?.blur();
+    setIsOpen(false);
   };
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen]);
   
   // Memoize providers array to prevent new array reference on every render
   const providers = useMemo(() => ['Anthropic', 'OpenAI', 'Google'], []);
   
-  // 🔥 TEMP: Replace DaisyUI dropdown with simple native select to test if it's causing the infinite loop
+  // Calculate max width needed for model names
+  const maxModelNameLength = useMemo(() => {
+    return Math.max(...LLM_MODELS.map(m => m.name.length));
+  }, []);
+  
   return (
-    <select
-      value={selectedModel}
-      onChange={(e) => handleModelChange(e.target.value)}
-      className="btn btn-sm btn-ghost text-xs"
-    >
-      {providers.map(provider => {
-        const providerModels = LLM_MODELS.filter(m => m.provider === provider);
-        return (
-          <optgroup key={provider} label={provider}>
-            {providerModels.map(model => (
-              <option key={model.id} value={model.id}>
-                {model.name} {model.recommended ? '⭐' : ''}
-              </option>
-            ))}
-          </optgroup>
-        );
-      })}
-    </select>
+    <div ref={dropdownRef} className="relative">
+      <label 
+        tabIndex={0} 
+        className="btn btn-sm btn-ghost gap-1 text-xs cursor-pointer whitespace-nowrap"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        }}
+      >
+        <span className="truncate max-w-[120px] sm:max-w-[140px]">{currentModel.name}</span>
+        {currentModel.recommended && <span className="text-yellow-400">⭐</span>}
+        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform flex-shrink-0", isOpen && "rotate-180")} />
+      </label>
+      {isOpen && (
+        <ul 
+          tabIndex={0} 
+          className="absolute bottom-full right-0 mb-1 menu p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] max-h-96 overflow-y-auto pointer-events-auto"
+          style={{ 
+            minWidth: `${Math.max(180, maxModelNameLength * 8 + 40)}px`,
+            maxWidth: '220px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {providers.map(provider => {
+            const providerModels = LLM_MODELS.filter(m => m.provider === provider);
+            return (
+              <li key={provider} className="menu-title">
+                <span className="text-xs font-bold text-base-content/60">{provider}</span>
+                <ul className="ml-0">
+                  {providerModels.map(model => {
+                    const isActive = selectedModel === model.id;
+                    return (
+                      <li key={model.id}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleModelChange(model.id);
+                          }}
+                          className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-xs">{model.name}</span>
+                            {model.recommended && <span className="text-yellow-400 text-xs">⭐</span>}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
