@@ -140,12 +140,7 @@ export default function WritingHelp() {
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">F</kbd></td>
                     </tr>
                     <tr className="border-white/10">
-                      <td>Bold</td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">B</kbd></td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">B</kbd></td>
-                    </tr>
-                    <tr className="border-white/10">
-                      <td>Italic</td>
+                      <td>Italic (toggle)</td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">I</kbd></td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">I</kbd></td>
                     </tr>
@@ -160,9 +155,12 @@ export default function WritingHelp() {
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Shift</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Tab</kbd></td>
                     </tr>
                     <tr className="border-white/10">
-                      <td>New Scene Heading</td>
+                      <td>Insert Scene Heading Prefix</td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Enter</kbd></td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Enter</kbd></td>
+                    </tr>
+                    <tr className="border-white/10 text-xs text-[#808080]">
+                      <td colSpan="3" className="italic">Inserts new line with "INT. " prefix for quick scene heading creation</td>
                     </tr>
                     <tr className="border-white/10">
                       <td>New Scene (Enter twice)</td>
@@ -173,11 +171,6 @@ export default function WritingHelp() {
                       <td>Toggle Scene Navigator</td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">E</kbd></td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">E</kbd></td>
-                    </tr>
-                    <tr className="border-white/10">
-                      <td>Open AI Chat</td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">/</kbd></td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">/</kbd></td>
                     </tr>
                     <tr className="border-white/10">
                       <td>Focus Mode</td>
@@ -612,7 +605,7 @@ export default function WritingHelp() {
                   <strong className="text-[#FFFFFF]">Use Fountain Format</strong> - Type scene headings, character names, and dialogue naturally
                 </li>
                 <li>
-                  <strong className="text-[#FFFFFF]">Ask AI for Help</strong> - Press <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl+/</kbd> or <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘+/</kbd> to access any of the 5 writing agents
+                  <strong className="text-[#FFFFFF]">Ask AI for Help</strong> - Click the AI icon in the toolbar to access any of the 5 writing agents
                 </li>
                 <li>
                   <strong className="text-[#FFFFFF]">Track Characters</strong> - Characters are automatically detected and tracked
