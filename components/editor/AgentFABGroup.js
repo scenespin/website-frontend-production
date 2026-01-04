@@ -7,9 +7,11 @@
  * Mobile: Positioned bottom-right, larger buttons (56px)
  * Desktop: Positioned bottom-right, smaller buttons (48px), more subtle
  * Hidden when drawer is open.
+ * 
+ * Mobile keyboard handling: Detects when keyboard is visible and adjusts position to stay above it.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AgentFABGroup({
@@ -22,6 +24,53 @@ export default function AgentFABGroup({
   isDrawerOpen,
   isMobile
 }) {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  // Detect keyboard visibility on mobile
+  useEffect(() => {
+    if (!isMobile || typeof window === 'undefined') return;
+    
+    let initialViewportHeight = window.innerHeight;
+    
+    const detectKeyboard = () => {
+      const windowHeight = window.innerHeight;
+      const visualHeight = window.visualViewport?.height || windowHeight;
+      
+      // Keyboard is likely open if visual viewport is significantly smaller than window
+      // Threshold: if viewport shrinks by more than 150px, assume keyboard is open
+      // This accounts for normal browser UI changes while being sensitive to keyboard
+      if (visualHeight < windowHeight - 150) {
+        const calculatedKeyboardHeight = windowHeight - visualHeight;
+        // Cap at reasonable max (some devices have very tall keyboards)
+        setKeyboardHeight(Math.min(calculatedKeyboardHeight, 400));
+      } else {
+        setKeyboardHeight(0);
+      }
+      
+      // Update initial height for next comparison
+      initialViewportHeight = windowHeight;
+    };
+    
+    // Listen to visual viewport changes (best for keyboard detection)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', detectKeyboard);
+      window.visualViewport.addEventListener('scroll', detectKeyboard);
+      detectKeyboard(); // Initial check
+      
+      return () => {
+        window.visualViewport?.removeEventListener('resize', detectKeyboard);
+        window.visualViewport?.removeEventListener('scroll', detectKeyboard);
+      };
+    } else {
+      // Fallback: Listen to window resize (less accurate but works on older browsers)
+      window.addEventListener('resize', detectKeyboard);
+      detectKeyboard();
+      
+      return () => {
+        window.removeEventListener('resize', detectKeyboard);
+      };
+    }
+  }, [isMobile]);
   
   // Hide FABs when drawer is open
   if (isDrawerOpen) return null;
@@ -29,17 +78,26 @@ export default function AgentFABGroup({
   // Size and positioning based on device
   const buttonSize = isMobile ? 'h-14 w-14' : 'h-12 w-12';
   const iconSize = isMobile ? 'w-6 h-6' : 'w-5 h-5';
-  const bottomOffset = isMobile ? '80px' : '24px';
+  
+  // Calculate bottom offset: base offset + keyboard height + extra padding
+  // When keyboard is open, position FABs above the keyboard
+  const baseBottomOffset = isMobile ? 80 : 24;
+  const keyboardAwareBottom = isMobile && keyboardHeight > 0 
+    ? keyboardHeight + 20 // Position 20px above keyboard
+    : baseBottomOffset;
+  const bottomOffset = `${keyboardAwareBottom}px`;
   const rightOffset = isMobile ? '16px' : '24px';
   const gap = isMobile ? 'gap-2' : 'gap-1.5';
   
   return (
     <AnimatePresence>
       <div 
-        className={`fixed z-50 flex flex-col ${gap}`}
+        className={`fixed z-50 flex flex-col ${gap} transition-all duration-300 ease-in-out`}
         style={{
           bottom: bottomOffset,
-          right: rightOffset
+          right: rightOffset,
+          // Add safe area inset for iOS devices
+          paddingBottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : '0px'
         }}
       >
         {/* Rewrite FAB - Always visible (works with or without text selection) */}
