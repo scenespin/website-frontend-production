@@ -99,10 +99,11 @@ export default function ProductionHelp() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Quality Settings</h4>
+                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Customization Options</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Low, Medium, High, Ultra</li>
-                    <li>• Image prompts (optional)</li>
+                    <li>• Image prompts (optional reference images)</li>
+                    <li>• Character outfit selection per shot</li>
+                    <li>• Dialogue selection per shot</li>
                   </ul>
                 </div>
               </div>
@@ -153,10 +154,11 @@ export default function ProductionHelp() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Duration & Quality</h4>
+                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Duration & Customization</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
                     <li>• Duration: 5s or 10s per clip</li>
-                    <li>• Quality: Low, Medium, High, Ultra</li>
+                    <li>• Image prompts (optional reference images)</li>
+                    <li>• Character outfit selection per shot</li>
                   </ul>
                 </div>
                 <div>

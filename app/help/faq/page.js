@@ -10,14 +10,14 @@ export const metadata = getSEOTags({
 
 export default function FAQHelp() {
   return (
-    <>
-      <header className="p-4 flex justify-between items-center max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#0A0A0A]">
+      <header className="p-4 flex justify-between items-center max-w-7xl mx-auto bg-[#0A0A0A] border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold">
+          <span className="text-2xl font-extrabold text-[#FFFFFF]">
             {config.appName}<span className="text-[#DC143C]">.ai</span>
           </span>
         </Link>
-        <Link href="/help" className="btn btn-ghost">← Back to Help</Link>
+        <Link href="/help" className="btn btn-ghost text-[#B3B3B3] hover:text-[#FFFFFF] border-white/10">← Back to Help</Link>
       </header>
 
       <main className="max-w-4xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
@@ -194,7 +194,7 @@ export default function FAQHelp() {
           <Link href="/help" className="btn btn-primary">Back to Help Center</Link>
         </div>
       </main>
-    </>
+    </div>
   );
 }
 
