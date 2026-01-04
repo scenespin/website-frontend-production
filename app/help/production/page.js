@@ -81,8 +81,6 @@ export default function ProductionHelp() {
                     <li>• 16:9 (Horizontal/Cinema)</li>
                     <li>• 9:16 (Vertical/TikTok)</li>
                     <li>• 1:1 (Square/Instagram)</li>
-                    <li>• 4:3 (Classic TV)</li>
-                    <li>• 3:4 (Portrait)</li>
                   </ul>
                 </div>
                 <div>
@@ -142,7 +140,7 @@ export default function ProductionHelp() {
                   <h4 className="font-semibold mb-2 text-[#FFFFFF]">Resolution & Aspect Ratio</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
                     <li>• Resolution: 1080p or 4K</li>
-                    <li>• Aspect Ratios: 16:9, 9:16, 1:1, 4:3, 3:4</li>
+                    <li>• Aspect Ratios: 16:9, 9:16, 1:1</li>
                   </ul>
                 </div>
                 <div>
