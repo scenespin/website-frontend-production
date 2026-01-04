@@ -377,6 +377,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // Get screenplay context (for scene data from database)
   const screenplay = useScreenplay();
+  const { canAccessProductionHub } = screenplay;
   
   // Get context store (only for setting context when navigating TO editor, not for reading FROM editor)
   const contextStore = useContextStore();
@@ -2120,6 +2121,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
    * Handle standard workflow generation (existing logic)
    */
   async function handleWorkflowGeneration() {
+    if (!canAccessProductionHub) {
+      toast.error('Only Directors and Producers can access Scene Builder. Writers can edit the script in the Creation section.');
+      return;
+    }
+    
     setIsGenerating(true);
     setWorkflowStatus(null);
     

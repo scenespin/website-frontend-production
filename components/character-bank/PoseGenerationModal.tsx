@@ -13,6 +13,7 @@ import PosePackageSelector from './PosePackageSelector';
 import { OutfitSelector } from '../production/OutfitSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 interface PoseGenerationModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export default function PoseGenerationModal({
   onComplete
 }: PoseGenerationModalProps) {
   const { getToken } = useAuth();
+  const { canGenerateAssets } = useScreenplay();
   
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
@@ -520,6 +522,10 @@ export default function PoseGenerationModal({
   };
 
   const handleGenerate = async () => {
+    if (!canGenerateAssets) {
+      toast.error('Only Directors and Producers can generate poses. Writers can upload reference images in the Creation section.');
+      return;
+    }
     await handleGenerateWithPackage(selectedPackageId);
   };
   
@@ -765,11 +771,17 @@ export default function PoseGenerationModal({
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={handleGenerate}
-                      disabled={isGenerating || !selectedPackageId}
+                      disabled={isGenerating || !selectedPackageId || !canGenerateAssets}
                       className="px-6 py-3 bg-primary text-primary-content rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!canGenerateAssets ? 'Only Directors and Producers can generate poses. Writers can upload reference images in the Creation section.' : undefined}
                     >
                       {isGenerating ? 'Generating...' : 'Generate Pose Package'}
                     </button>
+                    {!canGenerateAssets && (
+                      <p className="text-xs text-center mt-2" style={{ color: '#9CA3AF' }}>
+                        ⚠️ Only Directors and Producers can generate poses
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -897,11 +909,18 @@ export default function PoseGenerationModal({
                     </button>
                     <button
                       onClick={handleGenerate}
-                      className="px-6 py-3 bg-[#DC143C] hover:bg-blue-700 text-base-content rounded-lg font-semibold transition-colors flex items-center"
+                      disabled={!canGenerateAssets}
+                      className="px-6 py-3 bg-[#DC143C] hover:bg-blue-700 text-base-content rounded-lg font-semibold transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!canGenerateAssets ? 'Only Directors and Producers can generate poses. Writers can upload reference images in the Creation section.' : undefined}
                     >
                       <Wand2 className="w-5 h-5 mr-2" />
                       Generate Poses
                     </button>
+                    {!canGenerateAssets && (
+                      <p className="text-xs text-center mt-2" style={{ color: '#9CA3AF' }}>
+                        ⚠️ Only Directors and Producers can generate poses
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

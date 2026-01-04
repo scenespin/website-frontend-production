@@ -186,6 +186,8 @@ interface ScreenplayContextType {
     canManageAssets: boolean;
     canManageOwnAssets: boolean;
     canGenerateAssets: boolean;
+    canAccessProductionHub: boolean;
+    canUploadCreationImages: boolean;
     canUploadAssets: boolean;
     canViewAssets: boolean;
     canUseAI: boolean;
@@ -333,6 +335,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [canManageAssets, setCanManageAssets] = useState(false);
     const [canManageOwnAssets, setCanManageOwnAssets] = useState(false);
     const [canGenerateAssets, setCanGenerateAssets] = useState(false);
+    const [canAccessProductionHub, setCanAccessProductionHub] = useState(false);
+    const [canUploadCreationImages, setCanUploadCreationImages] = useState(false);
     const [canUploadAssets, setCanUploadAssets] = useState(false);
     const [canViewAssets, setCanViewAssets] = useState(false);
     const [canUseAI, setCanUseAI] = useState(false);
@@ -5341,9 +5345,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         setCanViewComposition(perms.canViewComposition === true);
                         setCanViewTimeline(perms.canViewTimeline === true);
                         
-                        // canViewAssets and canGenerateAssets are derived from other permissions
+                        // Set permissions from API response
+                        setCanGenerateAssets(perms.canGenerateAssets === true);
+                        setCanAccessProductionHub(perms.canAccessProductionHub === true);
+                        setCanUploadCreationImages(perms.canUploadCreationImages === true);
+                        // canViewAssets is derived from other permissions
                         setCanViewAssets(perms.canViewScript === true || perms.canManageAssets === true || perms.canManageOwnAssets === true || perms.canUploadAssets === true);
-                        setCanGenerateAssets(perms.canManageAssets === true);
                         
                         console.log('[ScreenplayContext] ✅ Collaborator permissions loaded:', {
                             role: role || currentUserRole,
@@ -5622,6 +5629,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         canManageAssets,
         canManageOwnAssets,
         canGenerateAssets,
+        canAccessProductionHub,
+        canUploadCreationImages,
         canUploadAssets,
         canViewAssets,
         canUseAI,
