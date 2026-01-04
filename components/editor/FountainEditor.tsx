@@ -11,6 +11,7 @@ import { useEditorSelection } from '@/hooks/useEditorSelection';
 import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import { useEntityAutocomplete } from '@/hooks/useEntityAutocomplete';
 import { useFountainFormatting } from '@/hooks/useFountainFormatting';
+import { useWrydaTabNavigation } from '@/hooks/useWrydaTabNavigation';
 
 // Contextual Navigation Integration
 import { useContextStore } from '@/lib/contextStore';
@@ -243,6 +244,10 @@ export default function FountainEditor({
     const navigation = useEditorNavigation(textareaRef, displayContent);
     const autocomplete = useEntityAutocomplete(textareaRef);
     const formatting = useFountainFormatting(textareaRef);
+    
+    // Wryda Tab Navigation (Final Draft-style) - Feature flag enabled
+    const wrydaTab = useWrydaTabNavigation(textareaRef);
+    const WRYDA_TAB_ENABLED = process.env.NEXT_PUBLIC_WRYDA_TAB === 'true';
     
     // Cleanup on unmount
     useEffect(() => {
@@ -563,7 +568,16 @@ export default function FountainEditor({
                     value={displayContent}
                     onChange={handleChange}
                     onPaste={handlePaste}
-                    onKeyDown={formatting.handleKeyDown}
+                    onKeyDown={(e) => {
+                        // Try Wryda Tab navigation first if enabled
+                        if (WRYDA_TAB_ENABLED && e.key === 'Tab' && !e.shiftKey) {
+                            if (wrydaTab.handleTab(e)) {
+                                return; // Handled by Wryda Tab navigation
+                            }
+                        }
+                        // Fall back to standard formatting
+                        formatting.handleKeyDown(e);
+                    }}
                     onSelect={handleSelectionChange}
                     onClick={handleSelectionChange}
                     onMouseUp={selection.handlers.onMouseUp}
@@ -594,6 +608,9 @@ export default function FountainEditor({
                     onClose={autocomplete.autocomplete.onClose}
                 />
             )}
+            
+            {/* Wryda Tab Navigation - SmartType Dropdown */}
+            {WRYDA_TAB_ENABLED && wrydaTab.smartTypeDropdown}
             
             {/* Text Comparison Modal - AI rewrite comparison */}
             {comparisonTexts && onKeepOriginal && onUseRewrite && (

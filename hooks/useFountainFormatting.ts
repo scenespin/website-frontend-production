@@ -35,11 +35,19 @@ export function useFountainFormatting(
     /**
      * Handle keyboard shortcuts for Fountain formatting
      * - Enter: Smart line breaks with auto-transition
-     * - Tab: Format current line as CHARACTER
+     * - Tab: Format current line as CHARACTER (unless Wryda Tab Navigation is enabled)
      * - Shift+Tab: Format current line as SCENE HEADING
      */
     const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
         if (!textareaRef.current) return;
+        
+        // Check if Wryda Tab Navigation is enabled - if so, Tab is handled elsewhere
+        const WRYDA_TAB_ENABLED = process.env.NEXT_PUBLIC_WRYDA_TAB === 'true';
+        if (WRYDA_TAB_ENABLED && e.key === 'Tab' && !e.shiftKey) {
+            // Tab is handled by WrydaTabNavigation hook, but if it returns false,
+            // we'll fall through to default behavior (this shouldn't happen, but safety check)
+            return;
+        }
         
         const textarea = textareaRef.current;
         const cursorPos = textarea.selectionStart;
