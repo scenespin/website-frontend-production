@@ -16,7 +16,7 @@
  * - Asset library for timeline integration
  */
 
-import React, { useState, useEffect, useCallback, startTransition } from 'react';
+import React, { useState, useEffect, useCallback, useRef, startTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -63,7 +63,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
 import { getScreenplay } from '@/utils/screenplayStorage';
 import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
-import { useCharacterReferences } from './hooks/useCharacterReferences';
+import { useCharacterReferences, CharacterHeadshot } from './hooks/useCharacterReferences';
 import { usePropReferences } from './hooks/usePropReferences';
 import { useLocationReferences } from './hooks/useLocationReferences';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
@@ -434,19 +434,41 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   });
 
   // Sync hook data to state (for backward compatibility during refactor)
+  // Use useRef to track previous value and prevent unnecessary updates
+  const prevCharacterHeadshotsRef = useRef<Record<string, CharacterHeadshot[]>>({});
   useEffect(() => {
-    if (Object.keys(characterHeadshotsFromHook).length > 0) {
-      contextActions.setCharacterHeadshots(characterHeadshotsFromHook);
+    // Only update if the data has actually changed (deep comparison of keys and structure)
+    const currentKeys = Object.keys(characterHeadshotsFromHook).sort().join(',');
+    const prevKeys = Object.keys(prevCharacterHeadshotsRef.current).sort().join(',');
+    
+    if (currentKeys !== prevKeys || Object.keys(characterHeadshotsFromHook).length > 0) {
+      // Check if content actually changed by comparing stringified versions
+      const currentStr = JSON.stringify(characterHeadshotsFromHook);
+      const prevStr = JSON.stringify(prevCharacterHeadshotsRef.current);
+      
+      if (currentStr !== prevStr) {
+        prevCharacterHeadshotsRef.current = characterHeadshotsFromHook;
+        contextActions.setCharacterHeadshots(characterHeadshotsFromHook);
+      }
     }
   }, [characterHeadshotsFromHook, contextActions]);
 
   // Update loadingHeadshots in context
+  const prevLoadingRef = useRef<Record<string, boolean>>({});
   useEffect(() => {
     const loading: Record<string, boolean> = {};
     characterIdsForMediaLibrary.forEach(charId => {
       loading[charId] = loadingCharacterHeadshots;
     });
-    contextActions.setLoadingHeadshots(loading);
+    
+    // Only update if loading state actually changed
+    const loadingStr = JSON.stringify(loading);
+    const prevLoadingStr = JSON.stringify(prevLoadingRef.current);
+    
+    if (loadingStr !== prevLoadingStr) {
+      prevLoadingRef.current = loading;
+      contextActions.setLoadingHeadshots(loading);
+    }
   }, [characterIdsForMediaLibrary, loadingCharacterHeadshots, contextActions]);
   
   // Use context state
