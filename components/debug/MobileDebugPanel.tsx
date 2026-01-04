@@ -93,7 +93,7 @@ export function MobileDebugPanel() {
 
     // Intercept fetch API calls
     const originalFetch = window.fetch;
-    window.fetch = async (...args: any[]) => {
+    window.fetch = async (...args: Parameters<typeof fetch>) => {
       const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || 'unknown';
       const method = args[1]?.method || 'GET';
       
@@ -166,7 +166,7 @@ export function MobileDebugPanel() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 left-4 z-[9999] bg-[#DC143C] text-white p-3 rounded-full shadow-lg hover:bg-[#B01030] transition-colors"
+        className="fixed bottom-20 left-4 z-[10000] bg-[#DC143C] text-white p-3 rounded-full shadow-lg hover:bg-[#B01030] transition-colors md:bottom-4"
         title="Open Debug Panel"
       >
         <Bug className="w-5 h-5" />
