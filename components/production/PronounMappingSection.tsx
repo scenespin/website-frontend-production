@@ -6,6 +6,127 @@ import { isValidCharacterId, filterValidCharacterIds } from './utils/characterId
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Character Selector Component (Custom DaisyUI Dropdown)
+function CharacterSelector({ 
+  value, 
+  availableChars, 
+  onChange 
+}: { 
+  value: string; 
+  availableChars: Character[]; 
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const getDisplayLabel = () => {
+    if (value === '__select__') return '-- Select character --';
+    if (value === '__ignore__') return '-- Skip (extras/background only) --';
+    const char = availableChars.find(c => c.id === value);
+    return char ? char.name : '-- Select character --';
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen]);
+
+  return (
+    <div ref={dropdownRef} className="relative flex-1">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        }}
+        className="flex-1 h-8 text-xs px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+      >
+        <span className="truncate">{getDisplayLabel()}</span>
+        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform flex-shrink-0", isOpen && "rotate-180")} />
+      </button>
+      {isOpen && (
+        <ul
+          className="absolute top-full left-0 mt-1 w-full menu p-2 shadow-lg bg-[#1F1F1F] rounded-box border border-[#3F3F46] z-[9999] max-h-96 overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <li>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onChange('__select__');
+                setIsOpen(false);
+              }}
+              className={cn(
+                "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs",
+                value === '__select__'
+                  ? "bg-[#DC143C]/20 text-[#FFFFFF]"
+                  : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
+              )}
+            >
+              -- Select character --
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onChange('__ignore__');
+                setIsOpen(false);
+              }}
+              className={cn(
+                "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs",
+                value === '__ignore__'
+                  ? "bg-[#DC143C]/20 text-[#FFFFFF]"
+                  : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
+              )}
+            >
+              -- Skip (extras/background only) --
+            </button>
+          </li>
+          {availableChars.map((char) => (
+            <li key={char.id}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange(char.id);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs",
+                  value === char.id
+                    ? "bg-[#DC143C]/20 text-[#FFFFFF]"
+                    : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
+                )}
+              >
+                {char.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 interface Character {
   id: string;
   name: string;
