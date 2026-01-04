@@ -197,11 +197,27 @@ export function ShotConfigurationStep({
   const state = useSceneBuilderState();
   const actions = useSceneBuilderActions();
   
-  // Extract per-shot values from context
+  // Extract all state from context (context is source of truth)
   const shotSlot = shot.slot;
   const selectedReferenceShotModels = state.selectedReferenceShotModels;
   const selectedVideoTypes = state.selectedVideoTypes;
   const selectedVideoQualities = state.selectedVideoQualities;
+  const selectedLocationReferences = state.selectedLocationReferences;
+  const locationOptOuts = state.locationOptOuts;
+  const locationDescriptions = state.locationDescriptions;
+  const selectedCharactersForShots = state.selectedCharactersForShots;
+  const characterHeadshots = state.characterHeadshots;
+  const selectedCharacterReferences = state.selectedCharacterReferences;
+  const pronounExtrasPrompts = state.pronounExtrasPrompts;
+  
+  // Use context values (context is source of truth, props are for backward compatibility)
+  const finalSelectedLocationReferences = selectedLocationReferences;
+  const finalLocationOptOuts = locationOptOuts;
+  const finalLocationDescriptions = locationDescriptions;
+  const finalSelectedCharactersForShots = selectedCharactersForShots;
+  const finalCharacterHeadshots = characterHeadshots;
+  const finalSelectedCharacterReferences = selectedCharacterReferences;
+  const shotPronounExtrasPrompts = pronounExtrasPrompts[shotSlot] || {};
   
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [pricing, setPricing] = useState<{ hdPrice: number; k4Price: number; firstFramePrice: number } | null>(null);
