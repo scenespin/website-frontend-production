@@ -4,7 +4,7 @@ import config from "@/config";
 
 export const metadata = getSEOTags({
   title: `Production Help | ${config.appName}`,
-  description: "Learn how to generate videos, use 58+ workflows, and maintain character/location/prop consistency with Wryda.ai.",
+  description: "Learn how to generate videos with Scene Builder and maintain character/location/prop consistency with Wryda.ai.",
   canonicalUrlRelative: "/help/production",
 });
 
@@ -23,7 +23,7 @@ export default function ProductionHelp() {
       <main className="max-w-4xl mx-auto px-8 py-16">
         <h1 className="text-4xl font-extrabold mb-4">🎬 Production</h1>
         <p className="text-xl opacity-80 mb-12">
-          Generate professional videos with AI, use 58+ guided workflows, and maintain consistency across your entire production.
+          Generate professional videos with Scene Builder and maintain consistency across your entire production.
         </p>
 
         {/* Video Generation */}
@@ -80,41 +80,6 @@ export default function ProductionHelp() {
               ]}
               bestFor="Ultra-high quality final production footage, character animation"
             />
-          </div>
-        </section>
-
-        {/* Workflows */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-4">58+ Guided Workflows</h2>
-          <p className="mb-4">
-            Our workflows are pre-configured templates that guide you through creating specific types of videos. 
-            Each workflow is optimized for the best AI model and settings.
-          </p>
-          
-          <div className="card bg-base-200 mb-6">
-            <div className="card-body">
-              <h3 className="font-bold mb-3">Workflow Categories:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Text-Only Workflows</h4>
-                  <ul className="space-y-1 text-sm">
-                    <li>• Action sequences</li>
-                    <li>• Character-driven scenes</li>
-                    <li>• Fantasy & sci-fi</li>
-                    <li>• And more...</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Character Consistency</h4>
-                  <ul className="space-y-1 text-sm">
-                    <li>• Character-specific workflows</li>
-                    <li>• Multi-shot scenes</li>
-                    <li>• Character animation</li>
-                    <li>• And more...</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -194,19 +159,19 @@ export default function ProductionHelp() {
             <div className="card-body">
               <ol className="space-y-4 list-decimal list-inside">
                 <li>
-                  <strong>Navigate to Production</strong> - Go to the Production section in your app
-                </li>
-                <li>
-                  <strong>Choose Your Method</strong> - Use workflows, Scene Builder, or direct video generation
+                  <strong>Write Your Screenplay</strong> - Create your script in the Write section
                 </li>
                 <li>
                   <strong>Set Up Consistency</strong> - Upload character images, locations, and props to the banks
                 </li>
                 <li>
-                  <strong>Generate Videos</strong> - Select your AI provider and generate your clips
+                  <strong>Use Scene Builder</strong> - Select a scene from your screenplay and let Scene Builder generate it
                 </li>
                 <li>
-                  <strong>Review & Export</strong> - Review your generated videos and export when ready
+                  <strong>Maintain Consistency</strong> - Character, location, and prop consistency is handled automatically
+                </li>
+                <li>
+                  <strong>Review & Direct</strong> - Review your generated videos and direct your production
                 </li>
               </ol>
             </div>
@@ -216,7 +181,7 @@ export default function ProductionHelp() {
         {/* Navigation */}
         <div className="flex gap-4 justify-between mt-12">
           <Link href="/help/writing" className="btn btn-ghost">← Writing</Link>
-          <Link href="/help/editing" className="btn btn-primary">Next: Editing →</Link>
+          <Link href="/help/faq" className="btn btn-primary">FAQ →</Link>
         </div>
       </main>
     </>

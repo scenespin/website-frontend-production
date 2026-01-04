@@ -30,8 +30,47 @@ export default function HelpCenter() {
           <p className="text-xl opacity-80 max-w-3xl mx-auto">
             Everything you need to turn your screenplay into a movie.
             <br />
-            From your first video to advanced production techniques.
+            Write → Produce → Direct
           </p>
+        </section>
+
+        {/* Workflow Overview */}
+        <section className="mb-16">
+          <div className="card bg-gradient-to-br from-[#DC143C]/10 to-slate-800 border-2 border-[#DC143C]/30">
+            <div className="card-body">
+              <h2 className="text-3xl font-bold mb-2">🎬 Complete Production Workflow</h2>
+              <p className="text-sm opacity-70 mb-6">Follow the same workflow you'll use in the app - Write → Produce → Direct</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link href="/help/writing" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-[#DC143C]/30">
+                  <div className="card-body items-center text-center">
+                    <div className="text-4xl mb-2">✍️</div>
+                    <h3 className="font-bold text-base">1. Write</h3>
+                    <p className="text-xs opacity-70">Screenplay editor with 5 AI writing agents</p>
+                    <div className="badge badge-sm badge-primary mt-2">START HERE</div>
+                  </div>
+                </Link>
+
+                <Link href="/help/production" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-pink-500/30">
+                  <div className="card-body items-center text-center">
+                    <div className="text-4xl mb-2">🎬</div>
+                    <h3 className="font-bold text-base">2. Produce</h3>
+                    <p className="text-xs opacity-70">Scene Builder & consistency systems</p>
+                    <div className="badge badge-sm badge-secondary mt-2">GENERATE</div>
+                  </div>
+                </Link>
+
+                <Link href="/help/production" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-blue-500/30">
+                  <div className="card-body items-center text-center">
+                    <div className="text-4xl mb-2">🎞️</div>
+                    <h3 className="font-bold text-base">3. Direct</h3>
+                    <p className="text-xs opacity-70">Control your production</p>
+                    <div className="badge badge-sm badge-accent mt-2">DIRECT</div>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Main Help Sections */}
@@ -52,24 +91,12 @@ export default function HelpCenter() {
             href="/help/production"
             icon="🎬"
             title="Production"
-            description="Video generation, 58+ workflows, and consistency systems"
+            description="Scene Builder and professional consistency systems"
             features={[
               "3 AI video providers (Veo, Luma, Runway)",
-              "58+ guided workflows",
+              "Scene Builder (Motion Picture Technology)",
               "Character, location & prop consistency",
-              "Scene Builder (Motion Picture Technology)"
-            ]}
-          />
-          <HelpSectionCard
-            href="/help/editing"
-            icon="🎨"
-            title="Editing"
-            description="Composition studio and timeline editor"
-            features={[
-              "12+ composition layouts",
-              "8-track timeline editor",
-              "Transitions & effects",
-              "Multi-format export"
+              "Turn screenplay into video"
             ]}
           />
           <HelpSectionCard

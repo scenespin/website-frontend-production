@@ -52,7 +52,6 @@ export default function FAQHelp() {
                   <li>AI video generation (25-120 credits per video)</li>
                   <li>AI screenplay readings (varies)</li>
                   <li>Scene Builder / Motion Picture Technology</li>
-                  <li>Composition layouts (10-30 credits)</li>
                   <li>Video exports (varies by format)</li>
                 </ul>
                 <p className="mt-3">
@@ -92,9 +91,8 @@ export default function FAQHelp() {
                 <ol className="list-decimal list-inside space-y-2 ml-4">
                   <li><strong>Write your screenplay</strong> - Use the Write section to create your script</li>
                   <li><strong>Set up consistency</strong> - Upload character images, locations, and props to the banks</li>
-                  <li><strong>Generate videos</strong> - Go to Production and use workflows or Scene Builder</li>
-                  <li><strong>Compose your layout</strong> - Arrange clips in Composition Studio</li>
-                  <li><strong>Edit & export</strong> - Polish in Timeline editor and export in your preferred format</li>
+                  <li><strong>Produce with Scene Builder</strong> - Go to Production and use Scene Builder to generate videos from your screenplay</li>
+                  <li><strong>Direct your production</strong> - Review and control your generated videos</li>
                 </ol>
                 <p className="mt-3">
                   Check out our <Link href="/help/writing" className="link link-primary">Writing</Link> and{' '}
@@ -143,19 +141,17 @@ export default function FAQHelp() {
           />
 
           <FAQItem
-            question="Can I export to different formats?"
+            question="What is the workflow?"
             answer={
               <>
-                <p className="mb-3">Yes! Export in multiple formats for any platform:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li><strong>16:9</strong> - YouTube, web, traditional media</li>
-                  <li><strong>9:16</strong> - TikTok, Reels, Stories</li>
-                  <li><strong>1:1</strong> - Instagram Feed, Twitter</li>
-                  <li><strong>4:3</strong> - Classic/Nostalgia aesthetic</li>
-                  <li><strong>21:9</strong> - Cinema widescreen (Premium)</li>
-                </ul>
+                <p className="mb-3">Wryda.ai follows a simple workflow:</p>
+                <ol className="list-decimal list-inside space-y-2 ml-4">
+                  <li><strong>Write</strong> - Create your screenplay with our professional editor and 5 AI writing agents</li>
+                  <li><strong>Produce</strong> - Use Scene Builder to generate videos from your screenplay, maintaining character/location/prop consistency</li>
+                  <li><strong>Direct</strong> - Review and control your production</li>
+                </ol>
                 <p className="mt-3">
-                  You can also use bundles to save credits: <strong>Social Bundle</strong> (16:9 + 9:16 + 1:1) saves 20%.
+                  <strong>Write → Produce → Direct</strong> - Simple, powerful, and all in one platform.
                 </p>
               </>
             }
@@ -182,9 +178,8 @@ export default function FAQHelp() {
               <>
                 <p className="mb-3">We're here to help! You can:</p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>Browse our help guides: <Link href="/help/writing" className="link link-primary">Writing</Link>,{' '}
-                      <Link href="/help/production" className="link link-primary">Production</Link>,{' '}
-                      <Link href="/help/editing" className="link link-primary">Editing</Link></li>
+                  <li>Browse our help guides: <Link href="/help/writing" className="link link-primary">Writing</Link> and{' '}
+                      <Link href="/help/production" className="link link-primary">Production</Link></li>
                   <li>Email us at <a href="mailto:support@wryda.ai" className="link link-primary">support@wryda.ai</a></li>
                   <li>Check the dashboard for in-app tips and guides</li>
                 </ul>
@@ -195,7 +190,7 @@ export default function FAQHelp() {
 
         {/* Navigation */}
         <div className="flex gap-4 justify-between mt-12">
-          <Link href="/help/editing" className="btn btn-ghost">← Editing</Link>
+          <Link href="/help/production" className="btn btn-ghost">← Production</Link>
           <Link href="/help" className="btn btn-primary">Back to Help Center</Link>
         </div>
       </main>

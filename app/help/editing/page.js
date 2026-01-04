@@ -1,14 +1,8 @@
-import Link from "next/link";
-import { getSEOTags } from "@/libs/seo";
-import config from "@/config";
-
-export const metadata = getSEOTags({
-  title: `Editing Help | ${config.appName}`,
-  description: "Learn how to use Wryda.ai's composition studio and timeline editor to create professional videos.",
-  canonicalUrlRelative: "/help/editing",
-});
+import { redirect } from 'next/navigation';
 
 export default function EditingHelp() {
+  redirect('/help');
+}
   return (
     <>
       <header className="p-4 flex justify-between items-center max-w-7xl mx-auto">
