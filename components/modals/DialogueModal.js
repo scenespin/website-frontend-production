@@ -13,7 +13,7 @@ import { validateDialogueContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getTimingMessage } from '@/utils/modelTiming';
 import toast from 'react-hot-toast';
-import { ModelSelect } from '@/components/ui/ModelSelect';
+// ModelSelect removed - using DaisyUI select instead
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -476,14 +476,30 @@ Rules:
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Model Selector - Using Headless UI instead of Radix UI to avoid infinite loops */}
-                    <ModelSelect
+                    {/* Model Selector - DaisyUI select */}
+                    <select
                       value={selectedModel}
-                      onChange={handleModelChange}
-                      models={LLM_MODELS}
+                      onChange={(e) => handleModelChange(e.target.value)}
                       disabled={isLoading}
-                      className="max-w-[140px]"
-                    />
+                      className="select select-bordered select-sm max-w-[140px]"
+                    >
+                      {(() => {
+                        const grouped = LLM_MODELS.reduce((acc, model) => {
+                          if (!acc[model.provider]) acc[model.provider] = [];
+                          acc[model.provider].push(model);
+                          return acc;
+                        }, {});
+                        return Object.entries(grouped).map(([provider, models]) => (
+                          <optgroup key={provider} label={provider}>
+                            {models.map((model) => (
+                              <option key={model.id} value={model.id}>
+                                {model.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ));
+                      })()}
+                    </select>
                     <button
                       onClick={onClose}
                       disabled={isLoading}
@@ -517,20 +533,16 @@ Rules:
                       <label className="label">
                         <span className="label-text">Act</span>
                       </label>
-                      <Select
+                      <select
                         value={act.toString()}
-                        onValueChange={(value) => setAct(Number(value))}
+                        onChange={(e) => setAct(Number(e.target.value))}
                         disabled={isLoading}
+                        className="select select-bordered w-full"
                       >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Act 1</SelectItem>
-                          <SelectItem value="2">Act 2</SelectItem>
-                          <SelectItem value="3">Act 3</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <option value="1">Act 1</option>
+                        <option value="2">Act 2</option>
+                        <option value="3">Act 3</option>
+                      </select>
                     </div>
 
                     {/* Characters */}

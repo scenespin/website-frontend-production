@@ -219,7 +219,14 @@ export default function WritingHelp() {
 
               <h3 className="font-bold mb-4 mt-6 text-[#DC143C]">Smart Suggestions</h3>
               <ul className="space-y-2 text-[#B3B3B3]">
-                <li>• <strong className="text-[#FFFFFF]">Wryda Smart Tab</strong> - In scene headings, press Tab (or $ on mobile) to navigate between Type → Location → Time fields with SmartType suggestions. Examples: <code className="text-[#00D9FF]">int</code>+Tab → <code className="text-[#00D9FF]">INT.</code>, <code className="text-[#00D9FF]">ext</code>+Tab → <code className="text-[#00D9FF]">EXT.</code>, <code className="text-[#00D9FF]">i/e</code>+Tab → <code className="text-[#00D9FF]">I./E.</code>, <code className="text-[#00D9FF]">int/ext</code>+Tab → <code className="text-[#00D9FF]">INT./EXT.</code></li>
+                <li>• <strong className="text-[#FFFFFF]">Wryda Smart Tab</strong> - In scene headings, press Tab (or $ on mobile) to navigate between Type → Location → Time fields with SmartType suggestions. 
+                  <ul className="ml-6 mt-2 space-y-1 text-sm">
+                    <li><strong className="text-[#FFFFFF]">Type formatting:</strong> <code className="text-[#00D9FF]">int</code>+Tab → <code className="text-[#00D9FF]">INT.</code>, <code className="text-[#00D9FF]">ext</code>+Tab → <code className="text-[#00D9FF]">EXT.</code>, <code className="text-[#00D9FF]">i/e</code>+Tab → <code className="text-[#00D9FF]">I./E.</code>, <code className="text-[#00D9FF]">int/ext</code>+Tab → <code className="text-[#00D9FF]">INT./EXT.</code></li>
+                    <li><strong className="text-[#FFFFFF]">Location selection:</strong> After type, Tab shows location dropdown (e.g., <code className="text-[#00D9FF]">INT.</code>+Tab → shows locations like "COFFEE SHOP", "WAREHOUSE")</li>
+                    <li><strong className="text-[#FFFFFF]">Time selection:</strong> After location, Tab shows time dropdown (e.g., <code className="text-[#00D9FF]">INT. COFFEE SHOP</code>+Tab → shows "DAY", "NIGHT", "DAWN", etc.)</li>
+                    <li><strong className="text-[#FFFFFF]">Complete scene heading:</strong> After time selection, Tab completes and moves to next line (e.g., <code className="text-[#00D9FF]">INT. COFFEE SHOP - DAY</code>+Tab → scene heading complete)</li>
+                  </ul>
+                </li>
                 <li>• <strong className="text-[#FFFFFF]">Character name completion</strong> - Type first few letters, get suggestions</li>
                 <li>• <strong className="text-[#FFFFFF]">Location suggestions</strong> - Based on previously used locations (sorted by INT/EXT type)</li>
                 <li>• <strong className="text-[#FFFFFF]">Time of day</strong> - Common options: DAY, NIGHT, MORNING, etc.</li>
