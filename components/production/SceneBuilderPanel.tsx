@@ -209,74 +209,28 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // 🔥 NEW: Track character IDs for Media Library query
   const [characterIdsForMediaLibrary, setCharacterIdsForMediaLibrary] = useState<string[]>([]);
   
-  // 🔥 FIX: Query Media Library for character images
-  // Use fallback pattern like CharacterDetailModal: query with entityType+entityId first, then fallback to all files
-  const firstCharacterId = characterIdsForMediaLibrary[0] || '';
-  
-  // Primary query: Query with entityType and entityId for first character (most efficient)
-  const { data: entityCharacterMediaFiles = [] } = useMediaFiles(
+  // 🔥 Query Media Library for character images (new files only - properly formatted with entityType/entityId)
+  // Backend supports querying with entityType only, which returns all character files
+  const { data: allCharacterMediaFiles = [] } = useMediaFiles(
     projectId,
     undefined,
     characterIdsForMediaLibrary.length > 0, // Only query when we have character IDs
     true, // includeAllFolders: true (needed to get files from outfit folders)
-    'character', // entityType
-    firstCharacterId // entityId: query first character specifically
+    'character' // entityType: query all character files (backend uses entityType-entityId-index GSI)
   );
   
-  // Fallback query: If entity query returns 0 files, try querying all files (for old files without entityType/entityId)
-  const { data: allMediaFiles = [] } = useMediaFiles(
-    projectId,
-    undefined,
-    characterIdsForMediaLibrary.length > 0 && entityCharacterMediaFiles.length === 0, // Only query if entity query returned 0
-    true, // includeAllFolders: true
-    undefined, // No entityType filter
-    undefined // No entityId filter
-  );
-  
-  // 🔥 NEW: Merge and filter Media Library files by character IDs
+  // 🔥 Filter Media Library files by character IDs (client-side filtering)
   const characterMediaFiles = React.useMemo(() => {
     console.log('[SceneBuilderPanel] Filtering character media files:', {
-      entityCharacterMediaFilesCount: entityCharacterMediaFiles?.length || 0,
-      allMediaFilesCount: allMediaFiles?.length || 0,
+      allCharacterMediaFilesCount: allCharacterMediaFiles?.length || 0,
       characterIdsForMediaLibraryCount: characterIdsForMediaLibrary.length,
       characterIds: characterIdsForMediaLibrary
     });
     
-    if (characterIdsForMediaLibrary.length === 0) return [];
+    if (!allCharacterMediaFiles || characterIdsForMediaLibrary.length === 0) return [];
     
-    // Start with entity-specific files
-    const entityS3Keys = new Set(entityCharacterMediaFiles.map((f: any) => f.s3Key).filter(Boolean));
-    const allFiles: any[] = [...entityCharacterMediaFiles];
-    
-    // Add files from fallback query that match our character IDs
-    if (allMediaFiles && allMediaFiles.length > 0) {
-      allMediaFiles.forEach((file: any) => {
-        // Skip if already in entity files
-        if (file.s3Key && entityS3Keys.has(file.s3Key)) return;
-        
-        // Check if file belongs to one of our characters
-        const fileEntityType = file.metadata?.entityType || file.entityType;
-        const fileEntityId = file.metadata?.entityId || file.entityId;
-        
-        // Match by entityType + entityId
-        if (fileEntityType === 'character' && characterIdsForMediaLibrary.includes(fileEntityId)) {
-          allFiles.push(file);
-        }
-        // Also check s3Key pattern for old files: character/{characterId}/
-        else if (file.s3Key) {
-          const matchesCharacterId = characterIdsForMediaLibrary.some(charId => 
-            file.s3Key.includes(`character/${charId}/`) || 
-            file.s3Key.includes(`character-${charId}`)
-          );
-          if (matchesCharacterId) {
-            allFiles.push(file);
-          }
-        }
-      });
-    }
-    
-    // Filter to only files for our characters (final check)
-    const filtered = allFiles.filter((file: any) => {
+    // Filter to only files for our characters (new files have proper entityId in metadata)
+    const filtered = allCharacterMediaFiles.filter((file: any) => {
       const fileEntityId = file.metadata?.entityId || file.entityId;
       const matches = characterIdsForMediaLibrary.includes(fileEntityId);
       if (matches) {
@@ -287,7 +241,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     console.log('[SceneBuilderPanel] Filtered character media files:', filtered.length);
     return filtered;
-  }, [entityCharacterMediaFiles, allMediaFiles, characterIdsForMediaLibrary]);
+  }, [allCharacterMediaFiles, characterIdsForMediaLibrary]);
   
   // 🔥 NEW: Build character thumbnailS3KeyMap from Media Library results
   const characterThumbnailS3KeyMap = React.useMemo(() => {
