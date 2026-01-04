@@ -25,25 +25,17 @@ import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/scre
 import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
 
-// The Intelligent Agent System + Generation Features
-// AGENTS (with LLM selector): Story Advisor, Character, Location, Audio, Workflows, Try-On
-// FEATURES (with their own selectors): Image (model selector), Video (wrapped)
+// The Intelligent Agent System
+// AGENTS (with LLM selector): Story Advisor, Character, Location
 const MODE_CONFIG = {
   // AI AGENTS (use LLMs)
   chat: { icon: MessageSquare, label: 'Story Advisor', color: 'text-purple-500', description: 'Screenplay consultation & creative guidance', isAgent: true },
   character: { icon: User, label: 'Character', color: 'text-cyan-500', description: 'Create characters with AI interview', isAgent: true },
   location: { icon: Building2, label: 'Location', color: 'text-amber-500', description: 'Create locations with AI interview', isAgent: true },
-  audio: { icon: Music, label: 'Audio', color: 'text-green-500', description: 'Music, sound effects & dialogue', isAgent: true },
-  workflows: { icon: Zap, label: 'Workflows', color: 'text-orange-500', description: '58 pre-built AI workflows', isAgent: true },
-  'try-on': { icon: Users, label: 'Try-On', color: 'text-teal-500', description: 'Virtual character try-on', isAgent: true },
-  
-  // GENERATION FEATURES (separate selectors)
-  image: { icon: ImageIcon, label: 'Image Generation', color: 'text-blue-500', description: 'Character & location images', isAgent: false },
-  'quick-video': { icon: Film, label: 'Video Generation', color: 'text-cinema-red', description: 'Scene visualization', isAgent: false },
 };
 
-// Mode order: Agents first, then generation features
-const MODE_ORDER = ['chat', 'character', 'location', 'audio', 'workflows', 'try-on', 'image', 'quick-video'];
+// Mode order: Only Story Advisor, Character, and Location
+const MODE_ORDER = ['chat', 'character', 'location'];
 
 // ============================================================================
 // PAGE-BASED AGENT FILTERING
@@ -1407,9 +1399,10 @@ function UnifiedChatPanelInner({
                     <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </button>
+                {/* Hide microphone on mobile - phones already have built-in voice input */}
                 <button
                   onClick={handleVoiceInput}
-                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#2A2A2A] text-[#9CA3AF] hover:text-[#E5E7EB] transition-all duration-200 ${isRecording ? 'bg-[#DC143C]/20 text-[#DC143C] animate-pulse' : ''}`}
+                  className={`hidden md:flex p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#2A2A2A] text-[#9CA3AF] hover:text-[#E5E7EB] transition-all duration-200 ${isRecording ? 'bg-[#DC143C]/20 text-[#DC143C] animate-pulse' : ''}`}
                   disabled={state.isStreaming || isUploading}
                   title={isRecording ? "Stop recording" : "Voice input"}
                 >

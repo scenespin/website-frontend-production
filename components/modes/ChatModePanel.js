@@ -450,20 +450,11 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       {state.messages.filter(m => m.mode === 'chat').length === 0 && !state.input && (
         <div className="flex-1 flex items-center justify-center px-3 sm:px-4 py-6 sm:py-8">
           <div className="max-w-md w-full text-center space-y-3 sm:space-y-4">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#0A0A0A] border border-[#3F3F46] flex items-center justify-center mx-auto">
-            </div>
             <div>
-              <h3 className="text-base sm:text-lg font-semibold text-[#E5E7EB] mb-1.5 sm:mb-2">Story Advisor</h3>
-              <p className="text-xs sm:text-sm text-[#9CA3AF] mb-3 sm:mb-4 px-2">
-                Your professional screenplay consultant. Get advice, analysis, and creative guidance for your story. I don't generate Fountain format — that's handled by other tools.
+              <p className="text-xs sm:text-sm text-[#9CA3AF] mb-2 sm:mb-3 px-2">
+                Ask for advice, analysis, or creative guidance about your screenplay
               </p>
-              <div className="text-xs text-[#6B7280] space-y-0.5 sm:space-y-1 mb-2 sm:mb-3 px-2">
-                <p>Try: "I'm stuck on Act 2. What should happen next?"</p>
-                <p>or "Is Sarah's motivation clear enough?"</p>
-                <p>or "Should I cut the warehouse scene?"</p>
-                <p>or "How can I make this character more compelling?"</p>
-              </div>
-              <div className="text-xs text-[#6B7280] pt-2 sm:pt-3 border-t border-[#3F3F46] px-2">
+              <div className="text-xs text-[#6B7280] px-2">
                 <p>💡 <strong>Tip:</strong> I can analyze scenes, characters, structure, pacing, and themes. Ask me anything about your screenplay!</p>
               </div>
             </div>
