@@ -213,6 +213,95 @@ export function ShotConfigurationStep({
   const finalSelectedCharacterReferences = state.selectedCharacterReferences;
   const shotPronounExtrasPrompts = (state.pronounExtrasPrompts[shotSlot] || {});
   
+  // Create handlers that use context actions
+  const finalOnLocationAngleChange = useCallback((shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => {
+    actions.updateLocationReference(shotSlot, locationId, angle);
+  }, [actions]);
+  
+  const finalOnLocationOptOutChange = useCallback((shotSlot: number, optOut: boolean) => {
+    actions.updateLocationOptOut(shotSlot, optOut);
+  }, [actions]);
+  
+  const finalOnLocationDescriptionChange = useCallback((shotSlot: number, description: string) => {
+    actions.updateLocationDescription(shotSlot, description);
+  }, [actions]);
+  
+  const finalOnCharactersForShotChange = useCallback((shotSlot: number, characterIds: string[]) => {
+    actions.updateSelectedCharactersForShot(shotSlot, characterIds);
+  }, [actions]);
+  
+  const finalOnPronounMappingChange = useCallback((shotSlot: number, pronoun: string, characterId: string | string[] | undefined) => {
+    actions.updatePronounMapping(shotSlot, pronoun, characterId);
+  }, [actions]);
+  
+  const finalOnCharacterReferenceChange = useCallback((shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => {
+    actions.updateCharacterReference(shotSlot, characterId, reference);
+  }, [actions]);
+  
+  const finalOnCharacterOutfitChange = useCallback((shotSlot: number, characterId: string, outfitName: string | undefined) => {
+    actions.updateCharacterOutfit(shotSlot, characterId, outfitName);
+  }, [actions]);
+  
+  const finalOnDialogueQualityChange = useCallback((shotSlot: number, quality: 'premium' | 'reliable') => {
+    actions.updateDialogueQuality(shotSlot, quality);
+  }, [actions]);
+  
+  const finalOnDialogueWorkflowChange = useCallback((shotSlot: number, workflowType: DialogueWorkflowType) => {
+    actions.updateDialogueWorkflow(shotSlot, workflowType);
+  }, [actions]);
+  
+  const finalOnBaseWorkflowChange = useCallback((shotSlot: number, baseWorkflow: string) => {
+    actions.updateVoiceoverBaseWorkflow(shotSlot, baseWorkflow);
+  }, [actions]);
+  
+  const finalOnDialogueWorkflowPromptChange = useCallback((shotSlot: number, prompt: string) => {
+    actions.updateDialogueWorkflowPrompt(shotSlot, prompt);
+  }, [actions]);
+  
+  const finalOnPronounExtrasPromptChange = useCallback((pronoun: string, prompt: string) => {
+    actions.updatePronounExtrasPrompt(shotSlot, pronoun, prompt);
+  }, [actions, shotSlot]);
+  
+  const finalOnCameraAngleChange = useCallback((shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => {
+    actions.updateShotCameraAngle(shotSlot, angle);
+  }, [actions]);
+  
+  const finalOnDurationChange = useCallback((shotSlot: number, duration: 'quick-cut' | 'extended-take' | undefined) => {
+    actions.updateShotDuration(shotSlot, duration);
+  }, [actions]);
+  
+  const finalOnPropsToShotsChange = useCallback((propsToShots: Record<string, number[]>) => {
+    actions.setPropsToShots(propsToShots);
+  }, [actions]);
+  
+  const finalOnPropDescriptionChange = useCallback((shotSlot: number, propId: string, description: string) => {
+    actions.updatePropDescription(shotSlot, propId, description);
+  }, [actions]);
+  
+  const finalOnPropImageChange = useCallback((shotSlot: number, propId: string, imageId: string | undefined) => {
+    actions.updatePropImage(shotSlot, propId, imageId);
+  }, [actions]);
+  
+  const finalOnShotWorkflowOverrideChange = useCallback((shotSlot: number, workflow: string) => {
+    actions.updateShotWorkflowOverride(shotSlot, workflow);
+  }, [actions]);
+  
+  const finalOnReferenceShotModelChange = useCallback((shotSlot: number, model: 'nano-banana-pro' | 'flux2-max-4k-16:9') => {
+    actions.updateReferenceShotModel(shotSlot, model);
+  }, [actions]);
+  
+  const finalOnVideoTypeChange = useCallback((shotSlot: number, videoType: 'cinematic-visuals' | 'natural-motion') => {
+    actions.updateVideoType(shotSlot, videoType);
+  }, [actions]);
+  
+  const finalOnVideoQualityChange = useCallback((shotSlot: number, quality: 'hd' | '4k') => {
+    actions.updateVideoQuality(shotSlot, quality);
+  }, [actions]);
+  
+  const finalOnAspectRatioChange = useCallback((shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1') => {
+    actions.updateShotAspectRatio(shotSlot, aspectRatio);
+  }, [actions]);
+  
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [pricing, setPricing] = useState<{ hdPrice: number; k4Price: number; firstFramePrice: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
