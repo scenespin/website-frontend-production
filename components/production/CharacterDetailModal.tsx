@@ -2373,6 +2373,30 @@ export function CharacterDetailModal({
                       return;
                     }
                     
+                    // 🔥 FIX: Delete from Media Library first (source of truth) - batch delete
+                    const token = await getToken({ template: 'wryda-backend' });
+                    if (!token) {
+                      toast.error('Authentication required');
+                      return;
+                    }
+                    
+                    const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                    for (const s3Key of s3KeysToDelete) {
+                      try {
+                        await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ s3Key }),
+                        });
+                      } catch (mediaError: any) {
+                        console.warn('[CharacterDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
+                        // Continue with character update even if Media Library deletion fails
+                      }
+                    }
+                    
                     // Batch delete: Remove all selected pose references in one update
                     const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
                     const currentReferences = character.references || [];
