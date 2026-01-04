@@ -761,7 +761,7 @@ export function ShotConfigurationStep({
               onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
               pronounExtrasPrompts={pronounExtrasPrompts}
               onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-              sceneProps={sceneProps}
+              sceneProps={finalSceneProps}
               propsToShots={propsToShots}
               onPropsToShotsChange={onPropsToShotsChange}
               shotProps={shotProps}
