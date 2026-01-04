@@ -22,6 +22,7 @@ import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { getAvailablePropImages } from './utils/propImageUtils';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -753,56 +754,8 @@ export function ShotConfigurationPanel({
                     
                     {/* Prop Image Selection */}
                     {onPropImageChange && (() => {
-                      // Get all available images for this prop (angleReferences first, then images)
-                      const availableImages: Array<{ id: string; imageUrl: string; label?: string }> = [];
-                      
-                      // Add angleReferences (Production Hub images) - only if they have valid imageUrl
-                      if (fullProp.angleReferences && fullProp.angleReferences.length > 0) {
-                        fullProp.angleReferences.forEach(ref => {
-                          // 🔥 FIX: Only add if imageUrl exists and is not empty
-                          if (ref.imageUrl && ref.imageUrl.trim() !== '') {
-                            availableImages.push({
-                              id: ref.id,
-                              imageUrl: ref.imageUrl,
-                              label: ref.label
-                            });
-                          }
-                        });
-                      }
-                      
-                      // Add images[] (Creation images) if no valid angleReferences
-                      if (availableImages.length === 0 && fullProp.images && fullProp.images.length > 0) {
-                        fullProp.images.forEach(img => {
-                          // Only add if image has a valid URL
-                          if (img.url && img.url.trim() !== '') {
-                            availableImages.push({
-                              id: img.url,
-                              imageUrl: img.url,
-                              label: undefined
-                            });
-                          }
-                        });
-                      }
-                      
-                      // 🔥 FIX: Fallback to baseReference (creation image) if no valid angleReferences or images
-                      // This ensures we show the creation image when Production Hub images are deleted/broken
-                      if (availableImages.length === 0 && fullProp.baseReference?.imageUrl) {
-                        availableImages.push({
-                          id: fullProp.baseReference.imageUrl || fullProp.baseReference.s3Key || 'base-reference',
-                          imageUrl: fullProp.baseReference.imageUrl,
-                          label: 'Creation Image'
-                        });
-                      }
-                      
-                      // If no images available, use the default imageUrl
-                      if (availableImages.length === 0 && prop.imageUrl) {
-                        availableImages.push({
-                          id: prop.imageUrl,
-                          imageUrl: prop.imageUrl,
-                          label: 'Default'
-                        });
-                      }
-                      
+                      // Use centralized prop image utility
+                      const availableImages = getAvailablePropImages(fullProp);
                       const selectedImageId = propConfig.selectedImageId;
                       
                       // Show image selection if we have any images (even just 1)

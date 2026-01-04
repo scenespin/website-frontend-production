@@ -26,6 +26,8 @@ import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
+import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 
 interface ShotConfigurationStepProps {
   shot: any;
@@ -215,8 +217,8 @@ export function ShotConfigurationStep({
       
       setIsLoadingPricing(true);
       try {
-        const referenceShotModel = selectedReferenceShotModel[shot.slot];
-        const videoType = selectedVideoType[shot.slot];
+        const referenceShotModel = selectedReferenceShotModels[shot.slot];
+        const videoType = selectedVideoTypes[shot.slot];
         const pricingResult = await SceneBuilderService.calculatePricing(
           [{ slot: shot.slot, credits: shot.credits }],
           shotDuration ? { [shot.slot]: shotDuration } : undefined,
@@ -243,7 +245,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModel, selectedVideoType, selectedVideoQuality, getToken]);
+  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModels, selectedVideoTypes, selectedVideoQualities, getToken]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -251,15 +253,15 @@ export function ShotConfigurationStep({
     
     // 1. Validate location requirement
     if (isLocationAngleRequired(shot) && needsLocationAngle(shot)) {
-      const hasLocation = selectedLocationReferences[shot.slot] !== undefined;
-      const hasOptOut = locationOptOuts[shot.slot] === true;
+      const hasLocation = finalSelectedLocationReferences[shot.slot] !== undefined;
+      const hasOptOut = finalLocationOptOuts[shot.slot] === true;
       
       if (!hasLocation && !hasOptOut) {
         validationErrors.push('Location image required. Please select a location image or check "Don\'t use location image" to continue.');
       }
       
       // If opted out, location description is required
-      if (hasOptOut && (!locationDescriptions || !locationDescriptions[shot.slot] || locationDescriptions[shot.slot].trim() === '')) {
+      if (hasOptOut && (!finalLocationDescriptions || !finalLocationDescriptions[shot.slot] || finalLocationDescriptions[shot.slot].trim() === '')) {
         validationErrors.push('Location description is required when "Don\'t use location image" is checked.');
       }
     }
@@ -299,15 +301,15 @@ export function ShotConfigurationStep({
     }
     
     // Add additional characters for dialogue workflows
-    const additionalChars = selectedCharactersForShots[shot.slot] || [];
+    const additionalChars = finalSelectedCharactersForShots[shot.slot] || [];
     additionalChars.forEach(charId => shotCharacterIds.add(charId));
     
     // Check each character has headshots and image selection
     for (const charId of shotCharacterIds) {
       if (!charId || charId === '__ignore__') continue;
       
-      const headshots = characterHeadshots[charId] || [];
-      const hasSelectedReference = selectedCharacterReferences[shot.slot]?.[charId] !== undefined;
+      const headshots = finalCharacterHeadshots[charId] || [];
+      const hasSelectedReference = finalSelectedCharacterReferences[shot.slot]?.[charId] !== undefined;
       
       // If headshots are displayed, a selection is required
       if (headshots.length > 0 && !hasSelectedReference) {
@@ -344,8 +346,8 @@ export function ShotConfigurationStep({
         
         // Check if pronoun is skipped with description
         const isSkippedWithDescription = mapping === '__ignore__' && 
-          pronounExtrasPrompts[pronounLower] && 
-          pronounExtrasPrompts[pronounLower].trim() !== '';
+          shotPronounExtrasPrompts[pronounLower] && 
+          shotPronounExtrasPrompts[pronounLower].trim() !== '';
         
         // Pronoun must be either mapped OR skipped with description
         if (!isMappedToCharacter && !isSkippedWithDescription) {
@@ -512,44 +514,44 @@ export function ShotConfigurationStep({
                   explicitCharacters={explicitCharacters}
                   singularPronounCharacters={singularPronounCharacters}
                   pluralPronounCharacters={pluralPronounCharacters}
-                  selectedLocationReferences={selectedLocationReferences}
-                  onLocationAngleChange={onLocationAngleChange}
+                  selectedLocationReferences={finalSelectedLocationReferences}
+                  onLocationAngleChange={finalOnLocationAngleChange}
                   isLocationAngleRequired={isLocationAngleRequired}
                   needsLocationAngle={needsLocationAngle}
-                  locationOptOuts={locationOptOuts}
-                  onLocationOptOutChange={onLocationOptOutChange}
-                  locationDescriptions={locationDescriptions}
-                  onLocationDescriptionChange={onLocationDescriptionChange}
+                  locationOptOuts={finalLocationOptOuts}
+                  onLocationOptOutChange={finalOnLocationOptOutChange}
+                  locationDescriptions={finalLocationDescriptions}
+                  onLocationDescriptionChange={finalOnLocationDescriptionChange}
                   renderCharacterControlsOnly={renderCharacterControlsOnly}
                   renderCharacterImagesOnly={renderCharacterImagesOnly}
                   pronounInfo={pronounInfo}
                   allCharacters={allCharacters}
-                  selectedCharactersForShots={selectedCharactersForShots}
-                  onCharactersForShotChange={onCharactersForShotChange}
-                  onPronounMappingChange={onPronounMappingChange}
-                  characterHeadshots={characterHeadshots}
-                  loadingHeadshots={loadingHeadshots}
-                  selectedCharacterReferences={selectedCharacterReferences}
-                  characterOutfits={characterOutfits}
-                  onCharacterReferenceChange={onCharacterReferenceChange}
-                  onCharacterOutfitChange={onCharacterOutfitChange}
+                  selectedCharactersForShots={finalSelectedCharactersForShots}
+                  onCharactersForShotChange={finalOnCharactersForShotChange}
+                  onPronounMappingChange={finalOnPronounMappingChange}
+                  characterHeadshots={finalCharacterHeadshots}
+                  loadingHeadshots={finalLoadingHeadshots}
+                  selectedCharacterReferences={finalSelectedCharacterReferences}
+                  characterOutfits={finalCharacterOutfits}
+                  onCharacterReferenceChange={finalOnCharacterReferenceChange}
+                  onCharacterOutfitChange={finalOnCharacterOutfitChange}
                   selectedDialogueQuality={selectedDialogueQuality}
                   selectedDialogueWorkflow={selectedDialogueWorkflow}
-                  onDialogueQualityChange={onDialogueQualityChange}
-                  onDialogueWorkflowChange={onDialogueWorkflowChange}
+                  onDialogueQualityChange={finalOnDialogueQualityChange}
+                  onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
                   dialogueWorkflowPrompt={dialogueWorkflowPrompt}
-                  onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
-                  pronounExtrasPrompts={pronounExtrasPrompts}
-                  onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                  sceneProps={sceneProps}
-                  propsToShots={propsToShots}
-                  onPropsToShotsChange={onPropsToShotsChange}
-                  shotProps={shotProps}
-                  onPropDescriptionChange={onPropDescriptionChange}
-                  onPropImageChange={onPropImageChange}
+                  onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+                  pronounExtrasPrompts={shotPronounExtrasPrompts}
+                  onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
+                  sceneProps={finalSceneProps}
+                  propsToShots={finalPropsToShots}
+                  onPropsToShotsChange={finalOnPropsToShotsChange}
+                  shotProps={finalShotProps}
+                  onPropDescriptionChange={finalOnPropDescriptionChange}
+                  onPropImageChange={finalOnPropImageChange}
                   shotWorkflowOverride={shotWorkflowOverride}
-                  onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
-                  propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+                  onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
+                  propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                 />
               </TabsContent>
 
@@ -565,44 +567,44 @@ export function ShotConfigurationStep({
                   explicitCharacters={explicitCharacters}
                   singularPronounCharacters={singularPronounCharacters}
                   pluralPronounCharacters={pluralPronounCharacters}
-                  selectedLocationReferences={selectedLocationReferences}
-                  onLocationAngleChange={onLocationAngleChange}
+                  selectedLocationReferences={finalSelectedLocationReferences}
+                  onLocationAngleChange={finalOnLocationAngleChange}
                   isLocationAngleRequired={isLocationAngleRequired}
                   needsLocationAngle={needsLocationAngle}
-                  locationOptOuts={locationOptOuts}
-                  onLocationOptOutChange={onLocationOptOutChange}
-                  locationDescriptions={locationDescriptions}
-                  onLocationDescriptionChange={onLocationDescriptionChange}
+                  locationOptOuts={finalLocationOptOuts}
+                  onLocationOptOutChange={finalOnLocationOptOutChange}
+                  locationDescriptions={finalLocationDescriptions}
+                  onLocationDescriptionChange={finalOnLocationDescriptionChange}
                   renderCharacterControlsOnly={renderCharacterControlsOnly}
                   renderCharacterImagesOnly={renderCharacterImagesOnly}
                   pronounInfo={pronounInfo}
                   allCharacters={allCharacters}
-                  selectedCharactersForShots={selectedCharactersForShots}
-                  onCharactersForShotChange={onCharactersForShotChange}
-                  onPronounMappingChange={onPronounMappingChange}
-                  characterHeadshots={characterHeadshots}
-                  loadingHeadshots={loadingHeadshots}
-                  selectedCharacterReferences={selectedCharacterReferences}
-                  characterOutfits={characterOutfits}
-                  onCharacterReferenceChange={onCharacterReferenceChange}
-                  onCharacterOutfitChange={onCharacterOutfitChange}
+                  selectedCharactersForShots={finalSelectedCharactersForShots}
+                  onCharactersForShotChange={finalOnCharactersForShotChange}
+                  onPronounMappingChange={finalOnPronounMappingChange}
+                  characterHeadshots={finalCharacterHeadshots}
+                  loadingHeadshots={finalLoadingHeadshots}
+                  selectedCharacterReferences={finalSelectedCharacterReferences}
+                  characterOutfits={finalCharacterOutfits}
+                  onCharacterReferenceChange={finalOnCharacterReferenceChange}
+                  onCharacterOutfitChange={finalOnCharacterOutfitChange}
                   selectedDialogueQuality={selectedDialogueQuality}
                   selectedDialogueWorkflow={selectedDialogueWorkflow}
-                  onDialogueQualityChange={onDialogueQualityChange}
-                  onDialogueWorkflowChange={onDialogueWorkflowChange}
+                  onDialogueQualityChange={finalOnDialogueQualityChange}
+                  onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
                   dialogueWorkflowPrompt={dialogueWorkflowPrompt}
-                  onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
-                  pronounExtrasPrompts={pronounExtrasPrompts}
-                  onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                  sceneProps={sceneProps}
-                  propsToShots={propsToShots}
-                  onPropsToShotsChange={onPropsToShotsChange}
-                  shotProps={shotProps}
-                  onPropDescriptionChange={onPropDescriptionChange}
-                  onPropImageChange={onPropImageChange}
+                  onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+                  pronounExtrasPrompts={shotPronounExtrasPrompts}
+                  onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
+                  sceneProps={finalSceneProps}
+                  propsToShots={finalPropsToShots}
+                  onPropsToShotsChange={finalOnPropsToShotsChange}
+                  shotProps={finalShotProps}
+                  onPropDescriptionChange={finalOnPropDescriptionChange}
+                  onPropImageChange={finalOnPropImageChange}
                   shotWorkflowOverride={shotWorkflowOverride}
-                  onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
-                  propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+                  onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
+                  propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                 />
               </TabsContent>
             </Tabs>
@@ -664,8 +666,8 @@ export function ShotConfigurationStep({
             <>
               <ReferenceShotSelector
                 shotSlot={shot.slot}
-                selectedModel={selectedReferenceShotModel[shot.slot]}
-                onModelChange={onReferenceShotModelChange}
+                selectedModel={selectedReferenceShotModels[shot.slot]}
+                onModelChange={finalOnReferenceShotModelChange}
               />
               {/* Reference Preview - Shows what references will be used for this shot (directly under Reference Shot) */}
               {(() => {
@@ -690,20 +692,20 @@ export function ShotConfigurationStep({
                 });
                 
                 // Add additional characters
-                (selectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
+                (finalSelectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
                 
                 // Collect references for all characters
                 allShotCharacters.forEach(charId => {
                   const char = allCharacters.find(c => c.id === charId);
                   if (char) {
-                    const charRef = selectedCharacterReferences[shot.slot]?.[charId];
+                    const charRef = finalSelectedCharacterReferences[shot.slot]?.[charId];
                     // 🔥 FIX: Check if we have a reference (even if imageUrl is empty, we might have s3Key)
                     // The imageUrl should be set by the parent component's useEffect that updates with presigned URLs
                     if (charRef && (charRef.imageUrl || charRef.s3Key)) {
                       // Use imageUrl if available, otherwise try to get from characterHeadshots
                       let imageUrl = charRef.imageUrl;
-                      if (!imageUrl && charRef.s3Key && characterHeadshots[charId]) {
-                        const headshot = characterHeadshots[charId].find(h => h.s3Key === charRef.s3Key);
+                      if (!imageUrl && charRef.s3Key && finalCharacterHeadshots[charId]) {
+                        const headshot = finalCharacterHeadshots[charId].find(h => h.s3Key === charRef.s3Key);
                         if (headshot?.imageUrl) {
                           imageUrl = headshot.imageUrl;
                         }
@@ -722,9 +724,9 @@ export function ShotConfigurationStep({
                 });
                 
                 // Location reference
-                const locationRef = selectedLocationReferences[shot.slot];
+                const locationRef = finalSelectedLocationReferences[shot.slot];
                 if (locationRef?.imageUrl) {
-                  const location = sceneProps.find(loc => loc.id === shot.locationId);
+                  const location = finalSceneProps.find(loc => loc.id === shot.locationId);
                   references.push({
                     type: 'location',
                     imageUrl: locationRef.imageUrl,
@@ -734,78 +736,14 @@ export function ShotConfigurationStep({
                 }
                 
                 // Prop references
-                const shotPropsForThisShot = sceneProps.filter(prop => 
-                  propsToShots[prop.id]?.includes(shot.slot)
+                const shotPropsForThisShot = finalSceneProps.filter(prop => 
+                  finalPropsToShots[prop.id]?.includes(shot.slot)
                 );
                 shotPropsForThisShot.forEach(prop => {
-                  const propConfig = shotProps[shot.slot]?.[prop.id];
-                  let propImageUrl: string | undefined;
+                  const propConfig = finalShotProps[shot.slot]?.[prop.id];
                   
-                  // Type assertion to ensure we have the full prop type
-                  const fullProp = prop as typeof prop & {
-                    angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
-                    images?: Array<{ url: string; s3Key?: string }>;
-                    baseReference?: { s3Key?: string; imageUrl?: string };
-                  };
-                  
-                  // Build available images list (same logic as ShotConfigurationPanel)
-                  const availableImages: Array<{ id: string; imageUrl: string }> = [];
-                  
-                  // Add angleReferences first (Production Hub images)
-                  if (fullProp.angleReferences && fullProp.angleReferences.length > 0) {
-                    fullProp.angleReferences.forEach(ref => {
-                      availableImages.push({
-                        id: ref.id,
-                        imageUrl: ref.imageUrl
-                      });
-                    });
-                  }
-                  
-                  // Add images array (Creation images) if no angleReferences
-                  if (availableImages.length === 0 && fullProp.images && fullProp.images.length > 0) {
-                    fullProp.images.forEach(img => {
-                      // Only add if image has a valid URL
-                      if (img.url) {
-                        availableImages.push({
-                          id: img.url,
-                          imageUrl: img.url
-                        });
-                      }
-                    });
-                  }
-                  
-                  // 🔥 FIX: Fallback to baseReference (creation image) if no angleReferences or no valid images
-                  if (availableImages.length === 0 && fullProp.baseReference?.imageUrl) {
-                    availableImages.push({
-                      id: fullProp.baseReference.imageUrl || fullProp.baseReference.s3Key || 'base-reference',
-                      imageUrl: fullProp.baseReference.imageUrl
-                    });
-                  }
-                  
-                  // If no images available, use the default imageUrl
-                  if (availableImages.length === 0 && prop.imageUrl) {
-                    availableImages.push({
-                      id: prop.imageUrl,
-                      imageUrl: prop.imageUrl
-                    });
-                  }
-                  
-                  // Determine which image is selected (same logic as ShotConfigurationPanel)
-                  // If selectedImageId exists, use it; otherwise, first image is auto-selected
-                  const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
-                  
-                  if (selectedImageId) {
-                    // Find the selected image
-                    const selectedImage = availableImages.find(img => img.id === selectedImageId);
-                    if (selectedImage) {
-                      propImageUrl = selectedImage.imageUrl;
-                    }
-                  }
-                  
-                  // Final fallback: if still no image URL, use prop.imageUrl
-                  if (!propImageUrl && prop.imageUrl) {
-                    propImageUrl = prop.imageUrl;
-                  }
+                  // Use centralized prop image utility
+                  const propImageUrl = getSelectedPropImageUrl(prop, propConfig?.selectedImageId);
                   
                   // Add to references if we have an image URL
                   if (propImageUrl) {
@@ -831,14 +769,14 @@ export function ShotConfigurationStep({
               <VideoGenerationSelector
                 shotSlot={shot.slot}
                 shotType={shot.type}
-                selectedVideoType={selectedVideoType[shot.slot]}
-                selectedQuality={selectedVideoQuality[shot.slot]}
-                onVideoTypeChange={onVideoTypeChange}
-                onQualityChange={onVideoQualityChange}
+                selectedVideoType={selectedVideoTypes[shot.slot]}
+                selectedQuality={selectedVideoQualities[shot.slot]}
+                onVideoTypeChange={finalOnVideoTypeChange}
+                onQualityChange={finalOnVideoQualityChange}
                 shotCameraAngle={shotCameraAngle}
-                onCameraAngleChange={onCameraAngleChange}
+                onCameraAngleChange={finalOnCameraAngleChange}
                 shotDuration={shotDuration}
-                onDurationChange={onDurationChange}
+                onDurationChange={finalOnDurationChange}
               />
               {/* Aspect Ratio Selector */}
               {onAspectRatioChange && (
@@ -848,7 +786,7 @@ export function ShotConfigurationStep({
                   </label>
                   <Select
                     value={shotAspectRatio || '16:9'}
-                    onValueChange={(value) => onAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
+                    onValueChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
                   >
                     <SelectTrigger className="w-full h-9 text-sm">
                       <SelectValue />

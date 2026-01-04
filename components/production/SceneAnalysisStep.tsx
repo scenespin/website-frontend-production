@@ -10,13 +10,14 @@
  * - Continue to shot configuration
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Loader2, ArrowRight, Film, Sparkles, Check, Box, X } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
+import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 import { toast } from 'sonner';
 
 export type Resolution = '1080p' | '4k';
@@ -34,22 +35,47 @@ interface SceneAnalysisStepProps {
 }
 
 export function SceneAnalysisStep({
-  sceneAnalysisResult,
-  enabledShots,
-  onEnabledShotsChange,
-                onNext,
-                isAnalyzing,
-                sceneProps = [],
-                propsToShots,
-                onPropsToShotsChange
+  sceneAnalysisResult: sceneAnalysisResultProp,
+  enabledShots: enabledShotsProp,
+  onEnabledShotsChange: onEnabledShotsChangeProp,
+  onNext,
+  isAnalyzing,
+  sceneProps: scenePropsProp = [],
+  propsToShots: propsToShotsProp,
+  onPropsToShotsChange: onPropsToShotsChangeProp
 }: SceneAnalysisStepProps) {
+  // Get state and actions from context (context is source of truth)
+  const state = useSceneBuilderState();
+  const actions = useSceneBuilderActions();
+  
+  // Use context values, fallback to props for backward compatibility
+  const sceneAnalysisResult = state.sceneAnalysisResult || sceneAnalysisResultProp;
+  const enabledShots = state.enabledShots.length > 0 ? state.enabledShots : enabledShotsProp;
+  const sceneProps = state.sceneProps.length > 0 ? state.sceneProps : scenePropsProp;
+  const propsToShots = Object.keys(state.propsToShots).length > 0 ? state.propsToShots : propsToShotsProp;
+  
+  // Create handlers that use context actions
+  const onEnabledShotsChange = useCallback((shots: number[]) => {
+    actions.setEnabledShots(shots);
+    if (onEnabledShotsChangeProp) {
+      onEnabledShotsChangeProp(shots);
+    }
+  }, [actions, onEnabledShotsChangeProp]);
+  
+  const onPropsToShotsChange = useCallback((assignment: Record<string, number[]>) => {
+    actions.setPropsToShots(assignment);
+    if (onPropsToShotsChangeProp) {
+      onPropsToShotsChangeProp(assignment);
+    }
+  }, [actions, onPropsToShotsChangeProp]);
+  
   // Auto-select all shots when analysis completes
   useEffect(() => {
     if (sceneAnalysisResult?.shotBreakdown?.shots && enabledShots.length === 0) {
       const allShotSlots = sceneAnalysisResult.shotBreakdown.shots.map((s: any) => s.slot);
       onEnabledShotsChange(allShotSlots);
     }
-  }, [sceneAnalysisResult?.shotBreakdown?.shots]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots.length, onEnabledShotsChange]);
 
   // Initialize props-to-shots assignment (default: all props in all shots)
   useEffect(() => {
@@ -65,7 +91,7 @@ export function SceneAnalysisStep({
         onPropsToShotsChange({ ...propsToShots, ...initialAssignment });
       }
     }
-  }, [sceneAnalysisResult?.shotBreakdown?.shots, sceneProps]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, sceneProps, propsToShots, onPropsToShotsChange]);
 
   if (isAnalyzing) {
     return (

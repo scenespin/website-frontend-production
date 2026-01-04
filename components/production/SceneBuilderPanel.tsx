@@ -63,6 +63,9 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
 import { getScreenplay } from '@/utils/screenplayStorage';
 import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
+import { useCharacterReferences } from './hooks/useCharacterReferences';
+import { usePropReferences } from './hooks/usePropReferences';
+import { useLocationReferences } from './hooks/useLocationReferences';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { SceneSelector } from './SceneSelector';
@@ -74,6 +77,8 @@ import { SceneAnalysisStep } from './SceneAnalysisStep';
 import { SceneReviewStep } from './SceneReviewStep';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 import { categorizeCharacters } from './utils/characterCategorization';
+import { SceneBuilderProvider } from '@/contexts/SceneBuilderContext';
+// Media Library mapping utilities are now used in hooks
 import {
   getFullShotText,
   actionShotHasExplicitCharacter,
@@ -137,9 +142,237 @@ interface WorkflowStatus {
   metadata?: any;
 }
 
-export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = false, simplified = false }: SceneBuilderPanelProps) {
+// Internal component that uses the context
+function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = false, simplified = false }: SceneBuilderPanelProps) {
   // Authentication
   const { getToken } = useAuth();
+  
+  // Get context state and actions
+  const contextState = useSceneBuilderState();
+  const contextActions = useSceneBuilderActions();
+  
+  // Create wrapper functions that match existing setState signatures (for backward compatibility)
+  const setSelectedCharacterReferences = useCallback((updater: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>> | ((prev: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>) => Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.selectedCharacterReferences);
+      contextActions.setSelectedCharacterReferences(newValue);
+    } else {
+      contextActions.setSelectedCharacterReferences(updater);
+    }
+  }, [contextState.selectedCharacterReferences, contextActions]);
+  
+  const setCharacterOutfits = useCallback((updater: Record<number, Record<string, string>> | ((prev: Record<number, Record<string, string>>) => Record<number, Record<string, string>>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.characterOutfits);
+      contextActions.setCharacterOutfits(newValue);
+    } else {
+      contextActions.setCharacterOutfits(updater);
+    }
+  }, [contextState.characterOutfits, contextActions]);
+  
+  const setSelectedCharactersForShots = useCallback((updater: Record<number, string[]> | ((prev: Record<number, string[]>) => Record<number, string[]>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.selectedCharactersForShots);
+      contextActions.setSelectedCharactersForShots(newValue);
+    } else {
+      contextActions.setSelectedCharactersForShots(updater);
+    }
+  }, [contextState.selectedCharactersForShots, contextActions]);
+  
+  const setPronounMappingsForShots = useCallback((updater: Record<number, Record<string, string | string[]>> | ((prev: Record<number, Record<string, string | string[]>>) => Record<number, Record<string, string | string[]>>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.pronounMappingsForShots);
+      contextActions.setPronounMappingsForShots(newValue);
+    } else {
+      contextActions.setPronounMappingsForShots(updater);
+    }
+  }, [contextState.pronounMappingsForShots, contextActions]);
+  
+  const setPronounExtrasPrompts = useCallback((updater: Record<number, Record<string, string>> | ((prev: Record<number, Record<string, string>>) => Record<number, Record<string, string>>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.pronounExtrasPrompts);
+      contextActions.setPronounExtrasPrompts(newValue);
+    } else {
+      contextActions.setPronounExtrasPrompts(updater);
+    }
+  }, [contextState.pronounExtrasPrompts, contextActions]);
+  
+  const setSelectedLocationReferences = useCallback((updater: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }> | ((prev: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>) => Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.selectedLocationReferences);
+      contextActions.setSelectedLocationReferences(newValue);
+    } else {
+      contextActions.setSelectedLocationReferences(updater);
+    }
+  }, [contextState.selectedLocationReferences, contextActions]);
+  
+  const setLocationOptOuts = useCallback((updater: Record<number, boolean> | ((prev: Record<number, boolean>) => Record<number, boolean>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.locationOptOuts);
+      contextActions.setLocationOptOuts(newValue);
+    } else {
+      contextActions.setLocationOptOuts(updater);
+    }
+  }, [contextState.locationOptOuts, contextActions]);
+  
+  const setLocationDescriptions = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.locationDescriptions);
+      contextActions.setLocationDescriptions(newValue);
+    } else {
+      contextActions.setLocationDescriptions(updater);
+    }
+  }, [contextState.locationDescriptions, contextActions]);
+  
+  const setSceneProps = useCallback((updater: any[] | ((prev: any[]) => any[])) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.sceneProps);
+      contextActions.setSceneProps(newValue);
+    } else {
+      contextActions.setSceneProps(updater);
+    }
+  }, [contextState.sceneProps, contextActions]);
+  
+  const setPropsToShots = useCallback((updater: Record<string, number[]> | ((prev: Record<string, number[]>) => Record<string, number[]>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.propsToShots);
+      contextActions.setPropsToShots(newValue);
+    } else {
+      contextActions.setPropsToShots(updater);
+    }
+  }, [contextState.propsToShots, contextActions]);
+  
+  const setShotProps = useCallback((updater: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>> | ((prev: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>) => Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.shotProps);
+      contextActions.setShotProps(newValue);
+    } else {
+      contextActions.setShotProps(updater);
+    }
+  }, [contextState.shotProps, contextActions]);
+  
+  const setWizardStep = useCallback((step: 'analysis' | 'shot-config' | 'review') => {
+    contextActions.setWizardStep(step);
+  }, [contextActions]);
+  
+  const setCurrentShotIndex = useCallback((index: number) => {
+    contextActions.setCurrentShotIndex(index);
+  }, [contextActions]);
+  
+  const setCurrentStep = useCallback((step: 1 | 2) => {
+    contextActions.setCurrentStep(step);
+  }, [contextActions]);
+  
+  const setEnabledShots = useCallback((shots: number[]) => {
+    contextActions.setEnabledShots(shots);
+  }, [contextActions]);
+  
+  const setSceneAnalysisResult = useCallback((result: SceneAnalysisResult | null) => {
+    contextActions.setSceneAnalysisResult(result);
+  }, [contextActions]);
+  
+  const setGlobalResolution = useCallback((resolution: '1080p' | '4k') => {
+    contextActions.setGlobalResolution(resolution);
+  }, [contextActions]);
+  
+  const setShotAspectRatios = useCallback((updater: Record<number, '16:9' | '9:16' | '1:1'> | ((prev: Record<number, '16:9' | '9:16' | '1:1'>) => Record<number, '16:9' | '9:16' | '1:1'>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.shotAspectRatios);
+      contextActions.setShotAspectRatios(newValue);
+    } else {
+      contextActions.setShotAspectRatios(updater);
+    }
+  }, [contextState.shotAspectRatios, contextActions]);
+  
+  const setShotCameraAngles = useCallback((updater: Record<number, any> | ((prev: Record<number, any>) => Record<number, any>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.shotCameraAngles);
+      contextActions.setShotCameraAngles(newValue);
+    } else {
+      contextActions.setShotCameraAngles(updater);
+    }
+  }, [contextState.shotCameraAngles, contextActions]);
+  
+  const setShotDurations = useCallback((updater: Record<number, 'quick-cut' | 'extended-take'> | ((prev: Record<number, 'quick-cut' | 'extended-take'>) => Record<number, 'quick-cut' | 'extended-take'>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.shotDurations);
+      contextActions.setShotDurations(newValue);
+    } else {
+      contextActions.setShotDurations(updater);
+    }
+  }, [contextState.shotDurations, contextActions]);
+  
+  const setSelectedReferenceShotModels = useCallback((updater: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'> | ((prev: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>) => Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.selectedReferenceShotModels);
+      contextActions.setSelectedReferenceShotModels(newValue);
+    } else {
+      contextActions.setSelectedReferenceShotModels(updater);
+    }
+  }, [contextState.selectedReferenceShotModels, contextActions]);
+  
+  const setSelectedVideoTypes = useCallback((updater: Record<number, 'cinematic-visuals' | 'natural-motion'> | ((prev: Record<number, 'cinematic-visuals' | 'natural-motion'>) => Record<number, 'cinematic-visuals' | 'natural-motion'>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.selectedVideoTypes);
+      contextActions.setSelectedVideoTypes(newValue);
+    } else {
+      contextActions.setSelectedVideoTypes(updater);
+    }
+  }, [contextState.selectedVideoTypes, contextActions]);
+  
+  const setSelectedVideoQualities = useCallback((updater: Record<number, 'hd' | '4k'> | ((prev: Record<number, 'hd' | '4k'>) => Record<number, 'hd' | '4k'>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.selectedVideoQualities);
+      contextActions.setSelectedVideoQualities(newValue);
+    } else {
+      contextActions.setSelectedVideoQualities(updater);
+    }
+  }, [contextState.selectedVideoQualities, contextActions]);
+  
+  const setSelectedDialogueQualities = useCallback((updater: Record<number, 'premium' | 'reliable'> | ((prev: Record<number, 'premium' | 'reliable'>) => Record<number, 'premium' | 'reliable'>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.selectedDialogueQualities);
+      contextActions.setSelectedDialogueQualities(newValue);
+    } else {
+      contextActions.setSelectedDialogueQualities(updater);
+    }
+  }, [contextState.selectedDialogueQualities, contextActions]);
+  
+  const setSelectedDialogueWorkflows = useCallback((updater: Record<number, DialogueWorkflowType> | ((prev: Record<number, DialogueWorkflowType>) => Record<number, DialogueWorkflowType>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.selectedDialogueWorkflows);
+      contextActions.setSelectedDialogueWorkflows(newValue);
+    } else {
+      contextActions.setSelectedDialogueWorkflows(updater);
+    }
+  }, [contextState.selectedDialogueWorkflows, contextActions]);
+  
+  const setVoiceoverBaseWorkflows = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.voiceoverBaseWorkflows);
+      contextActions.setVoiceoverBaseWorkflows(newValue);
+    } else {
+      contextActions.setVoiceoverBaseWorkflows(updater);
+    }
+  }, [contextState.voiceoverBaseWorkflows, contextActions]);
+  
+  const setDialogueWorkflowPrompts = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.dialogueWorkflowPrompts);
+      contextActions.setDialogueWorkflowPrompts(newValue);
+    } else {
+      contextActions.setDialogueWorkflowPrompts(updater);
+    }
+  }, [contextState.dialogueWorkflowPrompts, contextActions]);
+  
+  const setShotWorkflowOverrides = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.shotWorkflowOverrides);
+      contextActions.setShotWorkflowOverrides(newValue);
+    } else {
+      contextActions.setShotWorkflowOverrides(updater);
+    }
+  }, [contextState.shotWorkflowOverrides, contextActions]);
   
   // Get screenplay context (for scene data from database)
   const screenplay = useScreenplay();
@@ -168,167 +401,78 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [drivingVideoUrl, setDrivingVideoUrl] = useState<string | null>(null);
   const [useNewWorkflow, setUseNewWorkflow] = useState(false); // Toggle for testing new VEO workflow
   
-  // Per-shot, per-character outfit selection state (NEW: Per-shot outfit selection for maximum flexibility)
-  // Structure: shotSlot -> characterId -> outfitName
-  const [characterOutfits, setCharacterOutfits] = useState<Record<number, Record<string, string>>>({});
-  
-  // Per-shot dialogue workflow selection (overrides auto-detection) - NEW: Unified dropdown
-  const [selectedDialogueQualities, setSelectedDialogueQualities] = useState<Record<number, 'premium' | 'reliable'>>({});
-  const [selectedDialogueWorkflows, setSelectedDialogueWorkflows] = useState<Record<number, DialogueWorkflowType>>({});
-  const [voiceoverBaseWorkflows, setVoiceoverBaseWorkflows] = useState<Record<number, string>>({});
-  
-  // Per-shot workflow overrides (for action shots and dialogue shots) - NEW: General workflow override
-  const [shotWorkflowOverrides, setShotWorkflowOverrides] = useState<Record<number, string>>({});
-  
-  // Per-shot dialogue workflow override prompts
-  const [dialogueWorkflowPrompts, setDialogueWorkflowPrompts] = useState<Record<number, string>>({});
-  
-  // Per-shot, per-pronoun extras prompts (for skipped pronouns)
-  const [pronounExtrasPrompts, setPronounExtrasPrompts] = useState<Record<number, Record<string, string>>>({});
-  
-  // Feature 0163 Phase 1: Character headshot selection state (per-shot for dialogue shots)
-  const [selectedCharacterReferences, setSelectedCharacterReferences] = useState<Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>>({});
-  
-  // Pronoun Detection: Multi-character selection per shot (for pronouns like "they", "she", etc.)
-  const [selectedCharactersForShots, setSelectedCharactersForShots] = useState<Record<number, string[]>>({});
-  
-  // Pronoun-to-character mapping: shot slot -> pronoun -> characterId
-  // e.g., { 18: { "she": "char-123", "he": "char-456" } }
-  const [pronounMappingsForShots, setPronounMappingsForShots] = useState<Record<number, Record<string, string | string[]>>>({});
-  
-  // Auto-resolution confirmations: track which suggestions have been shown/confirmed
-  const [autoResolvedPronouns, setAutoResolvedPronouns] = useState<Record<number, Set<string>>>({});
-  
-  // REMOVED: autoResolvePronounsForShot - no longer needed with dropdown mapping UI
-  
-  // Phase 2: Location angle selection per shot
-  const [selectedLocationReferences, setSelectedLocationReferences] = useState<Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>>({});
-  const [characterHeadshots, setCharacterHeadshots] = useState<Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>>({});
-  const [loadingHeadshots, setLoadingHeadshots] = useState<Record<string, boolean>>({});
+  // Use context state (read from context)
+  const characterOutfits = contextState.characterOutfits;
+  const selectedDialogueQualities = contextState.selectedDialogueQualities;
+  const selectedDialogueWorkflows = contextState.selectedDialogueWorkflows;
+  const voiceoverBaseWorkflows = contextState.voiceoverBaseWorkflows;
+  const shotWorkflowOverrides = contextState.shotWorkflowOverrides;
+  const dialogueWorkflowPrompts = contextState.dialogueWorkflowPrompts;
+  const pronounExtrasPrompts = contextState.pronounExtrasPrompts;
+  const selectedCharacterReferences = contextState.selectedCharacterReferences;
+  const selectedCharactersForShots = contextState.selectedCharactersForShots;
+  const pronounMappingsForShots = contextState.pronounMappingsForShots;
+  const autoResolvedPronouns = contextState.autoResolvedPronouns;
+  const selectedLocationReferences = contextState.selectedLocationReferences;
+  const characterHeadshots = contextState.characterHeadshots;
+  const loadingHeadshots = contextState.loadingHeadshots;
   
   // 🔥 NEW: Track character IDs for Media Library query
   const [characterIdsForMediaLibrary, setCharacterIdsForMediaLibrary] = useState<string[]>([]);
   
-  // 🔥 Query Media Library for character images (new files only - properly formatted with entityType/entityId)
-  // Backend supports querying with entityType only, which returns all character files
-  const { data: allCharacterMediaFiles = [] } = useMediaFiles(
+  // 🔥 NEW: Use custom hook for character references
+  const {
+    characterHeadshots: characterHeadshotsFromHook,
+    characterThumbnailS3KeyMap,
+    thumbnailUrlsMap: characterThumbnailUrlsMap,
+    fullImageUrlsMap: characterFullImageUrlsMap,
+    loading: loadingCharacterHeadshots
+  } = useCharacterReferences({
     projectId,
-    undefined,
-    characterIdsForMediaLibrary.length > 0, // Only query when we have character IDs
-    true, // includeAllFolders: true (needed to get files from outfit folders)
-    'character' // entityType: query all character files (backend uses entityType-entityId-index GSI)
-  );
-  
-  // 🔥 Filter Media Library files by character IDs (client-side filtering)
-  const characterMediaFiles = React.useMemo(() => {
-    console.log('[SceneBuilderPanel] Filtering character media files:', {
-      allCharacterMediaFilesCount: allCharacterMediaFiles?.length || 0,
-      characterIdsForMediaLibraryCount: characterIdsForMediaLibrary.length,
-      characterIds: characterIdsForMediaLibrary
+    characterIds: characterIdsForMediaLibrary,
+    enabled: characterIdsForMediaLibrary.length > 0
+  });
+
+  // Sync hook data to state (for backward compatibility during refactor)
+  useEffect(() => {
+    if (Object.keys(characterHeadshotsFromHook).length > 0) {
+      contextActions.setCharacterHeadshots(characterHeadshotsFromHook);
+    }
+  }, [characterHeadshotsFromHook, contextActions]);
+
+  // Update loadingHeadshots in context
+  useEffect(() => {
+    const loading: Record<string, boolean> = {};
+    characterIdsForMediaLibrary.forEach(charId => {
+      loading[charId] = loadingCharacterHeadshots;
     });
-    
-    if (!allCharacterMediaFiles || characterIdsForMediaLibrary.length === 0) return [];
-    
-    // Filter to only files for our characters (new files have proper entityId in metadata)
-    const filtered = allCharacterMediaFiles.filter((file: any) => {
-      const fileEntityId = file.metadata?.entityId || file.entityId;
-      const matches = characterIdsForMediaLibrary.includes(fileEntityId);
-      if (matches) {
-        console.log('[SceneBuilderPanel] Matched file:', { s3Key: file.s3Key, entityId: fileEntityId });
-      }
-      return matches;
-    });
-    
-    console.log('[SceneBuilderPanel] Filtered character media files:', filtered.length);
-    return filtered;
-  }, [allCharacterMediaFiles, characterIdsForMediaLibrary]);
+    contextActions.setLoadingHeadshots(loading);
+  }, [characterIdsForMediaLibrary, loadingCharacterHeadshots, contextActions]);
   
-  // 🔥 NEW: Build character thumbnailS3KeyMap from Media Library results
-  const characterThumbnailS3KeyMap = React.useMemo(() => {
-    const map = new Map<string, string>();
-    characterMediaFiles.forEach((file: any) => {
-      if (file.s3Key && file.thumbnailS3Key) {
-        map.set(file.s3Key, file.thumbnailS3Key);
-      }
-    });
-    return map;
-  }, [characterMediaFiles]);
+  // Use context state
+  const enabledShots = contextState.enabledShots;
+  const wizardStep = contextState.wizardStep;
+  const currentShotIndex = contextState.currentShotIndex;
+  const currentStep = contextState.currentStep;
+  const globalResolution = contextState.globalResolution;
+  const shotAspectRatios = contextState.shotAspectRatios;
+  const locationOptOuts = contextState.locationOptOuts;
+  const locationDescriptions = contextState.locationDescriptions;
+  const shotCameraAngles = contextState.shotCameraAngles;
+  const shotDurations = contextState.shotDurations;
+  const selectedReferenceShotModels = contextState.selectedReferenceShotModels;
+  const selectedVideoTypes = contextState.selectedVideoTypes;
+  const selectedVideoQualities = contextState.selectedVideoQualities;
   
-  // Track which shots are enabled (for wizard flow)
-  const [enabledShots, setEnabledShots] = useState<number[]>([]);
-  
-  // UI State: Collapsible sections
+  // UI State: Collapsible sections (local, not in context)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
-  
-  // Wizard flow state
-  const [wizardStep, setWizardStep] = useState<'analysis' | 'shot-config' | 'review'>('analysis');
-  const [currentShotIndex, setCurrentShotIndex] = useState<number>(0);
-  
-  // Step navigation (for wizard flow)
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  
-  // Resolution is global only, set in review step (not per-shot)
-  const [globalResolution, setGlobalResolution] = useState<'1080p' | '4k'>('4k');
-  // Aspect ratio is per-shot (for individual shot reshoots)
-  const [shotAspectRatios, setShotAspectRatios] = useState<Record<number, '16:9' | '9:16' | '1:1'>>({});
-  
-  // Location opt-out state (for shots where user doesn't want to use location image)
-  const [locationOptOuts, setLocationOptOuts] = useState<Record<number, boolean>>({});
-  const [locationDescriptions, setLocationDescriptions] = useState<Record<number, string>>({});
-  
-  // Camera Angle state (per-shot, defaults to 'auto')
-  const [shotCameraAngles, setShotCameraAngles] = useState<Record<number, 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto'>>({});
-  // Shot Duration state (per-shot, defaults to 'quick-cut' = ~5s)
-  const [shotDurations, setShotDurations] = useState<Record<number, 'quick-cut' | 'extended-take'>>({});
-  // Reference Shot (First Frame) Model Selection (per-shot, defaults to 'nano-banana-pro')
-  const [selectedReferenceShotModels, setSelectedReferenceShotModels] = useState<Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>>({});
-  // Video Generation Type Selection (per-shot, defaults to 'cinematic-visuals')
-  const [selectedVideoTypes, setSelectedVideoTypes] = useState<Record<number, 'cinematic-visuals' | 'natural-motion'>>({});
-  // Video Quality Selection (per-shot, defaults to '4k')
-  const [selectedVideoQualities, setSelectedVideoQualities] = useState<Record<number, 'hd' | '4k'>>({});
   
   // 🔥 NEW: Map Media Library files to character headshot structure
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
   
-  // 🔥 NEW: Collect all headshot thumbnail S3 keys from Media Library map
-  const headshotThumbnailS3Keys = React.useMemo(() => {
-    const keys: string[] = [];
-    Object.values(characterHeadshots).forEach(headshots => {
-      headshots.forEach(headshot => {
-        if (headshot.s3Key && characterThumbnailS3KeyMap.has(headshot.s3Key)) {
-          const thumbnailS3Key = characterThumbnailS3KeyMap.get(headshot.s3Key);
-          if (thumbnailS3Key) {
-            keys.push(thumbnailS3Key);
-          }
-        }
-      });
-    });
-    return keys;
-  }, [characterHeadshots, characterThumbnailS3KeyMap]);
-
-  // 🔥 NEW: Collect all headshot full image S3 keys (for presigned URL generation if imageUrl is empty)
-  const headshotFullImageS3Keys = React.useMemo(() => {
-    const keys: string[] = [];
-    Object.values(characterHeadshots).forEach(headshots => {
-      headshots.forEach(headshot => {
-        // If imageUrl is empty or looks like an s3Key (not a full URL), we need to generate presigned URL
-        if (headshot.s3Key && (!headshot.imageUrl || (!headshot.imageUrl.startsWith('http') && !headshot.imageUrl.startsWith('data:')))) {
-          keys.push(headshot.s3Key);
-        }
-      });
-    });
-    return keys;
-  }, [characterHeadshots]);
-
-  // 🔥 NEW: Fetch thumbnail URLs for all headshots
-  const { data: thumbnailUrlsMap } = useBulkPresignedUrls(headshotThumbnailS3Keys, headshotThumbnailS3Keys.length > 0);
-  
-  // 🔥 NEW: Fetch presigned URLs for full images (when imageUrl is empty or is an s3Key)
-  const { data: fullImageUrlsMap } = useBulkPresignedUrls(headshotFullImageS3Keys, headshotFullImageS3Keys.length > 0);
-
   // 🔥 FIX: Update selectedCharacterReferences with presigned URLs when available
   useEffect(() => {
-    if (!fullImageUrlsMap || fullImageUrlsMap.size === 0) return;
+    if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) return;
     
     // Check if any selectedCharacterReferences need presigned URLs
     let needsUpdate = false;
@@ -341,7 +485,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       Object.entries(shotRefs).forEach(([charId, charRef]) => {
         // If imageUrl is empty or is an s3Key (not a full URL), try to get presigned URL
         if (charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))) {
-          const presignedUrl = fullImageUrlsMap.get(charRef.s3Key);
+          const presignedUrl = characterFullImageUrlsMap.get(charRef.s3Key);
           if (presignedUrl && presignedUrl !== charRef.imageUrl) {
             updatedShotRefs[charId] = {
               ...charRef,
@@ -360,7 +504,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     if (needsUpdate) {
       setSelectedCharacterReferences(updated);
     }
-  }, [fullImageUrlsMap, selectedCharacterReferences]);
+  }, [characterFullImageUrlsMap, selectedCharacterReferences]);
 
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
@@ -377,49 +521,40 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     scrollToTop();
   }, [currentShotIndex, wizardStep, currentStep, scrollToTop]);
 
-  // Props state
-  const [sceneProps, setSceneProps] = useState<Array<{ 
-    id: string; 
-    name: string; 
-    imageUrl?: string; 
-    s3Key?: string;
-    angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
-    images?: Array<{ url: string; s3Key?: string }>;
-    baseReference?: { s3Key?: string; imageUrl?: string };
-  }>>([]);
-  const [propsToShots, setPropsToShots] = useState<Record<string, number[]>>({}); // propId -> shot slots
-  const [shotProps, setShotProps] = useState<Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>>({}); // Per-shot prop configs
+  // Use context state
+  const sceneProps = contextState.sceneProps;
+  const propsToShots = contextState.propsToShots;
+  const shotProps = contextState.shotProps;
   
   // 🔥 NEW: Track prop IDs for Media Library query
   const [propIds, setPropIds] = useState<string[]>([]);
   
-  // 🔥 NEW: Query Media Library for all asset images (single query for efficiency)
-  const { data: allAssetMediaFiles = [] } = useMediaFiles(
-    projectId,
-    undefined,
-    propIds.length > 0, // Only query when we have prop IDs
-    false,
-    'asset' // entityType only, no entityId (get all asset images)
+  // 🔥 NEW: Use custom hook for prop references
+  const {
+    enrichedProps: enrichedPropsFromHook,
+    propThumbnailS3KeyMap,
+    propThumbnailUrlsMap,
+    loading: loadingProps
+  } = usePropReferences(
+    {
+      projectId,
+      propIds,
+      enabled: propIds.length > 0
+    },
+    sceneProps
   );
   
-  // 🔥 NEW: Filter Media Library files by prop IDs and build thumbnailS3KeyMap
-  const propMediaFiles = React.useMemo(() => {
-    if (!allAssetMediaFiles || propIds.length === 0) return [];
-    return allAssetMediaFiles.filter((file: any) => 
-      propIds.includes(file.metadata?.entityId || file.entityId)
-    );
-  }, [allAssetMediaFiles, propIds]);
-  
-  // 🔥 NEW: Build thumbnailS3KeyMap from Media Library results
-  const propThumbnailS3KeyMap = React.useMemo(() => {
-    const map = new Map<string, string>();
-    propMediaFiles.forEach((file: any) => {
-      if (file.s3Key && file.thumbnailS3Key) {
-        map.set(file.s3Key, file.thumbnailS3Key);
+  // Sync hook data to state (for backward compatibility during refactor)
+  useEffect(() => {
+    if (enrichedPropsFromHook.length > 0 || sceneProps.length === 0) {
+      // Only update if structure changed (avoid infinite loop)
+      const hasChanges = JSON.stringify(enrichedPropsFromHook) !== JSON.stringify(sceneProps);
+      if (hasChanges) {
+        console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedPropsFromHook);
+        setSceneProps(enrichedPropsFromHook);
       }
-    });
-    return map;
-  }, [propMediaFiles]);
+    }
+  }, [enrichedPropsFromHook]);
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
@@ -444,8 +579,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [visualAnnotations, setVisualAnnotations] = useState<any>(null);
   const [showAnnotationPanel, setShowAnnotationPanel] = useState(false);
   
-  // Scene Analyzer state (Feature 0136 Phase 2.2)
-  const [sceneAnalysisResult, setSceneAnalysisResult] = useState<SceneAnalysisResult | null>(null);
+  // Use context state
+  const sceneAnalysisResult = contextState.sceneAnalysisResult;
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [characterReferenceUrls, setCharacterReferenceUrls] = useState<string[]>([]); // Pre-populated from analysis
@@ -475,149 +610,26 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     }
   }, [sceneAnalysisResult]);
 
-  // 🔥 NEW: Map Media Library files to character headshot structure (moved here to fix build error)
+  // 🔥 NEW: Auto-select highest priority headshot for each character (using hook data)
   useEffect(() => {
-    console.log('[SceneBuilderPanel] Character headshots effect:', {
-      characterMediaFilesCount: characterMediaFiles.length,
-      characterIdsForMediaLibraryCount: characterIdsForMediaLibrary.length,
-      characterIds: characterIdsForMediaLibrary
-    });
+    if (!sceneAnalysisResult || Object.keys(characterHeadshotsFromHook).length === 0) return;
     
-    if (characterMediaFiles.length === 0 || characterIdsForMediaLibrary.length === 0) {
-      console.log('[SceneBuilderPanel] Skipping headshot mapping - no files or no character IDs');
-      return;
-    }
-    
-    // Helper function to map Media Library files to headshot structure
-    // Media Library is the source of truth
-    // Logic: Show Production Hub images if available, otherwise show creation images (never mix)
-    const mapMediaFilesToHeadshots = (mediaFiles: any[], characterId: string) => {
-      const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
-      
-      const allImages: Array<{ file: any; isHeadshot: boolean; isProductionHub: boolean; isCreationImage: boolean }> = [];
-      
-      // First pass: collect and categorize all images
-      mediaFiles.forEach((file: any) => {
-        if ((file.metadata?.entityId || file.entityId) === characterId) {
-          // Skip thumbnails only
-          if (file.s3Key?.startsWith('thumbnails/')) return;
-          
-          // Skip if no s3Key (invalid file)
-          if (!file.s3Key) return;
-          
-          // 🔥 FIX: Filter out clothing references from virtual try-on
-          if (file.metadata?.isClothingReference === true || 
-              file.metadata?.referenceType === 'clothing' ||
-              file.s3Key?.toLowerCase().includes('clothing_reference') ||
-              file.s3Key?.toLowerCase().includes('clothing-reference') ||
-              file.fileName?.toLowerCase().includes('clothing reference')) {
-            return; // Skip clothing references
-          }
-          
-          const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
-          const isHeadshot = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
-          const isProductionHub = file.metadata?.createdIn === 'production-hub' || 
-                                   file.metadata?.source === 'pose-generation' ||
-                                   file.metadata?.uploadMethod === 'pose-generation';
-          const isCreationImage = file.metadata?.createdIn === 'creation' || 
-                                   file.metadata?.referenceType === 'base' ||
-                                   file.metadata?.uploadMethod === 'character-creation' ||
-                                   file.metadata?.uploadMethod === 'character-generation' ||
-                                   file.metadata?.uploadMethod === 'character-bank';
-          
-          allImages.push({ file, isHeadshot, isProductionHub, isCreationImage });
-        }
-      });
-      
-      // Check if there are any Production Hub images (headshots or Production Hub uploads)
-      const hasProductionHubImages = allImages.some(img => img.isHeadshot || img.isProductionHub);
-      
-      // Filter: if Production Hub images exist, exclude creation images
-      // If no Production Hub images, include creation images
-      const filteredImages = hasProductionHubImages
-        ? allImages.filter(img => !img.isCreationImage) // Exclude creation images if Production Hub exists
-        : allImages; // Include everything (including creation) if no Production Hub
-      
-      // Map to headshot structure with proper prioritization
-      const headshots: Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }> = [];
-      
-      filteredImages.forEach(({ file, isHeadshot, isProductionHub, isCreationImage }) => {
-        const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
+    // Auto-select highest priority headshot for each character
+    Object.entries(characterHeadshotsFromHook).forEach(([characterId, headshots]) => {
+      if (headshots.length > 0) {
+        const bestHeadshot = headshots[0]; // Already sorted by priority
         
-        // Determine label and priority based on image type
-        let label = file.metadata?.poseName || file.metadata?.angle || 'Headshot';
-        let priority: number;
+        // Find all shots for this character and auto-select the best headshot
+        const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
+          s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
+        ) || [];
         
-        // Priority assignment (lower number = higher priority, shown first):
-        if (isHeadshot) {
-          // Headshot poses: highest priority (1-100 range)
-          // Use metadata priority if available, otherwise default to 50
-          priority = file.metadata?.priority || 50;
-        } else if (isProductionHub) {
-          // Production Hub images: medium priority (100-500 range)
-          // Use metadata priority if available, otherwise default to 200
-          priority = file.metadata?.priority || 200;
-        } else if (isCreationImage && file.metadata?.referenceType === 'base') {
-          // Creation images (base references): lowest priority (last resort)
-          label = 'Creation Image (Last Resort)';
-          priority = 9999; // Lowest priority (highest number)
-        } else {
-          // Other images (user uploads, etc.): medium-low priority (500-900 range)
-          // Use metadata priority if available, otherwise default to 700
-          priority = file.metadata?.priority || 700;
-        }
-        
-        headshots.push({
-          poseId: poseId || (isCreationImage ? 'base-reference' : file.s3Key), // Use s3Key as fallback ID for backend compatibility
-          s3Key: file.s3Key,
-          imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
-          label,
-          priority,
-          outfitName: file.metadata?.outfitName
-        });
-      });
-      
-      // Sort by priority (lower number = higher priority)
-      headshots.sort((a, b) => (a.priority || 999) - (b.priority || 999));
-      
-      return headshots.slice(0, 10); // Limit to 10 headshots
-    };
-    
-    // Build headshots for each character from Media Library
-    const newHeadshots: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>> = {};
-    
-    characterIdsForMediaLibrary.forEach(characterId => {
-      const characterFiles = characterMediaFiles.filter((file: any) => 
-        (file.metadata?.entityId || file.entityId) === characterId
-      );
-      
-      // Media Library is the source of truth - only process files from Media Library
-      if (characterFiles.length > 0) {
-        const headshots = mapMediaFilesToHeadshots(characterFiles, characterId);
-        if (headshots.length > 0) {
-          newHeadshots[characterId] = headshots;
-        }
-      }
-    });
-    
-    // Update headshots state
-    if (Object.keys(newHeadshots).length > 0) {
-      setCharacterHeadshots(prev => ({ ...prev, ...newHeadshots }));
-      
-      // Auto-select highest priority headshot for each character
-      Object.entries(newHeadshots).forEach(([characterId, headshots]) => {
-        if (headshots.length > 0) {
-          const bestHeadshot = headshots[0]; // Already sorted by priority
-          
-          // Find all shots for this character and auto-select the best headshot
-          const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
-            s.characterId === characterId && (s.type === 'dialogue' || s.type === 'action')
-          ) || [];
-          
-          setSelectedCharacterReferences(prev => {
-            const updated = { ...prev };
-            shotsForCharacter.forEach((shot: any) => {
-              const shotRefs = updated[shot.slot] || {};
+        setSelectedCharacterReferences(prev => {
+          const updated = { ...prev };
+          shotsForCharacter.forEach((shot: any) => {
+            const shotRefs = updated[shot.slot] || {};
+            // Only auto-select if not already selected
+            if (!shotRefs[characterId]) {
               updated[shot.slot] = {
                 ...shotRefs,
                 [characterId]: {
@@ -626,112 +638,59 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   imageUrl: bestHeadshot.imageUrl
                 }
               };
-            });
-            return updated;
+            }
           });
-        }
-      });
-    }
-  }, [characterMediaFiles, characterIdsForMediaLibrary, sceneAnalysisResult?.shotBreakdown?.shots]);
+          return updated;
+        });
+      }
+    });
+  }, [characterHeadshotsFromHook, sceneAnalysisResult]);
 
-  // 🔥 NEW: Track location ID for Media Library query (moved here to fix build error)
+  // 🔥 NEW: Track location ID for Media Library query
   const locationId = sceneAnalysisResult?.location?.id;
   
-  // 🔥 NEW: Query Media Library for location images
-  const { data: locationMediaFiles = [] } = useMediaFiles(
+  // 🔥 NEW: Use custom hook for location references
+  const {
+    angleVariations: locationAngleVariations,
+    backgrounds: locationBackgrounds,
+    locationThumbnailS3KeyMap,
+    locationThumbnailUrlsMap,
+    loading: loadingLocation
+  } = useLocationReferences({
     projectId,
-    undefined,
-    !!locationId, // Only query when we have a location ID
-    false,
-    'location',
-    locationId // Query for specific location
-  );
+    locationId: locationId || null,
+    enabled: !!locationId
+  });
   
-  // 🔥 NEW: Build location thumbnailS3KeyMap from Media Library results
-  const locationThumbnailS3KeyMap = React.useMemo(() => {
-    const map = new Map<string, string>();
-    locationMediaFiles.forEach((file: any) => {
-      if (file.s3Key && file.thumbnailS3Key) {
-        map.set(file.s3Key, file.thumbnailS3Key);
-      }
-    });
-    return map;
-  }, [locationMediaFiles]);
-  
-  // 🔥 NEW: Map Media Library files to location structure (angleVariations and backgrounds)
+  // 🔥 NEW: Map location hook data to expected format
   const locationDataFromMediaLibrary = React.useMemo(() => {
-    if (!locationId || locationMediaFiles.length === 0) return null;
+    if (!locationId || (locationAngleVariations.length === 0 && locationBackgrounds.length === 0)) {
+      return null;
+    }
     
-    const angleVariations: Array<{
-      angleId?: string;
-      angle: string;
-      s3Key: string;
-      imageUrl: string;
-      label?: string;
-      timeOfDay?: string;
-      weather?: string;
-    }> = [];
-    
-    const backgrounds: Array<{
-      id: string;
-      imageUrl: string;
-      s3Key: string;
-      backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
-      sourceType?: 'reference-images' | 'angle-variations';
-      sourceAngleId?: string;
-      metadata?: {
-        providerId?: string;
-        quality?: 'standard' | 'high-quality';
-      };
-      timeOfDay?: string;
-      weather?: string;
-    }> = [];
-    
-    locationMediaFiles.forEach((file: any) => {
-      if ((file.metadata?.entityId || file.entityId) === locationId) {
-        // 🔥 FIX: Comprehensive background detection - check all possible metadata fields
-        // Backgrounds from angle packages have sourceType === 'angle-variations' AND backgroundType set
-        // If sourceType === 'angle-variations' but no backgroundType, it's an angle, not a background
-        const isBackground = file.metadata?.backgroundType || 
-                             (file.metadata?.sourceType === 'angle-variations' && file.metadata?.backgroundType) ||
-                             file.metadata?.source === 'background-generation' ||
-                             file.metadata?.uploadMethod === 'background-generation' ||
-                             file.metadata?.generationMethod === 'background-generation' ||
-                             (file.folderPath && file.folderPath.some((path: string) => path.toLowerCase().includes('background')));
-        
-        if (isBackground) {
-          // Background image
-          backgrounds.push({
-            id: file.s3Key, // Use s3Key as ID for backend compatibility
-            imageUrl: file.s3Url || '',
-            s3Key: file.s3Key,
-            backgroundType: file.metadata?.backgroundType || 'custom',
-            sourceType: file.metadata?.sourceType,
-            sourceAngleId: file.metadata?.sourceAngleId,
-            metadata: {
-              providerId: file.metadata?.providerId,
-              quality: file.metadata?.quality
-            },
-            timeOfDay: file.metadata?.timeOfDay,
-            weather: file.metadata?.weather
-          });
-        } else {
-          // Angle variation
-          angleVariations.push({
-            angleId: file.s3Key, // Use s3Key as ID for backend compatibility
-            angle: file.metadata?.angle || 'unknown',
-            s3Key: file.s3Key,
-            imageUrl: file.s3Url || '',
-            label: file.metadata?.angle || undefined,
-            timeOfDay: file.metadata?.timeOfDay,
-            weather: file.metadata?.weather
-          });
-        }
-      }
-    });
-    
-    return { angleVariations, backgrounds };
-  }, [locationId, locationMediaFiles]);
+    return {
+      angleVariations: locationAngleVariations.map(angle => ({
+        angleId: angle.angleId,
+        angle: angle.angle,
+        s3Key: angle.s3Key,
+        imageUrl: angle.imageUrl,
+        label: angle.label,
+        timeOfDay: angle.timeOfDay,
+        weather: angle.weather
+      })),
+      backgrounds: locationBackgrounds.map(bg => ({
+        id: bg.id,
+        imageUrl: bg.imageUrl,
+        s3Key: bg.s3Key,
+        backgroundType: bg.backgroundType || 'custom',
+        sourceType: bg.sourceType,
+        sourceAngleId: bg.sourceAngleId,
+        metadata: bg.metadata,
+        timeOfDay: bg.timeOfDay,
+        weather: bg.weather
+      }))
+    };
+  }, [locationId, locationAngleVariations, locationBackgrounds]);
   
   // 🔥 NEW: Merge Media Library location data with sceneAnalysisResult
   const enrichedSceneAnalysisResult = React.useMemo(() => {
@@ -826,80 +785,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     fetchSceneProps();
   }, [selectedSceneId, projectId, screenplay.scenes, getToken]);
   
-  // 🔥 NEW: Map Media Library files to prop structure (angleReferences/images)
-  useEffect(() => {
-    if (sceneProps.length === 0 || propMediaFiles.length === 0) return;
-    
-    // Helper function to map Media Library files to prop structure
-    const mapMediaFilesToPropStructure = (mediaFiles: any[], propId: string) => {
-      const angleReferences: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }> = [];
-      const images: Array<{ url: string; s3Key?: string }> = [];
-      
-      mediaFiles.forEach((file: any) => {
-        if ((file.metadata?.entityId || file.entityId) === propId) {
-          const isProductionHub = file.metadata?.createdIn === 'production-hub' || 
-                                   file.metadata?.source === 'angle-generation' ||
-                                   file.metadata?.uploadMethod === 'angle-generation';
-          
-          if (isProductionHub) {
-            // Production Hub image -> angleReferences
-            // Use s3Key as ID for backend workflow compatibility (backend matches by ID in asset.angleReferences)
-            angleReferences.push({
-              id: file.s3Key, // Use s3Key as ID for backend compatibility (backend can match by s3Key)
-              s3Key: file.s3Key,
-              imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
-              label: file.metadata?.angle || undefined
-            });
-          } else {
-            // Creation image -> images[]
-            // Use s3Key as URL for backend workflow compatibility (backend matches img.url === selectedImageId)
-            images.push({
-              url: file.s3Key, // Use s3Key as URL for backend compatibility
-              s3Key: file.s3Key
-            });
-          }
-        }
-      });
-      
-      return { angleReferences, images };
-    };
-    
-    // Enrich props with Media Library data (Media Library is source of truth)
-    const enrichedProps = sceneProps.map(prop => {
-      const propMediaFilesForProp = propMediaFiles.filter((file: any) => 
-        (file.metadata?.entityId || file.entityId) === prop.id
-      );
-      
-      if (propMediaFilesForProp.length === 0) {
-        // 🔥 FIX: No Media Library files found - use empty arrays (don't use old database references)
-        // Only preserve baseReference as fallback
-        return {
-          ...prop,
-          angleReferences: [], // Media Library is source of truth - if no files, no angleReferences
-          images: [], // Media Library is source of truth - if no files, no images
-          baseReference: prop.baseReference // Preserve baseReference for fallback when all images are deleted
-        };
-      }
-      
-      const { angleReferences: mlAngleReferences, images: mlImages } = mapMediaFilesToPropStructure(propMediaFilesForProp, prop.id);
-      
-      // 🔥 FIX: Use Media Library data as source of truth - only use what exists in Media Library
-      // Never fall back to old database angleReferences/images (they may be deleted)
-      return {
-        ...prop,
-        angleReferences: mlAngleReferences, // Only Media Library files
-        images: mlImages, // Only Media Library files
-        baseReference: prop.baseReference // Preserve baseReference for fallback when all images are deleted
-      };
-    });
-    
-    // Only update if structure changed (avoid infinite loop)
-    const hasChanges = JSON.stringify(enrichedProps) !== JSON.stringify(sceneProps);
-    if (hasChanges) {
-      console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedProps);
-      setSceneProps(enrichedProps);
-    }
-  }, [propMediaFiles, sceneProps]);
+  // Props enrichment is now handled by usePropReferences hook (see above)
 
   // Fetch full scene content when scene is selected
   useEffect(() => {
@@ -4337,6 +4223,20 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         }}
       />
     </div>
+  );
+}
+
+// Public wrapper component that provides context
+export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = false, simplified = false }: SceneBuilderPanelProps) {
+  return (
+    <SceneBuilderProvider projectId={projectId}>
+      <SceneBuilderPanelInternal 
+        projectId={projectId} 
+        onVideoGenerated={onVideoGenerated} 
+        isMobile={isMobile} 
+        simplified={simplified} 
+      />
+    </SceneBuilderProvider>
   );
 }
 

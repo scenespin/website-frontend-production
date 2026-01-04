@@ -1,0 +1,146 @@
+/**
+ * useCharacterReferences Hook
+ * 
+ * Custom hook for managing character references from Media Library.
+ * Handles querying, mapping, and enriching character headshots.
+ */
+
+import { useState, useEffect, useMemo } from 'react';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { mapMediaFilesToHeadshots } from '../utils/mediaLibraryMappers';
+
+export interface CharacterHeadshot {
+  poseId?: string;
+  s3Key: string;
+  imageUrl: string;
+  label?: string;
+  priority?: number;
+  outfitName?: string;
+}
+
+interface UseCharacterReferencesOptions {
+  projectId: string;
+  characterIds: string[];
+  enabled?: boolean;
+}
+
+interface UseCharacterReferencesReturn {
+  characterHeadshots: Record<string, CharacterHeadshot[]>;
+  characterThumbnailS3KeyMap: Map<string, string>;
+  thumbnailUrlsMap: Map<string, string>;
+  fullImageUrlsMap: Map<string, string>;
+  loading: boolean;
+}
+
+/**
+ * Hook for managing character references from Media Library.
+ * 
+ * @param options - Configuration options
+ * @returns Character headshots, thumbnail maps, and loading state
+ */
+export function useCharacterReferences({
+  projectId,
+  characterIds,
+  enabled = true
+}: UseCharacterReferencesOptions): UseCharacterReferencesReturn {
+  // Query Media Library for character images
+  const { data: allCharacterMediaFiles = [], isLoading: isLoadingFiles } = useMediaFiles(
+    projectId,
+    undefined,
+    enabled && characterIds.length > 0,
+    true, // includeAllFolders: true (needed to get files from outfit folders)
+    'character' // entityType: query all character files
+  );
+
+  // Filter Media Library files by character IDs (client-side filtering)
+  const characterMediaFiles = useMemo(() => {
+    if (!allCharacterMediaFiles || characterIds.length === 0) return [];
+    
+    return allCharacterMediaFiles.filter((file: any) => {
+      const fileEntityId = file.metadata?.entityId || file.entityId;
+      return characterIds.includes(fileEntityId);
+    });
+  }, [allCharacterMediaFiles, characterIds]);
+
+  // Build character thumbnailS3KeyMap from Media Library results
+  const characterThumbnailS3KeyMap = useMemo(() => {
+    const map = new Map<string, string>();
+    characterMediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) {
+        map.set(file.s3Key, file.thumbnailS3Key);
+      }
+    });
+    return map;
+  }, [characterMediaFiles]);
+
+  // Map Media Library files to character headshot structure
+  const characterHeadshots = useMemo(() => {
+    const headshots: Record<string, CharacterHeadshot[]> = {};
+    
+    characterIds.forEach(characterId => {
+      const characterFiles = characterMediaFiles.filter((file: any) => 
+        (file.metadata?.entityId || file.entityId) === characterId
+      );
+      
+      if (characterFiles.length > 0) {
+        const mappedHeadshots = mapMediaFilesToHeadshots(characterFiles as any[], characterId);
+        if (mappedHeadshots.length > 0) {
+          headshots[characterId] = mappedHeadshots;
+        }
+      }
+    });
+    
+    return headshots;
+  }, [characterMediaFiles, characterIds]);
+
+  // Collect all headshot thumbnail S3 keys
+  const headshotThumbnailS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    Object.values(characterHeadshots).forEach(headshots => {
+      headshots.forEach(headshot => {
+        if (headshot.s3Key && characterThumbnailS3KeyMap.has(headshot.s3Key)) {
+          const thumbnailS3Key = characterThumbnailS3KeyMap.get(headshot.s3Key);
+          if (thumbnailS3Key) {
+            keys.push(thumbnailS3Key);
+          }
+        }
+      });
+    });
+    return keys;
+  }, [characterHeadshots, characterThumbnailS3KeyMap]);
+
+  // Collect all headshot full image S3 keys (for presigned URL generation if imageUrl is empty)
+  const headshotFullImageS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    Object.values(characterHeadshots).forEach(headshots => {
+      headshots.forEach(headshot => {
+        // If imageUrl is empty or looks like an s3Key (not a full URL), we need to generate presigned URL
+        if (headshot.s3Key && (!headshot.imageUrl || (!headshot.imageUrl.startsWith('http') && !headshot.imageUrl.startsWith('data:')))) {
+          keys.push(headshot.s3Key);
+        }
+      });
+    });
+    return keys;
+  }, [characterHeadshots]);
+
+  // Fetch thumbnail URLs for all headshots
+  const { data: thumbnailUrlsMap = new Map() } = useBulkPresignedUrls(
+    headshotThumbnailS3Keys,
+    headshotThumbnailS3Keys.length > 0
+  );
+
+  // Fetch presigned URLs for full images (when imageUrl is empty or is an s3Key)
+  const { data: fullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    headshotFullImageS3Keys,
+    headshotFullImageS3Keys.length > 0
+  );
+
+  return {
+    characterHeadshots,
+    characterThumbnailS3KeyMap,
+    thumbnailUrlsMap,
+    fullImageUrlsMap,
+    loading: isLoadingFiles
+  };
+}
+
