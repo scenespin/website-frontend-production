@@ -407,12 +407,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     if (characterMediaFiles.length === 0 || characterIdsForMediaLibrary.length === 0) return;
     
     // Helper function to map Media Library files to headshot structure
-    // Media Library is the source of truth - include ALL character images
+    // Media Library is the source of truth
+    // Logic: Show Production Hub images if available, otherwise show creation images (never mix)
     const mapMediaFilesToHeadshots = (mediaFiles: any[], characterId: string) => {
       const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
       
-      const headshots: Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }> = [];
+      const allImages: Array<{ file: any; isHeadshot: boolean; isProductionHub: boolean; isCreationImage: boolean }> = [];
       
+      // First pass: collect and categorize all images
       mediaFiles.forEach((file: any) => {
         if ((file.metadata?.entityId || file.entityId) === characterId) {
           // Skip thumbnails only
@@ -432,45 +434,56 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                                    file.metadata?.uploadMethod === 'character-generation' ||
                                    file.metadata?.uploadMethod === 'character-bank';
           
-          // Include ALL character images from Media Library (Media Library is source of truth):
-          // - Headshot poses (with specific poseIds) - HIGHEST PRIORITY
-          // - Production Hub images (with or without poseId) - MEDIUM PRIORITY
-          // - Creation images (base references) - LOWEST PRIORITY (last resort)
-          // - Any other character images (user uploads, etc.) - MEDIUM-LOW PRIORITY
-          // No filtering - include everything except thumbnails
-          
-          // Determine label and priority based on image type
-            let label = file.metadata?.poseName || file.metadata?.angle || 'Headshot';
-            let priority: number;
-            
-            // Priority assignment (lower number = higher priority, shown first):
-            if (isHeadshot) {
-              // Headshot poses: highest priority (1-100 range)
-              // Use metadata priority if available, otherwise default to 50
-              priority = file.metadata?.priority || 50;
-            } else if (isProductionHub) {
-              // Production Hub images: medium priority (100-500 range)
-              // Use metadata priority if available, otherwise default to 200
-              priority = file.metadata?.priority || 200;
-            } else if (isCreationImage && file.metadata?.referenceType === 'base') {
-              // Creation images (base references): lowest priority (last resort)
-              label = 'Creation Image (Last Resort)';
-              priority = 9999; // Lowest priority (highest number)
-            } else {
-              // Other images (user uploads, etc.): medium-low priority (500-900 range)
-              // Use metadata priority if available, otherwise default to 700
-              priority = file.metadata?.priority || 700;
-            }
-            
-            headshots.push({
-              poseId: poseId || (isCreationImage ? 'base-reference' : file.s3Key), // Use s3Key as fallback ID for backend compatibility
-              s3Key: file.s3Key,
-              imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
-              label,
-              priority,
-              outfitName: file.metadata?.outfitName
-            });
+          allImages.push({ file, isHeadshot, isProductionHub, isCreationImage });
         }
+      });
+      
+      // Check if there are any Production Hub images (headshots or Production Hub uploads)
+      const hasProductionHubImages = allImages.some(img => img.isHeadshot || img.isProductionHub);
+      
+      // Filter: if Production Hub images exist, exclude creation images
+      // If no Production Hub images, include creation images
+      const filteredImages = hasProductionHubImages
+        ? allImages.filter(img => !img.isCreationImage) // Exclude creation images if Production Hub exists
+        : allImages; // Include everything (including creation) if no Production Hub
+      
+      // Map to headshot structure with proper prioritization
+      const headshots: Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }> = [];
+      
+      filteredImages.forEach(({ file, isHeadshot, isProductionHub, isCreationImage }) => {
+        const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
+        
+        // Determine label and priority based on image type
+        let label = file.metadata?.poseName || file.metadata?.angle || 'Headshot';
+        let priority: number;
+        
+        // Priority assignment (lower number = higher priority, shown first):
+        if (isHeadshot) {
+          // Headshot poses: highest priority (1-100 range)
+          // Use metadata priority if available, otherwise default to 50
+          priority = file.metadata?.priority || 50;
+        } else if (isProductionHub) {
+          // Production Hub images: medium priority (100-500 range)
+          // Use metadata priority if available, otherwise default to 200
+          priority = file.metadata?.priority || 200;
+        } else if (isCreationImage && file.metadata?.referenceType === 'base') {
+          // Creation images (base references): lowest priority (last resort)
+          label = 'Creation Image (Last Resort)';
+          priority = 9999; // Lowest priority (highest number)
+        } else {
+          // Other images (user uploads, etc.): medium-low priority (500-900 range)
+          // Use metadata priority if available, otherwise default to 700
+          priority = file.metadata?.priority || 700;
+        }
+        
+        headshots.push({
+          poseId: poseId || (isCreationImage ? 'base-reference' : file.s3Key), // Use s3Key as fallback ID for backend compatibility
+          s3Key: file.s3Key,
+          imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
+          label,
+          priority,
+          outfitName: file.metadata?.outfitName
+        });
       });
       
       // Sort by priority (lower number = higher priority)
