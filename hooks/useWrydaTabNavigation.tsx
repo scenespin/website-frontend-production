@@ -454,16 +454,6 @@ export function useWrydaTabNavigation(
         return true;
     }, [state.content, getCursorPosition, setContent, setCursorPosition]);
 
-    /**
-     * Check if a line looks like it could be a scene heading (even if incomplete)
-     * Supports INT, EXT, INT/EXT, I/E, EST
-     */
-    const looksLikeSceneHeading = useCallback((line: string): boolean => {
-        const trimmed = line.trim().toUpperCase();
-        // Check if it starts with scene heading prefixes (even without period)
-        // Supports: INT, EXT, INT/EXT, INT./EXT., I/E, I/E., EST
-        return /^(INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/.test(trimmed) && trimmed.length <= 25;
-    }, []);
 
     /**
      * Main Tab handler
@@ -501,14 +491,8 @@ export function useWrydaTabNavigation(
         const elementType = detectElementType(lineInfo.currentLineText);
         console.log('[WrydaTab] Element type detected:', elementType, 'Line:', lineInfo.currentLineText);
         
-        // Special case: If line looks like a scene heading but wasn't detected as one,
-        // treat it as a scene heading (handles partial inputs like "INT" without period, "int/ext", "i/e")
-        if (elementType !== 'scene_heading' && looksLikeSceneHeading(lineInfo.currentLineText)) {
-            console.log('[WrydaTab] Line looks like scene heading, treating as scene heading');
-            return handleSceneHeadingTab(e, lineInfo.currentLineText, lineInfo.cursorPos);
-        }
-        
         // Handle scene heading navigation
+        // detectElementType now handles partial inputs like "INT" without period, "int/ext", "i/e"
         if (elementType === 'scene_heading') {
             console.log('[WrydaTab] Handling scene heading tab');
             return handleSceneHeadingTab(e, lineInfo.currentLineText, lineInfo.cursorPos);
@@ -536,7 +520,7 @@ export function useWrydaTabNavigation(
             }
         }, 0);
         return true; // Always handled (prevented default)
-    }, [getCurrentLineInfo, handleSceneHeadingTab, handleElementTransition, looksLikeSceneHeading, getCursorPosition, state.content, setContent, setCursorPosition]);
+    }, [getCurrentLineInfo, handleSceneHeadingTab, handleElementTransition, getCursorPosition, state.content, setContent, setCursorPosition]);
 
     // Render SmartType dropdown
     const smartTypeDropdown = smartType ? (
