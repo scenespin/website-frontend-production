@@ -180,19 +180,6 @@ export default function WritingHelp() {
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Shift</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Tab</kbd></td>
                     </tr>
                     <tr className="border-white/10">
-                      <td>Insert Scene Heading Prefix</td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Enter</kbd></td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Enter</kbd></td>
-                    </tr>
-                    <tr className="border-white/10 text-xs text-[#808080]">
-                      <td colSpan="3" className="italic">Inserts new line with "INT. " prefix for quick scene heading creation</td>
-                    </tr>
-                    <tr className="border-white/10">
-                      <td>New Scene (Enter twice)</td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Enter</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Enter</kbd></td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Return</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Return</kbd></td>
-                    </tr>
-                    <tr className="border-white/10">
                       <td>Toggle Scene Navigator</td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">E</kbd></td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">E</kbd></td>
