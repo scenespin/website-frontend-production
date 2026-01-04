@@ -872,14 +872,6 @@ export function ShotConfigurationPanel({
                                               imgElement.style.display = 'none';
                                             }
                                           }}
-                                          className="w-full h-full object-cover rounded"
-                                          loading="lazy"
-                                          onError={(e) => {
-                                            // 🔥 NEW: Fallback to full image if thumbnail fails
-                                            if (thumbnailUrl && displayUrl === thumbnailUrl) {
-                                              (e.target as HTMLImageElement).src = img.imageUrl;
-                                            }
-                                          }}
                                         />
                                       );
                                     })()}
