@@ -748,7 +748,7 @@ export function ShotConfigurationStep({
               onCharactersForShotChange={onCharactersForShotChange}
               onPronounMappingChange={onPronounMappingChange}
               characterHeadshots={characterHeadshots}
-              loadingHeadshots={loadingHeadshots}
+              loadingHeadshots={finalLoadingHeadshots}
               selectedCharacterReferences={selectedCharacterReferences}
               characterOutfits={characterOutfits}
               onCharacterReferenceChange={onCharacterReferenceChange}
