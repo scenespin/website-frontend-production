@@ -131,7 +131,8 @@ export function SceneNavigatorList({
   }, [projectId, getToken, scenes]);
 
   // Show loading state while initializing OR if we have a screenplayId but no scenes yet (still loading)
-  const isStillLoading = isLoading || !hasInitialized || (screenplay.screenplayId && scenes.length === 0 && !hasInitialized);
+  // This handles the case where hasInitialized is true but scenes haven't populated yet due to startTransition timing
+  const isStillLoading = isLoading || !hasInitialized || (screenplay.screenplayId && scenes.length === 0);
   
   if (isStillLoading) {
     return (
