@@ -12,22 +12,22 @@ export default function HelpCenter() {
   return (
     <>
       {/* Header */}
-      <header className="p-4 flex justify-between items-center max-w-7xl mx-auto">
+      <header className="p-4 flex justify-between items-center max-w-7xl mx-auto bg-[#0A0A0A] border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold">
+          <span className="text-2xl font-extrabold text-[#FFFFFF]">
             {config.appName}<span className="text-[#DC143C]">.ai</span>
           </span>
         </Link>
-        <Link href="/" className="btn btn-ghost">← Back to Home</Link>
+        <Link href="/" className="btn btn-ghost text-[#B3B3B3] hover:text-[#FFFFFF] border-white/10">← Back to Home</Link>
       </header>
 
-      <main className="max-w-7xl mx-auto px-8 py-16">
+      <main className="max-w-7xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
         {/* Hero */}
         <section className="text-center mb-16">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 text-[#FFFFFF]">
             📚 Help Center
           </h1>
-          <p className="text-xl opacity-80 max-w-3xl mx-auto">
+          <p className="text-xl opacity-80 max-w-3xl mx-auto text-[#B3B3B3]">
             Everything you need to turn your screenplay into a movie.
             <br />
             Write → Produce → Direct
@@ -36,13 +36,13 @@ export default function HelpCenter() {
 
         {/* Workflow Overview */}
         <section className="mb-16">
-          <div className="card bg-gradient-to-br from-[#DC143C]/10 to-slate-800 border-2 border-[#DC143C]/30">
+          <div className="card bg-[#141414] border border-[#DC143C]/30">
             <div className="card-body">
-              <h2 className="text-3xl font-bold mb-2">🎬 Complete Production Workflow</h2>
-              <p className="text-sm opacity-70 mb-6">Follow the same workflow you'll use in the app - Write → Produce → Direct</p>
+              <h2 className="text-3xl font-bold mb-2 text-[#DC143C]">🎬 Complete Production Workflow</h2>
+              <p className="text-sm opacity-70 mb-6 text-[#B3B3B3]">Follow the same workflow you'll use in the app - Write → Produce → Direct</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Link href="/help/writing" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-[#DC143C]/30">
+                <Link href="/help/writing" className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-[#DC143C]/30">
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">✍️</div>
                     <h3 className="font-bold text-base">1. Write</h3>
@@ -93,7 +93,7 @@ export default function HelpCenter() {
             title="Production"
             description="Scene Builder and professional consistency systems"
             features={[
-              "3 AI video providers (Veo, Luma, Runway)",
+              "AI video generation (multiple quality tiers)",
               "Scene Builder (Motion Picture Technology)",
               "Character, location & prop consistency",
               "Turn screenplay into video"
@@ -115,7 +115,7 @@ export default function HelpCenter() {
 
         {/* Quick Links */}
         <section className="mb-16">
-          <h2 className="text-2xl font-bold mb-6">Quick Links</h2>
+          <h2 className="text-2xl font-bold mb-6 text-[#FFFFFF]">Quick Links</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <QuickLinkCard
               href="/help/writing"
@@ -136,16 +136,16 @@ export default function HelpCenter() {
         </section>
 
         {/* Still Need Help CTA */}
-        <section className="text-center py-16 bg-base-200 rounded-box">
-          <h2 className="text-3xl font-bold mb-4">Still Need Help?</h2>
-          <p className="text-lg opacity-80 mb-8">
+        <section className="text-center py-16 bg-[#141414] rounded-box border border-white/10">
+          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Still Need Help?</h2>
+          <p className="text-lg opacity-80 mb-8 text-[#B3B3B3]">
             Our support team is here to help you succeed.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link href="mailto:support@wryda.ai" className="btn btn-primary">
+            <Link href="mailto:support@wryda.ai" className="btn bg-[#DC143C] hover:bg-[#8B0000] text-[#FFFFFF] border-none">
               Contact Support
             </Link>
-            <Link href="/dashboard" className="btn btn-ghost">
+            <Link href="/dashboard" className="btn btn-ghost text-[#B3B3B3] hover:text-[#FFFFFF] border-white/10">
               Go to Dashboard
             </Link>
           </div>
@@ -157,19 +157,19 @@ export default function HelpCenter() {
 
 function HelpSectionCard({ href, icon, title, description, features }) {
   return (
-    <Link href={href} className="card bg-gradient-to-br from-primary/10 to-secondary/10 hover:shadow-xl transition-shadow border-2 border-primary/30">
+    <Link href={href} className="card bg-[#141414] hover:bg-[#1F1F1F] transition-shadow border border-[#DC143C]/30">
       <div className="card-body">
         <div className="flex items-center gap-4 mb-4">
           <div className="text-5xl">{icon}</div>
           <div>
-            <h3 className="card-title text-2xl">{title}</h3>
-            <p className="text-sm opacity-70">{description}</p>
+            <h3 className="card-title text-2xl text-[#FFFFFF]">{title}</h3>
+            <p className="text-sm opacity-70 text-[#B3B3B3]">{description}</p>
           </div>
         </div>
         <ul className="space-y-2">
           {features.map((feature, idx) => (
             <li key={idx} className="flex items-start gap-2 text-sm">
-              <span className="text-primary">✓</span>
+              <span className="text-[#DC143C]">✓</span>
               <span>{feature}</span>
             </li>
           ))}
@@ -184,10 +184,10 @@ function HelpSectionCard({ href, icon, title, description, features }) {
 
 function QuickLinkCard({ href, title, description }) {
   return (
-    <Link href={href} className="card bg-base-200 hover:bg-base-300 transition-colors">
+    <Link href={href} className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-white/10">
       <div className="card-body">
-        <h3 className="card-title text-base">{title}</h3>
-        <p className="text-sm opacity-70">{description}</p>
+        <h3 className="card-title text-base text-[#FFFFFF]">{title}</h3>
+        <p className="text-sm opacity-70 text-[#B3B3B3]">{description}</p>
       </div>
     </Link>
   );

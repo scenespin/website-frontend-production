@@ -20,7 +20,7 @@ export default function ProductionHelp() {
         <Link href="/help" className="btn btn-ghost">← Back to Help</Link>
       </header>
 
-      <main className="max-w-4xl mx-auto px-8 py-16">
+      <main className="max-w-4xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
         <h1 className="text-4xl font-extrabold mb-4">🎬 Production</h1>
         <p className="text-xl opacity-80 mb-12">
           Generate professional videos with Scene Builder and maintain consistency across your entire production.
@@ -30,56 +30,52 @@ export default function ProductionHelp() {
         <section className="mb-12">
           <h2 className="text-3xl font-bold mb-4">AI Video Generation</h2>
           <p className="mb-4">
-            Wryda.ai gives you access to <strong>3 leading AI video providers</strong> in one platform. 
-            Choose the right model for your needs based on quality, speed, and cost.
+            Wryda.ai provides powerful AI video generation capabilities with multiple quality tiers and options. 
+            Choose the right option for your needs based on quality, speed, and cost.
           </p>
 
-          <div className="space-y-4 mb-6">
-            <ProviderCard
-              name="Google Veo 3.1"
-              cost="100 credits"
-              quality="Premium cinematic 1080p"
-              speed="45-60 seconds"
-              features={[
-                "Text-to-video generation",
-                "1080p resolution",
-                "16:9, 9:16 aspect ratios",
-                "Fast mode available (50% faster)",
-                "Scene continuity support"
-              ]}
-              bestFor="High-quality cinematic shots, professional pre-visualization"
-            />
-
-            <ProviderCard
-              name="Luma Dream Machine"
-              cost="Ray Flash: 25 credits, Ray 2: 75 credits"
-              quality="Fast to Premium"
-              speed="60-90 seconds"
-              features={[
-                "Text-to-video",
-                "Image-to-video (start/end frames)",
-                "Video extension/chaining",
-                "Multiple aspect ratios",
-                "Loop option"
-              ]}
-              bestFor="Rapid prototyping (Ray Flash), premium quality (Ray 2)"
-            />
-
-            <ProviderCard
-              name="Runway Gen-3"
-              cost="Gen-3 Turbo: 100 credits, Gen-3 Alpha: 120 credits"
-              quality="Hollywood-grade 4K capable"
-              speed="Fast to Premium"
-              features={[
-                "Text-to-video",
-                "Image-to-video",
-                "Video-to-video transformations",
-                "4K upscaling (2x, 4x, 8x)",
-                "Character animation",
-                "5s or 10s clips"
-              ]}
-              bestFor="Ultra-high quality final production footage, character animation"
-            />
+          <div className="card bg-[#141414] border border-white/10 mb-6">
+            <div className="card-body">
+              <h3 className="font-bold mb-3">Available Options:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-2 text-[#DC143C]">Fast Generation</h4>
+                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                    <li>• 25-50 credits per video</li>
+                    <li>• Quick turnaround (30-60 seconds)</li>
+                    <li>• Perfect for prototyping</li>
+                    <li>• Multiple aspect ratios</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2 text-[#DC143C]">Premium Generation</h4>
+                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                    <li>• 75-120 credits per video</li>
+                    <li>• High-quality cinematic output</li>
+                    <li>• 1080p resolution</li>
+                    <li>• Professional pre-visualization</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2 text-[#DC143C]">Ultra Premium</h4>
+                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                    <li>• 100-120 credits per video</li>
+                    <li>• Hollywood-grade quality</li>
+                    <li>• 4K capable</li>
+                    <li>• Character animation support</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2 text-[#DC143C]">Text & Image Input</h4>
+                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                    <li>• Text-to-video generation</li>
+                    <li>• Image-to-video conversion</li>
+                    <li>• Video extension/chaining</li>
+                    <li>• Multiple aspect ratios (16:9, 9:16, 1:1)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -91,7 +87,7 @@ export default function ProductionHelp() {
             Not available in any other platform.
           </p>
           
-          <div className="card bg-base-200">
+          <div className="card bg-[#141414] border border-white/10">
             <div className="card-body">
               <h3 className="font-bold mb-2">How It Works:</h3>
               <ol className="space-y-2 list-decimal list-inside">
@@ -155,7 +151,7 @@ export default function ProductionHelp() {
         {/* Getting Started */}
         <section className="mb-12">
           <h2 className="text-3xl font-bold mb-4">Getting Started</h2>
-          <div className="card bg-base-200">
+          <div className="card bg-[#141414] border border-white/10">
             <div className="card-body">
               <ol className="space-y-4 list-decimal list-inside">
                 <li>
@@ -188,33 +184,10 @@ export default function ProductionHelp() {
   );
 }
 
-function ProviderCard({ name, cost, quality, speed, features, bestFor }) {
-  return (
-    <div className="card bg-base-200 border-2 border-secondary/30">
-      <div className="card-body">
-        <h3 className="card-title text-xl mb-2">{name}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3 text-sm">
-          <div><strong>Cost:</strong> {cost}</div>
-          <div><strong>Quality:</strong> {quality}</div>
-          <div><strong>Speed:</strong> {speed}</div>
-        </div>
-        <ul className="space-y-1 mb-3">
-          {features.map((feature, idx) => (
-            <li key={idx} className="text-sm flex items-start gap-2">
-              <span className="text-secondary">•</span>
-              <span>{feature}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="text-sm opacity-70"><strong>Best for:</strong> {bestFor}</p>
-      </div>
-    </div>
-  );
-}
 
 function ConsistencyCard({ icon, title, description, features }) {
   return (
-    <div className="card bg-base-200 border-2 border-primary/30">
+            <div className="card bg-[#141414] border border-[#DC143C]/30">
       <div className="card-body">
         <div className="flex items-center gap-3 mb-3">
           <span className="text-3xl">{icon}</span>

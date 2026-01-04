@@ -20,9 +20,9 @@ export default function FAQHelp() {
         <Link href="/help" className="btn btn-ghost">← Back to Help</Link>
       </header>
 
-      <main className="max-w-4xl mx-auto px-8 py-16">
-        <h1 className="text-4xl font-extrabold mb-4">❓ Frequently Asked Questions</h1>
-        <p className="text-xl opacity-80 mb-12">
+      <main className="max-w-4xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
+        <h1 className="text-4xl font-extrabold mb-4 text-[#FFFFFF]">❓ Frequently Asked Questions</h1>
+        <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
           Quick answers to common questions about Wryda.ai
         </p>
 
@@ -74,7 +74,7 @@ export default function FAQHelp() {
                   <li>Table reads - We have AI screenplay readings with character voices</li>
                   <li>Character/location/prop consistency - Not available elsewhere</li>
                   <li>Scene Builder (Motion Picture Technology) - Not available elsewhere</li>
-                  <li>Video generation - Built-in with 3 AI providers</li>
+                  <li>Video generation - Built-in AI video generation</li>
                 </ul>
                 <p>
                   <strong>Final Draft writes the script. Wryda makes the film.</strong> We're the only platform 
@@ -163,10 +163,10 @@ export default function FAQHelp() {
               <>
                 <p>
                   <strong>No credit card required!</strong> You get 50 credits free when you sign up, plus 10 credits per month. 
-                  This is enough to create your first few videos and explore the platform.
+                  This is enough to try the professional screenplay editor and explore the 5 AI writing agents.
                 </p>
                 <p className="mt-3">
-                  You only need to add a payment method when you want to purchase additional credits for more video generation.
+                  You only need to add a payment method when you want to purchase additional credits for AI video generation or other premium features.
                 </p>
               </>
             }
@@ -200,7 +200,7 @@ export default function FAQHelp() {
 
 function FAQItem({ question, answer }) {
   return (
-    <div className="card bg-base-200">
+    <div className="card bg-[#141414] border border-white/10">
       <div className="card-body">
         <h3 className="card-title text-xl mb-3">{question}</h3>
         <div className="text-sm opacity-90">
