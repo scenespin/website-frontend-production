@@ -214,21 +214,26 @@ export function useWrydaTabNavigation(
      * - EST → EST.
      */
     const formatSceneHeadingType = useCallback((type: string): string => {
-        const upper = type.toUpperCase().trim();
+        // Normalize input - handle mixed case like "int/ext" or "I/E"
+        const normalized = type.trim();
+        const upper = normalized.toUpperCase();
         
         // Handle INT/EXT variations (industry standard: INT./EXT.)
-        if (upper.includes('INT/EXT') || upper.includes('INT./EXT')) {
+        // Match: "int/ext", "INT/EXT", "int/EXT", "INT/ext", "INT./EXT", "INT/EXT."
+        if (upper.includes('INT/EXT') || upper.includes('INT./EXT') || upper.includes('INT/EXT.')) {
             // Normalize to INT./EXT. (periods after each abbreviation)
             return 'INT./EXT.';
         }
         
         // Handle I/E variations (industry standard: I./E.)
-        if (upper.includes('I/E') || upper.includes('I./E')) {
+        // Match: "i/e", "I/E", "I/e", "i/E", "I./E", "I/E."
+        if (upper.includes('I/E') || upper.includes('I./E') || upper.includes('I/E.')) {
             // Normalize to I./E. (periods after each abbreviation)
             return 'I./E.';
         }
         
         // Handle simple types (INT, EXT, EST)
+        // Must check for INT/EXT first, so check that it doesn't include "/"
         if (upper.startsWith('INT') && !upper.includes('/')) {
             return 'INT.';
         }
@@ -261,7 +266,7 @@ export function useWrydaTabNavigation(
             const parts = parseSceneHeading(currentLineText);
             
             // Build new scene heading with location inserted
-            // Format type according to industry standards
+            // Format type according to industry standards (handles lowercase "int/ext" → "INT./EXT.")
             const newType = formatSceneHeadingType(parts.type);
             
             // Rebuild line from scratch: TYPE LOCATION - TIME
@@ -279,7 +284,7 @@ export function useWrydaTabNavigation(
             const newContent = newTextBefore + textAfterCursor;
             setContent(newContent);
             
-            // Move cursor to after location (or to time field if dash was added)
+            // Move cursor to time field (after " - ") if we added the dash
             setTimeout(() => {
                 if (textareaRef.current) {
                     const newPos = newTextBefore.length;
@@ -289,7 +294,7 @@ export function useWrydaTabNavigation(
                 }
             }, 0);
             
-            // If we added the dash, show time SmartType
+            // Always show time SmartType after selecting location (unless time already exists)
             if (!parts.time || !parts.time.trim() || parts.time.trim().endsWith('-')) {
                 setTimeout(() => showTimeSmartType(), 100);
             } else {
@@ -388,11 +393,11 @@ export function useWrydaTabNavigation(
         if (fieldInfo.field === 'location') {
             const locationText = parts.location.trim();
             
+            // Format type according to industry standards (handles lowercase "int/ext" → "INT./EXT.")
+            const newType = formatSceneHeadingType(parts.type);
+            
             if (locationText) {
                 // Location exists, move to time field
-                // Format type according to industry standards
-                const newType = formatSceneHeadingType(parts.type);
-                
                 // Clean up any existing dashes or partial time
                 let newLine = newType + ' ' + locationText.trim();
                 
@@ -513,25 +518,42 @@ export function useWrydaTabNavigation(
 
     /**
      * Main Tab handler
+     * Always prevents default to keep focus in editor
      */
     const handleTab = useCallback((e: KeyboardEvent<HTMLTextAreaElement>): boolean => {
         console.log('[WrydaTab] handleTab called');
+        e.preventDefault(); // Always prevent default to avoid focus navigation
+        
         if (!textareaRef.current) {
             console.log('[WrydaTab] No textarea ref');
-            return false;
+            return true; // Still handled (prevented default)
         }
         
         const lineInfo = getCurrentLineInfo();
         if (!lineInfo) {
             console.log('[WrydaTab] No line info');
-            return false;
+            // Empty line: create new line
+            const cursorPos = getCursorPosition();
+            const textBeforeCursor = state.content.substring(0, cursorPos);
+            const textAfterCursor = state.content.substring(cursorPos);
+            const newContent = textBeforeCursor + '\n' + textAfterCursor;
+            setContent(newContent);
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    const newPos = cursorPos + 1;
+                    textareaRef.current.selectionStart = newPos;
+                    textareaRef.current.selectionEnd = newPos;
+                    setCursorPosition(newPos);
+                }
+            }, 0);
+            return true;
         }
         
         const elementType = detectElementType(lineInfo.currentLineText);
         console.log('[WrydaTab] Element type detected:', elementType, 'Line:', lineInfo.currentLineText);
         
         // Special case: If line looks like a scene heading but wasn't detected as one,
-        // treat it as a scene heading (handles partial inputs like "INT" without period)
+        // treat it as a scene heading (handles partial inputs like "INT" without period, "int/ext", "i/e")
         if (elementType !== 'scene_heading' && looksLikeSceneHeading(lineInfo.currentLineText)) {
             console.log('[WrydaTab] Line looks like scene heading, treating as scene heading');
             return handleSceneHeadingTab(e, lineInfo.currentLineText, lineInfo.cursorPos);
@@ -544,14 +566,28 @@ export function useWrydaTabNavigation(
         }
         
         // Handle element transitions
-        if (elementType === 'dialogue' || elementType === 'character' || elementType === 'action') {
+        if (elementType === 'dialogue' || elementType === 'character' || elementType === 'action' || elementType === 'parenthetical' || elementType === 'empty') {
             console.log('[WrydaTab] Handling element transition:', elementType);
             return handleElementTransition(e, lineInfo.currentLineText, elementType);
         }
         
-        console.log('[WrydaTab] No handler for element type:', elementType);
-        return false;
-    }, [getCurrentLineInfo, handleSceneHeadingTab, handleElementTransition, looksLikeSceneHeading]);
+        // Default: create new line for any other element type
+        console.log('[WrydaTab] Default: creating new line for element type:', elementType);
+        const cursorPos = getCursorPosition();
+        const textBeforeCursor = state.content.substring(0, cursorPos);
+        const textAfterCursor = state.content.substring(cursorPos);
+        const newContent = textBeforeCursor + '\n' + textAfterCursor;
+        setContent(newContent);
+        setTimeout(() => {
+            if (textareaRef.current) {
+                const newPos = cursorPos + 1;
+                textareaRef.current.selectionStart = newPos;
+                textareaRef.current.selectionEnd = newPos;
+                setCursorPosition(newPos);
+            }
+        }, 0);
+        return true; // Always handled (prevented default)
+    }, [getCurrentLineInfo, handleSceneHeadingTab, handleElementTransition, looksLikeSceneHeading, getCursorPosition, state.content, setContent, setCursorPosition]);
 
     // Render SmartType dropdown
     const smartTypeDropdown = smartType ? (

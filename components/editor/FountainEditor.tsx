@@ -597,11 +597,15 @@ export default function FountainEditor({
                         // Try Wryda Tab navigation first if enabled
                         if (WRYDA_TAB_ENABLED && e.key === 'Tab' && !e.shiftKey) {
                             console.log('[WrydaTab] Tab key pressed, attempting to handle...');
+                            // Always prevent default when Wryda Tab is enabled to prevent focus navigation
+                            e.preventDefault();
                             if (wrydaTab.handleTab(e)) {
                                 console.log('[WrydaTab] Tab handled by Wryda Tab navigation');
                                 return; // Handled by Wryda Tab navigation
                             } else {
-                                console.log('[WrydaTab] Tab not handled, falling back to standard behavior');
+                                console.log('[WrydaTab] Tab not handled, but default prevented');
+                                // Default already prevented, just return to avoid focus navigation
+                                return;
                             }
                         }
                         // Fall back to standard formatting
