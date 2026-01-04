@@ -404,6 +404,15 @@ export function useWrydaTabNavigation(
     }, [state.content, getCursorPosition, setContent, setCursorPosition]);
 
     /**
+     * Check if a line looks like it could be a scene heading (even if incomplete)
+     */
+    const looksLikeSceneHeading = useCallback((line: string): boolean => {
+        const trimmed = line.trim().toUpperCase();
+        // Check if it starts with scene heading prefixes (even without period)
+        return /^(INT|EXT|EST|I\/E|INT\/EXT)/.test(trimmed) && trimmed.length <= 20;
+    }, []);
+
+    /**
      * Main Tab handler
      */
     const handleTab = useCallback((e: KeyboardEvent<HTMLTextAreaElement>): boolean => {
@@ -422,6 +431,13 @@ export function useWrydaTabNavigation(
         const elementType = detectElementType(lineInfo.currentLineText);
         console.log('[WrydaTab] Element type detected:', elementType, 'Line:', lineInfo.currentLineText);
         
+        // Special case: If line looks like a scene heading but wasn't detected as one,
+        // treat it as a scene heading (handles partial inputs like "INT" without period)
+        if (elementType !== 'scene_heading' && looksLikeSceneHeading(lineInfo.currentLineText)) {
+            console.log('[WrydaTab] Line looks like scene heading, treating as scene heading');
+            return handleSceneHeadingTab(e, lineInfo.currentLineText, lineInfo.cursorPos);
+        }
+        
         // Handle scene heading navigation
         if (elementType === 'scene_heading') {
             console.log('[WrydaTab] Handling scene heading tab');
@@ -436,7 +452,7 @@ export function useWrydaTabNavigation(
         
         console.log('[WrydaTab] No handler for element type:', elementType);
         return false;
-    }, [getCurrentLineInfo, handleSceneHeadingTab, handleElementTransition]);
+    }, [getCurrentLineInfo, handleSceneHeadingTab, handleElementTransition, looksLikeSceneHeading]);
 
     // Render SmartType dropdown
     const smartTypeDropdown = smartType ? (
