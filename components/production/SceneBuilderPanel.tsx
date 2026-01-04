@@ -3406,7 +3406,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                             let fullImageUrl: string | undefined;
                             if (!thumbnailUrl && headshot.s3Key) {
                               // Check if we have a presigned URL for the full image
-                              fullImageUrl = fullImageUrlsMap?.get(headshot.s3Key);
+                              fullImageUrl = characterFullImageUrlsMap?.get(headshot.s3Key);
                               // If not, and imageUrl is a full URL, use it
                               if (!fullImageUrl && headshot.imageUrl && (headshot.imageUrl.startsWith('http') || headshot.imageUrl.startsWith('data:'))) {
                                 fullImageUrl = headshot.imageUrl;
