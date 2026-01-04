@@ -127,29 +127,32 @@ export function useFountainFormatting(
             setCurrentElementType('scene_heading');
         }
         
-        // Ctrl/Cmd + Enter - New scene heading
-        else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-            // Note: 'Enter' is not affected by Caps Lock, so no need to lowercase
-            e.preventDefault();
-            
-            // Insert new line with "INT. " or "EXT. " prefix
-            const newLinePrefix = 'INT. ';
-            const newContent = textBeforeCursor + '\n' + newLinePrefix + textAfterCursor;
-            setContent(newContent);
-            
-            // Move cursor to after the prefix
-            setTimeout(() => {
-                if (textareaRef.current) {
-                    const newPos = cursorPos + 1 + newLinePrefix.length;
-                    textareaRef.current.selectionStart = newPos;
-                    textareaRef.current.selectionEnd = newPos;
-                    setCursorPosition(newPos);
-                }
-            }, 0);
-            
-            setCurrentType('scene_heading');
-            setCurrentElementType('scene_heading');
-        }
+        // DISABLED: Ctrl/Cmd + Enter - New scene heading
+        // This feature is currently disabled due to event handler conflicts.
+        // The handler may be blocked by Wryda Tab navigation or other event handlers.
+        // TODO: Re-enable after fixing event handler conflicts in FountainEditor.tsx
+        // else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        //     // Note: 'Enter' is not affected by Caps Lock, so no need to lowercase
+        //     e.preventDefault();
+        //     
+        //     // Insert new line with "INT. " or "EXT. " prefix
+        //     const newLinePrefix = 'INT. ';
+        //     const newContent = textBeforeCursor + '\n' + newLinePrefix + textAfterCursor;
+        //     setContent(newContent);
+        //     
+        //     // Move cursor to after the prefix
+        //     setTimeout(() => {
+        //         if (textareaRef.current) {
+        //             const newPos = cursorPos + 1 + newLinePrefix.length;
+        //             textareaRef.current.selectionStart = newPos;
+        //             textareaRef.current.selectionEnd = newPos;
+        //             setCursorPosition(newPos);
+        //         }
+        //     }, 0);
+        //     
+        //     setCurrentType('scene_heading');
+        //     setCurrentElementType('scene_heading');
+        // }
         
         // Ctrl/Cmd + I - Toggle italics (case-insensitive for Caps Lock)
         else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'i') {
