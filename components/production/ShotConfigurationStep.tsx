@@ -726,6 +726,7 @@ export function ShotConfigurationStep({
                   const fullProp = prop as typeof prop & {
                     angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
                     images?: Array<{ url: string; s3Key?: string }>;
+                    baseReference?: { s3Key?: string; imageUrl?: string };
                   };
                   
                   // Build available images list (same logic as ShotConfigurationPanel)
@@ -744,10 +745,21 @@ export function ShotConfigurationStep({
                   // Add images array (Creation images) if no angleReferences
                   if (availableImages.length === 0 && fullProp.images && fullProp.images.length > 0) {
                     fullProp.images.forEach(img => {
-                      availableImages.push({
-                        id: img.url,
-                        imageUrl: img.url
-                      });
+                      // Only add if image has a valid URL
+                      if (img.url) {
+                        availableImages.push({
+                          id: img.url,
+                          imageUrl: img.url
+                        });
+                      }
+                    });
+                  }
+                  
+                  // 🔥 FIX: Fallback to baseReference (creation image) if no angleReferences or no valid images
+                  if (availableImages.length === 0 && fullProp.baseReference?.imageUrl) {
+                    availableImages.push({
+                      id: fullProp.baseReference.imageUrl || fullProp.baseReference.s3Key || 'base-reference',
+                      imageUrl: fullProp.baseReference.imageUrl
                     });
                   }
                   

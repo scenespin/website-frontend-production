@@ -1628,8 +1628,24 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     try {
       const token = await getToken({ template: 'wryda-backend' });
       
-      // Upload character reference images if any
+      // Collect character reference images from selectedCharacterReferences
       const referenceImageUrls: string[] = [];
+      
+      // 🔥 FIX: Collect character references from selectedCharacterReferences
+      // Get all character references from all shots (for scene-level first frame)
+      const allCharacterRefs: string[] = [];
+      Object.values(selectedCharacterReferences).forEach(shotRefs => {
+        Object.values(shotRefs).forEach(charRef => {
+          if (charRef?.imageUrl && !allCharacterRefs.includes(charRef.imageUrl)) {
+            allCharacterRefs.push(charRef.imageUrl);
+          }
+        });
+      });
+      
+      // Add character references to referenceImageUrls
+      referenceImageUrls.push(...allCharacterRefs);
+      
+      // Upload manually uploaded reference images if any
       const uploadedImages = referenceImages.filter(img => img !== null) as File[];
       
       if (uploadedImages.length > 0) {
@@ -1708,7 +1724,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         },
         body: JSON.stringify({
           prompt: sceneDescription.trim(),
-          size: '1024x576' // 16:9 aspect ratio (1024x576 = 16:9)
+          size: '1024x576', // 16:9 aspect ratio (1024x576 = 16:9)
+          references: referenceImageUrls.length > 0 ? referenceImageUrls : undefined // 🔥 FIX: Include character references
           // Note: aspectRatio is not a valid parameter - use size instead
         })
       });
