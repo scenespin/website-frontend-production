@@ -221,7 +221,7 @@ export default function WritingHelp() {
               <ul className="space-y-2 text-[#B3B3B3]">
                 <li>• <strong className="text-[#FFFFFF]">Wryda Smart Tab</strong> - In scene headings, press Tab (or $ on mobile) to navigate between Type → Location → Time fields with SmartType suggestions. 
                   <ul className="ml-6 mt-2 space-y-1 text-sm">
-                    <li><strong className="text-[#FFFFFF]">Type formatting:</strong> <code className="text-[#00D9FF]">int</code>+Tab → <code className="text-[#00D9FF]">INT.</code>, <code className="text-[#00D9FF]">ext</code>+Tab → <code className="text-[#00D9FF]">EXT.</code>, <code className="text-[#00D9FF]">i/e</code>+Tab → <code className="text-[#00D9FF]">I./E.</code>, <code className="text-[#00D9FF]">int/ext</code>+Tab → <code className="text-[#00D9FF]">INT./EXT.</code></li>
+                    <li><strong className="text-[#FFFFFF]">Type formatting:</strong> <code className="text-[#00D9FF]">int</code>+Tab → <code className="text-[#00D9FF]">INT.</code> <code className="text-[#00D9FF]">ext</code>+Tab → <code className="text-[#00D9FF]">EXT.</code> <code className="text-[#00D9FF]">i/e</code>+Tab → <code className="text-[#00D9FF]">I./E.</code> <code className="text-[#00D9FF]">int/ext</code>+Tab → <code className="text-[#00D9FF]">INT./EXT.</code></li>
                     <li><strong className="text-[#FFFFFF]">Location selection:</strong> After type, Tab shows location dropdown (e.g., <code className="text-[#00D9FF]">INT.</code>+Tab → shows locations like "COFFEE SHOP", "WAREHOUSE")</li>
                     <li><strong className="text-[#FFFFFF]">Time selection:</strong> After location, Tab shows time dropdown (e.g., <code className="text-[#00D9FF]">INT. COFFEE SHOP</code>+Tab → shows "DAY", "NIGHT", "DAWN", etc.)</li>
                     <li><strong className="text-[#FFFFFF]">Complete scene heading:</strong> After time selection, Tab completes and moves to next line (e.g., <code className="text-[#00D9FF]">INT. COFFEE SHOP - DAY</code>+Tab → scene heading complete)</li>
@@ -230,7 +230,7 @@ export default function WritingHelp() {
                 <li>• <strong className="text-[#FFFFFF]">Character name completion</strong> - Type first few letters, get suggestions</li>
                 <li>• <strong className="text-[#FFFFFF]">Location suggestions</strong> - Based on previously used locations (sorted by INT/EXT type)</li>
                 <li>• <strong className="text-[#FFFFFF]">Time of day</strong> - Common options: DAY, NIGHT, MORNING, etc.</li>
-                <li>• <strong className="text-[#FFFFFF]">@ Quick Link</strong> - Type @ anywhere to quickly link/reference characters or locations (autocomplete dropdown, @ symbol removed from final text)</li>
+                <li>• <strong className="text-[#FFFFFF]">@ Quick Link</strong> - Type @ anywhere to quickly link/reference characters or locations</li>
               </ul>
             </div>
           </div>
@@ -360,7 +360,6 @@ export default function WritingHelp() {
                 <h3 className="font-bold mb-3 text-[#DC143C]">Auto-Save</h3>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
                   <li>• <strong className="text-[#FFFFFF]">Auto-saves every 2 seconds</strong> - Never lose your work</li>
-                  <li>• <strong className="text-[#FFFFFF]">Debounced saving</strong> - Efficient, prevents excessive saves</li>
                   <li>• <strong className="text-[#FFFFFF]">Manual save</strong> - <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl+S</kbd> / <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘+S</kbd> for immediate save</li>
                   <li>• <strong className="text-[#FFFFFF]">Save status indicator</strong> - See when your work is saved</li>
                 </ul>
@@ -494,50 +493,6 @@ export default function WritingHelp() {
               </div>
             </div>
 
-            <div className="card bg-[#141414] border border-white/10">
-              <div className="card-body">
-                <h3 className="font-bold mb-3 text-[#DC143C]">Page Goals & Tracking</h3>
-                <p className="text-sm text-[#B3B3B3] mb-4">
-                  Set daily writing goals and track your progress.
-                </p>
-                <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Pages per day</strong> - Track page count</li>
-                  <li>• <strong className="text-[#FFFFFF]">Scenes per day</strong> - Track scene completion</li>
-                  <li>• <strong className="text-[#FFFFFF]">Words per day</strong> - Track word count</li>
-                  <li>• <strong className="text-[#FFFFFF]">Time-based</strong> - Write for X minutes</li>
-                  <li>• <strong className="text-[#FFFFFF]">View progress in Dashboard</strong> - Weekly summaries</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="card bg-[#141414] border border-white/10">
-              <div className="card-body">
-                <h3 className="font-bold mb-3 text-[#DC143C]">Templates & Snippets</h3>
-                <p className="text-sm text-[#B3B3B3] mb-4">
-                  Create reusable snippets for common screenplay elements.
-                </p>
-                <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Save a Snippet</strong> - Select text → Right-click → "Save as Snippet"</li>
-                  <li>• <strong className="text-[#FFFFFF]">Use a Snippet</strong> - Type `/` to open snippet menu</li>
-                  <li>• <strong className="text-[#FFFFFF]">Common Snippets:</strong> /montage, /flashback, /phone, /dream</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="card bg-[#141414] border border-white/10">
-              <div className="card-body">
-                <h3 className="font-bold mb-3 text-[#DC143C]">Split Screen</h3>
-                <p className="text-sm text-[#B3B3B3] mb-4">
-                  View two parts of your script simultaneously.
-                </p>
-                <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• Click "Split View" icon</li>
-                  <li>• Drag divider to adjust size</li>
-                  <li>• Independent scrolling</li>
-                  <li>• Copy/paste between views</li>
-                </ul>
-              </div>
-            </div>
           </div>
         </section>
 
