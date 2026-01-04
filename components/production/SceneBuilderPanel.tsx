@@ -585,12 +585,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
   }, [sceneAnalysisResult]);
 
-  // 🔥 NEW: Auto-select highest priority headshot for each character (using hook data)
+  // 🔥 NEW: Auto-select highest priority headshot for each character (using context data)
   useEffect(() => {
-    if (!sceneAnalysisResult || Object.keys(characterHeadshotsFromHook).length === 0) return;
+    if (!sceneAnalysisResult || Object.keys(characterHeadshots).length === 0) return;
     
     // Auto-select highest priority headshot for each character
-    Object.entries(characterHeadshotsFromHook).forEach(([characterId, headshots]) => {
+    Object.entries(characterHeadshots).forEach(([characterId, headshots]) => {
       if (headshots.length > 0) {
         const bestHeadshot = headshots[0]; // Already sorted by priority
         
