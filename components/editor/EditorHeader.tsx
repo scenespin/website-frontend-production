@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { List } from 'lucide-react';
 
 interface EditorHeaderProps {
     currentLine: number;
     isDirty: boolean;
     wordCount: number;
     duration: string;
+    onToggleSceneNav?: () => void; // Optional: for mobile scene navigator button
 }
 
 /**
@@ -17,8 +19,20 @@ export default function EditorHeader({
     currentLine,
     isDirty,
     wordCount,
-    duration
+    duration,
+    onToggleSceneNav
 }: EditorHeaderProps) {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     return (
         <div className="border-b border-[#3F3F46] bg-[#0A0A0A] px-4 py-2 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-4">
@@ -32,6 +46,18 @@ export default function EditorHeader({
                     <span className="text-xs font-medium text-warning">
                         • Unsaved changes
                     </span>
+                )}
+                {/* Scene Navigator Button - Mobile Only */}
+                {isMobile && onToggleSceneNav && (
+                    <button
+                        onClick={onToggleSceneNav}
+                        className="btn btn-sm btn-ghost gap-2 md:hidden"
+                        title="Toggle Scene Navigator"
+                        aria-label="Toggle Scene Navigator"
+                    >
+                        <List className="w-4 h-4" />
+                        <span className="text-xs">Scenes</span>
+                    </button>
                 )}
             </div>
             <div className="flex items-center text-xs text-base-content/50 gap-3">

@@ -33,7 +33,8 @@ export function parseSceneHeading(line: string): SceneHeadingParts {
     const trimmed = line.trim();
     
     // Match: INT./EXT./I/E [location] - [time]
-    const match = trimmed.match(/^(INT\.|EXT\.|INT\/EXT\.|INT\.\/EXT\.|EST\.|I\/E\.)\s*(.+?)?\s*(?:-\s*(.+))?$/i);
+    // Note: Must match both "I/E." and "I./E." (industry standard uses periods after each abbreviation)
+    const match = trimmed.match(/^(INT\.|EXT\.|INT\/EXT\.|INT\.\/EXT\.|EST\.|I\/E\.|I\.\/E\.)\s*(.+?)?\s*(?:-\s*(.+))?$/i);
     
     if (match) {
         return {
@@ -45,11 +46,30 @@ export function parseSceneHeading(line: string): SceneHeadingParts {
     }
     
     // Match partial: Just INT or EXT (no period yet)
-    const partialMatch = trimmed.match(/^(INT|EXT|I\/E|INT\/EXT|EST)\s*(.*)$/i);
+    // Important: Match INT/EXT and I/E BEFORE matching INT or EXT alone
+    // This prevents "int/ext" from being parsed as type="INT" with location="/ext"
+    const partialMatch = trimmed.match(/^(INT\/EXT|I\/E|INT|EXT|EST)\s*(.*)$/i);
     if (partialMatch) {
+        // If the "location" starts with "/", it's likely part of the type (e.g., "int/ext" was split)
+        // Reconstruct the full type
+        let type = partialMatch[1].toUpperCase();
+        let location = partialMatch[2]?.trim() || '';
+        
+        // Handle case where "int/ext" was split: type="INT", location="/ext"
+        if (location.startsWith('/') && (type === 'INT' || type === 'EXT')) {
+            // This is actually INT/EXT or I/E, reconstruct it
+            if (type === 'INT' && location.match(/^\/EXT/i)) {
+                type = 'INT/EXT';
+                location = location.replace(/^\/EXT\s*/i, '').trim();
+            } else if (type === 'I' && location.match(/^\/E/i)) {
+                type = 'I/E';
+                location = location.replace(/^\/E\s*/i, '').trim();
+            }
+        }
+        
         return {
-            type: partialMatch[1].toUpperCase(),
-            location: partialMatch[2]?.trim() || '',
+            type: type,
+            location: location,
             time: '',
             fullText: trimmed
         };
@@ -85,7 +105,8 @@ export function detectSceneHeadingField(line: string, cursorPos: number): SceneH
     const relativeCursorPos = cursorPos - leadingWhitespace;
     
     // Build regex to find field boundaries
-    const typePattern = /^(INT\.|EXT\.|INT\/EXT\.|INT\.\/EXT\.|EST\.|I\/E\.|INT|EXT|I\/E|INT\/EXT|EST)/i;
+    // Note: Must match both "I/E." and "I./E." formats
+    const typePattern = /^(INT\.|EXT\.|INT\/EXT\.|INT\.\/EXT\.|EST\.|I\/E\.|I\.\/E\.|INT|EXT|I\/E|INT\/EXT|EST)/i;
     const typeMatch = trimmed.match(typePattern);
     
     if (!typeMatch) {
@@ -265,11 +286,14 @@ export function updateSceneHeadingParts(
     currentParts: SceneHeadingParts,
     updates: Partial<Pick<SceneHeadingParts, 'type' | 'location' | 'time'>>
 ): SceneHeadingParts {
-    return {
+    const newParts = {
         type: updates.type !== undefined ? updates.type : currentParts.type,
         location: updates.location !== undefined ? updates.location : currentParts.location,
         time: updates.time !== undefined ? updates.time : currentParts.time,
-        fullText: '' // Will be rebuilt when needed
+        fullText: '' // Will be rebuilt
     };
+    // Rebuild fullText immediately to ensure consistency
+    newParts.fullText = buildSceneHeading(newParts);
+    return newParts;
 }
 

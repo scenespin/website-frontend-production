@@ -480,6 +480,7 @@ export default function EditorWorkspace() {
                         isDirty={state.isDirty}
                         wordCount={wordCount}
                         duration={duration}
+                        onToggleSceneNav={() => setIsSceneNavVisible(prev => !prev)}
                     />
                     
                     {/* Editor */}

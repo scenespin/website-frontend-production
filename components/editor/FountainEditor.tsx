@@ -35,6 +35,7 @@ interface FountainEditorProps {
     onUseRewrite?: () => void;
     onSelectionChangeProp?: (start: number, end: number) => void;
     onSelectionStateChange?: (hasSelection: boolean, selectedText: string | null, selectionRange: { start: number; end: number } | null) => void;
+    onToggleSceneNav?: () => void; // Optional: for mobile scene navigator button
 }
 
 export default function FountainEditor({
@@ -47,7 +48,8 @@ export default function FountainEditor({
     onKeepOriginal,
     onUseRewrite,
     onSelectionChangeProp,
-    onSelectionStateChange
+    onSelectionStateChange,
+    onToggleSceneNav
 }: FountainEditorProps) {
     // Context hooks
     const { state, setContent, setCursorPosition, setCurrentLine, insertText, replaceSelection, markSaved, clearHighlight, otherUsersCursors, lastSyncedContent } = useEditor();
@@ -594,10 +596,11 @@ export default function FountainEditor({
                             }
                         }
                         
-                        // Handle @ symbol as Tab trigger (mobile-friendly)
+                        // Handle $ symbol as Tab trigger (mobile-friendly)
                         // Only triggers Tab navigation in scene heading context
-                        // Otherwise, @ works normally for entity autocomplete (@ mentions)
-                        if (WRYDA_TAB_ENABLED && e.key === '@') {
+                        // $ is rarely used in screenplays (currency in dialogue is uncommon), so safe to use as trigger
+                        // $ is on the first symbol section of iPhone keyboards (easy access)
+                        if (WRYDA_TAB_ENABLED && e.key === '$') {
                             const textarea = e.currentTarget;
                             const cursorPos = textarea.selectionStart;
                             const textBeforeCursor = textarea.value.substring(0, cursorPos);
@@ -609,12 +612,12 @@ export default function FountainEditor({
                             const isSceneHeading = /^(INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/i.test(currentLineText.trim());
                             
                             if (isSceneHeading) {
-                                console.log('[WrydaTab] @ symbol pressed in scene heading, treating as Tab trigger...');
+                                console.log('[WrydaTab] $ symbol pressed in scene heading, treating as Tab trigger...');
                                 e.preventDefault();
                                 
-                                // Remove @ from text (it's just a trigger, not part of screenplay)
+                                // Remove $ from text (it's just a trigger, not part of screenplay)
                                 const textAfter = textarea.value.substring(cursorPos);
-                                const newValue = textBeforeCursor.substring(0, textBeforeCursor.length - 1) + textAfter; // Remove @
+                                const newValue = textBeforeCursor.substring(0, textBeforeCursor.length - 1) + textAfter; // Remove $
                                 
                                 // Update content and cursor position
                                 setContent(newValue);
@@ -638,12 +641,12 @@ export default function FountainEditor({
                                 
                                 // Call handleTab with synthetic event (reuses all Tab logic)
                                 if (wrydaTab.handleTab(syntheticEvent)) {
-                                    console.log('[WrydaTab] @ symbol handled by Tab navigation');
+                                    console.log('[WrydaTab] $ symbol handled by Tab navigation');
                                     return;
                                 }
                                 return;
                             }
-                            // If not in scene heading, let @ work normally for entity autocomplete
+                            // If not in scene heading, allow $ to be typed normally
                             // Don't prevent default - let handleChange process it
                         }
                         
