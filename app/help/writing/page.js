@@ -11,8 +11,8 @@ export const metadata = getSEOTags({
 
 export default function WritingHelp() {
   return (
-    <>
-      <header className="p-4 flex justify-between items-center max-w-7xl mx-auto bg-[#0A0A0A] border-b border-white/10">
+    <div className="min-h-screen bg-black">
+      <header className="p-4 flex justify-between items-center max-w-7xl mx-auto bg-black border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-2xl font-extrabold text-[#FFFFFF]">
             {config.appName}<span className="text-[#DC143C]">.ai</span>
@@ -21,7 +21,7 @@ export default function WritingHelp() {
         <Link href="/help" className="btn btn-ghost text-[#B3B3B3] hover:text-[#FFFFFF]">← Back to Help</Link>
       </header>
 
-      <main className="max-w-5xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
+      <main className="max-w-5xl mx-auto px-8 py-16 bg-black text-[#FFFFFF]">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-[#FFFFFF]">✍️ Writing & Fountain Editor</h1>
         <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
           Master the professional Fountain format screenplay editor with comprehensive features, keyboard shortcuts, collaboration, and 5 AI writing agents.
@@ -918,7 +918,7 @@ export default function WritingHelp() {
           <Link href="/help/production" className="btn bg-[#DC143C] hover:bg-[#8B0000] text-[#FFFFFF] border-none">Next: Production →</Link>
         </div>
       </main>
-    </>
+    </div>
   );
 }
 
