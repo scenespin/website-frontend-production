@@ -44,12 +44,13 @@ export default function ProductionHelp() {
                     <span className="badge bg-[#DC143C] text-[#FFFFFF] border-none badge-sm">Recommended</span>
                   </h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• 50 credits per 5-second video</li>
-                    <li>• 100 credits per 10-second video</li>
+                    <li>• ~50 credits per 5-second video*</li>
+                    <li>• ~100 credits per 10-second video*</li>
                     <li>• High-quality 1080p resolution</li>
                     <li>• Fast generation time</li>
                     <li>• Perfect for most productions</li>
                   </ul>
+                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue workflows and shot complexity</p>
                 </div>
                 <div className="p-4 rounded border border-[#00D9FF]/30 bg-[#0A0A0A]">
                   <h4 className="font-semibold mb-2 text-[#00D9FF] flex items-center gap-2">
@@ -57,12 +58,19 @@ export default function ProductionHelp() {
                     <span className="badge bg-[#00D9FF] text-[#0A0A0A] border-none badge-sm">Best Quality</span>
                   </h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• 75 credits per 5-second video</li>
-                    <li>• 150 credits per 10-second video</li>
+                    <li>• ~75 credits per 5-second video*</li>
+                    <li>• ~150 credits per 10-second video*</li>
                     <li>• Ultra-high quality 4K resolution</li>
                     <li>• Professional cinematic output</li>
                     <li>• Ideal for final production</li>
                   </ul>
+                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue workflows and shot complexity</p>
+                </div>
+              </div>
+
+              <div className="alert alert-info bg-[#0A0A0A] border border-[#00D9FF]/30 mb-4">
+                <div className="text-sm text-[#B3B3B3]">
+                  <strong className="text-[#00D9FF]">Pricing Note:</strong> Video generation costs are approximate and may vary based on dialogue workflows, shot complexity, and other factors. Actual costs will be shown before generation.
                 </div>
               </div>
 
