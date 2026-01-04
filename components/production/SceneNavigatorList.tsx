@@ -33,6 +33,8 @@ export function SceneNavigatorList({
 }: SceneNavigatorListProps) {
   const screenplay = useScreenplay();
   const scenes = screenplay.scenes || [];
+  const isLoading = screenplay.isLoading || false;
+  const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
   const { getToken } = useAuth();
   const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
 
@@ -118,6 +120,21 @@ export function SceneNavigatorList({
     fetchFirstLines();
   }, [projectId, getToken, scenes]);
 
+  // Show loading state while initializing
+  if (isLoading || !hasInitialized) {
+    return (
+      <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-[#DC143C] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-medium text-[#808080]">
+            Loading scenes...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state only after initialization is complete
   if (!scenes || scenes.length === 0) {
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
