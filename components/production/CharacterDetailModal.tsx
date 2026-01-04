@@ -2040,6 +2040,28 @@ export function CharacterDetailModal({
                                             throw new Error('Missing S3 key for image');
                                           }
                                           
+                                          const token = await getToken({ template: 'wryda-backend' });
+                                          if (!token) {
+                                            toast.error('Authentication required');
+                                            return;
+                                          }
+                                          
+                                          // 🔥 FIX: Delete from Media Library first (source of truth) - same pattern as locations and props
+                                          try {
+                                            const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                            await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+                                              method: 'POST',
+                                              headers: {
+                                                'Authorization': `Bearer ${token}`,
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({ s3Key: imgS3Key }),
+                                            });
+                                          } catch (mediaError: any) {
+                                            console.warn('[CharacterDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
+                                            // Continue with character update even if Media Library deletion fails
+                                          }
+                                          
                                           // Check if it's a pose reference (AI-generated) or user reference
                                           const poseRefs = (character as any).angleReferences || character.poseReferences || [];
                                           const isPoseRef = poseRefs.some((poseRef: any) => {
