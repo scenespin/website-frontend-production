@@ -16,7 +16,7 @@
  * - Asset library for timeline integration
  */
 
-import React, { useState, useEffect, useCallback, useRef, startTransition } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, startTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -421,6 +421,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const [characterIdsForMediaLibrary, setCharacterIdsForMediaLibrary] = useState<string[]>([]);
   
   // 🔥 NEW: Use custom hook for character references
+  // The hook uses useMemo internally, so references should be stable
   const {
     characterHeadshots: characterHeadshotsFromHook,
     characterThumbnailS3KeyMap,
@@ -433,43 +434,43 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     enabled: characterIdsForMediaLibrary.length > 0
   });
 
-  // Sync hook data to state (for backward compatibility during refactor)
-  // Use useRef to track previous value and prevent unnecessary updates
-  const prevCharacterHeadshotsRef = useRef<Record<string, CharacterHeadshot[]>>({});
+  // Update context directly when hook data changes
+  // Use useMemo with proper dependencies to prevent unnecessary updates
+  // The hook already uses useMemo, but we need to ensure we only update context when data actually changes
+  const characterHeadshotsKey = useMemo(() => {
+    // Create a stable key based on the actual data
+    return JSON.stringify(
+      Object.entries(characterHeadshotsFromHook)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([id, headshots]) => [id, headshots.length, headshots.map(h => h.s3Key).join(',')])
+    );
+  }, [characterHeadshotsFromHook]);
+  
+  const prevHeadshotsKeyRef = useRef<string>('');
   useEffect(() => {
-    // Only update if the data has actually changed (deep comparison of keys and structure)
-    const currentKeys = Object.keys(characterHeadshotsFromHook).sort().join(',');
-    const prevKeys = Object.keys(prevCharacterHeadshotsRef.current).sort().join(',');
-    
-    if (currentKeys !== prevKeys || Object.keys(characterHeadshotsFromHook).length > 0) {
-      // Check if content actually changed by comparing stringified versions
-      const currentStr = JSON.stringify(characterHeadshotsFromHook);
-      const prevStr = JSON.stringify(prevCharacterHeadshotsRef.current);
-      
-      if (currentStr !== prevStr) {
-        prevCharacterHeadshotsRef.current = characterHeadshotsFromHook;
-        contextActions.setCharacterHeadshots(characterHeadshotsFromHook);
-      }
+    // Only update if the data actually changed
+    if (characterHeadshotsKey !== prevHeadshotsKeyRef.current) {
+      prevHeadshotsKeyRef.current = characterHeadshotsKey;
+      contextActions.setCharacterHeadshots(characterHeadshotsFromHook);
     }
-  }, [characterHeadshotsFromHook, contextActions]);
+  }, [characterHeadshotsKey, characterHeadshotsFromHook, contextActions]);
 
-  // Update loadingHeadshots in context
-  const prevLoadingRef = useRef<Record<string, boolean>>({});
+  // Update loadingHeadshots in context (only when loading state or character IDs change)
+  const loadingStateKey = useMemo(() => {
+    return `${characterIdsForMediaLibrary.sort().join(',')}:${loadingCharacterHeadshots}`;
+  }, [characterIdsForMediaLibrary, loadingCharacterHeadshots]);
+  
+  const prevLoadingKeyRef = useRef<string>('');
   useEffect(() => {
-    const loading: Record<string, boolean> = {};
-    characterIdsForMediaLibrary.forEach(charId => {
-      loading[charId] = loadingCharacterHeadshots;
-    });
-    
-    // Only update if loading state actually changed
-    const loadingStr = JSON.stringify(loading);
-    const prevLoadingStr = JSON.stringify(prevLoadingRef.current);
-    
-    if (loadingStr !== prevLoadingStr) {
-      prevLoadingRef.current = loading;
+    if (loadingStateKey !== prevLoadingKeyRef.current) {
+      prevLoadingKeyRef.current = loadingStateKey;
+      const loading: Record<string, boolean> = {};
+      characterIdsForMediaLibrary.forEach(charId => {
+        loading[charId] = loadingCharacterHeadshots;
+      });
       contextActions.setLoadingHeadshots(loading);
     }
-  }, [characterIdsForMediaLibrary, loadingCharacterHeadshots, contextActions]);
+  }, [loadingStateKey, characterIdsForMediaLibrary, loadingCharacterHeadshots, contextActions]);
   
   // Use context state
   const enabledShots = contextState.enabledShots;
