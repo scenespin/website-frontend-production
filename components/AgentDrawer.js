@@ -137,7 +137,7 @@ export default function AgentDrawer({ children }) {
                 }}
                 className="text-sm font-medium text-base-content"
               >
-                AI Assistant
+                Story Advisor
               </button>
             )}
           </div>

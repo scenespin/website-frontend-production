@@ -65,11 +65,13 @@ export function DirectHub() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
-      {/* Tab Navigation */}
-      <DirectTabBar
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
+      {/* Tab Navigation - Hidden on mobile, shown on desktop */}
+      <div className="hidden md:block">
+        <DirectTabBar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
+      </div>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden bg-[#0A0A0A]">

@@ -280,11 +280,13 @@ export function ProductionHub({}: ProductionHubProps) {
           </div>
         )}
 
-        {/* Mobile Tab Navigation */}
-        <ProductionTabBar
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-        />
+        {/* Mobile Tab Navigation - Hidden on mobile, shown on desktop */}
+        <div className="hidden md:block">
+          <ProductionTabBar
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+          />
+        </div>
 
         {/* Mobile Content */}
         <div className="flex-1 overflow-hidden">

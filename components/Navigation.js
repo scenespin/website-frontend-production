@@ -336,26 +336,34 @@ export default function Navigation() {
                     {/* Sub-items (accordion content) */}
                     {openDropdown === item.name && (
                       <div className="ml-4 space-y-1 border-l-2 border-base-300 pl-3">
-                        {item.subItems.map((subItem) => (
-                          <Link
-                            key={subItem.name}
-                            href={subItem.href}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px] ${
-                              isActive(subItem.href)
-                                ? 'bg-cinema-red/20 text-cinema-red'
-                                : 'text-base-content hover:bg-base-300'
-                            }`}
-                          >
-                            <subItem.icon className="w-4 h-4 mt-0.5 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">{subItem.name}</div>
-                              {subItem.description && (
-                                <div className="text-xs text-base-content/60 mt-0.5">{subItem.description}</div>
-                              )}
-                            </div>
-                          </Link>
-                        ))}
+                        {item.subItems.map((subItem) => {
+                          // For Produce menu, use black styling instead of red
+                          const isProduceMenu = item.name === 'Produce';
+                          const isItemActive = isActive(subItem.href);
+                          
+                          return (
+                            <Link
+                              key={subItem.name}
+                              href={subItem.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px] ${
+                                isProduceMenu
+                                  ? 'text-base-content hover:bg-base-300'
+                                  : isItemActive
+                                  ? 'bg-cinema-red/20 text-cinema-red'
+                                  : 'text-base-content hover:bg-base-300'
+                              }`}
+                            >
+                              <subItem.icon className="w-4 h-4 mt-0.5 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium">{subItem.name}</div>
+                                {subItem.description && (
+                                  <div className="text-xs text-base-content/60 mt-0.5">{subItem.description}</div>
+                                )}
+                              </div>
+                            </Link>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
