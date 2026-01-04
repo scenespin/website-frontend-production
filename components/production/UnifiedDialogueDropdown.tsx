@@ -14,6 +14,84 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Info, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Base Workflow Dropdown Component (Custom DaisyUI Dropdown)
+function BaseWorkflowDropdown({ 
+  value, 
+  workflows, 
+  onChange 
+}: { 
+  value: string; 
+  workflows: Array<{ value: string; label: string }>; 
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const currentLabel = workflows.find(wf => wf.value === value)?.label || 'Action Line';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen]);
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        }}
+        className="w-full h-8 text-xs px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+      >
+        <span>{currentLabel} {value === 'action-line' ? '(suggested)' : ''}</span>
+        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
+      </button>
+      {isOpen && (
+        <ul
+          className="absolute top-full left-0 mt-1 w-full menu p-2 shadow-lg bg-[#1F1F1F] rounded-box border border-[#3F3F46] z-[9999] max-h-96 overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {workflows.map((wf) => (
+            <li key={wf.value}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange(wf.value);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs",
+                  value === wf.value
+                    ? "bg-[#DC143C]/20 text-[#FFFFFF]"
+                    : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
+                )}
+              >
+                {wf.label} {wf.value === 'action-line' ? '(suggested)' : ''}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export type DialogueQuality = 'premium' | 'reliable';
 export type DialogueWorkflowType = 
   | 'first-frame-lipsync'
