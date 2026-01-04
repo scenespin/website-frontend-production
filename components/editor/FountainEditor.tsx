@@ -595,42 +595,56 @@ export default function FountainEditor({
                         }
                         
                         // Handle @ symbol as Tab trigger (mobile-friendly)
-                        // Works exactly like Tab - reuses all existing Tab navigation logic
+                        // Only triggers Tab navigation in scene heading context
+                        // Otherwise, @ works normally for entity autocomplete (@ mentions)
                         if (WRYDA_TAB_ENABLED && e.key === '@') {
-                            console.log('[WrydaTab] @ symbol pressed, treating as Tab trigger...');
-                            e.preventDefault();
-                            
-                            // Remove @ from text (it's just a trigger, not part of screenplay)
                             const textarea = e.currentTarget;
                             const cursorPos = textarea.selectionStart;
-                            const textBefore = textarea.value.substring(0, cursorPos - 1); // Remove @
-                            const textAfter = textarea.value.substring(cursorPos);
-                            const newValue = textBefore + textAfter;
+                            const textBeforeCursor = textarea.value.substring(0, cursorPos);
+                            const lines = textBeforeCursor.split('\n');
+                            const currentLineText = lines[lines.length - 1] || '';
                             
-                            // Update content and cursor position
-                            setContent(newValue);
-                            setTimeout(() => {
-                                if (textarea) {
-                                    const newPos = cursorPos - 1;
-                                    textarea.selectionStart = newPos;
-                                    textarea.selectionEnd = newPos;
+                            // Check if we're in a scene heading context
+                            // Only trigger Tab navigation if line looks like scene heading
+                            const isSceneHeading = /^(INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/i.test(currentLineText.trim());
+                            
+                            if (isSceneHeading) {
+                                console.log('[WrydaTab] @ symbol pressed in scene heading, treating as Tab trigger...');
+                                e.preventDefault();
+                                
+                                // Remove @ from text (it's just a trigger, not part of screenplay)
+                                const textAfter = textarea.value.substring(cursorPos);
+                                const newValue = textBeforeCursor.substring(0, textBeforeCursor.length - 1) + textAfter; // Remove @
+                                
+                                // Update content and cursor position
+                                setContent(newValue);
+                                setTimeout(() => {
+                                    if (textarea) {
+                                        const newPos = cursorPos - 1;
+                                        textarea.selectionStart = newPos;
+                                        textarea.selectionEnd = newPos;
+                                        setCursorPosition(newPos);
+                                    }
+                                }, 0);
+                                
+                                // Create synthetic Tab event to reuse existing Tab logic
+                                const syntheticEvent = {
+                                    ...e,
+                                    key: 'Tab',
+                                    code: 'Tab',
+                                    preventDefault: () => {},
+                                    stopPropagation: () => {}
+                                } as KeyboardEvent<HTMLTextAreaElement>;
+                                
+                                // Call handleTab with synthetic event (reuses all Tab logic)
+                                if (wrydaTab.handleTab(syntheticEvent)) {
+                                    console.log('[WrydaTab] @ symbol handled by Tab navigation');
+                                    return;
                                 }
-                            }, 0);
-                            
-                            // Create synthetic Tab event to reuse existing Tab logic
-                            const syntheticEvent = new KeyboardEvent('keydown', {
-                                key: 'Tab',
-                                code: 'Tab',
-                                bubbles: true,
-                                cancelable: true
-                            });
-                            
-                            // Call handleTab with synthetic event (reuses all Tab logic)
-                            if (wrydaTab.handleTab(syntheticEvent as any)) {
-                                console.log('[WrydaTab] @ symbol handled by Tab navigation');
                                 return;
                             }
-                            return;
+                            // If not in scene heading, let @ work normally for entity autocomplete
+                            // Don't prevent default - let handleChange process it
                         }
                         
                         // Try Wryda Tab navigation first if enabled
