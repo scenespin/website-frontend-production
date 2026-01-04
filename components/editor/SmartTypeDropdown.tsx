@@ -43,45 +43,49 @@ export default function SmartTypeDropdown({
         setSelectedIndex(0);
     }, [query, items.length]);
 
-    // Keyboard navigation
+    // Keyboard navigation - only when dropdown is visible
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (filteredItems.length === 0) return;
+            
+            // Only handle keys if dropdown is actually visible
+            // Check if the dropdown element exists in the DOM
+            if (!listRef.current) return;
 
             switch (e.key) {
                 case 'ArrowDown':
                     e.preventDefault();
+                    e.stopPropagation(); // Prevent bubbling to textarea
                     setSelectedIndex(prev =>
                         prev < filteredItems.length - 1 ? prev + 1 : 0
                     );
                     break;
                 case 'ArrowUp':
                     e.preventDefault();
+                    e.stopPropagation(); // Prevent bubbling to textarea
                     setSelectedIndex(prev =>
                         prev > 0 ? prev - 1 : filteredItems.length - 1
                     );
                     break;
                 case 'Enter':
+                case 'Tab':
+                    // Tab and Enter both accept selection (like Final Draft)
                     e.preventDefault();
+                    e.stopPropagation(); // Prevent bubbling to textarea
                     if (filteredItems[selectedIndex]) {
                         onSelect(filteredItems[selectedIndex]);
                     }
                     break;
-                case 'Tab':
-                    // Tab should NOT accept selection - it should close dropdown
-                    // This prevents accidental selection when user presses Tab multiple times
-                    e.preventDefault();
-                    onClose();
-                    break;
                 case 'Escape':
                     e.preventDefault();
+                    e.stopPropagation(); // Prevent bubbling to textarea
                     onClose();
                     break;
             }
         };
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', handleKeyDown, true); // Use capture phase
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
     }, [filteredItems, selectedIndex, onSelect, onClose]);
 
     // Scroll selected item into view

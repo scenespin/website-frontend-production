@@ -28,6 +28,7 @@ interface SmartTypeState {
 interface UseWrydaTabNavigationReturn {
     handleTab: (e: KeyboardEvent<HTMLTextAreaElement>) => boolean; // Returns true if handled
     smartTypeDropdown: React.ReactNode | null;
+    isSmartTypeOpen: boolean; // Expose whether dropdown is open
 }
 
 /**
@@ -481,7 +482,8 @@ export function useWrydaTabNavigation(
 
     return {
         handleTab,
-        smartTypeDropdown
+        smartTypeDropdown,
+        isSmartTypeOpen: smartType !== null
     };
 }
 

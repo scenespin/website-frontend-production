@@ -578,6 +578,15 @@ export default function FountainEditor({
                     onChange={handleChange}
                     onPaste={handlePaste}
                     onKeyDown={(e) => {
+                        // If SmartType dropdown is open, let it handle Tab/Enter/Arrow keys
+                        if (WRYDA_TAB_ENABLED && wrydaTab.isSmartTypeOpen) {
+                            // Dropdown is open - let it handle navigation keys
+                            if (e.key === 'Tab' || e.key === 'Enter' || e.key === 'Escape' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                                // Don't prevent default - let dropdown handle it
+                                return; // Let dropdown handle these keys
+                            }
+                        }
+                        
                         // Try Wryda Tab navigation first if enabled
                         if (WRYDA_TAB_ENABLED && e.key === 'Tab' && !e.shiftKey) {
                             console.log('[WrydaTab] Tab key pressed, attempting to handle...');
