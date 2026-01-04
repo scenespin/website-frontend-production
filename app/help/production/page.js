@@ -140,9 +140,10 @@ export default function ProductionHelp() {
                 <div>
                   <h4 className="font-semibold mb-2 text-[#FFFFFF]">Quality Tier Selection</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Professional (1080p) - 50 credits per 5s</li>
-                    <li>• Premium (4K) - 75 credits per 5s</li>
+                    <li>• Professional (1080p) - ~50 credits per 5s*</li>
+                    <li>• Premium (4K) - ~75 credits per 5s*</li>
                   </ul>
+                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue workflows and shot complexity</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2 text-[#FFFFFF]">Resolution & Aspect Ratio</h4>
