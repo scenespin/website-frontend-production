@@ -15,18 +15,18 @@
  * - Generate button
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Film, ArrowLeft, Play } from 'lucide-react';
+import { Check, Film, ArrowLeft, Play, ChevronDown } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 import type { Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
@@ -404,18 +404,10 @@ export function SceneReviewStep({
               <label className="text-xs text-[#808080] whitespace-nowrap">
                 Resolution:
               </label>
-              <Select
+              <ResolutionSelector
                 value={globalResolution}
-                onValueChange={(value) => onGlobalResolutionChange(value as Resolution)}
-              >
-                <SelectTrigger className="w-[100px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1080p">HD</SelectItem>
-                  <SelectItem value="4k">4K</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(value) => onGlobalResolutionChange(value as Resolution)}
+              />
             </div>
             
             {/* Cost Calculator - Prices from backend (margins hidden) */}

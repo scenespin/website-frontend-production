@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Character {
   id: string;
@@ -209,9 +210,10 @@ export function PronounMappingSection({
                       "{pronoun}"
                     </label>
                     {/* Single-select dropdown for singular pronouns */}
-                    <Select
+                    <CharacterSelector
                       value={mappedCharacterId || '__select__'}
-                      onValueChange={(value) => {
+                      availableChars={availableChars}
+                      onChange={(value) => {
                         // Special values: "__select__" = no selection, "__ignore__" = skip
                         if (value === '__select__') {
                           onPronounMappingChange(pronounLower, undefined);
@@ -221,20 +223,7 @@ export function PronounMappingSection({
                           onPronounMappingChange(pronounLower, value);
                         }
                       }}
-                    >
-                      <SelectTrigger className="flex-1 h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__select__">-- Select character --</SelectItem>
-                        <SelectItem value="__ignore__">-- Skip (extras/background only) --</SelectItem>
-                        {availableChars.map((char) => (
-                          <SelectItem key={char.id} value={char.id}>
-                            {char.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                   
                   {/* Show prompt box for skipped pronouns - REQUIRED */}

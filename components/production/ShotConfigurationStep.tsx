@@ -7,12 +7,12 @@
  * Navigation: Previous/Next buttons, progress indicator
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Film, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Film, Check, ChevronDown } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { ShotNavigatorList } from './ShotNavigatorList';
@@ -25,9 +25,90 @@ import { ReferencePreview } from './ReferencePreview';
 import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
 import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
+import { cn } from '@/lib/utils';
+
+// Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
+function AspectRatioSelector({ value, onChange }: { value: string; onChange: (value: '16:9' | '9:16' | '1:1') => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const aspectRatios = useMemo(() => [
+    { value: '16:9' as const, label: '16:9 (Horizontal)' },
+    { value: '9:16' as const, label: '9:16 (Vertical)' },
+    { value: '1:1' as const, label: '1:1 (Square)' }
+  ], []);
+
+  const currentLabel = aspectRatios.find(ar => ar.value === value)?.label || '16:9 (Horizontal)';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+      <label className="text-xs font-medium text-[#FFFFFF] mb-2 block">
+        Aspect Ratio
+      </label>
+      <div ref={dropdownRef} className="relative">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }}
+          className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+        >
+          <span>{currentLabel}</span>
+          <ChevronDown className={cn("w-4 h-4 transition-transform", isOpen && "rotate-180")} />
+        </button>
+        {isOpen && (
+          <ul
+            className="absolute top-full left-0 mt-1 w-full menu p-2 shadow-lg bg-[#1F1F1F] rounded-box border border-[#3F3F46] z-[9999] max-h-96 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {aspectRatios.map((ar) => (
+              <li key={ar.value}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onChange(ar.value);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-sm",
+                    value === ar.value
+                      ? "bg-[#DC143C]/20 text-[#FFFFFF]"
+                      : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
+                  )}
+                >
+                  {ar.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface ShotConfigurationStepProps {
   shot: any;
@@ -900,24 +981,10 @@ export function ShotConfigurationStep({
               />
               {/* Aspect Ratio Selector */}
               {onAspectRatioChange && (
-                <div className="mt-3 pt-3 border-t border-[#3F3F46]">
-                  <label className="text-xs font-medium text-[#FFFFFF] mb-2 block">
-                    Aspect Ratio
-                  </label>
-                  <Select
-                    value={shotAspectRatio || '16:9'}
-                    onValueChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
-                  >
-                    <SelectTrigger className="w-full h-9 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="16:9">16:9 (Horizontal)</SelectItem>
-                      <SelectItem value="9:16">9:16 (Vertical)</SelectItem>
-                      <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <AspectRatioSelector
+                  value={shotAspectRatio || '16:9'}
+                  onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
+                />
               )}
             </>
           )}

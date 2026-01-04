@@ -11,18 +11,17 @@
  * - Character image display (right column)
  */
 
-import React from 'react';
-import { Check } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 import { LocationAngleSelector } from './LocationAngleSelector';
 import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { findCharacterById, getCharacterSource } from './utils/sceneBuilderUtils';
 import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState } from 'react';
 import { toast } from 'sonner';
 import { getAvailablePropImages } from './utils/propImageUtils';
+import { cn } from '@/lib/utils';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -960,31 +959,13 @@ export function ShotConfigurationPanel({
           </div>
 
           {/* Base Workflow Dropdown */}
-          <div className="mt-4">
-            <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Base Workflow:</label>
-            <Select
-              value={selectedBaseWorkflow || 'action-line'}
-              onValueChange={(value) => onBaseWorkflowChange?.(shot.slot, value)}
-            >
-              <SelectTrigger className="w-full h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="action-line">Action Line (suggested)</SelectItem>
-                {ACTION_WORKFLOWS.filter(wf => wf.value !== 'action-line').map(wf => (
-                  <SelectItem key={wf.value} value={wf.value}>{wf.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="text-[10px] text-[#808080] mt-1">
-              This will generate a {getWorkflowLabel(selectedBaseWorkflow || 'action-line')} video and add voiceover audio to it.
-            </div>
-            {shotWorkflowOverride && (
-              <div className="text-[10px] text-[#DC143C] mt-1">
-                Override: Using selected workflow instead of auto-detected
-              </div>
-            )}
-          </div>
+          <BaseWorkflowSelector
+            value={selectedBaseWorkflow || 'action-line'}
+            workflows={ACTION_WORKFLOWS}
+            getWorkflowLabel={getWorkflowLabel}
+            shotWorkflowOverride={shotWorkflowOverride}
+            onChange={(value) => onBaseWorkflowChange?.(shot.slot, value)}
+          />
 
           {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) */}
           {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
