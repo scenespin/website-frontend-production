@@ -578,6 +578,13 @@ export default function FountainEditor({
                     onChange={handleChange}
                     onPaste={handlePaste}
                     onKeyDown={(e) => {
+                        // Escape key: Exit Tab navigation completely (close dropdown if open)
+                        if (WRYDA_TAB_ENABLED && e.key === 'Escape' && wrydaTab.isSmartTypeOpen) {
+                            // Let dropdown handle Escape to close itself
+                            // The dropdown's Escape handler will call onClose
+                            return;
+                        }
+                        
                         // If SmartType dropdown is open, let it handle Tab/Enter/Arrow keys
                         if (WRYDA_TAB_ENABLED && wrydaTab.isSmartTypeOpen) {
                             // Dropdown is open - let it handle navigation keys

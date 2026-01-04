@@ -11,7 +11,7 @@ interface SmartTypeItem {
 
 interface SmartTypeDropdownProps {
     items: SmartTypeItem[];
-    position: { top: number; left: number };
+    position: { top: number; left: number; above?: boolean };
     onSelect: (item: SmartTypeItem) => void;
     onClose: () => void;
     query?: string; // Current text being typed (for filtering)
@@ -107,7 +107,9 @@ export default function SmartTypeDropdown({
             className="fixed z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg w-72 max-h-64 overflow-y-auto"
             style={{
                 top: `${position.top}px`,
-                left: `${position.left}px`
+                left: `${position.left}px`,
+                // Ensure dropdown stays within viewport
+                maxWidth: `calc(100vw - ${position.left}px - 20px)`
             }}
         >
             <div ref={listRef} className="py-1">

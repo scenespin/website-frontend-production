@@ -79,16 +79,13 @@ export function useWrydaTabNavigation(
 
     /**
      * Get dropdown position near cursor
+     * Shows above cursor if near bottom of screen, otherwise below
      */
-    const getDropdownPosition = useCallback((): { top: number; left: number } => {
+    const getDropdownPosition = useCallback((): { top: number; left: number; above?: boolean } => {
         if (!textareaRef.current) return { top: 0, left: 0 };
         
         const textarea = textareaRef.current;
         const cursorPos = textarea.selectionStart;
-        
-        // Create a temporary range to measure cursor position
-        const range = document.createRange();
-        const textNode = textarea.firstChild || textarea;
         
         // Approximate position (textarea doesn't support getBoundingClientRect for text positions easily)
         // Use textarea's position + estimate based on line height
@@ -98,21 +95,76 @@ export function useWrydaTabNavigation(
         const lineHeight = 24; // Approximate line height
         const charWidth = 8; // Approximate character width
         
+        const dropdownHeight = 256; // max-h-64 = 256px
+        const spaceBelow = window.innerHeight - (textareaRect.top + (lineNumber * lineHeight) + lineHeight);
+        const spaceAbove = textareaRect.top + (lineNumber * lineHeight);
+        
+        // Show above if not enough space below, but enough space above
+        const showAbove = spaceBelow < dropdownHeight && spaceAbove > dropdownHeight;
+        
+        const baseTop = textareaRect.top + (lineNumber * lineHeight) + lineHeight;
+        
         return {
-            top: textareaRect.top + (lineNumber * lineHeight) + lineHeight + 5,
-            left: textareaRect.left + (lines[lines.length - 1].length * charWidth) + 10
+            top: showAbove 
+                ? baseTop - dropdownHeight - 5  // Show above with 5px gap
+                : baseTop + 5,                    // Show below with 5px gap
+            left: textareaRect.left + (lines[lines.length - 1].length * charWidth) + 10,
+            above: showAbove
         };
     }, [textareaRef, state.content]);
 
     /**
      * Show SmartType dropdown for locations
+     * Sorts locations by INT/EXT type matching current scene heading
      */
     const showLocationSmartType = useCallback((query: string = '') => {
-        const locations = screenplay.locations.map(loc => ({
-            id: loc.id,
-            label: loc.name,
-            type: 'location' as const
-        }));
+        if (!textareaRef.current) return;
+        
+        // Get current scene heading type to match locations
+        const lineInfo = getCurrentLineInfo();
+        let currentSceneType: 'INT' | 'EXT' | 'INT/EXT' | null = null;
+        
+        if (lineInfo) {
+            const parts = parseSceneHeading(lineInfo.currentLineText);
+            const typeUpper = parts.type.toUpperCase();
+            if (typeUpper.includes('INT/EXT') || typeUpper.includes('I/E')) {
+                currentSceneType = 'INT/EXT';
+            } else if (typeUpper.startsWith('EXT')) {
+                currentSceneType = 'EXT';
+            } else if (typeUpper.startsWith('INT')) {
+                currentSceneType = 'INT';
+            }
+        }
+        
+        // Map and sort locations: matching type first, then others
+        const locations = screenplay.locations
+            .map(loc => ({
+                id: loc.id,
+                label: loc.name,
+                type: 'location' as const,
+                locationType: loc.type || null as 'INT' | 'EXT' | 'INT/EXT' | null
+            }))
+            .sort((a, b) => {
+                // If we have a current scene type, prioritize matching locations
+                if (currentSceneType) {
+                    const aMatches = a.locationType === currentSceneType;
+                    const bMatches = b.locationType === currentSceneType;
+                    if (aMatches && !bMatches) return -1;
+                    if (!aMatches && bMatches) return 1;
+                }
+                // Then sort by INT, EXT, INT/EXT, then null
+                const typeOrder = { 'INT': 0, 'EXT': 1, 'INT/EXT': 2, null: 3 };
+                const aOrder = typeOrder[a.locationType || null];
+                const bOrder = typeOrder[b.locationType || null];
+                if (aOrder !== bOrder) return aOrder - bOrder;
+                // Finally alphabetically
+                return a.label.localeCompare(b.label);
+            })
+            .map(loc => ({
+                id: loc.id,
+                label: loc.label,
+                type: 'location' as const
+            }));
         
         setSmartType({
             show: true,
@@ -121,7 +173,7 @@ export function useWrydaTabNavigation(
             field: 'location',
             query
         });
-    }, [screenplay.locations, getDropdownPosition]);
+    }, [screenplay.locations, getDropdownPosition, getCurrentLineInfo]);
 
     /**
      * Show SmartType dropdown for times
@@ -420,11 +472,13 @@ export function useWrydaTabNavigation(
 
     /**
      * Check if a line looks like it could be a scene heading (even if incomplete)
+     * Supports INT, EXT, INT/EXT, I/E, EST
      */
     const looksLikeSceneHeading = useCallback((line: string): boolean => {
         const trimmed = line.trim().toUpperCase();
         // Check if it starts with scene heading prefixes (even without period)
-        return /^(INT|EXT|EST|I\/E|INT\/EXT)/.test(trimmed) && trimmed.length <= 20;
+        // Supports: INT, EXT, INT/EXT, INT./EXT., I/E, I/E., EST
+        return /^(INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/.test(trimmed) && trimmed.length <= 25;
     }, []);
 
     /**
