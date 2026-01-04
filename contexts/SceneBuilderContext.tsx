@@ -729,6 +729,15 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     
     setLocationThumbnailUrlsMap: useCallback((map) => {
       setState(prev => ({ ...prev, locationThumbnailUrlsMap: map }));
+    }, []),
+    
+    // Additional state setters needed for Media Library hooks
+    setCharacterHeadshots: useCallback((headshots) => {
+      setState(prev => ({ ...prev, characterHeadshots: headshots }));
+    }, []),
+    
+    setLoadingHeadshots: useCallback((loading) => {
+      setState(prev => ({ ...prev, loadingHeadshots: loading }));
     }, [])
   };
 
