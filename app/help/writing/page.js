@@ -146,6 +146,30 @@ export default function WritingHelp() {
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">I</kbd></td>
                     </tr>
                     <tr className="border-white/10">
+                      <td>Wryda Smart Tab (Scene Headings)</td>
+                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Tab</kbd></td>
+                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Tab</kbd></td>
+                    </tr>
+                    <tr className="border-white/10 text-xs text-[#808080]">
+                      <td colSpan="3" className="italic">In scene headings: Navigate Type → Location → Time fields with SmartType suggestions</td>
+                    </tr>
+                    <tr className="border-white/10">
+                      <td>Wryda Smart Tab (Mobile)</td>
+                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">$</kbd></td>
+                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">$</kbd></td>
+                    </tr>
+                    <tr className="border-white/10 text-xs text-[#808080]">
+                      <td colSpan="3" className="italic">Mobile: Type $ in scene heading to trigger Tab navigation (e.g., "INT$" → shows location dropdown)</td>
+                    </tr>
+                    <tr className="border-white/10">
+                      <td>Quick Link Character/Location</td>
+                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">@</kbd></td>
+                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">@</kbd></td>
+                    </tr>
+                    <tr className="border-white/10 text-xs text-[#808080]">
+                      <td colSpan="3" className="italic">Type @ anywhere to quickly link/reference characters or locations (autocomplete dropdown)</td>
+                    </tr>
+                    <tr className="border-white/10">
                       <td>Force Character Name</td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Tab</kbd></td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Tab</kbd></td>
@@ -208,10 +232,11 @@ export default function WritingHelp() {
 
               <h3 className="font-bold mb-4 mt-6 text-[#DC143C]">Smart Suggestions</h3>
               <ul className="space-y-2 text-[#B3B3B3]">
+                <li>• <strong className="text-[#FFFFFF]">Wryda Smart Tab</strong> - In scene headings, press Tab (or $ on mobile) to navigate between Type → Location → Time fields with SmartType suggestions</li>
                 <li>• <strong className="text-[#FFFFFF]">Character name completion</strong> - Type first few letters, get suggestions</li>
-                <li>• <strong className="text-[#FFFFFF]">Location suggestions</strong> - Based on previously used locations</li>
+                <li>• <strong className="text-[#FFFFFF]">Location suggestions</strong> - Based on previously used locations (sorted by INT/EXT type)</li>
                 <li>• <strong className="text-[#FFFFFF]">Time of day</strong> - Common options: DAY, NIGHT, MORNING, etc.</li>
-                <li>• <strong className="text-[#FFFFFF]">@Mention autocomplete</strong> - Reference characters, locations, scenes</li>
+                <li>• <strong className="text-[#FFFFFF]">@ Quick Link</strong> - Type @ anywhere to quickly link/reference characters or locations (autocomplete dropdown, @ symbol removed from final text)</li>
               </ul>
             </div>
           </div>
@@ -240,15 +265,15 @@ export default function WritingHelp() {
 
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
-                <h3 className="font-bold mb-3 text-[#DC143C]">@Mentions System</h3>
+                <h3 className="font-bold mb-3 text-[#DC143C]">@ Quick Link System</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  Quickly reference and navigate using @mentions in your screenplay or AI chat.
+                  Quickly link and reference characters or locations anywhere in your screenplay. Type <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">@</kbd> to open autocomplete dropdown.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">@character</strong> - Jump to character scenes (e.g., @sarah, @john)</li>
-                  <li>• <strong className="text-[#FFFFFF]">@location</strong> - Jump to location (e.g., @coffeeshop, @apartment)</li>
-                  <li>• <strong className="text-[#FFFFFF]">@scene</strong> - Jump to specific scene (e.g., @scene1, @scene12)</li>
-                  <li>• <strong className="text-[#FFFFFF]">Use with AI:</strong> "Analyze @sarah's character arc" or "Generate dialogue for @scene5"</li>
+                  <li>• <strong className="text-[#FFFFFF]">@character</strong> - Quick link to character (e.g., @sarah, @john) - @ symbol is removed, only character name inserted</li>
+                  <li>• <strong className="text-[#FFFFFF]">@location</strong> - Quick link to location (e.g., @coffeeshop, @apartment) - @ symbol is removed, only location name inserted</li>
+                  <li>• <strong className="text-[#FFFFFF]">Works anywhere</strong> - Use in action lines, dialogue, notes, or anywhere in your screenplay</li>
+                  <li>• <strong className="text-[#FFFFFF]">Fountain-safe</strong> - @ symbol is not part of Fountain format, so it's safe to use and won't conflict with imported scripts</li>
                 </ul>
               </div>
             </div>

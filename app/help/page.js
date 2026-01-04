@@ -83,6 +83,8 @@ export default function HelpCenter() {
             features={[
               "Professional screenplay editor",
               "5 AI writing agents (Story Advisor, Screenwriter, Director, Dialogue, Rewrite)",
+              "Wryda Smart Tab - Navigate scene headings with Tab/$ key",
+              "@ Quick Link - Fast character/location linking",
               "Fountain format support",
               "GitHub version control"
             ]}
