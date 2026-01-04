@@ -126,7 +126,8 @@ export class SceneBuilderService {
             imageUrl: prop.imageUrl || prop.thumbnailUrl,
             s3Key: prop.s3Key || prop.imageS3Key,
             angleReferences: prop.angleReferences || [],
-            images: prop.images || []
+            images: prop.images || [],
+            baseReference: prop.baseReference || undefined // 🔥 NEW: Include baseReference for creation image fallback
           }));
     } catch (error: any) {
       // Gracefully handle errors - log but don't break the scene builder

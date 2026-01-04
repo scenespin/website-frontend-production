@@ -690,23 +690,38 @@ export function ShotConfigurationPanel({
             <div className="space-y-3">
               {assignedProps.map((prop) => {
                 const propConfig = shotProps[shot.slot]?.[prop.id] || {};
-                // Type assertion to ensure we have the full prop type with angleReferences and images
+                // Type assertion to ensure we have the full prop type with angleReferences, images, and baseReference
                 const fullProp = prop as typeof prop & {
                   angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
                   images?: Array<{ url: string; s3Key?: string }>;
+                  baseReference?: { s3Key?: string; imageUrl?: string };
                 };
                 
                 return (
                   <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
-                        {prop.imageUrl && (
-                          <img 
-                            src={prop.imageUrl} 
-                            alt={prop.name}
-                            className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
-                          />
-                        )}
+                        {(() => {
+                          // 🔥 FIX: Use baseReference as fallback when imageUrl is broken or missing
+                          const displayImageUrl = prop.imageUrl || fullProp.baseReference?.imageUrl;
+                          return displayImageUrl ? (
+                            <img 
+                              src={displayImageUrl} 
+                              alt={prop.name}
+                              className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
+                              onError={(e) => {
+                                // If main image fails, try baseReference
+                                const imgElement = e.target as HTMLImageElement;
+                                if (prop.imageUrl && fullProp.baseReference?.imageUrl && imgElement.src !== fullProp.baseReference.imageUrl) {
+                                  imgElement.src = fullProp.baseReference.imageUrl;
+                                } else {
+                                  // Hide broken image
+                                  imgElement.style.display = 'none';
+                                }
+                              }}
+                            />
+                          ) : null;
+                        })()}
                         <span className="text-xs font-medium text-[#FFFFFF]">{prop.name}</span>
                       </div>
                       {/* Remove Prop from Shot Checkbox */}
@@ -763,6 +778,15 @@ export function ShotConfigurationPanel({
                         });
                       }
                       
+                      // 🔥 FIX: Fallback to baseReference (creation image) if no angleReferences or images
+                      if (availableImages.length === 0 && fullProp.baseReference?.imageUrl) {
+                        availableImages.push({
+                          id: fullProp.baseReference.imageUrl,
+                          imageUrl: fullProp.baseReference.imageUrl,
+                          label: 'Creation Image'
+                        });
+                      }
+                      
                       // If no images available, use the default imageUrl
                       if (availableImages.length === 0 && prop.imageUrl) {
                         availableImages.push({
@@ -800,18 +824,19 @@ export function ShotConfigurationPanel({
                                     {(() => {
                                       // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
                                       // Find the s3Key for this image
-                                      const fullProp = prop as typeof prop & {
+                                      const fullPropForImage = prop as typeof prop & {
                                         angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
                                         images?: Array<{ url: string; s3Key?: string }>;
+                                        baseReference?: { s3Key?: string; imageUrl?: string };
                                       };
                                       
                                       let imageS3Key: string | null = null;
-                                      if (fullProp.angleReferences) {
-                                        const ref = fullProp.angleReferences.find(r => r.id === img.id);
+                                      if (fullPropForImage.angleReferences) {
+                                        const ref = fullPropForImage.angleReferences.find(r => r.id === img.id);
                                         if (ref?.s3Key) imageS3Key = ref.s3Key;
                                       }
-                                      if (!imageS3Key && fullProp.images) {
-                                        const imgData = fullProp.images.find(i => i.url === img.id);
+                                      if (!imageS3Key && fullPropForImage.images) {
+                                        const imgData = fullPropForImage.images.find(i => i.url === img.id);
                                         if (imgData?.s3Key) imageS3Key = imgData.s3Key;
                                       }
                                       
@@ -824,10 +849,29 @@ export function ShotConfigurationPanel({
                                       const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
                                       const displayUrl = thumbnailUrl || img.imageUrl;
                                       
+                                      // Get baseReference for fallback
+                                      const baseRefImageUrl = fullPropForImage.baseReference?.imageUrl;
+                                      
                                       return (
                                         <img
                                           src={displayUrl}
                                           alt={img.label || prop.name}
+                                          className="w-full h-full object-cover rounded"
+                                          loading="lazy"
+                                          onError={(e) => {
+                                            // 🔥 FIX: If thumbnail fails, try full image, then baseReference
+                                            const imgElement = e.target as HTMLImageElement;
+                                            if (thumbnailUrl && displayUrl === thumbnailUrl && img.imageUrl && img.imageUrl !== displayUrl) {
+                                              // Try full image first
+                                              imgElement.src = img.imageUrl;
+                                            } else if (baseRefImageUrl && imgElement.src !== baseRefImageUrl) {
+                                              // Then try baseReference
+                                              imgElement.src = baseRefImageUrl;
+                                            } else {
+                                              // Hide broken image if no fallback
+                                              imgElement.style.display = 'none';
+                                            }
+                                          }}
                                           className="w-full h-full object-cover rounded"
                                           loading="lazy"
                                           onError={(e) => {

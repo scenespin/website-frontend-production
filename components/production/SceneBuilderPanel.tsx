@@ -304,8 +304,25 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     return keys;
   }, [characterHeadshots, characterThumbnailS3KeyMap]);
 
+  // 🔥 NEW: Collect all headshot full image S3 keys (for presigned URL generation if imageUrl is empty)
+  const headshotFullImageS3Keys = React.useMemo(() => {
+    const keys: string[] = [];
+    Object.values(characterHeadshots).forEach(headshots => {
+      headshots.forEach(headshot => {
+        // If imageUrl is empty or looks like an s3Key (not a full URL), we need to generate presigned URL
+        if (headshot.s3Key && (!headshot.imageUrl || (!headshot.imageUrl.startsWith('http') && !headshot.imageUrl.startsWith('data:')))) {
+          keys.push(headshot.s3Key);
+        }
+      });
+    });
+    return keys;
+  }, [characterHeadshots]);
+
   // 🔥 NEW: Fetch thumbnail URLs for all headshots
   const { data: thumbnailUrlsMap } = useBulkPresignedUrls(headshotThumbnailS3Keys, headshotThumbnailS3Keys.length > 0);
+  
+  // 🔥 NEW: Fetch presigned URLs for full images (when imageUrl is empty or is an s3Key)
+  const { data: fullImageUrlsMap } = useBulkPresignedUrls(headshotFullImageS3Keys, headshotFullImageS3Keys.length > 0);
 
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
@@ -330,6 +347,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     s3Key?: string;
     angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
     images?: Array<{ url: string; s3Key?: string }>;
+    baseReference?: { s3Key?: string; imageUrl?: string };
   }>>([]);
   const [propsToShots, setPropsToShots] = useState<Record<string, number[]>>({}); // propId -> shot slots
   const [shotProps, setShotProps] = useState<Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>>({}); // Per-shot prop configs
@@ -809,11 +827,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       const { angleReferences: mlAngleReferences, images: mlImages } = mapMediaFilesToPropStructure(propMediaFilesForProp, prop.id);
       
-      // Use Media Library data as source of truth
+      // Use Media Library data as source of truth, but preserve baseReference for fallback
       return {
         ...prop,
         angleReferences: mlAngleReferences.length > 0 ? mlAngleReferences : prop.angleReferences,
-        images: mlImages.length > 0 ? mlImages : prop.images
+        images: mlImages.length > 0 ? mlImages : prop.images,
+        baseReference: prop.baseReference // Preserve baseReference for fallback when all images are deleted
       };
     });
     
@@ -3354,12 +3373,29 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                               (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
                             );
                             
-                            // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
-                            const thumbnailKey = headshot.s3Key && headshot.s3Key.trim() !== ''
-                              ? `thumbnails/${headshot.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`
-                              : null;
-                            const thumbnailUrl = thumbnailKey && thumbnailUrlsMap?.get(thumbnailKey);
-                            const displayUrl = thumbnailUrl || headshot.imageUrl;
+                            // 🔥 FIX: Get thumbnail URL using thumbnailS3Key from Media Library (not manual construction)
+                            // Use the thumbnailS3Key from characterThumbnailS3KeyMap if available
+                            let thumbnailS3Key: string | null = null;
+                            if (headshot.s3Key && characterThumbnailS3KeyMap.has(headshot.s3Key)) {
+                              thumbnailS3Key = characterThumbnailS3KeyMap.get(headshot.s3Key) || null;
+                            }
+                            
+                            // Get presigned URL for thumbnail if available
+                            const thumbnailUrl = thumbnailS3Key && thumbnailUrlsMap?.get(thumbnailS3Key);
+                            
+                            // Get presigned URL for full image if thumbnail not available and imageUrl is empty or is an s3Key
+                            let fullImageUrl: string | undefined;
+                            if (!thumbnailUrl && headshot.s3Key) {
+                              // Check if we have a presigned URL for the full image
+                              fullImageUrl = fullImageUrlsMap?.get(headshot.s3Key);
+                              // If not, and imageUrl is a full URL, use it
+                              if (!fullImageUrl && headshot.imageUrl && (headshot.imageUrl.startsWith('http') || headshot.imageUrl.startsWith('data:'))) {
+                                fullImageUrl = headshot.imageUrl;
+                              }
+                            }
+                            
+                            // Use thumbnail first, then full image presigned URL, then imageUrl
+                            const displayUrl = thumbnailUrl || fullImageUrl || headshot.imageUrl || '';
                             
                             // Check if this is the creation image (last resort)
                             const isCreationImage = headshot.poseId === 'base-reference' || headshot.label === 'Creation Image (Last Resort)';
