@@ -326,6 +326,42 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // 🔥 NEW: Fetch presigned URLs for full images (when imageUrl is empty or is an s3Key)
   const { data: fullImageUrlsMap } = useBulkPresignedUrls(headshotFullImageS3Keys, headshotFullImageS3Keys.length > 0);
 
+  // 🔥 FIX: Update selectedCharacterReferences with presigned URLs when available
+  useEffect(() => {
+    if (!fullImageUrlsMap || fullImageUrlsMap.size === 0) return;
+    
+    // Check if any selectedCharacterReferences need presigned URLs
+    let needsUpdate = false;
+    const updated = { ...selectedCharacterReferences };
+    
+    Object.entries(selectedCharacterReferences).forEach(([shotSlotStr, shotRefs]) => {
+      const shotSlot = parseInt(shotSlotStr);
+      const updatedShotRefs = { ...shotRefs };
+      
+      Object.entries(shotRefs).forEach(([charId, charRef]) => {
+        // If imageUrl is empty or is an s3Key (not a full URL), try to get presigned URL
+        if (charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))) {
+          const presignedUrl = fullImageUrlsMap.get(charRef.s3Key);
+          if (presignedUrl && presignedUrl !== charRef.imageUrl) {
+            updatedShotRefs[charId] = {
+              ...charRef,
+              imageUrl: presignedUrl
+            };
+            needsUpdate = true;
+          }
+        }
+      });
+      
+      if (Object.keys(updatedShotRefs).length > 0) {
+        updated[shotSlot] = updatedShotRefs;
+      }
+    });
+    
+    if (needsUpdate) {
+      setSelectedCharacterReferences(updated);
+    }
+  }, [fullImageUrlsMap, selectedCharacterReferences]);
+
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
     const scrollContainer = document.querySelector('.h-full.overflow-auto');
@@ -835,17 +871,24 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       );
       
       if (propMediaFilesForProp.length === 0) {
-        // No Media Library files found, keep original prop structure (fallback)
-        return prop;
+        // 🔥 FIX: No Media Library files found - use empty arrays (don't use old database references)
+        // Only preserve baseReference as fallback
+        return {
+          ...prop,
+          angleReferences: [], // Media Library is source of truth - if no files, no angleReferences
+          images: [], // Media Library is source of truth - if no files, no images
+          baseReference: prop.baseReference // Preserve baseReference for fallback when all images are deleted
+        };
       }
       
       const { angleReferences: mlAngleReferences, images: mlImages } = mapMediaFilesToPropStructure(propMediaFilesForProp, prop.id);
       
-      // Use Media Library data as source of truth, but preserve baseReference for fallback
+      // 🔥 FIX: Use Media Library data as source of truth - only use what exists in Media Library
+      // Never fall back to old database angleReferences/images (they may be deleted)
       return {
         ...prop,
-        angleReferences: mlAngleReferences.length > 0 ? mlAngleReferences : prop.angleReferences,
-        images: mlImages.length > 0 ? mlImages : prop.images,
+        angleReferences: mlAngleReferences, // Only Media Library files
+        images: mlImages, // Only Media Library files
         baseReference: prop.baseReference // Preserve baseReference for fallback when all images are deleted
       };
     });

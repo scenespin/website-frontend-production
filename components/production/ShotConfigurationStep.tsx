@@ -697,13 +697,26 @@ export function ShotConfigurationStep({
                   const char = allCharacters.find(c => c.id === charId);
                   if (char) {
                     const charRef = selectedCharacterReferences[shot.slot]?.[charId];
-                    if (charRef?.imageUrl) {
-                      references.push({
-                        type: 'character',
-                        imageUrl: charRef.imageUrl,
-                        label: char.name || `Character ${charId}`,
-                        id: `char-${charId}`
-                      });
+                    // 🔥 FIX: Check if we have a reference (even if imageUrl is empty, we might have s3Key)
+                    // The imageUrl should be set by the parent component's useEffect that updates with presigned URLs
+                    if (charRef && (charRef.imageUrl || charRef.s3Key)) {
+                      // Use imageUrl if available, otherwise try to get from characterHeadshots
+                      let imageUrl = charRef.imageUrl;
+                      if (!imageUrl && charRef.s3Key && characterHeadshots[charId]) {
+                        const headshot = characterHeadshots[charId].find(h => h.s3Key === charRef.s3Key);
+                        if (headshot?.imageUrl) {
+                          imageUrl = headshot.imageUrl;
+                        }
+                      }
+                      
+                      if (imageUrl) {
+                        references.push({
+                          type: 'character',
+                          imageUrl: imageUrl,
+                          label: char.name || `Character ${charId}`,
+                          id: `char-${charId}`
+                        });
+                      }
                     }
                   }
                 });
