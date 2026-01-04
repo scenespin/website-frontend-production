@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
+import { Sparkles, MessageSquare, Film, Edit3 } from "lucide-react";
 
 export const metadata = getSEOTags({
   title: `Writing & Fountain Editor | ${config.appName} Help`,
@@ -533,7 +534,9 @@ export default function WritingHelp() {
             <div className="card bg-[#141414] border border-[#DC143C]/30">
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-4xl">🌟</span>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-700">
+                    <MessageSquare className="h-6 w-6 text-white" />
+                  </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">
                       Story Advisor
@@ -608,7 +611,9 @@ export default function WritingHelp() {
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-4xl">✍️</span>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700">
+                    <Edit3 className="h-6 w-6 text-white" />
+                  </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">Screenwriter</h3>
                     <p className="text-sm text-[#B3B3B3]">Continue scenes, expand content, and develop your screenplay</p>
@@ -680,7 +685,9 @@ export default function WritingHelp() {
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-4xl">🎬</span>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-700">
+                    <Film className="h-6 w-6 text-white" />
+                  </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">Director</h3>
                     <p className="text-sm text-[#B3B3B3]">Generate complete, production-ready scenes with action, dialogue, and direction</p>
@@ -752,7 +759,9 @@ export default function WritingHelp() {
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-4xl">💬</span>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-700">
+                    <MessageSquare className="h-6 w-6 text-white" />
+                  </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">Dialogue</h3>
                     <p className="text-sm text-[#B3B3B3]">Polish dialogue, match character voice, and improve conversations</p>
@@ -824,7 +833,9 @@ export default function WritingHelp() {
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-4xl">✨</span>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cinema-red to-red-800">
+                    <Sparkles className="h-6 w-6 text-white" />
+                  </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">Rewrite</h3>
                     <p className="text-sm text-[#B3B3B3]">Polish and refine text, fix pacing, improve clarity, and enhance style</p>
