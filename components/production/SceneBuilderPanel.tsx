@@ -682,8 +682,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         id: bg.id,
         imageUrl: bg.imageUrl,
         s3Key: bg.s3Key,
-        backgroundType: bg.backgroundType || 'custom',
-        sourceType: bg.sourceType,
+        backgroundType: (bg.backgroundType || 'custom') as 'custom' | 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature',
+        sourceType: bg.sourceType as 'angle-variations' | 'reference-images' | undefined,
         sourceAngleId: bg.sourceAngleId,
         metadata: bg.metadata,
         timeOfDay: bg.timeOfDay,
@@ -722,7 +722,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         angleVariations: finalAngleVariations,
         backgrounds: finalBackgrounds
       }
-    };
+    } as SceneAnalysisResult;
   }, [sceneAnalysisResult, locationDataFromMediaLibrary, locationId]);
   
   // Toggle workflow selection
