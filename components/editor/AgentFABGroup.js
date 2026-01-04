@@ -102,7 +102,11 @@ export default function AgentFABGroup({
       >
         {/* Rewrite FAB - Always visible (works with or without text selection) */}
         <motion.button
-          onClick={onLaunchRewrite}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onLaunchRewrite();
+          }}
           className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-lg border-2 border-white/30 ${
             isMobile ? 'shadow-2xl' : 'shadow-lg'
           }`}
@@ -143,7 +147,11 @@ export default function AgentFABGroup({
 
         {/* Dialogue FAB */}
         <motion.button
-          onClick={onLaunchDialogue}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onLaunchDialogue();
+          }}
           className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-lg border-2 border-white/30 ${
             isMobile ? 'shadow-2xl' : 'shadow-lg'
           }`}
@@ -174,7 +182,11 @@ export default function AgentFABGroup({
         {/* Director FAB */}
         {onLaunchDirector && (
           <motion.button
-            onClick={onLaunchDirector}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onLaunchDirector();
+            }}
             className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-lg border-2 border-white/30 ${
               isMobile ? 'shadow-2xl' : 'shadow-lg'
             }`}
@@ -205,7 +217,11 @@ export default function AgentFABGroup({
 
         {/* Screenwriter FAB */}
         <motion.button
-          onClick={onLaunchScreenwriter}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onLaunchScreenwriter();
+          }}
           className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-lg border-2 border-white/30 ${
             isMobile ? 'shadow-2xl' : 'shadow-lg'
           }`}

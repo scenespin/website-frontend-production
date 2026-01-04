@@ -249,11 +249,11 @@ export default function EditorWorkspace() {
         }, 300);
     };
     
-    // FAB Launch Handlers
-    const handleLaunchScreenwriter = () => {
+    // FAB Launch Handlers - Wrapped to prevent blocking
+    const handleLaunchScreenwriter = useCallback(() => {
         // Open screenwriter modal instead of drawer
         setIsScreenwriterModalOpen(true);
-    };
+    }, []);
     
     // Handle screenwriter insertion (called from ScreenwriterModal)
     const handleScreenwriterInsert = (content: string) => {
@@ -265,10 +265,10 @@ export default function EditorWorkspace() {
     };
     
     // FAB Launch Handlers - Director
-    const handleLaunchDirector = () => {
+    const handleLaunchDirector = useCallback(() => {
         // Open director modal instead of drawer
         setIsDirectorModalOpen(true);
-    };
+    }, []);
     
     // Handle director insertion (called from DirectorModal)
     const handleDirectorInsert = (content: string) => {
@@ -280,10 +280,10 @@ export default function EditorWorkspace() {
     };
     
     // FAB Launch Handlers - Dialogue
-    const handleLaunchDialogue = () => {
+    const handleLaunchDialogue = useCallback(() => {
         // Open dialogue modal instead of drawer
         setIsDialogueModalOpen(true);
-    };
+    }, []);
     
     // Handle dialogue insertion (called from DialogueModal)
     const handleDialogueInsert = (content: string) => {
@@ -301,7 +301,7 @@ export default function EditorWorkspace() {
         setIsDialogueModalOpen(true);
     };
     
-    const handleLaunchRewrite = () => {
+    const handleLaunchRewrite = useCallback(() => {
         // 🔥 CRITICAL: Only allow rewrite if text is actually selected (not just cursor position)
         if (!selectedText || !selectionRange) {
             toast.error('Please select text to rewrite');
@@ -323,7 +323,7 @@ export default function EditorWorkspace() {
         
         // Open rewrite modal instead of drawer
         setIsRewriteModalOpen(true);
-    };
+    }, [selectedText, selectionRange]);
     
     // Handle rewrite replacement (called from RewriteModal)
     const handleRewriteReplace = (rewrittenText: string) => {
