@@ -94,7 +94,13 @@ export function MobileDebugPanel() {
     // Intercept fetch API calls
     const originalFetch = window.fetch;
     window.fetch = async (...args: Parameters<typeof fetch>) => {
-      const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || 'unknown';
+      const url = typeof args[0] === 'string' 
+        ? args[0] 
+        : args[0] instanceof URL 
+          ? args[0].toString()
+          : args[0] instanceof Request
+            ? args[0].url
+            : 'unknown';
       const method = args[1]?.method || 'GET';
       
       const apiLog: LogEntry = {
