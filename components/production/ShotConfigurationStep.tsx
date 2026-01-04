@@ -189,10 +189,8 @@ export function ShotConfigurationStep({
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('basic');
   
-  // Determine tab labels based on shot type
+  // Determine if this is a dialogue shot (only dialogue shots have tabs)
   const isDialogueShot = shot.type === 'dialogue';
-  const tab1Label = isDialogueShot ? 'LIP SYNC OPTIONS' : 'Basic Settings';
-  const tab2Label = isDialogueShot ? 'NON-LIP SYNC OPTIONS' : 'Advanced Options';
   
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
@@ -475,131 +473,185 @@ export function ShotConfigurationStep({
           </div>
         </CardHeader>
         <CardContent className="space-y-4 pb-4">
-          {/* Tabs - Feature 0182: Conditional labels based on shot type */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-[#1F1F1F] border border-[#3F3F46]">
-              <TabsTrigger value="basic" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
-                {tab1Label}
-              </TabsTrigger>
-              <TabsTrigger value="advanced" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
-                {tab2Label}
-              </TabsTrigger>
-            </TabsList>
-            
-            {/* Shot Description - Full text, no truncation */}
-            <div className="pb-3 border-b border-[#3F3F46] mt-4">
-              <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Description</div>
-              <div className="text-xs text-[#808080] break-words whitespace-pre-wrap">
-                {shot.narrationBlock?.text || shot.dialogueBlock?.dialogue || shot.description || 'No description'}
-              </div>
+          {/* Shot Description - Full text, no truncation */}
+          <div className="pb-3 border-b border-[#3F3F46]">
+            <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Description</div>
+            <div className="text-xs text-[#808080] break-words whitespace-pre-wrap">
+              {shot.narrationBlock?.text || shot.dialogueBlock?.dialogue || shot.description || 'No description'}
             </div>
+          </div>
 
-            {/* Basic Settings / LIP SYNC OPTIONS Tab */}
-            <TabsContent value="basic" className="mt-4">
-              <ShotConfigurationPanel
-                activeTab="basic"
-                isDialogueShot={isDialogueShot}
-                shot={shot}
-                sceneAnalysisResult={sceneAnalysisResult}
-                shotMappings={shotMappings}
-                hasPronouns={hasPronouns}
-                explicitCharacters={explicitCharacters}
-                singularPronounCharacters={singularPronounCharacters}
-                pluralPronounCharacters={pluralPronounCharacters}
-                selectedLocationReferences={selectedLocationReferences}
-                onLocationAngleChange={onLocationAngleChange}
-                isLocationAngleRequired={isLocationAngleRequired}
-                needsLocationAngle={needsLocationAngle}
-                locationOptOuts={locationOptOuts}
-                onLocationOptOutChange={onLocationOptOutChange}
-                locationDescriptions={locationDescriptions}
-                onLocationDescriptionChange={onLocationDescriptionChange}
-                renderCharacterControlsOnly={renderCharacterControlsOnly}
-                renderCharacterImagesOnly={renderCharacterImagesOnly}
-                pronounInfo={pronounInfo}
-                allCharacters={allCharacters}
-                selectedCharactersForShots={selectedCharactersForShots}
-                onCharactersForShotChange={onCharactersForShotChange}
-                onPronounMappingChange={onPronounMappingChange}
-                characterHeadshots={characterHeadshots}
-                loadingHeadshots={loadingHeadshots}
-                selectedCharacterReferences={selectedCharacterReferences}
-                characterOutfits={characterOutfits}
-                onCharacterReferenceChange={onCharacterReferenceChange}
-                onCharacterOutfitChange={onCharacterOutfitChange}
-                selectedDialogueQuality={selectedDialogueQuality}
-                selectedDialogueWorkflow={selectedDialogueWorkflow}
-                onDialogueQualityChange={onDialogueQualityChange}
-                onDialogueWorkflowChange={onDialogueWorkflowChange}
-                dialogueWorkflowPrompt={dialogueWorkflowPrompt}
-                onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
-                pronounExtrasPrompts={pronounExtrasPrompts}
-                onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                sceneProps={sceneProps}
-                propsToShots={propsToShots}
-                onPropsToShotsChange={onPropsToShotsChange}
-                shotProps={shotProps}
-                onPropDescriptionChange={onPropDescriptionChange}
-                onPropImageChange={onPropImageChange}
-                shotWorkflowOverride={shotWorkflowOverride}
-                onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
-                propThumbnailS3KeyMap={propThumbnailS3KeyMap}
-              />
-            </TabsContent>
+          {/* Conditional rendering: Tabs for dialogue shots, single screen for action shots */}
+          {isDialogueShot ? (
+            /* Dialogue shots: Show tabs (LIP SYNC OPTIONS / NON-LIP SYNC OPTIONS) */
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-[#1F1F1F] border border-[#3F3F46]">
+                <TabsTrigger value="basic" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
+                  LIP SYNC OPTIONS
+                </TabsTrigger>
+                <TabsTrigger value="advanced" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
+                  NON-LIP SYNC OPTIONS
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* LIP SYNC OPTIONS Tab */}
+              <TabsContent value="basic" className="mt-4">
+                <ShotConfigurationPanel
+                  activeTab="basic"
+                  isDialogueShot={isDialogueShot}
+                  shot={shot}
+                  sceneAnalysisResult={sceneAnalysisResult}
+                  shotMappings={shotMappings}
+                  hasPronouns={hasPronouns}
+                  explicitCharacters={explicitCharacters}
+                  singularPronounCharacters={singularPronounCharacters}
+                  pluralPronounCharacters={pluralPronounCharacters}
+                  selectedLocationReferences={selectedLocationReferences}
+                  onLocationAngleChange={onLocationAngleChange}
+                  isLocationAngleRequired={isLocationAngleRequired}
+                  needsLocationAngle={needsLocationAngle}
+                  locationOptOuts={locationOptOuts}
+                  onLocationOptOutChange={onLocationOptOutChange}
+                  locationDescriptions={locationDescriptions}
+                  onLocationDescriptionChange={onLocationDescriptionChange}
+                  renderCharacterControlsOnly={renderCharacterControlsOnly}
+                  renderCharacterImagesOnly={renderCharacterImagesOnly}
+                  pronounInfo={pronounInfo}
+                  allCharacters={allCharacters}
+                  selectedCharactersForShots={selectedCharactersForShots}
+                  onCharactersForShotChange={onCharactersForShotChange}
+                  onPronounMappingChange={onPronounMappingChange}
+                  characterHeadshots={characterHeadshots}
+                  loadingHeadshots={loadingHeadshots}
+                  selectedCharacterReferences={selectedCharacterReferences}
+                  characterOutfits={characterOutfits}
+                  onCharacterReferenceChange={onCharacterReferenceChange}
+                  onCharacterOutfitChange={onCharacterOutfitChange}
+                  selectedDialogueQuality={selectedDialogueQuality}
+                  selectedDialogueWorkflow={selectedDialogueWorkflow}
+                  onDialogueQualityChange={onDialogueQualityChange}
+                  onDialogueWorkflowChange={onDialogueWorkflowChange}
+                  dialogueWorkflowPrompt={dialogueWorkflowPrompt}
+                  onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
+                  pronounExtrasPrompts={pronounExtrasPrompts}
+                  onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                  sceneProps={sceneProps}
+                  propsToShots={propsToShots}
+                  onPropsToShotsChange={onPropsToShotsChange}
+                  shotProps={shotProps}
+                  onPropDescriptionChange={onPropDescriptionChange}
+                  onPropImageChange={onPropImageChange}
+                  shotWorkflowOverride={shotWorkflowOverride}
+                  onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
+                  propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+                />
+              </TabsContent>
 
-            {/* Advanced Options / NON-LIP SYNC OPTIONS Tab */}
-            <TabsContent value="advanced" className="mt-4">
-              <ShotConfigurationPanel
-                activeTab="advanced"
-                isDialogueShot={isDialogueShot}
-                shot={shot}
-                sceneAnalysisResult={sceneAnalysisResult}
-                shotMappings={shotMappings}
-                hasPronouns={hasPronouns}
-                explicitCharacters={explicitCharacters}
-                singularPronounCharacters={singularPronounCharacters}
-                pluralPronounCharacters={pluralPronounCharacters}
-                selectedLocationReferences={selectedLocationReferences}
-                onLocationAngleChange={onLocationAngleChange}
-                isLocationAngleRequired={isLocationAngleRequired}
-                needsLocationAngle={needsLocationAngle}
-                locationOptOuts={locationOptOuts}
-                onLocationOptOutChange={onLocationOptOutChange}
-                locationDescriptions={locationDescriptions}
-                onLocationDescriptionChange={onLocationDescriptionChange}
-                renderCharacterControlsOnly={renderCharacterControlsOnly}
-                renderCharacterImagesOnly={renderCharacterImagesOnly}
-                pronounInfo={pronounInfo}
-                allCharacters={allCharacters}
-                selectedCharactersForShots={selectedCharactersForShots}
-                onCharactersForShotChange={onCharactersForShotChange}
-                onPronounMappingChange={onPronounMappingChange}
-                characterHeadshots={characterHeadshots}
-                loadingHeadshots={loadingHeadshots}
-                selectedCharacterReferences={selectedCharacterReferences}
-                characterOutfits={characterOutfits}
-                onCharacterReferenceChange={onCharacterReferenceChange}
-                onCharacterOutfitChange={onCharacterOutfitChange}
-                selectedDialogueQuality={selectedDialogueQuality}
-                selectedDialogueWorkflow={selectedDialogueWorkflow}
-                onDialogueQualityChange={onDialogueQualityChange}
-                onDialogueWorkflowChange={onDialogueWorkflowChange}
-                dialogueWorkflowPrompt={dialogueWorkflowPrompt}
-                onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
-                pronounExtrasPrompts={pronounExtrasPrompts}
-                onPronounExtrasPromptChange={onPronounExtrasPromptChange}
-                sceneProps={sceneProps}
-                propsToShots={propsToShots}
-                onPropsToShotsChange={onPropsToShotsChange}
-                shotProps={shotProps}
-                onPropDescriptionChange={onPropDescriptionChange}
-                onPropImageChange={onPropImageChange}
-                shotWorkflowOverride={shotWorkflowOverride}
-                onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
-                propThumbnailS3KeyMap={propThumbnailS3KeyMap}
-              />
-            </TabsContent>
-          </Tabs>
+              {/* NON-LIP SYNC OPTIONS Tab */}
+              <TabsContent value="advanced" className="mt-4">
+                <ShotConfigurationPanel
+                  activeTab="advanced"
+                  isDialogueShot={isDialogueShot}
+                  shot={shot}
+                  sceneAnalysisResult={sceneAnalysisResult}
+                  shotMappings={shotMappings}
+                  hasPronouns={hasPronouns}
+                  explicitCharacters={explicitCharacters}
+                  singularPronounCharacters={singularPronounCharacters}
+                  pluralPronounCharacters={pluralPronounCharacters}
+                  selectedLocationReferences={selectedLocationReferences}
+                  onLocationAngleChange={onLocationAngleChange}
+                  isLocationAngleRequired={isLocationAngleRequired}
+                  needsLocationAngle={needsLocationAngle}
+                  locationOptOuts={locationOptOuts}
+                  onLocationOptOutChange={onLocationOptOutChange}
+                  locationDescriptions={locationDescriptions}
+                  onLocationDescriptionChange={onLocationDescriptionChange}
+                  renderCharacterControlsOnly={renderCharacterControlsOnly}
+                  renderCharacterImagesOnly={renderCharacterImagesOnly}
+                  pronounInfo={pronounInfo}
+                  allCharacters={allCharacters}
+                  selectedCharactersForShots={selectedCharactersForShots}
+                  onCharactersForShotChange={onCharactersForShotChange}
+                  onPronounMappingChange={onPronounMappingChange}
+                  characterHeadshots={characterHeadshots}
+                  loadingHeadshots={loadingHeadshots}
+                  selectedCharacterReferences={selectedCharacterReferences}
+                  characterOutfits={characterOutfits}
+                  onCharacterReferenceChange={onCharacterReferenceChange}
+                  onCharacterOutfitChange={onCharacterOutfitChange}
+                  selectedDialogueQuality={selectedDialogueQuality}
+                  selectedDialogueWorkflow={selectedDialogueWorkflow}
+                  onDialogueQualityChange={onDialogueQualityChange}
+                  onDialogueWorkflowChange={onDialogueWorkflowChange}
+                  dialogueWorkflowPrompt={dialogueWorkflowPrompt}
+                  onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
+                  pronounExtrasPrompts={pronounExtrasPrompts}
+                  onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                  sceneProps={sceneProps}
+                  propsToShots={propsToShots}
+                  onPropsToShotsChange={onPropsToShotsChange}
+                  shotProps={shotProps}
+                  onPropDescriptionChange={onPropDescriptionChange}
+                  onPropImageChange={onPropImageChange}
+                  shotWorkflowOverride={shotWorkflowOverride}
+                  onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
+                  propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+                />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            /* Action/Establishing shots: Single screen, no tabs */
+            <ShotConfigurationPanel
+              activeTab="basic"
+              isDialogueShot={isDialogueShot}
+              shot={shot}
+              sceneAnalysisResult={sceneAnalysisResult}
+              shotMappings={shotMappings}
+              hasPronouns={hasPronouns}
+              explicitCharacters={explicitCharacters}
+              singularPronounCharacters={singularPronounCharacters}
+              pluralPronounCharacters={pluralPronounCharacters}
+              selectedLocationReferences={selectedLocationReferences}
+              onLocationAngleChange={onLocationAngleChange}
+              isLocationAngleRequired={isLocationAngleRequired}
+              needsLocationAngle={needsLocationAngle}
+              locationOptOuts={locationOptOuts}
+              onLocationOptOutChange={onLocationOptOutChange}
+              locationDescriptions={locationDescriptions}
+              onLocationDescriptionChange={onLocationDescriptionChange}
+              renderCharacterControlsOnly={renderCharacterControlsOnly}
+              renderCharacterImagesOnly={renderCharacterImagesOnly}
+              pronounInfo={pronounInfo}
+              allCharacters={allCharacters}
+              selectedCharactersForShots={selectedCharactersForShots}
+              onCharactersForShotChange={onCharactersForShotChange}
+              onPronounMappingChange={onPronounMappingChange}
+              characterHeadshots={characterHeadshots}
+              loadingHeadshots={loadingHeadshots}
+              selectedCharacterReferences={selectedCharacterReferences}
+              characterOutfits={characterOutfits}
+              onCharacterReferenceChange={onCharacterReferenceChange}
+              onCharacterOutfitChange={onCharacterOutfitChange}
+              selectedDialogueQuality={selectedDialogueQuality}
+              selectedDialogueWorkflow={selectedDialogueWorkflow}
+              onDialogueQualityChange={onDialogueQualityChange}
+              onDialogueWorkflowChange={onDialogueWorkflowChange}
+              dialogueWorkflowPrompt={dialogueWorkflowPrompt}
+              onDialogueWorkflowPromptChange={onDialogueWorkflowPromptChange}
+              pronounExtrasPrompts={pronounExtrasPrompts}
+              onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+              sceneProps={sceneProps}
+              propsToShots={propsToShots}
+              onPropsToShotsChange={onPropsToShotsChange}
+              shotProps={shotProps}
+              onPropDescriptionChange={onPropDescriptionChange}
+              onPropImageChange={onPropImageChange}
+              shotWorkflowOverride={shotWorkflowOverride}
+              onShotWorkflowOverrideChange={onShotWorkflowOverrideChange}
+              propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+            />
+          )}
 
           {/* Reference Shot (First Frame) Model Selection */}
           {onReferenceShotModelChange && (
