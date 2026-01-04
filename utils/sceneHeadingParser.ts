@@ -193,3 +193,83 @@ export const TIME_OF_DAY_OPTIONS = [
 
 export type TimeOfDay = typeof TIME_OF_DAY_OPTIONS[number];
 
+/**
+ * Format scene heading type according to industry standards
+ * - INT → INT.
+ * - EXT → EXT.
+ * - INT/EXT → INT./EXT.
+ * - I/E → I./E.
+ * - EST → EST.
+ * 
+ * Handles mixed case inputs like "int/ext" → "INT./EXT."
+ */
+export function formatSceneHeadingType(type: string): string {
+    // Normalize input - handle mixed case like "int/ext" or "I/E"
+    const normalized = type.trim();
+    const upper = normalized.toUpperCase();
+    
+    // Handle INT/EXT variations (industry standard: INT./EXT.)
+    // Match: "int/ext", "INT/EXT", "int/EXT", "INT/ext", "INT./EXT", "INT/EXT."
+    if (upper.includes('INT/EXT') || upper.includes('INT./EXT') || upper.includes('INT/EXT.')) {
+        // Normalize to INT./EXT. (periods after each abbreviation)
+        return 'INT./EXT.';
+    }
+    
+    // Handle I/E variations (industry standard: I./E.)
+    // Match: "i/e", "I/E", "I/e", "i/E", "I./E", "I/E."
+    if (upper.includes('I/E') || upper.includes('I./E') || upper.includes('I/E.')) {
+        // Normalize to I./E. (periods after each abbreviation)
+        return 'I./E.';
+    }
+    
+    // Handle simple types (INT, EXT, EST)
+    // Must check for INT/EXT first, so check that it doesn't include "/"
+    if (upper.startsWith('INT') && !upper.includes('/')) {
+        return 'INT.';
+    }
+    if (upper.startsWith('EXT') && !upper.includes('/')) {
+        return 'EXT.';
+    }
+    if (upper.startsWith('EST')) {
+        return 'EST.';
+    }
+    
+    // Default: add period if missing, but preserve structure
+    return upper.endsWith('.') ? upper : upper + '.';
+}
+
+/**
+ * Build a complete scene heading string from parts
+ * Formats type according to industry standards and assembles: TYPE LOCATION - TIME
+ */
+export function buildSceneHeading(parts: SceneHeadingParts): string {
+    const formattedType = formatSceneHeadingType(parts.type);
+    let heading = formattedType;
+    
+    if (parts.location && parts.location.trim()) {
+        heading += ' ' + parts.location.trim();
+    }
+    
+    if (parts.time && parts.time.trim()) {
+        heading += ' - ' + parts.time.trim();
+    }
+    
+    return heading;
+}
+
+/**
+ * Update scene heading parts with new values
+ * Useful for incrementally building scene headings
+ */
+export function updateSceneHeadingParts(
+    currentParts: SceneHeadingParts,
+    updates: Partial<Pick<SceneHeadingParts, 'type' | 'location' | 'time'>>
+): SceneHeadingParts {
+    return {
+        type: updates.type !== undefined ? updates.type : currentParts.type,
+        location: updates.location !== undefined ? updates.location : currentParts.location,
+        time: updates.time !== undefined ? updates.time : currentParts.time,
+        fullText: '' // Will be rebuilt when needed
+    };
+}
+
