@@ -756,22 +756,25 @@ export function ShotConfigurationPanel({
                       // Get all available images for this prop (angleReferences first, then images)
                       const availableImages: Array<{ id: string; imageUrl: string; label?: string }> = [];
                       
-                      // Add angleReferences (Production Hub images)
+                      // Add angleReferences (Production Hub images) - only if they have valid imageUrl
                       if (fullProp.angleReferences && fullProp.angleReferences.length > 0) {
                         fullProp.angleReferences.forEach(ref => {
-                          availableImages.push({
-                            id: ref.id,
-                            imageUrl: ref.imageUrl,
-                            label: ref.label
-                          });
+                          // 🔥 FIX: Only add if imageUrl exists and is not empty
+                          if (ref.imageUrl && ref.imageUrl.trim() !== '') {
+                            availableImages.push({
+                              id: ref.id,
+                              imageUrl: ref.imageUrl,
+                              label: ref.label
+                            });
+                          }
                         });
                       }
                       
-                      // Add images[] (Creation images) if no angleReferences
+                      // Add images[] (Creation images) if no valid angleReferences
                       if (availableImages.length === 0 && fullProp.images && fullProp.images.length > 0) {
                         fullProp.images.forEach(img => {
                           // Only add if image has a valid URL
-                          if (img.url) {
+                          if (img.url && img.url.trim() !== '') {
                             availableImages.push({
                               id: img.url,
                               imageUrl: img.url,
@@ -781,8 +784,8 @@ export function ShotConfigurationPanel({
                         });
                       }
                       
-                      // 🔥 FIX: Fallback to baseReference (creation image) if no angleReferences or no valid images
-                      // Check baseReference even if images array exists but is empty or has no valid URLs
+                      // 🔥 FIX: Fallback to baseReference (creation image) if no valid angleReferences or images
+                      // This ensures we show the creation image when Production Hub images are deleted/broken
                       if (availableImages.length === 0 && fullProp.baseReference?.imageUrl) {
                         availableImages.push({
                           id: fullProp.baseReference.imageUrl || fullProp.baseReference.s3Key || 'base-reference',

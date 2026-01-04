@@ -3648,7 +3648,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   // Navigation rules:
                   // 1. Current shot - always navigable
                   // 2. Previous shots - navigable if completed
-                  // 3. Next shot - navigable ONLY if current shot is complete
+                  // 3. Next shot - navigable ONLY if current shot is complete AND has required fields
                   // 4. Shots beyond next - not navigable until reached sequentially
                   let isNavigable = false;
                   if (shotSlot === currentShot.slot) {
@@ -3657,8 +3657,74 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     // Previous shot - must be completed
                     isNavigable = completedShots.has(shotSlot);
                   } else if (shotSlot === nextShotSlot) {
-                    // Next shot - only if current is complete
-                    isNavigable = isCurrentShotComplete;
+                    // Next shot - only if current is complete AND has character images selected
+                    if (isCurrentShotComplete) {
+                      // 🔥 FIX: Validate character images before allowing navigation
+                      const validationErrors: string[] = [];
+                      const shot = currentShot;
+                      
+                      // Collect all character IDs for this shot
+                      const shotCharacterIds = new Set<string>();
+                      
+                      // Add explicit characters from action/dialogue
+                      if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
+                        const dialogueChar = getCharacterSource(allCharacters, sceneAnalysisResult)
+                          .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
+                        if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
+                      }
+                      
+                      // Add characters from pronoun mappings
+                      const shotMappings = pronounMappingsForShots[shot.slot] || {};
+                      for (const [pronoun, mapping] of Object.entries(shotMappings)) {
+                        if (mapping && mapping !== '__ignore__') {
+                          if (Array.isArray(mapping)) {
+                            mapping.forEach(charId => shotCharacterIds.add(charId));
+                          } else {
+                            shotCharacterIds.add(mapping);
+                          }
+                        }
+                      }
+                      
+                      // Add additional characters for dialogue workflows
+                      const additionalChars = selectedCharactersForShots[shot.slot] || [];
+                      additionalChars.forEach(charId => shotCharacterIds.add(charId));
+                      
+                      // Check each character has image selection
+                      for (const charId of shotCharacterIds) {
+                        if (!charId || charId === '__ignore__') continue;
+                        
+                        const headshots = characterHeadshots[charId] || [];
+                        const hasSelectedReference = selectedCharacterReferences[shot.slot]?.[charId] !== undefined;
+                        
+                        // If headshots are displayed, a selection is required
+                        if (headshots.length > 0 && !hasSelectedReference) {
+                          const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
+                          validationErrors.push(
+                            `${charName} requires a character image selection. Please select an image from the options displayed above.`
+                          );
+                        }
+                        
+                        // If no headshots available and no reference selected, require adding headshots
+                        if (headshots.length === 0 && !hasSelectedReference) {
+                          const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
+                          validationErrors.push(
+                            `${charName} requires a character image. Please add headshots in the Character Bank (Production Hub) or Creation Hub, or upload images.`
+                          );
+                        }
+                      }
+                      
+                      if (validationErrors.length > 0) {
+                        toast.error('Character image required', {
+                          description: validationErrors.join('. '),
+                          duration: 5000
+                        });
+                        isNavigable = false;
+                      } else {
+                        isNavigable = true;
+                      }
+                    } else {
+                      isNavigable = false;
+                    }
                   }
                   
                   if (isNavigable) {
@@ -3671,6 +3737,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                         description: 'Please fill out all required fields for this shot before moving to the next one.',
                         duration: 3000
                       });
+                    } else if (shotSlot === nextShotSlot && isCurrentShotComplete) {
+                      // Character image validation failed
+                      // Error already shown above
                     } else {
                       toast.error('Complete previous shots first', {
                         description: 'You can only navigate to completed shots or the next shot (if current is complete).',
