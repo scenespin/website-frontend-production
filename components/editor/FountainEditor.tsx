@@ -594,6 +594,45 @@ export default function FountainEditor({
                             }
                         }
                         
+                        // Handle @ symbol as Tab trigger (mobile-friendly)
+                        // Works exactly like Tab - reuses all existing Tab navigation logic
+                        if (WRYDA_TAB_ENABLED && e.key === '@') {
+                            console.log('[WrydaTab] @ symbol pressed, treating as Tab trigger...');
+                            e.preventDefault();
+                            
+                            // Remove @ from text (it's just a trigger, not part of screenplay)
+                            const textarea = e.currentTarget;
+                            const cursorPos = textarea.selectionStart;
+                            const textBefore = textarea.value.substring(0, cursorPos - 1); // Remove @
+                            const textAfter = textarea.value.substring(cursorPos);
+                            const newValue = textBefore + textAfter;
+                            
+                            // Update content and cursor position
+                            setContent(newValue);
+                            setTimeout(() => {
+                                if (textarea) {
+                                    const newPos = cursorPos - 1;
+                                    textarea.selectionStart = newPos;
+                                    textarea.selectionEnd = newPos;
+                                }
+                            }, 0);
+                            
+                            // Create synthetic Tab event to reuse existing Tab logic
+                            const syntheticEvent = new KeyboardEvent('keydown', {
+                                key: 'Tab',
+                                code: 'Tab',
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            
+                            // Call handleTab with synthetic event (reuses all Tab logic)
+                            if (wrydaTab.handleTab(syntheticEvent as any)) {
+                                console.log('[WrydaTab] @ symbol handled by Tab navigation');
+                                return;
+                            }
+                            return;
+                        }
+                        
                         // Try Wryda Tab navigation first if enabled
                         if (WRYDA_TAB_ENABLED && e.key === 'Tab' && !e.shiftKey) {
                             console.log('[WrydaTab] Tab key pressed, attempting to handle...');
