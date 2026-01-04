@@ -166,20 +166,21 @@ export function useWrydaTabNavigation(
         const currentLineText = lines[lines.length - 1] || '';
         
         if (smartType.field === 'location') {
-            // Insert location into scene heading
-            const fieldInfo = detectSceneHeadingField(currentLineText, cursorPos);
+            // Insert location into scene heading - rebuild from scratch to avoid formatting issues
             const parts = parseSceneHeading(currentLineText);
             
             // Build new scene heading with location inserted
-            let newLine = parts.type;
-            if (parts.type && !parts.type.endsWith('.')) {
-                newLine += '.';
+            let newType = parts.type.toUpperCase();
+            if (!newType.endsWith('.')) {
+                newType += '.';
             }
-            newLine += ' ' + item.label;
             
-            // Add time if it exists
-            if (parts.time) {
-                newLine += ' - ' + parts.time;
+            // Rebuild line from scratch: TYPE LOCATION - TIME
+            let newLine = newType + ' ' + item.label;
+            
+            // Add time if it exists (preserve existing time, but clean it)
+            if (parts.time && parts.time.trim() && !parts.time.trim().endsWith('-')) {
+                newLine += ' - ' + parts.time.trim();
             } else {
                 // Add dash and move to time field
                 newLine += ' - ';
@@ -200,24 +201,30 @@ export function useWrydaTabNavigation(
             }, 0);
             
             // If we added the dash, show time SmartType
-            if (!parts.time) {
+            if (!parts.time || !parts.time.trim() || parts.time.trim().endsWith('-')) {
                 setTimeout(() => showTimeSmartType(), 100);
             } else {
                 closeSmartType();
             }
         } else if (smartType.field === 'time') {
-            // Insert time into scene heading
-            const fieldInfo = detectSceneHeadingField(currentLineText, cursorPos);
+            // Insert time into scene heading - rebuild from scratch to avoid double dashes
             const parts = parseSceneHeading(currentLineText);
             
             // Build new scene heading with time inserted
-            let newLine = parts.type;
-            if (parts.type && !parts.type.endsWith('.')) {
-                newLine += '.';
+            let newType = parts.type.toUpperCase();
+            if (!newType.endsWith('.')) {
+                newType += '.';
             }
-            if (parts.location) {
-                newLine += ' ' + parts.location;
+            
+            // Rebuild line from scratch: TYPE LOCATION - TIME
+            let newLine = newType;
+            if (parts.location && parts.location.trim()) {
+                // Clean location - remove any trailing dashes
+                const cleanLocation = parts.location.trim().replace(/[\s-]+$/, '');
+                newLine += ' ' + cleanLocation;
             }
+            
+            // Always add time with proper spacing (no double dashes)
             newLine += ' - ' + item.label;
             
             const newTextBefore = lines.slice(0, -1).concat(newLine).join('\n');
@@ -287,7 +294,7 @@ export function useWrydaTabNavigation(
                 }
             }, 0);
             
-            // Show location SmartType
+            // Show location SmartType (just show dropdown, don't auto-select)
             setTimeout(() => showLocationSmartType(), 100);
             return true;
         }
@@ -302,13 +309,19 @@ export function useWrydaTabNavigation(
                 if (!newType.endsWith('.')) {
                     newType += '.';
                 }
-                let newLine = newType + ' ' + locationText;
+                
+                // Clean up any existing dashes or partial time
+                let newLine = newType + ' ' + locationText.trim();
+                
+                // Remove any trailing dashes, spaces, or partial time
+                newLine = newLine.trim();
+                newLine = newLine.replace(/[\s-]+$/, '');
                 
                 // Add dash if time doesn't exist
-                if (!parts.time) {
+                if (!parts.time || !parts.time.trim()) {
                     newLine += ' - ';
                 } else {
-                    newLine += ' - ' + parts.time;
+                    newLine += ' - ' + parts.time.trim();
                 }
                 
                 const newTextBefore = lines.slice(0, -1).concat(newLine).join('\n');
@@ -328,7 +341,8 @@ export function useWrydaTabNavigation(
                 // Show time SmartType
                 setTimeout(() => showTimeSmartType(), 100);
             } else {
-                // No location yet, show location SmartType
+                // No location yet, show location SmartType dropdown (user can select)
+                // Don't auto-select - let user choose
                 showLocationSmartType();
             }
             return true;

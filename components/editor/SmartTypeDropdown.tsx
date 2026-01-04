@@ -62,11 +62,16 @@ export default function SmartTypeDropdown({
                     );
                     break;
                 case 'Enter':
-                case 'Tab':
                     e.preventDefault();
                     if (filteredItems[selectedIndex]) {
                         onSelect(filteredItems[selectedIndex]);
                     }
+                    break;
+                case 'Tab':
+                    // Tab should NOT accept selection - it should close dropdown
+                    // This prevents accidental selection when user presses Tab multiple times
+                    e.preventDefault();
+                    onClose();
                     break;
                 case 'Escape':
                     e.preventDefault();
