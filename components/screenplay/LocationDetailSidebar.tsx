@@ -741,16 +741,16 @@ export default function LocationDetailSidebar({
             
             return (
               <div className="space-y-3">
-                {/* Upload Buttons */}
-                <div className="flex gap-2">
+                {/* Upload Button */}
+                <div>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading || userUploadedImages.length >= 5}
-                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[#1F1F1F] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                     style={{ 
-                      backgroundColor: userUploadedImages.length >= 5 ? '#2C2C2E' : '#DC143C',
+                      backgroundColor: '#0A0A0A',
                       color: 'white',
-                      border: `1px solid ${userUploadedImages.length >= 5 ? '#3F3F46' : '#DC143C'}`
+                      border: '1px solid #3F3F46'
                     }}
                   >
                     {uploading ? 'Uploading...' : userUploadedImages.length >= 5 ? `Max Images (${userUploadedImages.length}/5)` : `Upload Photo (${userUploadedImages.length}/5)`}
@@ -764,24 +764,6 @@ export default function LocationDetailSidebar({
                     onChange={handleDirectFileUpload}
                     className="hidden"
                   />
-                  <button
-                    onClick={() => {
-                      // Only allow AI generation if location has name/description
-                      if (isCreating && (!formData.name || !formData.description)) {
-                        toast.error('Please enter location name and description first to generate an image')
-                        return
-                      }
-                      setShowImagePromptModal(true)
-                    }}
-                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
-                    style={{ 
-                      backgroundColor: '#8B5CF6',
-                      color: 'white',
-                      border: '1px solid #8B5CF6'
-                    }}
-                  >
-                    Create Photo with AI
-                  </button>
                 </div>
                 
                 {/* Image Gallery - Show if images exist */}
@@ -918,10 +900,11 @@ export default function LocationDetailSidebar({
               }
               onClose();
             }}
-            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg"
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[#1F1F1F] flex items-center justify-center gap-2"
             style={{ 
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              color: 'white' 
+              backgroundColor: '#0A0A0A',
+              color: 'white',
+              border: '1px solid #3F3F46'
             }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -935,8 +918,8 @@ export default function LocationDetailSidebar({
         <button
           onClick={handleSave}
           disabled={!formData.name.trim()}
-          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-          style={{ backgroundColor: '#8B5CF6', color: 'white' }}
+          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#1F1F1F]"
+          style={{ backgroundColor: '#0A0A0A', color: 'white', border: '1px solid #3F3F46' }}
         >
           {isCreating ? 'Create Location' : 'Save Changes'}
         </button>
@@ -944,8 +927,8 @@ export default function LocationDetailSidebar({
         {!isCreating && (
           <button
             onClick={handleDelete}
-            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{ backgroundColor: '#DC2626', color: 'white' }}
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[#1F1F1F]"
+            style={{ backgroundColor: '#0A0A0A', color: 'white', border: '1px solid #3F3F46' }}
           >
             <Trash2 className="h-4 w-4 inline mr-2" />
             Delete Location
