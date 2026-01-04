@@ -1077,6 +1077,7 @@ export function ShotConfigurationPanel({
                           type="checkbox"
                           checked={isSelected}
                           onChange={(e) => {
+                            if (!onCharactersForShotChange) return;
                             const current = selectedCharactersForShots[shot.slot] || [];
                             const updated = e.target.checked
                               ? [...current, char.id]

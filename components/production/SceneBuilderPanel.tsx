@@ -643,7 +643,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     locationMediaFiles.forEach((file: any) => {
       if ((file.metadata?.entityId || file.entityId) === locationId) {
         // 🔥 FIX: Comprehensive background detection - check all possible metadata fields
+        // Backgrounds from angle packages have sourceType === 'angle-variations' and backgroundType set
         const isBackground = file.metadata?.backgroundType || 
+                             file.metadata?.sourceType === 'angle-variations' ||
                              file.metadata?.source === 'background-generation' ||
                              file.metadata?.uploadMethod === 'background-generation' ||
                              file.metadata?.generationMethod === 'background-generation' ||
@@ -1257,6 +1259,46 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       });
     }
   }, [selectedCharactersForShots]);
+  
+  // 🔥 NEW: Auto-select first available headshot for newly selected characters (for dialogue shots)
+  useEffect(() => {
+    if (!selectedCharactersForShots || !characterHeadshots) return;
+    
+    // For each shot, check if there are newly selected characters without references
+    Object.entries(selectedCharactersForShots).forEach(([shotSlotStr, characterIds]) => {
+      const shotSlot = parseInt(shotSlotStr);
+      if (!characterIds || characterIds.length === 0) return;
+      
+      // Get the shot to check if it's a dialogue shot
+      const shot = sceneAnalysisResult?.shotBreakdown?.shots?.find((s: any) => s.slot === shotSlot);
+      if (!shot || shot.type !== 'dialogue') return;
+      
+      // For each selected character, check if they have a reference selected
+      characterIds.forEach((charId: string) => {
+        const currentRef = selectedCharacterReferences[shotSlot]?.[charId];
+        if (!currentRef && characterHeadshots[charId] && characterHeadshots[charId].length > 0) {
+          // Auto-select the first available headshot
+          const firstHeadshot = characterHeadshots[charId][0];
+          if (firstHeadshot) {
+            setSelectedCharacterReferences(prev => {
+              const shotRefs = prev[shotSlot] || {};
+              return {
+                ...prev,
+                [shotSlot]: {
+                  ...shotRefs,
+                  [charId]: {
+                    poseId: firstHeadshot.poseId,
+                    s3Key: firstHeadshot.s3Key,
+                    imageUrl: firstHeadshot.imageUrl
+                  }
+                }
+              };
+            });
+          }
+        }
+      });
+    });
+  }, [selectedCharactersForShots, characterHeadshots, selectedCharacterReferences, sceneAnalysisResult]);
   
   // Check voice profile when character is selected
   useEffect(() => {
