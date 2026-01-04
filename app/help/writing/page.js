@@ -55,76 +55,47 @@ export default function WritingHelp() {
           
           <div className="card bg-[#141414] border border-white/10 mb-6">
             <div className="card-body">
-              <h3 className="font-bold mb-4 text-[#DC143C]">Complete Fountain Syntax</h3>
+              <h3 className="font-bold mb-4 text-[#DC143C]">Industry-Standard Format</h3>
+              <p className="text-[#B3B3B3] mb-4">
+                Fountain is the open, plain-text format for screenwriting. It's used by professional screenwriters worldwide 
+                and is compatible with all major screenwriting software including Final Draft, Celtx, Fade In, and Highland.
+              </p>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Scene Headings</h4>
-                  <pre className="bg-[#0A0A0A] p-4 rounded border border-white/10 text-sm text-[#B3B3B3] overflow-x-auto">
-{`INT. LOCATION - TIME
-EXT. LOCATION - TIME
-INT./EXT. LOCATION - CONTINUOUS`}
-                  </pre>
-                  <p className="text-sm text-[#808080] mt-2">Examples: INT. COFFEE SHOP - DAY, EXT. STREET - NIGHT</p>
+                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Why Fountain Matters</h4>
+                  <p className="text-sm text-[#B3B3B3]">
+                    Fountain format ensures your screenplays are future-proof and portable. Unlike proprietary formats that lock you 
+                    into specific software, Fountain files can be opened, edited, and converted by any tool that supports the standard. 
+                    This means your work is never trapped in a single application.
+                  </p>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Character Names & Dialogue</h4>
-                  <pre className="bg-[#0A0A0A] p-4 rounded border border-white/10 text-sm text-[#B3B3B3] overflow-x-auto">
-{`                    SARAH
-     This is dialogue.
-
-                    JOHN
-          (quietly)
-     Parenthetical for how it's said.`}
-                  </pre>
+                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Wryda.ai's Fountain Advantage</h4>
+                  <p className="text-sm text-[#B3B3B3]">
+                    Wryda.ai doesn't just support Fountain—we enhance it. Our editor provides real-time formatting, automatic 
+                    character and location tracking, and seamless integration with our Scene Builder technology. Write in the format 
+                    you know, then watch as Wryda.ai transforms your screenplay into a complete production with automatic consistency 
+                    across characters, locations, and props.
+                  </p>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Action Lines</h4>
-                  <pre className="bg-[#0A0A0A] p-4 rounded border border-white/10 text-sm text-[#B3B3B3] overflow-x-auto">
-{`Sarah rushes through the crowded street.
-
-She dodges a taxi, nearly colliding with a street vendor.
-
-The vendor SHOUTS after her.`}
-                  </pre>
-                  <p className="text-sm text-[#808080] mt-2">Write in present tense. Keep blocks short (3-4 lines max).</p>
+                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Professional Workflow</h4>
+                  <p className="text-sm text-[#B3B3B3]">
+                    Write your screenplay in Fountain format, export to PDF or Final Draft (.fdx) for industry submissions, or use 
+                    our unique Scene Builder to generate complete video scenes directly from your script. Fountain format ensures 
+                    compatibility throughout your entire production pipeline—from writing to pre-visualization to final export.
+                  </p>
                 </div>
 
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Emphasis & Formatting</h4>
-                  <pre className="bg-[#0A0A0A] p-4 rounded border border-white/10 text-sm text-[#B3B3B3] overflow-x-auto">
-{`*italic* → italic
-**bold** → bold
-***bold italic*** → bold italic
-_underline_ → underline`}
-                  </pre>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Notes (Not Visible in Exports)</h4>
-                  <pre className="bg-[#0A0A0A] p-4 rounded border border-white/10 text-sm text-[#B3B3B3] overflow-x-auto">
-{`[[This is a note to yourself]]
-[[TODO: Fix this dialogue]]`}
-                  </pre>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Transitions</h4>
-                  <pre className="bg-[#0A0A0A] p-4 rounded border border-white/10 text-sm text-[#B3B3B3] overflow-x-auto">
-{`CUT TO:
-FADE OUT.
-DISSOLVE TO:
-MATCH CUT TO:`}
-                  </pre>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Centered Text</h4>
-                  <pre className="bg-[#0A0A0A] p-4 rounded border border-white/10 text-sm text-[#B3B3B3] overflow-x-auto">
-{`> THE END <`}
-                  </pre>
+                <div className="p-4 rounded bg-[#0A0A0A] border border-[#DC143C]/30">
+                  <p className="text-sm text-[#B3B3B3]">
+                    <strong className="text-[#DC143C]">Learn More:</strong> Fountain format is maintained by the screenwriting community 
+                    and documented at <a href="https://fountain.io" target="_blank" rel="noopener noreferrer" className="text-[#00D9FF] hover:text-[#DC143C]">fountain.io</a>. 
+                    Wryda.ai fully implements the Fountain specification, ensuring your screenplays work everywhere.
+                  </p>
                 </div>
               </div>
             </div>
