@@ -407,6 +407,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     if (characterMediaFiles.length === 0 || characterIdsForMediaLibrary.length === 0) return;
     
     // Helper function to map Media Library files to headshot structure
+    // Media Library is the source of truth - include ALL character images
     const mapMediaFilesToHeadshots = (mediaFiles: any[], characterId: string) => {
       const headshotPoseIds = ['close-up-front-facing', 'close-up', 'extreme-close-up', 'close-up-three-quarter', 'headshot-front', 'headshot-3/4', 'front-facing'];
       
@@ -414,23 +415,61 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       mediaFiles.forEach((file: any) => {
         if ((file.metadata?.entityId || file.entityId) === characterId) {
+          // Skip thumbnails only
+          if (file.s3Key?.startsWith('thumbnails/')) return;
+          
+          // Skip if no s3Key (invalid file)
+          if (!file.s3Key) return;
+          
           const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
           const isHeadshot = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
           const isProductionHub = file.metadata?.createdIn === 'production-hub' || 
                                    file.metadata?.source === 'pose-generation' ||
                                    file.metadata?.uploadMethod === 'pose-generation';
+          const isCreationImage = file.metadata?.createdIn === 'creation' || 
+                                   file.metadata?.referenceType === 'base' ||
+                                   file.metadata?.uploadMethod === 'character-creation' ||
+                                   file.metadata?.uploadMethod === 'character-generation' ||
+                                   file.metadata?.uploadMethod === 'character-bank';
           
-          // Include headshot poses or Production Hub images without poseId
-          if (isHeadshot || (isProductionHub && !poseId)) {
+          // Include ALL character images from Media Library (Media Library is source of truth):
+          // - Headshot poses (with specific poseIds) - HIGHEST PRIORITY
+          // - Production Hub images (with or without poseId) - MEDIUM PRIORITY
+          // - Creation images (base references) - LOWEST PRIORITY (last resort)
+          // - Any other character images (user uploads, etc.) - MEDIUM-LOW PRIORITY
+          // No filtering - include everything except thumbnails
+          
+          // Determine label and priority based on image type
+            let label = file.metadata?.poseName || file.metadata?.angle || 'Headshot';
+            let priority: number;
+            
+            // Priority assignment (lower number = higher priority, shown first):
+            if (isHeadshot) {
+              // Headshot poses: highest priority (1-100 range)
+              // Use metadata priority if available, otherwise default to 50
+              priority = file.metadata?.priority || 50;
+            } else if (isProductionHub) {
+              // Production Hub images: medium priority (100-500 range)
+              // Use metadata priority if available, otherwise default to 200
+              priority = file.metadata?.priority || 200;
+            } else if (isCreationImage && file.metadata?.referenceType === 'base') {
+              // Creation images (base references): lowest priority (last resort)
+              label = 'Creation Image (Last Resort)';
+              priority = 9999; // Lowest priority (highest number)
+            } else {
+              // Other images (user uploads, etc.): medium-low priority (500-900 range)
+              // Use metadata priority if available, otherwise default to 700
+              priority = file.metadata?.priority || 700;
+            }
+            
             headshots.push({
-              poseId: poseId || file.s3Key, // Use s3Key as fallback ID for backend compatibility
+              poseId: poseId || (isCreationImage ? 'base-reference' : file.s3Key), // Use s3Key as fallback ID for backend compatibility
               s3Key: file.s3Key,
               imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
-              label: file.metadata?.poseName || file.metadata?.angle || 'Headshot',
-              priority: file.metadata?.priority || 999,
+              label,
+              priority,
               outfitName: file.metadata?.outfitName
             });
-          }
         }
       });
       
@@ -448,6 +487,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         (file.metadata?.entityId || file.entityId) === characterId
       );
       
+      // Media Library is the source of truth - only process files from Media Library
       if (characterFiles.length > 0) {
         const headshots = mapMediaFilesToHeadshots(characterFiles, characterId);
         if (headshots.length > 0) {
