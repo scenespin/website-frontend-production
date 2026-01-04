@@ -9,9 +9,12 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { DialogueWorkflowType } from '@/components/production/UnifiedDialogueDropdown';
 import { SceneAnalysisResult } from '@/types/screenplay';
+import { useCharacterReferences } from '@/components/production/hooks/useCharacterReferences';
+import { filterValidCharacterIds } from '@/components/production/utils/characterIdValidation';
+import { getCharactersFromActionShot } from '@/components/production/utils/sceneBuilderUtils';
 
 // ============================================================================
 // Types
@@ -302,6 +305,94 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     locationThumbnailS3KeyMap: new Map(),
     locationThumbnailUrlsMap: new Map()
   });
+
+  // ============================================================================
+  // Derive Character IDs for Media Library Query
+  // ============================================================================
+  
+  // Derive character IDs from context state (scene analysis + pronoun selections)
+  const characterIdsForMediaLibrary = useMemo(() => {
+    const characterIds: string[] = [];
+    
+    // 1. Get character IDs from scene analysis shots
+    if (state.sceneAnalysisResult?.shotBreakdown?.shots) {
+      const shots = state.sceneAnalysisResult.shotBreakdown.shots;
+      
+      // Dialogue shots with characterId
+      const dialogueShots = shots.filter((shot: any) => 
+        shot.type === 'dialogue' && shot.characterId
+      );
+      dialogueShots.forEach((shot: any) => {
+        if (shot.characterId) characterIds.push(shot.characterId);
+      });
+      
+      // Action shots that mention characters
+      const actionShots = shots.filter((shot: any) => shot.type === 'action');
+      actionShots.forEach((shot: any) => {
+        // Check if shot has characterId (from actionShotHasCharacters detection)
+        if (shot.characterId) {
+          characterIds.push(shot.characterId);
+        }
+        // Also check for mentionedCharacterIds (multiple characters)
+        if (shot.mentionedCharacterIds && Array.isArray(shot.mentionedCharacterIds)) {
+          characterIds.push(...shot.mentionedCharacterIds);
+        }
+      });
+    }
+    
+    // 2. Get character IDs from pronoun-selected characters
+    const pronounSelectedCharacterIds = Object.values(state.selectedCharactersForShots).flat();
+    characterIds.push(...pronounSelectedCharacterIds);
+    
+    // Filter and deduplicate
+    const validIds = filterValidCharacterIds(characterIds);
+    return [...new Set(validIds)];
+  }, [
+    state.sceneAnalysisResult?.shotBreakdown?.shots,
+    state.selectedCharactersForShots
+  ]);
+  
+  // ============================================================================
+  // Media Library Hook (Character References)
+  // ============================================================================
+  
+  // Call hook in provider - updates context directly (no sync needed)
+  const {
+    characterHeadshots: characterHeadshotsFromHook,
+    characterThumbnailS3KeyMap: hookThumbnailS3KeyMap,
+    thumbnailUrlsMap: hookThumbnailUrlsMap,
+    fullImageUrlsMap: hookFullImageUrlsMap,
+    loading: loadingCharacterHeadshots
+  } = useCharacterReferences({
+    projectId,
+    characterIds: characterIdsForMediaLibrary,
+    enabled: characterIdsForMediaLibrary.length > 0
+  });
+  
+  // Update context state directly when hook data changes (no sync loop!)
+  useEffect(() => {
+    if (Object.keys(characterHeadshotsFromHook).length > 0) {
+      setState(prev => ({ ...prev, characterHeadshots: characterHeadshotsFromHook }));
+    }
+  }, [characterHeadshotsFromHook]);
+  
+  useEffect(() => {
+    const loading: Record<string, boolean> = {};
+    characterIdsForMediaLibrary.forEach(charId => {
+      loading[charId] = loadingCharacterHeadshots;
+    });
+    setState(prev => ({ ...prev, loadingHeadshots: loading }));
+  }, [characterIdsForMediaLibrary, loadingCharacterHeadshots]);
+  
+  // Update Media Library maps in context
+  useEffect(() => {
+    setState(prev => ({ 
+      ...prev, 
+      characterThumbnailS3KeyMap: hookThumbnailS3KeyMap,
+      characterThumbnailUrlsMap: hookThumbnailUrlsMap,
+      characterFullImageUrlsMap: hookFullImageUrlsMap
+    }));
+  }, [hookThumbnailS3KeyMap, hookThumbnailUrlsMap, hookFullImageUrlsMap]);
 
   // ============================================================================
   // Action Creators (using useCallback for performance)

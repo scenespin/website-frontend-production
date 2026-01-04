@@ -63,7 +63,8 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
 import { getScreenplay } from '@/utils/screenplayStorage';
 import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
-import { useCharacterReferences, CharacterHeadshot } from './hooks/useCharacterReferences';
+// useCharacterReferences is now called in SceneBuilderProvider - no import needed here
+import type { CharacterHeadshot } from './hooks/useCharacterReferences';
 import { usePropReferences } from './hooks/usePropReferences';
 import { useLocationReferences } from './hooks/useLocationReferences';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
@@ -417,60 +418,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const characterHeadshots = contextState.characterHeadshots;
   const loadingHeadshots = contextState.loadingHeadshots;
   
-  // 🔥 NEW: Track character IDs for Media Library query
-  const [characterIdsForMediaLibrary, setCharacterIdsForMediaLibrary] = useState<string[]>([]);
-  
-  // 🔥 NEW: Use custom hook for character references
-  // The hook uses useMemo internally, so references should be stable
-  const {
-    characterHeadshots: characterHeadshotsFromHook,
-    characterThumbnailS3KeyMap,
-    thumbnailUrlsMap: characterThumbnailUrlsMap,
-    fullImageUrlsMap: characterFullImageUrlsMap,
-    loading: loadingCharacterHeadshots
-  } = useCharacterReferences({
-    projectId,
-    characterIds: characterIdsForMediaLibrary,
-    enabled: characterIdsForMediaLibrary.length > 0
-  });
-
-  // Update context directly when hook data changes
-  // Use useMemo with proper dependencies to prevent unnecessary updates
-  // The hook already uses useMemo, but we need to ensure we only update context when data actually changes
-  const characterHeadshotsKey = useMemo(() => {
-    // Create a stable key based on the actual data
-    return JSON.stringify(
-      Object.entries(characterHeadshotsFromHook)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([id, headshots]) => [id, headshots.length, headshots.map(h => h.s3Key).join(',')])
-    );
-  }, [characterHeadshotsFromHook]);
-  
-  const prevHeadshotsKeyRef = useRef<string>('');
-  useEffect(() => {
-    // Only update if the data actually changed
-    if (characterHeadshotsKey !== prevHeadshotsKeyRef.current) {
-      prevHeadshotsKeyRef.current = characterHeadshotsKey;
-      contextActions.setCharacterHeadshots(characterHeadshotsFromHook);
-    }
-  }, [characterHeadshotsKey, characterHeadshotsFromHook, contextActions]);
-
-  // Update loadingHeadshots in context (only when loading state or character IDs change)
-  const loadingStateKey = useMemo(() => {
-    return `${characterIdsForMediaLibrary.sort().join(',')}:${loadingCharacterHeadshots}`;
-  }, [characterIdsForMediaLibrary, loadingCharacterHeadshots]);
-  
-  const prevLoadingKeyRef = useRef<string>('');
-  useEffect(() => {
-    if (loadingStateKey !== prevLoadingKeyRef.current) {
-      prevLoadingKeyRef.current = loadingStateKey;
-      const loading: Record<string, boolean> = {};
-      characterIdsForMediaLibrary.forEach(charId => {
-        loading[charId] = loadingCharacterHeadshots;
-      });
-      contextActions.setLoadingHeadshots(loading);
-    }
-  }, [loadingStateKey, characterIdsForMediaLibrary, loadingCharacterHeadshots, contextActions]);
+  // Character references are now managed in SceneBuilderProvider via useCharacterReferences hook
+  // No sync needed - context is updated directly in the provider
+  const characterThumbnailS3KeyMap = contextState.characterThumbnailS3KeyMap;
+  const characterThumbnailUrlsMap = contextState.characterThumbnailUrlsMap;
+  const characterFullImageUrlsMap = contextState.characterFullImageUrlsMap;
   
   // Use context state
   const enabledShots = contextState.enabledShots;
@@ -1115,114 +1067,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     loadCharacters();
   }, [projectId, getToken]);
   
-  // Feature 0163 Phase 1: Fetch character headshots for dialogue shots and action shots with characters
-  useEffect(() => {
-    async function fetchHeadshotsForDialogueShots() {
-      if (!projectId || !sceneAnalysisResult?.shotBreakdown?.shots || !sceneAnalysisResult?.characters) return;
-      
-      // Helper to detect if action shot mentions characters (returns all mentioned characters)
-      const actionShotHasCharacters = (shot: any): { hasCharacters: boolean; characterIds: string[] } => {
-        if (shot.type !== 'action') {
-          return { hasCharacters: false, characterIds: [] };
-        }
-        
-        // Get full text (narrationBlock.text if available, otherwise description)
-        const fullText = shot.narrationBlock?.text || shot.description || '';
-        if (!fullText) {
-          return { hasCharacters: false, characterIds: [] };
-        }
-        
-        const textLower = fullText.toLowerCase();
-        const originalText = fullText;
-        const mentionedCharacterIds: string[] = [];
-        const foundCharIds = new Set<string>();
-        
-        // Check for regular case character names first (use word boundaries for precision)
-        for (const char of sceneAnalysisResult.characters) {
-          if (!char.name || foundCharIds.has(char.id)) continue;
-          const charName = char.name.toLowerCase();
-          // Use word boundary regex for more precise matching
-          const charNameRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-          const possessiveRegex = new RegExp(`\\b${charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'s\\b`, 'i');
-          
-          if (charNameRegex.test(fullText) || possessiveRegex.test(fullText)) {
-            mentionedCharacterIds.push(char.id);
-            foundCharIds.add(char.id);
-          }
-        }
-        
-        // Check for ALL CAPS character names (if not already found)
-        for (const char of sceneAnalysisResult.characters) {
-          if (!char.name || foundCharIds.has(char.id)) continue;
-          if (originalText.includes(char.name.toUpperCase())) {
-            mentionedCharacterIds.push(char.id);
-            foundCharIds.add(char.id);
-          }
-        }
-        
-        return {
-          hasCharacters: mentionedCharacterIds.length > 0,
-          characterIds: mentionedCharacterIds
-        };
-      };
-      
-      // Get dialogue shots with characterId
-      const dialogueShots = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => shot.type === 'dialogue' && shot.characterId);
-      
-      // Get action shots that mention characters (can have multiple characters)
-      const actionShotsWithCharacters = sceneAnalysisResult.shotBreakdown.shots
-        .filter((shot: any) => {
-          const result = actionShotHasCharacters(shot);
-          if (result.hasCharacters && result.characterIds.length > 0) {
-            // Store all mentioned character IDs for later use
-            shot.mentionedCharacterIds = result.characterIds;
-            // For backward compatibility, also set characterId to first character
-            shot.characterId = result.characterIds[0];
-            return true;
-          }
-          return false;
-        });
-      
-      // Combine all shots that need character headshots
-      const allShotsNeedingHeadshots = [...dialogueShots, ...actionShotsWithCharacters];
-      
-      // Also include characters selected via pronoun detection
-      const pronounSelectedCharacterIds = Object.values(selectedCharactersForShots).flat();
-      
-      // Extract unique character IDs (filter out invalid IDs like '__ignore__')
-      const characterIds = filterValidCharacterIds([
-        ...allShotsNeedingHeadshots.map((shot: any) => shot.characterId),
-        ...pronounSelectedCharacterIds
-      ]);
-      const uniqueCharacterIds = [...new Set(characterIds)];
-      
-      if (uniqueCharacterIds.length === 0) return;
-      
-      // 🔥 NEW: Set character IDs for Media Library query (instead of fetching from database)
-      console.log('[SceneBuilderPanel] Setting character IDs for Media Library:', uniqueCharacterIds);
-      setCharacterIdsForMediaLibrary(uniqueCharacterIds);
-    }
-    
-    fetchHeadshotsForDialogueShots();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, sceneAnalysisResult?.shotBreakdown?.shots, selectedCharactersForShots]);
-  
-  // 🔥 NEW: Update character IDs for Media Library when pronoun-selected characters change
-  // (Media Library query will handle fetching, no need for separate database fetch)
-  useEffect(() => {
-    if (!selectedCharactersForShots) return;
-    
-    // Get all unique character IDs from pronoun-selected characters
-    const pronounSelectedCharacterIds = [...new Set(Object.values(selectedCharactersForShots).flat())].filter(id => id !== '__ignore__' && isValidCharacterId(id));
-    
-    if (pronounSelectedCharacterIds.length > 0) {
-      // Update character IDs for Media Library query (will be merged with existing IDs in the main effect)
-      setCharacterIdsForMediaLibrary(prev => {
-        const combined = [...new Set([...prev, ...pronounSelectedCharacterIds])];
-        return combined;
-      });
-    }
-  }, [selectedCharactersForShots]);
+  // Character IDs for Media Library are now derived automatically in SceneBuilderProvider
+  // The provider derives IDs from:
+  // 1. Scene analysis shots (dialogue + action shots with characterId/mentionedCharacterIds)
+  // 2. Pronoun-selected characters (selectedCharactersForShots)
+  // No manual setting needed here - provider handles it reactively
   
   // 🔥 NEW: Auto-select first available headshot for newly selected characters (for dialogue shots)
   useEffect(() => {
