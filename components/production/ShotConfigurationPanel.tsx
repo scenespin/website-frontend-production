@@ -770,18 +770,22 @@ export function ShotConfigurationPanel({
                       // Add images[] (Creation images) if no angleReferences
                       if (availableImages.length === 0 && fullProp.images && fullProp.images.length > 0) {
                         fullProp.images.forEach(img => {
-                          availableImages.push({
-                            id: img.url,
-                            imageUrl: img.url,
-                            label: undefined
-                          });
+                          // Only add if image has a valid URL
+                          if (img.url) {
+                            availableImages.push({
+                              id: img.url,
+                              imageUrl: img.url,
+                              label: undefined
+                            });
+                          }
                         });
                       }
                       
-                      // 🔥 FIX: Fallback to baseReference (creation image) if no angleReferences or images
+                      // 🔥 FIX: Fallback to baseReference (creation image) if no angleReferences or no valid images
+                      // Check baseReference even if images array exists but is empty or has no valid URLs
                       if (availableImages.length === 0 && fullProp.baseReference?.imageUrl) {
                         availableImages.push({
-                          id: fullProp.baseReference.imageUrl,
+                          id: fullProp.baseReference.imageUrl || fullProp.baseReference.s3Key || 'base-reference',
                           imageUrl: fullProp.baseReference.imageUrl,
                           label: 'Creation Image'
                         });

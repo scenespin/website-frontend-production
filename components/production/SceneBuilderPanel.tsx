@@ -467,6 +467,15 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           // Skip if no s3Key (invalid file)
           if (!file.s3Key) return;
           
+          // 🔥 FIX: Filter out clothing references from virtual try-on
+          if (file.metadata?.isClothingReference === true || 
+              file.metadata?.referenceType === 'clothing' ||
+              file.s3Key?.toLowerCase().includes('clothing_reference') ||
+              file.s3Key?.toLowerCase().includes('clothing-reference') ||
+              file.fileName?.toLowerCase().includes('clothing reference')) {
+            return; // Skip clothing references
+          }
+          
           const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
           const isHeadshot = poseId && headshotPoseIds.some(hp => poseId.toLowerCase().includes(hp.toLowerCase()));
           const isProductionHub = file.metadata?.createdIn === 'production-hub' || 
@@ -643,9 +652,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     locationMediaFiles.forEach((file: any) => {
       if ((file.metadata?.entityId || file.entityId) === locationId) {
         // 🔥 FIX: Comprehensive background detection - check all possible metadata fields
-        // Backgrounds from angle packages have sourceType === 'angle-variations' and backgroundType set
+        // Backgrounds from angle packages have sourceType === 'angle-variations' AND backgroundType set
+        // If sourceType === 'angle-variations' but no backgroundType, it's an angle, not a background
         const isBackground = file.metadata?.backgroundType || 
-                             file.metadata?.sourceType === 'angle-variations' ||
+                             (file.metadata?.sourceType === 'angle-variations' && file.metadata?.backgroundType) ||
                              file.metadata?.source === 'background-generation' ||
                              file.metadata?.uploadMethod === 'background-generation' ||
                              file.metadata?.generationMethod === 'background-generation' ||
