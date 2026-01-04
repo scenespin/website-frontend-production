@@ -266,7 +266,7 @@ export function ModernGallery({
               return (
                 <div
                   key={img.id}
-                  className="relative group cursor-pointer aspect-square rounded-lg overflow-hidden border-2 border-[#3F3F46] hover:border-[#DC143C]/50 transition-all"
+                  className="relative group cursor-pointer aspect-video rounded-lg overflow-hidden border-2 border-[#3F3F46] hover:border-[#DC143C]/50 transition-all"
                   onClick={() => {
                     if (onImageClick) {
                       onImageClick(clickValue);
@@ -399,7 +399,7 @@ export function ModernGallery({
                   return (
                     <div
                       key={img.id}
-                      className={`relative group cursor-pointer aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                      className={`relative group cursor-pointer aspect-video rounded-lg overflow-hidden border-2 transition-all ${
                         isSelected
                           ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
                           : 'border-[#3F3F46] hover:border-[#DC143C]/50'
