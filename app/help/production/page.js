@@ -50,7 +50,7 @@ export default function ProductionHelp() {
                     <li>• Fast generation time</li>
                     <li>• Perfect for most productions</li>
                   </ul>
-                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue workflows and shot complexity</p>
+                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue and shot complexity</p>
                 </div>
                 <div className="p-4 rounded border border-[#00D9FF]/30 bg-[#0A0A0A]">
                   <h4 className="font-semibold mb-2 text-[#00D9FF] flex items-center gap-2">
@@ -64,13 +64,13 @@ export default function ProductionHelp() {
                     <li>• Professional cinematic output</li>
                     <li>• Ideal for final production</li>
                   </ul>
-                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue workflows and shot complexity</p>
+                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue and shot complexity</p>
                 </div>
               </div>
 
               <div className="alert alert-info bg-[#0A0A0A] border border-[#00D9FF]/30 mb-4">
                 <div className="text-sm text-[#B3B3B3]">
-                  <strong className="text-[#00D9FF]">Pricing Note:</strong> Video generation costs are approximate and may vary based on dialogue workflows, shot complexity, and other factors. Actual costs will be shown before generation.
+                  <strong className="text-[#00D9FF]">Pricing Note:</strong> Video generation costs are approximate and may vary based on dialogue, shot complexity, and other factors. Actual costs will be shown before generation.
                 </div>
               </div>
 
@@ -143,7 +143,7 @@ export default function ProductionHelp() {
                     <li>• Professional (1080p) - ~50 credits per 5s*</li>
                     <li>• Premium (4K) - ~75 credits per 5s*</li>
                   </ul>
-                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue workflows and shot complexity</p>
+                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue and shot complexity</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2 text-[#FFFFFF]">Resolution & Aspect Ratio</h4>
@@ -164,7 +164,7 @@ export default function ProductionHelp() {
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
                     <li>• Image prompts (optional reference images)</li>
                     <li>• Character outfit selection per shot</li>
-                    <li>• Dialogue workflow selection</li>
+                    <li>• Dialogue selection per shot</li>
                   </ul>
                 </div>
               </div>
