@@ -213,7 +213,15 @@ export function ShotConfigurationStep({
   const finalLoadingHeadshots = state.loadingHeadshots;
   const finalSelectedCharacterReferences = state.selectedCharacterReferences;
   const finalCharacterOutfits = state.characterOutfits;
+  const finalSceneProps = state.sceneProps;
+  const finalPropsToShots = state.propsToShots;
+  const finalShotProps = state.shotProps;
+  const finalPropThumbnailS3KeyMap = state.propThumbnailS3KeyMap;
   const shotPronounExtrasPrompts = (state.pronounExtrasPrompts[shotSlot] || {});
+  const finalSelectedDialogueQuality = state.selectedDialogueQualities[shotSlot];
+  const finalSelectedDialogueWorkflow = state.selectedDialogueWorkflows[shotSlot];
+  const finalDialogueWorkflowPrompt = state.dialogueWorkflowPrompts[shotSlot];
+  const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
   
   // Create handlers that use context actions
   const finalOnLocationAngleChange = useCallback((shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => {
