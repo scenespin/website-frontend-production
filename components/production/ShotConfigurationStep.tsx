@@ -192,6 +192,17 @@ export function ShotConfigurationStep({
   isMobile = false
 }: ShotConfigurationStepProps) {
   const { getToken } = useAuth();
+  
+  // Get state and actions from context (context is source of truth)
+  const state = useSceneBuilderState();
+  const actions = useSceneBuilderActions();
+  
+  // Extract per-shot values from context
+  const shotSlot = shot.slot;
+  const selectedReferenceShotModels = state.selectedReferenceShotModels;
+  const selectedVideoTypes = state.selectedVideoTypes;
+  const selectedVideoQualities = state.selectedVideoQualities;
+  
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [pricing, setPricing] = useState<{ hdPrice: number; k4Price: number; firstFramePrice: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
@@ -245,7 +256,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModels, selectedVideoTypes, selectedVideoQualities, getToken]);
+  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModels, selectedVideoTypes, selectedVideoQualities, getToken, shot.slot]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
