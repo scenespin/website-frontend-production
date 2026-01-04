@@ -269,6 +269,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Resolution is global only, set in review step (not per-shot)
   const [globalResolution, setGlobalResolution] = useState<'1080p' | '4k'>('4k');
+  // Aspect ratio is per-shot (for individual shot reshoots)
+  const [shotAspectRatios, setShotAspectRatios] = useState<Record<number, '16:9' | '9:16' | '1:1'>>({});
   
   // Location opt-out state (for shots where user doesn't want to use location image)
   const [locationOptOuts, setLocationOptOuts] = useState<Record<number, boolean>>({});
@@ -1715,6 +1717,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         }
       }
       
+      // 🔥 FIX: Calculate first frame size based on quality tier and aspect ratio
+      // Professional (1080p) → 2K first frame, Premium (4K) → 4K first frame
+      // Default to 16:9 if no aspect ratio set
+      const aspectRatio: '16:9' | '9:16' | '1:1' = '16:9'; // Default for scene-level first frame
+      const is4K = qualityTier === 'premium';
+      
+      let frameSize: string;
+      if (aspectRatio === '16:9') {
+        frameSize = is4K ? '4096x2304' : '2048x1152'; // 4K or 2K
+      } else if (aspectRatio === '9:16') {
+        frameSize = is4K ? '2304x4096' : '1152x2048'; // 4K or 2K
+      } else { // 1:1
+        frameSize = is4K ? '4096x4096' : '2048x2048'; // 4K or 2K
+      }
+      
       // Generate first frame using image generation API
       const response = await fetch('/api/image/generate', {
         method: 'POST',
@@ -1724,9 +1741,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         },
         body: JSON.stringify({
           prompt: sceneDescription.trim(),
-          size: '1024x576', // 16:9 aspect ratio (1024x576 = 16:9)
+          size: frameSize,
+          aspectRatio: aspectRatio, // 🔥 NEW: Pass aspect ratio
           references: referenceImageUrls.length > 0 ? referenceImageUrls : undefined // 🔥 FIX: Include character references
-          // Note: aspectRatio is not a valid parameter - use size instead
         })
       });
       
@@ -2100,7 +2117,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         sceneId: sceneId, // Required: Backend uses hash system's extractSceneContent() (single source of truth, no fallbacks)
         sceneDescription: sceneDescription.trim(), // For establishing shot prompt
         qualityTier: qualityTier || 'premium', // Quality tier for establishing shot
-        aspectRatio: '16:9' // Default aspect ratio (can be made configurable later)
+        aspectRatio: shotAspectRatios[0] || '16:9' // 🔥 NEW: Use per-shot aspect ratio (default to 16:9 for dialogue)
       };
       
       // Only include characterImageUrl if it's actually set (service can fetch from Character Bank if not provided)
@@ -2414,7 +2431,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         workflowIds: workflowIdsToUse, // NEW: Pass array of workflow IDs for combined execution
         sceneDescription: sceneDescription.trim(),
         characterRefs: finalCharacterRefs, // Pre-populated from analysis + manual uploads (max 3)
-        aspectRatio: '16:9',
+        // Aspect ratio is per-shot, but workflow request needs a single value
+        // Use the first enabled shot's aspect ratio, or default to 16:9
+        aspectRatio: enabledShots.length > 0 && shotAspectRatios[enabledShots[0]] 
+          ? shotAspectRatios[enabledShots[0]] 
+          : '16:9',
         duration,
         qualityTier,
         shotBreakdown: sceneAnalysisResult?.shotBreakdown ? {

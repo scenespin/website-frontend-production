@@ -25,6 +25,7 @@ import { ReferencePreview } from './ReferencePreview';
 import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ShotConfigurationStepProps {
   shot: any;
@@ -106,6 +107,9 @@ interface ShotConfigurationStepProps {
   selectedVideoQuality?: Record<number, 'hd' | '4k'>;
   onVideoTypeChange?: (shotSlot: number, videoType: 'cinematic-visuals' | 'natural-motion') => void;
   onVideoQualityChange?: (shotSlot: number, quality: 'hd' | '4k') => void;
+  // Aspect Ratio (per-shot)
+  shotAspectRatio?: '16:9' | '9:16' | '1:1';
+  onAspectRatioChange?: (shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1') => void;
   // Navigation
   onPrevious: () => void;
   onNext: () => void;
@@ -176,6 +180,8 @@ export function ShotConfigurationStep({
   selectedVideoQuality = {},
   onVideoTypeChange,
   onVideoQualityChange,
+  shotAspectRatio,
+  onAspectRatioChange,
   onPrevious,
   onNext,
   onShotSelect,
@@ -808,18 +814,41 @@ export function ShotConfigurationStep({
 
           {/* Video Generation Selection */}
           {onVideoTypeChange && onVideoQualityChange && (
-            <VideoGenerationSelector
-              shotSlot={shot.slot}
-              shotType={shot.type}
-              selectedVideoType={selectedVideoType[shot.slot]}
-              selectedQuality={selectedVideoQuality[shot.slot]}
-              onVideoTypeChange={onVideoTypeChange}
-              onQualityChange={onVideoQualityChange}
-              shotCameraAngle={shotCameraAngle}
-              onCameraAngleChange={onCameraAngleChange}
-              shotDuration={shotDuration}
-              onDurationChange={onDurationChange}
-            />
+            <>
+              <VideoGenerationSelector
+                shotSlot={shot.slot}
+                shotType={shot.type}
+                selectedVideoType={selectedVideoType[shot.slot]}
+                selectedQuality={selectedVideoQuality[shot.slot]}
+                onVideoTypeChange={onVideoTypeChange}
+                onQualityChange={onVideoQualityChange}
+                shotCameraAngle={shotCameraAngle}
+                onCameraAngleChange={onCameraAngleChange}
+                shotDuration={shotDuration}
+                onDurationChange={onDurationChange}
+              />
+              {/* Aspect Ratio Selector */}
+              {onAspectRatioChange && (
+                <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                  <label className="text-xs font-medium text-[#FFFFFF] mb-2 block">
+                    Aspect Ratio
+                  </label>
+                  <Select
+                    value={shotAspectRatio || '16:9'}
+                    onValueChange={(value) => onAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
+                  >
+                    <SelectTrigger className="w-full h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="16:9">16:9 (Horizontal)</SelectItem>
+                      <SelectItem value="9:16">9:16 (Vertical)</SelectItem>
+                      <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
           )}
 
           {/* Cost Calculator - Prices from backend (margins hidden) - Moved after Video Generation */}
