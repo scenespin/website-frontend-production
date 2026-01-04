@@ -219,7 +219,7 @@ export default function WritingHelp() {
 
               <h3 className="font-bold mb-4 mt-6 text-[#DC143C]">Smart Suggestions</h3>
               <ul className="space-y-2 text-[#B3B3B3]">
-                <li>• <strong className="text-[#FFFFFF]">Wryda Smart Tab</strong> - In scene headings, press Tab (or $ on mobile) to navigate between Type → Location → Time fields with SmartType suggestions</li>
+                <li>• <strong className="text-[#FFFFFF]">Wryda Smart Tab</strong> - In scene headings, press Tab (or $ on mobile) to navigate between Type → Location → Time fields with SmartType suggestions. Examples: <code className="text-[#00D9FF]">int</code>+Tab → <code className="text-[#00D9FF]">INT.</code>, <code className="text-[#00D9FF]">ext</code>+Tab → <code className="text-[#00D9FF]">EXT.</code>, <code className="text-[#00D9FF]">i/e</code>+Tab → <code className="text-[#00D9FF]">I./E.</code>, <code className="text-[#00D9FF]">int/ext</code>+Tab → <code className="text-[#00D9FF]">INT./EXT.</code></li>
                 <li>• <strong className="text-[#FFFFFF]">Character name completion</strong> - Type first few letters, get suggestions</li>
                 <li>• <strong className="text-[#FFFFFF]">Location suggestions</strong> - Based on previously used locations (sorted by INT/EXT type)</li>
                 <li>• <strong className="text-[#FFFFFF]">Time of day</strong> - Common options: DAY, NIGHT, MORNING, etc.</li>
