@@ -10,7 +10,7 @@ export const metadata = getSEOTags({
 
 export default function ProductionHelp() {
   return (
-    <>
+    <div className="min-h-screen bg-[#0A0A0A]">
       <header className="p-4 flex justify-between items-center max-w-7xl mx-auto bg-[#0A0A0A] border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-2xl font-extrabold text-[#FFFFFF]">
@@ -248,10 +248,10 @@ export default function ProductionHelp() {
         {/* Navigation */}
         <div className="flex gap-4 justify-between mt-12">
           <Link href="/help/writing" className="btn btn-ghost text-[#B3B3B3] hover:text-[#FFFFFF] border-white/10">← Writing</Link>
-          <Link href="/help/faq" className="btn bg-[#DC143C] hover:bg-[#8B0000] text-[#FFFFFF] border-none">FAQ →</Link>
+          <Link href="/help/direct" className="btn bg-[#DC143C] hover:bg-[#8B0000] text-[#FFFFFF] border-none">Next: Direct →</Link>
         </div>
       </main>
-    </>
+    </div>
   );
 }
 

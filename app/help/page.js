@@ -10,7 +10,7 @@ export const metadata = getSEOTags({
 
 export default function HelpCenter() {
   return (
-    <>
+    <div className="min-h-screen bg-[#0A0A0A]">
       {/* Header */}
       <header className="p-4 flex justify-between items-center max-w-7xl mx-auto bg-[#0A0A0A] border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
@@ -51,21 +51,21 @@ export default function HelpCenter() {
                   </div>
                 </Link>
 
-                <Link href="/help/production" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-pink-500/30">
+                <Link href="/help/production" className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-[#DC143C]/30">
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">🎬</div>
-                    <h3 className="font-bold text-base">2. Produce</h3>
-                    <p className="text-xs opacity-70">Scene Builder & consistency systems</p>
-                    <div className="badge badge-sm badge-secondary mt-2">GENERATE</div>
+                    <h3 className="font-bold text-base text-[#FFFFFF]">2. Produce</h3>
+                    <p className="text-xs opacity-70 text-[#B3B3B3]">Scene Builder & consistency systems</p>
+                    <div className="badge bg-[#DC143C] text-[#FFFFFF] border-none badge-sm mt-2">GENERATE</div>
                   </div>
                 </Link>
 
-                <Link href="/help/production" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-blue-500/30">
+                <Link href="/help/direct" className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-[#00D9FF]/30">
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">🎞️</div>
-                    <h3 className="font-bold text-base">3. Direct</h3>
-                    <p className="text-xs opacity-70">Control your production</p>
-                    <div className="badge badge-sm badge-accent mt-2">DIRECT</div>
+                    <h3 className="font-bold text-base text-[#FFFFFF]">3. Direct</h3>
+                    <p className="text-xs opacity-70 text-[#B3B3B3]">Review & control your production</p>
+                    <div className="badge bg-[#00D9FF] text-[#0A0A0A] border-none badge-sm mt-2">DIRECT</div>
                   </div>
                 </Link>
               </div>
@@ -74,7 +74,7 @@ export default function HelpCenter() {
         </section>
 
         {/* Main Help Sections */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
           <HelpSectionCard
             href="/help/writing"
             icon="✍️"
@@ -91,12 +91,24 @@ export default function HelpCenter() {
             href="/help/production"
             icon="🎬"
             title="Production"
-            description="Scene Builder and professional consistency systems"
+            description="AI video generation and consistency systems"
             features={[
               "AI video generation (multiple quality tiers)",
-              "Scene Builder (Motion Picture Technology)",
               "Character, location & prop consistency",
+              "Scene Builder (Motion Picture Technology)",
               "Turn screenplay into video"
+            ]}
+          />
+          <HelpSectionCard
+            href="/help/direct"
+            icon="🎞️"
+            title="Direct"
+            description="Review, organize, and control your production"
+            features={[
+              "Scene Builder interface",
+              "Storyboard view of all scenes",
+              "Review generated videos",
+              "Organize your production"
             ]}
           />
           <HelpSectionCard
@@ -151,7 +163,7 @@ export default function HelpCenter() {
           </div>
         </section>
       </main>
-    </>
+    </div>
   );
 }
 
