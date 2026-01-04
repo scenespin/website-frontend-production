@@ -1122,6 +1122,22 @@ export default function AssetDetailModal({
                                             return;
                                           }
                                           
+                                          // 🔥 FIX: Delete from Media Library first (source of truth) - same pattern as backgrounds
+                                          try {
+                                            const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                            await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+                                              method: 'POST',
+                                              headers: {
+                                                'Authorization': `Bearer ${token}`,
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({ s3Key: img.s3Key }),
+                                            });
+                                          } catch (mediaError: any) {
+                                            console.warn('[AssetDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
+                                            // Continue with asset update even if Media Library deletion fails
+                                          }
+                                          
                                           // 🔥 FIX: For angle images, only update angleReferences (same pattern as LocationDetailModal)
                                           // Angle images are stored in angleReferences, not in the images array
                                           const updatedAngleReferences = (asset.angleReferences || []).filter(
@@ -1338,18 +1354,36 @@ export default function AssetDetailModal({
                     return;
                   }
                   
-                  // Batch delete: Remove all selected angle references in one update
-                  const updatedAngleReferences = (asset.angleReferences || []).filter((ref: any) => 
-                    !s3KeysToDelete.has(ref.s3Key)
-                  );
-                  
-                  // Make API call to update asset (same pattern as single deletion)
+                  // 🔥 FIX: Delete from Media Library first (source of truth) - batch delete
                   const token = await getToken({ template: 'wryda-backend' });
                   if (!token) {
                     toast.error('Authentication required');
                     return;
                   }
                   
+                  const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                  for (const s3Key of s3KeysToDelete) {
+                    try {
+                      await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ s3Key }),
+                      });
+                    } catch (mediaError: any) {
+                      console.warn('[AssetDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
+                      // Continue with asset update even if Media Library deletion fails
+                    }
+                  }
+                  
+                  // Batch delete: Remove all selected angle references in one update
+                  const updatedAngleReferences = (asset.angleReferences || []).filter((ref: any) => 
+                    !s3KeysToDelete.has(ref.s3Key)
+                  );
+                  
+                  // Make API call to update asset (same pattern as single deletion)
                   const response = await fetch(`/api/asset-bank/${asset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                     method: 'PUT',
                     headers: {

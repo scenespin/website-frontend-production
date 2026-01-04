@@ -1213,7 +1213,7 @@ export function LocationDetailModal({
                               <img
                                 src={displayUrl}
                                 alt={img.label}
-                                className={`w-full h-full object-cover ${
+                                className={`w-full h-full object-cover cursor-pointer ${
                                   regeneratingS3Key && regeneratingS3Key.trim() === (variation.s3Key || '').trim()
                                     ? 'animate-pulse opacity-75'
                                     : ''
@@ -1229,6 +1229,35 @@ export function LocationDetailModal({
                                   // 🔥 NEW: Fallback to full image if thumbnail fails
                                   if (displayUrl !== img.imageUrl) {
                                     (e.target as HTMLImageElement).src = img.imageUrl;
+                                  }
+                                }}
+                                onClick={(e) => {
+                                  if (!selectionMode) {
+                                    e.stopPropagation();
+                                    // Find which metadata group this image belongs to
+                                    const metadataKey = [
+                                      (img as any).timeOfDay ? (img as any).timeOfDay : null,
+                                      (img as any).weather ? (img as any).weather : null
+                                    ].filter(Boolean).join(' • ') || 'No Metadata';
+                                    
+                                    const groupImages = anglesByMetadata[metadataKey] || [];
+                                    const groupIndex = groupImages.findIndex((gVariation: any) => 
+                                      (gVariation.id === img.id) || (gVariation.s3Key === img.s3Key)
+                                    );
+                                    
+                                    if (groupIndex >= 0) {
+                                      setPreviewGroupName(metadataKey);
+                                      setPreviewImageIndex(groupIndex);
+                                    } else {
+                                      // Fallback: find in allImages
+                                      const allIndex = allImages.findIndex(aImg => 
+                                        aImg.id === img.id || aImg.s3Key === img.s3Key
+                                      );
+                                      if (allIndex >= 0) {
+                                        setPreviewGroupName(null);
+                                        setPreviewImageIndex(allIndex);
+                                      }
+                                    }
                                   }
                                 }}
                               />
@@ -1387,7 +1416,10 @@ export function LocationDetailModal({
                                               angleVariations: updatedAngleVariations
                                             });
                                             
+                                            // 🔥 FIX: Invalidate location queries to refresh UI immediately (same pattern as backgrounds)
+                                            queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                             queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                            await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                             toast.success('Angle image deleted');
                                           } catch (error: any) {
                                             console.error('[LocationDetailModal] Failed to delete angle image:', error);
@@ -1481,7 +1513,7 @@ export function LocationDetailModal({
                                           <img
                                             src={displayUrl}
                                             alt={img.label}
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover cursor-pointer"
                                             style={{
                                               // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
                                               imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
@@ -1493,6 +1525,21 @@ export function LocationDetailModal({
                                               // 🔥 NEW: Fallback to full image if thumbnail fails
                                               if (displayUrl !== img.imageUrl) {
                                                 (e.target as HTMLImageElement).src = img.imageUrl;
+                                              }
+                                            }}
+                                            onClick={(e) => {
+                                              if (!selectionMode) {
+                                                e.stopPropagation();
+                                                // 🔥 FIX: Use img.id instead of imgId to find the correct image in allImages
+                                                const imageIndex = allImages.findIndex(i => 
+                                                  i.id === img.id || i.s3Key === img.s3Key || i.s3Key === background.s3Key
+                                                );
+                                                if (imageIndex >= 0) {
+                                                  setPreviewImageIndex(imageIndex);
+                                                  setPreviewGroupName(displayName);
+                                                } else {
+                                                  console.warn('[LocationDetailModal] Could not find image in allImages:', { imgId, imgId2: img.id, s3Key: img.s3Key });
+                                                }
                                               }
                                             }}
                                           />
@@ -1535,25 +1582,6 @@ export function LocationDetailModal({
                                                     className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
                                                     style={{ backgroundColor: '#0A0A0A' }}
                                                   >
-                                                    <DropdownMenuItem
-                                                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        // 🔥 FIX: Use img.id instead of imgId to find the correct image in allImages
-                                                        const imageIndex = allImages.findIndex(i => 
-                                                          i.id === img.id || i.s3Key === img.s3Key || i.s3Key === background.s3Key
-                                                        );
-                                                        if (imageIndex >= 0) {
-                                                          setPreviewImageIndex(imageIndex);
-                                                          setPreviewGroupName(displayName);
-                                                        } else {
-                                                          console.warn('[LocationDetailModal] Could not find image in allImages:', { imgId, imgId2: img.id, s3Key: img.s3Key });
-                                                        }
-                                                      }}
-                                                    >
-                                                      <Eye className="w-4 h-4 mr-2 text-[#808080]" />
-                                                      Preview
-                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                                       onClick={(e) => {

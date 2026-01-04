@@ -1841,7 +1841,7 @@ export function CharacterDetailModal({
                               <img
                                 src={displayUrl}
                                 alt={img.label}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover cursor-pointer"
                                 style={{
                                   // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
                                   imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
@@ -2075,6 +2075,7 @@ export function CharacterDetailModal({
                                           // 🔥 FIX: Invalidate queries to refresh UI immediately
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
