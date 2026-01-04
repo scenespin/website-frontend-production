@@ -525,70 +525,372 @@ export default function WritingHelp() {
         <section id="ai-agents" className="mb-12">
           <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">5 AI Writing Agents</h2>
           <p className="mb-6 text-[#B3B3B3]">
-            All agents understand your screenplay context and work together to help you write better scripts.
+            All agents understand your screenplay context and work together to help you write better scripts. Each agent specializes in different aspects of screenwriting.
           </p>
 
-          <div className="space-y-6">
-            <AgentCard
-              name="Story Advisor"
-              icon="🌟"
-              unique={true}
-              description="Reads your entire screenplay and provides comprehensive analysis"
-              features={[
-                "Analyzes structure across all acts",
-                "Tracks character arcs throughout",
-                "Identifies plot holes and inconsistencies",
-                "Provides story-level feedback"
-              ]}
-            />
+          <div className="space-y-8">
+            {/* Story Advisor */}
+            <div className="card bg-[#141414] border border-[#DC143C]/30">
+              <div className="card-body">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">🌟</span>
+                  <div>
+                    <h3 className="card-title text-2xl text-[#FFFFFF]">
+                      Story Advisor
+                      <span className="badge bg-[#DC143C] text-[#FFFFFF] border-none badge-sm ml-2">UNIQUE</span>
+                    </h3>
+                    <p className="text-sm text-[#B3B3B3]">Comprehensive screenplay analysis and story development consultation</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It Does</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Story Advisor is the only AI agent that reads your <strong className="text-[#FFFFFF]">entire screenplay</strong> in context. 
+                      Unlike other agents that work on individual scenes, Story Advisor analyzes your complete script from beginning to end, 
+                      understanding the full narrative arc, character development, and story structure.
+                    </p>
+                  </div>
 
-            <AgentCard
-              name="Screenwriter"
-              icon="✍️"
-              description="Continue scenes, expand dialogue, develop characters"
-              features={[
-                "Continue scenes from where you left off",
-                "Expand dialogue naturally",
-                "Develop character backstories",
-                "Understands your screenplay context"
-              ]}
-            />
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">How It Works</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Story Advisor processes your complete screenplay and maintains context across all acts. It tracks character appearances, 
+                      dialogue patterns, plot progression, and thematic elements throughout your entire script. This comprehensive view allows 
+                      it to identify connections, inconsistencies, and opportunities that scene-level agents might miss.
+                    </p>
+                  </div>
 
-            <AgentCard
-              name="Director"
-              icon="🎬"
-              description="Generate full scenes with action, dialogue, and direction"
-              features={[
-                "Generate complete scenes from descriptions",
-                "Production-ready formatting",
-                "Visual direction and blocking",
-                "Character interactions"
-              ]}
-            />
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It's Used For</h4>
+                    <ul className="space-y-2 text-sm text-[#B3B3B3]">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Structure Analysis:</strong> Analyze three-act structure, identify plot points, evaluate pacing across acts</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Character Arc Tracking:</strong> Track how characters develop throughout the script, identify character inconsistencies</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Plot Hole Detection:</strong> Find logical inconsistencies, timeline issues, and narrative gaps</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Story Development:</strong> Get advice on raising stakes, improving pacing, strengthening themes</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Genre Analysis:</strong> Evaluate how well your script follows genre conventions and expectations</span>
+                      </li>
+                    </ul>
+                  </div>
 
-            <AgentCard
-              name="Dialogue"
-              icon="💬"
-              description="Polish dialogue, match character voice, improve conversations"
-              features={[
-                "Polish dialogue for naturalness",
-                "Match character voice and tone",
-                "Improve conversation flow",
-                "Character-aware rewriting"
-              ]}
-            />
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">Capabilities</h4>
+                    <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                      <li>• Analyzes structure across all acts (Act 1, Act 2, Act 3)</li>
+                      <li>• Tracks character arcs from first appearance to final scene</li>
+                      <li>• Identifies plot holes and narrative inconsistencies</li>
+                      <li>• Provides story-level feedback and suggestions</li>
+                      <li>• Understands character relationships and dynamics</li>
+                      <li>• Evaluates pacing and tension throughout the script</li>
+                      <li>• Suggests improvements for story development</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            <AgentCard
-              name="Rewrite"
-              icon="✨"
-              description="Polish and refine. Fix pacing, improve clarity, enhance style"
-              features={[
-                "Fix pacing issues",
-                "Improve clarity and readability",
-                "Enhance writing style",
-                "Professional editing"
-              ]}
-            />
+            {/* Screenwriter */}
+            <div className="card bg-[#141414] border border-white/10">
+              <div className="card-body">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">✍️</span>
+                  <div>
+                    <h3 className="card-title text-2xl text-[#FFFFFF]">Screenwriter</h3>
+                    <p className="text-sm text-[#B3B3B3]">Continue scenes, expand content, and develop your screenplay</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It Does</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Screenwriter helps you continue writing your screenplay. It understands the context of your current scene, 
+                      knows what characters are present, and can continue scenes from where you left off. It's your writing partner 
+                      for generating new content that fits naturally into your existing script.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">How It Works</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Screenwriter analyzes the scene you're currently working on, including the dialogue, action lines, and character 
+                      context. It understands the tone, style, and direction of your scene, then generates content that continues 
+                      naturally from where you stopped. It maintains character voices and story consistency within the scene context.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It's Used For</h4>
+                    <ul className="space-y-2 text-sm text-[#B3B3B3]">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Continue Scenes:</strong> Generate the next few lines when you're stuck or need inspiration</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Expand Dialogue:</strong> Develop conversations between characters, add more depth to exchanges</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Character Development:</strong> Create character backstories, develop character moments, add character depth</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Scene Expansion:</strong> Add more action, description, or dialogue to existing scenes</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Brainstorming:</strong> Generate ideas for what happens next in a scene</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">Capabilities</h4>
+                    <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                      <li>• Continues scenes from where you left off</li>
+                      <li>• Expands dialogue naturally within scene context</li>
+                      <li>• Develops character backstories and moments</li>
+                      <li>• Understands your screenplay's current scene context</li>
+                      <li>• Maintains character voices and tone</li>
+                      <li>• Generates action lines and scene descriptions</li>
+                      <li>• Creates content that fits your writing style</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Director */}
+            <div className="card bg-[#141414] border border-white/10">
+              <div className="card-body">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">🎬</span>
+                  <div>
+                    <h3 className="card-title text-2xl text-[#FFFFFF]">Director</h3>
+                    <p className="text-sm text-[#B3B3B3]">Generate complete, production-ready scenes with action, dialogue, and direction</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It Does</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Director generates complete scenes from simple descriptions. It creates production-ready screenplay content with 
+                      proper formatting, including scene headings, action lines, dialogue, and character interactions. Director understands 
+                      cinematic storytelling and visual direction.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">How It Works</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Director takes your scene description or prompt and generates a complete, formatted scene. It creates scene headings, 
+                      writes action lines with visual direction, generates dialogue for characters, and includes blocking and camera direction. 
+                      The output is production-ready and follows industry-standard screenplay formatting.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It's Used For</h4>
+                    <ul className="space-y-2 text-sm text-[#B3B3B3]">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Complete Scene Generation:</strong> Create full scenes from simple descriptions or prompts</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Action Sequences:</strong> Generate action scenes with visual direction and blocking</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Character Interactions:</strong> Create scenes with multiple characters and dialogue</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Visual Direction:</strong> Add camera angles, blocking, and visual storytelling elements</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Scene Templates:</strong> Generate common scene types (confrontations, reveals, transitions)</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">Capabilities</h4>
+                    <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                      <li>• Generates complete scenes from descriptions</li>
+                      <li>• Production-ready Fountain format output</li>
+                      <li>• Visual direction and blocking notes</li>
+                      <li>• Character interactions and dialogue</li>
+                      <li>• Action sequences with cinematic detail</li>
+                      <li>• Proper scene heading formatting</li>
+                      <li>• Industry-standard screenplay structure</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dialogue */}
+            <div className="card bg-[#141414] border border-white/10">
+              <div className="card-body">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">💬</span>
+                  <div>
+                    <h3 className="card-title text-2xl text-[#FFFFFF]">Dialogue</h3>
+                    <p className="text-sm text-[#B3B3B3]">Polish dialogue, match character voice, and improve conversations</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It Does</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Dialogue specializes in refining dialogue to make it sound natural, authentic, and true to each character's voice. 
+                      It understands how different characters speak and can rewrite dialogue to match their established personality, background, 
+                      and speaking patterns throughout your screenplay.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">How It Works</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Dialogue analyzes the character's existing dialogue throughout your screenplay to understand their voice, speech patterns, 
+                      vocabulary, and tone. When you ask it to polish dialogue, it rewrites it to match that character's established voice while 
+                      improving naturalness, flow, and emotional impact. It ensures consistency in how each character speaks.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It's Used For</h4>
+                    <ul className="space-y-2 text-sm text-[#B3B3B3]">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Dialogue Polish:</strong> Make dialogue sound more natural and conversational</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Character Voice Matching:</strong> Ensure dialogue matches each character's established voice</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Conversation Flow:</strong> Improve the rhythm and flow of conversations between characters</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Subtext Enhancement:</strong> Add layers of meaning and subtext to dialogue</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Emotional Impact:</strong> Strengthen the emotional resonance of dialogue</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">Capabilities</h4>
+                    <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                      <li>• Polishes dialogue for naturalness and authenticity</li>
+                      <li>• Matches character voice and speaking patterns</li>
+                      <li>• Improves conversation flow and rhythm</li>
+                      <li>• Character-aware rewriting based on established voices</li>
+                      <li>• Adds subtext and emotional depth</li>
+                      <li>• Maintains consistency across all character dialogue</li>
+                      <li>• Enhances dialogue's impact and clarity</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Rewrite */}
+            <div className="card bg-[#141414] border border-white/10">
+              <div className="card-body">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">✨</span>
+                  <div>
+                    <h3 className="card-title text-2xl text-[#FFFFFF]">Rewrite</h3>
+                    <p className="text-sm text-[#B3B3B3]">Polish and refine text, fix pacing, improve clarity, and enhance style</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It Does</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Rewrite is your precision editing tool. It refines existing text to improve clarity, pacing, style, and readability. 
+                      Unlike other agents that generate new content, Rewrite focuses on polishing what you've already written, making it 
+                      tighter, clearer, and more professional.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">How It Works</h4>
+                    <p className="text-sm text-[#B3B3B3] mb-3">
+                      Rewrite analyzes your selected text and identifies areas for improvement: wordiness, unclear phrasing, pacing issues, 
+                      or style inconsistencies. It then rewrites the text to be more concise, clear, and impactful while preserving your 
+                      original meaning and intent. It's like having a professional editor review your work.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">What It's Used For</h4>
+                    <ul className="space-y-2 text-sm text-[#B3B3B3]">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Tighten Action Lines:</strong> Make action descriptions more concise and impactful</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Fix Pacing:</strong> Adjust sentence length and rhythm to improve scene pacing</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Improve Clarity:</strong> Rewrite unclear or confusing passages</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Enhance Style:</strong> Polish writing style and voice</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#DC143C]">•</span>
+                        <span><strong className="text-[#FFFFFF]">Professional Editing:</strong> Apply professional editing standards to your text</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#DC143C]">Capabilities</h4>
+                    <ul className="space-y-1 text-sm text-[#B3B3B3]">
+                      <li>• Fixes pacing issues in scenes and action lines</li>
+                      <li>• Improves clarity and readability</li>
+                      <li>• Enhances writing style and voice</li>
+                      <li>• Professional editing and refinement</li>
+                      <li>• Tightens wordy or verbose text</li>
+                      <li>• Maintains your original meaning and intent</li>
+                      <li>• Applies industry-standard editing practices</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
