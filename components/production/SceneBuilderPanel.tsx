@@ -3400,7 +3400,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                             }
                             
                             // Get presigned URL for thumbnail if available
-                            const thumbnailUrl = thumbnailS3Key && thumbnailUrlsMap?.get(thumbnailS3Key);
+                            const thumbnailUrl = thumbnailS3Key && locationThumbnailUrlsMap?.get(thumbnailS3Key);
                             
                             // Get presigned URL for full image if thumbnail not available and imageUrl is empty or is an s3Key
                             let fullImageUrl: string | undefined;
