@@ -1485,8 +1485,8 @@ export function LocationDetailModal({
                                             style={{
                                               // 🔥 FIX: Prevent blurriness from upscaling - use crisp rendering for thumbnails
                                               imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto',
-                                              maxWidth: '200px',
-                                              maxHeight: '200px'
+                                              maxWidth: '640px',
+                                              maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
                                             }}
                                             loading="lazy"
                                             onError={(e) => {
@@ -1539,8 +1539,16 @@ export function LocationDetailModal({
                                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setPreviewImageIndex(allImages.findIndex(i => i.id === imgId));
-                                                        setPreviewGroupName(displayName);
+                                                        // 🔥 FIX: Use img.id instead of imgId to find the correct image in allImages
+                                                        const imageIndex = allImages.findIndex(i => 
+                                                          i.id === img.id || i.s3Key === img.s3Key || i.s3Key === background.s3Key
+                                                        );
+                                                        if (imageIndex >= 0) {
+                                                          setPreviewImageIndex(imageIndex);
+                                                          setPreviewGroupName(displayName);
+                                                        } else {
+                                                          console.warn('[LocationDetailModal] Could not find image in allImages:', { imgId, imgId2: img.id, s3Key: img.s3Key });
+                                                        }
                                                       }}
                                                     >
                                                       <Eye className="w-4 h-4 mr-2 text-[#808080]" />
@@ -1550,8 +1558,16 @@ export function LocationDetailModal({
                                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setPreviewImageIndex(allImages.findIndex(i => i.id === imgId));
-                                                        setPreviewGroupName(displayName);
+                                                        // 🔥 FIX: Use img.id instead of imgId to find the correct image in allImages
+                                                        const imageIndex = allImages.findIndex(i => 
+                                                          i.id === img.id || i.s3Key === img.s3Key || i.s3Key === background.s3Key
+                                                        );
+                                                        if (imageIndex >= 0) {
+                                                          setPreviewImageIndex(imageIndex);
+                                                          setPreviewGroupName(displayName);
+                                                        } else {
+                                                          console.warn('[LocationDetailModal] Could not find image in allImages:', { imgId, imgId2: img.id, s3Key: img.s3Key });
+                                                        }
                                                       }}
                                                     >
                                                       <Eye className="w-4 h-4 mr-2 text-[#808080]" />
@@ -1613,7 +1629,24 @@ export function LocationDetailModal({
                                                             throw new Error('Missing S3 key for image');
                                                           }
                                                           
-                                                          // Remove from backgrounds
+                                                          // 🔥 FIX: Delete from Media Library first (source of truth)
+                                                          try {
+                                                            const token = await getToken({ template: 'wryda-backend' });
+                                                            const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                                            await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+                                                              method: 'POST',
+                                                              headers: {
+                                                                'Authorization': `Bearer ${token}`,
+                                                                'Content-Type': 'application/json',
+                                                              },
+                                                              body: JSON.stringify({ s3Key: background.s3Key }),
+                                                            });
+                                                          } catch (mediaError: any) {
+                                                            console.warn('[LocationDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
+                                                            // Continue with location update even if Media Library deletion fails
+                                                          }
+                                                          
+                                                          // Remove from backgrounds array
                                                           const updatedBackgrounds = backgrounds.filter(
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
@@ -1625,6 +1658,7 @@ export function LocationDetailModal({
                                                           // 🔥 FIX: Invalidate location queries to refresh UI immediately
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
