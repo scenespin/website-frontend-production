@@ -220,10 +220,25 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // 🔥 NEW: Filter Media Library files by character IDs
   const characterMediaFiles = React.useMemo(() => {
+    console.log('[SceneBuilderPanel] Filtering character media files:', {
+      allCharacterMediaFilesCount: allCharacterMediaFiles?.length || 0,
+      characterIdsForMediaLibraryCount: characterIdsForMediaLibrary.length,
+      characterIds: characterIdsForMediaLibrary
+    });
+    
     if (!allCharacterMediaFiles || characterIdsForMediaLibrary.length === 0) return [];
-    return allCharacterMediaFiles.filter((file: any) => 
-      characterIdsForMediaLibrary.includes(file.metadata?.entityId || file.entityId)
-    );
+    
+    const filtered = allCharacterMediaFiles.filter((file: any) => {
+      const fileEntityId = file.metadata?.entityId || file.entityId;
+      const matches = characterIdsForMediaLibrary.includes(fileEntityId);
+      if (matches) {
+        console.log('[SceneBuilderPanel] Matched file:', { s3Key: file.s3Key, entityId: fileEntityId });
+      }
+      return matches;
+    });
+    
+    console.log('[SceneBuilderPanel] Filtered character media files:', filtered.length);
+    return filtered;
   }, [allCharacterMediaFiles, characterIdsForMediaLibrary]);
   
   // 🔥 NEW: Build character thumbnailS3KeyMap from Media Library results
@@ -404,7 +419,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
 
   // 🔥 NEW: Map Media Library files to character headshot structure (moved here to fix build error)
   useEffect(() => {
-    if (characterMediaFiles.length === 0 || characterIdsForMediaLibrary.length === 0) return;
+    console.log('[SceneBuilderPanel] Character headshots effect:', {
+      characterMediaFilesCount: characterMediaFiles.length,
+      characterIdsForMediaLibraryCount: characterIdsForMediaLibrary.length,
+      characterIds: characterIdsForMediaLibrary
+    });
+    
+    if (characterMediaFiles.length === 0 || characterIdsForMediaLibrary.length === 0) {
+      console.log('[SceneBuilderPanel] Skipping headshot mapping - no files or no character IDs');
+      return;
+    }
     
     // Helper function to map Media Library files to headshot structure
     // Media Library is the source of truth
@@ -1188,6 +1212,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       if (uniqueCharacterIds.length === 0) return;
       
       // 🔥 NEW: Set character IDs for Media Library query (instead of fetching from database)
+      console.log('[SceneBuilderPanel] Setting character IDs for Media Library:', uniqueCharacterIds);
       setCharacterIdsForMediaLibrary(uniqueCharacterIds);
     }
     
