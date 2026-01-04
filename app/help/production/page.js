@@ -82,8 +82,7 @@ export default function ProductionHelp() {
                     <li>• 9:16 (Vertical/TikTok)</li>
                     <li>• 1:1 (Square/Instagram)</li>
                     <li>• 4:3 (Classic TV)</li>
-                    <li>• 21:9 (Ultra Wide)</li>
-                    <li>• 3:4, 9:21 (Portrait variants)</li>
+                    <li>• 3:4 (Portrait)</li>
                   </ul>
                 </div>
                 <div>
@@ -98,7 +97,6 @@ export default function ProductionHelp() {
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
                     <li>• Low, Medium, High, Ultra</li>
                     <li>• Image prompts (optional)</li>
-                    <li>• Watermark-free option</li>
                   </ul>
                 </div>
               </div>
@@ -144,7 +142,7 @@ export default function ProductionHelp() {
                   <h4 className="font-semibold mb-2 text-[#FFFFFF]">Resolution & Aspect Ratio</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
                     <li>• Resolution: 1080p or 4K</li>
-                    <li>• Aspect Ratios: 16:9, 9:16, 1:1, 4:3, 21:9, 9:21, 3:4</li>
+                    <li>• Aspect Ratios: 16:9, 9:16, 1:1, 4:3, 3:4</li>
                   </ul>
                 </div>
                 <div>
@@ -158,7 +156,6 @@ export default function ProductionHelp() {
                   <h4 className="font-semibold mb-2 text-[#FFFFFF]">Advanced Options</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
                     <li>• Image prompts (optional reference images)</li>
-                    <li>• Watermark-free output</li>
                     <li>• Character outfit selection per shot</li>
                     <li>• Dialogue workflow selection</li>
                   </ul>
