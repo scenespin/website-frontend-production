@@ -509,6 +509,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // This prevents the enrichment hook from recalculating when enriched props are synced back
   const [baseProps, setBaseProps] = useState<any[]>([]);
   const lastEnrichedPropsRef = useRef<string>('');
+  // 🔥 FIX: Track last fetched scene ID and prop IDs to prevent redundant fetches
+  const lastFetchedSceneRef = useRef<{ sceneId: string | null; propIds: string }>({ sceneId: null, propIds: '' });
   
   // 🔥 NEW: Use custom hook for prop references
   // Pass baseProps instead of sceneProps to break the circular dependency
@@ -777,15 +779,32 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       try {
         const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
         if (!scene) {
-          setBaseProps([]);
-          setSceneProps([]);
-          setPropIds([]);
-          lastEnrichedPropsRef.current = '';
+          // Only clear if we haven't already cleared for this scene
+          if (lastFetchedSceneRef.current.sceneId !== selectedSceneId) {
+            setBaseProps([]);
+            contextActions.setSceneProps([]);
+            setPropIds([]);
+            lastEnrichedPropsRef.current = '';
+            lastFetchedSceneRef.current = { sceneId: selectedSceneId, propIds: '' };
+          }
           return;
         }
         
         // Get prop IDs from fountain tags (source of truth - manually linked via SceneDetailSidebar)
         const fetchedPropIds = scene.fountain?.tags?.props || [];
+        const fetchedPropIdsString = fetchedPropIds.sort().join(',');
+        
+        // 🔥 FIX: Only fetch if scene ID or prop IDs have actually changed
+        if (
+          lastFetchedSceneRef.current.sceneId === selectedSceneId &&
+          lastFetchedSceneRef.current.propIds === fetchedPropIdsString
+        ) {
+          // Already fetched this exact combination - skip to prevent infinite loop
+          return;
+        }
+        
+        // Update ref to track what we're about to fetch
+        lastFetchedSceneRef.current = { sceneId: selectedSceneId, propIds: fetchedPropIdsString };
         setPropIds(fetchedPropIds); // 🔥 NEW: Set propIds for Media Library query
         
         if (fetchedPropIds.length > 0) {
@@ -810,11 +829,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         contextActions.setSceneProps([]);
         setPropIds([]);
         lastEnrichedPropsRef.current = '';
+        // Reset ref on error so we can retry
+        lastFetchedSceneRef.current = { sceneId: selectedSceneId, propIds: '' };
       }
     }
     
     fetchSceneProps();
-  }, [selectedSceneId, projectId, screenplay.scenes, getToken, contextActions]);
+    // 🔥 FIX: Removed screenplay.scenes and currentScenePropIdsString from dependencies
+    // We read the scene inside the effect and compare prop IDs to prevent infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSceneId, projectId, getToken, contextActions]);
   
   // Props enrichment is now handled by usePropReferences hook (see above)
 
