@@ -1071,7 +1071,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         };
     }, [screenplayId]);
     
-    // 🔥 NEW: Listen for scene refresh events (e.g., when scene analyzer updates dialogue blocks)
+    // 🔥 FIX #3: Rebuild relationships when characters/locations/scenes change
+    // This ensures relationships stay in sync with state changes
+    useEffect(() => {
+        if (!hasInitializedFromDynamoDB || scenes.length === 0) return;
+        
+        // Only rebuild if we have characters or locations loaded
+        if (characters.length > 0 || locations.length > 0) {
+            console.log('[ScreenplayContext] 🔄 Rebuilding relationships due to state change:', {
+                scenes: scenes.length,
+                characters: characters.length,
+                locations: locations.length
+            });
+            buildRelationshipsFromScenes(scenes, beats, characters, locations);
+        }
+    }, [scenes, characters, locations, beats, hasInitializedFromDynamoDB, buildRelationshipsFromScenes]);
+    
+    // 🔥 FIX #3: Listen for scene refresh events (e.g., when scene analyzer updates dialogue blocks)
+    // Improved: Updates refs immediately and rebuilds relationships synchronously
     useEffect(() => {
         if (!screenplayId) return;
         
@@ -1081,22 +1098,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const scenesData = await listScenes(screenplayId, getToken);
                 const transformedScenes = transformScenesFromAPI(scenesData);
                 
-                // 🔥 FIX: Update refs immediately
+                // 🔥 FIX #3: Update refs and state synchronously
                 scenesRef.current = transformedScenes;
+                setScenes(transformedScenes);
                 
-                // 🔥 FIX: Use refs to get latest characters/locations (avoid stale closures)
-                // This ensures we always have the latest data when building relationships
-                // Using refs prevents React error #185 caused by stale closure values
+                // 🔥 FIX #3: Rebuild relationships with current state (refs are updated)
+                // The useEffect above will also trigger, but this ensures immediate update
                 const currentCharacters = charactersRef.current;
                 const currentLocations = locationsRef.current;
                 const currentBeats = beatsRef.current;
-                
-                // 🔥 FIX: Always build relationships (even with empty arrays) to keep state consistent
-                // This prevents components from accessing undefined relationships
                 buildRelationshipsFromScenes(transformedScenes, currentBeats, currentCharacters, currentLocations);
-                
-                // 🔥 FIX: Update state synchronously (safe in event handler)
-                setScenes(transformedScenes);
                 
                 console.log('[ScreenplayContext] ✅ Refreshed scenes from API:', transformedScenes.length, 'scenes');
             } catch (error) {
@@ -1108,7 +1119,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return () => {
             window.removeEventListener('refreshScenes', handleRefreshScenes);
         };
-        // 🔥 FIX: Only depend on stable values - use refs inside handler instead
+        // 🔥 FIX #3: Only depend on stable values - use refs inside handler instead
     }, [screenplayId, getToken, buildRelationshipsFromScenes]);
 
     // Load structure data from DynamoDB when screenplay_id is available
@@ -1239,34 +1250,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     const transformedCharacters = transformCharactersFromAPI(charactersData, characters);
                     const transformedLocations = transformLocationsFromAPI(locationsData);
                     
-                    // 🔥 CRITICAL: Build relationships BEFORE marking as initialized
-                    // This ensures relationships are available when SceneNavigatorList renders
-                    buildRelationshipsFromScenes(renumberedScenes, defaultBeats, transformedCharacters, transformedLocations);
-                    
-                    // 🔥 RESTORE: Simple synchronous state updates (like before refactor)
-                    // The original code worked because state updates were immediate
-                    // startTransition was added to fix React error #300, but it broke loading logic
-                    // We'll fix React error #300 properly by ensuring updates happen in useEffect, not during render
+                    // 🔥 FIX #1: Set state synchronously (no deferred updates)
+                    // This ensures refs are updated immediately and relationships can be built with correct data
                     console.log('[ScreenplayContext] ✅ Setting scenes state synchronously with', renumberedScenes.length, 'scenes');
                     scenesRef.current = renumberedScenes;
                     beatsRef.current = defaultBeats;
                     setScenes(renumberedScenes);
                     setBeats(defaultBeats);
-                    setHasInitializedFromDynamoDB(true);
-                    setIsLoading(false);
                     console.log('[ScreenplayContext] ✅ Loaded', renumberedScenes.length, 'scenes directly (beats removed, deduplicated, renumbered)');
                     
-                    // Mark that we loaded scenes from DB to prevent auto-creation
-                    if (transformedScenes.length > 0) {
-                        hasAutoCreated.current = true;
-                    }
-                    
-                    // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
-                    setTimeout(() => {
-                        startTransition(() => {
+                    // 🔥 FIX #1: Set characters state synchronously (removed setTimeout + startTransition)
+                    charactersRef.current = transformedCharacters;
                     setCharacters(transformedCharacters);
-                        });
-                    }, 0);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Character names:', transformedCharacters.map(c => c.name));
                     
@@ -1276,14 +1271,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         address: l.address, 
                         hasAddress: !!l.address 
                     })));
-                    // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
-                    setTimeout(() => {
-                        startTransition(() => {
+                    // 🔥 FIX #1: Set locations state synchronously (removed setTimeout + startTransition)
+                    locationsRef.current = transformedLocations;
                     setLocations(transformedLocations);
-                        });
-                    }, 0);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
+                    
+                    // 🔥 FIX #1: Build relationships AFTER state is set (ensures refs are updated)
+                    // This ensures relationships are built with the latest data and refs are in sync
+                    buildRelationshipsFromScenes(renumberedScenes, defaultBeats, transformedCharacters, transformedLocations);
+                    
+                    // Mark initialization as complete AFTER relationships are built
+                    setHasInitializedFromDynamoDB(true);
+                    setIsLoading(false);
+                    
+                    // Mark that we loaded scenes from DB to prevent auto-creation
+                    if (transformedScenes.length > 0) {
+                        hasAutoCreated.current = true;
+                    }
                     
                     // Load and set assets
                     // Extract assets from response (API returns { assets: Asset[] } or { success: true, assets: Asset[] })

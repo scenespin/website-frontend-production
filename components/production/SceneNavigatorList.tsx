@@ -34,30 +34,46 @@ export function SceneNavigatorList({
   const { getToken } = useAuth();
   const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
 
-  // Get character names for a scene - Match editor pattern exactly
+  // Get character names for a scene - Match editor pattern with fallback
   const getSceneCharacters = (scene: Scene): string[] => {
-    // 🔥 FIX: Match editor pattern - use relationships directly (no optional chaining)
-    // Editor uses: screenplay.relationships.scenes[scene.id] (not optional)
-    if (!screenplay.relationships || !screenplay.relationships.scenes) return [];
+    // 🔥 FIX #2: Try relationships first (preferred source of truth)
+    if (screenplay.relationships?.scenes?.[scene.id]?.characters) {
+      const sceneRel = screenplay.relationships.scenes[scene.id];
+      const characterNames = sceneRel.characters
+        .map(charId => screenplay.characters.find(c => c.id === charId)?.name)
+        .filter(Boolean) as string[];
+      if (characterNames.length > 0) return characterNames;
+    }
     
-    const sceneRel = screenplay.relationships.scenes[scene.id];
-    if (!sceneRel?.characters) return [];
+    // 🔥 FIX #2: Fallback to fountain tags (like SceneBuilderPanel does)
+    // This ensures icons show even if relationships aren't built yet
+    const characterIds = scene.fountain?.tags?.characters || [];
+    if (characterIds.length > 0) {
+      return characterIds
+        .map(charId => screenplay.characters.find(c => c.id === charId)?.name)
+        .filter(Boolean) as string[];
+    }
     
-    return sceneRel.characters
-      .map(charId => screenplay.characters.find(c => c.id === charId)?.name)
-      .filter(Boolean) as string[];
+    return [];
   };
 
-  // Get location name for a scene - Match editor pattern exactly
+  // Get location name for a scene - Match editor pattern with fallback
   const getSceneLocation = (scene: Scene): string | null => {
-    // 🔥 FIX: Match editor pattern - use relationships directly (no optional chaining)
-    if (!screenplay.relationships || !screenplay.relationships.scenes) return null;
+    // 🔥 FIX #2: Try relationships first (preferred source of truth)
+    if (screenplay.relationships?.scenes?.[scene.id]?.location) {
+      const sceneRel = screenplay.relationships.scenes[scene.id];
+      const location = screenplay.locations.find(l => l.id === sceneRel.location);
+      if (location) return location.name;
+    }
     
-    const sceneRel = screenplay.relationships.scenes[scene.id];
-    if (!sceneRel?.location) return null;
+    // 🔥 FIX #2: Fallback to fountain tags (like SceneBuilderPanel does)
+    // This ensures icons show even if relationships aren't built yet
+    if (scene.fountain?.tags?.location) {
+      const location = screenplay.locations.find(l => l.id === scene.fountain.tags.location);
+      if (location) return location.name;
+    }
     
-    const location = screenplay.locations.find(l => l.id === sceneRel.location);
-    return location?.name || null;
+    return null;
   };
 
   // Get asset/prop count for a scene - Match editor pattern exactly
