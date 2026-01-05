@@ -762,29 +762,17 @@ export function CharacterDetailModal({
   }, [enrichedMediaLibraryImages, enrichedFallbackImages]);
   
   // Keep old userReferences and poseReferences for backward compatibility (used in other parts of code)
-  // 🔥 FIX: Filter for creation section images using Media Library as source of truth
+  // 🔥 MEDIA LIBRARY AS SOURCE OF TRUTH: Filter for creation section images using Media Library metadata only
   // Creation section images are identified by Media Library metadata: createdIn: 'creation' or uploadMethod: 'character-creation'
-  // Fallback to character.references array for images not yet in Media Library
+  // DynamoDB arrays (character.references) are only used for metadata enrichment (labels, etc.), not for identification
   const userReferences = useMemo(() => {
-    // Build set of creation image s3Keys from character.references (fallback for images not in Media Library)
-    const fallbackCreationS3Keys = new Set<string>();
-    (character.references || []).forEach((ref: any) => {
-      const refS3Key = ref.s3Key || ref.metadata?.s3Key;
-      if (refS3Key) {
-        fallbackCreationS3Keys.add(refS3Key);
-      }
-    });
-    
     return allImages.filter(img => {
-      // 🔥 MEDIA LIBRARY AS SOURCE OF TRUTH: Check Media Library metadata first
+      // 🔥 MEDIA LIBRARY AS SOURCE OF TRUTH: Use Media Library metadata to identify creation images
       const isFromCreation = img.metadata?.createdIn === 'creation' || 
                             img.metadata?.uploadMethod === 'character-creation';
       
-      // Fallback: If not in Media Library or metadata missing, check DynamoDB array
-      const isInFallbackArray = img.s3Key && fallbackCreationS3Keys.has(img.s3Key);
-      
-      // Must be identified as creation image (either by Media Library metadata or fallback array)
-      if (!isFromCreation && !isInFallbackArray) {
+      // Must be identified as creation image by Media Library metadata
+      if (!isFromCreation) {
         return false;
       }
       
@@ -814,7 +802,7 @@ export function CharacterDetailModal({
       
       return true;
     });
-  }, [allImages, character.references]);
+  }, [allImages]);
   
   const poseReferences: PoseReferenceWithOutfit[] = useMemo(() => {
     const userRefsCount = allImages.filter(img => !img.isPose && !img.isBase).length;
