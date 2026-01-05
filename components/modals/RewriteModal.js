@@ -699,7 +699,7 @@ export default function RewriteModal({
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <Dialog.Title as="h3" className="text-lg font-semibold text-base-content">
+                      <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
                         Rewrite Selected Text
                       </Dialog.Title>
                       <p className="text-xs text-base-content/60">
@@ -747,7 +747,7 @@ export default function RewriteModal({
                   {/* Quick Actions */}
                   {!showCustomInput && (
                     <div className="space-y-3">
-                      <p className="text-sm font-medium text-base-content/80">Quick Actions</p>
+                      <p className="text-xs font-medium text-base-content/80">Quick Actions</p>
                       <div className="grid grid-cols-2 gap-3">
                         {QUICK_ACTIONS.map((action) => {
                           const Icon = action.icon;
@@ -772,7 +772,7 @@ export default function RewriteModal({
                         className="btn btn-ghost btn-block gap-2 border border-base-300"
                       >
                         <Edit3 className="h-4 w-4" />
-                        <span className="text-sm">Custom rewrite...</span>
+                        <span className="text-xs">Custom rewrite...</span>
                       </button>
                     </div>
                   )}
@@ -782,7 +782,7 @@ export default function RewriteModal({
                     <form onSubmit={handleCustomSubmit} className="space-y-3">
                       <div>
                         <label className="label">
-                          <span className="label-text text-sm font-medium">Enter rewrite instruction</span>
+                          <span className="label-text text-xs font-medium">Enter rewrite instruction</span>
                         </label>
                         <textarea
                           value={customPrompt}

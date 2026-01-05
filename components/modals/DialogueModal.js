@@ -467,7 +467,7 @@ Rules:
                       <MessageSquare className="h-5 w-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <Dialog.Title as="h3" className="text-lg font-semibold text-base-content">
+                      <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
                         Dialogue Agent
                       </Dialog.Title>
                       <p className="text-xs text-base-content/60">
@@ -561,11 +561,11 @@ Rules:
                                 disabled={isLoading}
                                 className="checkbox checkbox-sm"
                               />
-                              <span className="text-sm">{char.name}</span>
+                              <span className="text-xs">{char.name}</span>
                             </label>
                           ))
                         ) : (
-                          <p className="text-sm text-base-content/60 col-span-2">No characters found. Add characters to your screenplay first.</p>
+                          <p className="text-xs text-base-content/60 col-span-2">No characters found. Add characters to your screenplay first.</p>
                         )}
                       </div>
                     </div>
@@ -634,7 +634,7 @@ Rules:
                       <button
                         type="button"
                         onClick={() => setShowAdvanced(!showAdvanced)}
-                        className="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content"
+                        className="flex items-center gap-2 text-xs font-medium text-base-content/70 hover:text-base-content"
                       >
                         {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         Advanced Options

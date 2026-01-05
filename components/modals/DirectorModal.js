@@ -13,7 +13,7 @@ import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getTimingMessage } from '@/utils/modelTiming';
 import toast from 'react-hot-toast';
-import { ModelSelect } from '@/components/ui/ModelSelect';
+// ModelSelect removed - using DaisyUI select instead
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -551,7 +551,7 @@ Rules:
                       <Film className="h-5 w-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <Dialog.Title as="h3" className="text-lg font-semibold text-base-content">
+                      <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
                         Director Agent
                       </Dialog.Title>
                       <p className="text-xs text-base-content/60">
@@ -560,14 +560,30 @@ Rules:
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Model Selector - Using Headless UI instead of Radix UI to avoid infinite loops */}
-                    <ModelSelect
+                    {/* Model Selector - DaisyUI select */}
+                    <select
                       value={selectedModel}
-                      onChange={handleModelChange}
-                      models={LLM_MODELS}
+                      onChange={(e) => handleModelChange(e.target.value)}
                       disabled={isLoading}
-                      className="max-w-[140px]"
-                    />
+                      className="select select-bordered select-sm max-w-[140px]"
+                    >
+                      {(() => {
+                        const grouped = LLM_MODELS.reduce((acc, model) => {
+                          if (!acc[model.provider]) acc[model.provider] = [];
+                          acc[model.provider].push(model);
+                          return acc;
+                        }, {});
+                        return Object.entries(grouped).map(([provider, models]) => (
+                          <optgroup key={provider} label={provider}>
+                            {models.map((model) => (
+                              <option key={model.id} value={model.id}>
+                                {model.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ));
+                      })()}
+                    </select>
                     <button
                       onClick={onClose}
                       className="btn btn-ghost btn-sm btn-circle"
@@ -584,7 +600,7 @@ Rules:
                     {/* Scene Count Selector */}
                     <div>
                       <label className="label">
-                        <span className="label-text font-semibold">Number of Scenes</span>
+                        <span className="label-text text-xs font-semibold">Number of Scenes</span>
                       </label>
                       <div className="flex gap-2">
                         {[1, 2, 3].map((count) => (
@@ -605,7 +621,7 @@ Rules:
                     {scenes.map((scene, index) => (
                       <div key={index} className="border border-base-300 rounded-lg p-4 space-y-4">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-base-content">Scene {index + 1}</h4>
+                          <h4 className="text-xs font-semibold text-base-content">Scene {index + 1}</h4>
                         </div>
                         
                         <div>

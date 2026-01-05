@@ -12,7 +12,7 @@ import { validateScreenwriterContent } from '@/utils/jsonValidator';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getTimingMessage } from '@/utils/modelTiming';
 import toast from 'react-hot-toast';
-import { ModelSelect } from '@/components/ui/ModelSelect';
+// ModelSelect removed - using DaisyUI select instead
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -573,7 +573,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                       <Edit3 className="h-5 w-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <Dialog.Title as="h3" className="text-lg font-semibold text-base-content">
+                      <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
                         Screenwriter Agent
                       </Dialog.Title>
                       <p className="text-xs text-base-content/60">
@@ -582,14 +582,30 @@ CRITICAL SPACING RULES (Fountain.io spec):
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Model Selector - Using Headless UI instead of Radix UI to avoid infinite loops */}
-                    <ModelSelect
+                    {/* Model Selector - DaisyUI select */}
+                    <select
                       value={selectedModel}
-                      onChange={handleModelChange}
-                      models={LLM_MODELS}
+                      onChange={(e) => handleModelChange(e.target.value)}
                       disabled={isLoading}
-                      className="max-w-[140px]"
-                    />
+                      className="select select-bordered select-sm max-w-[140px]"
+                    >
+                      {(() => {
+                        const grouped = LLM_MODELS.reduce((acc, model) => {
+                          if (!acc[model.provider]) acc[model.provider] = [];
+                          acc[model.provider].push(model);
+                          return acc;
+                        }, {});
+                        return Object.entries(grouped).map(([provider, models]) => (
+                          <optgroup key={provider} label={provider}>
+                            {models.map((model) => (
+                              <option key={model.id} value={model.id}>
+                                {model.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ));
+                      })()}
+                    </select>
                     <button
                       onClick={onClose}
                       disabled={isLoading}
