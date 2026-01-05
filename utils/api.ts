@@ -6,6 +6,7 @@
 // Extend Window interface to include Clerk
 declare global {
     interface Window {
+      refreshCredits?: () => void;
         Clerk?: {
             user?: any;
             session?: {

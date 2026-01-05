@@ -184,6 +184,11 @@ export function useVideoGeneration() {
               duration: 5000,
               description: `Generated ${job.videos?.length || 0} video(s) using ${job.totalCreditsUsed || 0} credits`,
             });
+            
+            // 🔥 Refresh credits immediately after video generation completes
+            if (typeof window !== 'undefined' && window.refreshCredits) {
+              window.refreshCredits();
+            }
           } else if (job.status === 'failed') {
             toast.error('❌ Video generation failed', {
               duration: 5000,

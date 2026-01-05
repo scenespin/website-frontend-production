@@ -66,6 +66,18 @@ async function forwardRequest(
     
     // Build backend URL
     const path = pathSegments.join('/');
+    
+    // 🔥 Skip catch-all for specific routes that have their own handlers
+    // This allows Next.js to route to the specific route file instead
+    if (path.match(/^screenplays\/[^/]+\/scenes\/batch-update-props$/)) {
+      // Let the specific route at app/api/screenplays/[id]/scenes/batch-update-props/route.ts handle it
+      console.error(`[API Proxy] ⏭️ Skipping catch-all for specific route: ${path}`);
+      return NextResponse.json(
+        { error: 'Route should be handled by specific route handler' },
+        { status: 404 }
+      );
+    }
+    
     const searchParams = request.nextUrl.searchParams.toString();
     const backendUrl = `${BACKEND_API_URL}/api/${path}${searchParams ? `?${searchParams}` : ''}`;
     

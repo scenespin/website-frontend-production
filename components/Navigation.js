@@ -82,7 +82,8 @@ export default function Navigation() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && user?.id && getToken) {
-        fetchCreditBalance();
+        // Force refresh when page becomes visible to get latest balance
+        fetchCreditBalance(0, true);
       }
     };
     
@@ -90,16 +91,46 @@ export default function Navigation() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user?.id]);
   
-      async function fetchCreditBalance(retryCount = 0) {
+  // Periodic credit refresh (every 30 seconds) - acceptable with Redis cache
+  // With Redis: 90% cache hit rate, so 30s polling is sufficient
+  // Event-driven refresh handles immediate updates after operations
+  useEffect(() => {
+    if (!user?.id || !getToken) return;
+    
+    const interval = setInterval(() => {
+      // Only refresh if page is visible (don't waste resources on hidden tabs)
+      if (!document.hidden) {
+        fetchCreditBalance(0, false);
+      }
+    }, 30000); // 30 seconds - acceptable with Redis cache (90% hit rate)
+    
+    return () => clearInterval(interval);
+  }, [user?.id, getToken]);
+  
+  // Expose refresh function globally so other components can trigger credit refresh
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.refreshCredits = () => {
+        fetchCreditBalance(0, true); // Force refresh when called externally
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined' && window.refreshCredits) {
+        delete window.refreshCredits;
+      }
+    };
+  }, [user?.id, getToken]);
+  
+      async function fetchCreditBalance(retryCount = 0, forceRefresh = false) {
         try {
           // Set up auth token with wryda-backend template
           const { api, setAuthTokenGetter } = await import('@/lib/api');
           setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
           
-          console.log('[Navigation] Fetching credits, user ID:', user?.id);
+          console.log('[Navigation] Fetching credits, user ID:', user?.id, 'forceRefresh:', forceRefresh);
           
-          // Now make the API call
-          const response = await api.user.getCredits();
+          // Use refresh parameter to bypass cache if forceRefresh is true
+          const response = await api.user.getCredits(forceRefresh);
           
           console.log('[Navigation] Credits API response:', response);
           console.log('[Navigation] Credits response.data:', response.data);
@@ -127,7 +158,7 @@ export default function Navigation() {
             setCredits(0);
           } else if (retryCount < 2) {
             // Retry on network error
-            setTimeout(() => fetchCreditBalance(retryCount + 1), 1000 * (retryCount + 1));
+            setTimeout(() => fetchCreditBalance(retryCount + 1, forceRefresh), 1000 * (retryCount + 1));
           } else {
             setCredits(0); // Fallback to 0 after retries
           }

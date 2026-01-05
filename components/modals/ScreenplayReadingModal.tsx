@@ -410,6 +410,11 @@ export default function ScreenplayReadingModal({
             toast.success('Audio generated successfully!');
           }
           
+          // 🔥 Refresh credits immediately after screenplay reading completes
+          if (typeof window !== 'undefined' && window.refreshCredits) {
+            window.refreshCredits();
+          }
+          
           // Show Media Library notification
           toast.info('Files saved to Media Library', {
             description: 'You can access them from the Media Library tab'
