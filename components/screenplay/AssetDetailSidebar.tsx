@@ -676,7 +676,9 @@ export default function AssetDetailSidebar({
     
     setIsApplyingSceneChanges(true);
     try {
-      const currentlyLinked = new Set(assetSceneIds);
+      // 🔥 FIX: Get fresh assetSceneIds right before processing to avoid stale state
+      const freshAssetSceneIds = asset ? getAssetScenes(asset.id) : [];
+      const currentlyLinked = new Set(freshAssetSceneIds);
       const toLink = new Set<string>();
       const toUnlink = new Set<string>();
       
@@ -693,12 +695,27 @@ export default function AssetDetailSidebar({
         }
       });
       
+      console.log('[AssetDetailSidebar] 🔗 Applying batch changes:', {
+        assetId: asset.id,
+        toLink: Array.from(toLink),
+        toUnlink: Array.from(toUnlink),
+        linkCount: toLink.size,
+        unlinkCount: toUnlink.size
+      });
+      
       // 🔥 FIX: Use batch API to prevent race conditions from parallel updates
       await batchUpdatePropAssociations(
         asset.id,
         Array.from(toLink),
         Array.from(toUnlink)
       );
+      
+      // 🔥 FIX: Wait a moment for state to update, then refresh the selected scenes
+      // This ensures the UI reflects the changes immediately
+      setTimeout(() => {
+        const updatedAssetSceneIds = asset ? getAssetScenes(asset.id) : [];
+        setSelectedSceneIds(new Set(updatedAssetSceneIds));
+      }, 100);
       
       const totalChanges = toLink.size + toUnlink.size;
       if (totalChanges > 0) {
@@ -880,18 +897,43 @@ export default function AssetDetailSidebar({
                   <div className="flex gap-2">
                     <button
                       onClick={handleSelectAllScenes}
-                      className="px-2 py-1 rounded text-xs font-medium transition-colors"
+                      className="px-2 py-1 rounded text-xs font-medium transition-colors hover:opacity-80"
                       style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB', border: '1px solid #3F3F46' }}
                     >
                       Select All
                     </button>
                     <button
                       onClick={handleDeselectAllScenes}
-                      className="px-2 py-1 rounded text-xs font-medium transition-colors"
+                      className="px-2 py-1 rounded text-xs font-medium transition-colors hover:opacity-80"
                       style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB', border: '1px solid #3F3F46' }}
                     >
                       Deselect All
                     </button>
+                    {hasPendingChanges && (
+                      <button
+                        onClick={handleApplySceneChanges}
+                        disabled={isApplyingSceneChanges}
+                        className="px-3 py-1 rounded text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        style={{ 
+                          backgroundColor: '#DC2626', 
+                          color: '#FFFFFF', 
+                          border: '1px solid #991B1B',
+                          boxShadow: '0 2px 4px rgba(220, 38, 38, 0.3)'
+                        }}
+                      >
+                        {isApplyingSceneChanges ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Applying...
+                          </>
+                        ) : (
+                          <>
+                            <Check size={12} />
+                            Apply Changes
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
                 
@@ -970,28 +1012,6 @@ export default function AssetDetailSidebar({
                       {sceneSearchTerm ? 'No scenes match your search' : 'No scenes available'}
                     </p>
                   </div>
-                )}
-                
-                {/* Apply Changes Button */}
-                {hasPendingChanges && (
-                  <button
-                    onClick={handleApplySceneChanges}
-                    disabled={isApplyingSceneChanges}
-                    className="w-full px-4 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    style={{ backgroundColor: '#8B5CF6', color: 'white' }}
-                  >
-                    {isApplyingSceneChanges ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Applying...
-                      </>
-                    ) : (
-                      <>
-                        <Check size={14} />
-                        Apply Changes ({selectedSceneIds.size} scene{selectedSceneIds.size === 1 ? '' : 's'})
-                      </>
-                    )}
-                  </button>
                 )}
               </div>
             )}
