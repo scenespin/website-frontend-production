@@ -53,6 +53,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate providerId before forwarding
+    if (!providerId || providerId.trim() === '') {
+      return NextResponse.json(
+        { error: 'providerId is required. Please select a model from the dropdown.' },
+        { status: 400 }
+      );
+    }
+
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
     const url = `${backendUrl}/api/location-bank/generate-angles`;

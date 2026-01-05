@@ -319,8 +319,15 @@ export function GenerateLocationTab({
         throw new Error('Failed to get backend token. Please try refreshing the page.');
       }
       
+      // Validate providerId - this should never happen if button is properly disabled
       if (!providerId || providerId.trim() === '') {
-        throw new Error('Please select a model before generating.');
+        console.error('[GenerateLocationTab] providerId validation failed:', {
+          providerId,
+          modelsCount: models.length,
+          isLoadingModels,
+          quality
+        });
+        throw new Error('Please select a model before generating. If models are not loading, please refresh the page.');
       }
       
       // Default values
@@ -892,7 +899,7 @@ export function GenerateLocationTab({
         </button>
         <button
           onClick={handleGenerate}
-          disabled={isGenerating || !providerId || !selectedPackageId}
+          disabled={isGenerating || isLoadingModels || !providerId || !selectedPackageId}
           className="flex-1 px-4 py-3 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
         >
           {isGenerating ? (
