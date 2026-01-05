@@ -623,6 +623,7 @@ export default function AssetDetailSidebar({
   const [selectedSceneIds, setSelectedSceneIds] = useState<Set<string>>(new Set(assetSceneIds));
   const [sceneSearchTerm, setSceneSearchTerm] = useState('');
   const [isApplyingSceneChanges, setIsApplyingSceneChanges] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState<{ current: number; total: number; sceneHeading?: string } | null>(null);
   
   // Update selected scenes when asset changes
   useEffect(() => {
@@ -670,64 +671,109 @@ export default function AssetDetailSidebar({
     setSelectedSceneIds(new Set());
   };
   
-  // Apply scene changes (link/unlink all selected scenes)
+  // Apply scene changes (link/unlink all selected scenes) - one at a time with progress
   const handleApplySceneChanges = async () => {
     if (!asset) return;
     
     setIsApplyingSceneChanges(true);
+    setProcessingProgress(null);
+    
     try {
-      // 🔥 FIX: Get fresh assetSceneIds right before processing to avoid stale state
+      // Get fresh assetSceneIds right before processing to avoid stale state
       const freshAssetSceneIds = asset ? getAssetScenes(asset.id) : [];
       const currentlyLinked = new Set(freshAssetSceneIds);
-      const toLink = new Set<string>();
-      const toUnlink = new Set<string>();
+      const toLink: string[] = [];
+      const toUnlink: string[] = [];
       
       // Determine what needs to be linked/unlinked
       selectedSceneIds.forEach(sceneId => {
         if (!currentlyLinked.has(sceneId)) {
-          toLink.add(sceneId);
+          toLink.push(sceneId);
         }
       });
       
       currentlyLinked.forEach(sceneId => {
         if (!selectedSceneIds.has(sceneId)) {
-          toUnlink.add(sceneId);
+          toUnlink.push(sceneId);
         }
       });
       
-      console.log('[AssetDetailSidebar] 🔗 Applying batch changes:', {
+      const totalChanges = toLink.length + toUnlink.length;
+      
+      if (totalChanges === 0) {
+        toast.info('No changes to apply');
+        return;
+      }
+      
+      console.log('[AssetDetailSidebar] 🔗 Processing scene changes one at a time:', {
         assetId: asset.id,
-        toLink: Array.from(toLink),
-        toUnlink: Array.from(toUnlink),
-        linkCount: toLink.size,
-        unlinkCount: toUnlink.size
+        toLink: toLink.length,
+        toUnlink: toUnlink.length,
+        total: totalChanges
       });
       
-      // 🔥 FIX: Use batch API to prevent race conditions from parallel updates
-      await batchUpdatePropAssociations(
-        asset.id,
-        Array.from(toLink),
-        Array.from(toUnlink)
-      );
+      let successCount = 0;
+      let errorCount = 0;
+      let currentIndex = 0;
       
-      // 🔥 FIX: Wait a moment for state to update, then refresh the selected scenes
-      // This ensures the UI reflects the changes immediately
-      setTimeout(() => {
-        const updatedAssetSceneIds = asset ? getAssetScenes(asset.id) : [];
-        setSelectedSceneIds(new Set(updatedAssetSceneIds));
-      }, 100);
+      // Process links first
+      for (const sceneId of toLink) {
+        currentIndex++;
+        const scene = scenes.find(s => s.id === sceneId);
+        setProcessingProgress({
+          current: currentIndex,
+          total: totalChanges,
+          sceneHeading: scene?.heading || `Scene ${scene?.number || ''}`
+        });
+        
+        try {
+          await linkAssetToScene(asset.id, sceneId);
+          successCount++;
+          // Small delay to ensure state updates and provide smooth UX
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (error) {
+          console.error(`[AssetDetailSidebar] Failed to link scene ${sceneId}:`, error);
+          errorCount++;
+        }
+      }
       
-      const totalChanges = toLink.size + toUnlink.size;
-      if (totalChanges > 0) {
-        toast.success(`Updated ${totalChanges} scene link${totalChanges === 1 ? '' : 's'}`);
+      // Process unlinks
+      for (const sceneId of toUnlink) {
+        currentIndex++;
+        const scene = scenes.find(s => s.id === sceneId);
+        setProcessingProgress({
+          current: currentIndex,
+          total: totalChanges,
+          sceneHeading: scene?.heading || `Scene ${scene?.number || ''}`
+        });
+        
+        try {
+          await unlinkAssetFromScene(asset.id, sceneId);
+          successCount++;
+          // Small delay to ensure state updates and provide smooth UX
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (error) {
+          console.error(`[AssetDetailSidebar] Failed to unlink scene ${sceneId}:`, error);
+          errorCount++;
+        }
+      }
+      
+      // Refresh selected scenes to match current state
+      const updatedAssetSceneIds = asset ? getAssetScenes(asset.id) : [];
+      setSelectedSceneIds(new Set(updatedAssetSceneIds));
+      
+      // Show results
+      if (errorCount > 0) {
+        toast.warning(`Updated ${successCount} scene${successCount === 1 ? '' : 's'}, ${errorCount} failed`);
       } else {
-        toast.info('No changes to apply');
+        toast.success(`Updated ${successCount} scene link${successCount === 1 ? '' : 's'}`);
       }
     } catch (error) {
       console.error('[AssetDetailSidebar] Error applying scene changes:', error);
       toast.error('Failed to update scene links');
     } finally {
       setIsApplyingSceneChanges(false);
+      setProcessingProgress(null);
     }
   };
   
@@ -920,11 +966,16 @@ export default function AssetDetailSidebar({
                           border: '1px solid #991B1B',
                           boxShadow: '0 2px 4px rgba(220, 38, 38, 0.3)'
                         }}
+                        title={processingProgress ? `Processing scene ${processingProgress.current} of ${processingProgress.total}: ${processingProgress.sceneHeading}` : undefined}
                       >
                         {isApplyingSceneChanges ? (
                           <>
                             <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Applying...
+                            {processingProgress ? (
+                              <span>{processingProgress.current}/{processingProgress.total}</span>
+                            ) : (
+                              <span>Applying...</span>
+                            )}
                           </>
                         ) : (
                           <>
