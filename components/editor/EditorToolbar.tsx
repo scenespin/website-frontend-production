@@ -159,6 +159,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [isSaving, setIsSaving] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
+    const [rescanCooldown, setRescanCooldown] = useState(false); // Cooldown to prevent rapid re-clicks
     
     // 🔥 NEW: Sync fullscreen state with browser fullscreen events
     useEffect(() => {
@@ -195,6 +196,11 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     // 🔥 FEATURE 0117: RE-SCAN SCRIPT (Additive - Smart Merge)
     // ========================================================================
     const handleRescan = async () => {
+        // Prevent multiple clicks
+        if (isRescanning || rescanCooldown) {
+            return;
+        }
+        
         setIsRescanning(true);
         
         try {
@@ -205,6 +211,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             
             if (!content.trim()) {
                 toast.error('No script to scan');
+                setIsRescanning(false);
                 return;
             }
             
@@ -245,6 +252,12 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             });
         } finally {
             setIsRescanning(false);
+            
+            // Add 3-second cooldown to prevent rapid re-clicks
+            setRescanCooldown(true);
+            setTimeout(() => {
+                setRescanCooldown(false);
+            }, 3000);
         }
     };
     
@@ -454,14 +467,17 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 
                 {/* 🔥 FEATURE 0117: Re-Scan Script Button - Emoji */}
                 {effectiveCanEditScript && (
-                    <div className="tooltip tooltip-bottom" data-tip="Scan script for new characters/locations (keeps existing data)">
+                    <div className="tooltip tooltip-bottom" data-tip={isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment before scanning again' : 'Scan script for new characters/locations (keeps existing data)'}>
                         <button
                             onClick={handleRescan}
-                            disabled={isRescanning || !state.content.trim()}
+                            disabled={isRescanning || rescanCooldown || !state.content.trim()}
                             className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             {isRescanning ? (
-                                <span className="loading loading-spinner loading-xs"></span>
+                                <>
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                    <span className="text-[9px] hidden sm:inline">SCANNING</span>
+                                </>
                             ) : (
                                 <>
                                     <span className="text-base">🔄</span>
@@ -692,14 +708,17 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     
                     {/* Rescan */}
                     {effectiveCanEditScript && (
-                        <div className="tooltip tooltip-bottom" data-tip="Scan script for new characters/locations">
+                        <div className="tooltip tooltip-bottom" data-tip={isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : 'Scan script for new characters/locations'}>
                             <button
                                 onClick={handleRescan}
-                                disabled={isRescanning || !state.content.trim()}
+                                disabled={isRescanning || rescanCooldown || !state.content.trim()}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 {isRescanning ? (
-                                    <span className="text-sm loading loading-spinner loading-xs"></span>
+                                    <>
+                                        <span className="text-sm loading loading-spinner loading-xs"></span>
+                                        <span className="text-[8px] leading-tight">Scanning</span>
+                                    </>
                                 ) : (
                                     <>
                                         <span className="text-sm">🔄</span>
