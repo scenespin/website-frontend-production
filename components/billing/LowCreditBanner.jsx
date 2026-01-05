@@ -32,7 +32,8 @@ export default function LowCreditBanner() {
   async function fetchCredits() {
     try {
       // Auth token is handled globally by LayoutClient.js
-      // No need to set it up here
+      // The API interceptor will handle auth token retrieval
+      // If auth isn't ready yet, the request will fail gracefully
 
       const response = await api.user.getCredits();
       const creditsData = response.data.data;

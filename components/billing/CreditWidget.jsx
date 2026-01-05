@@ -39,7 +39,8 @@ export default function CreditWidget() {
     try {
       setLoading(true);
       // Auth token is handled globally by LayoutClient.js
-      // No need to set it up here
+      // The API interceptor will handle auth token retrieval
+      // If auth isn't ready yet, the request will fail gracefully
 
       // Fetch credits
       const creditsResponse = await api.user.getCredits();

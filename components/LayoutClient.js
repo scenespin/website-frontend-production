@@ -25,11 +25,17 @@ const AuthInitializer = () => {
   const { isSignedIn } = useUser();
 
   useEffect(() => {
-    if (isSignedIn && getToken) {
+    if (isSignedIn && getToken && typeof getToken === 'function') {
       // Set the global auth token getter for all API requests
       // Using wryda-backend template for consistent JWT claims
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       console.log('[Auth] Token getter initialized with wryda-backend template');
+    } else if (!isSignedIn) {
+      // Clear token getter when user signs out
+      setAuthTokenGetter(null);
+      console.log('[Auth] Token getter cleared (user signed out)');
+    } else if (!getToken || typeof getToken !== 'function') {
+      console.warn('[Auth] getToken is not available or not a function:', typeof getToken);
     }
   }, [isSignedIn, getToken]);
 
