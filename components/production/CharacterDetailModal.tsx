@@ -563,10 +563,20 @@ export function CharacterDetailModal({
       // Get metadata from DynamoDB (character prop)
       const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
       
+      // 🔥 FIX: Determine if image is from Creation section
+      // Creation images have: createdIn: 'creation' or uploadMethod: 'character-creation'
+      // OR they're in character.references (DynamoDB metadata)
+      const isFromCreation = file.metadata?.createdIn === 'creation' || 
+                            file.metadata?.uploadMethod === 'character-creation' ||
+                            (dynamoMetadata && !dynamoMetadata.isPose && !dynamoMetadata.isBase);
+      
       // Determine image type from Media Library metadata or DynamoDB
-      const isPose = file.metadata?.source === 'pose-generation' || 
-                     file.metadata?.uploadMethod === 'pose-generation' ||
-                     (dynamoMetadata?.isPose ?? false);
+      // 🔥 FIX: If image is from Creation section, it's NOT a pose
+      const isPose = isFromCreation ? false : (
+        file.metadata?.source === 'pose-generation' || 
+        file.metadata?.uploadMethod === 'pose-generation' ||
+        (dynamoMetadata?.isPose ?? false)
+      );
       const isBase = dynamoMetadata?.isBase ?? false;
       
       // Get label from DynamoDB metadata or Media Library
@@ -752,11 +762,25 @@ export function CharacterDetailModal({
   }, [enrichedMediaLibraryImages, enrichedFallbackImages]);
   
   // Keep old userReferences and poseReferences for backward compatibility (used in other parts of code)
-  // 🔥 FIX: Filter out clothing references from userReferences (creation images only)
-  // Creation section images are those that are NOT poses, NOT base references, and NOT in Outfits folder
+  // 🔥 FIX: Filter for creation section images only (from character.references array)
+  // Creation section images are those that are in character.references (DynamoDB) and NOT poses/base/outfits
   const userReferences = useMemo(() => {
+    // Build set of creation image s3Keys from character.references
+    const creationS3Keys = new Set<string>();
+    (character.references || []).forEach((ref: any) => {
+      const refS3Key = ref.s3Key || ref.metadata?.s3Key;
+      if (refS3Key) {
+        creationS3Keys.add(refS3Key);
+      }
+    });
+    
     return allImages.filter(img => {
-      // Exclude poses and base references (these are Production Hub images)
+      // Must be in character.references array (definitive creation image identifier)
+      if (!img.s3Key || !creationS3Keys.has(img.s3Key)) {
+        return false;
+      }
+      
+      // Exclude poses and base references (these shouldn't be in references, but double-check)
       if (img.isPose || img.isBase) return false;
       
       // 🔥 FIX: Exclude images from Outfits folder (these are Production Hub generated poses)
@@ -782,7 +806,7 @@ export function CharacterDetailModal({
       
       return true;
     });
-  }, [allImages]);
+  }, [allImages, character.references]);
   
   const poseReferences: PoseReferenceWithOutfit[] = useMemo(() => {
     const userRefsCount = allImages.filter(img => !img.isPose && !img.isBase).length;
