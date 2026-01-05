@@ -303,23 +303,52 @@ export default function EditorWorkspace() {
     };
     
     const handleLaunchRewrite = useCallback(() => {
+        // Solution 3: Try state first, then fallback to DOM reading
+        let finalSelectedText = selectedText;
+        let finalSelectionRange = selectionRange;
+        
+        // If state is missing (common on mobile due to timing issues), read directly from DOM
+        if (!finalSelectedText || !finalSelectionRange || finalSelectionRange.start === finalSelectionRange.end) {
+            // Fallback: Read selection directly from active textarea element
+            const activeElement = document.activeElement;
+            if (activeElement instanceof HTMLTextAreaElement && activeElement.value) {
+                const start = activeElement.selectionStart;
+                const end = activeElement.selectionEnd;
+                
+                if (end > start && end - start > 5) {
+                    const text = activeElement.value.substring(start, end).trim();
+                    if (text.length > 0) {
+                        console.log('[EditorWorkspace] Using DOM fallback for selection:', { start, end, textLength: text.length });
+                        finalSelectedText = text;
+                        finalSelectionRange = { start, end };
+                    }
+                }
+            }
+        }
+        
         // 🔥 CRITICAL: Only allow rewrite if text is actually selected (not just cursor position)
-        if (!selectedText || !selectionRange) {
+        if (!finalSelectedText || !finalSelectionRange) {
             toast.error('Please select text to rewrite');
             return;
         }
         
         // Check if selection has actual content (not just whitespace)
-        const trimmedText = selectedText.trim();
+        const trimmedText = finalSelectedText.trim();
         if (!trimmedText || trimmedText.length === 0) {
             toast.error('Please select text to rewrite');
             return;
         }
         
         // Check if selection range has meaningful length (not just cursor position)
-        if (selectionRange.start === selectionRange.end) {
+        if (finalSelectionRange.start === finalSelectionRange.end) {
             toast.error('Please select text to rewrite');
             return;
+        }
+        
+        // Update state with fallback values if we used DOM fallback
+        if (finalSelectedText !== selectedText || finalSelectionRange !== selectionRange) {
+            setSelectedText(finalSelectedText);
+            setSelectionRange(finalSelectionRange);
         }
         
         // Open rewrite modal instead of drawer

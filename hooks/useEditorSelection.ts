@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect, RefObject } from 'react';
+import { useState, useCallback, useRef, useEffect, RefObject, MutableRefObject } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 
 interface SelectionState {
@@ -17,6 +17,7 @@ interface ToolbarState {
 
 interface SelectionHandlers {
     onMouseUp: () => void;
+    onPointerUp: () => void;
 }
 
 interface UseEditorSelectionReturn {
@@ -24,6 +25,8 @@ interface UseEditorSelectionReturn {
     toolbar: ToolbarState;
     handlers: SelectionHandlers;
     hasSelection: boolean;
+    // Expose ref for immediate access (Solution 6)
+    selectionRef: MutableRefObject<{ start: number; end: number; text: string } | null>;
 }
 
 /**
@@ -46,20 +49,24 @@ export function useEditorSelection(
     const [selectionEnd, setSelectionEnd] = useState(0);
     const [selectedText, setSelectedText] = useState('');
     
+    // Solution 6: Ref storage for immediate access (no React state delay)
+    const selectionRef = useRef<{ start: number; end: number; text: string } | null>(null);
+    
     // Toolbar state
     const [showSelectionToolbar, setShowSelectionToolbar] = useState(false);
     const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
     
     /**
-     * Handle mouse up event - check for text selection
+     * Shared selection capture logic (used by both mouse and pointer events)
+     * Solution 6: Updates both state and ref for immediate access
      */
-    const handleMouseUp = useCallback(() => {
+    const captureSelection = useCallback(() => {
         if (!textareaRef.current) return;
         
         const start = textareaRef.current.selectionStart;
         const end = textareaRef.current.selectionEnd;
         
-        console.log('[useEditorSelection] Mouse up - selection:', { start, end, length: end - start });
+        console.log('[useEditorSelection] Selection captured - selection:', { start, end, length: end - start });
         
         // Update EditorContext with current selection
         setSelection(start, end);
@@ -73,6 +80,11 @@ export function useEditorSelection(
         // Only show toolbar if text is actually selected (more than 5 characters to avoid accidental selections)
         if (end - start > 5) {
             const selected = content.substring(start, end);
+            
+            // Solution 6: Update ref immediately (synchronous, no React state delay)
+            selectionRef.current = { start, end, text: selected };
+            
+            // Update state (for React reactivity)
             setSelectedText(selected);
             setSelectionStart(start);
             setSelectionEnd(end);
@@ -90,6 +102,10 @@ export function useEditorSelection(
         } else {
             // 🔥 FIX: Clear selection state when there's no actual selection (cursor position only)
             // This ensures hasSelection is false when there's just a cursor, not a text selection
+            
+            // Solution 6: Clear ref immediately
+            selectionRef.current = null;
+            
             setSelectedText('');
             setSelectionStart(start); // Set to current cursor position
             setSelectionEnd(start);   // Set to current cursor position (start === end = no selection)
@@ -98,6 +114,22 @@ export function useEditorSelection(
             setShowSelectionToolbar(false);
         }
     }, [textareaRef, content, setSelection, onSelectionChange]);
+    
+    /**
+     * Handle mouse up event - check for text selection
+     * Kept for backward compatibility with desktop
+     */
+    const handleMouseUp = useCallback(() => {
+        captureSelection();
+    }, [captureSelection]);
+    
+    /**
+     * Solution 8: Handle pointer up event - works with mouse, touch, and stylus
+     * More reliable on mobile than mouse events
+     */
+    const handlePointerUp = useCallback(() => {
+        captureSelection();
+    }, [captureSelection]);
     
     /**
      * Close selection toolbar
@@ -125,9 +157,12 @@ export function useEditorSelection(
             close: closeToolbar
         },
         handlers: {
-            onMouseUp: handleMouseUp
+            onMouseUp: handleMouseUp,
+            onPointerUp: handlePointerUp
         },
-        hasSelection
+        hasSelection,
+        // Solution 6: Expose ref for immediate access (no React state delay)
+        selectionRef
     };
 }
 
