@@ -1217,6 +1217,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // 🔥 FIX: Create defaultBeats before startTransition so it's available for buildRelationshipsFromScenes
                     const defaultBeats = createDefaultBeats();
                     
+                    // Transform characters and locations FIRST (before building relationships)
+                    // 🔥 FIX: Pass existing characters to preserve angle metadata when reloading
+                    const transformedCharacters = transformCharactersFromAPI(charactersData, characters);
+                    const transformedLocations = transformLocationsFromAPI(locationsData);
+                    
+                    // 🔥 CRITICAL: Build relationships BEFORE marking as initialized
+                    // This ensures relationships are available when SceneNavigatorList renders
+                    buildRelationshipsFromScenes(renumberedScenes, defaultBeats, transformedCharacters, transformedLocations);
+                    
                     // 🔥 RESTORE: Simple synchronous state updates (like before refactor)
                     // The original code worked because state updates were immediate
                     // startTransition was added to fix React error #300, but it broke loading logic
@@ -1235,9 +1244,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         hasAutoCreated.current = true;
                     }
                     
-                    // Transform and set characters
-                    // 🔥 FIX: Pass existing characters to preserve angle metadata when reloading
-                    const transformedCharacters = transformCharactersFromAPI(charactersData, characters);
                     // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
                     setTimeout(() => {
                         startTransition(() => {
@@ -1247,8 +1253,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Character names:', transformedCharacters.map(c => c.name));
                     
-                    // Transform and set locations
-                    const transformedLocations = transformLocationsFromAPI(locationsData);
                     // 🔥 DEBUG: Log address fields to track persistence
                     console.log('[ScreenplayContext] 🔍 Location addresses after reload:', transformedLocations.map(l => ({ 
                         name: l.name, 
@@ -1556,10 +1560,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     });
                 }, 0);
                     console.log('[ScreenplayContext] ✅ Loaded', normalizedAssets.length, 'assets from API (filtered', assetsList.length - normalizedAssets.length, 'soft-deleted)');
-                    
-                    // 🔥 NEW: Build relationships from scenes so scene counts work
-                    // Pass characters and locations for validation (beats are empty templates now)
-                    buildRelationshipsFromScenes(transformedScenes, defaultBeats, transformedCharacters, transformedLocations);
                     
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
                     if (transformedScenes.length === 0 && !hasAutoCreated.current) {

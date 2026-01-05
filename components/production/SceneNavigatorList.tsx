@@ -11,7 +11,6 @@ import React, { useState, useEffect } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { MapPin, Users, Package } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Scene } from '@/types/screenplay';
 import { getScreenplay } from '@/utils/screenplayStorage';
@@ -32,66 +31,35 @@ export function SceneNavigatorList({
   projectId
 }: SceneNavigatorListProps) {
   const screenplay = useScreenplay();
-  // 🔥 FIX: Use context values directly instead of destructuring to avoid stale closures
-  // Always read from screenplay object to get latest state
   const { getToken } = useAuth();
   const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
-  
-  // 🔍 DEBUG: Log state on every render to troubleshoot
-  useEffect(() => {
-    const scenes = screenplay.scenes || [];
-    const isLoading = screenplay.isLoading || false;
-    const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
-    
-    console.log('[SceneNavigatorList] 🔍 STATE CHECK:', {
-      scenesCount: scenes.length,
-      scenesArray: scenes,
-      isLoading,
-      hasInitialized,
-      screenplayId: screenplay.screenplayId,
-      timestamp: new Date().toISOString()
-    });
-    
-    // 🔍 Additional check: Are we getting stale state?
-    if (hasInitialized && scenes.length === 0) {
-      console.warn('[SceneNavigatorList] ⚠️ WARNING: hasInitialized=true but scenes.length=0 - this might indicate a timing issue');
-    }
-  }, [screenplay.scenes, screenplay.isLoading, screenplay.hasInitializedFromDynamoDB, screenplay.screenplayId]);
 
   // Get character names for a scene
   const getSceneCharacters = (scene: Scene): string[] => {
-    // 🔥 FIX: Always read from context directly
-    const relationships = screenplay.relationships;
-    const characters = screenplay.characters || [];
-    
-    const sceneRel = relationships?.scenes?.[scene.id];
+    const sceneRel = screenplay.relationships?.scenes?.[scene.id];
     if (!sceneRel?.characters) {
       // Fallback to fountain tags
       return (scene.fountain?.tags?.characters || [])
-        .map(charId => characters.find(c => c.id === charId)?.name)
+        .map(charId => screenplay.characters?.find(c => c.id === charId)?.name)
         .filter(Boolean) as string[];
     }
     
     return sceneRel.characters
-      .map(charId => characters.find(c => c.id === charId)?.name)
+      .map(charId => screenplay.characters?.find(c => c.id === charId)?.name)
       .filter(Boolean) as string[];
   };
 
   // Get location name for a scene
   const getSceneLocation = (scene: Scene): string | null => {
-    // 🔥 FIX: Always read from context directly
-    const relationships = screenplay.relationships;
-    const locations = screenplay.locations || [];
-    
-    const sceneRel = relationships?.scenes?.[scene.id];
+    const sceneRel = screenplay.relationships?.scenes?.[scene.id];
     if (sceneRel?.location) {
-      const location = locations.find(l => l.id === sceneRel.location);
+      const location = screenplay.locations?.find(l => l.id === sceneRel.location);
       return location?.name || null;
     }
     
     // Fallback to fountain tags
     if (scene.fountain?.tags?.location) {
-      const location = locations.find(l => l.id === scene.fountain?.tags?.location);
+      const location = screenplay.locations?.find(l => l.id === scene.fountain?.tags?.location);
       return location?.name || null;
     }
     
@@ -108,11 +76,9 @@ export function SceneNavigatorList({
   useEffect(() => {
     if (!projectId || !getToken) return;
     
-    // 🔥 FIX: Read scenes from context directly in effect
-    const currentScenes = screenplay.scenes || [];
-    
     const fetchFirstLines = async () => {
-      const scenesToFetch = currentScenes.filter(scene => {
+      const scenes = screenplay.scenes || [];
+      const scenesToFetch = scenes.filter(scene => {
         // Fetch if no synopsis, or synopsis is the placeholder "Imported from script"
         const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
         return !hasValidSynopsis && scene.fountain?.startLine && scene.fountain?.endLine;
@@ -151,8 +117,7 @@ export function SceneNavigatorList({
     fetchFirstLines();
   }, [projectId, getToken, screenplay.scenes]);
 
-  // 🔥 RESTORE: Simple working logic from before refactor (commit 16eb3577)
-  // This worked because it checks loading first, then empty state, then renders scenes
+  // Show loading state while initializing
   const scenes = screenplay.scenes || [];
   const isLoading = screenplay.isLoading || false;
   const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
@@ -267,22 +232,22 @@ export function SceneNavigatorList({
               {(location || characters.length > 0 || propsCount > 0) && (
                 <div className="flex flex-wrap w-full gap-1 mt-1">
                   {location && (
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080] gap-1 max-w-[200px]">
-                      <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                    <span className="badge badge-sm badge-secondary gap-1 max-w-[200px]">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
                       <span className="truncate">{location}</span>
-                    </Badge>
+                    </span>
                   )}
                   {characters.length > 0 && (
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080] gap-1">
-                      <Users className="w-2.5 h-2.5" />
+                    <span className="badge badge-sm badge-warning gap-1">
+                      <Users className="w-3 h-3" />
                       <span>{characters.length}</span>
-                    </Badge>
+                    </span>
                   )}
                   {propsCount > 0 && (
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080] gap-1">
-                      <Package className="w-2.5 h-2.5" />
+                    <span className="badge badge-sm badge-info gap-1">
+                      <Package className="w-3 h-3" />
                       <span>{propsCount}</span>
-                    </Badge>
+                    </span>
                   )}
                 </div>
               )}
