@@ -699,8 +699,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         console.log('[ScreenplayContext] 🔍 Available characters:', charactersList.map(c => ({ id: c.id, name: c.name })));
         console.log('[ScreenplayContext] 🔍 Available locations:', locationsList.map(l => ({ id: l.id, name: l.name })));
         
-        // 🔥 FIX: Wrap in startTransition to prevent React error #185
-        startTransition(() => {
+        // 🔥 FIX: Update synchronously (safe in useEffect) so relationships are available immediately
         setRelationships(prev => {
             // 🔥 FIX: Get set of valid scene IDs to clean up references to deleted scenes
             const validSceneIds = new Set(scenes.map(s => s.id));
@@ -837,11 +836,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 totalScenes: scenes.length
             });
             
-            // 🔥 FIX: Store new relationships in a ref so updateRelationships can access them
+            // 🔥 FIX: Store new relationships in a ref immediately (before state update)
+            // This ensures relationships are available even if state update is deferred
             relationshipsRef.current = newRels;
             
+            console.log('[ScreenplayContext] ✅ Relationships ref updated with', Object.keys(newRels.scenes).length, 'scenes');
+            
             return newRels;
-        });
         });
     }, []);
     
@@ -1761,29 +1762,52 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 FIX: Use scenesRef to get latest state (avoid stale closure)
         const scene = scenesRef.current.find(s => s.id === sceneId) || scenes.find(s => s.id === sceneId);
         if (!scene) {
-            console.error('[ScreenplayContext] Scene not found:', sceneId);
+            console.error('[ScreenplayContext] ❌ Scene not found for linking:', { sceneId, availableScenes: scenesRef.current.map(s => s.id) });
             return;
         }
         
         const currentProps = scene.fountain?.tags?.props || [];
         if (currentProps.includes(assetId)) {
-            console.log('[ScreenplayContext] Asset already linked to scene');
+            console.log('[ScreenplayContext] ℹ️ Asset already linked to scene:', { assetId, sceneId });
             return;
         }
         
         const updatedProps = [...currentProps, assetId];
-        await updateScene(sceneId, {
-            fountain: {
-                ...scene.fountain,
-                tags: {
-                    characters: scene.fountain?.tags?.characters || [],
-                    ...(scene.fountain?.tags || {}),
-                    props: updatedProps
-                }
-            }
+        console.log('[ScreenplayContext] 🔗 Linking asset to scene:', { 
+            assetId, 
+            sceneId, 
+            sceneHeading: scene.heading,
+            currentPropsCount: currentProps.length,
+            updatedPropsCount: updatedProps.length,
+            existingTags: scene.fountain?.tags
         });
         
-        console.log('[ScreenplayContext] ✅ Linked asset to scene:', { assetId, sceneId });
+        try {
+            // 🔥 FIX: Preserve all existing tags when updating props
+            await updateScene(sceneId, {
+                fountain: {
+                    ...scene.fountain,
+                    tags: {
+                        ...(scene.fountain?.tags || {}), // Preserve all existing tags first
+                        characters: scene.fountain?.tags?.characters || [],
+                        location: scene.fountain?.tags?.location,
+                        props: updatedProps // Then update props
+                    }
+                }
+            });
+            
+            // 🔥 FIX: Verify the update by checking the ref
+            const updatedScene = scenesRef.current.find(s => s.id === sceneId);
+            const propsAfterUpdate = updatedScene?.fountain?.tags?.props || [];
+            if (propsAfterUpdate.includes(assetId)) {
+                console.log('[ScreenplayContext] ✅ Linked asset to scene (verified):', { assetId, sceneId, propsCount: propsAfterUpdate.length });
+            } else {
+                console.error('[ScreenplayContext] ⚠️ WARNING: Asset link may not have persisted:', { assetId, sceneId, propsAfterUpdate });
+            }
+        } catch (error) {
+            console.error('[ScreenplayContext] ❌ Failed to link asset to scene:', { assetId, sceneId, error });
+            throw error;
+        }
     }, [scenes, updateScene]);
     
     // 🔥 Feature 0136: Asset-Scene Association - Unlink asset from scene
@@ -1791,29 +1815,52 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 FIX: Use scenesRef to get latest state (avoid stale closure)
         const scene = scenesRef.current.find(s => s.id === sceneId) || scenes.find(s => s.id === sceneId);
         if (!scene) {
-            console.error('[ScreenplayContext] Scene not found:', sceneId);
+            console.error('[ScreenplayContext] ❌ Scene not found for unlinking:', { sceneId });
             return;
         }
         
         const currentProps = scene.fountain?.tags?.props || [];
         if (!currentProps.includes(assetId)) {
-            console.log('[ScreenplayContext] Asset not linked to scene');
+            console.log('[ScreenplayContext] ℹ️ Asset not linked to scene:', { assetId, sceneId });
             return;
         }
         
         const updatedProps = currentProps.filter(id => id !== assetId);
-        await updateScene(sceneId, {
-            fountain: {
-                ...scene.fountain,
-                tags: {
-                    characters: scene.fountain?.tags?.characters || [],
-                    ...(scene.fountain?.tags || {}),
-                    props: updatedProps.length > 0 ? updatedProps : undefined
-                }
-            }
+        console.log('[ScreenplayContext] 🔗 Unlinking asset from scene:', { 
+            assetId, 
+            sceneId, 
+            sceneHeading: scene.heading,
+            currentPropsCount: currentProps.length,
+            updatedPropsCount: updatedProps.length,
+            existingTags: scene.fountain?.tags
         });
         
-        console.log('[ScreenplayContext] ✅ Unlinked asset from scene:', { assetId, sceneId });
+        try {
+            // 🔥 FIX: Preserve all existing tags when updating props
+            await updateScene(sceneId, {
+                fountain: {
+                    ...scene.fountain,
+                    tags: {
+                        ...(scene.fountain?.tags || {}), // Preserve all existing tags first
+                        characters: scene.fountain?.tags?.characters || [],
+                        location: scene.fountain?.tags?.location,
+                        props: updatedProps.length > 0 ? updatedProps : undefined // Then update props
+                    }
+                }
+            });
+            
+            // 🔥 FIX: Verify the update by checking the ref
+            const updatedScene = scenesRef.current.find(s => s.id === sceneId);
+            const propsAfterUpdate = updatedScene?.fountain?.tags?.props || [];
+            if (!propsAfterUpdate.includes(assetId)) {
+                console.log('[ScreenplayContext] ✅ Unlinked asset from scene (verified):', { assetId, sceneId, propsCount: propsAfterUpdate.length });
+            } else {
+                console.error('[ScreenplayContext] ⚠️ WARNING: Asset unlink may not have persisted:', { assetId, sceneId, propsAfterUpdate });
+            }
+        } catch (error) {
+            console.error('[ScreenplayContext] ❌ Failed to unlink asset from scene:', { assetId, sceneId, error });
+            throw error;
+        }
     }, [scenes, updateScene]);
     
     // Helper: Recalculate page ranges for all beats based on scene timing
@@ -4266,10 +4313,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // If match found, preserve metadata
             if (bestMatch) {
                 matchedOldScenes.add(bestMatch.id);
-                // 🔥 FIX: Use current scene state from ref (which has latest props after unlinking)
-                // This ensures props that were intentionally unlinked are not restored
-                const currentScene = scenesRef.current.find(s => s.id === bestMatch!.id);
-                const sceneToUse = currentScene || bestMatch;
+                // 🔥 FIX: oldScenes parameter is already the current state, so use bestMatch directly
+                // This preserves props that exist, but won't restore props that were unlinked
+                // (because oldScenes is the current state passed in, not stale data)
                 metadataMap.set(newIndex, {
                     synopsis: bestMatch.synopsis,
                     status: bestMatch.status,
@@ -4278,7 +4324,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     timing: bestMatch.timing,
                     estimatedPageCount: bestMatch.estimatedPageCount,
                     group_label: bestMatch.group_label,
-                    props: sceneToUse.fountain?.tags?.props || [] // Use current state (may have props removed)
+                    props: bestMatch.fountain?.tags?.props || [] // Use bestMatch (which is from oldScenes - current state)
                 });
             }
         });

@@ -36,31 +36,33 @@ export function SceneNavigatorList({
 
   // Get character names for a scene
   const getSceneCharacters = (scene: Scene): string[] => {
+    // 🔥 FIX: Try relationships state first, then fallback to fountain tags
     const sceneRel = screenplay.relationships?.scenes?.[scene.id];
-    if (!sceneRel?.characters) {
-      // Fallback to fountain tags
-      return (scene.fountain?.tags?.characters || [])
+    if (sceneRel?.characters && sceneRel.characters.length > 0) {
+      return sceneRel.characters
         .map(charId => screenplay.characters?.find(c => c.id === charId)?.name)
         .filter(Boolean) as string[];
     }
     
-    return sceneRel.characters
+    // Fallback to fountain tags
+    return (scene.fountain?.tags?.characters || [])
       .map(charId => screenplay.characters?.find(c => c.id === charId)?.name)
       .filter(Boolean) as string[];
   };
 
   // Get location name for a scene
   const getSceneLocation = (scene: Scene): string | null => {
+    // 🔥 FIX: Try relationships state first, then fallback to fountain tags
     const sceneRel = screenplay.relationships?.scenes?.[scene.id];
     if (sceneRel?.location) {
       const location = screenplay.locations?.find(l => l.id === sceneRel.location);
-      return location?.name || null;
+      if (location) return location.name;
     }
     
     // Fallback to fountain tags
     if (scene.fountain?.tags?.location) {
       const location = screenplay.locations?.find(l => l.id === scene.fountain?.tags?.location);
-      return location?.name || null;
+      if (location) return location.name;
     }
     
     return null;
@@ -127,15 +129,28 @@ export function SceneNavigatorList({
     if (scenes.length > 0 && hasInitialized) {
       const firstScene = scenes[0];
       const sceneRel = screenplay.relationships?.scenes?.[firstScene.id];
+      const hasLocation = !!getSceneLocation(firstScene);
+      const hasCharacters = getSceneCharacters(firstScene).length > 0;
+      const hasProps = getScenePropsCount(firstScene) > 0;
+      
       console.log('[SceneNavigatorList] 🔍 Relationships check:', {
         hasRelationships: !!screenplay.relationships,
+        relationshipsScenesCount: screenplay.relationships ? Object.keys(screenplay.relationships.scenes || {}).length : 0,
         scenesCount: scenes.length,
         firstSceneId: firstScene.id,
         firstSceneHeading: firstScene.heading,
         sceneRel: sceneRel,
-        characters: sceneRel?.characters || [],
-        location: sceneRel?.location,
-        allRelationships: screenplay.relationships
+        sceneRelCharacters: sceneRel?.characters || [],
+        sceneRelLocation: sceneRel?.location,
+        // Check if we can actually get data
+        canGetLocation: hasLocation,
+        canGetCharacters: hasCharacters,
+        canGetProps: hasProps,
+        fountainTags: {
+          characters: firstScene.fountain?.tags?.characters || [],
+          location: firstScene.fountain?.tags?.location,
+          props: firstScene.fountain?.tags?.props || []
+        }
       });
     }
   }, [scenes, hasInitialized, screenplay.relationships]);
