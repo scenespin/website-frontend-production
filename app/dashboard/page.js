@@ -28,6 +28,12 @@ import {
 } from 'lucide-react';
 import CreditWidget from '@/components/billing/CreditWidget';
 import LowCreditBanner from '@/components/billing/LowCreditBanner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function Dashboard() {
   const { user } = useUser();
@@ -896,13 +902,61 @@ export default function Dashboard() {
                       </div>
                     </Link>
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Mobile: Always-visible three-dot menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                            className="md:hidden p-2 rounded-md hover:bg-base-300 text-base-content/70 hover:text-base-content transition-colors"
+                            title="Screenplay options"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent 
+                          align="end"
+                          className="bg-base-200 border border-base-300 shadow-lg"
+                        >
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingScreenplayId(screenplayId);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Edit Settings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(screenplayId, project.name || project.title || 'Untitled Project');
+                            }}
+                            disabled={isDeleting}
+                            variant="destructive"
+                            className="cursor-pointer"
+                          >
+                            {isDeleting ? (
+                              <span className="loading loading-spinner loading-xs mr-2"></span>
+                            ) : (
+                              <Trash2 className="w-4 h-4 mr-2" />
+                            )}
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      {/* Desktop: Hover-only buttons */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
                           setEditingScreenplayId(screenplayId);
                         }}
-                        className="p-2 rounded-md hover:bg-base-300 text-base-content/50 hover:text-base-content transition-colors opacity-0 group-hover:opacity-100"
+                        className="hidden md:flex p-2 rounded-md hover:bg-base-300 text-base-content/50 hover:text-base-content transition-colors opacity-0 group-hover:opacity-100"
                         title="Edit screenplay settings"
                       >
                         <Settings className="w-4 h-4" />
@@ -914,7 +968,7 @@ export default function Dashboard() {
                           handleDeleteClick(screenplayId, project.name || project.title || 'Untitled Project');
                         }}
                         disabled={isDeleting}
-                        className="p-2 rounded-md hover:bg-red-500/20 text-base-content/50 hover:text-red-500 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                        className="hidden md:flex p-2 rounded-md hover:bg-red-500/20 text-base-content/50 hover:text-red-500 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
                         title="Delete screenplay"
                       >
                         {isDeleting ? (
