@@ -38,6 +38,7 @@ import {
     updateScene as apiUpdateScene,
     deleteScene as apiDeleteScene,
     deleteAllScenes,
+    batchUpdatePropAssociations as apiBatchUpdatePropAssociations,
     // Feature 0117: Beat API functions removed - beats are frontend-only UI templates
     updateRelationships as apiUpdateRelationships,
     updateScreenplay as apiUpdateScreenplay,
@@ -102,6 +103,7 @@ interface ScreenplayContextType {
     // Feature 0136: Asset-Scene Association
     linkAssetToScene: (assetId: string, sceneId: string) => Promise<void>;
     unlinkAssetFromScene: (assetId: string, sceneId: string) => Promise<void>;
+    batchUpdatePropAssociations: (assetId: string, sceneIdsToLink: string[], sceneIdsToUnlink: string[]) => Promise<void>;
     
     // Bulk Import
     bulkImportCharacters: (characterNames: string[], descriptions?: Map<string, string>, explicitScreenplayId?: string) => Promise<Character[]>;
@@ -1905,6 +1907,89 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             throw error;
         }
     }, [scenes, updateScene]);
+    
+    // 🔥 NEW: Batch update prop associations (prevents race conditions)
+    const batchUpdatePropAssociations = useCallback(async (
+        assetId: string,
+        sceneIdsToLink: string[],
+        sceneIdsToUnlink: string[]
+    ) => {
+        if (!screenplayId) {
+            console.error('[ScreenplayContext] ❌ No screenplayId for batch prop update');
+            return;
+        }
+
+        if (sceneIdsToLink.length === 0 && sceneIdsToUnlink.length === 0) {
+            console.log('[ScreenplayContext] ℹ️ No scenes to update');
+            return;
+        }
+
+        console.log('[ScreenplayContext] 🔗 Batch updating prop associations:', {
+            assetId,
+            linkCount: sceneIdsToLink.length,
+            unlinkCount: sceneIdsToUnlink.length
+        });
+
+        try {
+            // Call backend batch API
+            const updatedScenes = await apiBatchUpdatePropAssociations(
+                screenplayId,
+                assetId,
+                sceneIdsToLink,
+                sceneIdsToUnlink,
+                getToken
+            );
+
+            // Update local state with returned scenes
+            setScenes(prev => {
+                const sceneMap = new Map(prev.map(s => [s.id, s]));
+                updatedScenes.forEach(updatedScene => {
+                    // Convert backend scene format to frontend format
+                    const frontendScene: Scene = {
+                        ...updatedScene,
+                        id: updatedScene.scene_id
+                    };
+                    sceneMap.set(frontendScene.id, frontendScene);
+                });
+                return Array.from(sceneMap.values());
+            });
+
+            // Update refs
+            scenesRef.current = scenesRef.current.map(scene => {
+                const updated = updatedScenes.find(s => s.scene_id === scene.id);
+                if (updated) {
+                    return {
+                        ...scene,
+                        fountain: updated.fountain
+                    };
+                }
+                return scene;
+            });
+
+            // Rebuild relationships
+            buildRelationshipsFromScenes(
+                scenesRef.current,
+                beatsRef.current,
+                charactersRef.current,
+                locationsRef.current
+            );
+
+            // Trigger refresh
+            if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('refreshScenes'));
+                }, 0);
+            }
+
+            console.log('[ScreenplayContext] ✅ Batch updated prop associations:', {
+                assetId,
+                updatedScenesCount: updatedScenes.length
+            });
+        } catch (error) {
+            console.error('[ScreenplayContext] ❌ Failed to batch update prop associations:', error);
+            throw error;
+        }
+    }, [screenplayId, getToken, buildRelationshipsFromScenes]);
     
     // Helper: Recalculate page ranges for all beats based on scene timing
     const recalculateBeatPageRanges = (beats: StoryBeat[]): StoryBeat[] => {
@@ -5677,6 +5762,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0136: Asset-Scene Association
         linkAssetToScene,
         unlinkAssetFromScene,
+        batchUpdatePropAssociations,
         
         // Bulk Import
         bulkImportCharacters,

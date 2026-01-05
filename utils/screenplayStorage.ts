@@ -963,6 +963,41 @@ export async function updateScene(
 }
 
 /**
+ * Batch update prop associations for multiple scenes
+ * Prevents race conditions from parallel updates
+ */
+export async function batchUpdatePropAssociations(
+  screenplayId: string,
+  assetId: string,
+  sceneIdsToLink: string[],
+  sceneIdsToUnlink: string[],
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Scene[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes/batch-update-props`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      asset_id: assetId,
+      scene_ids_to_link: sceneIdsToLink,
+      scene_ids_to_unlink: sceneIdsToUnlink
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to batch update prop associations');
+  }
+
+  const data = await response.json();
+  return data.data;
+}
+
+/**
  * Delete a scene
  */
 export async function deleteScene(

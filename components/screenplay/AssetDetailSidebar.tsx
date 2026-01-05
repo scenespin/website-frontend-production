@@ -34,7 +34,7 @@ export default function AssetDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: AssetDetailSidebarProps) {
-  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset, scenes, linkAssetToScene, unlinkAssetFromScene } = useScreenplay()
+  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset, scenes, linkAssetToScene, unlinkAssetFromScene, batchUpdatePropAssociations } = useScreenplay()
   // 🔥 FIX: Use ref to track latest assets to avoid stale closures in async functions
   const assetsRef = useRef(assets);
   useEffect(() => {
@@ -693,11 +693,12 @@ export default function AssetDetailSidebar({
         }
       });
       
-      // Apply all changes
-      const linkPromises = Array.from(toLink).map(sceneId => linkAssetToScene(asset.id, sceneId));
-      const unlinkPromises = Array.from(toUnlink).map(sceneId => unlinkAssetFromScene(asset.id, sceneId));
-      
-      await Promise.all([...linkPromises, ...unlinkPromises]);
+      // 🔥 FIX: Use batch API to prevent race conditions from parallel updates
+      await batchUpdatePropAssociations(
+        asset.id,
+        Array.from(toLink),
+        Array.from(toUnlink)
+      );
       
       const totalChanges = toLink.size + toUnlink.size;
       if (totalChanges > 0) {
