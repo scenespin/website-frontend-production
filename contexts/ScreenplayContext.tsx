@@ -1938,8 +1938,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
             // Update each scene individually using updateScene (same pattern as linkAssetToScene)
             // Process sequentially to avoid race conditions
+            // 🔥 FIX: Read scene from ref at each iteration to get latest state after previous updates
             for (const sceneId of allSceneIds) {
-                const scene = scenesRef.current.find(s => s.id === sceneId) || scenes.find(s => s.id === sceneId);
+                // 🔥 FIX: Always read from ref to get the most up-to-date state after previous updates
+                const scene = scenesRef.current.find(s => s.id === sceneId);
                 if (!scene) {
                     console.warn('[ScreenplayContext] ⚠️ Scene not found for batch update:', sceneId);
                     continue;
@@ -1983,6 +1985,50 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                     }
                 });
+
+                // 🔥 FIX: Verify the ref was updated correctly after updateScene
+                // updateScene updates scenesRef.current synchronously, but we verify it here
+                const updatedSceneInRef = scenesRef.current.find(s => s.id === sceneId);
+                if (updatedSceneInRef) {
+                    const propsAfterUpdate = updatedSceneInRef.fountain?.tags?.props || [];
+                    const expectedCount = updatedProps.length;
+                    const actualCount = propsAfterUpdate.length;
+                    
+                    if (actualCount !== expectedCount) {
+                        console.warn('[ScreenplayContext] ⚠️ Props count mismatch after update:', {
+                            sceneId,
+                            assetId,
+                            expectedCount,
+                            actualCount,
+                            expectedProps: updatedProps,
+                            actualProps: propsAfterUpdate
+                        });
+                        // Manually fix the ref if there's a mismatch
+                        scenesRef.current = scenesRef.current.map(s => {
+                            if (s.id === sceneId) {
+                                return {
+                                    ...s,
+                                    fountain: {
+                                        ...s.fountain,
+                                        tags: {
+                                            ...s.fountain?.tags,
+                                            props: updatedProps.length > 0 ? updatedProps : undefined
+                                        }
+                                    }
+                                };
+                            }
+                            return s;
+                        });
+                    } else {
+                        console.log('[ScreenplayContext] ✅ Scene updated in batch:', {
+                            sceneId,
+                            assetId,
+                            propsCount: actualCount,
+                            shouldLink,
+                            shouldUnlink
+                        });
+                    }
+                }
 
                 updatedSceneIds.push(sceneId);
             }
