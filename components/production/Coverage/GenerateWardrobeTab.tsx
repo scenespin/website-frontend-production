@@ -18,6 +18,7 @@ import { Upload, Loader2, X, Plus, Wand2, ChevronDown, ChevronUp } from 'lucide-
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import PosePackageSelector from '../../character-bank/PosePackageSelector';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface GenerateWardrobeTabProps {
   characterId: string;
@@ -48,6 +49,7 @@ export function GenerateWardrobeTab({
   onComplete
 }: GenerateWardrobeTabProps) {
   const { getToken } = useAuth();
+  const isMobile = useIsMobile();
   
   // Step 1: Outfit
   const [outfitMode, setOutfitMode] = useState<'create' | 'existing'>('create');
@@ -345,44 +347,44 @@ export function GenerateWardrobeTab({
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className={`${isMobile ? 'p-3' : 'p-6'} space-y-4`}>
       {/* Step 1: Create or Select Outfit */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 1: Create or Select Outfit (Required)</h3>
+      <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 1: Create or Select Outfit (Required)</h3>
         
         <div className="space-y-3">
-          {/* Radio Buttons */}
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+          {/* Radio Buttons - Stack vertically on mobile */}
+          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-4'}`}>
+            <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
               <input
                 type="radio"
                 name="outfitMode"
                 checked={outfitMode === 'create'}
                 onChange={() => setOutfitMode('create')}
-                className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
               />
-              <span className="text-sm text-white">Create New Outfit</span>
+              <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Create New Outfit</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
               <input
                 type="radio"
                 name="outfitMode"
                 checked={outfitMode === 'existing'}
                 onChange={() => setOutfitMode('existing')}
-                className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
               />
-              <span className="text-sm text-white">Add to Existing Outfit</span>
+              <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Add to Existing Outfit</span>
             </label>
           </div>
 
           {outfitMode === 'create' && (
-            <div className="flex gap-2">
+            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
               <input
                 type="text"
                 value={newOutfitName}
                 onChange={(e) => setNewOutfitName(e.target.value)}
                 placeholder="Enter outfit name (e.g., Casual, Formal)"
-                className="flex-1 px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+                className={`flex-1 ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
               />
               <button
                 onClick={() => {
@@ -391,7 +393,7 @@ export function GenerateWardrobeTab({
                     setNewOutfitName(autoName);
                   }
                 }}
-                className="px-3 py-1.5 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded text-sm transition-colors"
+                className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-3 py-1.5 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded transition-colors font-medium`}
               >
                 Create
               </button>
@@ -422,53 +424,53 @@ export function GenerateWardrobeTab({
       </div>
 
       {/* Step 2: Quality/Model Selection */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 2: Quality & Model Selection</h3>
+      <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 2: Quality & Model Selection</h3>
         
         <div className="space-y-3">
-          {/* Quality Selection - Radio Buttons */}
+          {/* Quality Selection - Radio Buttons - Stack vertically on mobile */}
           <div>
-            <label className="block text-xs text-[#808080] mb-2">Quality</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <label className={`block ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080] mb-2`}>Quality</label>
+            <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-4'}`}>
+              <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
                 <input
                   type="radio"
                   name="quality"
                   checked={quality === 'standard'}
                   onChange={() => setQuality('standard')}
-                  className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                  className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
                 />
-                <span className="text-sm text-white">Standard (1080p) - 20 credits</span>
+                <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Standard (1080p) - 20 credits</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
                 <input
                   type="radio"
                   name="quality"
                   checked={quality === 'high-quality'}
                   onChange={() => setQuality('high-quality')}
-                  className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                  className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
                 />
-                <span className="text-sm text-white">High Quality (4K) - 40 credits</span>
+                <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>High Quality (4K) - 40 credits</span>
               </label>
             </div>
           </div>
 
           {/* Model Selection */}
           <div>
-            <label className="block text-xs text-[#808080] mb-2">Model</label>
+            <label className={`block ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080] mb-2`}>Model</label>
             {isLoadingModels ? (
-              <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080] text-sm">
+              <div className={`${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-2 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080]`}>
                 Loading models...
               </div>
             ) : models.length === 0 ? (
-              <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080] text-sm">
+              <div className={`${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-2 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080]`}>
                 No models available for this quality tier
               </div>
             ) : (
               <select
                 value={providerId}
                 onChange={(e) => setProviderId(e.target.value)}
-                className="select select-bordered w-full h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+                className={`select select-bordered w-full ${isMobile ? 'h-12 text-base' : 'h-9 text-sm'} bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]`}
               >
                 {models.map((model) => (
                   <option key={model.id} value={model.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
@@ -478,7 +480,7 @@ export function GenerateWardrobeTab({
               </select>
             )}
             {selectedModel && (
-              <p className="mt-1 text-xs text-[#808080]">
+              <p className={`mt-1 ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080]`}>
                 {selectedModel.credits} credits per image
                 {supportsClothing && ` • Supports clothing/outfit images`}
               </p>
@@ -489,10 +491,10 @@ export function GenerateWardrobeTab({
 
       {/* Step 3: Clothing Images (Virtual Try-On) */}
       {supportsClothing && selectedModel && (
-        <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-white mb-3">
+        <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+          <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>
             Step 3: Clothing Images (Virtual Try-On)
-            <span className="ml-2 text-xs font-normal text-[#808080]">
+            <span className={`ml-2 ${isMobile ? 'text-xs' : 'text-xs'} font-normal text-[#808080]`}>
               ({clothingImages.length}/{Math.min((selectedModel?.referenceLimit || 3) - 1, 3)})
             </span>
           </h3>
@@ -501,9 +503,9 @@ export function GenerateWardrobeTab({
             <button
               onClick={() => clothingFileInputRef.current?.click()}
               disabled={isUploadingClothing || clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3)}
-              className="w-full px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white hover:border-[#DC143C]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className={`w-full ${isMobile ? 'px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white hover:border-[#DC143C]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
             >
-              <Upload className="w-4 h-4" />
+              <Upload className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
               {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
             </button>
             <input
@@ -540,16 +542,16 @@ export function GenerateWardrobeTab({
       )}
 
       {/* Step 4: Style Template + Custom Prompt */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 4: Style Template & Custom Prompt (Optional)</h3>
+      <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 4: Style Template & Custom Prompt (Optional)</h3>
         
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-[#808080] mb-1.5">Style Template</label>
+            <label className={`block ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080] mb-1.5`}>Style Template</label>
             <select
               value={selectedStyleTemplate}
               onChange={(e) => setSelectedStyleTemplate(e.target.value)}
-              className="w-full px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+              className={`w-full ${isMobile ? 'px-4 py-3 text-base h-12' : 'px-3 py-1.5 text-sm h-9'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
             >
               <option value="none">None - Custom Prompt Only</option>
               {DEFAULT_OUTFIT_STYLES.map(style => (
@@ -559,22 +561,22 @@ export function GenerateWardrobeTab({
           </div>
 
           <div>
-            <label className="block text-xs text-[#808080] mb-1.5">
+            <label className={`block ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080] mb-1.5`}>
               Custom Prompt (Optional)
             </label>
             <textarea
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               placeholder="Add specific styling details, color codes (#FF0000)..."
-              className="w-full h-20 bg-[#0A0A0A] border border-[#3F3F46] rounded p-2 text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+              className={`w-full ${isMobile ? 'h-24 p-3 text-base' : 'h-20 p-2 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
             />
           </div>
         </div>
       </div>
 
       {/* Step 5: Pose Package Selection */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 5: Pose Package Selection</h3>
+      <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 5: Pose Package Selection</h3>
         <PosePackageSelector
           characterName={characterName}
           selectedPackageId={selectedPackageId}
@@ -584,11 +586,11 @@ export function GenerateWardrobeTab({
         />
       </div>
 
-      {/* Generate Button */}
-      <div className="flex justify-end gap-2">
+      {/* Generate Button - Stack vertically on mobile */}
+      <div className={`flex ${isMobile ? 'flex-col-reverse gap-2' : 'justify-end gap-2'}`}>
         <button
           onClick={onClose}
-          className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-white rounded text-sm font-medium transition-colors"
+          className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#1F1F1F] hover:bg-[#2A2A2A] text-white rounded font-medium transition-colors`}
           disabled={isGenerating}
         >
           Cancel
@@ -596,11 +598,11 @@ export function GenerateWardrobeTab({
         <button
           onClick={handleGenerate}
           disabled={isGenerating || !finalOutfitName}
-          className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
+          className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-medium transition-colors flex items-center justify-center gap-2`}
         >
           {isGenerating ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} animate-spin />
               Generating...
             </>
           ) : (

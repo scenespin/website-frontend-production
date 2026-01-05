@@ -20,6 +20,7 @@ import type { CharacterReference } from '../types';
 import type { MediaFile } from '@/types/media';
 import { PoseGuidanceSection } from '../CharacterStudio/PoseGuidanceSection';
 import { MediaLibraryBrowser } from '../CharacterStudio/MediaLibraryBrowser';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UploadWardrobeTabProps {
   characterId: string;
@@ -44,6 +45,7 @@ export function UploadWardrobeTab({
   onComplete
 }: UploadWardrobeTabProps) {
   const { getToken } = useAuth();
+  const isMobile = useIsMobile();
   const [outfitMode, setOutfitMode] = useState<'create' | 'existing'>('create');
   const [newOutfitName, setNewOutfitName] = useState<string>('');
   const [selectedExistingOutfit, setSelectedExistingOutfit] = useState<string>('');
@@ -326,45 +328,45 @@ export function UploadWardrobeTab({
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className={`${isMobile ? 'p-3' : 'p-6'} space-y-4`}>
       {/* Step 1: Create or Select Outfit */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 1: Create or Select Outfit</h3>
+      <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 1: Create or Select Outfit</h3>
         
         <div className="space-y-3">
-          {/* Mode Selection - Radio Buttons */}
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+          {/* Mode Selection - Radio Buttons - Stack vertically on mobile */}
+          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-4'}`}>
+            <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
               <input
                 type="radio"
                 name="outfitMode"
                 checked={outfitMode === 'create'}
                 onChange={() => setOutfitMode('create')}
-                className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
               />
-              <span className="text-sm text-white">Create New Outfit</span>
+              <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Create New Outfit</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
               <input
                 type="radio"
                 name="outfitMode"
                 checked={outfitMode === 'existing'}
                 onChange={() => setOutfitMode('existing')}
-                className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
               />
-              <span className="text-sm text-white">Add to Existing Outfit</span>
+              <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Add to Existing Outfit</span>
             </label>
           </div>
 
           {/* Create New Outfit */}
           {outfitMode === 'create' && (
-            <div className="flex gap-2">
+            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
               <input
                 type="text"
                 value={newOutfitName}
                 onChange={(e) => setNewOutfitName(e.target.value)}
                 placeholder="Enter outfit name (e.g., Casual, Formal)"
-                className="flex-1 px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
+                className={`flex-1 ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
               />
               <button
                 onClick={() => {
@@ -376,7 +378,7 @@ export function UploadWardrobeTab({
                   toast.success(`Outfit "${newOutfitName.trim()}" is ready for images`);
                 }}
                 disabled={!newOutfitName.trim()}
-                className="px-3 py-1.5 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-3 py-1.5 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors font-medium`}
               >
                 Create
               </button>
@@ -390,7 +392,7 @@ export function UploadWardrobeTab({
                 <select
                   value={selectedExistingOutfit || '__select__'}
                   onChange={(e) => setSelectedExistingOutfit(e.target.value === '__select__' ? '' : e.target.value)}
-                  className="select select-bordered w-full h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+                  className={`select select-bordered w-full ${isMobile ? 'h-12 text-base' : 'h-9 text-sm'} bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]`}
                 >
                   <option value="__select__" className="bg-[#1A1A1A] text-[#FFFFFF]">Select an outfit...</option>
                   {existingOutfits.map(outfit => (
@@ -398,7 +400,7 @@ export function UploadWardrobeTab({
                   ))}
                 </select>
               ) : (
-                <div className="px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#808080]">
+                <div className={`${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080]`}>
                   No existing outfits. Create a new one instead.
                 </div>
               )}
@@ -408,11 +410,11 @@ export function UploadWardrobeTab({
       </div>
 
       {/* Step 2: Add Images */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 2: Add Images</h3>
+      <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 2: Add Images</h3>
         
-        {/* Action Buttons - Direct Actions */}
-        <div className="flex gap-2 mb-3">
+        {/* Action Buttons - Stack vertically on mobile */}
+        <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'} mb-3`}>
           <button
             onClick={() => {
               // 🔥 FIX: Check outfit name before allowing file selection
@@ -423,9 +425,9 @@ export function UploadWardrobeTab({
               fileInputRef.current?.click();
             }}
             disabled={isProcessing || !isOutfitNameValid}
-            className="flex-1 px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className={`flex-1 ${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-medium transition-colors flex items-center justify-center gap-2`}
           >
-            <Upload className="w-4 h-4" />
+            <Upload className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
             Upload New Images
           </button>
           <input
@@ -446,9 +448,9 @@ export function UploadWardrobeTab({
               setShowMediaLibrary(!showMediaLibrary);
             }}
             disabled={isProcessing || !isOutfitNameValid}
-            className="flex-1 px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-white border border-[#3F3F46] rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className={`flex-1 ${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-white border border-[#3F3F46] rounded font-medium transition-colors flex items-center justify-center gap-2`}
           >
-            <FolderOpen className="w-4 h-4" />
+            <FolderOpen className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
             Browse Archive
           </button>
         </div>
@@ -456,16 +458,16 @@ export function UploadWardrobeTab({
         {/* Collapsible Pose Guidance */}
         <button
           onClick={() => setShowPoseGuidance(!showPoseGuidance)}
-          className="w-full flex items-center justify-between p-2 hover:bg-[#0A0A0A] rounded text-left transition-colors"
+          className={`w-full flex items-center justify-between ${isMobile ? 'p-3 min-h-[48px]' : 'p-2'} hover:bg-[#0A0A0A] rounded text-left transition-colors`}
         >
-          <div className="flex items-center gap-2 text-xs text-[#808080]">
-            <Info className="w-4 h-4" />
+          <div className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080]`}>
+            <Info className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
             <span>Pose Guidance (Click to expand)</span>
           </div>
           {showPoseGuidance ? (
-            <ChevronUp className="w-4 h-4 text-[#808080]" />
+            <ChevronUp className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#808080]`} />
           ) : (
-            <ChevronDown className="w-4 h-4 text-[#808080]" />
+            <ChevronDown className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#808080]`} />
           )}
         </button>
         

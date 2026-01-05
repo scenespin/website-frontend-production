@@ -2068,39 +2068,33 @@ export function CharacterDetailModal({
                                   </div>
                                 );
                               })()}
-                              <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity pointer-events-none ${
-                                selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
-                              }`}>
-                                <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
-                                  <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
-                                </div>
-                                {/* Delete button - all Production Hub images can be deleted - only show when not in selection mode */}
-                                {!img.isBase && !selectionMode && (
-                              <div className="absolute top-2 right-2 pointer-events-auto">
-                                <DropdownMenu
-                                  open={openDropdownId === img.id}
-                                  onOpenChange={(open) => {
-                                    if (open) {
-                                      setOpenDropdownId(img.id);
-                                    } else {
-                                      setOpenDropdownId(null);
-                                    }
-                                  }}
-                                >
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      className="p-2 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Close other dropdowns when opening this one
-                                        if (openDropdownId !== img.id) {
-                                          setOpenDropdownId(img.id);
-                                        }
-                                      }}
-                                    >
-                                      <MoreVertical className="w-4 h-4 text-white" />
-                                    </button>
-                                  </DropdownMenuTrigger>
+                              {/* Three dots dropdown - always visible on mobile, always visible on desktop (simplest solution) */}
+                              {!img.isBase && !selectionMode && (
+                                <div className="absolute top-2 right-2 pointer-events-auto z-20">
+                                  <DropdownMenu
+                                    open={openDropdownId === img.id}
+                                    onOpenChange={(open) => {
+                                      if (open) {
+                                        setOpenDropdownId(img.id);
+                                      } else {
+                                        setOpenDropdownId(null);
+                                      }
+                                    }}
+                                  >
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        className={`${isMobile ? 'p-2.5 bg-[#DC143C]' : 'p-2 bg-[#DC143C]/90 hover:bg-[#DC143C]'} rounded-lg transition-colors ${isMobile ? 'min-w-[44px] min-h-[44px]' : 'min-w-[36px] min-h-[36px]'} flex items-center justify-center shadow-lg`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Close other dropdowns when opening this one
+                                          if (openDropdownId !== img.id) {
+                                            setOpenDropdownId(img.id);
+                                          }
+                                        }}
+                                      >
+                                        <MoreVertical className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-white`} />
+                                      </button>
+                                    </DropdownMenuTrigger>
                                   <DropdownMenuContent 
                                     align="end"
                                     className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
@@ -2318,7 +2312,14 @@ export function CharacterDetailModal({
                                 </DropdownMenu>
                               </div>
                             )}
-                          </div>
+                              {/* Hover overlay for label (only label, not dropdown) */}
+                              <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity pointer-events-none ${
+                                selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+                              }`}>
+                                <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
+                                  <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                                </div>
+                              </div>
                         </div>
                       );
                         });
@@ -2339,7 +2340,8 @@ export function CharacterDetailModal({
                         </div>
                       </div>
                       {/* Mobile: 2 columns for larger thumbnails, Desktop: More columns - slightly bigger with more gap */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+                      {/* Desktop: Reduced columns for bigger images (was 5-7, now 4-6) */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                         {userReferences.map((img) => {
                           return (
                             <div
