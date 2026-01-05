@@ -323,7 +323,14 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
             }}
             asset={selectedAsset}
             onUpdate={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
-            onDelete={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
+            onDelete={async () => {
+              queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+              queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'creation'] });
+              await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+              await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'creation'] });
+              setShowDetailModal(false);
+              setSelectedAssetId(null);
+            }}
             onAssetUpdate={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
           />
         ) : null;

@@ -374,7 +374,14 @@ export function GenerateLocationTab({
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Failed to start generation' }));
-          throw new Error(errorData.error?.message || errorData.error || 'Failed to start angle generation');
+          const errorMessage = errorData.error?.message || errorData.error || errorData.message || 'Failed to start angle generation';
+          console.error('[GenerateLocationTab] API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData,
+            requestBody: { ...requestBody, locationProfile: { ...locationProfile, baseReference: '...' } } // Log without full baseReference
+          });
+          throw new Error(errorMessage);
         }
         
         const result = await response.json();

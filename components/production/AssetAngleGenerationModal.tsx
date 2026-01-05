@@ -167,17 +167,7 @@ export default function AssetAngleGenerationModal({
         handleReset();
         onClose();
         
-        // Show success toast with link to Jobs tab
-        toast.success('Angle generation started!', {
-          description: 'View in Jobs tab to track progress.',
-          action: {
-            label: 'View Jobs',
-            onClick: () => {
-              window.location.href = `/production?tab=jobs&projectId=${projectId}`;
-            }
-          },
-          duration: 5000
-        });
+        // Toast notification handled by parent (AssetDetailModal) in onComplete callback
         
         // Call onComplete with jobId
         if (onComplete) {
