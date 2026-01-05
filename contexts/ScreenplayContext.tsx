@@ -1951,9 +1951,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 return Array.from(sceneMap.values());
             });
 
-            // Update refs
+            // Update refs (use transformed scenes which have 'id' not 'scene_id')
             scenesRef.current = scenesRef.current.map(scene => {
-                const updated = updatedScenes.find(s => s.scene_id === scene.id);
+                const updated = transformedScenes.find(s => s.id === scene.id);
                 if (updated) {
                     return {
                         ...scene,
