@@ -2102,9 +2102,11 @@ export function CharacterDetailModal({
                                   >
                                     <DropdownMenuItem
                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                                      onClick={(e) => {
+                                      onSelect={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
-                                        setOpenDropdownId(null); // Close dropdown
+                                        // Close dropdown after a brief delay to ensure handler fires
+                                        setTimeout(() => setOpenDropdownId(null), 100);
                                         // Find which outfit group this image belongs to
                                         const outfitName = img.outfitName || (img as any).metadata?.outfitName || 'default';
                                         const groupImages = posesByOutfit[outfitName] || [];
@@ -2132,9 +2134,11 @@ export function CharacterDetailModal({
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                                      onClick={async (e) => {
+                                      onSelect={async (e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
-                                        setOpenDropdownId(null); // Close dropdown
+                                        // Close dropdown after a brief delay to ensure handler fires
+                                        setTimeout(() => setOpenDropdownId(null), 100);
                                         try {
                                           // Generate filename from metadata
                                           const poseName = img.poseId || (img as any).metadata?.poseId || img.label || 'pose';
@@ -2154,9 +2158,11 @@ export function CharacterDetailModal({
                                     {img.s3Key && (
                                       <DropdownMenuItem
                                         className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                                        onClick={(e) => {
+                                        onSelect={(e) => {
+                                          e.preventDefault();
                                           e.stopPropagation();
-                                          setOpenDropdownId(null); // Close dropdown
+                                          // Close dropdown after a brief delay to ensure handler fires
+                                          setTimeout(() => setOpenDropdownId(null), 100);
                                           setCropPose({
                                             poseId: img.id || img.poseId || (img as any).metadata?.poseId || '',
                                             poseS3Key: img.s3Key
@@ -2175,9 +2181,11 @@ export function CharacterDetailModal({
                                       return (
                                         <DropdownMenuItem
                                           className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
-                                          onClick={(e) => {
+                                          onSelect={(e) => {
+                                            e.preventDefault();
                                             e.stopPropagation();
-                                            setOpenDropdownId(null); // Close dropdown
+                                            // Close dropdown after a brief delay to ensure handler fires
+                                            setTimeout(() => setOpenDropdownId(null), 100);
                                             // Don't allow if ANY regeneration is in progress
                                             if (isRegenerating) {
                                               console.log('[CharacterDetailModal] Blocked regenerate - another regeneration in progress');
@@ -2199,9 +2207,11 @@ export function CharacterDetailModal({
                                     })()}
                                     <DropdownMenuItem
                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
-                                      onClick={async (e) => {
+                                      onSelect={async (e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
-                                        setOpenDropdownId(null); // Close dropdown
+                                        // Close dropdown after a brief delay to ensure handler fires
+                                        setTimeout(() => setOpenDropdownId(null), 100);
                                         if (!confirm('Delete this image? This action cannot be undone.')) {
                                           return;
                                         }
