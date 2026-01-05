@@ -1217,15 +1217,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // 🔥 FIX: Create defaultBeats before startTransition so it's available for buildRelationshipsFromScenes
                     const defaultBeats = createDefaultBeats();
                     
-                    // 🔥 Beats removed - store scenes directly (deduplicated and renumbered)
-                    // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
-                    startTransition(() => {
-                        setScenes(renumberedScenes);
-                        setBeats(defaultBeats);
-                        // Set initialized flag inside transition to ensure scenes are set first
-                        setHasInitializedFromDynamoDB(true);
-                        setIsLoading(false);
-                    });
+                    // 🔥 RESTORE: Simple synchronous state updates (like before refactor)
+                    // The original code worked because state updates were immediate
+                    // startTransition was added to fix React error #300, but it broke loading logic
+                    // We'll fix React error #300 properly by ensuring updates happen in useEffect, not during render
+                    console.log('[ScreenplayContext] ✅ Setting scenes state synchronously with', renumberedScenes.length, 'scenes');
+                    scenesRef.current = renumberedScenes;
+                    beatsRef.current = defaultBeats;
+                    setScenes(renumberedScenes);
+                    setBeats(defaultBeats);
+                    setHasInitializedFromDynamoDB(true);
+                    setIsLoading(false);
                     console.log('[ScreenplayContext] ✅ Loaded', renumberedScenes.length, 'scenes directly (beats removed, deduplicated, renumbered)');
                     
                     // Mark that we loaded scenes from DB to prevent auto-creation

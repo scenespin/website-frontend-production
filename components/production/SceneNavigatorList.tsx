@@ -32,51 +32,66 @@ export function SceneNavigatorList({
   projectId
 }: SceneNavigatorListProps) {
   const screenplay = useScreenplay();
-  const scenes = screenplay.scenes || [];
-  const isLoading = screenplay.isLoading || false;
-  const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
+  // 🔥 FIX: Use context values directly instead of destructuring to avoid stale closures
+  // Always read from screenplay object to get latest state
   const { getToken } = useAuth();
+  const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
   
   // 🔍 DEBUG: Log state on every render to troubleshoot
   useEffect(() => {
+    const scenes = screenplay.scenes || [];
+    const isLoading = screenplay.isLoading || false;
+    const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
+    
     console.log('[SceneNavigatorList] 🔍 STATE CHECK:', {
       scenesCount: scenes.length,
       scenesArray: scenes,
       isLoading,
       hasInitialized,
       screenplayId: screenplay.screenplayId,
-      allScenesFromContext: screenplay.scenes,
-      contextHasScenes: !!screenplay.scenes && screenplay.scenes.length > 0
+      timestamp: new Date().toISOString()
     });
-  }, [scenes.length, isLoading, hasInitialized, screenplay.screenplayId, screenplay.scenes]);
-  const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
+    
+    // 🔍 Additional check: Are we getting stale state?
+    if (hasInitialized && scenes.length === 0) {
+      console.warn('[SceneNavigatorList] ⚠️ WARNING: hasInitialized=true but scenes.length=0 - this might indicate a timing issue');
+    }
+  }, [screenplay.scenes, screenplay.isLoading, screenplay.hasInitializedFromDynamoDB, screenplay.screenplayId]);
 
   // Get character names for a scene
   const getSceneCharacters = (scene: Scene): string[] => {
-    const sceneRel = screenplay.relationships?.scenes?.[scene.id];
+    // 🔥 FIX: Always read from context directly
+    const relationships = screenplay.relationships;
+    const characters = screenplay.characters || [];
+    
+    const sceneRel = relationships?.scenes?.[scene.id];
     if (!sceneRel?.characters) {
       // Fallback to fountain tags
       return (scene.fountain?.tags?.characters || [])
-        .map(charId => screenplay.characters?.find(c => c.id === charId)?.name)
+        .map(charId => characters.find(c => c.id === charId)?.name)
         .filter(Boolean) as string[];
     }
     
     return sceneRel.characters
-      .map(charId => screenplay.characters?.find(c => c.id === charId)?.name)
+      .map(charId => characters.find(c => c.id === charId)?.name)
       .filter(Boolean) as string[];
   };
 
   // Get location name for a scene
   const getSceneLocation = (scene: Scene): string | null => {
-    const sceneRel = screenplay.relationships?.scenes?.[scene.id];
+    // 🔥 FIX: Always read from context directly
+    const relationships = screenplay.relationships;
+    const locations = screenplay.locations || [];
+    
+    const sceneRel = relationships?.scenes?.[scene.id];
     if (sceneRel?.location) {
-      const location = screenplay.locations?.find(l => l.id === sceneRel.location);
+      const location = locations.find(l => l.id === sceneRel.location);
       return location?.name || null;
     }
     
     // Fallback to fountain tags
     if (scene.fountain?.tags?.location) {
-      const location = screenplay.locations?.find(l => l.id === scene.fountain?.tags?.location);
+      const location = locations.find(l => l.id === scene.fountain?.tags?.location);
       return location?.name || null;
     }
     
@@ -93,8 +108,11 @@ export function SceneNavigatorList({
   useEffect(() => {
     if (!projectId || !getToken) return;
     
+    // 🔥 FIX: Read scenes from context directly in effect
+    const currentScenes = screenplay.scenes || [];
+    
     const fetchFirstLines = async () => {
-      const scenesToFetch = scenes.filter(scene => {
+      const scenesToFetch = currentScenes.filter(scene => {
         // Fetch if no synopsis, or synopsis is the placeholder "Imported from script"
         const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
         return !hasValidSynopsis && scene.fountain?.startLine && scene.fountain?.endLine;
@@ -131,31 +149,16 @@ export function SceneNavigatorList({
     };
     
     fetchFirstLines();
-  }, [projectId, getToken, scenes]);
+  }, [projectId, getToken, screenplay.scenes]);
 
-  // 🔍 DEBUG: Log which branch we're taking
-  const scenesExist = scenes && scenes.length > 0;
-  const shouldShowLoading = (isLoading || !hasInitialized) && !scenesExist;
-  const shouldShowEmpty = !scenesExist && !isLoading && hasInitialized;
+  // 🔥 RESTORE: Simple working logic from before refactor (commit 16eb3577)
+  // This worked because it checks loading first, then empty state, then renders scenes
+  const scenes = screenplay.scenes || [];
+  const isLoading = screenplay.isLoading || false;
+  const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
   
-  console.log('[SceneNavigatorList] 🎯 RENDER DECISION:', {
-    scenesExist,
-    shouldShowLoading,
-    shouldShowEmpty,
-    scenesLength: scenes.length,
-    isLoading,
-    hasInitialized
-  });
-  
-  // PRIORITY 1: If scenes exist, show them immediately (regardless of initialization state)
-  // This fixes the timing issue where hasInitialized becomes true before scenes are set
-  if (scenesExist) {
-    console.log('[SceneNavigatorList] ✅ Showing scenes - scenes exist');
-    // Continue to render scenes below
-  } 
-  // PRIORITY 2: Show loading only if no scenes AND still initializing
-  else if (shouldShowLoading) {
-    console.log('[SceneNavigatorList] ⏳ Showing loading state');
+  // Show loading state while initializing
+  if (isLoading || !hasInitialized) {
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <div className="flex items-center gap-2">
@@ -166,10 +169,10 @@ export function SceneNavigatorList({
         </div>
       </div>
     );
-  } 
-  // PRIORITY 3: Show empty state only after initialization is complete AND no scenes
-  else if (shouldShowEmpty) {
-    console.log('[SceneNavigatorList] ❌ Showing empty state');
+  }
+  
+  // Show empty state only after initialization is complete
+  if (!scenes || scenes.length === 0) {
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <p className="text-sm font-medium text-[#808080] mb-2">
@@ -181,9 +184,6 @@ export function SceneNavigatorList({
       </div>
     );
   }
-  
-  // Fallback (shouldn't reach here, but just in case)
-  console.warn('[SceneNavigatorList] ⚠️ Unexpected state - no condition matched');
 
   // Sort scenes by order
   const sortedScenes = [...scenes].sort((a, b) => {
