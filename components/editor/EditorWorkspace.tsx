@@ -456,6 +456,7 @@ export default function EditorWorkspace() {
                     <Sheet open={isSceneNavVisible} onOpenChange={setIsSceneNavVisible}>
                         <SheetContent 
                             side="left" 
+                            showOverlay={false}
                             className="w-3/4 sm:max-w-sm p-0 bg-[#0A0A0A] border-r border-[#3F3F46]"
                         >
                             <SheetHeader className="p-3 border-b border-white/10 bg-[#0A0A0A]">
