@@ -314,7 +314,7 @@ export default function Page() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Write</h3>
                 <p className="text-gray-300">
-                  Write your screenplay or let AI help. Our specialized agents understand screenwriting and can teach you along the way.
+                  Write your screenplay or let AI help. Define your characters, locations, and props. Upload initial reference images to establish your vision.
                 </p>
               </div>
 
@@ -324,7 +324,7 @@ export default function Page() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Build</h3>
                 <p className="text-gray-300">
-                  Build your cast, locations, and props. Upload character images, define locations, and add props to your production hub.
+                  In the Production Hub, use AI to generate advanced images from your references. Create character angle packages, location angles, prop angles, and virtual try-ons for wardrobe changes.
                 </p>
               </div>
 
@@ -332,9 +332,9 @@ export default function Page() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
                   3
                 </div>
-                <h3 className="text-xl font-bold mb-3">Generate</h3>
+                <h3 className="text-xl font-bold mb-3">Direct</h3>
                 <p className="text-gray-300">
-                  Generate complete scenes from your script. Our motion picture technology handles consistency automatically.
+                  Generate complete video scenes from your script. Our motion picture technology automatically maintains character, location, and prop consistency across every scene.
                 </p>
               </div>
             </div>
