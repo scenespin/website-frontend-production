@@ -125,8 +125,17 @@ export function CharacterDetailModal({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  // 🔥 NEW: Regeneration state - include metadata to preserve providerId and quality
-  const [regeneratePose, setRegeneratePose] = useState<{ poseId: string; s3Key: string; providerId?: string; quality?: string } | null>(null);
+  // 🔥 NEW: Regeneration state - include all metadata to preserve exact regeneration parameters
+  const [regeneratePose, setRegeneratePose] = useState<{ 
+    poseId: string; 
+    s3Key: string; 
+    providerId?: string; 
+    quality?: string;
+    clothingReferences?: string[];
+    typicalClothing?: string;
+    outfitName?: string;
+    referenceImageUrls?: string[];
+  } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   // 🔥 NEW: Crop modal state
@@ -164,8 +173,19 @@ export function CharacterDetailModal({
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
-  // 🔥 NEW: Handle pose regeneration
-  const handleRegeneratePose = async (poseId: string, existingPoseS3Key: string, providerId?: string, quality?: string) => {
+  // 🔥 NEW: Handle pose regeneration - pass all metadata for exact regeneration
+  const handleRegeneratePose = async (
+    poseId: string, 
+    existingPoseS3Key: string, 
+    metadata?: {
+      providerId?: string;
+      quality?: string;
+      clothingReferences?: string[];
+      typicalClothing?: string;
+      outfitName?: string;
+      referenceImageUrls?: string[];
+    }
+  ) => {
     if (!poseId || !existingPoseS3Key) {
       toast.error('Missing pose information for regeneration');
       return;
@@ -174,30 +194,15 @@ export function CharacterDetailModal({
     // 🔥 CRITICAL: Set regenerating state IMMEDIATELY before any async operations
     // This ensures the UI updates synchronously before the fetch starts
     const s3KeyToTrack = existingPoseS3Key.trim();
-    console.log('[CharacterDetailModal] Starting regeneration for s3Key:', s3KeyToTrack, 'providerId:', providerId, 'quality:', quality);
+    console.log('[CharacterDetailModal] Starting regeneration for s3Key:', s3KeyToTrack, 'metadata:', metadata);
     setIsRegenerating(true);
     setRegeneratingS3Key(s3KeyToTrack); // Track which image is regenerating - set BEFORE closing modal
     setRegeneratePose(null); // Close modal AFTER state is set
     console.log('[CharacterDetailModal] Set regeneratingS3Key to:', s3KeyToTrack);
     
-    // 🔥 FIX: Use providerId and quality from the clicked image's metadata (passed in)
-    // Fallback to looking up from character references if not provided
-    let finalProviderId = providerId;
-    let finalQuality = quality || 'standard';
-    
-    if (!finalProviderId) {
-      // Fallback: Try to find from character references
-      const rawPoseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
-      const poseRef = rawPoseRefs.find((ref: any) => {
-        const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
-        return refS3Key.trim() === s3KeyToTrack;
-      });
-      const poseMetadata = typeof poseRef === 'object' && poseRef ? poseRef.metadata : null;
-      finalProviderId = poseMetadata?.providerId;
-      if (!finalQuality && poseMetadata?.quality) {
-        finalQuality = poseMetadata.quality;
-      }
-    }
+    // 🔥 FIX: Use metadata from the clicked image (passed in)
+    // The backend will also look up from DynamoDB as a fallback, but passing it ensures accuracy
+    // Note: Backend prioritizes stored metadata from DynamoDB, but we pass it for redundancy
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -213,9 +218,14 @@ export function CharacterDetailModal({
         body: JSON.stringify({
           poseId,
           existingPoseS3Key,
-          // 🔥 FIX: Use providerId and quality from the clicked image's metadata
-          providerId: finalProviderId || undefined,
-          quality: finalQuality,
+          // 🔥 FIX: Pass all metadata for exact regeneration
+          // Backend will use stored metadata from DynamoDB as primary source, but this ensures accuracy
+          providerId: metadata?.providerId,
+          quality: metadata?.quality,
+          clothingReferences: metadata?.clothingReferences,
+          typicalClothing: metadata?.typicalClothing,
+          outfitName: metadata?.outfitName,
+          // Note: referenceImageUrls are handled by backend from character.referenceImages
         }),
       });
 
@@ -2204,12 +2214,18 @@ export function CharacterDetailModal({
                                             }
                                             console.log('[CharacterDetailModal] Opening regenerate modal for s3Key:', currentS3Key);
                                             // Show warning modal before regenerating
-                                            // 🔥 FIX: Pass providerId and quality from the clicked image's metadata
+                                            // 🔥 FIX: Pass ALL metadata from the clicked image for exact regeneration
+                                            // This includes providerId, quality, clothingReferences, typicalClothing, outfitName, etc.
+                                            // Backend will also look up from DynamoDB, but passing ensures accuracy
                                             setRegeneratePose({
                                               poseId: img.poseId || img.metadata?.poseId || '',
                                               s3Key: currentS3Key,
                                               providerId: img.metadata?.providerId,
                                               quality: img.metadata?.quality,
+                                              clothingReferences: img.metadata?.clothingReferences,
+                                              typicalClothing: img.metadata?.typicalClothing,
+                                              outfitName: img.outfitName || img.metadata?.outfitName,
+                                              referenceImageUrls: img.metadata?.referenceImageUrls,
                                             });
                                           }}
                                           disabled={isRegenerating}
@@ -2466,7 +2482,14 @@ export function CharacterDetailModal({
         }}
         onConfirm={() => {
           if (regeneratePose && regeneratingS3Key === null) {
-            handleRegeneratePose(regeneratePose.poseId, regeneratePose.s3Key, regeneratePose.providerId, regeneratePose.quality);
+            handleRegeneratePose(regeneratePose.poseId, regeneratePose.s3Key, {
+              providerId: regeneratePose.providerId,
+              quality: regeneratePose.quality,
+              clothingReferences: regeneratePose.clothingReferences,
+              typicalClothing: regeneratePose.typicalClothing,
+              outfitName: regeneratePose.outfitName,
+              referenceImageUrls: regeneratePose.referenceImageUrls,
+            });
           }
         }}
         imageType="pose"
