@@ -1220,8 +1220,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // 🔥 Beats removed - store scenes directly (deduplicated and renumbered)
                     // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
                     startTransition(() => {
-                    setScenes(renumberedScenes);
+                        setScenes(renumberedScenes);
                         setBeats(defaultBeats);
+                        // Set initialized flag inside transition to ensure scenes are set first
+                        setHasInitializedFromDynamoDB(true);
+                        setIsLoading(false);
                     });
                     console.log('[ScreenplayContext] ✅ Loaded', renumberedScenes.length, 'scenes directly (beats removed, deduplicated, renumbered)');
                     
@@ -1566,10 +1569,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                 } catch (err) {
                     console.error('[ScreenplayContext] Failed to load from DynamoDB:', err);
-                } finally {
-                    // Mark as initialized and stop loading (even if there was an error)
+                    // On error, mark as initialized immediately (no scenes to wait for)
                     setHasInitializedFromDynamoDB(true);
                     setIsLoading(false);
+                } finally {
+                    // Only reset flag here - initialization state is set in startTransition or catch block
                     isInitializingRef.current = false; // 🔥 FIX: Reset initialization flag
                     console.log('[ScreenplayContext] ✅ Initialization complete - ready for imports');
                 }
