@@ -38,7 +38,6 @@ import {
     updateScene as apiUpdateScene,
     deleteScene as apiDeleteScene,
     deleteAllScenes,
-    batchUpdatePropAssociations as apiBatchUpdatePropAssociations,
     // Feature 0117: Beat API functions removed - beats are frontend-only UI templates
     updateRelationships as apiUpdateRelationships,
     updateScreenplay as apiUpdateScreenplay,
@@ -1908,7 +1907,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [scenes, updateScene]);
     
-    // 🔥 NEW: Batch update prop associations (prevents race conditions)
+    // 🔥 REFACTORED: Batch update prop associations using individual updateScene calls
+    // This matches the pattern used by linkAssetToScene/unlinkAssetFromScene
+    // Uses the existing, working updateScene API instead of a batch endpoint
     const batchUpdatePropAssociations = useCallback(async (
         assetId: string,
         sceneIdsToLink: string[],
@@ -1931,39 +1932,62 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         });
 
         try {
-            // Call backend batch API
-            const updatedScenes = await apiBatchUpdatePropAssociations(
-                screenplayId,
-                assetId,
-                sceneIdsToLink,
-                sceneIdsToUnlink,
-                getToken
-            );
+            // Get all unique scene IDs that need updating
+            const allSceneIds = [...new Set([...sceneIdsToLink, ...sceneIdsToUnlink])];
+            const updatedSceneIds: string[] = [];
 
-            // Update local state with returned scenes
-            // Use transformScenesFromAPI to properly convert backend format to frontend format
-            const transformedScenes = transformScenesFromAPI(updatedScenes);
-            setScenes(prev => {
-                const sceneMap = new Map(prev.map(s => [s.id, s]));
-                transformedScenes.forEach(frontendScene => {
-                    sceneMap.set(frontendScene.id, frontendScene);
-                });
-                return Array.from(sceneMap.values());
-            });
-
-            // Update refs (use transformed scenes which have 'id' not 'scene_id')
-            scenesRef.current = scenesRef.current.map(scene => {
-                const updated = transformedScenes.find(s => s.id === scene.id);
-                if (updated) {
-                    return {
-                        ...scene,
-                        fountain: updated.fountain
-                    };
+            // Update each scene individually using updateScene (same pattern as linkAssetToScene)
+            // Process sequentially to avoid race conditions
+            for (const sceneId of allSceneIds) {
+                const scene = scenesRef.current.find(s => s.id === sceneId) || scenes.find(s => s.id === sceneId);
+                if (!scene) {
+                    console.warn('[ScreenplayContext] ⚠️ Scene not found for batch update:', sceneId);
+                    continue;
                 }
-                return scene;
-            });
 
-            // Rebuild relationships
+                const shouldLink = sceneIdsToLink.includes(sceneId);
+                const shouldUnlink = sceneIdsToUnlink.includes(sceneId);
+                
+                if (!shouldLink && !shouldUnlink) {
+                    continue; // Skip if no change needed
+                }
+
+                const currentProps = scene.fountain?.tags?.props || [];
+                let updatedProps: string[];
+
+                if (shouldLink && shouldUnlink) {
+                    // Both link and unlink - handle by unlink then link
+                    updatedProps = currentProps.filter(id => id !== assetId);
+                    if (!updatedProps.includes(assetId)) {
+                        updatedProps.push(assetId);
+                    }
+                } else if (shouldLink) {
+                    // Add prop if not already present
+                    updatedProps = currentProps.includes(assetId) 
+                        ? currentProps 
+                        : [...currentProps, assetId];
+                } else {
+                    // Remove prop
+                    updatedProps = currentProps.filter(id => id !== assetId);
+                }
+
+                // Update scene using the same pattern as linkAssetToScene/unlinkAssetFromScene
+                await updateScene(sceneId, {
+                    fountain: {
+                        ...scene.fountain,
+                        tags: {
+                            ...(scene.fountain?.tags || {}),
+                            characters: scene.fountain?.tags?.characters || [],
+                            location: scene.fountain?.tags?.location,
+                            props: updatedProps.length > 0 ? updatedProps : undefined
+                        }
+                    }
+                });
+
+                updatedSceneIds.push(sceneId);
+            }
+
+            // Rebuild relationships after all updates
             buildRelationshipsFromScenes(
                 scenesRef.current,
                 beatsRef.current,
@@ -1980,13 +2004,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
             console.log('[ScreenplayContext] ✅ Batch updated prop associations:', {
                 assetId,
-                updatedScenesCount: updatedScenes.length
+                updatedScenesCount: updatedSceneIds.length
             });
         } catch (error) {
             console.error('[ScreenplayContext] ❌ Failed to batch update prop associations:', error);
             throw error;
         }
-    }, [screenplayId, getToken, buildRelationshipsFromScenes]);
+    }, [screenplayId, scenes, updateScene, buildRelationshipsFromScenes]);
     
     // Helper: Recalculate page ranges for all beats based on scene timing
     const recalculateBeatPageRanges = (beats: StoryBeat[]): StoryBeat[] => {
