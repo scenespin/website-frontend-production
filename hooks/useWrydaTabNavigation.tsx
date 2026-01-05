@@ -83,6 +83,7 @@ export function useWrydaTabNavigation(
     /**
      * Get dropdown position near cursor
      * Shows above cursor if near bottom of screen, otherwise below
+     * Accounts for mobile keyboard using visualViewport
      */
     const getDropdownPosition = useCallback((): { top: number; left: number; above?: boolean } => {
         if (!textareaRef.current) return { top: 0, left: 0 };
@@ -90,28 +91,48 @@ export function useWrydaTabNavigation(
         const textarea = textareaRef.current;
         const cursorPos = textarea.selectionStart;
         
-        // Approximate position (textarea doesn't support getBoundingClientRect for text positions easily)
-        // Use textarea's position + estimate based on line height
+        // Get textarea position
         const textareaRect = textarea.getBoundingClientRect();
         const lines = state.content.substring(0, cursorPos).split('\n');
         const lineNumber = lines.length - 1;
-        const lineHeight = 24; // Approximate line height
-        const charWidth = 8; // Approximate character width
+        const currentLineText = lines[lines.length - 1] || '';
+        const cursorInLine = currentLineText.length;
+        
+        // Get actual line height from computed style
+        const computedStyle = window.getComputedStyle(textarea);
+        const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+        const fontSize = parseFloat(computedStyle.fontSize) || 16;
+        const charWidth = fontSize * 0.6; // More accurate character width estimate (monospace)
+        
+        // Account for padding
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+        
+        // Calculate cursor position
+        const lineTop = textareaRect.top + paddingTop + (lineNumber * lineHeight);
+        const cursorLeft = textareaRect.left + paddingLeft + (cursorInLine * charWidth);
+        
+        // Use visualViewport on mobile to account for keyboard
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        const viewportTop = window.visualViewport?.offsetTop || 0;
         
         const dropdownHeight = 256; // max-h-64 = 256px
-        const spaceBelow = window.innerHeight - (textareaRect.top + (lineNumber * lineHeight) + lineHeight);
-        const spaceAbove = textareaRect.top + (lineNumber * lineHeight);
+        const spaceBelow = viewportHeight - (lineTop - viewportTop) - lineHeight;
+        const spaceAbove = lineTop - viewportTop;
         
-        // Show above if not enough space below, but enough space above
-        const showAbove = spaceBelow < dropdownHeight && spaceAbove > dropdownHeight;
+        // On mobile, prefer showing above to avoid keyboard
+        const isMobile = window.innerWidth < 768;
+        const showAbove = isMobile 
+            ? (spaceBelow < dropdownHeight + 50 || spaceAbove > spaceBelow) // Prefer above on mobile
+            : (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight);
         
-        const baseTop = textareaRect.top + (lineNumber * lineHeight) + lineHeight;
+        const baseTop = lineTop + lineHeight;
         
         return {
             top: showAbove 
                 ? baseTop - dropdownHeight - 5  // Show above with 5px gap
                 : baseTop + 5,                    // Show below with 5px gap
-            left: textareaRect.left + (lines[lines.length - 1].length * charWidth) + 10,
+            left: cursorLeft + 10, // Position at cursor + small offset
             above: showAbove
         };
     }, [textareaRef, state.content]);
