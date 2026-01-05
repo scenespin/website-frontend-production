@@ -76,14 +76,15 @@ async function forwardRequest(
       console.error(`[API Proxy] Full path:`, path);
     }
     
-    // 🔥 DEBUG: Log batch-update-props requests
+    // 🔥 DEBUG: Log batch-update-props requests (server-side logs go to Vercel/terminal)
     if (path.includes('batch-update-props')) {
       console.error(`[API Proxy] 🔍 BATCH-UPDATE-PROPS REQUEST DETECTED`);
       console.error(`[API Proxy] Full path:`, path);
-      console.error(`[API Proxy] Path segments:`, pathSegments);
+      console.error(`[API Proxy] Path segments:`, JSON.stringify(pathSegments));
       console.error(`[API Proxy] Method:`, method);
       console.error(`[API Proxy] Backend URL:`, backendUrl);
       console.error(`[API Proxy] Auth header present:`, !!authHeader);
+      console.error(`[API Proxy] Request URL:`, request.url);
     }
     
     console.error(`[API Proxy] 🚀 ${method} ${path} -> ${backendUrl}`);

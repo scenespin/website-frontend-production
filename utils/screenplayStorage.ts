@@ -973,9 +973,25 @@ export async function batchUpdatePropAssociations(
   sceneIdsToUnlink: string[],
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Scene[]> {
+  const url = `/api/screenplays/${screenplayId}/scenes/batch-update-props`;
+  
+  console.log('[screenplayStorage] 🔗 batchUpdatePropAssociations called:', {
+    url,
+    assetId,
+    linkCount: sceneIdsToLink.length,
+    unlinkCount: sceneIdsToUnlink.length
+  });
+  
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetch(`/api/screenplays/${screenplayId}/scenes/batch-update-props`, {
+  if (!token) {
+    console.error('[screenplayStorage] ❌ No token available');
+    throw new Error('No authentication token available');
+  }
+  
+  console.log('[screenplayStorage] ✅ Token obtained, making request to:', url);
+  
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -988,12 +1004,24 @@ export async function batchUpdatePropAssociations(
     })
   });
 
+  console.log('[screenplayStorage] 📊 Response status:', response.status, response.statusText);
+  console.log('[screenplayStorage] 📊 Response URL:', response.url);
+  console.log('[screenplayStorage] 📊 Response OK:', response.ok);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to batch update prop associations');
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      const text = await response.text();
+      errorData = { message: text || `HTTP ${response.status}` };
+    }
+    console.error('[screenplayStorage] ❌ Error response:', errorData);
+    throw new Error(errorData.message || errorData.error || 'Failed to batch update prop associations');
   }
 
   const data = await response.json();
+  console.log('[screenplayStorage] ✅ Success, received data:', data);
   return data.data;
 }
 
