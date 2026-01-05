@@ -900,7 +900,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     
     fetchSceneContent();
-  }, [selectedSceneId, projectId, screenplay.scenes, getToken, fullSceneContent]);
+    // 🔥 FIX: Removed screenplay.scenes from dependencies to prevent infinite loop
+    // We read the scene inside the effect, so we don't need it in dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSceneId, projectId, getToken]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
