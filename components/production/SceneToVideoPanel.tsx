@@ -16,7 +16,6 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Select,
-  SelectContent,
 } from '@/components/ui/select';
 import {
   Film,
