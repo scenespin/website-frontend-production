@@ -39,7 +39,8 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
         addImageToEntity,
         canEditScript,
         canUseAI,
-        screenplayId
+        screenplayId,
+        batchUpdatePropAssociations
     } = useScreenplay();
     const queryClient = useQueryClient();
     const { state: editorState } = useEditor();
@@ -354,7 +355,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                     }}
                                     onCreate={async (data) => {
                                         try {
-                                            const { pendingImages, ...assetData } = data;
+                                            const { pendingImages, selectedSceneIds, ...assetData } = data;
                                             const newAsset = await createAsset({
                                                 name: assetData.name,
                                                 category: assetData.category,
@@ -366,6 +367,25 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                             if (screenplayId) {
                                                 // Use refetchQueries for immediate update (matches deletion pattern)
                                                 queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                                            }
+                                            
+                                            // 🔥 FIX: Apply scene associations after asset creation
+                                            if (selectedSceneIds && Array.isArray(selectedSceneIds) && selectedSceneIds.length > 0 && newAsset) {
+                                                try {
+                                                    console.log('[AssetBoard] 🔗 Applying scene associations after creation:', {
+                                                        assetId: newAsset.id,
+                                                        sceneCount: selectedSceneIds.length
+                                                    });
+                                                    await batchUpdatePropAssociations(
+                                                        newAsset.id,
+                                                        selectedSceneIds, // Link to these scenes
+                                                        [] // No unlinks during creation
+                                                    );
+                                                    console.log('[AssetBoard] ✅ Scene associations applied successfully');
+                                                } catch (sceneError: any) {
+                                                    console.error('[AssetBoard] ⚠️ Failed to apply scene associations (non-critical):', sceneError);
+                                                    // Don't fail asset creation if scene associations fail
+                                                }
                                             }
                                             
                                             // Add pending images after asset creation

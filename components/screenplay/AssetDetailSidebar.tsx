@@ -213,10 +213,11 @@ export default function AssetDetailSidebar({
     }
     
     if (isCreating) {
-      // Pass pending images with form data so parent can add them after asset creation
+      // 🔥 FIX: Pass selected scene IDs so they can be applied after asset creation
       await onCreate({
         ...formData,
-        pendingImages: pendingImages.length > 0 ? pendingImages : undefined
+        pendingImages: pendingImages.length > 0 ? pendingImages : undefined,
+        selectedSceneIds: Array.from(selectedSceneIds) // Pass scene IDs to apply after creation
       })
       
       // Clear pending images after creation
@@ -620,17 +621,21 @@ export default function AssetDetailSidebar({
     .filter((s): s is NonNullable<typeof s> => s !== undefined);
   
   // Multi-select state for scene linking
-  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<string>>(new Set(assetSceneIds));
+  // 🔥 FIX: Initialize with empty set during creation, assetSceneIds when editing
+  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<string>>(new Set(isCreating ? [] : assetSceneIds));
   const [sceneSearchTerm, setSceneSearchTerm] = useState('');
   const [isApplyingSceneChanges, setIsApplyingSceneChanges] = useState(false);
   const [processingProgress, setProcessingProgress] = useState<{ current: number; total: number; sceneHeading?: string } | null>(null);
   
-  // Update selected scenes when asset changes
+  // Update selected scenes when asset changes (only when editing, not creating)
   useEffect(() => {
-    if (asset) {
+    if (asset && !isCreating) {
       setSelectedSceneIds(new Set(assetSceneIds));
+    } else if (isCreating) {
+      // During creation, start with empty selection
+      setSelectedSceneIds(new Set());
     }
-  }, [asset?.id, assetSceneIds.join(',')]);
+  }, [asset?.id, assetSceneIds.join(','), isCreating]);
   
   // Filter scenes by search term
   const filteredScenes = useMemo(() => {
@@ -672,7 +677,18 @@ export default function AssetDetailSidebar({
   };
   
   // Apply scene changes (link/unlink all selected scenes) - using batch API
+  // 🔥 FIX: Works during creation mode - stores selectedSceneIds to apply after asset creation
   const handleApplySceneChanges = async () => {
+    // During creation, just store the selection (will be applied after asset is created)
+    if (isCreating) {
+      console.log('[AssetDetailSidebar] 📝 Storing scene selection for creation:', {
+        selectedCount: selectedSceneIds.size,
+        sceneIds: Array.from(selectedSceneIds)
+      });
+      toast.success(`Selected ${selectedSceneIds.size} scene${selectedSceneIds.size === 1 ? '' : 's'} - will be linked after asset creation`);
+      return;
+    }
+    
     if (!asset) return;
     
     setIsApplyingSceneChanges(true);
@@ -892,11 +908,16 @@ export default function AssetDetailSidebar({
             </div>
 
             {/* Linked Scenes Section - Feature 0136 (Multi-Select) */}
-            {!isCreating && asset && (
+            {/* 🔥 FIX: Show during creation mode too - allows selecting scenes before asset exists */}
+            {(isCreating || asset) && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
-                    Linked Scenes ({selectedSceneIds.size} selected)
+                    {isCreating ? (
+                      <>Linked Scenes ({selectedSceneIds.size} selected - will be linked after creation)</>
+                    ) : (
+                      <>Linked Scenes ({selectedSceneIds.size} selected)</>
+                    )}
                   </label>
                   <div className="flex gap-2">
                     <button
