@@ -351,6 +351,8 @@ export function GenerateLocationTab({
         
         const requestBody = {
           locationProfile: locationProfile,
+          screenplayId: screenplayId, // Add screenplayId at top level for middleware
+          projectId: screenplayId, // Legacy support
           packageId: selectedAnglePackageId,
           quality: quality,
           providerId: providerId,
