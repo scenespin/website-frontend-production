@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
@@ -18,23 +17,13 @@ export async function POST(
 ) {
   try {
     console.log('[Batch Update Props API] Request received');
-    const { userId, getToken } = await auth();
     
-    if (!userId) {
-      console.error('[Batch Update Props API] No userId found');
+    // Get authorization header from client request (already includes Bearer token)
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      console.error('[Batch Update Props API] No authorization header found');
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    console.log('[Batch Update Props API] User authenticated:', userId);
-    // Get token with wryda-backend template for backend API
-    const token = await getToken({ template: 'wryda-backend' });
-    if (!token) {
-      console.error('[Batch Update Props API] Could not generate token');
-      return NextResponse.json(
-        { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
       );
     }
@@ -57,7 +46,7 @@ export async function POST(
     const backendResponse = await fetch(backendUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
