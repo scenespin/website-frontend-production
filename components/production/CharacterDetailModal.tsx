@@ -2083,7 +2083,7 @@ export function CharacterDetailModal({
                                   >
                                     <DropdownMenuTrigger asChild>
                                       <button
-                                        className={`${isMobile ? 'p-2.5 bg-[#DC143C]' : 'p-2 bg-[#DC143C]/90 hover:bg-[#DC143C]'} rounded-lg transition-colors ${isMobile ? 'min-w-[44px] min-h-[44px]' : 'min-w-[36px] min-h-[36px]'} flex items-center justify-center shadow-lg`}
+                                        className={`${isMobile ? 'p-1.5 bg-[#DC143C]' : 'p-2 bg-[#DC143C]/90 hover:bg-[#DC143C]'} rounded-lg transition-colors ${isMobile ? 'min-w-[32px] min-h-[32px]' : 'min-w-[36px] min-h-[36px]'} flex items-center justify-center shadow-lg`}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           // Close other dropdowns when opening this one
@@ -2092,7 +2092,7 @@ export function CharacterDetailModal({
                                           }
                                         }}
                                       >
-                                        <MoreVertical className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-white`} />
+                                        <MoreVertical className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white`} />
                                       </button>
                                     </DropdownMenuTrigger>
                                   <DropdownMenuContent 
