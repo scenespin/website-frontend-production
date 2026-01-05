@@ -475,63 +475,18 @@ export default function FountainEditor({
                     setContent(newContent);
                     setCursorPosition(cursorPos);
                     
-                    // Then format and trigger Tab navigation
+                    // Simple approach: Just call handleTab and let it handle everything
                     setTimeout(() => {
-                        const parts = parseSceneHeading(trimmedLine);
-                        if (parts.type && parts.type.trim()) {
-                            const formattedType = formatSceneHeadingType(parts.type);
-                            if (formattedType !== parts.type) {
-                                const updatedParts = updateSceneHeadingParts(parts, { type: formattedType });
-                                const formattedLine = buildSceneHeading(updatedParts);
-                                const lines2 = newTextBefore.split('\n');
-                                const newTextBefore2 = lines2.slice(0, -1).concat(formattedLine).join('\n');
-                                const newContent2 = newTextBefore2 + textAfterCursor;
-                                setContent(newContent2);
-                                setTimeout(() => {
-                                    if (textareaRef.current) {
-                                        // Ensure textarea value matches the new content
-                                        textareaRef.current.value = newContent2;
-                                        const newPos = newTextBefore2.length;
-                                        textareaRef.current.selectionStart = newPos;
-                                        textareaRef.current.selectionEnd = newPos;
-                                        setCursorPosition(newPos);
-                                        
-                                        // Wait one more frame to ensure state.content is updated
-                                        requestAnimationFrame(() => {
-                                            const syntheticEvent = {
-                                                key: 'Tab',
-                                                code: 'Tab',
-                                                preventDefault: () => {},
-                                                stopPropagation: () => {}
-                                            } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                            console.log('[WrydaTab] Calling handleTab from handleChange after formatting');
-                                            wrydaTab.handleTab(syntheticEvent);
-                                        });
-                                    }
-                                }, 100);
-                                return;
-                            }
+                        if (textareaRef.current) {
+                            const syntheticEvent = {
+                                key: 'Tab',
+                                code: 'Tab',
+                                preventDefault: () => {},
+                                stopPropagation: () => {}
+                            } as React.KeyboardEvent<HTMLTextAreaElement>;
+                            console.log('[WrydaTab] Calling handleTab from handleChange');
+                            wrydaTab.handleTab(syntheticEvent);
                         }
-                        // Already formatted, just trigger Tab
-                        setTimeout(() => {
-                            if (textareaRef.current) {
-                                textareaRef.current.selectionStart = cursorPos;
-                                textareaRef.current.selectionEnd = cursorPos;
-                                setCursorPosition(cursorPos);
-                                
-                                // Wait one more frame to ensure state.content is updated
-                                requestAnimationFrame(() => {
-                                    const syntheticEvent = {
-                                        key: 'Tab',
-                                        code: 'Tab',
-                                        preventDefault: () => {},
-                                        stopPropagation: () => {}
-                                    } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                    console.log('[WrydaTab] Calling handleTab from handleChange (already formatted)');
-                                    wrydaTab.handleTab(syntheticEvent);
-                                });
-                            }
-                        }, 100);
                     }, 0);
                     
                     // Save cursor position to ref for cursor preservation
