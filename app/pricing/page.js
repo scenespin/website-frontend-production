@@ -144,12 +144,12 @@ export default function PricingPage() {
                 <h3 className="text-xl md:text-2xl font-bold mb-2">Ultra</h3>
                 <div className="text-3xl md:text-4xl font-extrabold mb-2">$149<span className="text-base md:text-lg text-gray-400">/month</span></div>
                 <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
-                  <p className="text-sm font-semibold">149,000 credits/month</p>
+                  <p className="text-sm font-semibold">20,000 credits/month</p>
                 </div>
                 <div className="mb-4 p-3 bg-[#141414] rounded-lg">
                   <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
                   <p className="text-sm font-semibold text-white">25% off pay-as-you-go</p>
-                  <p className="text-xs text-gray-500 mt-1">$0.001 per credit (90% off)</p>
+                  <p className="text-xs text-gray-500 mt-1">$0.0075 per credit (vs $0.01)</p>
                 </div>
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-start gap-2">
@@ -158,7 +158,7 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Credits roll over up to 298,000 (2x monthly)</span>
+                    <span>Credits roll over up to 40,000 (2x monthly)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -177,12 +177,12 @@ export default function PricingPage() {
                 <h3 className="text-xl md:text-2xl font-bold mb-2">Studio</h3>
                 <div className="text-3xl md:text-4xl font-extrabold mb-2">$399<span className="text-base md:text-lg text-gray-400">/month</span></div>
                 <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
-                  <p className="text-sm font-semibold">399,000 credits/month</p>
+                  <p className="text-sm font-semibold">75,000 credits/month</p>
                 </div>
                 <div className="mb-4 p-3 bg-[#141414] rounded-lg">
                   <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
                   <p className="text-sm font-semibold text-white">47% off pay-as-you-go</p>
-                  <p className="text-xs text-gray-500 mt-1">$0.001 per credit (90% off)</p>
+                  <p className="text-xs text-gray-500 mt-1">$0.0053 per credit (vs $0.01)</p>
                 </div>
                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                   <li className="flex items-start gap-2">
@@ -191,7 +191,7 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Credits roll over up to 798,000 (2x monthly)</span>
+                    <span>Credits roll over up to 150,000 (2x monthly)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
