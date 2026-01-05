@@ -24,6 +24,8 @@ export function DirectHub() {
   const searchParams = useSearchParams();
   
   const screenplayId = screenplay.screenplayId;
+  const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
+  const isLoading = screenplay.isLoading || false;
   
   // State - sync with URL params
   const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
@@ -51,8 +53,8 @@ export function DirectHub() {
     router.push(newUrl.pathname + newUrl.search, { scroll: false });
   };
 
-  // Early return if no screenplay
-  if (!screenplayId) {
+  // Early return if no screenplay or not initialized
+  if (!screenplayId || isLoading || !hasInitialized) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">

@@ -379,6 +379,21 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const screenplay = useScreenplay();
   const { canAccessProductionHub } = screenplay;
   
+  // Guard: Wait for screenplay to be initialized before rendering
+  const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
+  const isLoading = screenplay.isLoading || false;
+  
+  if (!projectId || isLoading || !hasInitialized) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[#0A0A0A]">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading scene builder...</p>
+        </div>
+      </div>
+    );
+  }
+  
   // Get context store (only for setting context when navigating TO editor, not for reading FROM editor)
   const contextStore = useContextStore();
   
