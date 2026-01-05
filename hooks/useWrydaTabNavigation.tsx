@@ -461,10 +461,14 @@ export function useWrydaTabNavigation(
     /**
      * Main Tab handler
      * Always prevents default to keep focus in editor
+     * On mobile: Only handles scene headings, skips element transitions and new line creation
      */
     const handleTab = useCallback((e: KeyboardEvent<HTMLTextAreaElement>): boolean => {
         console.log('[WrydaTab] handleTab called');
         e.preventDefault(); // Always prevent default to avoid focus navigation
+        
+        // Detect mobile (screen width < 768px)
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         
         if (!textareaRef.current) {
             console.log('[WrydaTab] No textarea ref');
@@ -474,7 +478,12 @@ export function useWrydaTabNavigation(
         const lineInfo = getCurrentLineInfo();
         if (!lineInfo) {
             console.log('[WrydaTab] No line info');
-            // Empty line: create new line
+            // On mobile, don't create new lines - just prevent default
+            if (isMobile) {
+                console.log('[WrydaTab] Mobile: Skipping new line creation for empty line');
+                return true; // Handled (prevented default), but do nothing
+            }
+            // Desktop: create new line
             const cursorPos = getCursorPosition();
             const textBeforeCursor = state.content.substring(0, cursorPos);
             const textAfterCursor = state.content.substring(cursorPos);
@@ -492,22 +501,28 @@ export function useWrydaTabNavigation(
         }
         
         const elementType = detectElementType(lineInfo.currentLineText);
-        console.log('[WrydaTab] Element type detected:', elementType, 'Line:', lineInfo.currentLineText);
+        console.log('[WrydaTab] Element type detected:', elementType, 'Line:', lineInfo.currentLineText, 'Mobile:', isMobile);
         
-        // Handle scene heading navigation
+        // Handle scene heading navigation (works on both mobile and desktop)
         // detectElementType now handles partial inputs like "INT" without period, "int/ext", "i/e"
         if (elementType === 'scene_heading') {
             console.log('[WrydaTab] Handling scene heading tab');
             return handleSceneHeadingTab(e, lineInfo.currentLineText, lineInfo.cursorPos);
         }
         
-        // Handle element transitions
+        // On mobile, only handle scene headings - skip everything else
+        if (isMobile) {
+            console.log('[WrydaTab] Mobile: Not a scene heading, skipping Tab handling');
+            return true; // Handled (prevented default), but do nothing
+        }
+        
+        // Desktop: Handle element transitions
         if (elementType === 'dialogue' || elementType === 'character' || elementType === 'action' || elementType === 'parenthetical' || elementType === 'empty') {
             console.log('[WrydaTab] Handling element transition:', elementType);
             return handleElementTransition(e, lineInfo.currentLineText, elementType);
         }
         
-        // Default: create new line for any other element type
+        // Desktop: Default: create new line for any other element type
         console.log('[WrydaTab] Default: creating new line for element type:', elementType);
         const cursorPos = getCursorPosition();
         const textBeforeCursor = state.content.substring(0, cursorPos);
