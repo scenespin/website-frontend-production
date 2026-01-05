@@ -15,7 +15,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 export default function AgentDrawer({ children }) {
   const { isDrawerOpen, closeDrawer, openDrawer } = useDrawer();
   const { state } = useChatContext();
-  const [height, setHeight] = useState(500);
+  const [height, setHeight] = useState(350);
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const dragStartY = useRef(0);
@@ -32,8 +32,8 @@ export default function AgentDrawer({ children }) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile: Calculate height (70px collapsed, variable when open)
-  const mobileHeight = isDrawerOpen ? height : 70;
+  // Mobile: Calculate height (50px collapsed to match debug panel, variable when open)
+  const mobileHeight = isDrawerOpen ? height : 50;
 
   // Desktop: Fixed width
   const desktopWidth = isDrawerOpen ? 480 : 0;
@@ -108,15 +108,15 @@ export default function AgentDrawer({ children }) {
           className="fixed bottom-0 left-0 right-0 bg-base-200 shadow-xl z-50 transition-all duration-300 ease-out md:hidden"
           style={{ height: `${mobileHeight}px` }}
         >
-          {/* Drag Handle (Mobile) */}
+          {/* Drag Handle (Mobile) - Compact like debug panel */}
           <div
-            className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-base-300 border-b border-cinema-red/20 relative"
+            className="w-full py-2 flex items-center justify-center cursor-grab active:cursor-grabbing bg-base-300 border-b border-cinema-red/20 relative"
             onMouseDown={(e) => handleDragStart(e.clientY)}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           >
             {isDrawerOpen && (
               <>
-                <GripHorizontal className="w-8 h-8 text-base-content/40" />
+                <GripHorizontal className="w-6 h-6 text-base-content/40" />
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -125,7 +125,7 @@ export default function AgentDrawer({ children }) {
                   className="absolute right-4 btn btn-sm btn-ghost btn-circle z-10"
                   aria-label="Close drawer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </>
             )}
@@ -135,7 +135,7 @@ export default function AgentDrawer({ children }) {
                   e.stopPropagation();
                   openDrawer();
                 }}
-                className="text-sm font-medium text-base-content"
+                className="text-xs font-medium text-base-content"
               >
                 Story Advisor
               </button>
@@ -144,13 +144,8 @@ export default function AgentDrawer({ children }) {
 
           {/* Content - Only render when drawer is open to prevent unnecessary re-renders */}
           {isDrawerOpen && (
-            <div className="h-[calc(100%-64px)] overflow-auto pb-6">
+            <div className="h-[calc(100%-48px)] overflow-auto pb-6">
               {children}
-            </div>
-          )}
-          {!isDrawerOpen && (
-            <div className="h-[calc(100%-64px)] flex items-center justify-center">
-              <span className="text-sm text-base-content/60">Tap to open AI Assistant</span>
             </div>
           )}
         </div>

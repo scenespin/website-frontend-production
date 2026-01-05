@@ -256,7 +256,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   
   // Mobile detection - EXACT same pattern as AgentDrawer
   const [isMobile, setIsMobile] = useState(false);
-  const [mobileHeight, setMobileHeight] = useState(500);
+  const [mobileHeight, setMobileHeight] = useState(350);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
@@ -272,8 +272,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile: Calculate height (70px collapsed, variable when open) - EXACT same as AgentDrawer
-  const currentMobileHeight = isOpen ? mobileHeight : 70;
+  // Mobile: Calculate height (50px collapsed to match debug panel, variable when open) - EXACT same as AgentDrawer
+  const currentMobileHeight = isOpen ? mobileHeight : 50;
 
   // Handle drag gestures (MOBILE ONLY) - EXACT same as AgentDrawer
   const handleDragStart = (clientY: number) => {
@@ -1282,15 +1282,15 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
           style={{ height: `${currentMobileHeight}px` }}
         >
-          {/* Drag Handle (Mobile) */}
+          {/* Drag Handle (Mobile) - Compact like debug panel */}
           <div
-            className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
+            className="w-full py-2 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
             onMouseDown={(e) => handleDragStart(e.clientY)}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           >
             {isOpen && (
               <>
-                <GripHorizontal className="w-8 h-8 text-[#808080]" />
+                <GripHorizontal className="w-6 h-6 text-[#808080]" />
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1299,7 +1299,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                   className="absolute right-4 btn btn-sm btn-ghost btn-circle z-10"
                   aria-label="Close drawer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </>
             )}
@@ -1309,7 +1309,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                   e.stopPropagation();
                   onOpen();
                 }}
-                className="text-sm font-medium text-[#E5E7EB] flex items-center gap-2"
+                className="text-xs font-medium text-[#E5E7EB] flex items-center gap-2"
               >
                 <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
                 Jobs
@@ -1324,7 +1324,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
           {/* Content */}
           {isOpen && (
-            <div className="h-[calc(100%-64px)] overflow-auto pb-6">
+            <div className="h-[calc(100%-48px)] overflow-auto pb-6">
               {renderDrawerContent()}
             </div>
           )}
