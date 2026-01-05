@@ -8,14 +8,6 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 interface ReferenceShotSelectorProps {
   shotSlot: number;
@@ -44,39 +36,26 @@ export function ReferenceShotSelector({
   ];
 
   const currentModel = models.find(m => m.id === selectedModel) || models[0];
+  // Ensure value is always a string (never undefined) to prevent React error #185
+  const selectValue = selectedModel ?? 'nano-banana-pro';
 
   return (
     <div className="pb-3">
       <div className="text-xs font-medium text-[#FFFFFF] mb-2">Reference Shot</div>
       <div className="space-y-2">
-        <Select
-          value={selectedModel || 'nano-banana-pro'}
-          onValueChange={(value) => {
-            onModelChange(shotSlot, value as 'nano-banana-pro' | 'flux2-max-4k-16:9');
+        <select
+          value={selectValue}
+          onChange={(e) => {
+            onModelChange(shotSlot, e.target.value as 'nano-banana-pro' | 'flux2-max-4k-16:9');
           }}
+          className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
         >
-          <SelectTrigger className="w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9">
-            <SelectValue>
-              <span className="text-xs">{currentModel.name}</span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-[#1A1A1A] border-[#3F3F46]">
-            {models.map((model) => (
-              <SelectItem
-                key={model.id}
-                value={model.id}
-                className="text-xs text-[#FFFFFF] hover:bg-[#3F3F46] focus:bg-[#3F3F46]"
-              >
-                <div className="flex flex-col">
-                  <span className="font-medium">{model.name}</span>
-                  <span className="text-[10px] text-[#808080]">
-                    {model.refs} refs • {model.resolution}
-                  </span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {models.map((model) => (
+            <option key={model.id} value={model.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
+              {model.name} ({model.refs} refs • {model.resolution})
+            </option>
+          ))}
+        </select>
         <div className="text-[10px] text-[#808080]">
           Selected: {currentModel.name} ({currentModel.refs} references, {currentModel.resolution})
         </div>
