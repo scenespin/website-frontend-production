@@ -148,7 +148,7 @@ export function LocationDetailModal({
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'generate'>('gallery');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'generate'>('references');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
@@ -918,17 +918,6 @@ export function LocationDetailModal({
             {/* Tabs */}
             <div className="flex-shrink-0 px-6 py-3 border-b border-[#3F3F46] bg-[#141414] flex items-center gap-2">
               <button
-                onClick={() => setActiveTab('gallery')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'gallery'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <ImageIcon className="w-4 h-4 inline mr-2" />
-                Gallery
-              </button>
-              <button
                 onClick={() => setActiveTab('info')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === 'info'
@@ -970,7 +959,7 @@ export function LocationDetailModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
-              {activeTab === 'gallery' && (
+              {false && activeTab === 'gallery' && (
                 <div className="p-6">
                   {allImages.length > 0 ? (
                     <ModernGallery

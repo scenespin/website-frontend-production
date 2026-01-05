@@ -112,7 +112,7 @@ export function CharacterDetailModal({
     return contextCharacter ? isEntityInScript(editorState.content, contextCharacter.name, 'character') : false;
   }, [contextCharacter, editorState.content, isEntityInScript]);
   
-  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'voice'>('gallery');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'voice'>('references');
   const [coverageTab, setCoverageTab] = useState<'upload' | 'generate' | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null); // 🔥 NEW: Track selected image by ID for Gallery section
@@ -753,10 +753,22 @@ export function CharacterDetailModal({
   
   // Keep old userReferences and poseReferences for backward compatibility (used in other parts of code)
   // 🔥 FIX: Filter out clothing references from userReferences (creation images only)
+  // Creation section images are those that are NOT poses, NOT base references, and NOT in Outfits folder
   const userReferences = useMemo(() => {
     return allImages.filter(img => {
-      // Exclude poses and base references
+      // Exclude poses and base references (these are Production Hub images)
       if (img.isPose || img.isBase) return false;
+      
+      // 🔥 FIX: Exclude images from Outfits folder (these are Production Hub generated poses)
+      // Production Hub images are in: Characters/{Name}/Outfits/{Outfit Name}/
+      // Creation section images are in: Characters/{Name}/References/ or root character folder
+      if (img.s3Key) {
+        const s3KeyLower = img.s3Key.toLowerCase();
+        // Exclude if in Outfits folder (Production Hub)
+        if (s3KeyLower.includes('/outfits/')) {
+          return false;
+        }
+      }
       
       // 🔥 FIX: Exclude clothing references from creation images
       // Check if image is a clothing reference by checking metadata or s3Key
@@ -1203,20 +1215,6 @@ export function CharacterDetailModal({
               {/* Left side: Standard tabs */}
               <button
                 onClick={() => {
-                  setActiveTab('gallery');
-                  setCoverageTab(null);
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'gallery' && !coverageTab
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <ImageIcon className="w-4 h-4 inline mr-2" />
-                Gallery
-              </button>
-              <button
-                onClick={() => {
                   setActiveTab('info');
                   setCoverageTab(null);
                 }}
@@ -1269,7 +1267,7 @@ export function CharacterDetailModal({
                 <button
                   onClick={() => {
                     setCoverageTab('upload');
-                    setActiveTab('gallery'); // Keep gallery as active tab for context
+                    setActiveTab('references'); // Keep references as active tab for context
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     coverageTab === 'upload'
@@ -1284,7 +1282,7 @@ export function CharacterDetailModal({
                   <button
                     onClick={() => {
                       setCoverageTab('generate');
-                      setActiveTab('gallery'); // Keep gallery as active tab for context
+                      setActiveTab('references'); // Keep references as active tab for context
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       coverageTab === 'generate'
@@ -1337,7 +1335,7 @@ export function CharacterDetailModal({
               {/* Standard Tabs (only show if no coverage tab active) */}
               {!coverageTab && (
                 <>
-                  {activeTab === 'gallery' && (
+                  {false && activeTab === 'gallery' && (
                 <div className="p-6">
                   {/* Action Bar with Character Studio Button and Outfit Filter */}
                   <div className="flex items-center justify-between mb-6">
@@ -2123,17 +2121,21 @@ export function CharacterDetailModal({
                           <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
                         {userReferences.map((img) => {
                           return (
                             <div
                               key={img.id}
-                              className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75"
+                              className="relative group aspect-video bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75"
                             >
                               <img
                                 src={img.imageUrl}
                                 alt={img.label}
                                 className="w-full h-full object-cover"
+                                style={{
+                                  maxWidth: '640px',
+                                  maxHeight: '360px' // 16:9 aspect ratio
+                                }}
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                                 <div className="absolute bottom-2 left-2 right-2">

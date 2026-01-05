@@ -78,7 +78,7 @@ export default function AssetDetailModal({
   // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
   // 🔥 FIX: Use screenplayId (primary) with projectId fallback for backward compatibility
   const screenplayId = asset?.screenplayId || asset?.projectId;
-  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('references');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
@@ -705,17 +705,6 @@ export default function AssetDetailModal({
             {/* Tabs */}
             <div className="flex-shrink-0 px-6 py-3 border-b border-[#3F3F46] bg-[#141414] flex items-center gap-2">
               <button
-                onClick={() => setActiveTab('gallery')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'gallery'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <ImageIcon className="w-4 h-4 inline mr-2" />
-                Gallery
-              </button>
-              <button
                 onClick={() => setActiveTab('info')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === 'info'
@@ -759,7 +748,7 @@ export default function AssetDetailModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
-              {activeTab === 'gallery' && (
+              {false && activeTab === 'gallery' && (
                 <div className="p-6">
                   {assetGalleryImages.length > 0 ? (
                     <ModernGallery
@@ -917,7 +906,7 @@ export default function AssetDetailModal({
                           <p className="text-xs text-[#6B7280]">AI-generated angle variations - can be edited/deleted here</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
                         {angleImageObjects.map((img) => {
                           // All angleImages are Production Hub images (editable/deletable)
                           const isSelected = selectedImageIds.has(img.id);
@@ -1204,7 +1193,7 @@ export default function AssetDetailModal({
                           <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
                         {userImages.map((img) => {
                           return (
                             <div
