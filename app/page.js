@@ -130,15 +130,27 @@ export default function Page() {
                   <ul className="space-y-2 text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span>Final Draft → Write only</span>
+                      <span>Final Draft ($249/year) → Write only</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      <span>Celtx ($20-50/month) → Write only</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      <span>Fade In ($80 one-time) → Write only</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      <span>WriterDuet ($9-19/month) → Write only</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      <span>StudioBinder ($29-99/month) → Production only</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
                       <span>Video editors → Produce separately</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
-                      <span>Production tools → Manage separately</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
