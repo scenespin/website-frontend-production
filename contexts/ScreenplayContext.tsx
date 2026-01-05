@@ -279,6 +279,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const locationsRef = useRef<Location[]>([]);
     const assetsRef = useRef<Asset[]>([]);
     const relationshipsRef = useRef<Relationships | null>(null);
+    // 🔥 FIX: Track last buildRelationshipsFromScenes call to prevent redundant updates
+    const lastBuildRelationshipsRef = useRef<{
+        sceneIds: string;
+        characterIds: string;
+        locationIds: string;
+        beatIds: string;
+    } | null>(null);
     // 🔥 FIX: Track deleted asset IDs to prevent them from reappearing due to eventual consistency
     // Will be initialized after screenplayId is declared
     const deletedAssetIdsRef = useRef<Set<string>>(new Set());
@@ -698,6 +705,31 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // 🔥 NEW: Helper to build relationships from scenes
     // This ensures character/location scene counts are accurate
     const buildRelationshipsFromScenes = useCallback((scenes: Scene[], beats: StoryBeat[], charactersList: Character[], locationsList: Location[]) => {
+        // 🔥 FIX: Check if inputs are the same as last call to prevent redundant updates
+        const sceneIds = scenes.map(s => s.id).sort().join(',');
+        const characterIds = charactersList.map(c => c.id).sort().join(',');
+        const locationIds = locationsList.map(l => l.id).sort().join(',');
+        const beatIds = beats.map(b => b.id).sort().join(',');
+        
+        if (
+            lastBuildRelationshipsRef.current &&
+            lastBuildRelationshipsRef.current.sceneIds === sceneIds &&
+            lastBuildRelationshipsRef.current.characterIds === characterIds &&
+            lastBuildRelationshipsRef.current.locationIds === locationIds &&
+            lastBuildRelationshipsRef.current.beatIds === beatIds
+        ) {
+            // Same inputs - skip to prevent infinite loop
+            return;
+        }
+        
+        // Update ref with current inputs
+        lastBuildRelationshipsRef.current = {
+            sceneIds,
+            characterIds,
+            locationIds,
+            beatIds
+        };
+        
         console.log('[ScreenplayContext] 🔗 Building relationships from', scenes.length, 'scenes...');
         console.log('[ScreenplayContext] 🔍 Available characters:', charactersList.map(c => ({ id: c.id, name: c.name })));
         console.log('[ScreenplayContext] 🔍 Available locations:', locationsList.map(l => ({ id: l.id, name: l.name })));
