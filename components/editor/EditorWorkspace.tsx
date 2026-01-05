@@ -422,7 +422,8 @@ export default function EditorWorkspace() {
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Scene Navigator Sidebar - Desktop: Fixed sidebar, Mobile: Slide-out drawer */}
-                {isSceneNavVisible && !isEditorFullscreen && (
+                {/* On mobile, show even in fullscreen; on desktop, hide in fullscreen */}
+                {isSceneNavVisible && (!isEditorFullscreen || isMobile) && (
                     <>
                         {/* Desktop: Fixed sidebar (lg and above) */}
                         <div className="w-72 border-r border-[#3F3F46] flex-shrink-0 hidden lg:block">
