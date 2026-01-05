@@ -2593,8 +2593,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     });
     
     // 🔥 Refresh credits immediately after generation completes
-    if (typeof window !== 'undefined' && window.refreshCredits) {
-      window.refreshCredits();
+    if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+      (window as any).refreshCredits();
     }
     
     // Show follow-up options toast
