@@ -250,7 +250,7 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
 export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0, onNavigateToEntity }: JobsDrawerProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
-  const { getToken, userId } = useAuth();
+  const { getToken, userId, isSignedIn } = useAuth();
   const queryClient = useQueryClient();
   const { isDrawerOpen: isChatDrawerOpen } = useDrawer(); // Check if chat drawer is open
   
@@ -373,8 +373,43 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
   }, [deletedJobIds]);
 
-  // Filter out deleted jobs - calculate early so it can be used in useEffects
-  const visibleJobs = jobs.filter(job => !deletedJobIds.has(job.jobId));
+  // Clear sessionStorage on logout
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isSignedIn === false) {
+      // User logged out - clear sessionStorage
+      sessionStorage.removeItem('deletedJobIds');
+      setDeletedJobIds(new Set());
+      // Also clear jobs state to start fresh
+      setJobs([]);
+      setHasLoadedOnce(false);
+    }
+  }, [isSignedIn]);
+
+  /**
+   * Filter jobs to show:
+   * 1. All running/queued jobs (regardless of age)
+   * 2. Completed/failed jobs from the last 7 days
+   * 3. Exclude deleted jobs
+   */
+  const getVisibleJobs = () => {
+    const now = Date.now();
+    const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
+
+    return jobs.filter(job => {
+      // Always exclude deleted jobs
+      if (deletedJobIds.has(job.jobId)) return false;
+
+      // Always show running/queued jobs regardless of age
+      if (job.status === 'running' || job.status === 'queued') return true;
+
+      // For completed/failed jobs, only show if within last 7 days
+      const jobDate = new Date(job.createdAt).getTime();
+      return jobDate >= sevenDaysAgo;
+    });
+  };
+
+  // Filter out deleted jobs and apply 7-day filter - calculate early so it can be used in useEffects
+  const visibleJobs = getVisibleJobs();
 
   // Auto-open when jobs are running
   useEffect(() => {
