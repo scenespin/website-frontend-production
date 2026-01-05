@@ -36,6 +36,19 @@ export function SceneNavigatorList({
   const isLoading = screenplay.isLoading || false;
   const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
   const { getToken } = useAuth();
+  
+  // 🔍 DEBUG: Log state on every render to troubleshoot
+  useEffect(() => {
+    console.log('[SceneNavigatorList] 🔍 STATE CHECK:', {
+      scenesCount: scenes.length,
+      scenesArray: scenes,
+      isLoading,
+      hasInitialized,
+      screenplayId: screenplay.screenplayId,
+      allScenesFromContext: screenplay.scenes,
+      contextHasScenes: !!screenplay.scenes && screenplay.scenes.length > 0
+    });
+  }, [scenes.length, isLoading, hasInitialized, screenplay.screenplayId, screenplay.scenes]);
   const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
 
   // Get character names for a scene
@@ -120,13 +133,29 @@ export function SceneNavigatorList({
     fetchFirstLines();
   }, [projectId, getToken, scenes]);
 
+  // 🔍 DEBUG: Log which branch we're taking
+  const scenesExist = scenes && scenes.length > 0;
+  const shouldShowLoading = (isLoading || !hasInitialized) && !scenesExist;
+  const shouldShowEmpty = !scenesExist && !isLoading && hasInitialized;
+  
+  console.log('[SceneNavigatorList] 🎯 RENDER DECISION:', {
+    scenesExist,
+    shouldShowLoading,
+    shouldShowEmpty,
+    scenesLength: scenes.length,
+    isLoading,
+    hasInitialized
+  });
+  
   // PRIORITY 1: If scenes exist, show them immediately (regardless of initialization state)
   // This fixes the timing issue where hasInitialized becomes true before scenes are set
-  if (scenes && scenes.length > 0) {
+  if (scenesExist) {
+    console.log('[SceneNavigatorList] ✅ Showing scenes - scenes exist');
     // Continue to render scenes below
   } 
   // PRIORITY 2: Show loading only if no scenes AND still initializing
-  else if (isLoading || !hasInitialized) {
+  else if (shouldShowLoading) {
+    console.log('[SceneNavigatorList] ⏳ Showing loading state');
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <div className="flex items-center gap-2">
@@ -139,7 +168,8 @@ export function SceneNavigatorList({
     );
   } 
   // PRIORITY 3: Show empty state only after initialization is complete AND no scenes
-  else {
+  else if (shouldShowEmpty) {
+    console.log('[SceneNavigatorList] ❌ Showing empty state');
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <p className="text-sm font-medium text-[#808080] mb-2">
@@ -151,6 +181,9 @@ export function SceneNavigatorList({
       </div>
     );
   }
+  
+  // Fallback (shouldn't reach here, but just in case)
+  console.warn('[SceneNavigatorList] ⚠️ Unexpected state - no condition matched');
 
   // Sort scenes by order
   const sortedScenes = [...scenes].sort((a, b) => {
