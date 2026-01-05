@@ -15,9 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
-  Select,
-} from '@/components/ui/select';
-import {
   Film,
   Download,
   Sparkles,
