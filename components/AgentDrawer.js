@@ -105,7 +105,7 @@ export default function AgentDrawer({ children }) {
 
         {/* Mobile Drawer - Slides up from bottom */}
         <div
-          className="fixed bottom-0 left-0 right-0 bg-base-200 shadow-xl z-50 transition-all duration-300 ease-out md:hidden"
+          className="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
           style={{ height: `${mobileHeight}px` }}
         >
           {/* Drag Handle (Mobile) - Compact like debug panel */}

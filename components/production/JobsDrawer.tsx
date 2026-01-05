@@ -1279,7 +1279,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
         {/* Mobile Drawer - Slides up from bottom - EXACT same as AgentDrawer */}
         <div
-          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] shadow-xl z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
+          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#3F3F46] z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
           style={{ height: `${currentMobileHeight}px` }}
         >
           {/* Drag Handle (Mobile) - Compact like debug panel */}
