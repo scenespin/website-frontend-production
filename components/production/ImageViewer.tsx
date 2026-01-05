@@ -683,14 +683,20 @@ export function ImageViewer({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleShowControls();
+                        }}
+                        className={`hover:bg-[#1F1F1F] rounded-lg transition-colors ${
+                          isMobile ? 'p-3 min-w-[44px] min-h-[44px] flex items-center justify-center' : 'p-2'
+                        }`}
                         aria-label="More options"
                       >
-                        <MoreVertical className="w-5 h-5 text-white" />
+                        <MoreVertical className={`text-white ${isMobile ? 'w-5 h-5' : 'w-5 h-5'}`} />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-[#1F1F1F] border-[#3F3F46]">
+                    <DropdownMenuContent align="end" className="bg-[#1F1F1F]/95 backdrop-blur-md border-[#3F3F46] shadow-xl">
                       {allImages && (
                         <DropdownMenuItem
                           onClick={(e) => {

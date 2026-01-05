@@ -1269,31 +1269,31 @@ export function CharacterDetailModal({
                   <DropdownMenuTrigger asChild>
                     <button className="w-full flex items-center justify-between px-4 py-3 min-h-[44px] bg-[#1F1F1F] hover:bg-[#2A2A2A] rounded-lg text-white text-sm font-medium transition-colors">
                       <div className="flex items-center gap-2">
-                        {coverageTab === 'upload' ? (
+                        {activeTab === 'references' && !coverageTab ? (
                           <>
-                            <Upload className="w-4 h-4" />
-                            <span>Upload Wardrobe</span>
+                            <Box className="w-4 h-4" />
+                            <span>References ({allImages.length})</span>
                           </>
                         ) : coverageTab === 'generate' ? (
                           <>
                             <span className="text-base">🤖</span>
                             <span>Generate Wardrobe</span>
                           </>
-                        ) : activeTab === 'info' ? (
+                        ) : coverageTab === 'upload' ? (
                           <>
-                            <FileText className="w-4 h-4" />
-                            <span>Info</span>
+                            <Upload className="w-4 h-4" />
+                            <span>Upload Wardrobe</span>
                           </>
-                        ) : activeTab === 'references' ? (
-                          <>
-                            <Box className="w-4 h-4" />
-                            <span>References ({allImages.length})</span>
-                          </>
-                        ) : (
+                        ) : activeTab === 'voice' ? (
                           <>
                             <Volume2 className="w-4 h-4" />
                             <span>Voice</span>
                             {voiceProfile && <span className="text-xs text-green-400">●</span>}
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-4 h-4" />
+                            <span>Info</span>
                           </>
                         )}
                       </div>
@@ -1301,24 +1301,7 @@ export function CharacterDetailModal({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm bg-[#1F1F1F]/95 backdrop-blur-md border-[#3F3F46] shadow-xl">
-                    {/* Main Tabs */}
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setActiveTab('info');
-                        setCoverageTab(null);
-                      }}
-                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        activeTab === 'info' && !coverageTab
-                          ? 'bg-[#DC143C]/20 text-white'
-                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
-                      }`}
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span>Info</span>
-                      {activeTab === 'info' && !coverageTab && (
-                        <span className="ml-auto text-[#DC143C]">●</span>
-                      )}
-                    </DropdownMenuItem>
+                    {/* References - First */}
                     <DropdownMenuItem
                       onClick={() => {
                         setActiveTab('references');
@@ -1336,25 +1319,8 @@ export function CharacterDetailModal({
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>
-                    {/* Coverage buttons - prioritized near References */}
+                    {/* Coverage buttons - Generate first, then Upload */}
                     <div className="border-t border-[#3F3F46] my-1"></div>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setCoverageTab('upload');
-                        setActiveTab('references');
-                      }}
-                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        coverageTab === 'upload'
-                          ? 'bg-[#DC143C]/20 text-white'
-                          : 'text-white hover:bg-[#2A2A2A]'
-                      }`}
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Upload Wardrobe</span>
-                      {coverageTab === 'upload' && (
-                        <span className="ml-auto text-[#DC143C]">●</span>
-                      )}
-                    </DropdownMenuItem>
                     {onGeneratePosePackage && (
                       <DropdownMenuItem
                         onClick={() => {
@@ -1374,7 +1340,25 @@ export function CharacterDetailModal({
                         )}
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setCoverageTab('upload');
+                        setActiveTab('references');
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        coverageTab === 'upload'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-white hover:bg-[#2A2A2A]'
+                      }`}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Wardrobe</span>
+                      {coverageTab === 'upload' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
                     <div className="border-t border-[#3F3F46] my-1"></div>
+                    {/* Voice */}
                     <DropdownMenuItem
                       onClick={() => {
                         setActiveTab('voice');
@@ -1395,6 +1379,25 @@ export function CharacterDetailModal({
                         <span className="ml-2 text-xs text-green-400">●</span>
                       )}
                       {activeTab === 'voice' && !coverageTab && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    <div className="border-t border-[#3F3F46] my-1"></div>
+                    {/* Info - Last */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('info');
+                        setCoverageTab(null);
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'info' && !coverageTab
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Info</span>
+                      {activeTab === 'info' && !coverageTab && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>
