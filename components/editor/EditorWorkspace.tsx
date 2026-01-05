@@ -457,14 +457,14 @@ export default function EditorWorkspace() {
                         <SheetContent 
                             side="left" 
                             showOverlay={false}
-                            className="w-3/4 sm:max-w-sm p-0 bg-[#0A0A0A] border-r border-[#3F3F46]"
+                            className="w-3/4 sm:max-w-sm p-0 bg-[#0A0A0A] border-r border-[#3F3F46] flex flex-col gap-0"
                         >
-                            <SheetHeader className="p-3 border-b border-white/10 bg-[#0A0A0A]">
+                            <SheetHeader className="p-3 border-b border-white/10 bg-[#0A0A0A] flex-shrink-0">
                                 <SheetTitle className="text-sm font-semibold text-base-content">
                                     Scenes
                                 </SheetTitle>
                             </SheetHeader>
-                            <div className="flex-1 overflow-hidden">
+                            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
                                 <SceneNavigator
                                     currentLine={state.currentLine}
                                     onSceneClick={(scene) => {
