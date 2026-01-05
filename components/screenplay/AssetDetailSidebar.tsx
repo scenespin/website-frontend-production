@@ -671,7 +671,7 @@ export default function AssetDetailSidebar({
     setSelectedSceneIds(new Set());
   };
   
-  // Apply scene changes (link/unlink all selected scenes) - one at a time with progress
+  // Apply scene changes (link/unlink all selected scenes) - using batch API
   const handleApplySceneChanges = async () => {
     if (!asset) return;
     
@@ -705,69 +705,27 @@ export default function AssetDetailSidebar({
         return;
       }
       
-      console.log('[AssetDetailSidebar] 🔗 Processing scene changes one at a time:', {
+      console.log('[AssetDetailSidebar] 🔗 Using batch API to update scenes:', {
         assetId: asset.id,
         toLink: toLink.length,
         toUnlink: toUnlink.length,
         total: totalChanges
       });
       
-      let successCount = 0;
-      let errorCount = 0;
-      let currentIndex = 0;
-      
-      // Process links first
-      for (const sceneId of toLink) {
-        currentIndex++;
-        const scene = scenes.find(s => s.id === sceneId);
-        setProcessingProgress({
-          current: currentIndex,
-          total: totalChanges,
-          sceneHeading: scene?.heading || `Scene ${scene?.number || ''}`
-        });
-        
-        try {
-          await linkAssetToScene(asset.id, sceneId);
-          successCount++;
-          // Small delay to ensure state updates and provide smooth UX
-          await new Promise(resolve => setTimeout(resolve, 50));
-        } catch (error) {
-          console.error(`[AssetDetailSidebar] Failed to link scene ${sceneId}:`, error);
-          errorCount++;
-        }
-      }
-      
-      // Process unlinks
-      for (const sceneId of toUnlink) {
-        currentIndex++;
-        const scene = scenes.find(s => s.id === sceneId);
-        setProcessingProgress({
-          current: currentIndex,
-          total: totalChanges,
-          sceneHeading: scene?.heading || `Scene ${scene?.number || ''}`
-        });
-        
-        try {
-          await unlinkAssetFromScene(asset.id, sceneId);
-          successCount++;
-          // Small delay to ensure state updates and provide smooth UX
-          await new Promise(resolve => setTimeout(resolve, 50));
-        } catch (error) {
-          console.error(`[AssetDetailSidebar] Failed to unlink scene ${sceneId}:`, error);
-          errorCount++;
-        }
-      }
+      // Use batch API for reliable bulk operations
+      await batchUpdatePropAssociations(
+        asset.id,
+        toLink,
+        toUnlink
+      );
       
       // Refresh selected scenes to match current state
-      const updatedAssetSceneIds = asset ? getAssetScenes(asset.id) : [];
-      setSelectedSceneIds(new Set(updatedAssetSceneIds));
+      setTimeout(() => {
+        const updatedAssetSceneIds = asset ? getAssetScenes(asset.id) : [];
+        setSelectedSceneIds(new Set(updatedAssetSceneIds));
+      }, 100);
       
-      // Show results
-      if (errorCount > 0) {
-        toast.warning(`Updated ${successCount} scene${successCount === 1 ? '' : 's'}, ${errorCount} failed`);
-      } else {
-        toast.success(`Updated ${successCount} scene link${successCount === 1 ? '' : 's'}`);
-      }
+      toast.success(`Updated ${totalChanges} scene link${totalChanges === 1 ? '' : 's'}`);
     } catch (error) {
       console.error('[AssetDetailSidebar] Error applying scene changes:', error);
       toast.error('Failed to update scene links');
