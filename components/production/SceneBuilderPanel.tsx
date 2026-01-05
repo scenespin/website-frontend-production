@@ -539,12 +539,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       return;
     }
     
-    // Create a stable string representation for comparison
-    const enrichedPropsString = JSON.stringify(enrichedPropsFromHook);
+    // 🔥 FIX: Create stable comparison using only IDs and image URLs (not full objects)
+    // This prevents re-syncing when only object references change
+    const enrichedPropsSignature = enrichedPropsFromHook
+      .map((p: any) => `${p.id}:${(p.angleReferences || []).length}:${(p.images || []).length}`)
+      .sort()
+      .join('|');
     
-    // Only sync if the enriched props are different from what we last synced
+    // Only sync if the enriched props signature is different from what we last synced
     // This prevents re-syncing the same data and breaking the loop
-    if (enrichedPropsString === lastEnrichedPropsRef.current) {
+    if (enrichedPropsSignature === lastEnrichedPropsRef.current) {
       return;
     }
     
@@ -567,14 +571,19 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // 2. We're going from empty to populated
     if (enrichedPropsIds === basePropsIds || baseProps.length === 0) {
       console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedPropsFromHook);
-      // 🔥 FIX: Use contextActions.setSceneProps directly to avoid circular dependency
-      // The wrapper setSceneProps depends on contextState.sceneProps, which causes infinite loops
-      contextActions.setSceneProps(enrichedPropsFromHook);
-      lastEnrichedPropsRef.current = enrichedPropsString;
+      // 🔥 FIX: Use startTransition to prevent React error #185 (updating during render)
+      startTransition(() => {
+        // Use contextActions.setSceneProps directly to avoid circular dependency
+        // The wrapper setSceneProps depends on contextState.sceneProps, which causes infinite loops
+        contextActions.setSceneProps(enrichedPropsFromHook);
+      });
+      lastEnrichedPropsRef.current = enrichedPropsSignature;
     } else {
       console.warn('[SceneBuilderPanel] ⚠️ Skipping props sync - IDs mismatch (preventing infinite loop)');
     }
-  }, [enrichedPropsFromHook, baseProps, contextActions]); // 🔥 FIX: Use contextActions directly (stable reference)
+    // 🔥 FIX: Remove contextActions from dependencies - it should be stable, but let's be safe
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrichedPropsFromHook, baseProps]);
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content

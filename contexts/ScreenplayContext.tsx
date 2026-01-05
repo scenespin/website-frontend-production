@@ -286,6 +286,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         locationIds: string;
         beatIds: string;
     } | null>(null);
+    // 🔥 FIX: Track if refresh is in progress to prevent multiple simultaneous refreshes
+    const isRefreshingScenesRef = useRef<boolean>(false);
     // 🔥 FIX: Track deleted asset IDs to prevent them from reappearing due to eventual consistency
     // Will be initialized after screenplayId is declared
     const deletedAssetIdsRef = useRef<Set<string>>(new Set());
@@ -1161,25 +1163,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (!screenplayId) return;
         
         const handleRefreshScenes = async () => {
+            // 🔥 FIX: Prevent multiple simultaneous refreshes
+            if (isRefreshingScenesRef.current) {
+                console.log('[ScreenplayContext] ⏸️ Refresh already in progress - skipping');
+                return;
+            }
+            
+            isRefreshingScenesRef.current = true;
             console.log('[ScreenplayContext] Refreshing scenes due to refreshScenes event');
             try {
                 const scenesData = await listScenes(screenplayId, getToken);
                 const transformedScenes = transformScenesFromAPI(scenesData);
                 
-                // 🔥 FIX #3: Update refs and state synchronously
-                scenesRef.current = transformedScenes;
-                setScenes(transformedScenes);
-                
-                // 🔥 FIX #3: Rebuild relationships with current state (refs are updated)
-                // The useEffect above will also trigger, but this ensures immediate update
-                const currentCharacters = charactersRef.current;
-                const currentLocations = locationsRef.current;
-                const currentBeats = beatsRef.current;
-                buildRelationshipsFromScenes(transformedScenes, currentBeats, currentCharacters, currentLocations);
+                // 🔥 FIX: Use startTransition to prevent React error #185 (updating during render)
+                startTransition(() => {
+                    // Update refs immediately
+                    scenesRef.current = transformedScenes;
+                    setScenes(transformedScenes);
+                    
+                    // Rebuild relationships with current state (refs are updated)
+                    const currentCharacters = charactersRef.current;
+                    const currentLocations = locationsRef.current;
+                    const currentBeats = beatsRef.current;
+                    buildRelationshipsFromScenes(transformedScenes, currentBeats, currentCharacters, currentLocations);
+                });
                 
                 console.log('[ScreenplayContext] ✅ Refreshed scenes from API:', transformedScenes.length, 'scenes');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to refresh scenes:', error);
+            } finally {
+                isRefreshingScenesRef.current = false;
             }
         };
         
