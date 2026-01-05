@@ -1075,11 +1075,45 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // 🔥 FIX #3: Rebuild relationships when characters/locations/scenes change
     // This ensures relationships stay in sync with state changes
+    // 🔥 FIX: Track last values to prevent infinite loops from array reference changes
+    const lastRebuildRef = useRef<{
+        sceneIds: string;
+        characterIds: string;
+        locationIds: string;
+        beatIds: string;
+    } | null>(null);
+    
     useEffect(() => {
         if (!hasInitializedFromDynamoDB || scenes.length === 0) return;
         
         // Only rebuild if we have characters or locations loaded
         if (characters.length > 0 || locations.length > 0) {
+            // Create stable string representations for comparison
+            const sceneIds = scenes.map(s => s.id).sort().join(',');
+            const characterIds = characters.map(c => c.id).sort().join(',');
+            const locationIds = locations.map(l => l.id).sort().join(',');
+            const beatIds = beats.map(b => b.id).sort().join(',');
+            
+            // Only rebuild if IDs actually changed (not just array reference)
+            if (
+                lastRebuildRef.current &&
+                lastRebuildRef.current.sceneIds === sceneIds &&
+                lastRebuildRef.current.characterIds === characterIds &&
+                lastRebuildRef.current.locationIds === locationIds &&
+                lastRebuildRef.current.beatIds === beatIds
+            ) {
+                // IDs haven't changed - skip rebuild to prevent infinite loop
+                return;
+            }
+            
+            // Update ref with current IDs
+            lastRebuildRef.current = {
+                sceneIds,
+                characterIds,
+                locationIds,
+                beatIds
+            };
+            
             console.log('[ScreenplayContext] 🔄 Rebuilding relationships due to state change:', {
                 scenes: scenes.length,
                 characters: characters.length,
