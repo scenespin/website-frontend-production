@@ -746,92 +746,26 @@ export default function FountainEditor({
                                 e.preventDefault();
                                 e.stopPropagation();
                                 
-                                // Format the type field if needed (int → INT., ext → EXT., i/e → I./E., int/ext → INT./EXT.)
-                                // This handles lowercase input before proceeding with Tab navigation
-                                const parts = parseSceneHeading(trimmedLine);
-                                console.log('[WrydaTab] Parsed parts:', parts);
-                                
-                                // If we have a type field, format it properly
-                                if (parts.type && parts.type.trim()) {
-                                    const formattedType = formatSceneHeadingType(parts.type);
-                                    console.log('[WrydaTab] Type formatting:', parts.type, '→', formattedType);
-                                    
-                                    if (formattedType !== parts.type) {
-                                        // Type needs formatting (e.g., "int" → "INT.")
-                                        const updatedParts = updateSceneHeadingParts(parts, { type: formattedType });
-                                        const formattedLine = buildSceneHeading(updatedParts);
-                                        
-                                        console.log('[WrydaTab] Formatted line:', formattedLine);
-                                        
-                                        // Replace the current line with formatted version
-                                        const textAfter = textarea.value.substring(cursorPos);
-                                        const newTextBefore = lines.slice(0, -1).concat(formattedLine).join('\n');
-                                        const newContent = newTextBefore + textAfter;
-                                        
-                                        // Update content
-                                        setContent(newContent);
-                                        
-                                        // Wait for state to update and ensure textarea value is synced before calling handleTab
-                                        // handleTab reads from state.content, so we need to wait for React state update
-                                        setTimeout(() => {
-                                            if (textarea) {
-                                                // Ensure textarea value matches the new content
-                                                textarea.value = newContent;
-                                                const newPos = newTextBefore.length;
-                                                textarea.selectionStart = newPos;
-                                                textarea.selectionEnd = newPos;
-                                                setCursorPosition(newPos);
-                                                
-                                                // Wait one more frame to ensure state.content is updated
-                                                requestAnimationFrame(() => {
-                                                    // Create synthetic Tab event to reuse existing Tab logic
-                                                    const syntheticEvent = {
-                                                        ...e,
-                                                        key: 'Tab',
-                                                        code: 'Tab',
-                                                        preventDefault: () => {},
-                                                        stopPropagation: () => {}
-                                                    } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                                    
-                                                    console.log('[WrydaTab] Calling handleTab with synthetic event after formatting');
-                                                    // Call handleTab with synthetic event (reuses all Tab logic)
-                                                    // This should now show the location dropdown
-                                                    wrydaTab.handleTab(syntheticEvent);
-                                                });
-                                            }
-                                        }, 100);
-                                        
-                                        return;
-                                    }
-                                }
-                                
-                                // If type is already formatted or no formatting needed, proceed with Tab navigation
+                                // Simple approach: Just call handleTab directly and let it handle everything
+                                // handleTab already knows how to format types and show dropdowns
                                 // Wait for state to update before calling handleTab (mobile-specific timing issue)
                                 setTimeout(() => {
                                     if (textarea) {
-                                        const newPos = cursorPos;
-                                        textarea.selectionStart = newPos;
-                                        textarea.selectionEnd = newPos;
-                                        setCursorPosition(newPos);
+                                        // Create synthetic Tab event to reuse existing Tab logic
+                                        const syntheticEvent = {
+                                            ...e,
+                                            key: 'Tab',
+                                            code: 'Tab',
+                                            preventDefault: () => {},
+                                            stopPropagation: () => {}
+                                        } as React.KeyboardEvent<HTMLTextAreaElement>;
                                         
-                                        // Wait one more frame to ensure state.content is updated
-                                        requestAnimationFrame(() => {
-                                            // Create synthetic Tab event to reuse existing Tab logic
-                                            const syntheticEvent = {
-                                                ...e,
-                                                key: 'Tab',
-                                                code: 'Tab',
-                                                preventDefault: () => {},
-                                                stopPropagation: () => {}
-                                            } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                            
-                                            console.log('[WrydaTab] Calling handleTab (already formatted)');
-                                            // Call handleTab with synthetic event (reuses all Tab logic)
-                                            // This should show the location dropdown
-                                            wrydaTab.handleTab(syntheticEvent);
-                                        });
+                                        console.log('[WrydaTab] Calling handleTab with synthetic event');
+                                        // Call handleTab with synthetic event (reuses all Tab logic)
+                                        // handleTab will format the type and show location dropdown
+                                        wrydaTab.handleTab(syntheticEvent);
                                     }
-                                }, 100);
+                                }, 0);
                                 
                                 return;
                             } else {
