@@ -39,7 +39,6 @@ import { CharacterPoseCropModal } from './CharacterPoseCropModal';
 import { ModernGallery } from './Gallery/ModernGallery';
 import { UploadWardrobeTab } from './Coverage/UploadWardrobeTab';
 import { GenerateWardrobeTab } from './Coverage/GenerateWardrobeTab';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 /**
  * Get display label for provider ID
@@ -1354,40 +1353,36 @@ export function CharacterDetailModal({
                       {outfitNames.length > 1 && (
                         <div className="flex items-center gap-2">
                           <label className="text-sm text-[#808080]">Filter by Outfit:</label>
-                          <Select
+                          <select
                             value={selectedOutfitGallery || '__all__'}
-                            onValueChange={(value) => {
-                              const newValue = value === '__all__' ? null : value;
+                            onChange={(e) => {
+                              const newValue = e.target.value === '__all__' ? null : e.target.value;
                               setSelectedOutfitGallery(newValue);
                               setSelectedImageId(null);
                             }}
+                            className="select select-bordered px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-sm h-8 focus:border-[#DC143C] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
                           >
-                            <SelectTrigger className="px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-sm h-8 focus:border-[#DC143C] focus:outline-none">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__all__">All Outfits ({galleryImages.length})</SelectItem>
-                              {outfitNames.map((outfitName) => {
-                                const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === outfitName).length;
-                                let outfitDisplayName: string;
-                                if (outfitName === 'default') {
-                                  outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
-                                    ? displayPhysicalAttributes.typicalClothing
-                                    : 'Default Outfit';
-                                } else {
-                                  outfitDisplayName = outfitName
-                                    .split('-')
-                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                    .join(' ');
-                                }
-                                return (
-                                  <SelectItem key={outfitName} value={outfitName}>
-                                    {outfitDisplayName} ({outfitCount})
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
+                            <option value="__all__" className="bg-[#1A1A1A] text-[#FFFFFF]">All Outfits ({galleryImages.length})</option>
+                            {outfitNames.map((outfitName) => {
+                              const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === outfitName).length;
+                              let outfitDisplayName: string;
+                              if (outfitName === 'default') {
+                                outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
+                                  ? displayPhysicalAttributes.typicalClothing
+                                  : 'Default Outfit';
+                              } else {
+                                outfitDisplayName = outfitName
+                                  .split('-')
+                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(' ');
+                              }
+                              return (
+                                <option key={outfitName} value={outfitName} className="bg-[#1A1A1A] text-[#FFFFFF]">
+                                  {outfitDisplayName} ({outfitCount})
+                                </option>
+                              );
+                            })}
+                          </select>
                         </div>
                       )}
                     </div>
@@ -1608,10 +1603,10 @@ export function CharacterDetailModal({
                           const availableOutfits = Array.from(outfitSet).sort();
                           
                           return availableOutfits.length > 0 ? (
-                            <Select
+                            <select
                               value={displayPhysicalAttributes.typicalClothing || '__none__'}
-                              onValueChange={async (value) => {
-                                const newValue = value === '__none__' ? undefined : value;
+                              onChange={async (e) => {
+                                const newValue = e.target.value === '__none__' ? undefined : e.target.value;
                                 await onUpdate(character.id, {
                                   physicalAttributes: {
                                     ...displayPhysicalAttributes,
@@ -1619,19 +1614,15 @@ export function CharacterDetailModal({
                                   }
                                 });
                               }}
+                              className="select select-bordered w-full h-10 px-3 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
                             >
-                              <SelectTrigger className="w-full h-10 px-3 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">None (no default)</SelectItem>
-                                {availableOutfits.map((outfit) => (
-                                  <SelectItem key={outfit} value={outfit}>
-                                    {outfit}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <option value="__none__" className="bg-[#1A1A1A] text-[#FFFFFF]">None (no default)</option>
+                              {availableOutfits.map((outfit) => (
+                                <option key={outfit} value={outfit} className="bg-[#1A1A1A] text-[#FFFFFF]">
+                                  {outfit}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
                             <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-sm text-[#808080]">
                               No outfits available. Generate pose packages to create outfits.
@@ -1738,37 +1729,33 @@ export function CharacterDetailModal({
                       {outfitNames.length > 1 && (
                         <div className="mb-4">
                           <label className="text-xs text-[#808080] mb-2 block">Filter by outfit:</label>
-                          <Select
+                          <select
                             value={selectedOutfitReferences || '__all__'}
-                            onValueChange={(value) => setSelectedOutfitReferences(value === '__all__' ? null : value)}
+                            onChange={(e) => setSelectedOutfitReferences(e.target.value === '__all__' ? null : e.target.value)}
+                            className="select select-bordered w-full h-10 px-3 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
                           >
-                            <SelectTrigger className="w-full h-10 px-3 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#8B5CF6] focus:outline-none">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__all__">All Outfits ({poseReferences.length})</SelectItem>
-                              {outfitNames.map((outfitName) => {
-                                const outfitPoses = posesByOutfit[outfitName] || [];
-                                let outfitDisplayName: string;
-                                if (outfitName === 'default') {
-                                  outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
-                                    ? displayPhysicalAttributes.typicalClothing
-                                    : 'Default Outfit';
-                                } else {
-                                  // 🔥 FIX: Handle both underscores and hyphens in outfit names
-                                  outfitDisplayName = outfitName
-                                    .split(/[-_]/)
-                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                    .join(' ');
-                                }
-                                return (
-                                  <SelectItem key={outfitName} value={outfitName}>
-                                    {outfitDisplayName} ({outfitPoses.length})
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
+                            <option value="__all__" className="bg-[#1A1A1A] text-[#FFFFFF]">All Outfits ({poseReferences.length})</option>
+                            {outfitNames.map((outfitName) => {
+                              const outfitPoses = posesByOutfit[outfitName] || [];
+                              let outfitDisplayName: string;
+                              if (outfitName === 'default') {
+                                outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
+                                  ? displayPhysicalAttributes.typicalClothing
+                                  : 'Default Outfit';
+                              } else {
+                                // 🔥 FIX: Handle both underscores and hyphens in outfit names
+                                outfitDisplayName = outfitName
+                                  .split(/[-_]/)
+                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(' ');
+                              }
+                              return (
+                                <option key={outfitName} value={outfitName} className="bg-[#1A1A1A] text-[#FFFFFF]">
+                                  {outfitDisplayName} ({outfitPoses.length})
+                                </option>
+                              );
+                            })}
+                          </select>
                         </div>
                       )}
                       

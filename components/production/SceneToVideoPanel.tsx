@@ -17,9 +17,6 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import {
   Film,
@@ -382,21 +379,17 @@ I didn't expect you to actually come.`}
                 <Clock className="w-4 h-4" />
                 Segment Length
               </Label>
-              <Select 
+              <select 
                 value={segmentDuration} 
-                onValueChange={setSegmentDuration}
+                onChange={(e) => setSegmentDuration(e.target.value)}
                 disabled={isGeneratingPrompts || isGeneratingVideos}
+                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3">3 seconds</SelectItem>
-                  <SelectItem value="5">5 seconds</SelectItem>
-                  <SelectItem value="8">8 seconds</SelectItem>
-                  <SelectItem value="10">10 seconds</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="3" className="bg-[#1A1A1A] text-[#FFFFFF]">3 seconds</option>
+                <option value="5" className="bg-[#1A1A1A] text-[#FFFFFF]">5 seconds</option>
+                <option value="8" className="bg-[#1A1A1A] text-[#FFFFFF]">8 seconds</option>
+                <option value="10" className="bg-[#1A1A1A] text-[#FFFFFF]">10 seconds</option>
+              </select>
             </div>
 
             {/* Resolution */}
@@ -404,19 +397,15 @@ I didn't expect you to actually come.`}
               <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Resolution
               </Label>
-              <Select 
+              <select 
                 value={resolution} 
-                onValueChange={setResolution}
+                onChange={(e) => setResolution(e.target.value)}
                 disabled={isGeneratingPrompts || isGeneratingVideos}
+                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="720p">720p</SelectItem>
-                  <SelectItem value="1080p">1080p (HD)</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="720p" className="bg-[#1A1A1A] text-[#FFFFFF]">720p</option>
+                <option value="1080p" className="bg-[#1A1A1A] text-[#FFFFFF]">1080p (HD)</option>
+              </select>
             </div>
 
             {/* Provider */}
@@ -425,25 +414,16 @@ I didn't expect you to actually come.`}
                 <Zap className="w-4 h-4" />
                 AI Provider
               </Label>
-              <Select 
+              <select 
                 value={provider} 
-                onValueChange={setProvider}
+                onChange={(e) => setProvider(e.target.value)}
                 disabled={isGeneratingPrompts || isGeneratingVideos}
+                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="premium">
-                    <div className="flex items-center gap-2">
-                      <span>Premium 4K</span>
-                      <Badge className="bg-indigo-500 text-base-content border-0 text-xs">Best</Badge>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="professional">Professional 1080p</SelectItem>
-                  <SelectItem value="cinema">Cinematic</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="premium" className="bg-[#1A1A1A] text-[#FFFFFF]">Premium 4K (Best)</option>
+                <option value="professional" className="bg-[#1A1A1A] text-[#FFFFFF]">Professional 1080p</option>
+                <option value="cinema" className="bg-[#1A1A1A] text-[#FFFFFF]">Cinematic</option>
+              </select>
             </div>
           </div>
 

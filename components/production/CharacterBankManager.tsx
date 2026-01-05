@@ -39,7 +39,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -750,18 +749,17 @@ function CreateCharacterDialog({
               
               <div>
                 <Label>AI Model</Label>
-                <Select value={model} onValueChange={setModel}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nano-banana">Nano Banana (Fast, 5 credits)</SelectItem>
-                    <SelectItem value="photon-1">Photon 1 (Quality, 10 credits)</SelectItem>
-                    <SelectItem value="photon-flash">Photon Flash (Fast, 5 credits)</SelectItem>
-                    <SelectItem value="dall-e-3">DALL-E 3 (High quality, 15 credits)</SelectItem>
-                    <SelectItem value="imagen-3">Imagen 3 (Premium, 20 credits)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select 
+                  value={model} 
+                  onChange={(e) => setModel(e.target.value)}
+                  className="select select-bordered w-full mt-1 bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+                >
+                  <option value="nano-banana" className="bg-[#1A1A1A] text-[#FFFFFF]">Nano Banana (Fast, 5 credits)</option>
+                  <option value="photon-1" className="bg-[#1A1A1A] text-[#FFFFFF]">Photon 1 (Quality, 10 credits)</option>
+                  <option value="photon-flash" className="bg-[#1A1A1A] text-[#FFFFFF]">Photon Flash (Fast, 5 credits)</option>
+                  <option value="dall-e-3" className="bg-[#1A1A1A] text-[#FFFFFF]">DALL-E 3 (High quality, 15 credits)</option>
+                  <option value="imagen-3" className="bg-[#1A1A1A] text-[#FFFFFF]">Imagen 3 (Premium, 20 credits)</option>
+                </select>
               </div>
             </>
           )}

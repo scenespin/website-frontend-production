@@ -15,7 +15,6 @@ import ReactCrop, { Crop, PixelCrop, makeAspectCrop, centerCrop } from 'react-im
 import 'react-image-crop/dist/ReactCrop.css';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CharacterPoseCropModalProps {
   isOpen: boolean;
@@ -514,9 +513,10 @@ export function CharacterPoseCropModal({
                 {/* Aspect Ratio Selector */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-[#808080]">Aspect:</span>
-                  <Select
+                  <select
                     value={aspectRatio === undefined ? 'free' : (aspectRatio === 1 ? '1' : aspectRatio === 16/9 ? '16/9' : aspectRatio === 4/3 ? '4/3' : aspectRatio === 3/4 ? '3/4' : 'free')}
-                    onValueChange={(value) => {
+                    onChange={(e) => {
+                      const value = e.target.value;
                       if (value === 'free') {
                         setAspectRatio(undefined);
                       } else if (value === '1') {
@@ -529,18 +529,14 @@ export function CharacterPoseCropModal({
                         setAspectRatio(3 / 4);
                       }
                     }}
+                    className="select select-bordered bg-[#1F1F1F] border border-[#3F3F46] text-[#FFFFFF] text-xs h-7 px-2 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
                   >
-                    <SelectTrigger className="bg-[#1F1F1F] border border-[#3F3F46] text-[#FFFFFF] text-xs h-7 px-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="free">Free (resize freely)</SelectItem>
-                      <SelectItem value="1">1:1 (Square)</SelectItem>
-                      <SelectItem value="16/9">16:9 (Widescreen)</SelectItem>
-                      <SelectItem value="4/3">4:3 (Standard)</SelectItem>
-                      <SelectItem value="3/4">3:4 (Portrait)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="free" className="bg-[#1F1F1F] text-[#FFFFFF]">Free (resize freely)</option>
+                    <option value="1" className="bg-[#1F1F1F] text-[#FFFFFF]">1:1 (Square)</option>
+                    <option value="16/9" className="bg-[#1F1F1F] text-[#FFFFFF]">16:9 (Widescreen)</option>
+                    <option value="4/3" className="bg-[#1F1F1F] text-[#FFFFFF]">4:3 (Standard)</option>
+                    <option value="3/4" className="bg-[#1F1F1F] text-[#FFFFFF]">3:4 (Portrait)</option>
+                  </select>
                 </div>
                 <div className="flex items-center gap-3">
                   <button

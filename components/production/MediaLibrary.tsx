@@ -33,7 +33,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FolderTreeSidebar } from './FolderTreeSidebar';
 import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 import { toast } from 'sonner';
@@ -2002,20 +2001,16 @@ export default function MediaLibrary({
             {selectionMode ? 'Selection Mode' : 'Select Multiple'}
           </button>
 
-          <Select
+          <select
             value={filterType}
-            onValueChange={(value) => setFilterType(value)}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="select select-bordered w-[140px] bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
           >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="video">Videos</SelectItem>
-              <SelectItem value="image">Images</SelectItem>
-              <SelectItem value="audio">Audio</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="all" className="bg-[#1A1A1A] text-[#FFFFFF]">All Types</option>
+            <option value="video" className="bg-[#1A1A1A] text-[#FFFFFF]">Videos</option>
+            <option value="image" className="bg-[#1A1A1A] text-[#FFFFFF]">Images</option>
+            <option value="audio" className="bg-[#1A1A1A] text-[#FFFFFF]">Audio</option>
+          </select>
 
           {/* View Mode Toggle */}
           <div className="flex gap-1 bg-[#141414] p-1 rounded-lg">

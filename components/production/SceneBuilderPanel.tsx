@@ -2592,6 +2592,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       duration: 15000 // Show for 15 seconds
     });
     
+    // 🔥 Refresh credits immediately after generation completes
+    if (typeof window !== 'undefined' && window.refreshCredits) {
+      window.refreshCredits();
+    }
+    
     // Show follow-up options toast
     setTimeout(() => {
       handleShowNextStepOptions(historyItem.outputs);

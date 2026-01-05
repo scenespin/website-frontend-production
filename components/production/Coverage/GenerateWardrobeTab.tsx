@@ -18,7 +18,6 @@ import { Upload, Loader2, X, Plus, Wand2, ChevronDown, ChevronUp } from 'lucide-
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import PosePackageSelector from '../../character-bank/PosePackageSelector';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface GenerateWardrobeTabProps {
   characterId: string;
@@ -402,20 +401,16 @@ export function GenerateWardrobeTab({
           {outfitMode === 'existing' && (
             <div>
               {existingOutfits.length > 0 ? (
-                <Select
+                <select
                   value={selectedExistingOutfit || '__select__'}
-                  onValueChange={(value) => setSelectedExistingOutfit(value === '__select__' ? '' : value)}
+                  onChange={(e) => setSelectedExistingOutfit(e.target.value === '__select__' ? '' : e.target.value)}
+                  className="select select-bordered w-full h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
                 >
-                  <SelectTrigger className="w-full h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__select__">Select an outfit...</SelectItem>
-                    {existingOutfits.map(outfit => (
-                      <SelectItem key={outfit} value={outfit}>{outfit}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="__select__" className="bg-[#1A1A1A] text-[#FFFFFF]">Select an outfit...</option>
+                  {existingOutfits.map(outfit => (
+                    <option key={outfit} value={outfit} className="bg-[#1A1A1A] text-[#FFFFFF]">{outfit}</option>
+                  ))}
+                </select>
               ) : (
                 <div className="px-3 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#808080]">
                   No existing outfits. Create a new one instead.
@@ -470,21 +465,17 @@ export function GenerateWardrobeTab({
                 No models available for this quality tier
               </div>
             ) : (
-              <Select
+              <select
                 value={providerId}
-                onValueChange={(value) => setProviderId(value)}
+                onChange={(e) => setProviderId(e.target.value)}
+                className="select select-bordered w-full h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
               >
-                <SelectTrigger className="w-full h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name} ({model.credits} credits)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {models.map((model) => (
+                  <option key={model.id} value={model.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
+                    {model.name} ({model.credits} credits)
+                  </option>
+                ))}
+              </select>
             )}
             {selectedModel && (
               <p className="mt-1 text-xs text-[#808080]">
