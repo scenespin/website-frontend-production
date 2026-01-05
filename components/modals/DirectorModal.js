@@ -456,26 +456,33 @@ Rules:
           // Insert content
           onInsert(formattedContent);
 
-          // Close modal
-          onClose();
-
-          // Fix hanging issue: Restore focus to editor and allow React to process state updates
-          // Use requestAnimationFrame to ensure DOM is ready after modal closes
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              // Restore focus to the editor textarea
-              const textarea = document.querySelector('textarea[placeholder*="screenplay"]') || 
-                             document.querySelector('textarea');
-              if (textarea) {
-                textarea.focus();
-                // Also ensure the editor is interactive
-                textarea.click();
-              }
-            }, 50);
-          });
-
           // Show success toast
           toast.success(`Generated ${sceneCount} scene${sceneCount > 1 ? 's' : ''}`);
+
+          // Wait for state update to complete before closing modal (prevents mobile refresh issue)
+          // Use requestAnimationFrame to ensure DOM is ready
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              // Close modal after state update completes
+              onClose();
+
+              // Restore focus to editor (mobile-safe: only use focus, not click)
+              setTimeout(() => {
+                const textarea = document.querySelector('textarea[placeholder*="screenplay"]') || 
+                               document.querySelector('textarea');
+                if (textarea) {
+                  // On mobile, only use focus() - click() can cause page refresh
+                  const isMobile = window.innerWidth < 768;
+                  if (isMobile) {
+                    textarea.focus();
+                  } else {
+                    textarea.focus();
+                    textarea.click();
+                  }
+                }
+              }, 100);
+            }, 100);
+          });
         },
         // onError
         (error) => {
@@ -600,7 +607,7 @@ Rules:
                     {/* Scene Count Selector */}
                     <div>
                       <label className="label">
-                        <span className="label-text text-xs font-semibold">Number of Scenes</span>
+                        <span className="label-text font-semibold">Number of Scenes</span>
                       </label>
                       <div className="flex gap-2">
                         {[1, 2, 3].map((count) => (
@@ -621,7 +628,7 @@ Rules:
                     {scenes.map((scene, index) => (
                       <div key={index} className="border border-base-300 rounded-lg p-4 space-y-4">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-xs font-semibold text-base-content">Scene {index + 1}</h4>
+                          <h4 className="font-semibold text-base-content">Scene {index + 1}</h4>
                         </div>
                         
                         <div>

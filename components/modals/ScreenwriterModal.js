@@ -478,25 +478,33 @@ CRITICAL SPACING RULES (Fountain.io spec):
           // Insert content
           onInsert(contentToInsert);
 
-          // Close modal
-          onClose();
+          // Show success toast
+          toast.success('Content generated and inserted');
 
-          // Fix hanging issue: Restore focus to editor and allow React to process state updates
-          // Use requestAnimationFrame to ensure DOM is ready after modal closes
+          // Wait for state update to complete before closing modal (prevents mobile refresh issue)
+          // Use requestAnimationFrame to ensure DOM is ready
           requestAnimationFrame(() => {
             setTimeout(() => {
-              // Restore focus to the editor textarea
-              const textarea = document.querySelector('textarea[placeholder*="screenplay"]') || 
-                             document.querySelector('textarea');
-              if (textarea) {
-                textarea.focus();
-                // Also ensure the editor is interactive
-                textarea.click();
-              }
-            }, 50);
-          });
+              // Close modal after state update completes
+              onClose();
 
-          // Show success toast
+              // Restore focus to editor (mobile-safe: only use focus, not click)
+              setTimeout(() => {
+                const textarea = document.querySelector('textarea[placeholder*="screenplay"]') || 
+                               document.querySelector('textarea');
+                if (textarea) {
+                  // On mobile, only use focus() - click() can cause page refresh
+                  const isMobile = window.innerWidth < 768;
+                  if (isMobile) {
+                    textarea.focus();
+                  } else {
+                    textarea.focus();
+                    textarea.click();
+                  }
+                }
+              }, 100);
+            }, 100);
+          });
           toast.success('Content generated and inserted');
         },
         // onError

@@ -381,26 +381,33 @@ Rules:
           // Insert content
           onInsert(contentToInsert);
 
-          // Close modal
-          onClose();
-
-          // Fix hanging issue: Restore focus to editor and allow React to process state updates
-          // Use requestAnimationFrame to ensure DOM is ready after modal closes
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              // Restore focus to the editor textarea
-              const textarea = document.querySelector('textarea[placeholder*="screenplay"]') || 
-                             document.querySelector('textarea');
-              if (textarea) {
-                textarea.focus();
-                // Also ensure the editor is interactive
-                textarea.click();
-              }
-            }, 50);
-          });
-
           // Show success toast
           toast.success('Dialogue generated and inserted');
+
+          // Wait for state update to complete before closing modal (prevents mobile refresh issue)
+          // Use requestAnimationFrame to ensure DOM is ready
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              // Close modal after state update completes
+              onClose();
+
+              // Restore focus to editor (mobile-safe: only use focus, not click)
+              setTimeout(() => {
+                const textarea = document.querySelector('textarea[placeholder*="screenplay"]') || 
+                               document.querySelector('textarea');
+                if (textarea) {
+                  // On mobile, only use focus() - click() can cause page refresh
+                  const isMobile = window.innerWidth < 768;
+                  if (isMobile) {
+                    textarea.focus();
+                  } else {
+                    textarea.focus();
+                    textarea.click();
+                  }
+                }
+              }, 100);
+            }, 100);
+          });
         },
         // onError
         (error) => {
@@ -634,7 +641,7 @@ Rules:
                       <button
                         type="button"
                         onClick={() => setShowAdvanced(!showAdvanced)}
-                        className="flex items-center gap-2 text-xs font-medium text-base-content/70 hover:text-base-content"
+                        className="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content"
                       >
                         {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         Advanced Options
