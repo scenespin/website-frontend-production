@@ -34,44 +34,42 @@ export function SceneNavigatorList({
   const { getToken } = useAuth();
   const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
 
-  // Get character names for a scene
+  // Get character names for a scene - Match editor pattern exactly
   const getSceneCharacters = (scene: Scene): string[] => {
-    // 🔥 FIX: Try relationships state first, then fallback to fountain tags
-    const sceneRel = screenplay.relationships?.scenes?.[scene.id];
-    if (sceneRel?.characters && sceneRel.characters.length > 0) {
-      return sceneRel.characters
-        .map(charId => screenplay.characters?.find(c => c.id === charId)?.name)
-        .filter(Boolean) as string[];
-    }
+    // 🔥 FIX: Match editor pattern - use relationships directly (no optional chaining)
+    // Editor uses: screenplay.relationships.scenes[scene.id] (not optional)
+    if (!screenplay.relationships || !screenplay.relationships.scenes) return [];
     
-    // Fallback to fountain tags
-    return (scene.fountain?.tags?.characters || [])
-      .map(charId => screenplay.characters?.find(c => c.id === charId)?.name)
+    const sceneRel = screenplay.relationships.scenes[scene.id];
+    if (!sceneRel?.characters) return [];
+    
+    return sceneRel.characters
+      .map(charId => screenplay.characters.find(c => c.id === charId)?.name)
       .filter(Boolean) as string[];
   };
 
-  // Get location name for a scene
+  // Get location name for a scene - Match editor pattern exactly
   const getSceneLocation = (scene: Scene): string | null => {
-    // 🔥 FIX: Try relationships state first, then fallback to fountain tags
-    const sceneRel = screenplay.relationships?.scenes?.[scene.id];
-    if (sceneRel?.location) {
-      const location = screenplay.locations?.find(l => l.id === sceneRel.location);
-      if (location) return location.name;
-    }
+    // 🔥 FIX: Match editor pattern - use relationships directly (no optional chaining)
+    if (!screenplay.relationships || !screenplay.relationships.scenes) return null;
     
-    // Fallback to fountain tags
-    if (scene.fountain?.tags?.location) {
-      const location = screenplay.locations?.find(l => l.id === scene.fountain?.tags?.location);
-      if (location) return location.name;
-    }
+    const sceneRel = screenplay.relationships.scenes[scene.id];
+    if (!sceneRel?.location) return null;
     
-    return null;
+    const location = screenplay.locations.find(l => l.id === sceneRel.location);
+    return location?.name || null;
   };
 
-  // Get asset/prop count for a scene (from scene.fountain.tags.props)
+  // Get asset/prop count for a scene - Match editor pattern exactly
   const getScenePropsCount = (scene: Scene): number => {
+    // 🔥 FIX: Match editor pattern - get asset names like editor does
     const assetIds = scene.fountain?.tags?.props || [];
-    return assetIds.length;
+    if (assetIds.length === 0) return 0;
+    
+    // Count valid assets (matching editor's getSceneAssets pattern)
+    return assetIds
+      .map(assetId => screenplay.assets.find(a => a.id === assetId))
+      .filter(Boolean).length;
   };
 
   // Fetch first line of scene text when no synopsis is available
@@ -119,23 +117,27 @@ export function SceneNavigatorList({
     fetchFirstLines();
   }, [projectId, getToken, screenplay.scenes]);
 
-  // Get state values
+  // Get state values - Match editor pattern
   const scenes = screenplay.scenes || [];
   const isLoading = screenplay.isLoading || false;
   const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
   
+  // 🔥 FIX: Wait for relationships to be ready (match editor behavior)
+  // Editor SceneNavigator only renders after relationships are built
+  const relationshipsReady = screenplay.relationships && screenplay.relationships.scenes;
+  
   // 🔍 DEBUG: Log relationships to troubleshoot missing icons
   useEffect(() => {
-    if (scenes.length > 0 && hasInitialized) {
+    if (scenes.length > 0 && hasInitialized && relationshipsReady) {
       const firstScene = scenes[0];
-      const sceneRel = screenplay.relationships?.scenes?.[firstScene.id];
+      const sceneRel = screenplay.relationships.scenes[firstScene.id];
       const hasLocation = !!getSceneLocation(firstScene);
       const hasCharacters = getSceneCharacters(firstScene).length > 0;
       const hasProps = getScenePropsCount(firstScene) > 0;
       
       console.log('[SceneNavigatorList] 🔍 Relationships check:', {
         hasRelationships: !!screenplay.relationships,
-        relationshipsScenesCount: screenplay.relationships ? Object.keys(screenplay.relationships.scenes || {}).length : 0,
+        relationshipsScenesCount: Object.keys(screenplay.relationships.scenes || {}).length,
         scenesCount: scenes.length,
         firstSceneId: firstScene.id,
         firstSceneHeading: firstScene.heading,
@@ -153,10 +155,10 @@ export function SceneNavigatorList({
         }
       });
     }
-  }, [scenes, hasInitialized, screenplay.relationships]);
+  }, [scenes, hasInitialized, relationshipsReady]);
   
-  // Show loading state while initializing
-  if (isLoading || !hasInitialized) {
+  // Show loading state while initializing OR relationships not ready
+  if (isLoading || !hasInitialized || !relationshipsReady) {
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <div className="flex items-center gap-2">

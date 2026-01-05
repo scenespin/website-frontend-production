@@ -35,6 +35,7 @@ import {
     deleteAllLocations,
     listScenes,
     bulkCreateScenes,
+    updateScene as apiUpdateScene,
     deleteScene as apiDeleteScene,
     deleteAllScenes,
     // Feature 0117: Beat API functions removed - beats are frontend-only UI templates
@@ -1079,12 +1080,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             try {
                 const scenesData = await listScenes(screenplayId, getToken);
                 const transformedScenes = transformScenesFromAPI(scenesData);
-                // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
-                setTimeout(() => {
-                    startTransition(() => {
-                        setScenes(transformedScenes);
-                    });
-                }, 0);
+                
+                // 🔥 FIX: Update refs immediately
+                scenesRef.current = transformedScenes;
+                
+                // 🔥 FIX: Rebuild relationships with refreshed scenes
+                buildRelationshipsFromScenes(transformedScenes, beats, characters, locations);
+                
+                // 🔥 FIX: Update state synchronously (safe in event handler)
+                setScenes(transformedScenes);
+                
                 console.log('[ScreenplayContext] ✅ Refreshed scenes from API:', transformedScenes.length, 'scenes');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to refresh scenes:', error);
@@ -1095,8 +1100,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return () => {
             window.removeEventListener('refreshScenes', handleRefreshScenes);
         };
-        // 🔥 FIX: Remove transformScenesFromAPI from deps - it's a stable useCallback and including it causes hooks mismatch
-    }, [screenplayId, getToken]);
+        // 🔥 FIX: Include dependencies needed for refresh
+    }, [screenplayId, getToken, buildRelationshipsFromScenes, beats, characters, locations]);
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
@@ -1748,8 +1753,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0117: Save updated scene directly to DynamoDB
         if (screenplayId && updatedScene) {
             try {
-                const apiScene = transformScenesToAPI([updatedScene]);
-                await bulkCreateScenes(screenplayId, apiScene, getToken);
+                // 🔥 FIX: Use dedicated updateScene API instead of bulkCreateScenes for proper updates
+                const sceneUpdates = {
+                    heading: updatedScene.heading,
+                    synopsis: updatedScene.synopsis,
+                    status: updatedScene.status,
+                    fountain: updatedScene.fountain,
+                    images: updatedScene.images,
+                    videoAssets: updatedScene.videoAssets,
+                    timing: updatedScene.timing,
+                    estimatedPageCount: updatedScene.estimatedPageCount,
+                    group_label: updatedScene.group_label
+                };
+                await apiUpdateScene(screenplayId, id, sceneUpdates, getToken);
                 console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB:', { sceneId: id, props: updatedScene.fountain?.tags?.props });
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update scene in DynamoDB:', error);
@@ -1801,6 +1817,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const propsAfterUpdate = updatedScene?.fountain?.tags?.props || [];
             if (propsAfterUpdate.includes(assetId)) {
                 console.log('[ScreenplayContext] ✅ Linked asset to scene (verified):', { assetId, sceneId, propsCount: propsAfterUpdate.length });
+                // 🔥 FIX: Trigger scene refresh to ensure UI updates
+                if (screenplayId && typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('refreshScenes'));
+                }
             } else {
                 console.error('[ScreenplayContext] ⚠️ WARNING: Asset link may not have persisted:', { assetId, sceneId, propsAfterUpdate });
             }
@@ -1854,6 +1874,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const propsAfterUpdate = updatedScene?.fountain?.tags?.props || [];
             if (!propsAfterUpdate.includes(assetId)) {
                 console.log('[ScreenplayContext] ✅ Unlinked asset from scene (verified):', { assetId, sceneId, propsCount: propsAfterUpdate.length });
+                // 🔥 FIX: Trigger scene refresh to ensure UI updates
+                if (screenplayId && typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('refreshScenes'));
+                }
             } else {
                 console.error('[ScreenplayContext] ⚠️ WARNING: Asset unlink may not have persisted:', { assetId, sceneId, propsAfterUpdate });
             }
