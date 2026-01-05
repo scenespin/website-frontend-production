@@ -1202,31 +1202,61 @@ export function CharacterDetailModal({
             className="fixed inset-4 md:inset-8 lg:inset-12 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex-shrink-0 px-6 py-4 border-b border-[#3F3F46] flex items-center justify-between bg-[#141414]">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-[#DC143C]/10 rounded-lg">
-                  <User className="w-6 h-6 text-[#DC143C]" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-[#FFFFFF]">{displayName}</h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-sm text-[#808080] capitalize">
-                      {displayType} character
-                      {isInScript && <span className="ml-2 text-[#6B7280]">(locked - appears in script)</span>}
-                    </p>
-                    {/* 🔥 READ-ONLY BADGE */}
-                    <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
-                      Read-only - Edit in Creation section
-                    </span>
+            <div className={`flex-shrink-0 border-b border-[#3F3F46] flex items-center justify-between bg-[#141414] ${
+              isMobile ? 'px-3 py-2.5' : 'px-6 py-4'
+            }`}>
+              <div className={`flex items-center gap-2 md:gap-4 flex-1 min-w-0 ${isMobile ? 'flex-col items-start' : ''}`}>
+                {!isMobile && (
+                  <div className="p-2 bg-[#DC143C]/10 rounded-lg flex-shrink-0">
+                    <User className="w-6 h-6 text-[#DC143C]" />
                   </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {isMobile && (
+                      <div className="p-1.5 bg-[#DC143C]/10 rounded flex-shrink-0">
+                        <User className={`text-[#DC143C] ${isMobile ? 'w-4 h-4' : 'w-6 h-6'}`} />
+                      </div>
+                    )}
+                    <h2 className={`font-bold text-[#FFFFFF] truncate ${isMobile ? 'text-base' : 'text-xl'}`}>
+                      {displayName}
+                    </h2>
+                  </div>
+                  {isMobile ? (
+                    // Mobile: Compact single line
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className={`text-[#808080] capitalize ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        {displayType}
+                      </span>
+                      {isInScript && (
+                        <span className={`text-[#6B7280] ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          • Locked
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    // Desktop: Full layout
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-[#808080] capitalize">
+                        {displayType} character
+                        {isInScript && <span className="ml-2 text-[#6B7280]">(locked - appears in script)</span>}
+                      </p>
+                      {/* 🔥 READ-ONLY BADGE */}
+                      <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
+                        Read-only - Edit in Creation section
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+                  className={`hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF] ${
+                    isMobile ? 'p-1.5' : 'p-2'
+                  }`}
                 >
-                  <X className="w-5 h-5" />
+                  <X className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
                 </button>
               </div>
             </div>
@@ -1270,7 +1300,7 @@ export function CharacterDetailModal({
                       <MoreVertical className="w-4 h-4 text-[#808080]" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm bg-[#1F1F1F] border-[#3F3F46]">
+                  <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm bg-[#1F1F1F]/95 backdrop-blur-md border-[#3F3F46] shadow-xl">
                     {/* Main Tabs */}
                     <DropdownMenuItem
                       onClick={() => {
@@ -1813,8 +1843,8 @@ export function CharacterDetailModal({
 
               {activeTab === 'references' && (
                 <div className="p-6 space-y-6">
-                  {/* Phase 2: Selection Mode Toggle & Bulk Actions */}
-                  {poseReferences.length > 0 && (
+                  {/* Phase 2: Selection Mode Toggle & Bulk Actions - Desktop only */}
+                  {poseReferences.length > 0 && !isMobile && (
                     <div className="flex items-center justify-between mb-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
                       <div className="flex items-center gap-3">
                         <button
