@@ -64,8 +64,8 @@ export default function Page() {
               </p>
 
               {/* ISE Badge */}
-              <div className="inline-flex flex-col items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm mb-8">
-                <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
+              <div className="inline-flex flex-col items-center gap-3 px-6 py-3 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm mb-8">
+                <span className="font-semibold text-gray-300">The First Integrated Screenwriting Environment</span>
                 <span className="text-xs text-gray-400">Write → Produce → Direct — End-to-End Platform</span>
                 <span className="text-xs text-gray-500">Perfect for trailers, pilots, storyboards, and features</span>
               </div>
@@ -127,17 +127,10 @@ export default function Page() {
           </div>
         </section>
 
-        {/* What is an ISE? Section */}
+        {/* Wryda.ai Features Section */}
         <section className="py-20 bg-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-6 text-center">
-                What is an Integrated Screenwriting Environment (ISE)?
-              </h2>
-              <p className="text-lg text-gray-300 mb-8 text-center max-w-3xl mx-auto">
-                Just like developers use IDEs (Integrated Development Environments) to code, build, and deploy in one place, screenwriters now have ISEs to write, produce, and direct in one platform.
-              </p>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
                   <h3 className="text-xl font-bold mb-4 text-[#DC143C]">Traditional Tools</h3>
@@ -162,7 +155,7 @@ export default function Page() {
                 </div>
 
                 <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">Wryda.ai ISE</h3>
+                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">Wryda.ai</h3>
                   <ul className="space-y-2 text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">✍️</span>
@@ -191,7 +184,7 @@ export default function Page() {
               <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-3 text-[#DC143C]">The Difference</h3>
                 <p className="text-gray-300 mb-4">
-                  An ISE isn't just a tool—it's a complete environment where every feature understands your screenplay context. Your characters stay consistent. Your locations are reused intelligently. Your AI agents know your full story. Create complete video productions from script to screen, then export for final editing and polish.
+                  An Integrated Screenwriting Environment isn't just a tool—it's a complete environment where every feature understands your screenplay context. Your characters stay consistent. Your locations are reused intelligently. Your AI agents know your full story. Create complete video productions from script to screen, then export for final editing and polish.
                 </p>
                 <div className="mt-4 pt-4 border-t border-[#3F3F46]">
                   <p className="text-sm font-semibold text-gray-300 mb-2">Perfect For:</p>
