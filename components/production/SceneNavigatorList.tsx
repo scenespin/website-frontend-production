@@ -83,9 +83,22 @@ export function SceneNavigatorList({
     if (assetIds.length === 0) return 0;
     
     // Count valid assets (matching editor's getSceneAssets pattern)
-    return assetIds
+    const validCount = assetIds
       .map(assetId => screenplay.assets.find(a => a.id === assetId))
       .filter(Boolean).length;
+    
+    // 🔍 DEBUG: Log props for troubleshooting
+    if (assetIds.length > 0 && validCount === 0) {
+      console.log('[SceneNavigatorList] ⚠️ Props found in scene but no matching assets:', {
+        sceneId: scene.id,
+        sceneHeading: scene.heading,
+        assetIds,
+        availableAssetIds: screenplay.assets.map(a => a.id),
+        assetsCount: screenplay.assets.length
+      });
+    }
+    
+    return validCount;
   };
 
   // Fetch first line of scene text when no synopsis is available
@@ -222,6 +235,18 @@ export function SceneNavigatorList({
           const location = getSceneLocation(scene);
           const propsCount = getScenePropsCount(scene);
           
+          // 🔍 DEBUG: Log props for first scene to troubleshoot
+          if (index === 0) {
+            console.log('[SceneNavigatorList] 🔍 First scene props debug:', {
+              sceneId: scene.id,
+              sceneHeading: scene.heading,
+              fountainTagsProps: scene.fountain?.tags?.props || [],
+              propsCount,
+              availableAssets: screenplay.assets.map(a => ({ id: a.id, name: a.name })),
+              assetsCount: screenplay.assets.length
+            });
+          }
+          
           // Use index + 1 for display number to ensure sequential numbering
           // This fixes the issue where scenes might have duplicate order values
           const displayNumber = index + 1;
@@ -279,23 +304,23 @@ export function SceneNavigatorList({
                 return null;
               })()}
 
-              {/* Badges - Minimal inverted style */}
+              {/* Badges - Ultra minimal inverted style (no background, just icons and text) */}
               {(location || characters.length > 0 || propsCount > 0) && (
-                <div className="flex flex-wrap w-full gap-1 mt-1">
+                <div className="flex flex-wrap w-full gap-1.5 mt-1">
                   {location && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#3F3F46] text-[#808080] border border-[#3F3F46] max-w-[200px]">
+                    <span className="inline-flex items-center gap-1 text-[9px] text-[#808080] opacity-70">
                       <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                      <span className="truncate">{location}</span>
+                      <span className="truncate max-w-[200px]">{location}</span>
                     </span>
                   )}
                   {characters.length > 0 && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#3F3F46] text-[#808080] border border-[#3F3F46]">
+                    <span className="inline-flex items-center gap-1 text-[9px] text-[#808080] opacity-70">
                       <Users className="w-2.5 h-2.5" />
                       <span>{characters.length}</span>
                     </span>
                   )}
                   {propsCount > 0 && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#3F3F46] text-[#808080] border border-[#3F3F46]">
+                    <span className="inline-flex items-center gap-1 text-[9px] text-[#808080] opacity-70">
                       <Package className="w-2.5 h-2.5" />
                       <span>{propsCount}</span>
                     </span>

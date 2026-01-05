@@ -1767,17 +1767,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (screenplayId && updatedScene) {
             try {
                 // 🔥 FIX: Use dedicated updateScene API instead of bulkCreateScenes for proper updates
-                const sceneUpdates = {
-                    heading: updatedScene.heading,
-                    synopsis: updatedScene.synopsis,
-                    status: updatedScene.status,
-                    fountain: updatedScene.fountain,
-                    images: updatedScene.images,
-                    videoAssets: updatedScene.videoAssets,
-                    timing: updatedScene.timing,
-                    estimatedPageCount: updatedScene.estimatedPageCount,
-                    group_label: updatedScene.group_label
-                };
+                // 🔥 FIX: Exclude order and number - these are read-only fields managed by backend
+                // Also exclude any undefined values to avoid sending unnecessary data
+                const sceneUpdates: Partial<Scene> = {};
+                if (updatedScene.heading !== undefined) sceneUpdates.heading = updatedScene.heading;
+                if (updatedScene.synopsis !== undefined) sceneUpdates.synopsis = updatedScene.synopsis;
+                if (updatedScene.status !== undefined) sceneUpdates.status = updatedScene.status;
+                if (updatedScene.fountain !== undefined) sceneUpdates.fountain = updatedScene.fountain;
+                if (updatedScene.images !== undefined) sceneUpdates.images = updatedScene.images;
+                if (updatedScene.videoAssets !== undefined) sceneUpdates.videoAssets = updatedScene.videoAssets;
+                if (updatedScene.timing !== undefined) sceneUpdates.timing = updatedScene.timing;
+                if (updatedScene.estimatedPageCount !== undefined) sceneUpdates.estimatedPageCount = updatedScene.estimatedPageCount;
+                if (updatedScene.group_label !== undefined) sceneUpdates.group_label = updatedScene.group_label;
+                // Explicitly exclude order and number - backend manages these and including them causes API errors
                 await apiUpdateScene(screenplayId, id, sceneUpdates, getToken);
                 console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB:', { sceneId: id, props: updatedScene.fountain?.tags?.props });
             } catch (error) {
