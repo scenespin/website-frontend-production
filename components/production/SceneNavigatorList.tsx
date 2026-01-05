@@ -117,10 +117,28 @@ export function SceneNavigatorList({
     fetchFirstLines();
   }, [projectId, getToken, screenplay.scenes]);
 
-  // Show loading state while initializing
+  // Get state values
   const scenes = screenplay.scenes || [];
   const isLoading = screenplay.isLoading || false;
   const hasInitialized = screenplay.hasInitializedFromDynamoDB || false;
+  
+  // 🔍 DEBUG: Log relationships to troubleshoot missing icons
+  useEffect(() => {
+    if (scenes.length > 0 && hasInitialized) {
+      const firstScene = scenes[0];
+      const sceneRel = screenplay.relationships?.scenes?.[firstScene.id];
+      console.log('[SceneNavigatorList] 🔍 Relationships check:', {
+        hasRelationships: !!screenplay.relationships,
+        scenesCount: scenes.length,
+        firstSceneId: firstScene.id,
+        firstSceneHeading: firstScene.heading,
+        sceneRel: sceneRel,
+        characters: sceneRel?.characters || [],
+        location: sceneRel?.location,
+        allRelationships: screenplay.relationships
+      });
+    }
+  }, [scenes, hasInitialized, screenplay.relationships]);
   
   // Show loading state while initializing
   if (isLoading || !hasInitialized) {
@@ -228,24 +246,24 @@ export function SceneNavigatorList({
                 return null;
               })()}
 
-              {/* Badges */}
+              {/* Badges - Minimal inverted style */}
               {(location || characters.length > 0 || propsCount > 0) && (
                 <div className="flex flex-wrap w-full gap-1 mt-1">
                   {location && (
-                    <span className="badge badge-sm badge-secondary gap-1 max-w-[200px]">
-                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#3F3F46] text-[#808080] border border-[#3F3F46] max-w-[200px]">
+                      <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
                       <span className="truncate">{location}</span>
                     </span>
                   )}
                   {characters.length > 0 && (
-                    <span className="badge badge-sm badge-warning gap-1">
-                      <Users className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#3F3F46] text-[#808080] border border-[#3F3F46]">
+                      <Users className="w-2.5 h-2.5" />
                       <span>{characters.length}</span>
                     </span>
                   )}
                   {propsCount > 0 && (
-                    <span className="badge badge-sm badge-info gap-1">
-                      <Package className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#3F3F46] text-[#808080] border border-[#3F3F46]">
+                      <Package className="w-2.5 h-2.5" />
                       <span>{propsCount}</span>
                     </span>
                   )}

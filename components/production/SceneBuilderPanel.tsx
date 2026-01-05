@@ -681,16 +681,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       ? locationDataFromMediaLibrary.backgrounds
       : sceneAnalysisResult.location.backgrounds || [];
     
-    console.log('[SceneBuilderPanel] Location data:', {
-      locationId,
-      mediaLibraryAngles: locationDataFromMediaLibrary?.angleVariations.length || 0,
-      mediaLibraryBackgrounds: locationDataFromMediaLibrary?.backgrounds.length || 0,
-      databaseAngles: sceneAnalysisResult.location.angleVariations?.length || 0,
-      databaseBackgrounds: sceneAnalysisResult.location.backgrounds?.length || 0,
-      finalAngles: finalAngleVariations.length,
-      finalBackgrounds: finalBackgrounds.length
-    });
-    
     return {
       ...sceneAnalysisResult,
       location: {
@@ -700,6 +690,20 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       }
     } as SceneAnalysisResult;
   }, [sceneAnalysisResult, locationDataFromMediaLibrary, locationId]);
+  
+  // 🔥 FIX: Move console.log to useEffect to prevent React error #185
+  useEffect(() => {
+    if (!enrichedSceneAnalysisResult) return;
+    console.log('[SceneBuilderPanel] Location data:', {
+      locationId,
+      mediaLibraryAngles: locationDataFromMediaLibrary?.angleVariations.length || 0,
+      mediaLibraryBackgrounds: locationDataFromMediaLibrary?.backgrounds.length || 0,
+      databaseAngles: enrichedSceneAnalysisResult.location.angleVariations?.length || 0,
+      databaseBackgrounds: enrichedSceneAnalysisResult.location.backgrounds?.length || 0,
+      finalAngles: enrichedSceneAnalysisResult.location.angleVariations?.length || 0,
+      finalBackgrounds: enrichedSceneAnalysisResult.location.backgrounds?.length || 0
+    });
+  }, [enrichedSceneAnalysisResult, locationDataFromMediaLibrary, locationId]);
   
   // Toggle workflow selection
   const toggleWorkflow = (workflowId: string) => {

@@ -699,6 +699,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         console.log('[ScreenplayContext] 🔍 Available characters:', charactersList.map(c => ({ id: c.id, name: c.name })));
         console.log('[ScreenplayContext] 🔍 Available locations:', locationsList.map(l => ({ id: l.id, name: l.name })));
         
+        // 🔥 FIX: Wrap in startTransition to prevent React error #185
+        startTransition(() => {
         setRelationships(prev => {
             // 🔥 FIX: Get set of valid scene IDs to clean up references to deleted scenes
             const validSceneIds = new Set(scenes.map(s => s.id));
@@ -839,6 +841,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             relationshipsRef.current = newRels;
             
             return newRels;
+        });
         });
     }, []);
     
@@ -1736,18 +1739,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return scene;
         }));
         
+        // 🔥 FIX: Update ref immediately so it's available for other operations
+        if (updatedScene) {
+            scenesRef.current = scenesRef.current.map(s => s.id === id ? updatedScene! : s);
+        }
+        
         // Feature 0117: Save updated scene directly to DynamoDB
-        // 🔥 FIX: Use scenesRef to get latest state (avoid stale closure)
-        // Wait a bit for state update to propagate to ref
-        if (screenplayId) {
+        if (screenplayId && updatedScene) {
             try {
-                // Use the updated scene from the state update, or fall back to ref
-                const sceneToSave = updatedScene || scenesRef.current.find(s => s.id === id);
-                if (sceneToSave) {
-                    const apiScene = transformScenesToAPI([sceneToSave]);
-                    await bulkCreateScenes(screenplayId, apiScene, getToken);
-                    console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
-                }
+                const apiScene = transformScenesToAPI([updatedScene]);
+                await bulkCreateScenes(screenplayId, apiScene, getToken);
+                console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB:', { sceneId: id, props: updatedScene.fountain?.tags?.props });
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update scene in DynamoDB:', error);
             }
@@ -4264,6 +4266,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // If match found, preserve metadata
             if (bestMatch) {
                 matchedOldScenes.add(bestMatch.id);
+                // 🔥 FIX: Use current scene state from ref (which has latest props after unlinking)
+                // This ensures props that were intentionally unlinked are not restored
+                const currentScene = scenesRef.current.find(s => s.id === bestMatch!.id);
+                const sceneToUse = currentScene || bestMatch;
                 metadataMap.set(newIndex, {
                     synopsis: bestMatch.synopsis,
                     status: bestMatch.status,
@@ -4272,7 +4278,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     timing: bestMatch.timing,
                     estimatedPageCount: bestMatch.estimatedPageCount,
                     group_label: bestMatch.group_label,
-                    props: bestMatch.fountain?.tags?.props // Preserve prop associations
+                    props: sceneToUse.fountain?.tags?.props || [] // Use current state (may have props removed)
                 });
             }
         });
@@ -4983,7 +4989,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         tags: {
                             characters: characterIds,
                             location: locationId,
-                            // Preserve props from matched scene (production planning metadata)
+                            // Preserve props from preserved metadata (which now uses current scene state)
                             ...(preserved?.props && preserved.props.length > 0 ? { props: preserved.props } : {})
                         }
                     },
