@@ -987,7 +987,8 @@ export default function AssetDetailSidebar({
                   <div className="max-h-64 overflow-y-auto space-y-2 mb-3" style={{ scrollbarWidth: 'thin' }}>
                     {filteredScenes.map(scene => {
                       const isSelected = selectedSceneIds.has(scene.id);
-                      const isCurrentlyLinked = assetSceneIds.includes(scene.id);
+                      // During creation, no scenes are currently linked yet
+                      const isCurrentlyLinked = !isCreating && assetSceneIds.includes(scene.id);
                       
                       return (
                         <label
