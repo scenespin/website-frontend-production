@@ -448,8 +448,116 @@ export default function FountainEditor({
     
     // Handle text changes
     const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-        const newContent = e.target.value;
-        const cursorPos = e.target.selectionStart;
+        let newContent = e.target.value;
+        let cursorPos = e.target.selectionStart;
+        
+        // Handle $ symbol as Tab trigger in scene headings (mobile fallback)
+        // On some mobile keyboards, $ might be inserted before onKeyDown can prevent it
+        if (WRYDA_TAB_ENABLED && newContent.length > 0) {
+            const textBeforeCursor = newContent.substring(0, cursorPos);
+            const textAfterCursor = newContent.substring(cursorPos);
+            const lines = textBeforeCursor.split('\n');
+            const currentLineText = lines[lines.length - 1] || '';
+            
+            // Check if $ was just inserted at the end of the line
+            if (currentLineText.endsWith('$')) {
+                const trimmedLine = currentLineText.slice(0, -1).trim(); // Remove the $ and trim
+                const isSceneHeading = /^(int|ext|est|i\/e|int\/ext|int\.\/ext\.|INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/i.test(trimmedLine);
+                
+                if (isSceneHeading) {
+                    console.log('[WrydaTab] $ detected in handleChange, removing and triggering Tab navigation');
+                    // Remove the $ from content
+                    const newTextBefore = lines.slice(0, -1).concat(trimmedLine).join('\n');
+                    newContent = newTextBefore + textAfterCursor;
+                    cursorPos = newTextBefore.length;
+                    
+                    // Update content first
+                    setContent(newContent);
+                    setCursorPosition(cursorPos);
+                    
+                    // Then format and trigger Tab navigation
+                    setTimeout(() => {
+                        const parts = parseSceneHeading(trimmedLine);
+                        if (parts.type && parts.type.trim()) {
+                            const formattedType = formatSceneHeadingType(parts.type);
+                            if (formattedType !== parts.type) {
+                                const updatedParts = updateSceneHeadingParts(parts, { type: formattedType });
+                                const formattedLine = buildSceneHeading(updatedParts);
+                                const lines2 = newTextBefore.split('\n');
+                                const newTextBefore2 = lines2.slice(0, -1).concat(formattedLine).join('\n');
+                                const newContent2 = newTextBefore2 + textAfterCursor;
+                                setContent(newContent2);
+                                setTimeout(() => {
+                                    if (textareaRef.current) {
+                                        const newPos = newTextBefore2.length;
+                                        textareaRef.current.selectionStart = newPos;
+                                        textareaRef.current.selectionEnd = newPos;
+                                        setCursorPosition(newPos);
+                                        const syntheticEvent = {
+                                            key: 'Tab',
+                                            code: 'Tab',
+                                            preventDefault: () => {},
+                                            stopPropagation: () => {}
+                                        } as React.KeyboardEvent<HTMLTextAreaElement>;
+                                        wrydaTab.handleTab(syntheticEvent);
+                                    }
+                                }, 50);
+                                return;
+                            }
+                        }
+                        // Already formatted, just trigger Tab
+                        setTimeout(() => {
+                            if (textareaRef.current) {
+                                textareaRef.current.selectionStart = cursorPos;
+                                textareaRef.current.selectionEnd = cursorPos;
+                                setCursorPosition(cursorPos);
+                                const syntheticEvent = {
+                                    key: 'Tab',
+                                    code: 'Tab',
+                                    preventDefault: () => {},
+                                    stopPropagation: () => {}
+                                } as React.KeyboardEvent<HTMLTextAreaElement>;
+                                wrydaTab.handleTab(syntheticEvent);
+                            }
+                        }, 50);
+                    }, 0);
+                    
+                    // Save cursor position to ref for cursor preservation
+                    savedCursorPositionRef.current = cursorPos;
+                    
+                    // Clear highlight when user starts typing
+                    if (state.highlightRange) {
+                        clearHighlight();
+                    }
+                    
+                    // Schedule auto-save
+                    autoSaveManager.current.scheduleSave(
+                        newContent,
+                        true, // isDirty
+                        screenplay.beats,
+                        screenplay.characters,
+                        screenplay.locations,
+                        screenplay.relationships,
+                        (content, markDirty) => {
+                            setContent(content, markDirty);
+                        },
+                        markSaved
+                    );
+                    
+                    // Calculate current line number
+                    const visibleLineNumber = getVisibleLineNumber(newContent, cursorPos);
+                    setCurrentLine(visibleLineNumber);
+                    
+                    // Check for @ mention trigger
+                    autocomplete.checkForMention(newContent, cursorPos, e.target);
+                    
+                    // Detect current element type
+                    formatting.detectCurrentType(newContent, cursorPos);
+                    
+                    return; // Early return, don't process further
+                }
+            }
+        }
         
         // Save cursor position to ref for cursor preservation
         savedCursorPositionRef.current = cursorPos;
@@ -601,7 +709,7 @@ export default function FountainEditor({
                         // Only triggers Tab navigation in scene heading context
                         // $ is rarely used in screenplays (currency in dialogue is uncommon), so safe to use as trigger
                         // $ is on the first symbol section of iPhone keyboards (easy access)
-                        if (WRYDA_TAB_ENABLED && e.key === '$') {
+                        if (WRYDA_TAB_ENABLED && (e.key === '$' || e.key === 'Shift' && e.keyCode === 52)) {
                             const textarea = e.currentTarget;
                             const cursorPos = textarea.selectionStart;
                             const textBeforeCursor = textarea.value.substring(0, cursorPos);
@@ -612,8 +720,13 @@ export default function FountainEditor({
                             // onKeyDown fires BEFORE character insertion, so currentLineText won't have $ yet
                             // Match lowercase variations: int, ext, i/e, int/ext, etc. (case-insensitive)
                             const trimmedLine = currentLineText.trim();
+                            console.log('[WrydaTab] $ key pressed, checking line:', trimmedLine);
+                            
                             // Match scene heading types: INT, EXT, EST, I/E, INT/EXT, INT./EXT., etc. (case-insensitive)
-                            const isSceneHeading = /^(int|ext|est|i\/e|int\/ext|int\.\/ext\.)/i.test(trimmedLine);
+                            // Also match partial types like "int", "ext", "i/e", "int/ext" (without periods)
+                            const isSceneHeading = /^(int|ext|est|i\/e|int\/ext|int\.\/ext\.|INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/i.test(trimmedLine);
+                            
+                            console.log('[WrydaTab] Is scene heading?', isSceneHeading, 'Line:', trimmedLine);
                             
                             if (isSceneHeading) {
                                 console.log('[WrydaTab] $ symbol pressed in scene heading, treating as Tab trigger...');
@@ -624,14 +737,19 @@ export default function FountainEditor({
                                 // Format the type field if needed (int → INT., ext → EXT., i/e → I./E., int/ext → INT./EXT.)
                                 // This handles lowercase input before proceeding with Tab navigation
                                 const parts = parseSceneHeading(trimmedLine);
+                                console.log('[WrydaTab] Parsed parts:', parts);
                                 
                                 // If we have a type field, format it properly
-                                if (parts.type) {
+                                if (parts.type && parts.type.trim()) {
                                     const formattedType = formatSceneHeadingType(parts.type);
+                                    console.log('[WrydaTab] Type formatting:', parts.type, '→', formattedType);
+                                    
                                     if (formattedType !== parts.type) {
                                         // Type needs formatting (e.g., "int" → "INT.")
                                         const updatedParts = updateSceneHeadingParts(parts, { type: formattedType });
                                         const formattedLine = buildSceneHeading(updatedParts);
+                                        
+                                        console.log('[WrydaTab] Formatted line:', formattedLine);
                                         
                                         // Replace the current line with formatted version
                                         const textAfter = textarea.value.substring(cursorPos);
@@ -658,10 +776,11 @@ export default function FountainEditor({
                                                     stopPropagation: () => {}
                                                 } as React.KeyboardEvent<HTMLTextAreaElement>;
                                                 
+                                                console.log('[WrydaTab] Calling handleTab with synthetic event');
                                                 // Call handleTab with synthetic event (reuses all Tab logic)
                                                 wrydaTab.handleTab(syntheticEvent);
                                             }
-                                        }, 0);
+                                        }, 50);
                                         
                                         return;
                                     }
@@ -685,12 +804,15 @@ export default function FountainEditor({
                                             stopPropagation: () => {}
                                         } as React.KeyboardEvent<HTMLTextAreaElement>;
                                         
+                                        console.log('[WrydaTab] Calling handleTab (already formatted)');
                                         // Call handleTab with synthetic event (reuses all Tab logic)
                                         wrydaTab.handleTab(syntheticEvent);
                                     }
-                                }, 0);
+                                }, 50);
                                 
                                 return;
+                            } else {
+                                console.log('[WrydaTab] Not a scene heading, allowing $ to be typed');
                             }
                             // If not in scene heading, allow $ to be typed normally
                             // Don't prevent default - let handleChange process it
