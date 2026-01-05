@@ -18,7 +18,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('[Batch Update Props API] Request received');
+    // 🔥 DEBUG: Log that this route was hit
+    console.error('[Batch Update Props API] ✅ ROUTE MATCHED - Request received');
+    console.error('[Batch Update Props API] Request URL:', request.url);
     
     // Validate user is authenticated with Clerk
     const { userId } = await auth();
