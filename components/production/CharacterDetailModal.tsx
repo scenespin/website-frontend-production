@@ -563,12 +563,11 @@ export function CharacterDetailModal({
       // Get metadata from DynamoDB (character prop)
       const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
       
-      // 🔥 FIX: Determine if image is from Creation section
-      // Creation images have: createdIn: 'creation' or uploadMethod: 'character-creation'
-      // OR they're in character.references (DynamoDB metadata)
+      // 🔥 Determine if image is from Creation section
+      // Creation images are identified by Media Library metadata ONLY (source of truth)
+      // createdIn: 'creation' or uploadMethod: 'character-creation'
       const isFromCreation = file.metadata?.createdIn === 'creation' || 
-                            file.metadata?.uploadMethod === 'character-creation' ||
-                            (dynamoMetadata && !dynamoMetadata.isPose && !dynamoMetadata.isBase);
+                            file.metadata?.uploadMethod === 'character-creation';
       
       // Determine image type from Media Library metadata or DynamoDB
       // 🔥 FIX: If image is from Creation section, it's NOT a pose
