@@ -63,13 +63,6 @@ export default function Page() {
                 Create trailers, pilots, storyboards, or full features—all from your screenplay. End-to-end workflow from script to video production.
               </p>
 
-              {/* ISE Badge */}
-              <div className="inline-flex flex-col items-center gap-3 px-6 py-3 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm mb-8">
-                <span className="font-semibold text-gray-300">The First Integrated Screenwriting Environment</span>
-                <span className="text-xs text-gray-400">Write → Produce → Direct — End-to-End Platform</span>
-                <span className="text-xs text-gray-500">Perfect for trailers, pilots, storyboards, and features</span>
-              </div>
-
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                 <Link
