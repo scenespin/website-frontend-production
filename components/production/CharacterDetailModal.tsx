@@ -138,6 +138,8 @@ export function CharacterDetailModal({
   const [showCustomVoiceForm, setShowCustomVoiceForm] = useState(false);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [prefilledVoiceId, setPrefilledVoiceId] = useState<string | undefined>(undefined);
+  // Track which thumbnail dropdown is open (for mobile - close others when opening new one)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -1956,8 +1958,8 @@ export function CharacterDetailModal({
                       {/* Production Hub Images Grid - Filtered by selected outfit */}
                       {/* 🔥 FIX: Normalize outfit names when filtering */}
                       {/* 🔥 FIX: Use more columns for smaller thumbnails (match ModernGallery grid-only layout) */}
-                      {/* Mobile: 2 columns for larger thumbnails, Desktop: More columns */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
+                      {/* Mobile: 2 columns for larger thumbnails, Desktop: More columns - slightly bigger with more gap */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
                         {(() => {
                           const normalizeOutfitName = (name: string): string => {
                             if (!name) return '';
@@ -2038,6 +2040,10 @@ export function CharacterDetailModal({
                                   }
                                 }}
                                 onClick={() => {
+                                  // Close any open dropdowns when clicking image
+                                  if (openDropdownId) {
+                                    setOpenDropdownId(null);
+                                  }
                                   if (!selectionMode) {
                                     // Original click behavior (view image)
                                     const outfitName = img.outfitName || (img as any).metadata?.outfitName || 'default';
@@ -2052,12 +2058,6 @@ export function CharacterDetailModal({
                                   }
                                 }}
                               />
-                              {/* Top-right label: Pose/Regenerated */}
-                              <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
-                                img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
-                              }`}>
-                                {img.isRegenerated ? 'Regenerated' : 'Pose'}
-                              </div>
                               {/* Bottom-right label: Provider */}
                               {img.metadata?.providerId && (() => {
                                 const providerLabel = getProviderLabel(img.metadata.providerId);
@@ -2077,13 +2077,28 @@ export function CharacterDetailModal({
                                 {/* Delete button - all Production Hub images can be deleted - only show when not in selection mode */}
                                 {!img.isBase && !selectionMode && (
                               <div className="absolute top-2 right-2 pointer-events-auto">
-                                <DropdownMenu>
+                                <DropdownMenu
+                                  open={openDropdownId === img.id}
+                                  onOpenChange={(open) => {
+                                    if (open) {
+                                      setOpenDropdownId(img.id);
+                                    } else {
+                                      setOpenDropdownId(null);
+                                    }
+                                  }}
+                                >
                                   <DropdownMenuTrigger asChild>
                                     <button
-                                      className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
-                                      onClick={(e) => e.stopPropagation()}
+                                      className="p-2 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Close other dropdowns when opening this one
+                                        if (openDropdownId !== img.id) {
+                                          setOpenDropdownId(img.id);
+                                        }
+                                      }}
                                     >
-                                      <MoreVertical className="w-3 h-3 text-white" />
+                                      <MoreVertical className="w-4 h-4 text-white" />
                                     </button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent 
@@ -2095,6 +2110,7 @@ export function CharacterDetailModal({
                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                       onClick={(e) => {
                                         e.stopPropagation();
+                                        setOpenDropdownId(null); // Close dropdown
                                         // Find which outfit group this image belongs to
                                         const outfitName = img.outfitName || (img as any).metadata?.outfitName || 'default';
                                         const groupImages = posesByOutfit[outfitName] || [];
@@ -2124,6 +2140,7 @@ export function CharacterDetailModal({
                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                       onClick={async (e) => {
                                         e.stopPropagation();
+                                        setOpenDropdownId(null); // Close dropdown
                                         try {
                                           // Generate filename from metadata
                                           const poseName = img.poseId || (img as any).metadata?.poseId || img.label || 'pose';
@@ -2145,6 +2162,7 @@ export function CharacterDetailModal({
                                         className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          setOpenDropdownId(null); // Close dropdown
                                           setCropPose({
                                             poseId: img.id || img.poseId || (img as any).metadata?.poseId || '',
                                             poseS3Key: img.s3Key
@@ -2165,6 +2183,7 @@ export function CharacterDetailModal({
                                           className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
                                           onClick={(e) => {
                                             e.stopPropagation();
+                                            setOpenDropdownId(null); // Close dropdown
                                             // Don't allow if ANY regeneration is in progress
                                             if (isRegenerating) {
                                               console.log('[CharacterDetailModal] Blocked regenerate - another regeneration in progress');
@@ -2188,6 +2207,7 @@ export function CharacterDetailModal({
                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                       onClick={async (e) => {
                                         e.stopPropagation();
+                                        setOpenDropdownId(null); // Close dropdown
                                         if (!confirm('Delete this image? This action cannot be undone.')) {
                                           return;
                                         }
@@ -2318,8 +2338,8 @@ export function CharacterDetailModal({
                           <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
                         </div>
                       </div>
-                      {/* Mobile: 2 columns for larger thumbnails, Desktop: More columns */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
+                      {/* Mobile: 2 columns for larger thumbnails, Desktop: More columns - slightly bigger with more gap */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
                         {userReferences.map((img) => {
                           return (
                             <div

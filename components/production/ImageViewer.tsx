@@ -19,18 +19,12 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, Trash2, Maximize2, Minimize2, ZoomIn, ZoomOut, Grid3x3, Video as VideoIcon, MoreVertical, GripHorizontal } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, Trash2, Maximize2, Minimize2, ZoomIn, ZoomOut, Grid3x3, Video as VideoIcon, GripHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { VideoPlayer } from './VideoPlayer';
 import { useIsMobile } from '@/hooks/use-mobile';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 export interface ImageItem {
   id: string;
@@ -678,93 +672,17 @@ export function ImageViewer({
             </div>
             <div className="flex items-center gap-2">
               {isMobile ? (
-                // Mobile: Simplified header with dropdown menu
-                <>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Don't prevent default - let the dropdown open
-                          handleShowControls();
-                        }}
-                        className={`hover:bg-[#1F1F1F] rounded-lg transition-colors pointer-events-auto ${
-                          isMobile ? 'p-3 min-w-[44px] min-h-[44px] flex items-center justify-center' : 'p-2'
-                        }`}
-                        aria-label="More options"
-                      >
-                        <MoreVertical className={`text-white ${isMobile ? 'w-5 h-5' : 'w-5 h-5'}`} />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-[#1F1F1F]/95 backdrop-blur-md border-[#3F3F46] shadow-xl">
-                      {allImages && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setViewAll(prev => !prev);
-                            setZoom(1);
-                            setPosition({ x: 0, y: 0 });
-                          }}
-                          className="text-white hover:bg-[#2A2A2A]"
-                        >
-                          {viewAll ? 'View Group' : 'View All'}
-                        </DropdownMenuItem>
-                      )}
-                      {onDownload && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDownload(currentImage);
-                          }}
-                          className="text-white hover:bg-[#2A2A2A]"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </DropdownMenuItem>
-                      )}
-                      {onDelete && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm('Delete this image? This action cannot be undone.')) {
-                              onDelete(currentImage);
-                            }
-                          }}
-                          className="text-[#DC143C] hover:bg-[#DC143C]/20"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      )}
-                      {enableFullscreen && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFullscreen();
-                          }}
-                          className="text-white hover:bg-[#2A2A2A]"
-                        >
-                          {isFullscreen ? (
-                            <Minimize2 className="w-4 h-4 mr-2" />
-                          ) : (
-                            <Maximize2 className="w-4 h-4 mr-2" />
-                          )}
-                          {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onClose();
-                    }}
-                    className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
-                    aria-label="Close"
-                  >
-                    <X className="w-5 h-5 text-white" />
-                  </button>
-                </>
+                // Mobile: Close button only (dropdown removed - use thumbnail dropdowns instead)
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
               ) : (
                 // Desktop: Full controls
                 <>
