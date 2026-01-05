@@ -132,7 +132,23 @@ export function SceneNavigatorList({
 
   // Show loading state while initializing OR if we have a screenplayId but no scenes yet (still loading)
   // This handles the case where hasInitialized is true but scenes haven't populated yet due to startTransition timing
-  const isStillLoading = isLoading || !hasInitialized || (screenplay.screenplayId && scenes.length === 0);
+  // We need to wait a bit after initialization to allow startTransition to complete
+  const [hasWaitedForScenes, setHasWaitedForScenes] = useState(false);
+  
+  useEffect(() => {
+    if (hasInitialized && screenplay.screenplayId && scenes.length === 0 && !hasWaitedForScenes) {
+      // Wait a bit for startTransition to complete (scenes are set via startTransition which defers updates)
+      const timer = setTimeout(() => {
+        setHasWaitedForScenes(true);
+      }, 200); // Give startTransition time to complete (usually completes within 1-2 render cycles)
+      return () => clearTimeout(timer);
+    } else if (scenes.length > 0) {
+      // Scenes are loaded, no need to wait
+      setHasWaitedForScenes(true);
+    }
+  }, [hasInitialized, screenplay.screenplayId, scenes.length, hasWaitedForScenes]);
+  
+  const isStillLoading = isLoading || !hasInitialized || (screenplay.screenplayId && scenes.length === 0 && !hasWaitedForScenes);
   
   if (isStillLoading) {
     return (
