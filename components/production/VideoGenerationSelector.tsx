@@ -66,6 +66,11 @@ export function VideoGenerationSelector({
   ];
 
   const currentVideoType = videoTypes.find(vt => vt.id === selectedVideoType) || videoTypes[0];
+  // Ensure values are always strings (never undefined) to prevent React error #185
+  const selectVideoType = selectedVideoType ?? 'cinematic-visuals';
+  const selectQuality = selectedQuality ?? '4k';
+  const selectCameraAngle = shotCameraAngle ?? 'auto';
+  const selectDuration = shotDuration ?? 'quick-cut';
 
   return (
     <div className="pt-3 pb-3 border-t border-b border-[#3F3F46]">
@@ -76,7 +81,7 @@ export function VideoGenerationSelector({
           <div>
             <label className="text-[10px] text-[#808080] mb-1.5 block">Camera Angle</label>
             <Select
-              value={shotCameraAngle || 'auto'}
+              value={selectCameraAngle}
               onValueChange={(value) => {
                 const angle = value as 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto';
                 if (angle === 'auto') {
@@ -89,8 +94,8 @@ export function VideoGenerationSelector({
               <SelectTrigger className="w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9">
                 <SelectValue>
                   <span className="text-xs">
-                    {shotCameraAngle && shotCameraAngle !== 'auto' 
-                      ? shotCameraAngle.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+                    {selectCameraAngle !== 'auto' 
+                      ? selectCameraAngle.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
                       : 'Auto (Content-aware) - Default'}
                   </span>
                 </SelectValue>
@@ -128,9 +133,9 @@ export function VideoGenerationSelector({
                 </SelectItem>
               </SelectContent>
             </Select>
-            {shotCameraAngle && shotCameraAngle !== 'auto' ? (
+            {selectCameraAngle !== 'auto' ? (
               <div className="text-[10px] text-[#808080] italic mt-1">
-                Override: Using {shotCameraAngle.replace('-', ' ')} instead of auto-detection
+                Override: Using {selectCameraAngle.replace('-', ' ')} instead of auto-detection
               </div>
             ) : (
               <div className="text-[10px] text-[#808080] italic mt-1">
@@ -144,7 +149,7 @@ export function VideoGenerationSelector({
         <div>
           <label className="text-[10px] text-[#808080] mb-1.5 block">Video</label>
           <Select
-            value={selectedVideoType || 'cinematic-visuals'}
+            value={selectVideoType}
             onValueChange={(value) => {
               onVideoTypeChange(shotSlot, value as 'cinematic-visuals' | 'natural-motion');
             }}
@@ -180,14 +185,14 @@ export function VideoGenerationSelector({
         <div>
           <label className="text-[10px] text-[#808080] mb-1.5 block">Quality</label>
           <Select
-            value={selectedQuality || '4k'}
+            value={selectQuality}
             onValueChange={(value) => {
               onQualityChange(shotSlot, value as 'hd' | '4k');
             }}
           >
             <SelectTrigger className="w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9">
               <SelectValue>
-                <span className="text-xs">{selectedQuality === 'hd' ? 'HD' : '4K'}</span>
+                <span className="text-xs">{selectQuality === 'hd' ? 'HD' : '4K'}</span>
               </SelectValue>
             </SelectTrigger>
             <SelectContent className="bg-[#1A1A1A] border-[#3F3F46]">
@@ -218,7 +223,7 @@ export function VideoGenerationSelector({
           <div>
             <label className="text-[10px] text-[#808080] mb-1.5 block">Shot Duration</label>
             <Select
-              value={shotDuration || 'quick-cut'}
+              value={selectDuration}
               onValueChange={(value) => {
                 onDurationChange(shotSlot, value as 'quick-cut' | 'extended-take');
               }}
@@ -226,7 +231,7 @@ export function VideoGenerationSelector({
               <SelectTrigger className="w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9">
                 <SelectValue>
                   <span className="text-xs">
-                    {shotDuration === 'extended-take' ? 'Extended Take (~10s)' : 'Quick Cut (~5s)'}
+                    {selectDuration === 'extended-take' ? 'Extended Take (~10s)' : 'Quick Cut (~5s)'}
                   </span>
                 </SelectValue>
               </SelectTrigger>
@@ -246,7 +251,7 @@ export function VideoGenerationSelector({
               </SelectContent>
             </Select>
             <div className="text-[10px] text-[#808080] italic mt-1">
-              {shotDuration === 'quick-cut' 
+              {selectDuration === 'quick-cut' 
                 ? 'Quick Cut: 4-5 seconds (default)'
                 : 'Extended Take: 8-10 seconds'}
             </div>

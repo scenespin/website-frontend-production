@@ -44,13 +44,15 @@ export function ReferenceShotSelector({
   ];
 
   const currentModel = models.find(m => m.id === selectedModel) || models[0];
+  // Ensure value is always a string (never undefined) to prevent React error #185
+  const selectValue = selectedModel ?? 'nano-banana-pro';
 
   return (
     <div className="pb-3">
       <div className="text-xs font-medium text-[#FFFFFF] mb-2">Reference Shot</div>
       <div className="space-y-2">
         <Select
-          value={selectedModel || 'nano-banana-pro'}
+          value={selectValue}
           onValueChange={(value) => {
             onModelChange(shotSlot, value as 'nano-banana-pro' | 'flux2-max-4k-16:9');
           }}
