@@ -931,8 +931,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           
           // 🔥 NEW: Refresh scenes in context after analysis completes
           // This ensures the UI shows updated dialogue blocks and character information
+          // 🔥 FIX: Defer dispatch to avoid React error #185 (updating during render)
           console.log('[SceneBuilderPanel] 🔄 Triggering scene refresh after analysis');
-          window.dispatchEvent(new CustomEvent('refreshScenes'));
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('refreshScenes'));
+          }, 0);
         }
       } catch (error: any) {
         console.error('[SceneBuilderPanel] Scene analysis failed:', error);

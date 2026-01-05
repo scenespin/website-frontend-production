@@ -1084,8 +1084,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Update refs immediately
                 scenesRef.current = transformedScenes;
                 
-                // 🔥 FIX: Rebuild relationships with refreshed scenes
-                buildRelationshipsFromScenes(transformedScenes, beats, characters, locations);
+                // 🔥 FIX: Use refs to get latest characters/locations (avoid stale closures)
+                // This ensures we always have the latest data when building relationships
+                // Using refs prevents React error #185 caused by stale closure values
+                const currentCharacters = charactersRef.current;
+                const currentLocations = locationsRef.current;
+                const currentBeats = beatsRef.current;
+                
+                // 🔥 FIX: Always build relationships (even with empty arrays) to keep state consistent
+                // This prevents components from accessing undefined relationships
+                buildRelationshipsFromScenes(transformedScenes, currentBeats, currentCharacters, currentLocations);
                 
                 // 🔥 FIX: Update state synchronously (safe in event handler)
                 setScenes(transformedScenes);
@@ -1100,8 +1108,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return () => {
             window.removeEventListener('refreshScenes', handleRefreshScenes);
         };
-        // 🔥 FIX: Include dependencies needed for refresh
-    }, [screenplayId, getToken, buildRelationshipsFromScenes, beats, characters, locations]);
+        // 🔥 FIX: Only depend on stable values - use refs inside handler instead
+    }, [screenplayId, getToken, buildRelationshipsFromScenes]);
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
@@ -1817,9 +1825,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const propsAfterUpdate = updatedScene?.fountain?.tags?.props || [];
             if (propsAfterUpdate.includes(assetId)) {
                 console.log('[ScreenplayContext] ✅ Linked asset to scene (verified):', { assetId, sceneId, propsCount: propsAfterUpdate.length });
-                // 🔥 FIX: Trigger scene refresh to ensure UI updates
+                // 🔥 FIX: Trigger scene refresh to ensure UI updates (defer to avoid React error #185)
                 if (screenplayId && typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('refreshScenes'));
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('refreshScenes'));
+                    }, 0);
                 }
             } else {
                 console.error('[ScreenplayContext] ⚠️ WARNING: Asset link may not have persisted:', { assetId, sceneId, propsAfterUpdate });
@@ -1874,9 +1884,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const propsAfterUpdate = updatedScene?.fountain?.tags?.props || [];
             if (!propsAfterUpdate.includes(assetId)) {
                 console.log('[ScreenplayContext] ✅ Unlinked asset from scene (verified):', { assetId, sceneId, propsCount: propsAfterUpdate.length });
-                // 🔥 FIX: Trigger scene refresh to ensure UI updates
+                // 🔥 FIX: Trigger scene refresh to ensure UI updates (defer to avoid React error #185)
                 if (screenplayId && typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('refreshScenes'));
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('refreshScenes'));
+                    }, 0);
                 }
             } else {
                 console.error('[ScreenplayContext] ⚠️ WARNING: Asset unlink may not have persisted:', { assetId, sceneId, propsAfterUpdate });
