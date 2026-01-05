@@ -1941,14 +1941,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             );
 
             // Update local state with returned scenes
+            // Use transformScenesFromAPI to properly convert backend format to frontend format
+            const transformedScenes = transformScenesFromAPI(updatedScenes);
             setScenes(prev => {
                 const sceneMap = new Map(prev.map(s => [s.id, s]));
-                updatedScenes.forEach(updatedScene => {
-                    // Convert backend scene format to frontend format
-                    const frontendScene: Scene = {
-                        ...updatedScene,
-                        id: updatedScene.scene_id
-                    };
+                transformedScenes.forEach(frontendScene => {
                     sceneMap.set(frontendScene.id, frontendScene);
                 });
                 return Array.from(sceneMap.values());
