@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
+import Footer from "@/components/Footer";
 
 export const metadata = getSEOTags({
   title: `What Makes Wryda.ai Unique | Screenplay to Video Platform | ${config.appName}`,
@@ -45,11 +46,14 @@ export default function ComparePage() {
         {/* Hero */}
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
+              <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
+            </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
               What Makes Wryda.ai Unique
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              The only platform that turns your screenplay into a movie.
+              The only Integrated Screenwriting Environment (ISE) that turns your screenplay into video.
               <br />
               <strong className="text-white">We're not competing. We're creating a new category.</strong>
             </p>
@@ -91,6 +95,36 @@ export default function ComparePage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Integrated Screenwriting Environment (ISE) */}
+                  <tr className="border-b-2 border-[#DC143C]">
+                    <td className="p-4 font-bold bg-[#141414] text-[#DC143C]">Integrated Screenwriting Environment (ISE)</td>
+                    <td className="p-4 text-center border-l-2 border-[#DC143C] bg-[#DC143C]/10">
+                      <span className="text-[#DC143C] font-bold">✓ YES</span>
+                      <div className="text-xs text-gray-300 mt-1">Write → Produce → Direct</div>
+                      <div className="text-xs text-gray-400 mt-1">All in one platform</div>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">No</span>
+                      <div className="text-xs text-gray-500 mt-1">Write only</div>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">No</span>
+                      <div className="text-xs text-gray-500 mt-1">Write only</div>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">No</span>
+                      <div className="text-xs text-gray-500 mt-1">Production only</div>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">No</span>
+                      <div className="text-xs text-gray-500 mt-1">Write only</div>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">No</span>
+                      <div className="text-xs text-gray-500 mt-1">Write only</div>
+                    </td>
+                  </tr>
+
                   {/* Screenplay Writing */}
                   <tr className="border-b border-[#3F3F46]">
                     <td className="p-4 font-semibold bg-[#141414]">Screenplay Writing</td>
@@ -718,6 +752,8 @@ export default function ComparePage() {
           </div>
         </section>
       </main>
+      
+      <Footer />
     </>
   );
 }

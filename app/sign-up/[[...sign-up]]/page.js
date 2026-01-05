@@ -19,15 +19,15 @@ export default function SignUpPage() {
   const isPaidPlan = selectedPlan.price > 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-100">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="p-3 md:p-4 max-w-7xl mx-auto flex justify-between items-center">
+      <header className="p-3 md:p-4 max-w-7xl mx-auto flex justify-between items-center border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl sm:text-2xl font-extrabold">
+          <span className="text-xl sm:text-2xl font-extrabold text-white">
             {config.appName}<span className="text-[#DC143C]">.ai</span>
           </span>
         </Link>
-        <Link href="/sign-in" className="btn btn-ghost text-sm md:text-base min-h-[44px] px-3 md:px-4">
+        <Link href="/sign-in" className="text-sm md:text-base text-gray-300 hover:text-white transition-colors min-h-[44px] px-3 md:px-4 flex items-center">
           Already have an account?
         </Link>
       </header>
@@ -38,28 +38,36 @@ export default function SignUpPage() {
           
           {/* LEFT: Value Proposition - DYNAMIC BASED ON PLAN */}
           <div className="space-y-6 order-2 md:order-1">
+            {/* ISE Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm">
+              <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
+            </div>
+
             {/* Main Headline - Dynamic */}
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-3 text-white">
                 {selectedPlan.signupHeadline || "Start Creating Professional Videos"}
               </h1>
-              <p className="text-base sm:text-lg opacity-80">
+              <p className="text-base sm:text-lg text-gray-300">
                 {selectedPlan.signupSubheadline || "Join the future of AI-powered video production. Everything unlocked from day one."}
+              </p>
+              <p className="text-sm text-gray-400 mt-2">
+                The only Integrated Screenwriting Environment (ISE) that combines writing, production, and direction in one platform.
               </p>
             </div>
 
             {/* Trust Signals - Always show */}
             <div className="flex flex-wrap gap-4 items-center text-sm">
-              <div className="flex items-center gap-2 opacity-80">
+              <div className="flex items-center gap-2 text-gray-300">
                 <Shield className="w-4 h-4 text-[#DC143C]" />
                 <span>Secure signup</span>
               </div>
-              <div className="flex items-center gap-2 opacity-80">
+              <div className="flex items-center gap-2 text-gray-300">
                 <Zap className="w-4 h-4 text-[#DC143C]" />
                 <span>Instant access</span>
               </div>
               {!isPaidPlan && (
-                <div className="flex items-center gap-2 opacity-80">
+                <div className="flex items-center gap-2 text-gray-300">
                   <span className="text-xl">💳</span>
                   <span>No card required</span>
                 </div>
@@ -68,14 +76,14 @@ export default function SignUpPage() {
 
             {/* Value Proposition Banner - Only for paid plans */}
             {isPaidPlan && selectedPlan.signupValueProp && (
-              <div className="bg-gradient-to-r from-success/20 to-transparent rounded-box p-4 border-l-4 border-success">
+              <div className="bg-gradient-to-r from-green-500/20 to-transparent rounded-lg p-4 border-l-4 border-green-500">
                 <div className="flex items-start gap-3">
-                  <Video className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                  <Video className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold mb-1">
+                    <p className="font-semibold mb-1 text-white">
                       {selectedPlan.signupValueProp}
                     </p>
-                    <p className="text-sm opacity-70">
+                    <p className="text-sm text-gray-400">
                       Perfect for: {selectedPlan.targetAudience}
                     </p>
                   </div>
@@ -84,8 +92,8 @@ export default function SignUpPage() {
             )}
 
             {/* What You Get */}
-            <div className="bg-base-200 rounded-box p-6 space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
+            <div className="bg-[#141414] border border-white/10 rounded-lg p-6 space-y-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2 text-white">
                 <Sparkles className="w-5 h-5 text-[#DC143C]" />
                 {isPaidPlan ? `What's included in ${selectedPlan.name}:` : "What you get instantly:"}
               </h3>
@@ -94,31 +102,31 @@ export default function SignUpPage() {
               {!isPaidPlan && (
                 <ul className="space-y-3">
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <strong>50 signup credits</strong>
-                      <p className="text-sm opacity-70">Worth $0.50 - create ~2 professional videos</p>
+                      <strong className="text-white">50 signup credits</strong>
+                      <p className="text-sm text-gray-400">Worth $0.50 - create ~2 professional videos</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <strong>10 credits every month forever</strong>
-                      <p className="text-sm opacity-70">On the Free plan, no strings attached</p>
+                      <strong className="text-white">10 credits every month forever</strong>
+                      <p className="text-sm text-gray-400">On the Free plan, no strings attached</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <strong>All features unlocked</strong>
-                      <p className="text-sm opacity-70">58 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>
+                      <strong className="text-white">All features unlocked</strong>
+                      <p className="text-sm text-gray-400">58 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <strong>Upload your own footage</strong>
-                      <p className="text-sm opacity-70">Combine your camera footage with AI-generated shots - completely free</p>
+                      <strong className="text-white">Upload your own footage</strong>
+                      <p className="text-sm text-gray-400">Combine your camera footage with AI-generated shots - completely free</p>
                     </div>
                   </li>
                 </ul>
@@ -129,17 +137,17 @@ export default function SignUpPage() {
                 <ul className="space-y-3">
                   {selectedPlan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                      <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                       <div>
-                        <strong>{feature.name}</strong>
+                        <strong className="text-white">{feature.name}</strong>
                       </div>
                     </li>
                   ))}
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <strong>All features unlocked</strong>
-                      <p className="text-sm opacity-70">58 AI workflows, timeline editor, screenplay tools, Hollywood transitions</p>
+                      <strong className="text-white">All features unlocked</strong>
+                      <p className="text-sm text-gray-400">58 AI workflows, timeline editor, screenplay tools, Hollywood transitions</p>
                     </div>
                   </li>
                 </ul>
@@ -147,18 +155,18 @@ export default function SignUpPage() {
             </div>
 
             {/* Cost Comparison Highlight */}
-            <div className="bg-gradient-to-r from-[#DC143C]/10 to-transparent rounded-box p-4 border-l-4 border-[#DC143C]">
-              <p className="text-sm font-semibold mb-1">
+            <div className="bg-gradient-to-r from-[#DC143C]/10 to-transparent rounded-lg p-4 border-l-4 border-[#DC143C]">
+              <p className="text-sm font-semibold mb-1 text-white">
                 💰 Save $1,776/year vs traditional tools
               </p>
-              <p className="text-xs opacity-70">
+              <p className="text-xs text-gray-400">
                 Compare: Final Draft ($250) + Premiere Pro ($263) + After Effects ($263) + Stock Footage ($500) + Stock Music ($300) + Cloud Storage ($200)
               </p>
             </div>
 
             {/* Footer Note */}
-            <p className="text-xs opacity-60">
-              By signing up, you agree to our <Link href="/tos" className="link">Terms of Service</Link> and <Link href="/privacy-policy" className="link">Privacy Policy</Link>.
+            <p className="text-xs text-gray-500">
+              By signing up, you agree to our <Link href="/tos" className="text-[#DC143C] hover:text-[#B8112F]">Terms of Service</Link> and <Link href="/privacy-policy" className="text-[#DC143C] hover:text-[#B8112F]">Privacy Policy</Link>.
             </p>
 
             {/* Social Proof Placeholder - Ready for when you have testimonials */}
@@ -185,18 +193,18 @@ export default function SignUpPage() {
 
           {/* RIGHT: Clerk Signup */}
           <div className="order-1 md:order-2 flex flex-col items-center md:items-start">
-            <div className="w-full max-w-md bg-base-100 rounded-box shadow-2xl p-4 sm:p-6 md:p-8">
+            <div className="w-full max-w-md bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8">
               <SignUp 
                 appearance={{
                   baseTheme: undefined,
-                  variables: {
-                    colorPrimary: '#DC143C',
-                    colorBackground: 'hsl(var(--b1))',
-                    colorInputBackground: 'hsl(var(--b2))',
-                    colorInputText: 'hsl(var(--bc))',
-                    colorText: 'hsl(var(--bc))',
-                    colorTextSecondary: 'hsl(var(--bc) / 0.7)',
-                    colorNeutral: 'hsl(var(--b3))',
+                variables: {
+                  colorPrimary: '#DC143C',
+                  colorBackground: '#141414',
+                  colorInputBackground: '#0A0A0A',
+                  colorInputText: '#FFFFFF',
+                  colorText: '#FFFFFF',
+                  colorTextSecondary: 'rgba(255, 255, 255, 0.7)',
+                  colorNeutral: '#3F3F46',
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: {
@@ -209,21 +217,21 @@ export default function SignUpPage() {
                   elements: {
                     rootBox: "w-full mx-auto",
                     card: "bg-transparent shadow-none w-full",
-                    headerTitle: "text-base-content text-center",
-                    headerSubtitle: "text-base-content/70 text-center",
-                    socialButtonsBlockButton: "!bg-base-200 hover:!bg-base-300 !text-base-content !border-2 !border-base-content/30 hover:!border-base-content/50 transition-all duration-200",
+                    headerTitle: "!text-white text-center",
+                    headerSubtitle: "!text-gray-400 text-center",
+                    socialButtonsBlockButton: "!bg-[#0A0A0A] hover:!bg-[#1F1F1F] !text-white !border-2 !border-white/20 hover:!border-white/40 transition-all duration-200",
                     socialButtonsBlockButtonText: "font-medium",
                     socialButtonsProviderIcon__google: "!mr-2",
                     formButtonPrimary: "!bg-[#DC143C] hover:!bg-[#B8112F] !text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200",
                     footerActionLink: "!text-[#DC143C] hover:!text-[#B8112F] font-medium",
-                    formFieldLabel: "!text-base-content font-medium mb-2",
-                    formFieldInput: "!bg-base-200 !text-base-content !border-2 !border-base-content/30 focus:!border-[#DC143C] hover:!border-base-content/50 transition-all duration-200 !px-4 !py-2",
-                    formFieldInputShowPasswordButton: "!text-base-content/70 hover:!text-base-content",
-                    identityPreviewText: "!text-base-content",
+                    formFieldLabel: "!text-white font-medium mb-2",
+                    formFieldInput: "!bg-[#0A0A0A] !text-white !border-2 !border-white/20 focus:!border-[#DC143C] hover:!border-white/40 transition-all duration-200 !px-4 !py-2",
+                    formFieldInputShowPasswordButton: "!text-gray-400 hover:!text-white",
+                    identityPreviewText: "!text-white",
                     identityPreviewEditButton: "!text-[#DC143C] hover:!text-[#B8112F]",
-                    otpCodeFieldInput: "!border-2 !border-base-content/30 focus:!border-[#DC143C]",
-                    dividerLine: "!bg-base-content/20",
-                    dividerText: "!text-base-content/60",
+                    otpCodeFieldInput: "!border-2 !border-white/20 focus:!border-[#DC143C]",
+                    dividerLine: "!bg-white/20",
+                    dividerText: "!text-gray-400",
                     footer: "hidden",
                   },
                 }}
@@ -231,7 +239,7 @@ export default function SignUpPage() {
               
               {/* Additional Trust Signal Below Form - Inside Container */}
               <div className="mt-4 w-full text-center">
-                <p className="text-xs opacity-60">
+                <p className="text-xs text-gray-500">
                   🔒 Your data is encrypted and secure
                 </p>
               </div>

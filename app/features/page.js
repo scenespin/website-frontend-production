@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
+import Footer from "@/components/Footer";
 
 export const metadata = getSEOTags({
   title: `Complete Features | ${config.appName}`,
@@ -48,6 +49,9 @@ export default function Features() {
         {/* Hero */}
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
+              <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
+            </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
               Complete Feature List
             </h1>
@@ -55,6 +59,8 @@ export default function Features() {
               <strong className="text-white">Everything unlocked from day one.</strong>
               <br />
               Free users get everything. Pro/Ultra/Studio just get more credits.
+              <br />
+              <span className="text-gray-400 text-lg mt-2 block">The only Integrated Screenwriting Environment (ISE) that combines writing, production, and direction in one platform.</span>
             </p>
           </div>
         </section>
@@ -350,6 +356,8 @@ export default function Features() {
           </div>
         </section>
       </main>
+      
+      <Footer />
     </>
   );
 }

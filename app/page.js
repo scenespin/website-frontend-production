@@ -1,5 +1,6 @@
 import Link from "next/link";
 import config from "@/config";
+import Footer from "@/components/Footer";
 
 export default function Page() {
   return (
@@ -51,12 +52,23 @@ export default function Page() {
 
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
-                Turn Your Screenplay Into a Movie
+                Turn Your Screenplay Into Video
               </h1>
 
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-                AI-powered production tools that bring your script to life. Create pilots, trailers, short films, or full features—all from your browser.
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-3xl mx-auto mb-4 md:mb-6 px-4">
+                The World's First Integrated Screenwriting Environment (ISE)
               </p>
+
+              <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
+                Create trailers, pilots, storyboards, or full features—all from your screenplay. End-to-end workflow from script to video production.
+              </p>
+
+              {/* ISE Badge */}
+              <div className="inline-flex flex-col items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm mb-8">
+                <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
+                <span className="text-xs text-gray-400">Write → Produce → Direct — End-to-End Platform</span>
+                <span className="text-xs text-gray-500">Perfect for trailers, pilots, storyboards, and features</span>
+              </div>
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -85,7 +97,7 @@ export default function Page() {
                       </svg>
                     </div>
                     <h3 className="text-xl font-bold mb-2">Demo Video Coming Soon</h3>
-                    <p className="text-gray-400 text-sm">See how Wryda.ai turns your screenplay into a movie</p>
+                    <p className="text-gray-400 text-sm">See how Wryda.ai turns your screenplay into video</p>
                   </div>
                 </div>
               </div>
@@ -109,6 +121,87 @@ export default function Page() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Everything unlocked</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* What is an ISE? Section */}
+        <section className="py-20 bg-black">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-6 text-center">
+                What is an Integrated Screenwriting Environment (ISE)?
+              </h2>
+              <p className="text-lg text-gray-300 mb-8 text-center max-w-3xl mx-auto">
+                Just like developers use IDEs (Integrated Development Environments) to code, build, and deploy in one place, screenwriters now have ISEs to write, produce, and direct in one platform.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
+                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">Traditional Tools</h3>
+                  <ul className="space-y-2 text-gray-300">
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      <span>Final Draft → Write only</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      <span>Video editors → Produce separately</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      <span>Production tools → Manage separately</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-gray-500">•</span>
+                      <span className="text-gray-400 italic">Result: Context lost, workflow broken, tools don't talk to each other</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
+                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">Wryda.ai ISE</h3>
+                  <ul className="space-y-2 text-gray-300">
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">✍️</span>
+                      <span><strong>Write</strong> - Professional screenplay editor with 5 AI writing agents</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">🎬</span>
+                      <span><strong>Produce</strong> - Scene Builder turns your script into video automatically (trailers, pilots, storyboards, features)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">🎞️</span>
+                      <span><strong>Direct</strong> - Review, edit, and control your production</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">🔗</span>
+                      <span><strong>Integrated</strong> - Everything works together. Characters, locations, and props maintain consistency across your entire production</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#DC143C]">📤</span>
+                      <span><strong>Export</strong> - Ready for further editing and refinement in professional video editing tools</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
+                <h3 className="text-xl font-bold mb-3 text-[#DC143C]">The Difference</h3>
+                <p className="text-gray-300 mb-4">
+                  An ISE isn't just a tool—it's a complete environment where every feature understands your screenplay context. Your characters stay consistent. Your locations are reused intelligently. Your AI agents know your full story. Create complete video productions from script to screen, then export for final editing and polish.
+                </p>
+                <div className="mt-4 pt-4 border-t border-[#3F3F46]">
+                  <p className="text-sm font-semibold text-gray-300 mb-2">Perfect For:</p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Trailers and teasers</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pilot episodes</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Storyboards and pre-visualization</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Short films</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Feature films (with additional editing)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -466,10 +559,10 @@ export default function Page() {
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-              Ready to Turn Your Screenplay Into a Movie?
+              Ready to Turn Your Screenplay Into Video?
             </h2>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8">
-              Join creators who are using AI to bring their scripts to life. Start free with 50 credits.
+              Join creators using the first Integrated Screenwriting Environment. Create trailers, pilots, storyboards, or features. Start free with 50 credits.
             </p>
             <Link
               href="/sign-up"
@@ -480,6 +573,8 @@ export default function Page() {
           </div>
         </section>
       </main>
+      
+      <Footer />
     </>
   );
 }

@@ -1,121 +1,119 @@
-import Link from "next/link";
-import Image from "next/image";
-import config from "@/config";
-import logo from "@/app/icon.png";
+'use client';
 
-// Add the Footer to the bottom of your landing page and more.
-// The support link is connected to the config.js file. If there's no config.resend.supportEmail, the link won't be displayed.
+import Link from 'next/link';
+import config from '@/config';
 
-const Footer = () => {
+export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="bg-base-200 border-t border-base-content/10">
-      <div className="max-w-7xl mx-auto px-8 py-24">
-        <div className=" flex lg:items-start md:flex-row md:flex-nowrap flex-wrap flex-col">
-          <div className="w-64 flex-shrink-0 md:mx-0 mx-auto text-center md:text-left">
-            <Link
-              href="/#"
-              aria-current="page"
-              className="flex gap-2 justify-center md:justify-start items-center"
-            >
-              <Image
-                src={logo}
-                alt={`${config.appName} logo`}
-                priority={true}
-                className="w-6 h-6"
-                width={24}
-                height={24}
-              />
-              <strong className="font-extrabold tracking-tight text-base md:text-lg">
-                {config.appName}
-              </strong>
+    <footer className="bg-black border-t border-[#3F3F46]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Company Info */}
+          <div className="lg:col-span-1">
+            <Link href="/" className="flex items-center gap-2 mb-4">
+              <span className="text-2xl font-extrabold text-white">
+                {config.appName}<span className="text-[#DC143C]">.ai</span>
+              </span>
             </Link>
-
-            <p className="mt-3 text-sm text-base-content/80">
-              {config.appDescription}
+            <p className="text-sm text-gray-400 mb-2">
+              The World's First Integrated Screenwriting Environment (ISE)
             </p>
-            <p className="mt-3 text-sm text-base-content/60">
-              Founded 2025 • Building with creators
-            </p>
-            <p className="mt-2 text-sm text-base-content/60">
-              Copyright © {new Date().getFullYear()} - All rights reserved
+            <p className="text-xs text-gray-500">
+              Write → Produce → Direct
+              <br />
+              End-to-end from script to video production
             </p>
           </div>
-          <div className="flex-grow flex flex-wrap justify-center -mb-10 md:mt-0 mt-10 text-center">
-            <div className="lg:w-1/4 md:w-1/2 w-full px-4">
-              <div className="footer-title font-semibold text-base-content tracking-widest text-sm md:text-left mb-3">
-                LINKS
-              </div>
 
-              <div className="flex flex-col justify-center items-center md:items-start gap-2 mb-10 text-sm">
-                <a
-                  href="mailto:hello@wryda.ai"
-                  className="link link-hover"
-                  aria-label="Contact Us"
-                >
-                  hello@wryda.ai
-                </a>
-                <Link href="/#pricing" className="link link-hover">
-                  Pricing
-                </Link>
-                <Link href="/blog" className="link link-hover">
-                  Blog
-                </Link>
-                <Link href="/features" className="link link-hover">
+          {/* Quick Links */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-4">Quick Links</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/features" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Features
                 </Link>
-                <Link href="/compare" className="link link-hover">
+              </li>
+              <li>
+                <Link href="/compare" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Compare
                 </Link>
-              </div>
-            </div>
-
-            <div className="lg:w-1/4 md:w-1/2 w-full px-4">
-              <div className="footer-title font-semibold text-base-content tracking-widest text-sm md:text-left mb-3">
-                HELP & SUPPORT
-              </div>
-
-              <div className="flex flex-col justify-center items-center md:items-start gap-2 mb-10 text-sm">
-                <Link href="/help" className="link link-hover">
+              </li>
+              <li>
+                <Link href="/#pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="/help" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Help Center
                 </Link>
-                <Link href="/help/quick-start" className="link link-hover">
-                  Quick Start
-                </Link>
-                <Link href="/help/video-generation" className="link link-hover">
-                  Video Generation
-                </Link>
-                <Link href="/help/reference/troubleshooting" className="link link-hover">
-                  Troubleshooting
-                </Link>
-                <a
-                  href="mailto:support@wryda.ai"
-                  className="link link-hover"
-                  aria-label="Contact Support"
-                >
-                  Contact Support
-                </a>
-              </div>
-            </div>
+              </li>
+            </ul>
+          </div>
 
-            <div className="lg:w-1/4 md:w-1/2 w-full px-4">
-              <div className="footer-title font-semibold text-base-content tracking-widest text-sm md:text-left mb-3">
-                LEGAL
-              </div>
+          {/* Product */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-4">Product</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/help/writing" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Writing
+                </Link>
+              </li>
+              <li>
+                <Link href="/help/production" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Production
+                </Link>
+              </li>
+              <li>
+                <Link href="/help/direct" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Direct
+                </Link>
+              </li>
+              <li>
+                <Link href="/help" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Help Center
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-              <div className="flex flex-col justify-center items-center md:items-start gap-2 mb-10 text-sm">
-                <Link href="/tos" className="link link-hover">
-                  Terms of services
+          {/* Legal */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-4">Legal</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/tos" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Terms of Service
                 </Link>
-                <Link href="/privacy-policy" className="link link-hover">
-                  Privacy policy
+              </li>
+              <li>
+                <Link href="/privacy-policy" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Privacy Policy
                 </Link>
-              </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="mt-8 pt-8 border-t border-[#3F3F46]">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-xs text-gray-500">
+              © {currentYear} {config.appName}. All rights reserved.
+            </p>
+            <div className="flex items-center gap-4">
+              {/* Social links can be added here later */}
+              <p className="text-xs text-gray-500">
+                The First Integrated Screenwriting Environment
+              </p>
             </div>
           </div>
         </div>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}
