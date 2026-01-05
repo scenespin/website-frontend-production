@@ -120,11 +120,11 @@ export function SceneNavigatorList({
     fetchFirstLines();
   }, [projectId, getToken, scenes]);
 
-  // If we have scenes, show them immediately (skip loading/empty checks)
+  // If scenes exist, show them immediately (data is ready)
   if (scenes && scenes.length > 0) {
-    // Continue to render scenes below - skip early returns
+    // Continue to render scenes below
   } else if (isLoading || !hasInitialized) {
-    // Show loading if we're loading OR if we haven't initialized yet
+    // Show loading only if we have no scenes AND we're still loading/initializing
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <div className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export function SceneNavigatorList({
       </div>
     );
   } else {
-    // Show empty state only if initialization is complete and we have no scenes
+    // Show empty state only after initialization is complete and we have no scenes
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <p className="text-sm font-medium text-[#808080] mb-2">
