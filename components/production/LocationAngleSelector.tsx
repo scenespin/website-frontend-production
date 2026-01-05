@@ -446,8 +446,12 @@ export function LocationAngleSelector({
             </div>
           )}
           
-          {/* Time of Day/Weather Group Selector (similar to outfit dropdown) - Only show if angles available */}
-          {groupKeys.length > 1 && allPhotos.length > 0 && (
+          {/* Time of Day/Weather Group Selector (similar to outfit dropdown) - Only show if angles available AND not just Creation/No Metadata */}
+          {(() => {
+            // 🔥 FIX: Hide dropdown if only "Creation" and/or "No Metadata" are available
+            const hasProductionHubImages = groupKeys.some(k => k !== 'Creation' && k !== 'No Metadata');
+            return groupKeys.length > 1 && allPhotos.length > 0 && hasProductionHubImages;
+          })() && (
             <div className="flex items-center gap-2">
               <label className="text-xs text-[#808080]">Filter by:</label>
               <select

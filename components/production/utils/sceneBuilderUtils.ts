@@ -270,7 +270,15 @@ export function getCharacterSource(
   allCharacters: any[],
   sceneAnalysisResult: SceneAnalysisResult | null
 ): any[] {
-  return allCharacters.length > 0 ? allCharacters : (sceneAnalysisResult?.characters || []);
+  // 🔥 FIX: Deduplicate characters by ID to prevent duplicates in dropdown
+  const source = allCharacters.length > 0 ? allCharacters : (sceneAnalysisResult?.characters || []);
+  const seen = new Set<string>();
+  return source.filter(char => {
+    if (!char?.id) return false;
+    if (seen.has(char.id)) return false;
+    seen.add(char.id);
+    return true;
+  });
 }
 
 /**

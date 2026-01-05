@@ -456,6 +456,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     
     Object.entries(selectedCharacterReferences).forEach(([shotSlotStr, shotRefs]) => {
       const shotSlot = parseInt(shotSlotStr);
+      // 🔥 FIX: Check if shotRefs is null/undefined before iterating
+      if (!shotRefs || typeof shotRefs !== 'object') return;
       const updatedShotRefs = { ...shotRefs };
       
       Object.entries(shotRefs).forEach(([charId, charRef]) => {
@@ -3394,18 +3396,24 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                                   const newRef = isSelected ? undefined : {
                                     poseId: headshot.poseId,
                                     s3Key: headshot.s3Key,
-                                    imageUrl: headshot.imageUrl
+                                    imageUrl: headshot.imageUrl || '' // 🔥 FIX: Ensure imageUrl is always set (even if empty, will be updated by useEffect)
                                   };
+                                  // 🔥 FIX: Use functional update to ensure we get latest state
                                   setSelectedCharacterReferences(prev => {
-                                    const shotRefs = prev[shotSlot] || {};
+                                    const shotRefs = prev?.[shotSlot] || {};
                                     const updatedShotRefs = newRef 
                                       ? { ...shotRefs, [charId]: newRef }
                                       : { ...shotRefs };
                                     if (!newRef) delete updatedShotRefs[charId];
-                                    return {
+                                    const result = {
                                       ...prev,
                                       [shotSlot]: Object.keys(updatedShotRefs).length > 0 ? updatedShotRefs : undefined
                                     };
+                                    // Remove undefined slots to keep state clean
+                                    if (result[shotSlot] === undefined) {
+                                      delete result[shotSlot];
+                                    }
+                                    return result;
                                   });
                                 }}
                                 className={`relative aspect-square rounded border-2 transition-all ${

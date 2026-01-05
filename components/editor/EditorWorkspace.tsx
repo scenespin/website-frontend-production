@@ -464,7 +464,7 @@ export default function EditorWorkspace() {
                                     Scenes
                                 </SheetTitle>
                             </SheetHeader>
-                            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                            <div className="flex-1 overflow-auto flex flex-col min-h-0">
                                 <SceneNavigator
                                     currentLine={state.currentLine}
                                     onSceneClick={(scene) => {

@@ -20,45 +20,28 @@ export async function POST(
   try {
     console.log('[Batch Update Props API] Request received');
     
-    // Try to get token from Authorization header first (from client)
-    const authHeader = request.headers.get('Authorization');
-    let token: string | null = null;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-      console.log('[Batch Update Props API] Using token from Authorization header');
-    } else {
-      // Fallback: Generate token server-side
-      const { userId, getToken } = await auth();
-      
-      if (!userId) {
-        console.error('[Batch Update Props API] No userId found');
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
-
-      console.log('[Batch Update Props API] User authenticated:', userId);
-      // Get token with wryda-backend template for backend API
-      token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        console.error('[Batch Update Props API] Could not generate token');
-        return NextResponse.json(
-          { error: 'Unauthorized - Could not generate token' },
-          { status: 401 }
-        );
-      }
-      console.log('[Batch Update Props API] Generated server-side token');
-    }
-    
-    if (!token) {
-      console.error('[Batch Update Props API] No token available');
+    // Validate user is authenticated with Clerk
+    const { userId } = await auth();
+    if (!userId) {
+      console.error('[Batch Update Props API] No userId found');
       return NextResponse.json(
-        { error: 'Unauthorized - No token available' },
+        { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    // Get token from Authorization header (client already has it)
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[Batch Update Props API] No Authorization header');
+      return NextResponse.json(
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    console.log('[Batch Update Props API] Using token from Authorization header, userId:', userId);
 
     const { id } = await params;
     console.log('[Batch Update Props API] Batch updating props for screenplay:', id);
