@@ -19,11 +19,18 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, Trash2, Maximize2, Minimize2, ZoomIn, ZoomOut, Grid3x3, Video as VideoIcon } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, Trash2, Maximize2, Minimize2, ZoomIn, ZoomOut, Grid3x3, Video as VideoIcon, MoreVertical, GripHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { VideoPlayer } from './VideoPlayer';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export interface ImageItem {
   id: string;
@@ -77,6 +84,11 @@ export function ImageViewer({
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
   const [preloadedUrls, setPreloadedUrls] = useState<Set<string>>(new Set());
   const [hoveredDirection, setHoveredDirection] = useState<'prev' | 'next' | null>(null); // 🔥 NEW: Track hover state for smart preloading
+  const [showControls, setShowControls] = useState(true); // Mobile: Auto-hide controls
+  const [mobileSheetHeight, setMobileSheetHeight] = useState(300); // Mobile thumbnail sheet height
+  const [isDraggingSheet, setIsDraggingSheet] = useState(false);
+  const sheetDragStartRef = useRef<{ y: number; height: number } | null>(null);
+  const isMobile = useIsMobile();
   const { getToken } = useAuth();
   
   // Detect media type from URL or metadata
@@ -143,6 +155,77 @@ export function ImageViewer({
     window.addEventListener('resize', checkTouchDevice);
     return () => window.removeEventListener('resize', checkTouchDevice);
   }, []);
+
+  // Mobile: Auto-hide controls after 3 seconds of inactivity
+  useEffect(() => {
+    if (!isOpen || !isMobile) {
+      setShowControls(true);
+      return;
+    }
+
+    // Reset timer when controls are shown
+    if (showControls) {
+      const timer = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, isMobile, currentIndex, showControls]);
+
+  // Mobile: Show controls on tap/interaction
+  const handleShowControls = useCallback(() => {
+    if (isMobile) {
+      setShowControls(true);
+    }
+  }, [isMobile]);
+
+  // Mobile: Thumbnail sheet drag handlers
+  const handleSheetDragStart = useCallback((clientY: number) => {
+    setIsDraggingSheet(true);
+    sheetDragStartRef.current = { y: clientY, height: mobileSheetHeight };
+  }, [mobileSheetHeight]);
+
+  // Global drag handlers for sheet
+  useEffect(() => {
+    if (!isDraggingSheet || !showThumbnails || !isMobile) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+      if (!clientY || !sheetDragStartRef.current) return;
+      
+      const deltaY = sheetDragStartRef.current.y - clientY;
+      const newHeight = Math.max(200, Math.min(600, sheetDragStartRef.current.height + deltaY));
+      setMobileSheetHeight(newHeight);
+    };
+
+    const handleEnd = (e: MouseEvent | TouchEvent) => {
+      const clientY = 'changedTouches' in e ? e.changedTouches[0]?.clientY : e.clientY;
+      if (!sheetDragStartRef.current) return;
+      
+      const deltaY = sheetDragStartRef.current.y - (clientY || sheetDragStartRef.current.y);
+      
+      // Swipe down >100px to close
+      if (deltaY < -100) {
+        setShowThumbnails(false);
+      }
+      
+      setIsDraggingSheet(false);
+      sheetDragStartRef.current = null;
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDraggingSheet, showThumbnails, isMobile]);
   
   // Determine which image list to use (memoized for performance)
   const displayImages = useMemo(() => {
@@ -554,18 +637,25 @@ export function ImageViewer({
         {/* Container with border for visual containment */}
         <div className="flex-1 flex flex-col bg-[#0A0A0A] border-2 border-[#3F3F46] rounded-lg overflow-hidden shadow-2xl relative">
         {/* Header - Minimal, shows on hover (always visible on mobile) */}
-        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity group-hover:opacity-100 md:opacity-70 opacity-100 rounded-t-lg">
+        <div 
+          className={`absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity rounded-t-lg ${
+            isMobile 
+              ? showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              : 'group-hover:opacity-100 md:opacity-70 opacity-100'
+          }`}
+          onClick={handleShowControls}
+        >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold text-white truncate max-w-md">
+            <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+              <h3 className={`font-semibold text-white truncate ${isMobile ? 'text-base max-w-[200px]' : 'text-lg max-w-md'}`}>
                 {currentImage.label}
               </h3>
-              {groupName && !viewAll && (
-                <span className="text-sm text-[#808080] px-2 py-1 bg-[#1F1F1F] rounded">
+              {!isMobile && groupName && !viewAll && (
+                <span className="text-sm text-[#808080] px-2 py-1 bg-[#1F1F1F] rounded hidden md:inline-block">
                   {groupName}
                 </span>
               )}
-              {allImages && (
+              {!isMobile && allImages && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -573,7 +663,7 @@ export function ImageViewer({
                     setZoom(1);
                     setPosition({ x: 0, y: 0 });
                   }}
-                  className={`text-sm px-3 py-1 rounded transition-colors ${
+                  className={`text-sm px-3 py-1 rounded transition-colors hidden md:inline-block ${
                     viewAll
                       ? 'bg-[#DC143C] text-white'
                       : 'bg-[#1F1F1F] text-[#808080] hover:text-white'
@@ -582,63 +672,150 @@ export function ImageViewer({
                   {viewAll ? 'View Group' : 'View All'}
                 </button>
               )}
-              <span className="text-sm text-[#808080]">
+              <span className={`text-[#808080] ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 {currentIndex + 1} of {displayImages.length}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {onDownload && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDownload(currentImage);
-                  }}
-                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-                  aria-label="Download"
-                >
-                  <Download className="w-5 h-5 text-white" />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('Delete this image? This action cannot be undone.')) {
-                      onDelete(currentImage);
-                    }
-                  }}
-                  className="p-2 hover:bg-[#DC143C]/20 rounded-lg transition-colors"
-                  aria-label="Delete"
-                >
-                  <Trash2 className="w-5 h-5 text-[#DC143C]" />
-                </button>
-              )}
-              {enableFullscreen && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFullscreen();
-                  }}
-                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="w-5 h-5 text-white" />
-                  ) : (
-                    <Maximize2 className="w-5 h-5 text-white" />
+              {isMobile ? (
+                // Mobile: Simplified header with dropdown menu
+                <>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                        aria-label="More options"
+                      >
+                        <MoreVertical className="w-5 h-5 text-white" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-[#1F1F1F] border-[#3F3F46]">
+                      {allImages && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewAll(prev => !prev);
+                            setZoom(1);
+                            setPosition({ x: 0, y: 0 });
+                          }}
+                          className="text-white hover:bg-[#2A2A2A]"
+                        >
+                          {viewAll ? 'View Group' : 'View All'}
+                        </DropdownMenuItem>
+                      )}
+                      {onDownload && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDownload(currentImage);
+                          }}
+                          className="text-white hover:bg-[#2A2A2A]"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                      )}
+                      {onDelete && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Delete this image? This action cannot be undone.')) {
+                              onDelete(currentImage);
+                            }
+                          }}
+                          className="text-[#DC143C] hover:bg-[#DC143C]/20"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
+                      {enableFullscreen && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFullscreen();
+                          }}
+                          className="text-white hover:bg-[#2A2A2A]"
+                        >
+                          {isFullscreen ? (
+                            <Minimize2 className="w-4 h-4 mr-2" />
+                          ) : (
+                            <Maximize2 className="w-4 h-4 mr-2" />
+                          )}
+                          {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                    }}
+                    className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </button>
+                </>
+              ) : (
+                // Desktop: Full controls
+                <>
+                  {onDownload && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDownload(currentImage);
+                      }}
+                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                      aria-label="Download"
+                    >
+                      <Download className="w-5 h-5 text-white" />
+                    </button>
                   )}
-                </button>
+                  {onDelete && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm('Delete this image? This action cannot be undone.')) {
+                          onDelete(currentImage);
+                        }
+                      }}
+                      className="p-2 hover:bg-[#DC143C]/20 rounded-lg transition-colors"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="w-5 h-5 text-[#DC143C]" />
+                    </button>
+                  )}
+                  {enableFullscreen && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFullscreen();
+                      }}
+                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                      aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                    >
+                      {isFullscreen ? (
+                        <Minimize2 className="w-5 h-5 text-white" />
+                      ) : (
+                        <Maximize2 className="w-5 h-5 text-white" />
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                    }}
+                    className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </button>
+                </>
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose();
-                }}
-                className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
             </div>
           </div>
         </div>
@@ -651,13 +828,18 @@ export function ImageViewer({
               onClick={(e) => {
                 e.stopPropagation();
                 handlePrevious();
+                handleShowControls();
               }}
               onMouseEnter={() => setHoveredDirection('prev')} // 🔥 NEW: Preload on hover
               onMouseLeave={() => setHoveredDirection(null)}
-              className="absolute left-4 z-20 p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors group"
+              className={`absolute z-20 bg-black/50 hover:bg-black/70 rounded-full transition-colors group ${
+                isMobile 
+                  ? 'left-2 p-4 min-w-[48px] min-h-[48px]' 
+                  : 'left-4 p-3'
+              }`}
               aria-label="Previous image"
             >
-              <ChevronLeft className="w-6 h-6 text-white group-hover:text-[#DC143C]" />
+              <ChevronLeft className={`text-white group-hover:text-[#DC143C] ${isMobile ? 'w-7 h-7' : 'w-6 h-6'}`} />
             </button>
           )}
           {canNavigateNext && (
@@ -665,13 +847,18 @@ export function ImageViewer({
               onClick={(e) => {
                 e.stopPropagation();
                 handleNext();
+                handleShowControls();
               }}
               onMouseEnter={() => setHoveredDirection('next')} // 🔥 NEW: Preload on hover
               onMouseLeave={() => setHoveredDirection(null)}
-              className="absolute right-4 z-20 p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors group"
+              className={`absolute z-20 bg-black/50 hover:bg-black/70 rounded-full transition-colors group ${
+                isMobile 
+                  ? 'right-2 p-4 min-w-[48px] min-h-[48px]' 
+                  : 'right-4 p-3'
+              }`}
               aria-label="Next image"
             >
-              <ChevronRight className="w-6 h-6 text-white group-hover:text-[#DC143C]" />
+              <ChevronRight className={`text-white group-hover:text-[#DC143C] ${isMobile ? 'w-7 h-7' : 'w-6 h-6'}`} />
             </button>
           )}
 
@@ -688,6 +875,10 @@ export function ImageViewer({
                 handleTouchStart(e);
                 handleSwipeStart(e);
               }
+              // Mobile: Show controls on tap (single touch, not zooming)
+              if (isMobile && e.touches.length === 1 && zoom === 1) {
+                handleShowControls();
+              }
             }}
             onTouchMove={currentMediaType === 'image' ? handleTouchMove : undefined}
             onTouchEnd={(e) => {
@@ -696,6 +887,7 @@ export function ImageViewer({
                 handleSwipeEnd(e);
               }
             }}
+            onClick={isMobile ? handleShowControls : undefined}
             style={{ cursor: currentMediaType === 'image' && zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
           >
             <AnimatePresence mode="wait">
@@ -814,79 +1006,183 @@ export function ImageViewer({
           </div>
         </div>
 
-        {/* Thumbnail Strip - Toggleable */}
+        {/* Thumbnail Strip - Desktop: Overlay, Mobile: Bottom Sheet */}
         <AnimatePresence>
           {showThumbnails && (
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-4 rounded-b-lg"
-            >
-              <div className="w-full">
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
-                  {displayImages.map((img, idx) => (
-                    <button
-                      key={img.id}
-                      onClick={(e) => {
+            <>
+              {isMobile ? (
+                // Mobile: Bottom Sheet
+                <>
+                  {/* Backdrop */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/40 z-[90] md:hidden"
+                    onClick={() => setShowThumbnails(false)}
+                  />
+                  {/* Bottom Sheet */}
+                  <motion.div
+                    initial={{ y: mobileSheetHeight }}
+                    animate={{ y: 0 }}
+                    exit={{ y: mobileSheetHeight }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                    className="fixed bottom-0 left-0 right-0 z-[95] bg-[#0A0A0A] border-t-2 border-[#3F3F46] rounded-t-2xl md:hidden"
+                    style={{ height: `${mobileSheetHeight}px`, maxHeight: '60vh' }}
+                  >
+                    {/* Drag Handle */}
+                    <div
+                      className="w-full py-3 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl"
+                      onMouseDown={(e) => {
                         e.stopPropagation();
-                        setCurrentIndex(idx);
-                        setZoom(1);
-                        setPosition({ x: 0, y: 0 });
-                        setIsLoading(true);
-                        onNavigate?.(idx);
+                        handleSheetDragStart(e.clientY);
                       }}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
-                        idx === currentIndex
-                          ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                          : 'border-[#3F3F46] hover:border-[#808080]'
-                      }`}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        handleSheetDragStart(e.touches[0].clientY);
+                      }}
                     >
-                      {getMediaType(img) === 'video' ? (
-                        <>
-                          <img
-                            src={img.thumbnailUrl || img.url}
-                            alt={img.label}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                            <VideoIcon className="w-6 h-6 text-white" />
-                          </div>
-                        </>
-                      ) : (
-                        <img
-                          src={img.url}
-                          alt={img.label}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
+                      <GripHorizontal className="w-6 h-6 text-[#808080]" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowThumbnails(false);
+                        }}
+                        className="absolute right-4 p-2 hover:bg-[#2A2A2A] rounded-lg transition-colors"
+                        aria-label="Close thumbnails"
+                      >
+                        <X className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                    {/* Thumbnail Grid */}
+                    <div className="h-[calc(100%-48px)] overflow-y-auto p-4">
+                      <div className={`grid gap-3 ${
+                        displayImages.length <= 4 ? 'grid-cols-2' : 'grid-cols-3'
+                      }`}>
+                        {displayImages.map((img, idx) => (
+                          <button
+                            key={img.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentIndex(idx);
+                              setZoom(1);
+                              setPosition({ x: 0, y: 0 });
+                              setIsLoading(true);
+                              onNavigate?.(idx);
+                              handleShowControls();
+                            }}
+                            className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                              idx === currentIndex
+                                ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                : 'border-[#3F3F46]'
+                            }`}
+                          >
+                            {getMediaType(img) === 'video' ? (
+                              <>
+                                <img
+                                  src={img.thumbnailUrl || img.url}
+                                  alt={img.label}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <VideoIcon className="w-6 h-6 text-white" />
+                                </div>
+                              </>
+                            ) : (
+                              <img
+                                src={img.url}
+                                alt={img.label}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
+              ) : (
+                // Desktop: Bottom Overlay
+                <motion.div
+                  initial={{ y: 100, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 100, opacity: 0 }}
+                  className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-4 rounded-b-lg"
+                >
+                  <div className="w-full">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
+                      {displayImages.map((img, idx) => (
+                        <button
+                          key={img.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentIndex(idx);
+                            setZoom(1);
+                            setPosition({ x: 0, y: 0 });
+                            setIsLoading(true);
+                            onNavigate?.(idx);
+                          }}
+                          className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
+                            idx === currentIndex
+                              ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                              : 'border-[#3F3F46] hover:border-[#808080]'
+                          }`}
+                        >
+                          {getMediaType(img) === 'video' ? (
+                            <>
+                              <img
+                                src={img.thumbnailUrl || img.url}
+                                alt={img.label}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <VideoIcon className="w-6 h-6 text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <img
+                              src={img.url}
+                              alt={img.label}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </>
           )}
         </AnimatePresence>
 
         {/* Bottom Controls Bar */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-lg">
-          <div className="flex items-center justify-between">
+        <div 
+          className={`absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-lg transition-opacity ${
+            isMobile && !showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+          onClick={handleShowControls}
+        >
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowThumbnails(prev => !prev);
+                  handleShowControls();
                 }}
-                className={`p-2 rounded-lg transition-colors ${
+                className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} rounded-lg transition-colors flex items-center justify-center ${
                   showThumbnails
                     ? 'bg-[#DC143C] text-white'
                     : 'bg-[#1F1F1F] text-[#808080] hover:text-white'
                 }`}
                 aria-label={showThumbnails ? 'Hide thumbnails' : 'Show thumbnails'}
               >
-                <Grid3x3 className="w-4 h-4" />
+                <Grid3x3 className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
               </button>
               {enableZoom && currentMediaType === 'image' && (
                 <>
@@ -894,29 +1190,32 @@ export function ImageViewer({
                     onClick={(e) => {
                       e.stopPropagation();
                       handleZoomOut();
+                      handleShowControls();
                     }}
-                    className="p-2 bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors"
+                    className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors flex items-center justify-center`}
                     aria-label="Zoom out"
                   >
-                    <ZoomOut className="w-4 h-4" />
+                    <ZoomOut className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleZoomIn();
+                      handleShowControls();
                     }}
-                    className="p-2 bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors"
+                    className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors flex items-center justify-center`}
                     aria-label="Zoom in"
                   >
-                    <ZoomIn className="w-4 h-4" />
+                    <ZoomIn className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
                   </button>
                   {zoom !== 1 && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleResetZoom();
+                        handleShowControls();
                       }}
-                      className="px-3 py-2 bg-[#1F1F1F] text-white text-sm rounded-lg hover:bg-[#2A2A2A] transition-colors"
+                      className={`${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-2 text-sm'} bg-[#1F1F1F] text-white rounded-lg hover:bg-[#2A2A2A] transition-colors`}
                     >
                       Reset ({Math.round(zoom * 100)}%)
                     </button>
@@ -924,9 +1223,11 @@ export function ImageViewer({
                 </>
               )}
             </div>
-            <div className="text-sm text-[#808080]">
-              Use arrow keys to navigate • {enableZoom && currentMediaType === 'image' && 'Scroll to zoom • '}Press T for thumbnails • Press F for fullscreen
-            </div>
+            {!isMobile && (
+              <div className="text-sm text-[#808080]">
+                Use arrow keys to navigate • {enableZoom && currentMediaType === 'image' && 'Scroll to zoom • '}Press T for thumbnails • Press F for fullscreen
+              </div>
+            )}
           </div>
         </div>
         </div>
