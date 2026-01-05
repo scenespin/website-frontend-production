@@ -31,6 +31,7 @@ import {
 import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { useThumbnailMapping, type GalleryImage } from '@/hooks/useThumbnailMapping';
 import { ImageViewer, type ImageItem } from './ImageViewer';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { VoiceAssignmentTab } from './VoiceAssignmentTab';
 import { VoiceBrowserModal } from './VoiceBrowserModal';
@@ -95,6 +96,7 @@ export function CharacterDetailModal({
   const { updateCharacter, characters: contextCharacters, isEntityInScript } = screenplay; // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
   const { state: editorState } = useEditor();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
+  const isMobile = useIsMobile();
   
   // 🔥 FIX: Use React Query hook directly to get latest characters (same as CharacterBankPanel)
   const { data: queryCharacters = [] } = useCharacters(
@@ -1230,90 +1232,232 @@ export function CharacterDetailModal({
             </div>
 
             {/* Tabs */}
-            <div className="flex-shrink-0 px-6 py-3 border-b border-[#3F3F46] bg-[#141414] flex items-center gap-2">
-              {/* Left side: Standard tabs */}
-              <button
-                onClick={() => {
-                  setActiveTab('info');
-                  setCoverageTab(null);
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'info' && !coverageTab
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <FileText className="w-4 h-4 inline mr-2" />
-                Info
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('references');
-                  setCoverageTab(null);
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'references' && !coverageTab
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <Box className="w-4 h-4 inline mr-2" />
-                References ({allImages.length})
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('voice');
-                  setCoverageTab(null);
-                  if (!voiceProfile && !isLoadingVoice) {
-                    fetchVoiceProfile();
-                  }
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'voice' && !coverageTab
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <Volume2 className="w-4 h-4 inline mr-2" />
-                Voice
-                {voiceProfile && (
-                  <span className={`ml-2 text-xs ${activeTab === 'voice' && !coverageTab ? 'opacity-75' : 'text-green-400'}`}>●</span>
-                )}
-              </button>
-              
-              {/* Right side: Coverage buttons */}
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setCoverageTab('upload');
-                    setActiveTab('references'); // Keep references as active tab for context
-                  }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    coverageTab === 'upload'
-                      ? 'bg-[#DC143C] text-white'
-                      : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
-                  }`}
-                >
-                  <Upload className="w-4 h-4 inline mr-2" />
-                  Upload Wardrobe
-                </button>
-                {onGeneratePosePackage && (
+            <div className="flex-shrink-0 px-4 md:px-6 py-3 border-b border-[#3F3F46] bg-[#141414]">
+              {isMobile ? (
+                // Mobile: Dropdown menu
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="w-full flex items-center justify-between px-4 py-3 min-h-[44px] bg-[#1F1F1F] hover:bg-[#2A2A2A] rounded-lg text-white text-sm font-medium transition-colors">
+                      <div className="flex items-center gap-2">
+                        {coverageTab === 'upload' ? (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            <span>Upload Wardrobe</span>
+                          </>
+                        ) : coverageTab === 'generate' ? (
+                          <>
+                            <span className="text-base">🤖</span>
+                            <span>Generate Wardrobe</span>
+                          </>
+                        ) : activeTab === 'info' ? (
+                          <>
+                            <FileText className="w-4 h-4" />
+                            <span>Info</span>
+                          </>
+                        ) : activeTab === 'references' ? (
+                          <>
+                            <Box className="w-4 h-4" />
+                            <span>References ({allImages.length})</span>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="w-4 h-4" />
+                            <span>Voice</span>
+                            {voiceProfile && <span className="text-xs text-green-400">●</span>}
+                          </>
+                        )}
+                      </div>
+                      <MoreVertical className="w-4 h-4 text-[#808080]" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm bg-[#1F1F1F] border-[#3F3F46]">
+                    {/* Main Tabs */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('info');
+                        setCoverageTab(null);
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'info' && !coverageTab
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Info</span>
+                      {activeTab === 'info' && !coverageTab && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('references');
+                        setCoverageTab(null);
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'references' && !coverageTab
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <Box className="w-4 h-4" />
+                      <span>References ({allImages.length})</span>
+                      {activeTab === 'references' && !coverageTab && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    {/* Coverage buttons - prioritized near References */}
+                    <div className="border-t border-[#3F3F46] my-1"></div>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setCoverageTab('upload');
+                        setActiveTab('references');
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        coverageTab === 'upload'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-white hover:bg-[#2A2A2A]'
+                      }`}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Wardrobe</span>
+                      {coverageTab === 'upload' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    {onGeneratePosePackage && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setCoverageTab('generate');
+                          setActiveTab('references');
+                        }}
+                        className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                          coverageTab === 'generate'
+                            ? 'bg-[#DC143C]/20 text-white'
+                            : 'text-white hover:bg-[#2A2A2A]'
+                        }`}
+                      >
+                        <span className="text-base">🤖</span>
+                        <span>Generate Wardrobe</span>
+                        {coverageTab === 'generate' && (
+                          <span className="ml-auto text-[#DC143C]">●</span>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    <div className="border-t border-[#3F3F46] my-1"></div>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('voice');
+                        setCoverageTab(null);
+                        if (!voiceProfile && !isLoadingVoice) {
+                          fetchVoiceProfile();
+                        }
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'voice' && !coverageTab
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      <span>Voice</span>
+                      {voiceProfile && (
+                        <span className="ml-2 text-xs text-green-400">●</span>
+                      )}
+                      {activeTab === 'voice' && !coverageTab && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                // Desktop: Horizontal tabs
+                <div className="flex items-center gap-2">
+                  {/* Left side: Standard tabs */}
                   <button
                     onClick={() => {
-                      setCoverageTab('generate');
-                      setActiveTab('references'); // Keep references as active tab for context
+                      setActiveTab('info');
+                      setCoverageTab(null);
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      coverageTab === 'generate'
+                      activeTab === 'info' && !coverageTab
                         ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
                     }`}
+                  >
+                    <FileText className="w-4 h-4 inline mr-2" />
+                    Info
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('references');
+                      setCoverageTab(null);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'references' && !coverageTab
+                        ? 'bg-[#DC143C] text-white'
+                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                    }`}
+                  >
+                    <Box className="w-4 h-4 inline mr-2" />
+                    References ({allImages.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('voice');
+                      setCoverageTab(null);
+                      if (!voiceProfile && !isLoadingVoice) {
+                        fetchVoiceProfile();
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'voice' && !coverageTab
+                        ? 'bg-[#DC143C] text-white'
+                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                    }`}
+                  >
+                    <Volume2 className="w-4 h-4 inline mr-2" />
+                    Voice
+                    {voiceProfile && (
+                      <span className={`ml-2 text-xs ${activeTab === 'voice' && !coverageTab ? 'opacity-75' : 'text-green-400'}`}>●</span>
+                    )}
+                  </button>
+                  
+                  {/* Right side: Coverage buttons */}
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setCoverageTab('upload');
+                        setActiveTab('references'); // Keep references as active tab for context
+                      }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        coverageTab === 'upload'
+                          ? 'bg-[#DC143C] text-white'
+                          : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                      }`}
                     >
-                      <span className="text-base mr-2">🤖</span>
-                      Generate Wardrobe
+                      <Upload className="w-4 h-4 inline mr-2" />
+                      Upload Wardrobe
                     </button>
-                )}
-              </div>
+                    {onGeneratePosePackage && (
+                      <button
+                        onClick={() => {
+                          setCoverageTab('generate');
+                          setActiveTab('references'); // Keep references as active tab for context
+                        }}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          coverageTab === 'generate'
+                            ? 'bg-[#DC143C] text-white'
+                            : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                        }`}
+                        >
+                          <span className="text-base mr-2">🤖</span>
+                          Generate Wardrobe
+                        </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Content */}
@@ -1779,7 +1923,8 @@ export function CharacterDetailModal({
                       {/* Production Hub Images Grid - Filtered by selected outfit */}
                       {/* 🔥 FIX: Normalize outfit names when filtering */}
                       {/* 🔥 FIX: Use more columns for smaller thumbnails (match ModernGallery grid-only layout) */}
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+                      {/* Mobile: 2 columns for larger thumbnails, Desktop: More columns */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
                         {(() => {
                           const normalizeOutfitName = (name: string): string => {
                             if (!name) return '';
@@ -2140,7 +2285,8 @@ export function CharacterDetailModal({
                           <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+                      {/* Mobile: 2 columns for larger thumbnails, Desktop: More columns */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
                         {userReferences.map((img) => {
                           return (
                             <div

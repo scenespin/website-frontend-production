@@ -1186,29 +1186,35 @@ export function ImageViewer({
               </button>
               {enableZoom && currentMediaType === 'image' && (
                 <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleZoomOut();
-                      handleShowControls();
-                    }}
-                    className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors flex items-center justify-center`}
-                    aria-label="Zoom out"
-                  >
-                    <ZoomOut className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleZoomIn();
-                      handleShowControls();
-                    }}
-                    className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors flex items-center justify-center`}
-                    aria-label="Zoom in"
-                  >
-                    <ZoomIn className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
-                  </button>
-                  {zoom !== 1 && (
+                  {/* Hide bottom bar zoom controls on mobile when zoomed (overlay controls are showing) */}
+                  {!(isMobile && zoom !== 1) && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleZoomOut();
+                          handleShowControls();
+                        }}
+                        className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors flex items-center justify-center`}
+                        aria-label="Zoom out"
+                      >
+                        <ZoomOut className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleZoomIn();
+                          handleShowControls();
+                        }}
+                        className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors flex items-center justify-center`}
+                        aria-label="Zoom in"
+                      >
+                        <ZoomIn className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
+                      </button>
+                    </>
+                  )}
+                  {/* Reset button - only show on mobile when NOT zoomed, or on desktop when zoomed */}
+                  {((isMobile && zoom === 1) || (!isMobile && zoom !== 1)) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1217,7 +1223,7 @@ export function ImageViewer({
                       }}
                       className={`${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-2 text-sm'} bg-[#1F1F1F] text-white rounded-lg hover:bg-[#2A2A2A] transition-colors`}
                     >
-                      Reset ({Math.round(zoom * 100)}%)
+                      {isMobile ? 'Reset' : `Reset (${Math.round(zoom * 100)}%)`}
                     </button>
                   )}
                 </>
