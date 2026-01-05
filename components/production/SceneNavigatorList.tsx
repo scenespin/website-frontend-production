@@ -76,29 +76,13 @@ export function SceneNavigatorList({
     return null;
   };
 
-  // Get asset/prop count for a scene - Match editor pattern exactly
+  // Get asset/prop count for a scene - Match Scene Preview pattern (direct count from tags)
   const getScenePropsCount = (scene: Scene): number => {
-    // 🔥 FIX: Match editor pattern - get asset names like editor does
+    // 🔥 FIX: Match Scene Preview pattern - just count props from fountain tags
+    // Scene Preview shows: (scene.fountain?.tags?.props || []).length
+    // This avoids timing issues with asset loading and ID mismatches
     const assetIds = scene.fountain?.tags?.props || [];
-    if (assetIds.length === 0) return 0;
-    
-    // Count valid assets (matching editor's getSceneAssets pattern)
-    const validCount = assetIds
-      .map(assetId => screenplay.assets.find(a => a.id === assetId))
-      .filter(Boolean).length;
-    
-    // 🔍 DEBUG: Log props for troubleshooting
-    if (assetIds.length > 0 && validCount === 0) {
-      console.log('[SceneNavigatorList] ⚠️ Props found in scene but no matching assets:', {
-        sceneId: scene.id,
-        sceneHeading: scene.heading,
-        assetIds,
-        availableAssetIds: screenplay.assets.map(a => a.id),
-        assetsCount: screenplay.assets.length
-      });
-    }
-    
-    return validCount;
+    return assetIds.length;
   };
 
   // Fetch first line of scene text when no synopsis is available
@@ -155,7 +139,7 @@ export function SceneNavigatorList({
   // Editor SceneNavigator only renders after relationships are built
   const relationshipsReady = screenplay.relationships && screenplay.relationships.scenes;
   
-  // 🔍 DEBUG: Log relationships to troubleshoot missing icons
+  // 🔍 DEBUG: Log relationships and props to troubleshoot missing icons
   useEffect(() => {
     if (scenes.length > 0 && hasInitialized && relationshipsReady) {
       const firstScene = scenes[0];
@@ -163,6 +147,18 @@ export function SceneNavigatorList({
       const hasLocation = !!getSceneLocation(firstScene);
       const hasCharacters = getSceneCharacters(firstScene).length > 0;
       const hasProps = getScenePropsCount(firstScene) > 0;
+      const assetIds = firstScene.fountain?.tags?.props || [];
+      
+      // 🔍 DEBUG: Log props info (moved to useEffect to prevent React error #185)
+      if (assetIds.length > 0) {
+        console.log('[SceneNavigatorList] 🔍 Props info:', {
+          sceneId: firstScene.id,
+          sceneHeading: firstScene.heading,
+          assetIds,
+          propsCount: hasProps,
+          assetsCount: screenplay.assets.length
+        });
+      }
       
       console.log('[SceneNavigatorList] 🔍 Relationships check:', {
         hasRelationships: !!screenplay.relationships,
@@ -234,18 +230,6 @@ export function SceneNavigatorList({
           const characters = getSceneCharacters(scene);
           const location = getSceneLocation(scene);
           const propsCount = getScenePropsCount(scene);
-          
-          // 🔍 DEBUG: Log props for first scene to troubleshoot
-          if (index === 0) {
-            console.log('[SceneNavigatorList] 🔍 First scene props debug:', {
-              sceneId: scene.id,
-              sceneHeading: scene.heading,
-              fountainTagsProps: scene.fountain?.tags?.props || [],
-              propsCount,
-              availableAssets: screenplay.assets.map(a => ({ id: a.id, name: a.name })),
-              assetsCount: screenplay.assets.length
-            });
-          }
           
           // Use index + 1 for display number to ensure sequential numbering
           // This fixes the issue where scenes might have duplicate order values
