@@ -38,16 +38,6 @@ export function SceneNavigatorList({
   const { getToken } = useAuth();
   const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
 
-  // Debug logging
-  useEffect(() => {
-    console.log('[SceneNavigatorList] State check:', {
-      scenesCount: scenes.length,
-      isLoading,
-      hasInitialized,
-      screenplayId: screenplay.screenplayId
-    });
-  }, [scenes.length, isLoading, hasInitialized, screenplay.screenplayId]);
-
   // Get character names for a scene
   const getSceneCharacters = (scene: Scene): string[] => {
     const sceneRel = screenplay.relationships?.scenes?.[scene.id];
@@ -130,27 +120,8 @@ export function SceneNavigatorList({
     fetchFirstLines();
   }, [projectId, getToken, scenes]);
 
-  // Show loading state while initializing OR if we have a screenplayId but no scenes yet (still loading)
-  // This handles the case where hasInitialized is true but scenes haven't populated yet due to startTransition timing
-  // We need to wait a bit after initialization to allow startTransition to complete
-  const [hasWaitedForScenes, setHasWaitedForScenes] = useState(false);
-  
-  useEffect(() => {
-    if (hasInitialized && screenplay.screenplayId && scenes.length === 0 && !hasWaitedForScenes) {
-      // Wait a bit for startTransition to complete (scenes are set via startTransition which defers updates)
-      const timer = setTimeout(() => {
-        setHasWaitedForScenes(true);
-      }, 200); // Give startTransition time to complete (usually completes within 1-2 render cycles)
-      return () => clearTimeout(timer);
-    } else if (scenes.length > 0) {
-      // Scenes are loaded, no need to wait
-      setHasWaitedForScenes(true);
-    }
-  }, [hasInitialized, screenplay.screenplayId, scenes.length, hasWaitedForScenes]);
-  
-  const isStillLoading = isLoading || !hasInitialized || (screenplay.screenplayId && scenes.length === 0 && !hasWaitedForScenes);
-  
-  if (isStillLoading) {
+  // Show loading state while initializing
+  if (isLoading || !hasInitialized) {
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <div className="flex items-center gap-2">
@@ -163,8 +134,8 @@ export function SceneNavigatorList({
     );
   }
 
-  // Show empty state only after initialization is complete AND we're sure there are no scenes
-  if (hasInitialized && (!scenes || scenes.length === 0)) {
+  // Show empty state only after initialization is complete
+  if (!scenes || scenes.length === 0) {
     return (
       <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
         <p className="text-sm font-medium text-[#808080] mb-2">
