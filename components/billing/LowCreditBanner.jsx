@@ -31,9 +31,8 @@ export default function LowCreditBanner() {
 
   async function fetchCredits() {
     try {
-      const { setAuthTokenGetter } = await import('@/lib/api');
-      const { getToken } = await import('@clerk/nextjs');
-      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      // Auth token is handled globally by LayoutClient.js
+      // No need to set it up here
 
       const response = await api.user.getCredits();
       const creditsData = response.data.data;

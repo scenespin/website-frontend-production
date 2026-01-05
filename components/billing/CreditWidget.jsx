@@ -9,7 +9,7 @@ import QuickPurchaseModal from './QuickPurchaseModal';
 import AutoRechargeModal from './AutoRechargeModal';
 
 export default function CreditWidget() {
-  const { user, getToken } = useUser();
+  const { user } = useUser();
   const [credits, setCredits] = useState(null);
   const [autoRecharge, setAutoRecharge] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -38,9 +38,8 @@ export default function CreditWidget() {
   async function fetchData() {
     try {
       setLoading(true);
-      const { setAuthTokenGetter } = await import('@/lib/api');
-      const { getToken } = await import('@clerk/nextjs');
-      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      // Auth token is handled globally by LayoutClient.js
+      // No need to set it up here
 
       // Fetch credits
       const creditsResponse = await api.user.getCredits();
