@@ -505,11 +505,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Track prop IDs for Media Library query
   const [propIds, setPropIds] = useState<string[]>([]);
   
-  // 🔥 FIX: Use ref to track last synced props to prevent infinite loop
-  const lastSyncedPropsRef = useRef<string>('');
+  // 🔥 FIX: Store base props (fetched from API) separately to break circular dependency
+  // This prevents the enrichment hook from recalculating when enriched props are synced back
+  const [baseProps, setBaseProps] = useState<any[]>([]);
+  const lastEnrichedPropsRef = useRef<string>('');
   
   // 🔥 NEW: Use custom hook for prop references
-  // Pass sceneProps as initialProps, but use ref to prevent circular updates
+  // Pass baseProps instead of sceneProps to break the circular dependency
+  // The hook will only recalculate when baseProps changes (when fetching new props), not when sceneProps changes
   const {
     enrichedProps: enrichedPropsFromHook,
     propThumbnailS3KeyMap,
@@ -521,17 +524,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       propIds,
       enabled: propIds.length > 0
     },
-    sceneProps
+    baseProps
   );
   
-  // Sync hook data to state (for backward compatibility during refactor)
-  // 🔥 FIX: Prevent infinite loop by tracking last synced props and only updating when truly different
+  // Sync enriched props to state (for backward compatibility during refactor)
+  // 🔥 FIX: Only sync when enriched props actually change, and prevent circular updates
   useEffect(() => {
-    // Access current sceneProps from context to ensure we have latest value
-    const currentSceneProps = contextState.sceneProps;
-    
     // Skip if no props to sync
-    if (enrichedPropsFromHook.length === 0 && currentSceneProps.length === 0) {
+    if (enrichedPropsFromHook.length === 0 && baseProps.length === 0) {
       return;
     }
     
@@ -540,33 +540,35 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     
     // Only sync if the enriched props are different from what we last synced
     // This prevents re-syncing the same data and breaking the loop
-    if (enrichedPropsString === lastSyncedPropsRef.current) {
+    if (enrichedPropsString === lastEnrichedPropsRef.current) {
       return;
     }
     
-    // Compare with current sceneProps to see if update is needed
-    const currentPropsString = JSON.stringify(currentSceneProps);
-    if (enrichedPropsString === currentPropsString) {
-      // Already in sync, just update the ref
-      lastSyncedPropsRef.current = enrichedPropsString;
-      return;
-    }
-    
-    // Check if the change is meaningful (not just a reference change)
-    // Compare by ID to ensure we're enriching the same props
-    const currentPropsIds = currentSceneProps.map((p: any) => p.id).sort().join(',');
+    // Check if the enriched props are based on the same base props
     const enrichedPropsIds = enrichedPropsFromHook.map((p: any) => p.id).sort().join(',');
+    const basePropsIds = baseProps.map((p: any) => p.id).sort().join(',');
     
-    // Only update if:
-    // 1. IDs match (same props, just enriched with Media Library data), OR
+    // 🔥 DEBUG: Log to help troubleshoot
+    if (enrichedPropsIds !== basePropsIds && baseProps.length > 0) {
+      console.warn('[SceneBuilderPanel] ⚠️ Enriched props IDs mismatch base props IDs:', {
+        enrichedIds: enrichedPropsIds,
+        baseIds: basePropsIds,
+        enrichedCount: enrichedPropsFromHook.length,
+        baseCount: baseProps.length
+      });
+    }
+    
+    // Only sync if:
+    // 1. The enriched props are based on the current base props (IDs match), OR
     // 2. We're going from empty to populated
-    if (currentPropsIds === enrichedPropsIds || currentSceneProps.length === 0) {
+    if (enrichedPropsIds === basePropsIds || baseProps.length === 0) {
       console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedPropsFromHook);
       setSceneProps(enrichedPropsFromHook);
-      lastSyncedPropsRef.current = enrichedPropsString;
+      lastEnrichedPropsRef.current = enrichedPropsString;
+    } else {
+      console.warn('[SceneBuilderPanel] ⚠️ Skipping props sync - IDs mismatch (preventing infinite loop)');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enrichedPropsFromHook, setSceneProps]); // 🔥 FIX: Only react to enrichedPropsFromHook changes. Access contextState.sceneProps inside effect for current value.
+  }, [enrichedPropsFromHook, baseProps, setSceneProps]); // 🔥 FIX: Only react to enrichedPropsFromHook and baseProps changes
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
@@ -773,8 +775,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       try {
         const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
         if (!scene) {
+          setBaseProps([]);
           setSceneProps([]);
           setPropIds([]);
+          lastEnrichedPropsRef.current = '';
           return;
         }
         
@@ -786,20 +790,28 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           console.log('[SceneBuilderPanel] Fetching props for scene:', selectedSceneId, 'Prop IDs:', fetchedPropIds);
           const props = await SceneBuilderService.fetchSceneProps(fetchedPropIds, getToken);
           console.log('[SceneBuilderPanel] Fetched props:', props);
-          setSceneProps(props);
+          // 🔥 FIX: Store base props in state to break circular dependency
+          // The enrichment hook will use these, and we'll sync enriched props separately
+          setBaseProps(props); // This triggers usePropReferences to recalculate
+          setSceneProps(props); // Set initial props (will be enriched by usePropReferences)
+          lastEnrichedPropsRef.current = ''; // Reset to allow new enrichment
         } else {
           console.log('[SceneBuilderPanel] No props found for scene:', selectedSceneId);
+          setBaseProps([]);
           setSceneProps([]);
+          lastEnrichedPropsRef.current = '';
         }
       } catch (error) {
         console.error('[SceneBuilderPanel] Failed to fetch props:', error);
+        setBaseProps([]);
         setSceneProps([]);
         setPropIds([]);
+        lastEnrichedPropsRef.current = '';
       }
     }
     
     fetchSceneProps();
-  }, [selectedSceneId, projectId, screenplay.scenes, getToken]);
+  }, [selectedSceneId, projectId, screenplay.scenes, getToken, setSceneProps]);
   
   // Props enrichment is now handled by usePropReferences hook (see above)
 
