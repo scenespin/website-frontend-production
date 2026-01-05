@@ -640,7 +640,7 @@ export function ImageViewer({
         <div 
           className={`absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity rounded-t-lg ${
             isMobile 
-              ? showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              ? showControls ? 'opacity-100' : 'opacity-0'
               : 'group-hover:opacity-100 md:opacity-70 opacity-100'
           }`}
           onClick={handleShowControls}
@@ -685,10 +685,10 @@ export function ImageViewer({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          e.preventDefault();
+                          // Don't prevent default - let the dropdown open
                           handleShowControls();
                         }}
-                        className={`hover:bg-[#1F1F1F] rounded-lg transition-colors ${
+                        className={`hover:bg-[#1F1F1F] rounded-lg transition-colors pointer-events-auto ${
                           isMobile ? 'p-3 min-w-[44px] min-h-[44px] flex items-center justify-center' : 'p-2'
                         }`}
                         aria-label="More options"
