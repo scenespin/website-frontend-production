@@ -12,6 +12,7 @@ import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import { useEntityAutocomplete } from '@/hooks/useEntityAutocomplete';
 import { useFountainFormatting } from '@/hooks/useFountainFormatting';
 import { useWrydaTabNavigation } from '@/hooks/useWrydaTabNavigation';
+import { parseSceneHeading, formatSceneHeadingType, buildSceneHeading, updateSceneHeadingParts } from '@/utils/sceneHeadingParser';
 
 // Contextual Navigation Integration
 import { useContextStore } from '@/lib/contextStore';
@@ -607,32 +608,75 @@ export default function FountainEditor({
                             const lines = textBeforeCursor.split('\n');
                             const currentLineText = lines[lines.length - 1] || '';
                             
-                            // Check if we're in a scene heading context
-                            // Only trigger Tab navigation if line looks like scene heading
-                            const isSceneHeading = /^(INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/i.test(currentLineText.trim());
+                            // Check if we're in a scene heading context (BEFORE $ is inserted)
+                            // onKeyDown fires BEFORE character insertion, so currentLineText won't have $ yet
+                            // Match lowercase variations: int, ext, i/e, int/ext, etc. (case-insensitive)
+                            const trimmedLine = currentLineText.trim();
+                            // Match scene heading types: INT, EXT, EST, I/E, INT/EXT, INT./EXT., etc. (case-insensitive)
+                            const isSceneHeading = /^(int|ext|est|i\/e|int\/ext|int\.\/ext\.)/i.test(trimmedLine);
                             
                             if (isSceneHeading) {
                                 console.log('[WrydaTab] $ symbol pressed in scene heading, treating as Tab trigger...');
+                                // CRITICAL: Prevent $ from being inserted into textarea
                                 e.preventDefault();
+                                e.stopPropagation();
                                 
-                                // Remove $ from text (it's just a trigger, not part of screenplay)
-                                const textAfter = textarea.value.substring(cursorPos);
-                                const newValue = textBeforeCursor.substring(0, textBeforeCursor.length - 1) + textAfter; // Remove $
+                                // Format the type field if needed (int → INT., ext → EXT., i/e → I./E., int/ext → INT./EXT.)
+                                // This handles lowercase input before proceeding with Tab navigation
+                                const parts = parseSceneHeading(trimmedLine);
                                 
-                                // Update content and cursor position
-                                setContent(newValue);
+                                // If we have a type field, format it properly
+                                if (parts.type) {
+                                    const formattedType = formatSceneHeadingType(parts.type);
+                                    if (formattedType !== parts.type) {
+                                        // Type needs formatting (e.g., "int" → "INT.")
+                                        const updatedParts = updateSceneHeadingParts(parts, { type: formattedType });
+                                        const formattedLine = buildSceneHeading(updatedParts);
+                                        
+                                        // Replace the current line with formatted version
+                                        const textAfter = textarea.value.substring(cursorPos);
+                                        const newTextBefore = lines.slice(0, -1).concat(formattedLine).join('\n');
+                                        const newContent = newTextBefore + textAfter;
+                                        
+                                        // Update content
+                                        setContent(newContent);
+                                        
+                                        // Wait for state to update before calling handleTab
+                                        setTimeout(() => {
+                                            if (textarea) {
+                                                const newPos = newTextBefore.length;
+                                                textarea.selectionStart = newPos;
+                                                textarea.selectionEnd = newPos;
+                                                setCursorPosition(newPos);
+                                                
+                                                // Create synthetic Tab event to reuse existing Tab logic
+                                                const syntheticEvent = {
+                                                    ...e,
+                                                    key: 'Tab',
+                                                    code: 'Tab',
+                                                    preventDefault: () => {},
+                                                    stopPropagation: () => {}
+                                                } as React.KeyboardEvent<HTMLTextAreaElement>;
+                                                
+                                                // Call handleTab with synthetic event (reuses all Tab logic)
+                                                wrydaTab.handleTab(syntheticEvent);
+                                            }
+                                        }, 0);
+                                        
+                                        return;
+                                    }
+                                }
                                 
+                                // If type is already formatted or no formatting needed, proceed with Tab navigation
                                 // Wait for state to update before calling handleTab (mobile-specific timing issue)
-                                // Desktop Tab key doesn't have this issue since it doesn't modify content first
                                 setTimeout(() => {
                                     if (textarea) {
-                                        const newPos = cursorPos - 1;
+                                        const newPos = cursorPos;
                                         textarea.selectionStart = newPos;
                                         textarea.selectionEnd = newPos;
                                         setCursorPosition(newPos);
                                         
                                         // Create synthetic Tab event to reuse existing Tab logic
-                                        // Must be called after state update so handleTab sees the correct content
                                         const syntheticEvent = {
                                             ...e,
                                             key: 'Tab',
