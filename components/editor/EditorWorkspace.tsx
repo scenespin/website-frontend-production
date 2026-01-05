@@ -25,6 +25,7 @@ import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { toast } from 'sonner';
 import type { Scene } from '../../types/screenplay';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 /**
  * EditorWorkspace - Complete screenplay editor with all features
@@ -420,31 +421,59 @@ export default function EditorWorkspace() {
         <div className="h-screen flex flex-col bg-base-100">
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
-                {/* Scene Navigator Sidebar - Hidden in editor fullscreen */}
+                {/* Scene Navigator Sidebar - Desktop: Fixed sidebar, Mobile: Slide-out drawer */}
                 {isSceneNavVisible && !isEditorFullscreen && (
-                    <div className="w-72 border-r border-[#3F3F46] flex-shrink-0 hidden lg:block">
-                        <div className="h-full flex flex-col">
-                            <div className="p-3 border-b border-white/10 bg-[#0A0A0A]">
-                                <h2 className="text-sm font-semibold text-base-content flex items-center justify-between">
-                                    <span>Scenes</span>
-                                    <button
-                                        onClick={() => setIsSceneNavVisible(false)}
-                                        className="btn btn-ghost btn-xs"
-                                        title="Hide scene navigator (Cmd+E)"
-                                    >
-                                        ✕
-                                    </button>
-                                </h2>
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                                <SceneNavigator
-                                    currentLine={state.currentLine}
-                                    onSceneClick={handleSceneClick}
-                                    className="h-full border-none rounded-none"
-                                />
+                    <>
+                        {/* Desktop: Fixed sidebar (lg and above) */}
+                        <div className="w-72 border-r border-[#3F3F46] flex-shrink-0 hidden lg:block">
+                            <div className="h-full flex flex-col">
+                                <div className="p-3 border-b border-white/10 bg-[#0A0A0A]">
+                                    <h2 className="text-sm font-semibold text-base-content flex items-center justify-between">
+                                        <span>Scenes</span>
+                                        <button
+                                            onClick={() => setIsSceneNavVisible(false)}
+                                            className="btn btn-ghost btn-xs"
+                                            title="Hide scene navigator (Cmd+E)"
+                                        >
+                                            ✕
+                                        </button>
+                                    </h2>
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    <SceneNavigator
+                                        currentLine={state.currentLine}
+                                        onSceneClick={handleSceneClick}
+                                        className="h-full border-none rounded-none"
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        
+                        {/* Mobile: Slide-out drawer (below lg) */}
+                        <Sheet open={isSceneNavVisible} onOpenChange={setIsSceneNavVisible}>
+                            <SheetContent 
+                                side="left" 
+                                className="w-3/4 sm:max-w-sm p-0 bg-[#0A0A0A] border-r border-[#3F3F46] lg:hidden"
+                            >
+                                <SheetHeader className="p-3 border-b border-white/10 bg-[#0A0A0A]">
+                                    <SheetTitle className="text-sm font-semibold text-base-content">
+                                        Scenes
+                                    </SheetTitle>
+                                </SheetHeader>
+                                <div className="flex-1 overflow-hidden">
+                                    <SceneNavigator
+                                        currentLine={state.currentLine}
+                                        onSceneClick={(scene) => {
+                                            handleSceneClick(scene);
+                                            // Close drawer after selecting a scene on mobile
+                                            setIsSceneNavVisible(false);
+                                        }}
+                                        className="h-full border-none rounded-none"
+                                    />
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                    </>
                 )}
                 
                 {/* Editor Area */}
