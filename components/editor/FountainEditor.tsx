@@ -489,19 +489,26 @@ export default function FountainEditor({
                                 setContent(newContent2);
                                 setTimeout(() => {
                                     if (textareaRef.current) {
+                                        // Ensure textarea value matches the new content
+                                        textareaRef.current.value = newContent2;
                                         const newPos = newTextBefore2.length;
                                         textareaRef.current.selectionStart = newPos;
                                         textareaRef.current.selectionEnd = newPos;
                                         setCursorPosition(newPos);
-                                        const syntheticEvent = {
-                                            key: 'Tab',
-                                            code: 'Tab',
-                                            preventDefault: () => {},
-                                            stopPropagation: () => {}
-                                        } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                        wrydaTab.handleTab(syntheticEvent);
+                                        
+                                        // Wait one more frame to ensure state.content is updated
+                                        requestAnimationFrame(() => {
+                                            const syntheticEvent = {
+                                                key: 'Tab',
+                                                code: 'Tab',
+                                                preventDefault: () => {},
+                                                stopPropagation: () => {}
+                                            } as React.KeyboardEvent<HTMLTextAreaElement>;
+                                            console.log('[WrydaTab] Calling handleTab from handleChange after formatting');
+                                            wrydaTab.handleTab(syntheticEvent);
+                                        });
                                     }
-                                }, 50);
+                                }, 100);
                                 return;
                             }
                         }
@@ -511,15 +518,20 @@ export default function FountainEditor({
                                 textareaRef.current.selectionStart = cursorPos;
                                 textareaRef.current.selectionEnd = cursorPos;
                                 setCursorPosition(cursorPos);
-                                const syntheticEvent = {
-                                    key: 'Tab',
-                                    code: 'Tab',
-                                    preventDefault: () => {},
-                                    stopPropagation: () => {}
-                                } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                wrydaTab.handleTab(syntheticEvent);
+                                
+                                // Wait one more frame to ensure state.content is updated
+                                requestAnimationFrame(() => {
+                                    const syntheticEvent = {
+                                        key: 'Tab',
+                                        code: 'Tab',
+                                        preventDefault: () => {},
+                                        stopPropagation: () => {}
+                                    } as React.KeyboardEvent<HTMLTextAreaElement>;
+                                    console.log('[WrydaTab] Calling handleTab from handleChange (already formatted)');
+                                    wrydaTab.handleTab(syntheticEvent);
+                                });
                             }
-                        }, 50);
+                        }, 100);
                     }, 0);
                     
                     // Save cursor position to ref for cursor preservation
@@ -759,28 +771,35 @@ export default function FountainEditor({
                                         // Update content
                                         setContent(newContent);
                                         
-                                        // Wait for state to update before calling handleTab
+                                        // Wait for state to update and ensure textarea value is synced before calling handleTab
+                                        // handleTab reads from state.content, so we need to wait for React state update
                                         setTimeout(() => {
                                             if (textarea) {
+                                                // Ensure textarea value matches the new content
+                                                textarea.value = newContent;
                                                 const newPos = newTextBefore.length;
                                                 textarea.selectionStart = newPos;
                                                 textarea.selectionEnd = newPos;
                                                 setCursorPosition(newPos);
                                                 
-                                                // Create synthetic Tab event to reuse existing Tab logic
-                                                const syntheticEvent = {
-                                                    ...e,
-                                                    key: 'Tab',
-                                                    code: 'Tab',
-                                                    preventDefault: () => {},
-                                                    stopPropagation: () => {}
-                                                } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                                
-                                                console.log('[WrydaTab] Calling handleTab with synthetic event');
-                                                // Call handleTab with synthetic event (reuses all Tab logic)
-                                                wrydaTab.handleTab(syntheticEvent);
+                                                // Wait one more frame to ensure state.content is updated
+                                                requestAnimationFrame(() => {
+                                                    // Create synthetic Tab event to reuse existing Tab logic
+                                                    const syntheticEvent = {
+                                                        ...e,
+                                                        key: 'Tab',
+                                                        code: 'Tab',
+                                                        preventDefault: () => {},
+                                                        stopPropagation: () => {}
+                                                    } as React.KeyboardEvent<HTMLTextAreaElement>;
+                                                    
+                                                    console.log('[WrydaTab] Calling handleTab with synthetic event after formatting');
+                                                    // Call handleTab with synthetic event (reuses all Tab logic)
+                                                    // This should now show the location dropdown
+                                                    wrydaTab.handleTab(syntheticEvent);
+                                                });
                                             }
-                                        }, 50);
+                                        }, 100);
                                         
                                         return;
                                     }
@@ -795,20 +814,24 @@ export default function FountainEditor({
                                         textarea.selectionEnd = newPos;
                                         setCursorPosition(newPos);
                                         
-                                        // Create synthetic Tab event to reuse existing Tab logic
-                                        const syntheticEvent = {
-                                            ...e,
-                                            key: 'Tab',
-                                            code: 'Tab',
-                                            preventDefault: () => {},
-                                            stopPropagation: () => {}
-                                        } as React.KeyboardEvent<HTMLTextAreaElement>;
-                                        
-                                        console.log('[WrydaTab] Calling handleTab (already formatted)');
-                                        // Call handleTab with synthetic event (reuses all Tab logic)
-                                        wrydaTab.handleTab(syntheticEvent);
+                                        // Wait one more frame to ensure state.content is updated
+                                        requestAnimationFrame(() => {
+                                            // Create synthetic Tab event to reuse existing Tab logic
+                                            const syntheticEvent = {
+                                                ...e,
+                                                key: 'Tab',
+                                                code: 'Tab',
+                                                preventDefault: () => {},
+                                                stopPropagation: () => {}
+                                            } as React.KeyboardEvent<HTMLTextAreaElement>;
+                                            
+                                            console.log('[WrydaTab] Calling handleTab (already formatted)');
+                                            // Call handleTab with synthetic event (reuses all Tab logic)
+                                            // This should show the location dropdown
+                                            wrydaTab.handleTab(syntheticEvent);
+                                        });
                                     }
-                                }, 50);
+                                }, 100);
                                 
                                 return;
                             } else {
