@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
+import { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useUser } from '@clerk/nextjs';
 
 // ============================================================================
 // TYPES
@@ -226,10 +227,95 @@ function chatReducer(state, action) {
 const ChatContext = createContext(undefined);
 
 export function ChatProvider({ children, initialContext = null }) {
+  const { user, isSignedIn } = useUser();
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     sceneContext: initialContext || null
   });
+  const hasLoadedFromStorage = useRef(false);
+  
+  // Session storage key for Story Advisor chat history
+  const getStorageKey = () => {
+    if (!user?.id) return null;
+    return `story-advisor-chat-history-${user.id}`;
+  };
+  
+  // Load chat history from sessionStorage on mount (only for logged-in users)
+  useEffect(() => {
+    if (!isSignedIn || !user?.id || hasLoadedFromStorage.current) return;
+    
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    try {
+      const savedHistory = sessionStorage.getItem(storageKey);
+      if (savedHistory) {
+        const parsedMessages = JSON.parse(savedHistory);
+        // Only load messages for 'chat' mode (Story Advisor)
+        if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+          console.log('[ChatContext] Loading chat history from sessionStorage:', parsedMessages.length, 'messages');
+          dispatch({ type: 'SET_MESSAGES', payload: parsedMessages });
+        }
+      }
+      // Mark as loaded even if no history exists, so new messages can be saved
+      hasLoadedFromStorage.current = true;
+    } catch (error) {
+      console.error('[ChatContext] Error loading chat history from sessionStorage:', error);
+      // Clear corrupted data
+      sessionStorage.removeItem(storageKey);
+      // Still mark as loaded so new messages can be saved
+      hasLoadedFromStorage.current = true;
+    }
+  }, [isSignedIn, user?.id]);
+  
+  // Save chat history to sessionStorage whenever messages change (only for logged-in users)
+  useEffect(() => {
+    if (!isSignedIn || !user?.id) return;
+    
+    // If we haven't loaded from storage yet, mark as loaded so we can start saving
+    // This handles the case where user sends a message before history loads
+    if (!hasLoadedFromStorage.current) {
+      hasLoadedFromStorage.current = true;
+    }
+    
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    try {
+      // Only save messages for 'chat' mode (Story Advisor)
+      const chatMessages = state.messages.filter(m => m.mode === 'chat');
+      
+      if (chatMessages.length > 0) {
+        sessionStorage.setItem(storageKey, JSON.stringify(chatMessages));
+        console.log('[ChatContext] Saved chat history to sessionStorage:', chatMessages.length, 'messages');
+      } else {
+        // Clear storage if no messages
+        sessionStorage.removeItem(storageKey);
+      }
+    } catch (error) {
+      console.error('[ChatContext] Error saving chat history to sessionStorage:', error);
+      // Handle quota exceeded error gracefully
+      if (error.name === 'QuotaExceededError') {
+        console.warn('[ChatContext] SessionStorage quota exceeded, clearing old history');
+        try {
+          // Try to clear and save only the last 20 messages
+          const chatMessages = state.messages.filter(m => m.mode === 'chat');
+          const recentMessages = chatMessages.slice(-20);
+          sessionStorage.setItem(storageKey, JSON.stringify(recentMessages));
+        } catch (retryError) {
+          console.error('[ChatContext] Failed to save even reduced history:', retryError);
+        }
+      }
+    }
+  }, [state.messages, isSignedIn, user?.id]);
+  
+  // Clear storage when user signs out
+  useEffect(() => {
+    if (!isSignedIn && hasLoadedFromStorage.current) {
+      // User signed out - clear the loaded flag so history can be loaded again if they sign back in
+      hasLoadedFromStorage.current = false;
+    }
+  }, [isSignedIn]);
   
   // Message actions
   const addMessage = useCallback((message) => {
