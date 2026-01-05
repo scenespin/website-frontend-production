@@ -423,58 +423,59 @@ export default function EditorWorkspace() {
             <div className="flex-1 flex overflow-hidden">
                 {/* Scene Navigator Sidebar - Desktop: Fixed sidebar, Mobile: Slide-out drawer */}
                 {/* On mobile, show even in fullscreen; on desktop, hide in fullscreen */}
-                {isSceneNavVisible && (!isEditorFullscreen || isMobile) && (
-                    <>
-                        {/* Desktop: Fixed sidebar (lg and above) */}
-                        <div className="w-72 border-r border-[#3F3F46] flex-shrink-0 hidden lg:block">
-                            <div className="h-full flex flex-col">
-                                <div className="p-3 border-b border-white/10 bg-[#0A0A0A]">
-                                    <h2 className="text-sm font-semibold text-base-content flex items-center justify-between">
-                                        <span>Scenes</span>
-                                        <button
-                                            onClick={() => setIsSceneNavVisible(false)}
-                                            className="btn btn-ghost btn-xs"
-                                            title="Hide scene navigator (Cmd+E)"
-                                        >
-                                            ✕
-                                        </button>
-                                    </h2>
-                                </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <SceneNavigator
-                                        currentLine={state.currentLine}
-                                        onSceneClick={handleSceneClick}
-                                        className="h-full border-none rounded-none"
-                                    />
-                                </div>
+                
+                {/* Desktop: Fixed sidebar (lg and above) */}
+                {isSceneNavVisible && !isEditorFullscreen && (
+                    <div className="w-72 border-r border-[#3F3F46] flex-shrink-0 hidden lg:block">
+                        <div className="h-full flex flex-col">
+                            <div className="p-3 border-b border-white/10 bg-[#0A0A0A]">
+                                <h2 className="text-sm font-semibold text-base-content flex items-center justify-between">
+                                    <span>Scenes</span>
+                                    <button
+                                        onClick={() => setIsSceneNavVisible(false)}
+                                        className="btn btn-ghost btn-xs"
+                                        title="Hide scene navigator (Cmd+E)"
+                                    >
+                                        ✕
+                                    </button>
+                                </h2>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <SceneNavigator
+                                    currentLine={state.currentLine}
+                                    onSceneClick={handleSceneClick}
+                                    className="h-full border-none rounded-none"
+                                />
                             </div>
                         </div>
-                        
-                        {/* Mobile: Slide-out drawer (below lg) */}
-                        <Sheet open={isSceneNavVisible} onOpenChange={setIsSceneNavVisible}>
-                            <SheetContent 
-                                side="left" 
-                                className="w-3/4 sm:max-w-sm p-0 bg-[#0A0A0A] border-r border-[#3F3F46] lg:hidden"
-                            >
-                                <SheetHeader className="p-3 border-b border-white/10 bg-[#0A0A0A]">
-                                    <SheetTitle className="text-sm font-semibold text-base-content">
-                                        Scenes
-                                    </SheetTitle>
-                                </SheetHeader>
-                                <div className="flex-1 overflow-hidden">
-                                    <SceneNavigator
-                                        currentLine={state.currentLine}
-                                        onSceneClick={(scene) => {
-                                            handleSceneClick(scene);
-                                            // Close drawer after selecting a scene on mobile
-                                            setIsSceneNavVisible(false);
-                                        }}
-                                        className="h-full border-none rounded-none"
-                                    />
-                                </div>
-                            </SheetContent>
-                        </Sheet>
-                    </>
+                    </div>
+                )}
+                
+                {/* Mobile: Slide-out drawer (below lg) - Only render on mobile to avoid overlay on desktop */}
+                {isMobile && isSceneNavVisible && (!isEditorFullscreen || isMobile) && (
+                    <Sheet open={isSceneNavVisible} onOpenChange={setIsSceneNavVisible}>
+                        <SheetContent 
+                            side="left" 
+                            className="w-3/4 sm:max-w-sm p-0 bg-[#0A0A0A] border-r border-[#3F3F46]"
+                        >
+                            <SheetHeader className="p-3 border-b border-white/10 bg-[#0A0A0A]">
+                                <SheetTitle className="text-sm font-semibold text-base-content">
+                                    Scenes
+                                </SheetTitle>
+                            </SheetHeader>
+                            <div className="flex-1 overflow-hidden">
+                                <SceneNavigator
+                                    currentLine={state.currentLine}
+                                    onSceneClick={(scene) => {
+                                        handleSceneClick(scene);
+                                        // Close drawer after selecting a scene on mobile
+                                        setIsSceneNavVisible(false);
+                                    }}
+                                    className="h-full border-none rounded-none"
+                                />
+                            </div>
+                        </SheetContent>
+                    </Sheet>
                 )}
                 
                 {/* Editor Area */}
