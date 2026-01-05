@@ -18,6 +18,7 @@ interface EditorToolbarProps {
     onOpenFindReplace?: () => void;
     onToggleItalics?: () => void;
     onOpenVersionHistory?: () => void;
+    onToggleSceneNav?: () => void;
 }
 
 /**
@@ -135,7 +136,7 @@ function ExportToGitHubButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, onOpenFindReplace, onToggleItalics, onOpenVersionHistory }: EditorToolbarProps) {
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onToggleSceneNav }: EditorToolbarProps) {
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
     const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner } = useScreenplay();
     
@@ -310,8 +311,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     
     return (
         <div className={`bg-[#0A0A0A] border-t border-white/10 shadow-sm ${className}`}>
-            {/* Mobile-friendly toolbar - wraps instead of scrolling */}
-            <div className="flex flex-wrap items-center gap-2 p-2">
+            {/* Desktop toolbar - flex wrap layout */}
+            <div className="hidden md:flex flex-wrap items-center gap-2 p-2">
                 
                 {/* Undo/Redo */}
                 <div className="flex space-x-1">
@@ -524,8 +525,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     );
                 })()}
                 
-                {/* Feature 0111: Optional Export to GitHub - Emoji (opens in new window) */}
-                <div className="tooltip tooltip-bottom" data-tip="Export to GitHub (Optional) • Opens in new window">
+                {/* Feature 0111: Optional Export to GitHub - Emoji (opens in new window) - Hidden on mobile */}
+                <div className="hidden md:block tooltip tooltip-bottom" data-tip="Export to GitHub (Optional) • Opens in new window">
                     <button
                         onClick={async () => {
                             const githubConfigStr = localStorage.getItem('screenplay_github_config');
@@ -566,10 +567,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 </div>
                 
                 {/* Divider */}
-                <div className="h-8 w-px bg-base-300 mx-2"></div>
+                <div className="hidden md:block h-8 w-px bg-base-300 mx-2"></div>
                 
-                {/* Download .fountain button - Emoji */}
-                <div className="tooltip tooltip-bottom" data-tip="Download .fountain file • Plain text screenplay format">
+                {/* Download .fountain button - Emoji - Hidden on mobile */}
+                <div className="hidden md:block tooltip tooltip-bottom" data-tip="Download .fountain file • Plain text screenplay format">
                     <button
                         onClick={() => {
                             const blob = new Blob([state.content], { type: 'text/plain' });
@@ -635,6 +636,250 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         )}
                     </button>
                 </div>
+            </div>
+            
+            {/* Mobile toolbar - 2 rows of 8 buttons each */}
+            <div className="md:hidden flex flex-col gap-1.5 p-1.5">
+                {/* ROW 1: Top Actions (8 buttons) */}
+                <div className="grid grid-cols-8 gap-1">
+                    {/* Undo */}
+                    <div className="tooltip tooltip-bottom" data-tip="Undo • Ctrl+Z">
+                        <button
+                            onClick={undo}
+                            disabled={state.undoStack.length === 0}
+                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            <span className="text-sm">↶</span>
+                            <span className="text-[8px] leading-tight">Undo</span>
+                        </button>
+                    </div>
+                    
+                    {/* Redo */}
+                    <div className="tooltip tooltip-bottom" data-tip="Redo • Ctrl+Y">
+                        <button
+                            onClick={redo}
+                            disabled={state.redoStack.length === 0}
+                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            <span className="text-sm">↷</span>
+                            <span className="text-[8px] leading-tight">Redo</span>
+                        </button>
+                    </div>
+                    
+                    {/* Save */}
+                    {onSave && canEditScript && (
+                        <div className="tooltip tooltip-bottom" data-tip={isSaving ? 'Saving...' : 'Save to database'}>
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-all ${
+                                    isSaving
+                                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 cursor-wait'
+                                        : 'bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C]'
+                                }`}
+                            >
+                                {isSaving ? (
+                                    <span className="text-sm animate-spin">💾</span>
+                                ) : (
+                                    <>
+                                        <span className="text-sm">💾</span>
+                                        <span className="text-[8px] leading-tight">Save</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Rescan */}
+                    {effectiveCanEditScript && (
+                        <div className="tooltip tooltip-bottom" data-tip="Scan script for new characters/locations">
+                            <button
+                                onClick={handleRescan}
+                                disabled={isRescanning || !state.content.trim()}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                {isRescanning ? (
+                                    <span className="text-sm loading loading-spinner loading-xs"></span>
+                                ) : (
+                                    <>
+                                        <span className="text-sm">🔄</span>
+                                        <span className="text-[8px] leading-tight">Rescan</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Import */}
+                    {effectiveCanEditScript && (
+                        <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
+                            <button
+                                onClick={handleOpenImport}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-sm">📄</span>
+                                <span className="text-[8px] leading-tight">Import</span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Download (PDF) */}
+                    {onExportPDF && (
+                        <div className="tooltip tooltip-bottom" data-tip="Export PDF • Industry-standard format">
+                            <button
+                                onClick={onExportPDF}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-sm">⬇️</span>
+                                <span className="text-[8px] leading-tight">Download</span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Fullscreen */}
+                    <div className="tooltip tooltip-bottom" data-tip={isEditorFullscreen ? 'Exit Editor Fullscreen' : 'Editor Fullscreen'}>
+                        <button
+                            onClick={() => {
+                                if (onToggleEditorFullscreen) {
+                                    onToggleEditorFullscreen();
+                                } else {
+                                    window.dispatchEvent(new CustomEvent('toggleEditorFullscreen'));
+                                }
+                            }}
+                            className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors ${
+                                isEditorFullscreen
+                                    ? 'bg-[#DC143C] hover:bg-[#DC143C]/90 text-white'
+                                    : 'bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C]'
+                            }`}
+                        >
+                            {isEditorFullscreen ? (
+                                <>
+                                    <span className="text-sm">✕</span>
+                                    <span className="text-[8px] leading-tight">Exit</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-sm">⛶</span>
+                                    <span className="text-[8px] leading-tight">Full</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                    
+                    {/* Scenes */}
+                    {onToggleSceneNav && (
+                        <div className="tooltip tooltip-bottom" data-tip="Toggle Scene Navigator">
+                            <button
+                                onClick={onToggleSceneNav}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-sm">🎬</span>
+                                <span className="text-[8px] leading-tight">Scenes</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+                
+                {/* ROW 2: Formatting Controls (8 buttons) - Hidden in fullscreen */}
+                {!isEditorFullscreen && (
+                <div className="grid grid-cols-8 gap-1">
+                    {/* Decrease Font Size */}
+                    <div className="tooltip tooltip-bottom" data-tip="Decrease Font Size">
+                        <button
+                            onClick={decreaseFontSize}
+                            className="w-full px-1 py-1.5 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-sm">−</span>
+                            <span className="text-[8px] leading-tight">-</span>
+                        </button>
+                    </div>
+                    
+                    {/* Increase Font Size */}
+                    <div className="tooltip tooltip-bottom" data-tip="Increase Font Size">
+                        <button
+                            onClick={increaseFontSize}
+                            className="w-full px-1 py-1.5 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-sm">+</span>
+                            <span className="text-[8px] leading-tight">+</span>
+                        </button>
+                    </div>
+                    
+                    {/* Scene Heading */}
+                    <div className="tooltip tooltip-bottom" data-tip="Scene Heading • Shift+Tab">
+                        <button
+                            onClick={() => formatCurrentLine('scene_heading')}
+                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-sm">🎬</span>
+                            <span className="text-[8px] leading-tight">Scene</span>
+                        </button>
+                    </div>
+                    
+                    {/* Character */}
+                    <div className="tooltip tooltip-bottom" data-tip="Character Name • Tab">
+                        <button
+                            onClick={() => formatCurrentLine('character')}
+                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-sm">👤</span>
+                            <span className="text-[8px] leading-tight">Char</span>
+                        </button>
+                    </div>
+                    
+                    {/* Parenthetical */}
+                    <div className="tooltip tooltip-bottom" data-tip="Parenthetical/Wryly">
+                        <button
+                            onClick={() => formatCurrentLine('parenthetical')}
+                            className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-sm">( )</span>
+                            <span className="text-[8px] leading-tight">Paren</span>
+                        </button>
+                    </div>
+                    
+                    {/* Italics */}
+                    {onToggleItalics && (
+                        <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I">
+                            <button
+                                onClick={onToggleItalics}
+                                className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-sm italic font-semibold">I</span>
+                                <span className="text-[8px] leading-tight">Italic</span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* More Formats */}
+                    <div className="tooltip tooltip-bottom" data-tip="More Formats">
+                        <button
+                            onClick={() => setShowMoreFormats(!showMoreFormats)}
+                            className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors ${
+                                showMoreFormats ? 'bg-primary text-primary-content' : 'bg-base-100 hover:bg-base-300'
+                            }`}
+                        >
+                            <span className="text-sm">⋯</span>
+                            <span className="text-[8px] leading-tight">More</span>
+                        </button>
+                    </div>
+                    
+                    {/* Find/Replace */}
+                    {onOpenFindReplace && (
+                        <div className="tooltip tooltip-bottom" data-tip="Find & Replace • Ctrl+F">
+                            <button
+                                onClick={onOpenFindReplace}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <span className="text-[8px] leading-tight">Find</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+                )}
             </div>
             
             {/* Extended format menu */}

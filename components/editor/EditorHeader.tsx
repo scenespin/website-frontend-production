@@ -47,18 +47,7 @@ export default function EditorHeader({
                         • Unsaved changes
                     </span>
                 )}
-                {/* Scene Navigator Button - Mobile Only */}
-                {isMobile && onToggleSceneNav && (
-                    <button
-                        onClick={onToggleSceneNav}
-                        className="btn btn-sm btn-ghost gap-2 md:hidden"
-                        title="Toggle Scene Navigator"
-                        aria-label="Toggle Scene Navigator"
-                    >
-                        <List className="w-4 h-4" />
-                        <span className="text-xs">Scenes</span>
-                    </button>
-                )}
+                {/* Scene Navigator Button - Removed from header, now in toolbar */}
             </div>
             <div className="flex items-center text-xs text-base-content/50 gap-3">
                 <span>{wordCount} words</span>

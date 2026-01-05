@@ -472,6 +472,7 @@ export default function EditorWorkspace() {
                             }
                         }}
                         onOpenVersionHistory={() => setIsVersionHistoryModalOpen(true)}
+                        onToggleSceneNav={() => setIsSceneNavVisible(prev => !prev)}
                     />
                     
                     {/* Word Count & Duration - Below Toolbar */}
