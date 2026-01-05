@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
@@ -9,37 +8,30 @@ export const revalidate = 0;
 /**
  * POST /api/screenplays/[id]/scenes/batch-update-props
  * Proxy to backend to batch update prop associations for multiple scenes
+ * Matches pattern from catch-all route - forwards auth header directly
  */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId, getToken } = await auth();
+    const { id } = await params;
+    const authHeader = request.headers.get('authorization');
     
-    if (!userId) {
+    if (!authHeader) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const token = await getToken({ template: 'wryda-backend' });
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Could not generate token' },
-        { status: 401 }
-      );
-    }
-
-    const { id } = await params;
     const body = await request.json();
     const backendUrl = `${BACKEND_API_URL}/api/screenplays/${id}/scenes/batch-update-props`;
     
     const backendResponse = await fetch(backendUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
