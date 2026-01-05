@@ -505,7 +505,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Track prop IDs for Media Library query
   const [propIds, setPropIds] = useState<string[]>([]);
   
+  // 🔥 FIX: Use ref to track last synced props to prevent infinite loop
+  const lastSyncedPropsRef = useRef<string>('');
+  
   // 🔥 NEW: Use custom hook for prop references
+  // Pass sceneProps as initialProps, but use ref to prevent circular updates
   const {
     enrichedProps: enrichedPropsFromHook,
     propThumbnailS3KeyMap,
@@ -521,16 +525,48 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   );
   
   // Sync hook data to state (for backward compatibility during refactor)
+  // 🔥 FIX: Prevent infinite loop by tracking last synced props and only updating when truly different
   useEffect(() => {
-    if (enrichedPropsFromHook.length > 0 || sceneProps.length === 0) {
-      // Only update if structure changed (avoid infinite loop)
-      const hasChanges = JSON.stringify(enrichedPropsFromHook) !== JSON.stringify(sceneProps);
-      if (hasChanges) {
-        console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedPropsFromHook);
-        setSceneProps(enrichedPropsFromHook);
-      }
+    // Access current sceneProps from context to ensure we have latest value
+    const currentSceneProps = contextState.sceneProps;
+    
+    // Skip if no props to sync
+    if (enrichedPropsFromHook.length === 0 && currentSceneProps.length === 0) {
+      return;
     }
-  }, [enrichedPropsFromHook]);
+    
+    // Create a stable string representation for comparison
+    const enrichedPropsString = JSON.stringify(enrichedPropsFromHook);
+    
+    // Only sync if the enriched props are different from what we last synced
+    // This prevents re-syncing the same data and breaking the loop
+    if (enrichedPropsString === lastSyncedPropsRef.current) {
+      return;
+    }
+    
+    // Compare with current sceneProps to see if update is needed
+    const currentPropsString = JSON.stringify(currentSceneProps);
+    if (enrichedPropsString === currentPropsString) {
+      // Already in sync, just update the ref
+      lastSyncedPropsRef.current = enrichedPropsString;
+      return;
+    }
+    
+    // Check if the change is meaningful (not just a reference change)
+    // Compare by ID to ensure we're enriching the same props
+    const currentPropsIds = currentSceneProps.map((p: any) => p.id).sort().join(',');
+    const enrichedPropsIds = enrichedPropsFromHook.map((p: any) => p.id).sort().join(',');
+    
+    // Only update if:
+    // 1. IDs match (same props, just enriched with Media Library data), OR
+    // 2. We're going from empty to populated
+    if (currentPropsIds === enrichedPropsIds || currentSceneProps.length === 0) {
+      console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedPropsFromHook);
+      setSceneProps(enrichedPropsFromHook);
+      lastSyncedPropsRef.current = enrichedPropsString;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrichedPropsFromHook, setSceneProps]); // 🔥 FIX: Only react to enrichedPropsFromHook changes. Access contextState.sceneProps inside effect for current value.
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
