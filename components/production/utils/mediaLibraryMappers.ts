@@ -231,11 +231,24 @@ export function mapMediaFilesToPropStructure(
 
 /**
  * Check if a Media Library file is a background image (for locations).
+ * 
+ * 🔥 FIX: Backgrounds from angle packages have sourceType === 'angle-variations' AND backgroundType set.
+ * If sourceType === 'angle-variations' but no backgroundType, it's an angle, not a background.
  */
 export function isBackgroundFile(file: MediaFile): boolean {
+  // Must have backgroundType to be a background
+  if (file.metadata?.backgroundType !== undefined) {
+    return true;
+  }
+  
+  // Backgrounds from angle packages: sourceType === 'angle-variations' AND backgroundType must be set
+  // If sourceType === 'angle-variations' but no backgroundType, it's an angle, not a background
+  if (file.metadata?.sourceType === 'angle-variations') {
+    return file.metadata?.backgroundType !== undefined;
+  }
+  
+  // Check file path/name for background indicators
   return (
-    file.metadata?.backgroundType !== undefined ||
-    file.metadata?.sourceType === 'angle-variations' ||
     file.s3Key?.toLowerCase().includes('background') ||
     file.fileName?.toLowerCase().includes('background')
   );

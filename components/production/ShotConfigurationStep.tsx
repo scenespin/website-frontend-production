@@ -807,23 +807,6 @@ export function ShotConfigurationStep({
                   onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                 />
-                
-                {/* 🔥 NEW: Video Generation Selector for non-lip-sync workflows (Quality, Camera Angle, Shot Duration, Video Style) */}
-                {shot.type === 'dialogue' && onVideoQualityChange && onVideoTypeChange && onCameraAngleChange && onDurationChange && (
-                  <VideoGenerationSelector
-                    shotSlot={shot.slot}
-                    shotType={shot.type}
-                    selectedVideoType={selectedVideoTypes[shot.slot]}
-                    selectedQuality={selectedVideoQualities[shot.slot]}
-                    onVideoTypeChange={finalOnVideoTypeChange}
-                    onQualityChange={finalOnVideoQualityChange}
-                    shotCameraAngle={shotCameraAngle}
-                    onCameraAngleChange={finalOnCameraAngleChange}
-                    shotDuration={shotDuration}
-                    onDurationChange={finalOnDurationChange}
-                    isLipSyncWorkflow={false}
-                  />
-                )}
               </TabsContent>
             </Tabs>
           ) : (
@@ -982,8 +965,12 @@ export function ShotConfigurationStep({
           )}
 
           {/* Video Generation Selection */}
-          {/* Show for action shots OR dialogue lip-sync shots (basic tab) */}
-          {((onVideoTypeChange && onVideoQualityChange) || (shot.type === 'dialogue' && isDialogueShot && activeTab === 'basic' && onVideoQualityChange)) && (
+          {/* Show for action shots OR dialogue lip-sync shots (basic tab) - ONLY if it's actually a lip-sync workflow */}
+          {(() => {
+            const isLipSyncWorkflow = shot.type === 'dialogue' && (finalSelectedDialogueWorkflow === 'first-frame-lipsync' || finalSelectedDialogueWorkflow === 'extreme-closeup' || finalSelectedDialogueWorkflow === 'extreme-closeup-mouth');
+            const shouldShowForDialogue = shot.type === 'dialogue' && isDialogueShot && activeTab === 'basic' && onVideoQualityChange && isLipSyncWorkflow;
+            return (onVideoTypeChange && onVideoQualityChange) || shouldShowForDialogue;
+          })() && (
             <>
               <VideoGenerationSelector
                 shotSlot={shot.slot}

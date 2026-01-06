@@ -95,12 +95,10 @@ export function useLocationReferences({
         if (file.s3Key?.startsWith('thumbnails/')) return;
         if (!file.s3Key) return;
 
-        // 🔥 FIX: Comprehensive background detection - check all possible metadata fields
+        // 🔥 FIX: Use isBackgroundFile which now correctly checks for backgroundType
         // Backgrounds from angle packages have sourceType === 'angle-variations' AND backgroundType set
         // If sourceType === 'angle-variations' but no backgroundType, it's an angle, not a background
         const isBackground = isBackgroundFile(file) ||
-          file.metadata?.backgroundType ||
-          (file.metadata?.sourceType === 'angle-variations' && file.metadata?.backgroundType) ||
           file.metadata?.source === 'background-generation' ||
           file.metadata?.uploadMethod === 'background-generation' ||
           file.metadata?.generationMethod === 'background-generation' ||
