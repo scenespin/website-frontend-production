@@ -447,8 +447,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // 🔥 FIX: Create stable signature from selectedCharacterReferences to track changes
   // Only track references that need URLs (have s3Key but no valid imageUrl)
+  // Use a ref to store the last signature to prevent unnecessary recalculations
+  const lastSelectedCharacterReferencesRef = useRef<string>('');
   const selectedCharacterReferencesSignature = useMemo(() => {
-    return JSON.stringify(
+    const signature = JSON.stringify(
       Object.entries(selectedCharacterReferences)
         .map(([shotSlot, shotRefs]) => {
           if (!shotRefs || typeof shotRefs !== 'object') return null;
@@ -465,6 +467,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         .filter((item): item is [string, string[][]] => item !== null)
         .sort(([a], [b]) => parseInt(a) - parseInt(b))
     );
+    
+    // Only update if signature actually changed
+    if (signature !== lastSelectedCharacterReferencesRef.current) {
+      lastSelectedCharacterReferencesRef.current = signature;
+    }
+    
+    return lastSelectedCharacterReferencesRef.current;
   }, [selectedCharacterReferences]);
   
   // Use context state
@@ -516,10 +525,32 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     runInfo.lastDeps = combinedSignature;
     useEffectRunCountsRef.current[effectName] = runInfo;
     
-    if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) return;
+    if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) {
+      // Clear the last processed ref if map is empty
+      if (lastProcessedRefsRef.current !== '') {
+        lastProcessedRefsRef.current = '';
+      }
+      return;
+    }
     
     // Only process if combined signature changed (prevents infinite loops)
-    if (combinedSignature === lastProcessedRefsRef.current) return;
+    if (combinedSignature === lastProcessedRefsRef.current) {
+      return;
+    }
+    
+    // Early exit if no references need processing
+    const hasReferencesNeedingUrls = Object.values(selectedCharacterReferences).some(shotRefs => {
+      if (!shotRefs || typeof shotRefs !== 'object') return false;
+      return Object.values(shotRefs).some(charRef => 
+        charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))
+      );
+    });
+    
+    if (!hasReferencesNeedingUrls) {
+      lastProcessedRefsRef.current = combinedSignature;
+      return;
+    }
+    
     lastProcessedRefsRef.current = combinedSignature;
     
     // Check if any selectedCharacterReferences need presigned URLs
