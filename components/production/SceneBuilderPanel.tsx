@@ -612,6 +612,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     baseProps
   );
   
+  // 🔥 FIX: Calculate stable dependency values outside useEffect using useMemo
+  const enrichedPropsIdsString = useMemo(() => 
+    enrichedPropsFromHook.map((p: any) => p.id).sort().join(','),
+    [enrichedPropsFromHook]
+  );
+  const basePropsIdsString = useMemo(() => 
+    baseProps.map((p: any) => p.id).sort().join(','),
+    [baseProps]
+  );
+  
   // Sync enriched props to state (for backward compatibility during refactor)
   // 🔥 FIX: Only sync when enriched props actually change, and prevent circular updates
   useEffect(() => {
@@ -620,7 +630,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
     runInfo.count++;
     const timeSinceLastRun = now - runInfo.lastRun;
-    const depsChanged = JSON.stringify([enrichedPropsFromHook.length, baseProps.length]) !== JSON.stringify(runInfo.lastDeps);
+    const depsChanged = JSON.stringify([enrichedPropsFromHook.length, baseProps.length, enrichedPropsIdsString, basePropsIdsString]) !== JSON.stringify(runInfo.lastDeps);
     
     console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
       enrichedPropsCount: enrichedPropsFromHook.length,
@@ -632,7 +642,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     
     runInfo.lastRun = now;
-    runInfo.lastDeps = [enrichedPropsFromHook.length, baseProps.length];
+    runInfo.lastDeps = [enrichedPropsFromHook.length, baseProps.length, enrichedPropsIdsString, basePropsIdsString];
     useEffectRunCountsRef.current[effectName] = runInfo;
     
     // Skip if no props to sync
@@ -653,15 +663,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       return;
     }
     
-    // Check if the enriched props are based on the same base props
-    const enrichedPropsIds = enrichedPropsFromHook.map((p: any) => p.id).sort().join(',');
-    const basePropsIds = baseProps.map((p: any) => p.id).sort().join(',');
-    
     // 🔥 DEBUG: Log to help troubleshoot
-    if (enrichedPropsIds !== basePropsIds && baseProps.length > 0) {
+    if (enrichedPropsIdsString !== basePropsIdsString && baseProps.length > 0) {
       console.warn('[SceneBuilderPanel] ⚠️ Enriched props IDs mismatch base props IDs:', {
-        enrichedIds: enrichedPropsIds,
-        baseIds: basePropsIds,
+        enrichedIds: enrichedPropsIdsString,
+        baseIds: basePropsIdsString,
         enrichedCount: enrichedPropsFromHook.length,
         baseCount: baseProps.length
       });
@@ -670,7 +676,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // Only sync if:
     // 1. The enriched props are based on the current base props (IDs match), OR
     // 2. We're going from empty to populated
-    if (enrichedPropsIds === basePropsIds || baseProps.length === 0) {
+    if (enrichedPropsIdsString === basePropsIdsString || baseProps.length === 0) {
       console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedPropsFromHook);
       // 🔥 FIX: Update signature BEFORE calling setSceneProps to prevent re-triggering
       lastEnrichedPropsRef.current = enrichedPropsSignature;
@@ -685,8 +691,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     // 🔥 FIX: Use stable dependency comparison - only depend on lengths and IDs, not full objects
     // This prevents re-running when object references change but data is the same
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enrichedPropsFromHook.length, baseProps.length, enrichedPropsIds, basePropsIds]);
+  }, [enrichedPropsFromHook.length, baseProps.length, enrichedPropsIdsString, basePropsIdsString]);
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
