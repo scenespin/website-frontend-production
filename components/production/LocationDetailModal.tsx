@@ -1701,26 +1701,16 @@ export function LocationDetailModal({
                                                             // Continue with location update even if Media Library deletion fails
                                                           }
                                                           
-                                                          // Use same working pattern as angles: filter derived backgrounds (from allImages)
-                                                          // This is the pattern that works for location angles, so use it for backgrounds too
+                                                          // Use exact same working pattern as angles: filter derived backgrounds (from allImages)
                                                           const updatedBackgrounds = backgrounds.filter(
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
-                                                          
-                                                          console.log('[LocationDetailModal] 📤 Calling onUpdate with backgrounds (using derived pattern like angles):', {
-                                                            locationId: location.locationId,
-                                                            beforeCount: backgrounds.length,
-                                                            afterCount: updatedBackgrounds.length,
-                                                            removedS3Key: background.s3Key
-                                                          });
                                                           
                                                           await onUpdate(location.locationId, {
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
-                                                          console.log('[LocationDetailModal] ✅ onUpdate completed for backgrounds');
-                                                          
-                                                          // 🔥 FIX: Invalidate location queries to refresh UI immediately
+                                                          // Exact same pattern as location angles: invalidate and refetch
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
