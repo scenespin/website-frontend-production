@@ -1395,8 +1395,10 @@ export function LocationDetailModal({
                                               throw new Error('Missing S3 key for image');
                                             }
                                             
-                                            // Remove from angleVariations by matching s3Key
-                                            const updatedAngleVariations = angleVariations.filter(
+                                            // 🔥 FIX: Use location.angleVariations prop directly (source of truth) instead of derived angleVariations
+                                            // Derived angleVariations comes from allImages which may include stale Media Library cache
+                                            // Using prop ensures we filter the actual data being updated in backend (for consistency with backgrounds)
+                                            const updatedAngleVariations = (location.angleVariations || []).filter(
                                               (v: any) => v.s3Key !== variation.s3Key
                                             );
                                             
@@ -1672,8 +1674,10 @@ export function LocationDetailModal({
                                                             // Continue with location update even if Media Library deletion fails
                                                           }
                                                           
-                                                          // Remove from backgrounds array
-                                                          const updatedBackgrounds = backgrounds.filter(
+                                                          // 🔥 FIX: Use location.backgrounds prop directly (source of truth) instead of derived backgrounds
+                                                          // Derived backgrounds comes from allImages which may include stale Media Library cache
+                                                          // Using prop ensures we filter the actual data being updated in backend
+                                                          const updatedBackgrounds = (location.backgrounds || []).filter(
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
                                                           
@@ -1912,7 +1916,7 @@ export function LocationDetailModal({
                 onClick={async () => {
                   setShowBulkDeleteConfirm(false);
                   try {
-                    // Get selected variations by matching IDs
+                    // Get selected variations by matching IDs - use derived angleVariations for ID matching (has all metadata)
                     const selectedVariations = angleVariations.filter((v: any) => {
                       const imgId = v.id || `ref_${v.s3Key}`;
                       return selectedImageIds.has(imgId);
@@ -1926,8 +1930,9 @@ export function LocationDetailModal({
                       return;
                     }
                     
-                    // Batch delete: Remove all selected angle variations in one update
-                    const updatedAngleVariations = angleVariations.filter((variation: any) => 
+                    // 🔥 FIX: Use location.angleVariations prop directly (source of truth) for filtering
+                    // Derived angleVariations is used for ID matching above, but prop is used for backend update
+                    const updatedAngleVariations = (location.angleVariations || []).filter((variation: any) => 
                       !s3KeysToDelete.has(variation.s3Key)
                     );
                     

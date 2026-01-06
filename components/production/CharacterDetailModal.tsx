@@ -2369,14 +2369,12 @@ export function CharacterDetailModal({
                                             });
                                           }
                                           
-                                          // 🔥 FIX: Invalidate queries to sync with server (optimistic update already shows removal)
+                                          // 🔥 FIX: Only invalidate queries - parent component (CharacterBankPanel) will refetch after onUpdate completes
+                                          // This prevents race condition where our refetch overwrites optimistic update before server responds
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          // Refetch in background to ensure sync
-                                          queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                          queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                           
-                                          toast.success('Image deleted');
+                                          // Note: No toast here - CharacterBankPanel.updateCharacter shows "Character updated successfully"
                                         } catch (error: any) {
                                           // 🔥 ROLLBACK: Restore previous data on error
                                           if (previousCharacters) {
@@ -2753,14 +2751,12 @@ export function CharacterDetailModal({
                       references: updatedReferences
                     });
                     
-                    // 🔥 FIX: Invalidate queries to sync with server (optimistic update already shows removal)
+                    // 🔥 FIX: Only invalidate queries - parent component (CharacterBankPanel) will refetch after onUpdate completes
+                    // This prevents race condition where our refetch overwrites optimistic update before server responds
                     queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                    // Refetch in background to ensure sync
-                    queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                    queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                     
-                    toast.success(`Successfully deleted ${s3KeysToDelete.size} image${s3KeysToDelete.size !== 1 ? 's' : ''}`);
+                    // Note: No toast here - CharacterBankPanel.updateCharacter shows "Character updated successfully"
                   } catch (error: any) {
                     // 🔥 ROLLBACK: Restore previous data on error
                     if (previousCharacters) {
