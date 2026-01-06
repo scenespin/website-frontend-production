@@ -45,31 +45,43 @@ export function ReferencePreview({ references, className = '' }: ReferencePrevie
   };
 
   return (
-    <div className={`flex items-center gap-1.5 py-2 px-3 bg-[#0A0A0A] rounded border border-[#3F3F46] ${className}`}>
+    <div className={`flex items-center gap-2 py-2 px-3 bg-[#0A0A0A] rounded border border-[#3F3F46] ${className}`}>
       <span className="text-[10px] text-[#808080] mr-1">References:</span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {references.map((ref, index) => (
           <React.Fragment key={ref.id}>
             <div className="flex items-center gap-1 group relative">
               {ref.imageUrl ? (
-                <img
-                  src={ref.imageUrl}
-                  alt={ref.label}
-                  className="w-4 h-4 rounded object-cover border border-[#3F3F46] hover:border-[#DC143C] transition-colors"
-                  title={ref.label}
-                  onError={(e) => {
-                    // 🔥 FIX: If image fails to load (expired URL, broken link, etc.), show icon fallback
-                    const imgElement = e.target as HTMLImageElement;
-                    imgElement.style.display = 'none';
-                    const fallback = imgElement.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.classList.remove('hidden');
-                  }}
-                />
-              ) : null}
-              {/* Fallback icon (hidden by default, shown if image fails) */}
-              <div className={`w-4 h-4 rounded bg-[#1A1A1A] border border-[#3F3F46] flex items-center justify-center ${ref.imageUrl ? 'hidden' : ''}`}>
-                {getIcon(ref.type)}
-              </div>
+                <div className="relative aspect-video w-16 bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors">
+                  <img
+                    src={ref.imageUrl}
+                    alt={ref.label}
+                    className="w-full h-full object-cover"
+                    style={{
+                      maxWidth: '640px',
+                      maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
+                    }}
+                    title={ref.label}
+                    loading="lazy"
+                    onError={(e) => {
+                      // 🔥 FIX: If image fails to load (expired URL, broken link, etc.), show icon fallback
+                      const imgElement = e.target as HTMLImageElement;
+                      imgElement.style.display = 'none';
+                      const fallback = imgElement.parentElement?.querySelector('.fallback-icon') as HTMLElement;
+                      if (fallback) fallback.classList.remove('hidden');
+                    }}
+                  />
+                  {/* Fallback icon (hidden by default, shown if image fails) */}
+                  <div className={`fallback-icon absolute inset-0 flex items-center justify-center bg-[#1A1A1A] border border-[#3F3F46] rounded-lg ${ref.imageUrl ? 'hidden' : ''}`}>
+                    {getIcon(ref.type)}
+                  </div>
+                </div>
+              ) : (
+                /* Fallback icon when no imageUrl provided */
+                <div className="relative aspect-video w-16 bg-[#1A1A1A] border border-[#3F3F46] rounded-lg flex items-center justify-center">
+                  {getIcon(ref.type)}
+                </div>
+              )}
               {/* Tooltip on hover */}
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-[#1A1A1A] text-[10px] text-[#FFFFFF] rounded border border-[#3F3F46] opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10 transition-opacity">
                 {ref.label}
