@@ -445,6 +445,28 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       .join('|');
   }, [characterFullImageUrlsMap]);
   
+  // 🔥 FIX: Create stable signature from selectedCharacterReferences to track changes
+  // Only track references that need URLs (have s3Key but no valid imageUrl)
+  const selectedCharacterReferencesSignature = useMemo(() => {
+    return JSON.stringify(
+      Object.entries(selectedCharacterReferences)
+        .map(([shotSlot, shotRefs]) => {
+          if (!shotRefs || typeof shotRefs !== 'object') return null;
+          return [
+            shotSlot,
+            Object.entries(shotRefs)
+              .filter(([_, charRef]) => 
+                charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))
+              )
+              .map(([charId, charRef]) => [charId, charRef.s3Key])
+              .sort(([a], [b]) => a.localeCompare(b))
+          ];
+        })
+        .filter(Boolean)
+        .sort(([a], [b]) => parseInt(a) - parseInt(b))
+    );
+  }, [selectedCharacterReferences]);
+  
   // Use context state
   const enabledShots = contextState.enabledShots;
   const wizardStep = contextState.wizardStep;
@@ -475,11 +497,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
     runInfo.count++;
     const timeSinceLastRun = now - runInfo.lastRun;
-    const depsChanged = characterFullImageUrlsMapSignature !== runInfo.lastDeps;
+    
+    // Create combined signature for both dependencies
+    const combinedSignature = `${characterFullImageUrlsMapSignature}|${selectedCharacterReferencesSignature}`;
+    const depsChanged = combinedSignature !== runInfo.lastDeps;
     
     console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
       characterFullImageUrlsMapSize: characterFullImageUrlsMap?.size || 0,
-      signatureLength: characterFullImageUrlsMapSignature.length
+      mapSignatureLength: characterFullImageUrlsMapSignature.length,
+      refsSignatureLength: selectedCharacterReferencesSignature.length
     });
     
     if (timeSinceLastRun < 100 && runInfo.count > 5) {
@@ -487,31 +513,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     
     runInfo.lastRun = now;
-    runInfo.lastDeps = characterFullImageUrlsMapSignature;
+    runInfo.lastDeps = combinedSignature;
     useEffectRunCountsRef.current[effectName] = runInfo;
     
     if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) return;
     
-    // Create a stable signature of current state (only s3Keys that need URLs)
-    const currentSignature = JSON.stringify(
-      Object.entries(selectedCharacterReferences)
-        .map(([shotSlot, shotRefs]) => {
-          if (!shotRefs || typeof shotRefs !== 'object') return null;
-          return [
-            shotSlot,
-            Object.entries(shotRefs)
-              .filter(([_, charRef]) => 
-                charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))
-              )
-              .map(([charId, charRef]) => [charId, charRef.s3Key])
-          ];
-        })
-        .filter(Boolean)
-    );
-    
-    // Only process if signature changed (prevents infinite loops)
-    if (currentSignature === lastProcessedRefsRef.current) return;
-    lastProcessedRefsRef.current = currentSignature;
+    // Only process if combined signature changed (prevents infinite loops)
+    if (combinedSignature === lastProcessedRefsRef.current) return;
+    lastProcessedRefsRef.current = combinedSignature;
     
     // Check if any selectedCharacterReferences need presigned URLs
     let needsUpdate = false;
@@ -543,11 +552,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     });
     
     if (needsUpdate) {
-      setSelectedCharacterReferences(updated);
+      // Use context action directly to avoid wrapper function recreation causing loops
+      contextActions.setSelectedCharacterReferences(updated);
     }
-    // 🔥 FIX: Use stable signature instead of Map object - prevents infinite loops when Map is recreated
-    // The signature only changes when the actual data (keys/values) changes, not when the Map object is recreated
-  }, [characterFullImageUrlsMapSignature, characterFullImageUrlsMap]);
+    // 🔥 FIX: Use stable signatures only - prevents infinite loops when objects are recreated
+    // The signatures only change when the actual data changes, not when object references change
+    // Note: characterFullImageUrlsMap is accessed via closure but not in deps to prevent loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characterFullImageUrlsMapSignature, selectedCharacterReferencesSignature]);
 
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
