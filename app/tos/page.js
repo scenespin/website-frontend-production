@@ -48,6 +48,7 @@ const TOS = () => {
           Terms and Conditions for {config.appName}
         </h1>
 
+        <span id="dmca" style={{ display: "block", position: "absolute", visibility: "hidden" }} aria-hidden="true"></span>
         <pre
           className="leading-relaxed whitespace-pre-wrap overflow-x-auto"
           style={{ fontFamily: "sans-serif" }}
@@ -287,6 +288,18 @@ If you believe content on our Platform infringes your copyright, please provide 
 - A statement under penalty of perjury that the information is accurate and you are authorized to act on behalf of the copyright owner
 - Your physical or electronic signature
 
+8.2.1 DMCA Copyright Agent
+To submit a DMCA notice, please contact our designated Copyright Agent:
+
+Garden State Concentrate LLC
+Attn: DMCA Agent - Jeff Posner
+479 State RT 17 UNIT 2008
+Mahwah, NJ 07430-2116
+Email: legal@wryda.ai
+Subject Line: "DMCA Notice"
+
+Our DMCA agent is registered with the United States Copyright Office pursuant to 17 U.S.C. § 512(c).
+
 8.3 Counter-Notices
 If you believe content you posted was wrongly removed, you may submit a counter-notice with specific information as required by law.
 
@@ -487,11 +500,7 @@ Mahwah, NJ 07430-2116
 Email: legal@wryda.ai
 Support: support@wryda.ai
 
-For DMCA copyright notices:
-Email: dmca@wryda.ai (or legal@wryda.ai)
-Subject Line: "DMCA Notice"
-
-Note: A designated DMCA agent must be registered with the US Copyright Office. Please register at https://www.copyright.gov/dmca-directory/ and update this section with your agent's information once registered.
+For DMCA copyright notices, please see Section 8.2.1 above for our designated Copyright Agent contact information.
 
 ═════════════════════════════════════════════════════════
 

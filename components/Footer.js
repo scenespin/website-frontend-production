@@ -95,6 +95,11 @@ export default function Footer() {
                   Privacy Policy
                 </Link>
               </li>
+              <li>
+                <Link href="/tos#dmca" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  DMCA Policy
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
