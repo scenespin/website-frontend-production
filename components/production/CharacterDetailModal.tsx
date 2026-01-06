@@ -106,7 +106,10 @@ export function CharacterDetailModal({
   );
   
   // 🔥 FIX: Use query characters for images, context characters for script fields
-  const latestCharacter = queryCharacters.find(c => c.id === character.id) || character;
+  // Memoize latestCharacter so it updates when React Query cache changes (for optimistic updates)
+  const latestCharacter = useMemo(() => {
+    return queryCharacters.find(c => c.id === character.id) || character;
+  }, [queryCharacters, character.id, character]);
   const contextCharacter = contextCharacters.find(c => c.id === character.id);
   
   // Check if character is in script (for locking mechanism)
@@ -484,13 +487,13 @@ export function CharacterDetailModal({
     return map;
   }, [mediaFiles]);
   
-  // Create metadata map from character prop (DynamoDB) for enrichment
+  // Create metadata map from latestCharacter (React Query) for enrichment - uses latestCharacter so optimistic updates work
   const dynamoDBMetadataMap = useMemo(() => {
     const map = new Map<string, any>();
     
     // Add baseReference metadata
-    if (character.baseReference?.s3Key) {
-      map.set(character.baseReference.s3Key, {
+    if (latestCharacter.baseReference?.s3Key) {
+      map.set(latestCharacter.baseReference.s3Key, {
         id: 'base',
         label: 'Base Reference',
         isBase: true,
@@ -501,7 +504,7 @@ export function CharacterDetailModal({
     }
     
     // Add references metadata
-    (character.references || []).forEach((ref: any) => {
+    (latestCharacter.references || []).forEach((ref: any) => {
       const s3Key = ref.s3Key || ref.metadata?.s3Key;
       if (s3Key) {
         map.set(s3Key, {
@@ -516,7 +519,7 @@ export function CharacterDetailModal({
     });
     
     // Add poseReferences metadata (from DynamoDB)
-    const rawPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+    const rawPoseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
     rawPoseRefs.forEach((ref: any, idx: number) => {
       const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
       if (refS3Key) {
@@ -536,7 +539,7 @@ export function CharacterDetailModal({
     });
     
     return map;
-  }, [character.baseReference, character.references, character.poseReferences]);
+  }, [latestCharacter.baseReference, latestCharacter.references, latestCharacter.poseReferences, latestCharacter.id]);
   
   // 🔥 NEW: Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
   const imagesFromMediaLibrary = useMemo(() => {
@@ -697,11 +700,11 @@ export function CharacterDetailModal({
     const mediaLibraryS3KeysSet = new Set(mediaLibraryS3Keys);
     
     // Check baseReference
-    if (character.baseReference?.s3Key && !mediaLibraryS3KeysSet.has(character.baseReference.s3Key)) {
+    if (latestCharacter.baseReference?.s3Key && !mediaLibraryS3KeysSet.has(latestCharacter.baseReference.s3Key)) {
       fallback.push({
         id: 'base',
-        imageUrl: character.baseReference.imageUrl || '',
-        s3Key: character.baseReference.s3Key,
+        imageUrl: latestCharacter.baseReference.imageUrl || '',
+        s3Key: latestCharacter.baseReference.s3Key,
         label: 'Base Reference',
         isBase: true,
         isPose: false,
@@ -710,7 +713,7 @@ export function CharacterDetailModal({
     }
     
     // Check references
-    (character.references || []).forEach((ref: any, idx: number) => {
+    (latestCharacter.references || []).forEach((ref: any, idx: number) => {
       const refS3Key = ref.s3Key || ref.metadata?.s3Key;
       if (refS3Key && !mediaLibraryS3KeysSet.has(refS3Key)) {
         fallback.push({
@@ -726,7 +729,7 @@ export function CharacterDetailModal({
     });
     
     // Check poseReferences
-    const rawPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+    const rawPoseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
     rawPoseRefs.forEach((ref: any, idx: number) => {
       const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
       if (refS3Key && !mediaLibraryS3KeysSet.has(refS3Key)) {
@@ -753,7 +756,7 @@ export function CharacterDetailModal({
     });
     
     return fallback;
-  }, [character.baseReference, character.references, character.poseReferences, mediaLibraryS3Keys]);
+  }, [latestCharacter.baseReference, latestCharacter.references, latestCharacter.poseReferences, latestCharacter.id, mediaLibraryS3Keys]);
   
   // Generate presigned URLs for fallback images that have s3Key but expired imageUrl
   const fallbackS3Keys = useMemo(() => 
@@ -2254,9 +2257,9 @@ export function CharacterDetailModal({
                                           // Extract s3Key from multiple possible locations (same as bulk delete)
                                           let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
                                           
-                                          // If still not found, try to find it in character.poseReferences or angleReferences
+                                          // If still not found, try to find it in latestCharacter.poseReferences or angleReferences
                                           if (!imgS3Key && img.id) {
-                                            const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                            const allPoseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
                                             const poseRef = allPoseRefs.find((ref: any) => {
                                               const refId = typeof ref === 'string' ? `pose_${ref}` : ref.id;
                                               return refId === img.id;
@@ -2281,7 +2284,7 @@ export function CharacterDetailModal({
                                           }
                                           
                                           // Check if it's a pose reference (AI-generated) or user reference
-                                          const poseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                          const poseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
                                           const isPoseRef = poseRefs.some((poseRef: any) => {
                                             const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
                                             return poseS3Key === imgS3Key;
@@ -2344,24 +2347,24 @@ export function CharacterDetailModal({
                                           // Use the same simple approach as bulk delete - just filter and update
                                           if (isPoseRef) {
                                             // Delete from poseReferences (AI-generated poses)
-                                            const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
+                                            const currentPoseReferences = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
                                             const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== imgS3Key;
                                             });
                                             
-                                            await onUpdate(character.id, { 
+                                            await onUpdate(latestCharacter.id, { 
                                               poseReferences: updatedPoseReferences
                                             });
                                           } else {
-                                            // Delete from character.references array (user-uploaded references in Production Hub)
-                                            const currentReferences = character.references || [];
+                                            // Delete from latestCharacter.references array (user-uploaded references in Production Hub)
+                                            const currentReferences = latestCharacter.references || [];
                                             const updatedReferences = currentReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== imgS3Key;
                                             });
                                             
-                                            await onUpdate(character.id, { 
+                                            await onUpdate(latestCharacter.id, { 
                                               references: updatedReferences 
                                             });
                                           }
@@ -2643,7 +2646,7 @@ export function CharacterDetailModal({
                       let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
                       
                       if (!imgS3Key && img.id) {
-                        const poseRefs = (character as any).angleReferences || character.poseReferences || [];
+                        const poseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
                         const poseRef = poseRefs.find((ref: any) => {
                           const refId = typeof ref === 'string' ? `pose_${ref}` : ref.id;
                           return refId === img.id;
@@ -2731,8 +2734,8 @@ export function CharacterDetailModal({
                     }
                     
                     // Batch delete: Remove all selected pose references in one update
-                    const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
-                    const currentReferences = character.references || [];
+                    const currentPoseReferences = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
+                    const currentReferences = latestCharacter.references || [];
                     
                     const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                       const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
@@ -2745,7 +2748,7 @@ export function CharacterDetailModal({
                     });
                     
                     // Single update call for all deletions
-                    await onUpdate(character.id, { 
+                    await onUpdate(latestCharacter.id, { 
                       poseReferences: updatedPoseReferences,
                       references: updatedReferences
                     });
