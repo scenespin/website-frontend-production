@@ -147,6 +147,80 @@ interface WorkflowStatus {
 
 // Internal component that uses the context
 function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = false, simplified = false }: SceneBuilderPanelProps) {
+  // 🔥 DIAGNOSTIC: Track component re-renders and performance
+  const renderCountRef = useRef(0);
+  const lastRenderTimeRef = useRef(Date.now());
+  const renderStartTime = performance.now();
+  renderCountRef.current++;
+  const now = Date.now();
+  const timeSinceLastRender = now - lastRenderTimeRef.current;
+  lastRenderTimeRef.current = now;
+  
+  // Track what changed between renders
+  const prevContextStateRef = useRef<any>(null);
+  const contextStateChanged = prevContextStateRef.current !== contextState;
+  if (contextStateChanged) {
+    prevContextStateRef.current = contextState;
+  }
+  
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime;
+    if (renderCountRef.current > 1) {
+      if (timeSinceLastRender < 50) {
+        console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ RAPID RE-RENDER #${renderCountRef.current} | Time since last: ${timeSinceLastRender}ms | Render time: ${renderTime.toFixed(2)}ms | Context changed: ${contextStateChanged}`);
+      }
+      if (renderTime > 100) {
+        console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ SLOW RENDER #${renderCountRef.current} | Render time: ${renderTime.toFixed(2)}ms`);
+      }
+    }
+  });
+  
+  // 🔥 DIAGNOSTIC: Monitor UI thread blocking
+  useEffect(() => {
+    let frameCount = 0;
+    let lastFrameTime = performance.now();
+    const checkFPS = () => {
+      frameCount++;
+      const now = performance.now();
+      const elapsed = now - lastFrameTime;
+      if (elapsed >= 1000) {
+        const fps = (frameCount * 1000) / elapsed;
+        if (fps < 30) {
+          console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ LOW FPS: ${fps.toFixed(1)} fps (UI thread may be blocked)`);
+        }
+        frameCount = 0;
+        lastFrameTime = now;
+      }
+      requestAnimationFrame(checkFPS);
+    };
+    const rafId = requestAnimationFrame(checkFPS);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+  
+  // 🔥 DIAGNOSTIC: Track navigation link clicks to detect blocking
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href]');
+      if (link && link.getAttribute('href')?.startsWith('/')) {
+        const clickTime = performance.now();
+        console.log(`[SceneBuilderPanel-DIAGNOSTIC] 🔗 Navigation click detected: ${link.getAttribute('href')} at ${clickTime.toFixed(2)}ms`);
+        
+        // Check if navigation actually happens
+        setTimeout(() => {
+          if (window.location.pathname === new URL(link.getAttribute('href')!, window.location.origin).pathname) {
+            console.log(`[SceneBuilderPanel-DIAGNOSTIC] ✅ Navigation succeeded`);
+          } else {
+            console.error(`[SceneBuilderPanel-DIAGNOSTIC] ❌ Navigation BLOCKED - clicked ${link.getAttribute('href')} but still on ${window.location.pathname}`);
+          }
+        }, 500);
+      }
+    };
+    
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, []);
+  
   // Authentication
   const { getToken } = useAuth();
   
