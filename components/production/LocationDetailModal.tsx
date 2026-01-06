@@ -148,6 +148,25 @@ export function LocationDetailModal({
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
+  
+  // 🔥 FIX: Get latest location from React Query cache (always up-to-date)
+  // This ensures UI updates immediately when cache changes (optimistic updates + refetches)
+  const { data: queryLocations = [] } = useLocations(
+    screenplayId || '',
+    'production-hub',
+    !!screenplayId && isOpen // Only fetch when modal is open
+  );
+  
+  // Get latest location from React Query, fallback to prop
+  const latestLocation = useMemo(() => {
+    const queryLoc = queryLocations.find(l => l.locationId === location.locationId);
+    if (queryLoc) {
+      // Use query location (always fresh from cache)
+      return queryLoc;
+    }
+    // Fallback to prop if not in cache yet
+    return location;
+  }, [queryLocations, location.locationId]);
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'generate'>('references');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -401,9 +420,9 @@ export function LocationDetailModal({
     
     // Add baseReference metadata
     if (location.baseReference?.s3Key) {
-      map.set(location.baseReference.s3Key, {
-        id: location.baseReference.id,
-        label: `${location.name} - Base Reference`,
+      map.set(latestLocation.baseReference.s3Key, {
+        id: latestLocation.baseReference.id,
+        label: `${latestLocation.name} - Base Reference`,
         isBase: true,
         isAngle: false,
         isBackground: false,
@@ -412,11 +431,11 @@ export function LocationDetailModal({
     }
     
     // Add creationImages metadata
-    (location.creationImages || []).forEach((img: LocationReference) => {
+    (latestLocation.creationImages || []).forEach((img: LocationReference) => {
       if (img.s3Key) {
         map.set(img.s3Key, {
           id: img.id,
-          label: `${location.name} - Reference`,
+          label: `${latestLocation.name} - Reference`,
           isBase: false,
           isAngle: false,
           isBackground: false,
@@ -426,11 +445,11 @@ export function LocationDetailModal({
     });
     
     // Add angleVariations metadata (from DynamoDB)
-    (location.angleVariations || []).forEach((variation: LocationReference) => {
+    (latestLocation.angleVariations || []).forEach((variation: LocationReference) => {
       if (variation.s3Key) {
         map.set(variation.s3Key, {
           id: variation.id || `ref_${variation.s3Key}`,
-          label: `${location.name} - ${variation.angle} view`,
+          label: `${latestLocation.name} - ${variation.angle} view`,
           isBase: false,
           isAngle: true,
           isBackground: false,
@@ -445,7 +464,7 @@ export function LocationDetailModal({
     });
     
     // Add backgrounds metadata (from DynamoDB)
-    (location.backgrounds || []).forEach((background: LocationBackground) => {
+    (latestLocation.backgrounds || []).forEach((background: LocationBackground) => {
       if (background.s3Key) {
         const backgroundTypeLabels: Record<string, string> = {
           'window': 'Window',
@@ -462,7 +481,7 @@ export function LocationDetailModal({
         
         map.set(background.s3Key, {
           id: background.id || `bg_${background.s3Key}`,
-          label: `${location.name} - ${typeLabel}${descriptionLabel}`,
+          label: `${latestLocation.name} - ${typeLabel}${descriptionLabel}`,
           isBase: false,
           isAngle: false,
           isBackground: true,
@@ -476,7 +495,7 @@ export function LocationDetailModal({
     });
     
     return map;
-  }, [location.baseReference, location.creationImages, location.angleVariations, location.backgrounds, location.name]);
+  }, [latestLocation.baseReference, latestLocation.creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId]);
   
   // Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
   const imagesFromMediaLibrary = useMemo(() => {
@@ -581,12 +600,12 @@ export function LocationDetailModal({
     const mediaLibraryS3KeysSet = new Set(mediaLibraryS3Keys);
     
     // Check baseReference
-    if (location.baseReference?.s3Key && !mediaLibraryS3KeysSet.has(location.baseReference.s3Key)) {
+    if (latestLocation.baseReference?.s3Key && !mediaLibraryS3KeysSet.has(latestLocation.baseReference.s3Key)) {
       fallback.push({
-        id: location.baseReference.id,
-        imageUrl: location.baseReference.imageUrl || '',
-        s3Key: location.baseReference.s3Key,
-        label: `${location.name} - Base Reference`,
+        id: latestLocation.baseReference.id,
+        imageUrl: latestLocation.baseReference.imageUrl || '',
+        s3Key: latestLocation.baseReference.s3Key,
+        label: `${latestLocation.name} - Base Reference`,
         isBase: true,
         isAngle: false,
         isBackground: false,
@@ -595,13 +614,13 @@ export function LocationDetailModal({
     }
     
     // Check creationImages
-    (location.creationImages || []).forEach((img: LocationReference) => {
+    (latestLocation.creationImages || []).forEach((img: LocationReference) => {
       if (img.s3Key && !mediaLibraryS3KeysSet.has(img.s3Key)) {
         fallback.push({
           id: img.id,
           imageUrl: img.imageUrl || '',
           s3Key: img.s3Key,
-          label: `${location.name} - Reference`,
+          label: `${latestLocation.name} - Reference`,
           isBase: false,
           isAngle: false,
           isBackground: false,
@@ -611,14 +630,14 @@ export function LocationDetailModal({
     });
     
     // Check angleVariations
-    (location.angleVariations || []).forEach((variation: LocationReference) => {
+    (latestLocation.angleVariations || []).forEach((variation: LocationReference) => {
       if (variation.s3Key && !mediaLibraryS3KeysSet.has(variation.s3Key)) {
         const isRegenerated = variation.metadata?.isRegenerated || false;
         fallback.push({
           id: variation.id || `ref_${variation.s3Key}`,
           imageUrl: variation.imageUrl || '',
           s3Key: variation.s3Key,
-          label: `${location.name} - ${variation.angle} view`,
+          label: `${latestLocation.name} - ${variation.angle} view`,
           isBase: false,
           isAngle: true,
           isBackground: false,
@@ -633,7 +652,7 @@ export function LocationDetailModal({
     });
     
     // Check backgrounds
-    (location.backgrounds || []).forEach((background: LocationBackground) => {
+    (latestLocation.backgrounds || []).forEach((background: LocationBackground) => {
       if (background.s3Key && !mediaLibraryS3KeysSet.has(background.s3Key)) {
         const backgroundTypeLabels: Record<string, string> = {
           'window': 'Window',
@@ -652,7 +671,7 @@ export function LocationDetailModal({
           id: background.id || `bg_${background.s3Key}`,
           imageUrl: background.imageUrl || '',
           s3Key: background.s3Key,
-          label: `${location.name} - ${typeLabel}${descriptionLabel}`,
+          label: `${latestLocation.name} - ${typeLabel}${descriptionLabel}`,
           isBase: false,
           isAngle: false,
           isBackground: true,
@@ -666,7 +685,7 @@ export function LocationDetailModal({
     });
     
     return fallback;
-  }, [location.baseReference, location.creationImages, location.angleVariations, location.backgrounds, location.name, mediaLibraryS3Keys]);
+  }, [latestLocation.baseReference, latestLocation.creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from location prop)
   const allImages = useMemo(() => {
@@ -685,7 +704,7 @@ export function LocationDetailModal({
       .filter(img => img.isAngle)
       .map(img => ({
         id: img.id,
-        locationId: location.locationId,
+        locationId: latestLocation.locationId,
         imageUrl: img.imageUrl,
         s3Key: img.s3Key || '',
         angle: (img.angle || 'front') as LocationReference['angle'],
@@ -699,7 +718,7 @@ export function LocationDetailModal({
           isRegenerated: img.isRegenerated
         }
       }));
-  }, [allImages, location.locationId]);
+  }, [allImages, latestLocation.locationId]);
   
   const backgrounds = useMemo(() => {
     return allImages
@@ -1395,10 +1414,8 @@ export function LocationDetailModal({
                                               throw new Error('Missing S3 key for image');
                                             }
                                             
-                                            // 🔥 FIX: Use location.angleVariations prop directly (source of truth) instead of derived angleVariations
-                                            // Derived angleVariations comes from allImages which may include stale Media Library cache
-                                            // Using prop ensures we filter the actual data being updated in backend (for consistency with backgrounds)
-                                            const updatedAngleVariations = (location.angleVariations || []).filter(
+                                            // Remove from angleVariations by matching s3Key (keep original working pattern)
+                                            const updatedAngleVariations = angleVariations.filter(
                                               (v: any) => v.s3Key !== variation.s3Key
                                             );
                                             
@@ -1684,38 +1701,32 @@ export function LocationDetailModal({
                                                             // Continue with location update even if Media Library deletion fails
                                                           }
                                                           
-                                                          // 🔥 FIX: Use location.backgrounds prop directly (source of truth) instead of derived backgrounds
-                                                          // Derived backgrounds comes from allImages which may include stale Media Library cache
-                                                          // Using prop ensures we filter the actual data being updated in backend
-                                                          // If location.backgrounds is undefined, use empty array (location might not have backgrounds property initialized)
-                                                          const currentBackgrounds = location.backgrounds || [];
+                                                          // 🔥 FIX: Use latestLocation.backgrounds (from React Query) directly (source of truth)
+                                                          // This ensures we use the most up-to-date data from cache
+                                                          const currentBackgrounds = latestLocation.backgrounds || [];
                                                           
                                                           console.log('[LocationDetailModal] 🔍 Backgrounds check:', {
-                                                            locationId: location.locationId,
-                                                            hasBackgroundsProp: 'backgrounds' in location,
-                                                            backgroundsPropValue: location.backgrounds,
+                                                            locationId: latestLocation.locationId,
+                                                            hasBackgroundsProp: 'backgrounds' in latestLocation,
+                                                            backgroundsPropValue: latestLocation.backgrounds,
                                                             currentBackgroundsLength: currentBackgrounds.length,
                                                             derivedBackgroundsLength: backgrounds.length,
                                                             backgroundToDelete: background.s3Key
                                                           });
                                                           
-                                                          // If location.backgrounds is undefined/empty but derived backgrounds has data, 
-                                                          // the location prop is stale - we need to use derived backgrounds for now
-                                                          // but this indicates the location needs to be refetched
-                                                          const sourceBackgrounds = currentBackgrounds.length > 0 ? currentBackgrounds : backgrounds;
-                                                          const updatedBackgrounds = sourceBackgrounds.filter(
+                                                          const updatedBackgrounds = currentBackgrounds.filter(
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
                                                           
                                                           console.log('[LocationDetailModal] 📤 Calling onUpdate with backgrounds:', {
-                                                            locationId: location.locationId,
-                                                            source: currentBackgrounds.length > 0 ? 'prop' : 'derived (fallback)',
-                                                            beforeCount: sourceBackgrounds.length,
+                                                            locationId: latestLocation.locationId,
+                                                            source: 'latestLocation (React Query)',
+                                                            beforeCount: currentBackgrounds.length,
                                                             afterCount: updatedBackgrounds.length,
                                                             removedS3Key: background.s3Key
                                                           });
                                                           
-                                                          await onUpdate(location.locationId, {
+                                                          await onUpdate(latestLocation.locationId, {
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
@@ -1966,9 +1977,8 @@ export function LocationDetailModal({
                       return;
                     }
                     
-                    // 🔥 FIX: Use location.angleVariations prop directly (source of truth) for filtering
-                    // Derived angleVariations is used for ID matching above, but prop is used for backend update
-                    const updatedAngleVariations = (location.angleVariations || []).filter((variation: any) => 
+                    // Batch delete: Remove all selected angle variations in one update (keep original working pattern)
+                    const updatedAngleVariations = angleVariations.filter((variation: any) => 
                       !s3KeysToDelete.has(variation.s3Key)
                     );
                     
