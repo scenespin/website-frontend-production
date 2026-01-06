@@ -672,19 +672,21 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // 2. We're going from empty to populated
     if (enrichedPropsIds === basePropsIds || baseProps.length === 0) {
       console.log('[SceneBuilderPanel] Enriched props with Media Library data (source of truth):', enrichedPropsFromHook);
+      // 🔥 FIX: Update signature BEFORE calling setSceneProps to prevent re-triggering
+      lastEnrichedPropsRef.current = enrichedPropsSignature;
       // 🔥 FIX: Use startTransition to prevent React error #185 (updating during render)
       startTransition(() => {
         // Use contextActions.setSceneProps directly to avoid circular dependency
         // The wrapper setSceneProps depends on contextState.sceneProps, which causes infinite loops
         contextActions.setSceneProps(enrichedPropsFromHook);
       });
-      lastEnrichedPropsRef.current = enrichedPropsSignature;
     } else {
       console.warn('[SceneBuilderPanel] ⚠️ Skipping props sync - IDs mismatch (preventing infinite loop)');
     }
-    // 🔥 FIX: Remove contextActions from dependencies - it should be stable, but let's be safe
+    // 🔥 FIX: Use stable dependency comparison - only depend on lengths and IDs, not full objects
+    // This prevents re-running when object references change but data is the same
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enrichedPropsFromHook, baseProps]);
+  }, [enrichedPropsFromHook.length, baseProps.length, enrichedPropsIds, basePropsIds]);
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
