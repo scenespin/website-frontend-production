@@ -807,6 +807,23 @@ export function ShotConfigurationStep({
                   onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                 />
+                
+                {/* 🔥 NEW: Video Generation Selector for non-lip-sync workflows (Quality, Camera Angle, Shot Duration, Video Style) */}
+                {shot.type === 'dialogue' && onVideoQualityChange && onVideoTypeChange && onCameraAngleChange && onDurationChange && (
+                  <VideoGenerationSelector
+                    shotSlot={shot.slot}
+                    shotType={shot.type}
+                    selectedVideoType={selectedVideoTypes[shot.slot]}
+                    selectedQuality={selectedVideoQualities[shot.slot]}
+                    onVideoTypeChange={finalOnVideoTypeChange}
+                    onQualityChange={finalOnVideoQualityChange}
+                    shotCameraAngle={shotCameraAngle}
+                    onCameraAngleChange={finalOnCameraAngleChange}
+                    shotDuration={shotDuration}
+                    onDurationChange={finalOnDurationChange}
+                    isLipSyncWorkflow={false}
+                  />
+                )}
               </TabsContent>
             </Tabs>
           ) : (
@@ -965,8 +982,8 @@ export function ShotConfigurationStep({
           )}
 
           {/* Video Generation Selection */}
-          {/* Show for action shots (requires both onVideoTypeChange and onVideoQualityChange) OR dialogue shots (only needs onVideoQualityChange and onCameraAngleChange) */}
-          {((onVideoTypeChange && onVideoQualityChange) || (shot.type === 'dialogue' && onVideoQualityChange && onCameraAngleChange)) && (
+          {/* Show for action shots OR dialogue lip-sync shots (basic tab) */}
+          {((onVideoTypeChange && onVideoQualityChange) || (shot.type === 'dialogue' && isDialogueShot && activeTab === 'basic' && onVideoQualityChange)) && (
             <>
               <VideoGenerationSelector
                 shotSlot={shot.slot}
@@ -979,6 +996,7 @@ export function ShotConfigurationStep({
                 onCameraAngleChange={finalOnCameraAngleChange}
                 shotDuration={shotDuration}
                 onDurationChange={finalOnDurationChange}
+                isLipSyncWorkflow={shot.type === 'dialogue' && (finalSelectedDialogueWorkflow === 'first-frame-lipsync' || finalSelectedDialogueWorkflow === 'extreme-closeup' || finalSelectedDialogueWorkflow === 'extreme-closeup-mouth')}
               />
               {/* Aspect Ratio Selector */}
               {onAspectRatioChange && (

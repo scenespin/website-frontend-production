@@ -989,6 +989,7 @@ export function ShotConfigurationPanel({
             detectedWorkflow={detectedWorkflowType as DialogueWorkflowType}
             workflowConfidence={workflowConfidence}
             workflowReasoning={workflowReasoning}
+            showOnlyLipSync={true}
           />
         </div>
       )}

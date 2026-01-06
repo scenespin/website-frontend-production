@@ -122,6 +122,7 @@ interface UnifiedDialogueDropdownProps {
   detectedWorkflow?: DialogueWorkflowType;
   workflowConfidence?: 'high' | 'medium' | 'low';
   workflowReasoning?: string;
+  showOnlyLipSync?: boolean; // 🔥 NEW: If true, only show lip-sync options (hide non-lip-sync)
 }
 
 // Available base workflows for voiceover options
@@ -152,7 +153,8 @@ export function UnifiedDialogueDropdown({
   onBaseWorkflowChange,
   detectedWorkflow,
   workflowConfidence,
-  workflowReasoning
+  workflowReasoning,
+  showOnlyLipSync = false // 🔥 NEW: Default to showing both sections
 }: UnifiedDialogueDropdownProps) {
   
   const isMultiCharacter = characterIds.length > 1;
@@ -295,10 +297,11 @@ export function UnifiedDialogueDropdown({
         </div>
       </div>
       
-      {/* Divider */}
-      <div className="border-t border-[#3F3F46] my-4"></div>
+      {/* Divider - Only show if non-lip-sync options are visible */}
+      {!showOnlyLipSync && <div className="border-t border-[#3F3F46] my-4"></div>}
       
-      {/* Non-Lip Sync Options */}
+      {/* Non-Lip Sync Options - Only show if showOnlyLipSync is false */}
+      {!showOnlyLipSync && (
       <div>
         <div className="text-xs font-medium text-[#FFFFFF] mb-2">NON-LIP SYNC OPTIONS</div>
         <div className="space-y-2">
@@ -363,6 +366,7 @@ export function UnifiedDialogueDropdown({
           })}
         </div>
       </div>
+      )}
       
       {/* Auto-detection indicator */}
       {detectedWorkflow && !selectedWorkflow && (

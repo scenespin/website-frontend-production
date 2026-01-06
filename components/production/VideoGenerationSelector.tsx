@@ -34,18 +34,84 @@ export function VideoGenerationSelector({
   shotCameraAngle,
   onCameraAngleChange,
   shotDuration,
-  onDurationChange
-}: VideoGenerationSelectorProps) {
-  // 🔥 NEW: For dialogue shots, show only Quality and Camera Angle (no Video Type or Duration)
-  if (shotType === 'dialogue') {
-    const selectCameraAngle = shotCameraAngle ?? 'auto';
+  onDurationChange,
+  isLipSyncWorkflow = false // 🔥 NEW: Flag to hide camera angle for lip-sync workflows
+}: VideoGenerationSelectorProps & { isLipSyncWorkflow?: boolean }) {
+  // 🔥 NEW: For dialogue lip-sync shots, show only Quality (no Camera Angle, Video Type, or Duration)
+  if (shotType === 'dialogue' && isLipSyncWorkflow) {
     const selectQuality = selectedQuality ?? 'hd';
     
     return (
       <div className="pt-3 pb-3 border-t border-b border-[#3F3F46]">
         <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Generation</div>
         <div className="space-y-3">
-          {/* Camera Angle - Available for dialogue shots */}
+          {/* Quality Selection - Only option for lip-sync workflows */}
+          {onQualityChange && (
+            <div>
+              <label className="text-[10px] text-[#808080] mb-1.5 block">Quality</label>
+              <select
+                value={selectQuality}
+                onChange={(e) => {
+                  onQualityChange(shotSlot, e.target.value as 'hd' | '4k');
+                }}
+                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+              >
+                <option value="4k" className="bg-[#1A1A1A] text-[#FFFFFF]">4K - Highest quality</option>
+                <option value="hd" className="bg-[#1A1A1A] text-[#FFFFFF]">HD - 1080p, standard</option>
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // 🔥 NEW: For dialogue non-lip-sync shots, show Quality, Camera Angle, Shot Duration, and Video Style
+  if (shotType === 'dialogue' && !isLipSyncWorkflow) {
+    const selectCameraAngle = shotCameraAngle ?? 'auto';
+    const selectQuality = selectedQuality ?? 'hd';
+    const selectVideoType = selectedVideoType ?? 'cinematic-visuals';
+    const selectDuration = shotDuration ?? 'quick-cut';
+    
+    const videoTypes = [
+      {
+        id: 'cinematic-visuals' as const,
+        name: 'Cinematic Visuals',
+        model: 'Runway Gen-4',
+        description: 'Dramatic lighting, high contrast, visual effects, stylized looks',
+        bestFor: 'Establishing shots, VFX, fantasy scenes'
+      },
+      {
+        id: 'natural-motion' as const,
+        name: 'Natural Motion',
+        model: 'Luma Ray Flash 2',
+        description: 'Physics-accurate movement, realistic motion, natural actions',
+        bestFor: 'Action sequences, character movement, realistic scenes'
+      }
+    ];
+    
+    return (
+      <div className="pt-3 pb-3 border-t border-b border-[#3F3F46]">
+        <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Generation</div>
+        <div className="space-y-3">
+          {/* Quality Selection */}
+          {onQualityChange && (
+            <div>
+              <label className="text-[10px] text-[#808080] mb-1.5 block">Quality</label>
+              <select
+                value={selectQuality}
+                onChange={(e) => {
+                  onQualityChange(shotSlot, e.target.value as 'hd' | '4k');
+                }}
+                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+              >
+                <option value="4k" className="bg-[#1A1A1A] text-[#FFFFFF]">4K - Highest quality</option>
+                <option value="hd" className="bg-[#1A1A1A] text-[#FFFFFF]">HD - 1080p, standard</option>
+              </select>
+            </div>
+          )}
+
+          {/* Camera Angle */}
           {onCameraAngleChange && (
             <div>
               <label className="text-[10px] text-[#808080] mb-1.5 block">Camera Angle</label>
@@ -84,20 +150,45 @@ export function VideoGenerationSelector({
             </div>
           )}
 
-          {/* Quality Selection - Available for dialogue shots */}
-          {onQualityChange && (
+          {/* Video Style (Video Type) */}
+          {onVideoTypeChange && (
             <div>
-              <label className="text-[10px] text-[#808080] mb-1.5 block">Quality</label>
+              <label className="text-[10px] text-[#808080] mb-1.5 block">Video</label>
               <select
-                value={selectQuality}
+                value={selectVideoType}
                 onChange={(e) => {
-                  onQualityChange(shotSlot, e.target.value as 'hd' | '4k');
+                  onVideoTypeChange(shotSlot, e.target.value as 'cinematic-visuals' | 'natural-motion');
                 }}
                 className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
               >
-                <option value="4k" className="bg-[#1A1A1A] text-[#FFFFFF]">4K - Highest quality</option>
-                <option value="hd" className="bg-[#1A1A1A] text-[#FFFFFF]">HD - 1080p, standard</option>
+                {videoTypes.map((videoType) => (
+                  <option key={videoType.id} value={videoType.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
+                    {videoType.name} - {videoType.description} (Best for: {videoType.bestFor})
+                  </option>
+                ))}
               </select>
+            </div>
+          )}
+
+          {/* Shot Duration */}
+          {onDurationChange && (
+            <div>
+              <label className="text-[10px] text-[#808080] mb-1.5 block">Shot Duration</label>
+              <select
+                value={selectDuration}
+                onChange={(e) => {
+                  onDurationChange(shotSlot, e.target.value as 'quick-cut' | 'extended-take');
+                }}
+                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+              >
+                <option value="quick-cut" className="bg-[#1A1A1A] text-[#FFFFFF]">Quick Cut (~5s) - 4-5 seconds (default)</option>
+                <option value="extended-take" className="bg-[#1A1A1A] text-[#FFFFFF]">Extended Take (~10s) - 8-10 seconds</option>
+              </select>
+              <div className="text-[10px] text-[#808080] italic mt-1">
+                {selectDuration === 'quick-cut' 
+                  ? 'Quick Cut: 4-5 seconds (default)'
+                  : 'Extended Take: 8-10 seconds'}
+              </div>
             </div>
           )}
         </div>
