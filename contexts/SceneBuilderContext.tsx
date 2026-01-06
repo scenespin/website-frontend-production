@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import { DialogueWorkflowType } from '@/components/production/UnifiedDialogueDropdown';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { useCharacterReferences } from '@/components/production/hooks/useCharacterReferences';
@@ -369,30 +369,105 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     enabled: characterIdsForMediaLibrary.length > 0
   });
   
+  // 🔥 FIX: Create stable signatures for Map objects to prevent infinite loops
+  const thumbnailS3KeyMapSignature = useMemo(() => {
+    if (!hookThumbnailS3KeyMap || hookThumbnailS3KeyMap.size === 0) return '';
+    return Array.from(hookThumbnailS3KeyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${value}`)
+      .join('|');
+  }, [hookThumbnailS3KeyMap]);
+  
+  const thumbnailUrlsMapSignature = useMemo(() => {
+    if (!hookThumbnailUrlsMap || hookThumbnailUrlsMap.size === 0) return '';
+    return Array.from(hookThumbnailUrlsMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${value}`)
+      .join('|');
+  }, [hookThumbnailUrlsMap]);
+  
+  const fullImageUrlsMapSignature = useMemo(() => {
+    if (!hookFullImageUrlsMap || hookFullImageUrlsMap.size === 0) return '';
+    return Array.from(hookFullImageUrlsMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${value}`)
+      .join('|');
+  }, [hookFullImageUrlsMap]);
+  
+  // 🔥 FIX: Create stable signature for characterHeadshotsFromHook to prevent infinite loops
+  const characterHeadshotsSignature = useMemo(() => {
+    if (!characterHeadshotsFromHook || Object.keys(characterHeadshotsFromHook).length === 0) return '';
+    return JSON.stringify(
+      Object.entries(characterHeadshotsFromHook)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([charId, headshots]) => [
+          charId,
+          headshots.map(h => `${h.s3Key || ''}:${h.imageUrl || ''}`).sort().join(',')
+        ])
+    );
+  }, [characterHeadshotsFromHook]);
+  
   // Update context state directly when hook data changes (no sync loop!)
+  const lastHeadshotsSignatureRef = useRef<string>('');
   useEffect(() => {
+    // Only update if signature actually changed
+    if (characterHeadshotsSignature === lastHeadshotsSignatureRef.current) {
+      return;
+    }
+    
+    lastHeadshotsSignatureRef.current = characterHeadshotsSignature;
+    
     if (Object.keys(characterHeadshotsFromHook).length > 0) {
       setState(prev => ({ ...prev, characterHeadshots: characterHeadshotsFromHook }));
     }
-  }, [characterHeadshotsFromHook]);
+  }, [characterHeadshotsSignature, characterHeadshotsFromHook]);
+
+  // 🔥 FIX: Create stable signature for loadingHeadshots to prevent infinite loops
+  const loadingHeadshotsSignature = useMemo(() => {
+    const loading: Record<string, boolean> = {};
+    characterIdsForMediaLibrary.forEach(charId => {
+      loading[charId] = loadingCharacterHeadshots;
+    });
+    return JSON.stringify(Object.entries(loading).sort(([a], [b]) => a.localeCompare(b)));
+  }, [characterIdsForMediaLibrary, loadingCharacterHeadshots]);
   
+  const lastLoadingHeadshotsSignatureRef = useRef<string>('');
   useEffect(() => {
+    // Only update if signature actually changed
+    if (loadingHeadshotsSignature === lastLoadingHeadshotsSignatureRef.current) {
+      return;
+    }
+    
+    lastLoadingHeadshotsSignatureRef.current = loadingHeadshotsSignature;
+    
     const loading: Record<string, boolean> = {};
     characterIdsForMediaLibrary.forEach(charId => {
       loading[charId] = loadingCharacterHeadshots;
     });
     setState(prev => ({ ...prev, loadingHeadshots: loading }));
-  }, [characterIdsForMediaLibrary, loadingCharacterHeadshots]);
+  }, [loadingHeadshotsSignature, characterIdsForMediaLibrary, loadingCharacterHeadshots]);
   
-  // Update Media Library maps in context
+  // 🔥 CRITICAL FIX: Update Media Library maps in context using stable signatures
+  // Map objects are recreated on every render even if contents are the same
+  // Use stable signatures to prevent infinite loops
+  const lastMapsSignatureRef = useRef<string>('');
   useEffect(() => {
+    const combinedSignature = `${thumbnailS3KeyMapSignature}|${thumbnailUrlsMapSignature}|${fullImageUrlsMapSignature}`;
+    
+    // Only update if signature actually changed
+    if (combinedSignature === lastMapsSignatureRef.current) {
+      return;
+    }
+    
+    lastMapsSignatureRef.current = combinedSignature;
+    
     setState(prev => ({ 
       ...prev, 
       characterThumbnailS3KeyMap: hookThumbnailS3KeyMap,
       characterThumbnailUrlsMap: hookThumbnailUrlsMap,
       characterFullImageUrlsMap: hookFullImageUrlsMap
     }));
-  }, [hookThumbnailS3KeyMap, hookThumbnailUrlsMap, hookFullImageUrlsMap]);
+  }, [thumbnailS3KeyMapSignature, thumbnailUrlsMapSignature, fullImageUrlsMapSignature, hookThumbnailS3KeyMap, hookThumbnailUrlsMap, hookFullImageUrlsMap]);
 
   // ============================================================================
   // Action Creators (using useCallback for performance)
