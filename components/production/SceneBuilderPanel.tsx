@@ -434,6 +434,17 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const characterThumbnailUrlsMap = contextState.characterThumbnailUrlsMap;
   const characterFullImageUrlsMap = contextState.characterFullImageUrlsMap;
   
+  // 🔥 FIX: Create stable signature from characterFullImageUrlsMap to prevent infinite loops
+  // The Map object may be recreated on every render even if contents are the same
+  const characterFullImageUrlsMapSignature = useMemo(() => {
+    if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) return '';
+    // Create stable signature from sorted keys and values
+    return Array.from(characterFullImageUrlsMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${value}`)
+      .join('|');
+  }, [characterFullImageUrlsMap]);
+  
   // Use context state
   const enabledShots = contextState.enabledShots;
   const wizardStep = contextState.wizardStep;
@@ -464,11 +475,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
     runInfo.count++;
     const timeSinceLastRun = now - runInfo.lastRun;
-    const depsChanged = JSON.stringify([characterFullImageUrlsMap?.size, Object.keys(selectedCharacterReferences).length]) !== JSON.stringify(runInfo.lastDeps);
+    const depsChanged = characterFullImageUrlsMapSignature !== runInfo.lastDeps;
     
     console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
       characterFullImageUrlsMapSize: characterFullImageUrlsMap?.size || 0,
-      selectedCharacterReferencesKeys: Object.keys(selectedCharacterReferences).length
+      signatureLength: characterFullImageUrlsMapSignature.length
     });
     
     if (timeSinceLastRun < 100 && runInfo.count > 5) {
@@ -476,7 +487,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     
     runInfo.lastRun = now;
-    runInfo.lastDeps = [characterFullImageUrlsMap?.size, Object.keys(selectedCharacterReferences).length];
+    runInfo.lastDeps = characterFullImageUrlsMapSignature;
     useEffectRunCountsRef.current[effectName] = runInfo;
     
     if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) return;
@@ -534,11 +545,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     if (needsUpdate) {
       setSelectedCharacterReferences(updated);
     }
-    // 🔥 FIX: Removed selectedCharacterReferences from dependencies - it causes infinite loop
-    // We already track changes with signature comparison (lastProcessedRefsRef)
-    // The effect only needs to run when characterFullImageUrlsMap changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [characterFullImageUrlsMap]);
+    // 🔥 FIX: Use stable signature instead of Map object - prevents infinite loops when Map is recreated
+    // The signature only changes when the actual data (keys/values) changes, not when the Map object is recreated
+  }, [characterFullImageUrlsMapSignature, characterFullImageUrlsMap]);
 
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
