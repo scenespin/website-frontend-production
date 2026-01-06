@@ -423,7 +423,7 @@ export default function Page() {
               </div>
 
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">✨</div>
+                <div className="text-3xl mb-3">💫</div>
                 <h3 className="text-lg font-bold mb-2">Rewrite</h3>
                 <p className="text-sm text-gray-300">
                   Polish and refine. Fix pacing, improve clarity, enhance style. Professional editing.
