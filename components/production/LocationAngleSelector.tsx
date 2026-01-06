@@ -147,14 +147,20 @@ export function LocationAngleSelector({
     
     // Group angle variations by timeOfDay/weather
     angleVariations.forEach(angle => {
+      // 🔥 FIX: Check if this is the base reference (creation image)
+      const isBaseReference = baseReference && angle.s3Key === baseReference.s3Key;
+      
       const metadataParts = [
         angle.timeOfDay ? angle.timeOfDay : null,
         angle.weather ? angle.weather : null
       ].filter(Boolean);
       
-      const groupKey = metadataParts.length > 0 
-        ? metadataParts.join(' • ') 
-        : 'No Metadata';
+      // 🔥 FIX: If it's the base reference and has no metadata, put it in "Creation Image" group
+      const groupKey = isBaseReference && metadataParts.length === 0
+        ? 'Creation Image'
+        : metadataParts.length > 0 
+          ? metadataParts.join(' • ') 
+          : 'No Metadata';
       
       if (!groups[groupKey]) groups[groupKey] = [];
       groups[groupKey].push({
@@ -167,7 +173,7 @@ export function LocationAngleSelector({
         badge: 'Angle',
         timeOfDay: angle.timeOfDay,
         weather: angle.weather,
-        isBase: false
+        isBase: isBaseReference
       });
     });
     
@@ -204,6 +210,19 @@ export function LocationAngleSelector({
       });
     });
     
+    // 🔥 FIX: If "No Metadata" group only contains the creation image (base reference), rename it to "Creation Image"
+    if (groups['No Metadata'] && baseReference) {
+      const noMetadataGroup = groups['No Metadata'];
+      const isOnlyCreationImage = noMetadataGroup.length === 1 && 
+        noMetadataGroup[0].s3Key === baseReference.s3Key;
+      
+      if (isOnlyCreationImage) {
+        // Rename "No Metadata" to "Creation Image"
+        groups['Creation Image'] = groups['No Metadata'];
+        delete groups['No Metadata'];
+      }
+    }
+    
     return groups;
   }, [baseReference, angleVariations, backgrounds]);
   
@@ -211,7 +230,7 @@ export function LocationAngleSelector({
   // IMPORTANT: Only include "Creation" if there are NO Production Hub images
   const groupKeys = React.useMemo(() => {
     const keys = Object.keys(groupedPhotos);
-    const hasProductionHubImages = keys.some(k => k !== 'Creation' && k !== 'No Metadata');
+    const hasProductionHubImages = keys.some(k => k !== 'Creation' && k !== 'Creation Image' && k !== 'No Metadata');
     
     // Only include Creation if it's the absolute last resort (no Production Hub images)
     const filteredKeys = hasProductionHubImages 
@@ -221,6 +240,8 @@ export function LocationAngleSelector({
     return filteredKeys.sort((a, b) => {
       if (a === 'No Metadata') return 1;
       if (b === 'No Metadata') return -1;
+      if (a === 'Creation Image') return 1;
+      if (b === 'Creation Image') return -1;
       if (a === 'Creation') return -1; // Creation first (only if no Production Hub)
       if (b === 'Creation') return 1;
       return a.localeCompare(b);
