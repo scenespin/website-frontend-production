@@ -942,8 +942,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     fetchSceneProps();
     // 🔥 FIX: Removed screenplay.scenes and currentScenePropIdsString from dependencies
     // We read the scene inside the effect and compare prop IDs to prevent infinite loops
+    // 🔥 FIX: Removed contextActions from dependencies - it's recreated on every render
+    // The individual functions are memoized with useCallback, so they're stable
+    // We only use contextActions.setSceneProps which is stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSceneId, projectId, getToken, contextActions]);
+  }, [selectedSceneId, projectId, getToken]);
   
   // Props enrichment is now handled by usePropReferences hook (see above)
 
