@@ -902,7 +902,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   useEffect(() => {
     const newlyCompletedJobs = jobs.filter(job => 
       job.status === 'completed' && 
-      !processedJobIdsForCredits.current.has(job.id) &&
+      !processedJobIdsForCredits.current.has(job.jobId) &&
       (job.totalCreditsUsed > 0 || job.results?.totalCreditsUsed > 0)
     );
     
@@ -914,7 +914,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       });
       
       // Mark these jobs as processed
-      newlyCompletedJobs.forEach(job => processedJobIdsForCredits.current.add(job.id));
+      newlyCompletedJobs.forEach(job => processedJobIdsForCredits.current.add(job.jobId));
       
       // Refresh credits immediately
       if (typeof window !== 'undefined' && (window as any).refreshCredits) {
