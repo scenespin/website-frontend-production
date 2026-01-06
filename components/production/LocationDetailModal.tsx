@@ -22,6 +22,7 @@ import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import { GenerateLocationTab } from './Coverage/GenerateLocationTab';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
+import { useLocations } from '@/hooks/useLocationBank';
 import {
   DropdownMenu,
   DropdownMenuContent,
