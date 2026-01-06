@@ -300,6 +300,49 @@ export function ShotConfigurationPanel({
   // 🔥 NEW: Fetch thumbnail URLs for all prop images
   const { data: propThumbnailUrlsMap } = useBulkPresignedUrls(propThumbnailS3Keys, propThumbnailS3Keys.length > 0);
   
+  // 🔥 NEW: Collect all full image S3 keys and fetch presigned URLs (not just thumbnails)
+  const propFullImageS3Keys = React.useMemo(() => {
+    const keys: string[] = [];
+    const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
+    assignedProps.forEach(prop => {
+      const fullProp = prop as typeof prop & {
+        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+        images?: Array<{ url: string; s3Key?: string }>;
+        baseReference?: { s3Key?: string; imageUrl?: string };
+      };
+      
+      // Add angleReferences full image s3Keys
+      if (fullProp.angleReferences) {
+        fullProp.angleReferences.forEach(ref => {
+          if (ref.s3Key) {
+            keys.push(ref.s3Key);
+          }
+        });
+      }
+      
+      // Add images[] full image s3Keys
+      if (fullProp.images) {
+        fullProp.images.forEach(img => {
+          if (img.s3Key) {
+            keys.push(img.s3Key);
+          }
+        });
+      }
+      
+      // Add baseReference s3Key if available
+      if (fullProp.baseReference?.s3Key) {
+        keys.push(fullProp.baseReference.s3Key);
+      }
+    });
+    return keys;
+  }, [sceneProps, propsToShots, shot.slot]);
+  
+  // 🔥 NEW: Fetch presigned URLs for full images (not just thumbnails)
+  const { data: propFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    propFullImageS3Keys,
+    propFullImageS3Keys.length > 0
+  );
+  
   // Reset character selection when workflow changes away from 'scene-voiceover'
   React.useEffect(() => {
     const currentWorkflow = selectedDialogueWorkflow || detectedWorkflowType || 'first-frame-lipsync';
@@ -795,20 +838,65 @@ export function ShotConfigurationPanel({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
                         {(() => {
-                          // 🔥 FIX: Use baseReference as fallback when imageUrl is broken or missing
-                          const displayImageUrl = prop.imageUrl || fullProp.baseReference?.imageUrl;
-                          return displayImageUrl ? (
+                          // 🔥 FIX: Use presigned URLs from maps, similar to characters and locations
+                          const availableImages = getAvailablePropImages(fullProp);
+                          const propConfig = shotProps[shot.slot]?.[prop.id] || {};
+                          const selectedImageId = propConfig.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                          
+                          // Find the selected image
+                          const selectedImage = selectedImageId 
+                            ? availableImages.find(img => img.id === selectedImageId)
+                            : availableImages[0];
+                          
+                          // Get the s3Key for the selected image
+                          let imageS3Key: string | null = null;
+                          if (selectedImage) {
+                            if (fullProp.angleReferences) {
+                              const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id);
+                              if (ref?.s3Key) imageS3Key = ref.s3Key;
+                            }
+                            if (!imageS3Key && fullProp.images) {
+                              const imgData = fullProp.images.find(i => i.url === selectedImage.id);
+                              if (imgData?.s3Key) imageS3Key = imgData.s3Key;
+                            }
+                            if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image') {
+                              imageS3Key = fullProp.baseReference.s3Key;
+                            }
+                          }
+                          
+                          // Get thumbnail URL if available, otherwise use full image URL
+                          let thumbnailKey: string | null = null;
+                          if (imageS3Key && propThumbnailS3KeyMap?.has(imageS3Key)) {
+                            thumbnailKey = propThumbnailS3KeyMap.get(imageS3Key) || null;
+                          }
+                          
+                          const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
+                          const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
+                          const displayUrl = thumbnailUrl || fullImageUrl || selectedImage?.imageUrl || fullProp.baseReference?.imageUrl || prop.imageUrl;
+                          
+                          return displayUrl ? (
                             <img 
-                              src={displayImageUrl} 
+                              src={displayUrl} 
                               alt={prop.name}
                               className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
+                              loading="lazy"
                               onError={(e) => {
-                                // If main image fails, try baseReference
+                                // 🔥 FIX: Fallback chain: thumbnail -> full image -> selected image -> baseReference -> prop.imageUrl
                                 const imgElement = e.target as HTMLImageElement;
-                                if (prop.imageUrl && fullProp.baseReference?.imageUrl && imgElement.src !== fullProp.baseReference.imageUrl) {
+                                if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
+                                  // Try full image first
+                                  imgElement.src = fullImageUrl;
+                                } else if (selectedImage?.imageUrl && imgElement.src !== selectedImage.imageUrl) {
+                                  // Then try selected image URL
+                                  imgElement.src = selectedImage.imageUrl;
+                                } else if (fullProp.baseReference?.imageUrl && imgElement.src !== fullProp.baseReference.imageUrl) {
+                                  // Then try baseReference
                                   imgElement.src = fullProp.baseReference.imageUrl;
+                                } else if (prop.imageUrl && imgElement.src !== prop.imageUrl) {
+                                  // Finally try prop.imageUrl
+                                  imgElement.src = prop.imageUrl;
                                 } else {
-                                  // Hide broken image
+                                  // Hide broken image if no fallback
                                   imgElement.style.display = 'none';
                                 }
                               }}
@@ -874,7 +962,7 @@ export function ShotConfigurationPanel({
                                     title={img.label || 'Prop image'}
                                   >
                                     {(() => {
-                                      // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
+                                      // 🔥 FIX: Get thumbnail URL if available, otherwise use full image from presigned URL maps
                                       // Find the s3Key for this image
                                       const fullPropForImage = prop as typeof prop & {
                                         angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
@@ -891,6 +979,9 @@ export function ShotConfigurationPanel({
                                         const imgData = fullPropForImage.images.find(i => i.url === img.id);
                                         if (imgData?.s3Key) imageS3Key = imgData.s3Key;
                                       }
+                                      if (!imageS3Key && fullPropForImage.baseReference?.s3Key && img.label === 'Creation Image') {
+                                        imageS3Key = fullPropForImage.baseReference.s3Key;
+                                      }
                                       
                                       // 🔥 NEW: Use Media Library thumbnailS3KeyMap to get thumbnail key
                                       let thumbnailKey: string | null = null;
@@ -899,7 +990,8 @@ export function ShotConfigurationPanel({
                                       }
                                       
                                       const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
-                                      const displayUrl = thumbnailUrl || img.imageUrl;
+                                      const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
+                                      const displayUrl = thumbnailUrl || fullImageUrl || img.imageUrl;
                                       
                                       // Get baseReference for fallback
                                       const baseRefImageUrl = fullPropForImage.baseReference?.imageUrl;
@@ -911,10 +1003,13 @@ export function ShotConfigurationPanel({
                                           className="w-full h-full object-cover rounded"
                                           loading="lazy"
                                           onError={(e) => {
-                                            // 🔥 FIX: If thumbnail fails, try full image, then baseReference
+                                            // 🔥 FIX: Fallback chain: thumbnail -> full image -> img.imageUrl -> baseReference
                                             const imgElement = e.target as HTMLImageElement;
-                                            if (thumbnailUrl && displayUrl === thumbnailUrl && img.imageUrl && img.imageUrl !== displayUrl) {
+                                            if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
                                               // Try full image first
+                                              imgElement.src = fullImageUrl;
+                                            } else if (img.imageUrl && imgElement.src !== img.imageUrl) {
+                                              // Then try img.imageUrl
                                               imgElement.src = img.imageUrl;
                                             } else if (baseRefImageUrl && imgElement.src !== baseRefImageUrl) {
                                               // Then try baseReference
