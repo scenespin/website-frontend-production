@@ -69,12 +69,21 @@ export default function Navigation() {
   
   // Use ref to track if we've fetched credits to prevent infinite loops
   const hasFetchedCredits = useRef(false);
+  const lastFetchTime = useRef(0);
   
-  // Fetch user's credit balance (only once per user session)
+  // Fetch user's credit balance (only once per user session, or if it's been > 30 seconds)
   useEffect(() => {
-    if (user?.id && getToken && !hasFetchedCredits.current) {
-      hasFetchedCredits.current = true;
-      fetchCreditBalance();
+    if (user?.id && getToken) {
+      const now = Date.now();
+      const timeSinceLastFetch = now - lastFetchTime.current;
+      
+      // Fetch if never fetched, or if it's been more than 30 seconds (force refresh on page load after delay)
+      if (!hasFetchedCredits.current || timeSinceLastFetch > 30000) {
+        hasFetchedCredits.current = true;
+        lastFetchTime.current = now;
+        // Force refresh on initial load or after delay to ensure fresh data
+        fetchCreditBalance(0, timeSinceLastFetch > 30000);
+      }
     }
   }, [user?.id, getToken]);
   
@@ -148,6 +157,7 @@ export default function Navigation() {
           
           if (creditsData && typeof creditsData.balance === 'number') {
             setCredits(creditsData.balance);
+            lastFetchTime.current = Date.now(); // Update last fetch time
             console.log('[Navigation] ✅ Set credits to:', creditsData.balance);
           } else {
             console.log('[Navigation] ⚠️ Invalid credits data, setting to 0');

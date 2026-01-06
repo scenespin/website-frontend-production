@@ -110,9 +110,14 @@ export default function CreditWidget() {
   }
 
   const handlePurchaseSuccess = () => {
-    fetchData(); // Refresh credits
+    fetchData(true); // Force refresh credits (bypass cache)
     setShowQuickPurchase(false);
     setShowDropdown(false);
+    
+    // Also trigger global refresh for Navigation component
+    if (typeof window !== 'undefined' && window.refreshCredits) {
+      window.refreshCredits();
+    }
   };
 
   const handleAutoRechargeUpdate = () => {

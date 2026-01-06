@@ -5,7 +5,7 @@ import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import apiClient from '@/lib/api';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import WelcomeModal from '@/components/WelcomeModal';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
@@ -40,6 +40,7 @@ export default function Dashboard() {
   const { getToken } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -109,6 +110,24 @@ export default function Dashboard() {
       setCurrentScreenplayId(screenplayId);
     }
   }, [user]);
+
+  // 🔥 FIX: Check for purchase success query param and refresh credits
+  useEffect(() => {
+    if (searchParams?.get('purchase') === 'success') {
+      console.log('[Dashboard] Purchase success detected, refreshing credits...');
+      
+      // Force refresh credits immediately
+      if (typeof window !== 'undefined' && window.refreshCredits) {
+        window.refreshCredits();
+      }
+      
+      // Remove query param from URL (clean up)
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('purchase');
+      newUrl.searchParams.delete('credits');
+      router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+    }
+  }, [searchParams, router]);
 
   // Refresh dashboard when user navigates back to it (e.g., from editor)
   // This ensures newly created screenplays appear even if they weren't in the list when user left

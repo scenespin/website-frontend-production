@@ -7,7 +7,7 @@
  * Allows users to view, download, retry, and manage all their workflow jobs.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
@@ -478,6 +478,9 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false); // Track if we've successfully loaded jobs at least once
   
+  // Track which jobs we've already processed for credit refresh (avoid duplicates)
+  const processedJobIdsForCredits = useRef<Set<string>>(new Set());
+  
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<{
@@ -891,6 +894,34 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       ]).catch(err => console.error('[ProductionJobsPanel] Error refetching after generic job completion:', err));
     }
   }, [jobs, screenplayId, queryClient]);
+  
+  /**
+   * 🔥 CATCH-ALL: Refresh credits for ANY completed job that used credits
+   * This ensures credits update immediately regardless of job type
+   */
+  useEffect(() => {
+    const newlyCompletedJobs = jobs.filter(job => 
+      job.status === 'completed' && 
+      !processedJobIdsForCredits.current.has(job.id) &&
+      (job.totalCreditsUsed > 0 || job.results?.totalCreditsUsed > 0)
+    );
+    
+    if (newlyCompletedJobs.length > 0) {
+      console.log('[ProductionJobsPanel] 🔥 CATCH-ALL: Detected completed jobs with credits, refreshing...', {
+        jobCount: newlyCompletedJobs.length,
+        jobTypes: newlyCompletedJobs.map(j => j.jobType),
+        totalCredits: newlyCompletedJobs.reduce((sum, j) => sum + (j.totalCreditsUsed || j.results?.totalCreditsUsed || 0), 0)
+      });
+      
+      // Mark these jobs as processed
+      newlyCompletedJobs.forEach(job => processedJobIdsForCredits.current.add(job.id));
+      
+      // Refresh credits immediately
+      if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+        (window as any).refreshCredits();
+      }
+    }
+  }, [jobs]);
   
   /**
    * 🔥 NEW: Check for safety errors in completed jobs and show dialog
