@@ -2246,6 +2246,10 @@ export function CharacterDetailModal({
                                           return;
                                         }
                                         
+                                        // 🔥 OPTIMISTIC UPDATE: Cancel outgoing queries and snapshot current data
+                                        await queryClient.cancelQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                        const previousCharacters = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+                                        
                                         try {
                                           // Extract s3Key from multiple possible locations (same as bulk delete)
                                           let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
@@ -2276,10 +2280,49 @@ export function CharacterDetailModal({
                                             throw new Error('Missing S3 key for image');
                                           }
                                           
+                                          // Check if it's a pose reference (AI-generated) or user reference
+                                          const poseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                          const isPoseRef = poseRefs.some((poseRef: any) => {
+                                            const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
+                                            return poseS3Key === imgS3Key;
+                                          });
+                                          
+                                          // 🔥 OPTIMISTIC UPDATE: Remove image from React Query cache immediately
+                                          queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
+                                            if (!old) return old;
+                                            return old.map((char) => {
+                                              if (char.id !== character.id) return char;
+                                              
+                                              if (isPoseRef) {
+                                                // Remove from poseReferences
+                                                const currentPoseReferences = (char as any).angleReferences || char.poseReferences || [];
+                                                const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
+                                                  const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                                  return refS3Key !== imgS3Key;
+                                                });
+                                                return {
+                                                  ...char,
+                                                  poseReferences: updatedPoseReferences,
+                                                  angleReferences: updatedPoseReferences // Also update angleReferences for compatibility
+                                                };
+                                              } else {
+                                                // Remove from references
+                                                const currentReferences = char.references || [];
+                                                const updatedReferences = currentReferences.filter((ref: any) => {
+                                                  const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                                  return refS3Key !== imgS3Key;
+                                                });
+                                                return {
+                                                  ...char,
+                                                  references: updatedReferences
+                                                };
+                                              }
+                                            });
+                                          });
+                                          
                                           const token = await getToken({ template: 'wryda-backend' });
                                           if (!token) {
-                                            toast.error('Authentication required');
-                                            return;
+                                            throw new Error('Authentication required');
                                           }
                                           
                                           // 🔥 FIX: Delete from Media Library first (source of truth) - same pattern as locations and props
@@ -2297,13 +2340,6 @@ export function CharacterDetailModal({
                                             console.warn('[CharacterDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
                                             // Continue with character update even if Media Library deletion fails
                                           }
-                                          
-                                          // Check if it's a pose reference (AI-generated) or user reference
-                                          const poseRefs = (character as any).angleReferences || character.poseReferences || [];
-                                          const isPoseRef = poseRefs.some((poseRef: any) => {
-                                            const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
-                                            return poseS3Key === imgS3Key;
-                                          });
                                           
                                           // Use the same simple approach as bulk delete - just filter and update
                                           if (isPoseRef) {
@@ -2330,16 +2366,19 @@ export function CharacterDetailModal({
                                             });
                                           }
                                           
-                                          // 🔥 FIX: Invalidate queries to refresh UI immediately
+                                          // 🔥 FIX: Invalidate queries to sync with server (optimistic update already shows removal)
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          await Promise.all([
-                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
-                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-                                          ]);
+                                          // Refetch in background to ensure sync
+                                          queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                          queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
+                                          // 🔥 ROLLBACK: Restore previous data on error
+                                          if (previousCharacters) {
+                                            queryClient.setQueryData(['characters', screenplayId, 'production-hub'], previousCharacters);
+                                          }
                                           console.error('[CharacterDetailModal] Failed to delete image:', error);
                                           toast.error(`Failed to delete image: ${error.message}`);
                                         }
@@ -2590,6 +2629,11 @@ export function CharacterDetailModal({
               <button
                 onClick={async () => {
                   setShowBulkDeleteConfirm(false);
+                  
+                  // 🔥 OPTIMISTIC UPDATE: Cancel outgoing queries and snapshot current data
+                  await queryClient.cancelQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                  const previousCharacters = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+                  
                   try {
                     const selectedImages = poseReferences.filter(img => selectedImageIds.has(img.id));
                     
@@ -2628,6 +2672,39 @@ export function CharacterDetailModal({
                       toast.error('No valid images to delete');
                       return;
                     }
+                    
+                    // 🔥 OPTIMISTIC UPDATE: Remove images from React Query cache immediately
+                    queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
+                      if (!old) return old;
+                      return old.map((char) => {
+                        if (char.id !== character.id) return char;
+                        
+                        // Filter out deleted images from poseReferences and references
+                        const currentPoseReferences = (char as any).angleReferences || char.poseReferences || [];
+                        const currentReferences = char.references || [];
+                        
+                        const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
+                          const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                          return !s3KeysToDelete.has(refS3Key);
+                        });
+                        
+                        const updatedReferences = currentReferences.filter((ref: any) => {
+                          const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                          return !s3KeysToDelete.has(refS3Key);
+                        });
+                        
+                        return {
+                          ...char,
+                          poseReferences: updatedPoseReferences,
+                          angleReferences: updatedPoseReferences, // Also update angleReferences for compatibility
+                          references: updatedReferences
+                        };
+                      });
+                    });
+                    
+                    // Clear selection and exit selection mode immediately (optimistic)
+                    setSelectedImageIds(new Set());
+                    setSelectionMode(false);
                     
                     // 🔥 FIX: Delete from Media Library first (source of truth) - batch delete
                     const token = await getToken({ template: 'wryda-backend' });
@@ -2673,16 +2750,21 @@ export function CharacterDetailModal({
                       references: updatedReferences
                     });
                     
-                    // 🔥 FIX: Invalidate queries to refresh UI immediately
+                    // 🔥 FIX: Invalidate queries to sync with server (optimistic update already shows removal)
                     queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                    
-                    // Clear selection and exit selection mode
-                    setSelectedImageIds(new Set());
-                    setSelectionMode(false);
+                    // Refetch in background to ensure sync
+                    queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                     
                     toast.success(`Successfully deleted ${s3KeysToDelete.size} image${s3KeysToDelete.size !== 1 ? 's' : ''}`);
                   } catch (error: any) {
+                    // 🔥 ROLLBACK: Restore previous data on error
+                    if (previousCharacters) {
+                      queryClient.setQueryData(['characters', screenplayId, 'production-hub'], previousCharacters);
+                    }
+                    // Restore selection mode on error
+                    setSelectionMode(true);
                     console.error('[CharacterDetailModal] Bulk deletion error:', error);
                     toast.error(`Failed to delete images: ${error.message}`);
                   }
