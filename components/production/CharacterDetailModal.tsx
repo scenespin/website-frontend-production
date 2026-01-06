@@ -374,57 +374,13 @@ export function CharacterDetailModal({
     character.id // entityId: filter to this specific character
   );
   
-  // Fallback: If entity query returns 0 files, try querying all files (for old files without entityType/entityId)
-  const { data: allMediaFiles = [] } = useMediaFiles(
-    screenplayId || '', 
-    undefined, 
-    isOpen && !!screenplayId && entityMediaFiles.length === 0, // Only query if entity query returned 0
-    true, // includeAllFolders: true
-    undefined, // No entityType filter
-    undefined // No entityId filter
-  );
+  // 🔥 REMOVED: Fallback query - all files are new and properly indexed, so entityMediaFiles is sufficient
+  // This matches the working pattern used by angles/assets
   
-  // Use entity files and merge with fallback to catch any files missed by GSI (e.g., newly uploaded files not yet indexed)
+  // Use entity files directly (same pattern as angles/assets - no fallback needed)
   const mediaFiles = useMemo(() => {
-    // Start with entity files (from GSI query - most efficient)
-    const entityS3Keys = new Set(entityMediaFiles.map((f: any) => f.s3Key).filter(Boolean));
-    
-    // Fallback: Filter all files by checking metadata OR s3Key pattern
-    // Character files can be in: temp/images/.../character/{characterId}/... OR temp/images/.../uploads/... (with entityType/entityId in metadata)
-    const characterIdPattern = `character/${character.id}/`;
-    const filtered = allMediaFiles.filter((file: any) => {
-      if (!file.s3Key) return false;
-      // Skip thumbnail files (they're stored separately)
-      if (file.s3Key.startsWith('thumbnails/')) return false;
-      // Skip files already in entity results (avoid duplicates)
-      if (entityS3Keys.has(file.s3Key)) return false;
-      
-      // Check entityType/entityId - backend stores them at top level (for GSI) AND in metadata
-      const entityType = (file as any).entityType || file.metadata?.entityType;
-      const entityId = (file as any).entityId || file.metadata?.entityId;
-      if (entityType === 'character' && entityId === character.id) {
-        return true;
-      }
-      // Fallback: Check s3Key pattern (for AI-generated files in character/.../outfits/...)
-      return file.s3Key.includes(characterIdPattern);
-    });
-    
-    // Merge entity files with fallback results
-    const result = [...entityMediaFiles, ...filtered];
-    
-    // 🔥 DEBUG: Log mediaFiles composition to track why it's not updating
-    console.log('[CharacterDetailModal] 📦 MEDIA FILES COMPOSITION:', {
-      characterId: character.id,
-      entityMediaFilesCount: entityMediaFiles.length,
-      allMediaFilesCount: allMediaFiles.length,
-      filteredCount: filtered.length,
-      totalMediaFilesCount: result.length,
-      entityMediaFilesS3Keys: entityMediaFiles.map((f: any) => f.s3Key).slice(0, 5),
-      allMediaFilesS3Keys: allMediaFiles.map((f: any) => f.s3Key).slice(0, 5)
-    });
-    
-    return result;
-  }, [entityMediaFiles, allMediaFiles, character.id, isOpen]);
+    return entityMediaFiles;
+  }, [entityMediaFiles]);
   
   // Extract outfit names from Media Library folder paths
   const mediaLibraryOutfitNames = useMemo(() => {
@@ -2332,15 +2288,6 @@ export function CharacterDetailModal({
                                           // 🔥 FIX: Invalidate and refetch character queries to refresh UI immediately (same pattern as angles)
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          
-                                          // 🔥 FIX: Manually remove deleted file from allMediaFiles cache (fallback query is disabled, so it won't refetch)
-                                          // The allMediaFiles query key is: ['media', 'files', screenplayId, 'root', 'all', undefined, undefined]
-                                          const allMediaFilesCacheKey = ['media', 'files', screenplayId || '', 'root', 'all', undefined, undefined];
-                                          const allMediaFilesCache = queryClient.getQueryData<any[]>(allMediaFilesCacheKey);
-                                          if (allMediaFilesCache) {
-                                            queryClient.setQueryData(allMediaFilesCacheKey, allMediaFilesCache.filter((file: any) => file.s3Key !== img.s3Key));
-                                          }
-                                          
                                           await Promise.all([
                                             queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
                                             queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
@@ -2689,15 +2636,6 @@ export function CharacterDetailModal({
                     // 🔥 FIX: Invalidate and refetch character queries to refresh UI immediately (same pattern as angles)
                     queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                    
-                    // 🔥 FIX: Manually remove deleted files from allMediaFiles cache (fallback query is disabled, so it won't refetch)
-                    // The allMediaFiles query key is: ['media', 'files', screenplayId, 'root', 'all', undefined, undefined]
-                    const allMediaFilesCacheKey = ['media', 'files', screenplayId || '', 'root', 'all', undefined, undefined];
-                    const allMediaFilesCache = queryClient.getQueryData<any[]>(allMediaFilesCacheKey);
-                    if (allMediaFilesCache) {
-                      queryClient.setQueryData(allMediaFilesCacheKey, allMediaFilesCache.filter((file: any) => !s3KeysToDelete.has(file.s3Key)));
-                    }
-                    
                     await Promise.all([
                       queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
                       queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })

@@ -385,47 +385,13 @@ export function LocationDetailModal({
     location.locationId // entityId
   );
   
-  // Fallback: If entity query returns 0 files, try querying all files (for old files without entityType/entityId)
-  const { data: allMediaFiles = [] } = useMediaFiles(
-    screenplayId || '',
-    undefined,
-    isOpen && !!screenplayId && entityMediaFiles.length === 0,
-    true, // includeAllFolders
-    undefined, // No entityType filter
-    undefined // No entityId filter
-  );
+  // 🔥 REMOVED: Fallback query - all files are new and properly indexed, so entityMediaFiles is sufficient
+  // This matches the working pattern used by angles/assets
   
-  // Merge Media Library files
+  // Use entity files directly (same pattern as angles/assets - no fallback needed)
   const mediaFiles = useMemo(() => {
-    const entityS3Keys = new Set(entityMediaFiles.map((f: any) => f.s3Key).filter(Boolean));
-    const locationIdPattern = `location/${location.locationId}/`;
-    
-    const filtered = allMediaFiles.filter((file: any) => {
-      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return false;
-      if (entityS3Keys.has(file.s3Key)) return false;
-      
-      const entityType = (file as any).entityType || file.metadata?.entityType;
-      const entityId = (file as any).entityId || file.metadata?.entityId;
-      if (entityType === 'location' && entityId === location.locationId) {
-        return true;
-      }
-      return file.s3Key.includes(locationIdPattern);
-    });
-    
-    const result = [...entityMediaFiles, ...filtered];
-    
-    // 🔥 DEBUG: Log mediaFiles composition to track why it's not updating
-    console.log('[LocationDetailModal] 📦 MEDIA FILES COMPOSITION:', {
-      entityMediaFilesCount: entityMediaFiles.length,
-      allMediaFilesCount: allMediaFiles.length,
-      filteredCount: filtered.length,
-      totalMediaFilesCount: result.length,
-      entityMediaFilesS3Keys: entityMediaFiles.map((f: any) => f.s3Key).slice(0, 5),
-      allMediaFilesS3Keys: allMediaFiles.map((f: any) => f.s3Key).slice(0, 5)
-    });
-    
-    return result;
-  }, [entityMediaFiles, allMediaFiles, location.locationId, isOpen]);
+    return entityMediaFiles;
+  }, [entityMediaFiles]);
   
   // Create metadata maps from location prop (DynamoDB) for enrichment
   const dynamoDBMetadataMap = useMemo(() => {
@@ -1727,15 +1693,6 @@ export function LocationDetailModal({
                           // 🔥 FIX: Invalidate location queries to refresh UI immediately (EXACT same pattern as angles - no locations refetch)
                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                          
-                          // 🔥 FIX: Manually remove deleted file from allMediaFiles cache (fallback query is disabled, so it won't refetch)
-                          // The allMediaFiles query key is: ['media', 'files', screenplayId, 'root', 'all', undefined, undefined]
-                          const allMediaFilesCacheKey = ['media', 'files', screenplayId || '', 'root', 'all', undefined, undefined];
-                          const allMediaFilesCache = queryClient.getQueryData<any[]>(allMediaFilesCacheKey);
-                          if (allMediaFilesCache) {
-                            queryClient.setQueryData(allMediaFilesCacheKey, allMediaFilesCache.filter((file: any) => file.s3Key !== background.s3Key));
-                          }
-                          
                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           
                                                           toast.success('Background image deleted');
