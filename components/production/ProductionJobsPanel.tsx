@@ -903,14 +903,14 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     const newlyCompletedJobs = jobs.filter(job => 
       job.status === 'completed' && 
       !processedJobIdsForCredits.current.has(job.jobId) &&
-      (job.totalCreditsUsed > 0 || job.results?.totalCreditsUsed > 0)
+      (job.creditsUsed > 0 || job.results?.totalCreditsUsed > 0)
     );
     
     if (newlyCompletedJobs.length > 0) {
       console.log('[ProductionJobsPanel] 🔥 CATCH-ALL: Detected completed jobs with credits, refreshing...', {
         jobCount: newlyCompletedJobs.length,
         jobTypes: newlyCompletedJobs.map(j => j.jobType),
-        totalCredits: newlyCompletedJobs.reduce((sum, j) => sum + (j.totalCreditsUsed || j.results?.totalCreditsUsed || 0), 0)
+        totalCredits: newlyCompletedJobs.reduce((sum, j) => sum + (j.creditsUsed || j.results?.totalCreditsUsed || 0), 0)
       });
       
       // Mark these jobs as processed
