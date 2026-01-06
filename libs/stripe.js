@@ -29,10 +29,6 @@ export const createCheckout = async ({
     extraParams.tax_id_collection = { enabled: true };
   }
 
-  // Extract payment_intent_data from extraParams to merge with branding
-  const existingPaymentIntentData = extraParams.payment_intent_data || {};
-  delete extraParams.payment_intent_data; // Remove from extraParams to avoid overwriting
-
   const stripeSession = await stripe.checkout.sessions.create({
     mode,
     allow_promotion_codes: true,
@@ -52,22 +48,6 @@ export const createCheckout = async ({
       : [],
     success_url: successUrl,
     cancel_url: cancelUrl,
-    // Wryda.ai branding customization
-    custom_text: {
-      submit: {
-        message: mode === 'subscription' 
-          ? 'Complete your subscription to Wryda.ai'
-          : 'Complete your purchase for Wryda.ai',
-      },
-    },
-    // Only add payment_intent_data for payment mode (one-time purchases)
-    // For subscriptions, statement descriptor is set via invoice settings or Dashboard
-    ...(mode === 'payment' ? {
-      payment_intent_data: {
-        ...existingPaymentIntentData,
-        statement_descriptor: 'WRYDA.AI',
-      },
-    } : {}),
     ...extraParams,
   });
 
