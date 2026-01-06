@@ -304,6 +304,20 @@ export function ShotConfigurationPanel({
   const propFullImageS3Keys = React.useMemo(() => {
     const keys: string[] = [];
     const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
+    
+    // 🔥 DIAGNOSTIC: Log assigned props structure
+    if (process.env.NODE_ENV === 'development' && assignedProps.length > 0) {
+      console.log('[PropImageDebug] Assigned props for shot', shot.slot, ':', assignedProps.map(p => ({
+        id: p.id,
+        name: p.name,
+        imageUrl: p.imageUrl,
+        hasAngleReferences: !!(p as any).angleReferences?.length,
+        hasImages: !!(p as any).images?.length,
+        hasBaseReference: !!(p as any).baseReference,
+        fullProp: p
+      })));
+    }
+    
     assignedProps.forEach(prop => {
       const fullProp = prop as typeof prop & {
         angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
@@ -334,6 +348,12 @@ export function ShotConfigurationPanel({
         keys.push(fullProp.baseReference.s3Key);
       }
     });
+    
+    // 🔥 DIAGNOSTIC: Log collected S3 keys
+    if (process.env.NODE_ENV === 'development' && keys.length > 0) {
+      console.log('[PropImageDebug] Collected full image S3 keys:', keys);
+    }
+    
     return keys;
   }, [sceneProps, propsToShots, shot.slot]);
   
@@ -342,6 +362,23 @@ export function ShotConfigurationPanel({
     propFullImageS3Keys,
     propFullImageS3Keys.length > 0
   );
+  
+  // 🔥 DIAGNOSTIC: Log map sizes and sample data
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
+      if (assignedProps.length > 0) {
+        console.log('[PropImageDebug] Map status:', {
+          propThumbnailS3KeyMapSize: propThumbnailS3KeyMap?.size || 0,
+          propThumbnailUrlsMapSize: propThumbnailUrlsMap?.size || 0,
+          propFullImageUrlsMapSize: propFullImageUrlsMap?.size || 0,
+          propFullImageS3KeysCount: propFullImageS3Keys.length,
+          sampleThumbnailMap: propThumbnailS3KeyMap ? Array.from(propThumbnailS3KeyMap.entries()).slice(0, 3) : [],
+          sampleFullImageMap: propFullImageUrlsMap ? Array.from(propFullImageUrlsMap.entries()).slice(0, 3) : []
+        });
+      }
+    }
+  }, [propThumbnailS3KeyMap, propThumbnailUrlsMap, propFullImageUrlsMap, propFullImageS3Keys, sceneProps, propsToShots, shot.slot]);
   
   // Reset character selection when workflow changes away from 'scene-voiceover'
   React.useEffect(() => {
@@ -838,8 +875,27 @@ export function ShotConfigurationPanel({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
                         {(() => {
+                          // 🔥 DIAGNOSTIC: Log prop data for debugging
+                          if (process.env.NODE_ENV === 'development') {
+                            console.log('[PropImageDebug] Prop:', prop.id, prop.name, {
+                              propImageUrl: prop.imageUrl,
+                              angleReferences: fullProp.angleReferences?.length || 0,
+                              images: fullProp.images?.length || 0,
+                              baseReference: fullProp.baseReference,
+                              propThumbnailS3KeyMapSize: propThumbnailS3KeyMap?.size || 0,
+                              propThumbnailUrlsMapSize: propThumbnailUrlsMap?.size || 0,
+                              propFullImageUrlsMapSize: propFullImageUrlsMap?.size || 0
+                            });
+                          }
+                          
                           // 🔥 FIX: Use presigned URLs from maps, similar to characters and locations
                           const availableImages = getAvailablePropImages(fullProp);
+                          
+                          // 🔥 DIAGNOSTIC: Log available images
+                          if (process.env.NODE_ENV === 'development') {
+                            console.log('[PropImageDebug] Available images for', prop.name, ':', availableImages.length, availableImages);
+                          }
+                          
                           const propConfig = shotProps[shot.slot]?.[prop.id] || {};
                           const selectedImageId = propConfig.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
                           
@@ -873,6 +929,20 @@ export function ShotConfigurationPanel({
                           const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
                           const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
                           const displayUrl = thumbnailUrl || fullImageUrl || selectedImage?.imageUrl || fullProp.baseReference?.imageUrl || prop.imageUrl;
+                          
+                          // 🔥 DIAGNOSTIC: Log final URL resolution
+                          if (process.env.NODE_ENV === 'development') {
+                            console.log('[PropImageDebug] Final URL resolution for', prop.name, ':', {
+                              imageS3Key,
+                              thumbnailKey,
+                              thumbnailUrl: !!thumbnailUrl,
+                              fullImageUrl: !!fullImageUrl,
+                              selectedImageUrl: selectedImage?.imageUrl,
+                              baseReferenceUrl: fullProp.baseReference?.imageUrl,
+                              propImageUrl: prop.imageUrl,
+                              displayUrl: displayUrl || 'NO URL FOUND'
+                            });
+                          }
                           
                           return displayUrl ? (
                             <img 
