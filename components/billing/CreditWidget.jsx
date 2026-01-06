@@ -98,7 +98,14 @@ export default function CreditWidget() {
       const fetchDuration = Date.now() - startTime;
       
       console.log('[CreditWidget] 📡 API call completed in', fetchDuration + 'ms');
-      console.log('[CreditWidget] 📦 API response:', creditsResponse);
+      // 🔒 SECURITY: Don't log full response (contains bearer token) - only log data
+      const safeResponse = {
+        status: creditsResponse.status,
+        statusText: creditsResponse.statusText,
+        data: creditsResponse.data,
+        // Don't include config/headers which contain Authorization token
+      };
+      console.log('[CreditWidget] 📦 API response (sanitized):', safeResponse);
       
       const creditsData = creditsResponse.data.data;
       const oldCredits = credits;

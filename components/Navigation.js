@@ -165,7 +165,14 @@ export default function Navigation() {
           const fetchDuration = Date.now() - startTime;
           
           console.log('[Navigation] 📡 API call completed in', fetchDuration + 'ms');
-          console.log('[Navigation] 📦 Full API response:', JSON.stringify(response, null, 2));
+          // 🔒 SECURITY: Don't log full response (contains bearer token) - only log data
+          const safeResponse = {
+            status: response.status,
+            statusText: response.statusText,
+            data: response.data,
+            // Don't include config/headers which contain Authorization token
+          };
+          console.log('[Navigation] 📦 API response (sanitized):', safeResponse);
           console.log('[Navigation] 📦 response.data:', response.data);
           console.log('[Navigation] 📦 response.data.data:', response.data?.data);
           
