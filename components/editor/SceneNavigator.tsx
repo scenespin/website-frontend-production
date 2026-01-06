@@ -27,6 +27,26 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     const [currentSceneId, setCurrentSceneId] = useState<string | null>(null);
     const { getToken } = useAuth();
     const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
+    const [loadingTimeout, setLoadingTimeout] = useState(false);
+    
+    // 🔥 FIX: Check if initialization is complete before showing empty state
+    // This prevents showing "No scenes yet" during initialization, which could trigger rescan duplicates
+    const isInitializing = screenplay?.isLoading || !screenplay?.hasInitializedFromDynamoDB;
+    
+    // 🔥 FIX: Add timeout fallback - if initialization takes more than 10 seconds, show empty state
+    // This prevents infinite loading spinner if API calls hang
+    useEffect(() => {
+        if (isInitializing) {
+            const timeout = setTimeout(() => {
+                console.warn('[SceneNavigator] ⚠️ Initialization timeout - showing empty state after 10 seconds');
+                setLoadingTimeout(true);
+            }, 10000); // 10 second timeout
+            
+            return () => clearTimeout(timeout);
+        } else {
+            setLoadingTimeout(false);
+        }
+    }, [isInitializing]);
 
     // 🔥 Get all scenes directly (beats removed - scenes are standalone)
     const allScenesRaw = screenplay?.scenes || [];
@@ -164,6 +184,36 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
             .filter(Boolean) as string[];
     };
 
+    // 🔥 FIX: Show loading state during initialization (prevents blank state that triggers rescan duplicates)
+    // But timeout after 10 seconds to prevent infinite loading
+    if (isInitializing && !loadingTimeout) {
+        return (
+            <div className={cn("w-full rounded-lg border border-base-300 bg-[#0A0A0A] p-4", className)}>
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm font-medium text-base-content/70">
+                        Loading scenes...
+                    </p>
+                </div>
+            </div>
+        );
+    }
+    
+    // 🔥 FIX: If timeout occurred, show empty state with message (allows user to proceed)
+    if (isInitializing && loadingTimeout) {
+        return (
+            <div className={cn("w-full rounded-lg border border-base-300 bg-[#0A0A0A] p-4", className)}>
+                <p className="text-sm font-medium text-base-content/70 mb-2">
+                    Loading taking longer than expected
+                </p>
+                <p className="text-xs text-base-content/50 mb-2">
+                    Scenes may still be loading. Try refreshing or rescanning.
+                </p>
+            </div>
+        );
+    }
+    
+    // Show empty state only after initialization is complete
     if (!allScenes || allScenes.length === 0) {
         return (
             <div className={cn("w-full rounded-lg border border-base-300 bg-[#0A0A0A] p-4", className)}>

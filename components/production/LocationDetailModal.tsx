@@ -1687,14 +1687,30 @@ export function LocationDetailModal({
                                                           // 🔥 FIX: Use location.backgrounds prop directly (source of truth) instead of derived backgrounds
                                                           // Derived backgrounds comes from allImages which may include stale Media Library cache
                                                           // Using prop ensures we filter the actual data being updated in backend
+                                                          // If location.backgrounds is undefined, use empty array (location might not have backgrounds property initialized)
                                                           const currentBackgrounds = location.backgrounds || [];
-                                                          const updatedBackgrounds = currentBackgrounds.filter(
+                                                          
+                                                          console.log('[LocationDetailModal] 🔍 Backgrounds check:', {
+                                                            locationId: location.locationId,
+                                                            hasBackgroundsProp: 'backgrounds' in location,
+                                                            backgroundsPropValue: location.backgrounds,
+                                                            currentBackgroundsLength: currentBackgrounds.length,
+                                                            derivedBackgroundsLength: backgrounds.length,
+                                                            backgroundToDelete: background.s3Key
+                                                          });
+                                                          
+                                                          // If location.backgrounds is undefined/empty but derived backgrounds has data, 
+                                                          // the location prop is stale - we need to use derived backgrounds for now
+                                                          // but this indicates the location needs to be refetched
+                                                          const sourceBackgrounds = currentBackgrounds.length > 0 ? currentBackgrounds : backgrounds;
+                                                          const updatedBackgrounds = sourceBackgrounds.filter(
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
                                                           
                                                           console.log('[LocationDetailModal] 📤 Calling onUpdate with backgrounds:', {
                                                             locationId: location.locationId,
-                                                            beforeCount: currentBackgrounds.length,
+                                                            source: currentBackgrounds.length > 0 ? 'prop' : 'derived (fallback)',
+                                                            beforeCount: sourceBackgrounds.length,
                                                             afterCount: updatedBackgrounds.length,
                                                             removedS3Key: background.s3Key
                                                           });

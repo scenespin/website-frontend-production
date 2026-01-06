@@ -138,7 +138,7 @@ function ExportToGitHubButton() {
  */
 export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onToggleSceneNav }: EditorToolbarProps) {
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
-    const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner } = useScreenplay();
+    const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner, isLoading, hasInitializedFromDynamoDB } = useScreenplay();
     
     // Feature 0133: Fix writer role save buttons - ensure canEditScript is true for writer role
     // Logic:
@@ -198,6 +198,13 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const handleRescan = async () => {
         // Prevent multiple clicks
         if (isRescanning || rescanCooldown) {
+            return;
+        }
+        
+        // 🔥 FIX: Prevent rescan during initialization to avoid race condition with empty state
+        const isInitializing = isLoading || !hasInitializedFromDynamoDB;
+        if (isInitializing) {
+            toast.info('Please wait for scenes to load before rescanning');
             return;
         }
         
@@ -467,10 +474,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 
                 {/* 🔥 FEATURE 0117: Re-Scan Script Button - Emoji */}
                 {effectiveCanEditScript && (
-                    <div className="tooltip tooltip-bottom" data-tip={isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment before scanning again' : 'Scan script for new characters/locations (keeps existing data)'}>
+                    <div className="tooltip tooltip-bottom" data-tip={isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment before scanning again' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations (keeps existing data)'}>
                         <button
                             onClick={handleRescan}
-                            disabled={isRescanning || rescanCooldown || !state.content.trim()}
+                            disabled={isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}
                             className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             {isRescanning ? (
@@ -708,10 +715,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     
                     {/* Rescan */}
                     {effectiveCanEditScript && (
-                        <div className="tooltip tooltip-bottom" data-tip={isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : 'Scan script for new characters/locations'}>
+                        <div className="tooltip tooltip-bottom" data-tip={isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations'}>
                             <button
                                 onClick={handleRescan}
-                                disabled={isRescanning || rescanCooldown || !state.content.trim()}
+                                disabled={isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 {isRescanning ? (

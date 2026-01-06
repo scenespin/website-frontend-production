@@ -215,11 +215,16 @@ export function CharacterBankPanel({
       console.log('[CharacterBankPanel] ✅ Update successful:', {
         characterId,
         responseDataKeys: Object.keys(responseData),
-        characterKeys: responseData.character ? Object.keys(responseData.character) : 'no character',
-        poseReferencesCount: responseData.character?.poseReferences?.length,
-        angleReferencesCount: responseData.character?.angleReferences?.length,
-        fullCharacter: responseData.character
+        responseDataStructure: JSON.stringify(responseData).substring(0, 200),
+        // Backend might return { success: true, data: { character: {...} } } or { character: {...} }
+        character: responseData.character || responseData.data?.character,
+        characterKeys: (responseData.character || responseData.data?.character) ? Object.keys(responseData.character || responseData.data?.character) : 'no character',
+        poseReferencesCount: (responseData.character || responseData.data?.character)?.poseReferences?.length,
+        angleReferencesCount: (responseData.character || responseData.data?.character)?.angleReferences?.length
       });
+      
+      // 🔥 FIX: Handle different response structures
+      const updatedCharacter = responseData.character || responseData.data?.character;
 
       toast.success('Character updated successfully');
       
@@ -249,7 +254,8 @@ export function CharacterBankPanel({
       if (onCharactersUpdate) onCharactersUpdate();
       
       // 🔥 FIX: Return the updated character data so the modal can use it
-      return responseData.character;
+      // Handle different response structures: { character: {...} } or { data: { character: {...} } }
+      return updatedCharacter;
     } catch (error: any) {
       console.error('[CharacterBank] Failed to update character:', error);
       toast.error(`Failed to update character: ${error.message}`);

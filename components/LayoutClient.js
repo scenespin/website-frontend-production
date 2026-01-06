@@ -22,7 +22,7 @@ import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
 // This MUST run before any API calls are made
 const AuthInitializer = () => {
   const { getToken } = useAuth();
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
 
   useEffect(() => {
     if (isSignedIn && getToken && typeof getToken === 'function') {
@@ -30,14 +30,80 @@ const AuthInitializer = () => {
       // Using wryda-backend template for consistent JWT claims
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       console.log('[Auth] Token getter initialized with wryda-backend template');
+      
+      // 🔥 NEW: Register active session for single-device login
+      registerActiveSession();
     } else if (!isSignedIn) {
       // Clear token getter when user signs out
       setAuthTokenGetter(null);
       console.log('[Auth] Token getter cleared (user signed out)');
+      
+      // 🔥 NEW: Delete active session on logout
+      deleteActiveSession();
     } else if (!getToken || typeof getToken !== 'function') {
       console.warn('[Auth] getToken is not available or not a function:', typeof getToken);
     }
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getToken, user]);
+
+  // 🔥 NEW: Register active session (called on login)
+  const registerActiveSession = async () => {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return;
+
+      const deviceInfo = typeof navigator !== 'undefined' 
+        ? `${navigator.userAgent} - ${navigator.platform}` 
+        : 'unknown';
+
+      const response = await fetch('/api/sessions/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ deviceInfo }),
+      });
+
+      if (response.ok) {
+        console.log('[Auth] ✅ Active session registered for single-device login');
+      } else if (response.status === 401) {
+        const data = await response.json();
+        if (data.error === 'SessionExpired') {
+          console.warn('[Auth] ⚠️ Session expired - user logged in elsewhere');
+          // Show message to user
+          if (typeof window !== 'undefined' && window.location) {
+            alert('You were logged out because you logged in on another device. Please refresh the page.');
+            window.location.reload();
+          }
+        }
+      } else {
+        console.warn('[Auth] ⚠️ Failed to register session (non-critical):', response.status);
+      }
+    } catch (error) {
+      console.error('[Auth] ❌ Failed to register active session:', error);
+      // Don't block login if session registration fails
+    }
+  };
+
+  // 🔥 NEW: Delete active session (called on logout)
+  const deleteActiveSession = async () => {
+    try {
+      const token = await getToken?.({ template: 'wryda-backend' });
+      if (!token) return;
+
+      await fetch('/api/sessions/logout', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('[Auth] ✅ Active session deleted');
+    } catch (error) {
+      console.error('[Auth] ❌ Failed to delete active session:', error);
+      // Don't block logout if session deletion fails
+    }
+  };
 
   return null;
 };
