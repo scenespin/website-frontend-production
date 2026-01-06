@@ -462,7 +462,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               .sort(([a], [b]) => a.localeCompare(b))
           ];
         })
-        .filter(Boolean)
+        .filter((item): item is [string, string[][]] => item !== null)
         .sort(([a], [b]) => parseInt(a) - parseInt(b))
     );
   }, [selectedCharacterReferences]);
