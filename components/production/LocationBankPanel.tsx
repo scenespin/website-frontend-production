@@ -7,7 +7,7 @@
  * Reduced from ~358 lines to ~200 lines using React Query
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -17,6 +17,8 @@ import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import { useLocations, type LocationProfile } from '@/hooks/useLocationBank';
+import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { isBackgroundFile } from './utils/mediaLibraryMappers';
 
 interface LocationBankPanelProps {
   className?: string;
@@ -46,6 +48,41 @@ export function LocationBankPanel({
     'production-hub', // 🔥 FIX: Use production-hub context to separate from Creation section
     !!screenplayId
   );
+
+  // 🔥 FIX: Fetch all location media files to count backgrounds from Media Library (source of truth)
+  const { data: allLocationMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    !!screenplayId,
+    true, // includeAllFolders
+    'location' // entityType
+  );
+
+  // 🔥 FIX: Count backgrounds per location from Media Library (not stale location.backgrounds)
+  const backgroundCountsByLocationId = useMemo(() => {
+    const counts = new Map<string, number>();
+    
+    allLocationMediaFiles.forEach((file: any) => {
+      const locationId = file.metadata?.entityId || file.entityId;
+      if (!locationId) return;
+      
+      // Skip thumbnails
+      if (file.s3Key?.startsWith('thumbnails/')) return;
+      if (!file.s3Key) return;
+      
+      // Use same utility function as useLocationReferences to identify backgrounds
+      const isBackground = isBackgroundFile(file) ||
+                           file.metadata?.source === 'background-generation' ||
+                           file.metadata?.uploadMethod === 'background-generation' ||
+                           file.metadata?.generationMethod === 'background-generation';
+      
+      if (isBackground) {
+        counts.set(locationId, (counts.get(locationId) || 0) + 1);
+      }
+    });
+    
+    return counts;
+  }, [allLocationMediaFiles]);
 
   const isLoading = queryLoading || propsIsLoading;
 
@@ -194,9 +231,10 @@ export function LocationBankPanel({
                 const typeLabel = location.type === 'interior' ? 'INT.' : 
                                  location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
-                // Build metadata string with angles and backgrounds count
+                // 🔥 FIX: Build metadata string with angles and backgrounds count
+                // Use Media Library count for backgrounds (source of truth), not stale location.backgrounds
                 const angleCount = location.angleVariations?.length || 0;
-                const backgroundCount = location.backgrounds?.length || 0;
+                const backgroundCount = backgroundCountsByLocationId.get(location.locationId) || 0;
                 let metadata: string | undefined;
                 if (angleCount > 0 && backgroundCount > 0) {
                   metadata = `${angleCount} angle${angleCount !== 1 ? 's' : ''}, ${backgroundCount} background${backgroundCount !== 1 ? 's' : ''}`;
