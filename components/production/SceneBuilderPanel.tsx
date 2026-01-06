@@ -156,7 +156,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const timeSinceLastRender = now - lastRenderTimeRef.current;
   lastRenderTimeRef.current = now;
   
-  // Track what changed between renders
+  // Authentication
+  const { getToken } = useAuth();
+  
+  // Get context state and actions
+  const contextState = useSceneBuilderState();
+  const contextActions = useSceneBuilderActions();
+  
+  // Track what changed between renders (after contextState is declared)
   const prevContextStateRef = useRef<any>(null);
   const contextStateChanged = prevContextStateRef.current !== contextState;
   if (contextStateChanged) {
@@ -220,13 +227,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     document.addEventListener('click', handleClick, true);
     return () => document.removeEventListener('click', handleClick, true);
   }, []);
-  
-  // Authentication
-  const { getToken } = useAuth();
-  
-  // Get context state and actions
-  const contextState = useSceneBuilderState();
-  const contextActions = useSceneBuilderActions();
   
   // Create wrapper functions that match existing setState signatures (for backward compatibility)
   const setSelectedCharacterReferences = useCallback((updater: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>> | ((prev: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>) => Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>)) => {
