@@ -66,6 +66,7 @@ import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
 // useCharacterReferences is now called in SceneBuilderProvider - no import needed here
 import type { CharacterHeadshot } from './hooks/useCharacterReferences';
 import { useCharacters } from '@/hooks/useCharacterBank';
+import { useLocations } from '@/hooks/useLocationBank';
 import { usePropReferences } from './hooks/usePropReferences';
 import { useLocationReferences } from './hooks/useLocationReferences';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
@@ -686,6 +687,20 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Track location ID for Media Library query
   const locationId = sceneAnalysisResult?.location?.id;
   
+  // 🔥 FIX: Use React Query hook for location metadata (aligns with useCharacters pattern)
+  // This ensures locations refresh when added/deleted, fixing stale cache issue
+  const { data: allLocations = [] } = useLocations(
+    projectId || '',
+    'production-hub',
+    !!projectId
+  );
+  
+  // 🔥 NEW: Get fresh location metadata from Location Bank if available
+  const locationMetadata = React.useMemo(() => {
+    if (!locationId || allLocations.length === 0) return null;
+    return allLocations.find(loc => loc.id === locationId) || null;
+  }, [locationId, allLocations]);
+  
   // 🔥 NEW: Use custom hook for location references
   const {
     angleVariations: locationAngleVariations,
@@ -730,6 +745,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   }, [locationId, locationAngleVariations, locationBackgrounds]);
   
   // 🔥 NEW: Merge Media Library location data with sceneAnalysisResult
+  // Also merge fresh location metadata from Location Bank if available
   const enrichedSceneAnalysisResult = React.useMemo(() => {
     if (!sceneAnalysisResult) return sceneAnalysisResult;
     
@@ -742,15 +758,26 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       ? locationDataFromMediaLibrary.backgrounds
       : sceneAnalysisResult.location.backgrounds || [];
     
+    // 🔥 FIX: Merge fresh location metadata from Location Bank (name, address, etc.)
+    const enrichedLocation = locationMetadata
+      ? {
+          ...sceneAnalysisResult.location,
+          name: locationMetadata.name || sceneAnalysisResult.location.name,
+          address: locationMetadata.address || sceneAnalysisResult.location.address,
+          angleVariations: finalAngleVariations,
+          backgrounds: finalBackgrounds
+        }
+      : {
+          ...sceneAnalysisResult.location,
+          angleVariations: finalAngleVariations,
+          backgrounds: finalBackgrounds
+        };
+    
     return {
       ...sceneAnalysisResult,
-      location: {
-        ...sceneAnalysisResult.location,
-        angleVariations: finalAngleVariations,
-        backgrounds: finalBackgrounds
-      }
+      location: enrichedLocation
     } as SceneAnalysisResult;
-  }, [sceneAnalysisResult, locationDataFromMediaLibrary, locationId]);
+  }, [sceneAnalysisResult, locationDataFromMediaLibrary, locationId, locationMetadata]);
   
   // 🔥 FIX: Move console.log to useEffect to prevent React error #185
   useEffect(() => {
