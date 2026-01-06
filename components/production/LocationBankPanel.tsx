@@ -117,8 +117,23 @@ export function LocationBankPanel({
       }
 
       toast.success('Location updated successfully');
+      
+      // Check cache before invalidation
+      const cacheBeforeInvalidate = queryClient.getQueryData<any[]>(['locations', screenplayId, 'production-hub']);
+      console.log('[LocationBankPanel] 📊 Cache before invalidation:', {
+        hasData: !!cacheBeforeInvalidate,
+        locationCount: cacheBeforeInvalidate?.length,
+        updatedLocation: cacheBeforeInvalidate?.find(l => l.locationId === locationId),
+        backgroundsCount: cacheBeforeInvalidate?.find(l => l.locationId === locationId)?.backgrounds?.length
+      });
+      
       // Invalidate React Query cache - Production Hub context only
+      console.log('[LocationBankPanel] 🔄 Invalidating locations cache');
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+      
+      // Note: We don't await refetch here - React Query will refetch automatically when component re-renders
+      // This is different from characters which explicitly refetches
+      
       if (onLocationsUpdate) onLocationsUpdate();
     } catch (error: any) {
       console.error('[LocationBank] Failed to update location:', error);

@@ -1657,10 +1657,19 @@ export function LocationDetailModal({
                                                             throw new Error('Missing S3 key for image');
                                                           }
                                                           
+                                                          console.log('[LocationDetailModal] 🗑️ DELETE BACKGROUND START:', {
+                                                            backgroundId: background.id,
+                                                            backgroundS3Key: background.s3Key,
+                                                            locationId: location.locationId,
+                                                            currentBackgroundsCount: (location.backgrounds || []).length,
+                                                            derivedBackgroundsCount: backgrounds.length
+                                                          });
+                                                          
                                                           // 🔥 FIX: Delete from Media Library first (source of truth)
                                                           try {
                                                             const token = await getToken({ template: 'wryda-backend' });
                                                             const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                                            console.log('[LocationDetailModal] 🗑️ Deleting from Media Library:', background.s3Key);
                                                             await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
                                                               method: 'POST',
                                                               headers: {
@@ -1669,6 +1678,7 @@ export function LocationDetailModal({
                                                               },
                                                               body: JSON.stringify({ s3Key: background.s3Key }),
                                                             });
+                                                            console.log('[LocationDetailModal] ✅ Media Library deletion successful');
                                                           } catch (mediaError: any) {
                                                             console.warn('[LocationDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
                                                             // Continue with location update even if Media Library deletion fails
@@ -1677,13 +1687,23 @@ export function LocationDetailModal({
                                                           // 🔥 FIX: Use location.backgrounds prop directly (source of truth) instead of derived backgrounds
                                                           // Derived backgrounds comes from allImages which may include stale Media Library cache
                                                           // Using prop ensures we filter the actual data being updated in backend
-                                                          const updatedBackgrounds = (location.backgrounds || []).filter(
+                                                          const currentBackgrounds = location.backgrounds || [];
+                                                          const updatedBackgrounds = currentBackgrounds.filter(
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
+                                                          
+                                                          console.log('[LocationDetailModal] 📤 Calling onUpdate with backgrounds:', {
+                                                            locationId: location.locationId,
+                                                            beforeCount: currentBackgrounds.length,
+                                                            afterCount: updatedBackgrounds.length,
+                                                            removedS3Key: background.s3Key
+                                                          });
                                                           
                                                           await onUpdate(location.locationId, {
                                                             backgrounds: updatedBackgrounds
                                                           });
+                                                          
+                                                          console.log('[LocationDetailModal] ✅ onUpdate completed for backgrounds');
                                                           
                                                           // 🔥 FIX: Invalidate location queries to refresh UI immediately
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });

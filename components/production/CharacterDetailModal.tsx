@@ -2253,6 +2253,14 @@ export function CharacterDetailModal({
                                         await queryClient.cancelQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                         const previousCharacters = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
                                         
+                                        console.log('[CharacterDetailModal] 🗑️ DELETE START:', {
+                                          imgId: img.id,
+                                          imgS3Key: img.s3Key,
+                                          latestCharacterId: latestCharacter.id,
+                                          currentPoseRefsCount: ((latestCharacter as any).angleReferences || latestCharacter.poseReferences || []).length,
+                                          currentRefsCount: (latestCharacter.references || []).length
+                                        });
+                                        
                                         try {
                                           // Extract s3Key from multiple possible locations (same as bulk delete)
                                           let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
@@ -2292,8 +2300,11 @@ export function CharacterDetailModal({
                                           
                                           // 🔥 OPTIMISTIC UPDATE: Remove image from React Query cache immediately
                                           queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
-                                            if (!old) return old;
-                                            return old.map((char) => {
+                                            if (!old) {
+                                              console.log('[CharacterDetailModal] ⚠️ No old data in cache');
+                                              return old;
+                                            }
+                                            const updated = old.map((char) => {
                                               if (char.id !== character.id) return char;
                                               
                                               if (isPoseRef) {
@@ -2302,6 +2313,11 @@ export function CharacterDetailModal({
                                                 const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                                   const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                                   return refS3Key !== imgS3Key;
+                                                });
+                                                console.log('[CharacterDetailModal] ✅ Optimistic update (poseRef):', {
+                                                  before: currentPoseReferences.length,
+                                                  after: updatedPoseReferences.length,
+                                                  removedS3Key: imgS3Key
                                                 });
                                                 return {
                                                   ...char,
@@ -2315,12 +2331,22 @@ export function CharacterDetailModal({
                                                   const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                                   return refS3Key !== imgS3Key;
                                                 });
+                                                console.log('[CharacterDetailModal] ✅ Optimistic update (ref):', {
+                                                  before: currentReferences.length,
+                                                  after: updatedReferences.length,
+                                                  removedS3Key: imgS3Key
+                                                });
                                                 return {
                                                   ...char,
                                                   references: updatedReferences
                                                 };
                                               }
                                             });
+                                            console.log('[CharacterDetailModal] 📊 Cache after optimistic update:', {
+                                              totalCharacters: updated.length,
+                                              updatedCharacter: updated.find(c => c.id === character.id)
+                                            });
+                                            return updated;
                                           });
                                           
                                           const token = await getToken({ template: 'wryda-backend' });
@@ -2353,9 +2379,17 @@ export function CharacterDetailModal({
                                               return refS3Key !== imgS3Key;
                                             });
                                             
+                                            console.log('[CharacterDetailModal] 📤 Calling onUpdate with poseReferences:', {
+                                              characterId: latestCharacter.id,
+                                              beforeCount: currentPoseReferences.length,
+                                              afterCount: updatedPoseReferences.length
+                                            });
+                                            
                                             await onUpdate(latestCharacter.id, { 
                                               poseReferences: updatedPoseReferences
                                             });
+                                            
+                                            console.log('[CharacterDetailModal] ✅ onUpdate completed for poseReferences');
                                           } else {
                                             // Delete from latestCharacter.references array (user-uploaded references in Production Hub)
                                             const currentReferences = latestCharacter.references || [];
@@ -2364,15 +2398,32 @@ export function CharacterDetailModal({
                                               return refS3Key !== imgS3Key;
                                             });
                                             
+                                            console.log('[CharacterDetailModal] 📤 Calling onUpdate with references:', {
+                                              characterId: latestCharacter.id,
+                                              beforeCount: currentReferences.length,
+                                              afterCount: updatedReferences.length
+                                            });
+                                            
                                             await onUpdate(latestCharacter.id, { 
                                               references: updatedReferences 
                                             });
+                                            
+                                            console.log('[CharacterDetailModal] ✅ onUpdate completed for references');
                                           }
                                           
                                           // 🔥 FIX: Only invalidate queries - parent component (CharacterBankPanel) will refetch after onUpdate completes
                                           // This prevents race condition where our refetch overwrites optimistic update before server responds
+                                          console.log('[CharacterDetailModal] 🔄 Invalidating queries (parent will refetch)');
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          
+                                          // Check cache after invalidation
+                                          const cacheAfterInvalidate = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+                                          console.log('[CharacterDetailModal] 📊 Cache after invalidation:', {
+                                            hasData: !!cacheAfterInvalidate,
+                                            characterCount: cacheAfterInvalidate?.length,
+                                            updatedChar: cacheAfterInvalidate?.find(c => c.id === character.id)
+                                          });
                                           
                                           // Note: No toast here - CharacterBankPanel.updateCharacter shows "Character updated successfully"
                                         } catch (error: any) {

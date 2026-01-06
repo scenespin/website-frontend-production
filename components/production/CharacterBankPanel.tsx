@@ -222,9 +222,30 @@ export function CharacterBankPanel({
       });
 
       toast.success('Character updated successfully');
+      
+      // Check cache before refetch
+      const cacheBeforeRefetch = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+      console.log('[CharacterBankPanel] 📊 Cache before refetch:', {
+        hasData: !!cacheBeforeRefetch,
+        characterCount: cacheBeforeRefetch?.length,
+        updatedChar: cacheBeforeRefetch?.find(c => c.id === characterId),
+        poseRefsCount: cacheBeforeRefetch?.find(c => c.id === characterId)?.poseReferences?.length
+      });
+      
       // Invalidate React Query cache and refetch immediately - Production Hub context only
       // 🔥 FIX: Use refetchQueries to ensure immediate UI update
+      console.log('[CharacterBankPanel] 🔄 Refetching characters after update');
       await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+      
+      // Check cache after refetch
+      const cacheAfterRefetch = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+      console.log('[CharacterBankPanel] 📊 Cache after refetch:', {
+        hasData: !!cacheAfterRefetch,
+        characterCount: cacheAfterRefetch?.length,
+        updatedChar: cacheAfterRefetch?.find(c => c.id === characterId),
+        poseRefsCount: cacheAfterRefetch?.find(c => c.id === characterId)?.poseReferences?.length
+      });
+      
       if (onCharactersUpdate) onCharactersUpdate();
       
       // 🔥 FIX: Return the updated character data so the modal can use it
