@@ -65,7 +65,6 @@ export const createCheckout = async ({
     ...(mode === 'payment' ? {
       payment_intent_data: {
         ...existingPaymentIntentData,
-        description: 'Wryda.ai Credit Purchase',
         statement_descriptor: 'WRYDA.AI',
       },
     } : {}),

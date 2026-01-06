@@ -630,67 +630,40 @@ export function LocationDetailModal({
       }
     });
     
-    // Check angleVariations
-    (latestLocation.angleVariations || []).forEach((variation: LocationReference) => {
-      if (variation.s3Key && !mediaLibraryS3KeysSet.has(variation.s3Key)) {
-        const isRegenerated = variation.metadata?.isRegenerated || false;
-        fallback.push({
-          id: variation.id || `ref_${variation.s3Key}`,
-          imageUrl: variation.imageUrl || '',
-          s3Key: variation.s3Key,
-          label: `${latestLocation.name} - ${variation.angle} view`,
-          isBase: false,
-          isAngle: true,
-          isBackground: false,
-          angle: variation.angle,
-          timeOfDay: variation.timeOfDay,
-          weather: variation.weather,
-          isRegenerated,
-          metadata: variation.metadata || {},
-          index: fallback.length
-        });
-      }
-    });
+    // 🔥 REMOVED: Fallback logic for angles and backgrounds
+    // Media Library is the single source of truth - if it's not in Media Library, don't show it
+    // This prevents deleted items from reappearing via stale latestLocation data
     
-    // Check backgrounds
-    (latestLocation.backgrounds || []).forEach((background: LocationBackground) => {
-      if (background.s3Key && !mediaLibraryS3KeysSet.has(background.s3Key)) {
-        const backgroundTypeLabels: Record<string, string> = {
-          'window': 'Window',
-          'wall': 'Wall',
-          'doorway': 'Doorway',
-          'texture': 'Texture',
-          'corner-detail': 'Corner Detail',
-          'furniture': 'Furniture',
-          'architectural-feature': 'Architectural Feature',
-          'custom': background.description || 'Custom Background'
-        };
-        const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
-        const descriptionLabel = background.description ? ` - ${background.description}` : '';
-        
-        fallback.push({
-          id: background.id || `bg_${background.s3Key}`,
-          imageUrl: background.imageUrl || '',
-          s3Key: background.s3Key,
-          label: `${latestLocation.name} - ${typeLabel}${descriptionLabel}`,
-          isBase: false,
-          isAngle: false,
-          isBackground: true,
-          backgroundType: background.backgroundType,
-          timeOfDay: background.timeOfDay,
-          weather: background.weather,
-          metadata: background.metadata || {},
-          index: fallback.length
-        });
-      }
-    });
+    // 🔥 DEBUG: Log fallback images composition (only baseReference and creationImages now)
+    if (fallback.length > 0) {
+      console.log('[LocationDetailModal] 🔄 FALLBACK IMAGES (baseReference/creationImages only):', {
+        fallbackCount: fallback.length,
+        fallbackS3Keys: fallback.map(f => f.s3Key),
+        fallbackTypes: fallback.map(f => ({ s3Key: f.s3Key, isBase: f.isBase, isAngle: f.isAngle, isBackground: f.isBackground }))
+      });
+    }
     
     return fallback;
-  }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
+  }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from location prop)
   const allImages = useMemo(() => {
-    return [...enrichedMediaLibraryImages, ...fallbackImages];
+    const combined = [...enrichedMediaLibraryImages, ...fallbackImages];
+    
+    // 🔥 DEBUG: Log allImages composition
+    // 🔥 DEBUG: Log allImages composition
+    console.log('[LocationDetailModal] 🖼️ ALL IMAGES COMPOSITION:', {
+      enrichedMediaLibraryCount: enrichedMediaLibraryImages.length,
+      fallbackImagesCount: fallbackImages.length,
+      totalAllImagesCount: combined.length,
+      enrichedMediaLibraryS3Keys: enrichedMediaLibraryImages.map(i => i.s3Key).slice(0, 5),
+      fallbackImagesS3Keys: fallbackImages.map(i => i.s3Key).slice(0, 5),
+      allImagesBackgroundCount: combined.filter(i => i.isBackground).length,
+      allImagesAngleCount: combined.filter(i => i.isAngle).length,
+      // Note: latestLocation.backgrounds/angleVariations no longer affect allImages (fallback removed)
+    });
+    
+    return combined;
   }, [enrichedMediaLibraryImages, fallbackImages]);
   
   // 🔥 FIX: Create allCreationImages as separate variable (used in JSX for Creation section display)
@@ -722,20 +695,32 @@ export function LocationDetailModal({
   }, [allImages, latestLocation.locationId]);
   
   const backgrounds = useMemo(() => {
-    return allImages
-      .filter(img => img.isBackground)
-      .map(img => ({
-        id: img.id,
-        imageUrl: img.imageUrl,
-        s3Key: img.s3Key || '',
-        backgroundType: (img.backgroundType || 'custom') as LocationBackground['backgroundType'],
-        timeOfDay: img.timeOfDay,
-        weather: img.weather,
-        generationMethod: (img.metadata?.generationMethod || 'ai-generated') as LocationBackground['generationMethod'],
-        creditsUsed: 0,
-        createdAt: img.metadata?.generatedAt || new Date().toISOString(),
-        metadata: img.metadata || {}
-      }));
+    const backgroundImages = allImages.filter(img => img.isBackground);
+    const result = backgroundImages.map(img => ({
+      id: img.id,
+      imageUrl: img.imageUrl,
+      s3Key: img.s3Key || '',
+      backgroundType: (img.backgroundType || 'custom') as LocationBackground['backgroundType'],
+      timeOfDay: img.timeOfDay,
+      weather: img.weather,
+      generationMethod: (img.metadata?.generationMethod || 'ai-generated') as LocationBackground['generationMethod'],
+      creditsUsed: 0,
+      createdAt: img.metadata?.generatedAt || new Date().toISOString(),
+      metadata: img.metadata || {}
+    }));
+    
+    // 🔥 DEBUG: Log backgrounds derivation
+    console.log('[LocationDetailModal] 🎨 BACKGROUNDS DERIVED:', {
+      allImagesCount: allImages.length,
+      backgroundImagesCount: backgroundImages.length,
+      backgroundsCount: result.length,
+      backgroundS3Keys: result.map(b => b.s3Key),
+      latestLocationBackgroundsCount: (latestLocation.backgrounds || []).length,
+      latestLocationBackgroundS3Keys: (latestLocation.backgrounds || []).map((b: LocationBackground) => b.s3Key),
+      allImagesS3Keys: allImages.map(i => i.s3Key).slice(0, 10)
+    });
+    
+    return result;
   }, [allImages]);
   
   // 🔥 IMPROVED: Organize angles and backgrounds by metadata combinations (timeOfDay + weather) for better visual grouping
@@ -1722,13 +1707,58 @@ export function LocationDetailModal({
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
                                                           
+                                                          console.log('[LocationDetailModal] 🔄 Calling onUpdate with filtered backgrounds:', {
+                                                            beforeCount: backgrounds.length,
+                                                            afterCount: updatedBackgrounds.length,
+                                                            deletedS3Key: background.s3Key,
+                                                            updatedBackgroundS3Keys: updatedBackgrounds.map(b => b.s3Key)
+                                                          });
+                                                          
+                                                          // 🔥 OPTIMISTIC UPDATE: Update React Query cache immediately (like characters do)
+                                                          queryClient.setQueryData<any[]>(['locations', screenplayId, 'production-hub'], (old) => {
+                                                            if (!old) return old;
+                                                            return old.map((loc) => {
+                                                              if (loc.locationId !== location.locationId) return loc;
+                                                              return {
+                                                                ...loc,
+                                                                backgrounds: updatedBackgrounds
+                                                              };
+                                                            });
+                                                          });
+                                                          
+                                                          console.log('[LocationDetailModal] ✅ Optimistic update applied to cache');
+                                                          
                                                           await onUpdate(location.locationId, {
                                                             backgrounds: updatedBackgrounds
+                                                          });
+                                                          
+                                                          console.log('[LocationDetailModal] ✅ onUpdate completed, checking cache...');
+                                                          
+                                                          // 🔥 DEBUG: Check cache before refetch
+                                                          const cacheBefore = queryClient.getQueryData<any[]>(['locations', screenplayId, 'production-hub']);
+                                                          const cachedLocation = cacheBefore?.find(l => l.locationId === location.locationId);
+                                                          console.log('[LocationDetailModal] 📊 Cache BEFORE refetch:', {
+                                                            hasCache: !!cacheBefore,
+                                                            cachedLocationBackgroundsCount: cachedLocation?.backgrounds?.length || 0,
+                                                            cachedLocationBackgroundS3Keys: cachedLocation?.backgrounds?.map((b: LocationBackground) => b.s3Key) || []
                                                           });
                                                           
                                                           // 🔥 FIX: Invalidate and refetch media (EXACT same pattern as angles - onUpdate already handles locations)
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          
+                                                          // 🔥 DEBUG: Also explicitly refetch locations to ensure latestLocation updates
+                                                          console.log('[LocationDetailModal] 🔄 Explicitly refetching locations...');
+                                                          await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                                                          
+                                                          // 🔥 DEBUG: Check cache after refetch
+                                                          const cacheAfter = queryClient.getQueryData<any[]>(['locations', screenplayId, 'production-hub']);
+                                                          const cachedLocationAfter = cacheAfter?.find(l => l.locationId === location.locationId);
+                                                          console.log('[LocationDetailModal] 📊 Cache AFTER refetch:', {
+                                                            hasCache: !!cacheAfter,
+                                                            cachedLocationBackgroundsCount: cachedLocationAfter?.backgrounds?.length || 0,
+                                                            cachedLocationBackgroundS3Keys: cachedLocationAfter?.backgrounds?.map((b: LocationBackground) => b.s3Key) || []
+                                                          });
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
