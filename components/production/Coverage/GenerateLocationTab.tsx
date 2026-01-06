@@ -387,6 +387,12 @@ export function GenerateLocationTab({
         const result = await response.json();
         
         if (result.jobId) {
+          // 🔥 Refresh credits immediately after job creation (credits are deducted when job starts)
+          console.log('[GenerateLocationTab] 🔥 Job created, refreshing credits...', result.jobId);
+          if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+            (window as any).refreshCredits();
+          }
+          
           // Toast notification handled by parent (LocationDetailModal) in onComplete callback
           if (onComplete) {
             onComplete({ jobId: result.jobId, type: 'angles' });

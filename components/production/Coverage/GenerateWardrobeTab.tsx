@@ -321,6 +321,12 @@ export function GenerateWardrobeTab({
 
       const result = await response.json();
       
+      // 🔥 Refresh credits immediately after job creation (credits are deducted when job starts)
+      console.log('[GenerateWardrobeTab] 🔥 Job created, refreshing credits...', result.jobId);
+      if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+        (window as any).refreshCredits();
+      }
+      
       toast.dismiss('wardrobe-gen-start');
       toast.success('Wardrobe generation started!', {
         description: 'View in Jobs tab to track progress.',

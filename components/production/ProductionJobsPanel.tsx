@@ -898,29 +898,32 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   /**
    * 🔥 CATCH-ALL: Refresh credits for ANY completed job that used credits
    * This ensures credits update immediately regardless of job type
+   * Also refreshes when jobs transition to completed status
    */
   useEffect(() => {
-    console.log('[ProductionJobsPanel] 🔍 DEBUG: Checking jobs for credit refresh', {
-      totalJobs: jobs.length,
-      completedJobs: jobs.filter(j => j.status === 'completed').length,
-      processedIds: Array.from(processedJobIdsForCredits.current)
-    });
+    // Only log debug info if we have jobs (reduce noise)
+    if (jobs.length > 0) {
+      console.log('[ProductionJobsPanel] 🔍 DEBUG: Checking jobs for credit refresh', {
+        totalJobs: jobs.length,
+        completedJobs: jobs.filter(j => j.status === 'completed').length,
+        processedIds: Array.from(processedJobIdsForCredits.current)
+      });
+    }
     
     const newlyCompletedJobs = jobs.filter(job => {
       const isCompleted = job.status === 'completed';
       const notProcessed = !processedJobIdsForCredits.current.has(job.jobId);
       const hasCredits = job.creditsUsed > 0 || job.results?.totalCreditsUsed > 0;
       
-      console.log('[ProductionJobsPanel] 🔍 DEBUG: Job check', {
-        jobId: job.jobId,
-        jobType: job.jobType,
-        status: job.status,
-        isCompleted,
-        notProcessed,
-        hasCredits,
-        creditsUsed: job.creditsUsed,
-        resultsTotalCredits: job.results?.totalCreditsUsed
-      });
+      if (isCompleted && notProcessed && hasCredits) {
+        console.log('[ProductionJobsPanel] 🔍 DEBUG: Found newly completed job with credits', {
+          jobId: job.jobId,
+          jobType: job.jobType,
+          status: job.status,
+          creditsUsed: job.creditsUsed,
+          resultsTotalCredits: job.results?.totalCreditsUsed
+        });
+      }
       
       return isCompleted && notProcessed && hasCredits;
     });
@@ -946,8 +949,6 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       } else {
         console.error('[ProductionJobsPanel] ❌ window.refreshCredits() is not available!');
       }
-    } else {
-      console.log('[ProductionJobsPanel] 🔍 No newly completed jobs with credits found');
     }
   }, [jobs]);
   
