@@ -548,6 +548,27 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
 
   // Scroll to top when navigating between shots or steps
   useEffect(() => {
+    const effectName = 'scrollToTop';
+    const now = Date.now();
+    const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
+    runInfo.count++;
+    const timeSinceLastRun = now - runInfo.lastRun;
+    const depsChanged = JSON.stringify([currentShotIndex, wizardStep, currentStep]) !== JSON.stringify(runInfo.lastDeps);
+    
+    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+      currentShotIndex,
+      wizardStep,
+      currentStep
+    });
+    
+    if (timeSinceLastRun < 100 && runInfo.count > 5) {
+      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    }
+    
+    runInfo.lastRun = now;
+    runInfo.lastDeps = [currentShotIndex, wizardStep, currentStep];
+    useEffectRunCountsRef.current[effectName] = runInfo;
+    
     scrollToTop();
   }, [currentShotIndex, wizardStep, currentStep, scrollToTop]);
 
@@ -706,6 +727,26 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // Auto-select workflows when analysis completes
   useEffect(() => {
+    const effectName = 'autoSelectWorkflows';
+    const now = Date.now();
+    const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
+    runInfo.count++;
+    const timeSinceLastRun = now - runInfo.lastRun;
+    const depsChanged = JSON.stringify([sceneAnalysisResult?.workflowRecommendations?.length]) !== JSON.stringify(runInfo.lastDeps);
+    
+    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+      hasWorkflowRecommendations: !!sceneAnalysisResult?.workflowRecommendations,
+      recommendationsCount: sceneAnalysisResult?.workflowRecommendations?.length || 0
+    });
+    
+    if (timeSinceLastRun < 100 && runInfo.count > 5) {
+      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    }
+    
+    runInfo.lastRun = now;
+    runInfo.lastDeps = [sceneAnalysisResult?.workflowRecommendations?.length];
+    useEffectRunCountsRef.current[effectName] = runInfo;
+    
     if (sceneAnalysisResult?.workflowRecommendations) {
       // Auto-select all workflows that can combine (default behavior)
       const combinableWorkflows = sceneAnalysisResult.workflowRecommendations
@@ -717,6 +758,26 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
 
   // 🔥 NEW: Auto-select highest priority headshot for each character (using context data)
   useEffect(() => {
+    const effectName = 'autoSelectHeadshots';
+    const now = Date.now();
+    const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
+    runInfo.count++;
+    const timeSinceLastRun = now - runInfo.lastRun;
+    const depsChanged = JSON.stringify([!!sceneAnalysisResult, Object.keys(characterHeadshots).length]) !== JSON.stringify(runInfo.lastDeps);
+    
+    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+      hasSceneAnalysisResult: !!sceneAnalysisResult,
+      characterHeadshotsCount: Object.keys(characterHeadshots).length
+    });
+    
+    if (timeSinceLastRun < 100 && runInfo.count > 5) {
+      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    }
+    
+    runInfo.lastRun = now;
+    runInfo.lastDeps = [!!sceneAnalysisResult, Object.keys(characterHeadshots).length];
+    useEffectRunCountsRef.current[effectName] = runInfo;
+    
     if (!sceneAnalysisResult || Object.keys(characterHeadshots).length === 0) return;
     
     // Auto-select highest priority headshot for each character
