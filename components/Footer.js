@@ -32,8 +32,8 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/help/quick-start" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Getting Started
+                <Link href="/how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  How It Works
                 </Link>
               </li>
               <li>
@@ -63,11 +63,6 @@ export default function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-white mb-4">Product</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/help/quick-start" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Getting Started
-                </Link>
-              </li>
               <li>
                 <Link href="/help/writing" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Writing

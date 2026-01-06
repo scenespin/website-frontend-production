@@ -22,6 +22,9 @@ export default function ComparePage() {
               </span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
+              <Link href="/how-it-works" className="text-sm text-gray-300 hover:text-white transition-colors">
+                How It Works
+              </Link>
               <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Features
               </Link>
