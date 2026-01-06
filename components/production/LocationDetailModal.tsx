@@ -34,6 +34,7 @@ import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { ModernGallery } from './Gallery/ModernGallery';
 import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
  * Get display label for provider ID
@@ -149,6 +150,7 @@ export function LocationDetailModal({
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   
   // 🔥 FIX: Get latest location from React Query cache (always up-to-date)
   // This ensures UI updates immediately when cache changes (optimistic updates + refetches)
@@ -618,8 +620,8 @@ export function LocationDetailModal({
         fallbackCount: fallback.length,
         fallbackS3Keys: fallback.map(f => f.s3Key),
         fallbackTypes: fallback.map(f => ({ s3Key: f.s3Key, isBase: f.isBase, isAngle: f.isAngle, isBackground: f.isBackground }))
-      });
-    }
+        });
+      }
     
     return fallback;
   }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
@@ -675,17 +677,17 @@ export function LocationDetailModal({
   const backgrounds = useMemo(() => {
     const backgroundImages = allImages.filter(img => img.isBackground);
     const result = backgroundImages.map(img => ({
-      id: img.id,
-      imageUrl: img.imageUrl,
-      s3Key: img.s3Key || '',
-      backgroundType: (img.backgroundType || 'custom') as LocationBackground['backgroundType'],
-      timeOfDay: img.timeOfDay,
-      weather: img.weather,
-      generationMethod: (img.metadata?.generationMethod || 'ai-generated') as LocationBackground['generationMethod'],
-      creditsUsed: 0,
-      createdAt: img.metadata?.generatedAt || new Date().toISOString(),
-      metadata: img.metadata || {}
-    }));
+        id: img.id,
+        imageUrl: img.imageUrl,
+        s3Key: img.s3Key || '',
+        backgroundType: (img.backgroundType || 'custom') as LocationBackground['backgroundType'],
+        timeOfDay: img.timeOfDay,
+        weather: img.weather,
+        generationMethod: (img.metadata?.generationMethod || 'ai-generated') as LocationBackground['generationMethod'],
+        creditsUsed: 0,
+        createdAt: img.metadata?.generatedAt || new Date().toISOString(),
+        metadata: img.metadata || {}
+      }));
     
     // 🔥 DEBUG: Log backgrounds derivation
     console.log('[LocationDetailModal] 🎨 BACKGROUNDS DERIVED:', {
@@ -872,72 +874,185 @@ export function LocationDetailModal({
             className="fixed inset-4 md:inset-8 lg:inset-12 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex-shrink-0 px-6 py-4 border-b border-[#3F3F46] flex items-center justify-between bg-[#141414]">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-[#DC143C]/10 rounded-lg">
-                  <MapPin className="w-6 h-6 text-[#DC143C]" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-[#FFFFFF]">{location.name}</h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-sm text-[#808080]">{typeLabel}</p>
-                    {/* 🔥 READ-ONLY BADGE */}
-                    <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
-                      Read-only - Edit in Creation section
-                    </span>
+            <div className={`flex-shrink-0 border-b border-[#3F3F46] flex items-center justify-between bg-[#141414] ${
+              isMobile ? 'px-3 py-2.5' : 'px-6 py-4'
+            }`}>
+              <div className={`flex items-center gap-2 md:gap-4 flex-1 min-w-0 ${isMobile ? 'flex-col items-start' : ''}`}>
+                {!isMobile && (
+                  <div className="p-2 bg-[#DC143C]/10 rounded-lg flex-shrink-0">
+                    <MapPin className="w-6 h-6 text-[#DC143C]" />
                   </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {isMobile && (
+                      <div className="p-1.5 bg-[#DC143C]/10 rounded flex-shrink-0">
+                        <MapPin className={`text-[#DC143C] ${isMobile ? 'w-4 h-4' : 'w-6 h-6'}`} />
+                      </div>
+                    )}
+                    <h2 className={`font-bold text-[#FFFFFF] truncate ${isMobile ? 'text-base' : 'text-xl'}`}>
+                      {location.name}
+                    </h2>
+                  </div>
+                  {isMobile ? (
+                    // Mobile: Compact single line
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className={`text-[#808080] ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        {typeLabel}
+                      </span>
+                    </div>
+                  ) : (
+                    // Desktop: Full layout
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-[#808080]">{typeLabel}</p>
+                      {/* 🔥 READ-ONLY BADGE */}
+                      <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
+                        Read-only - Edit in Creation section
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+                  className={`hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF] ${
+                    isMobile ? 'p-1.5' : 'p-2'
+                  }`}
                 >
-                  <X className="w-5 h-5" />
+                  <X className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
                 </button>
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex-shrink-0 px-6 py-3 border-b border-[#3F3F46] bg-[#141414] flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('info')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'info'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <FileText className="w-4 h-4 inline mr-2" />
-                Info
-              </button>
-              <button
-                onClick={() => setActiveTab('references')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'references'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                }`}
-              >
-                <Box className="w-4 h-4 inline mr-2" />
-                References ({allImages.length})
-              </button>
-              
-              {/* Generate Packages Button - Always visible */}
-              <div className="ml-auto">
-                <button
-                  onClick={handleGeneratePackages}
-                  disabled={isGeneratingAngles}
-                  className={`px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium ${
-                    activeTab === 'generate'
-                      ? 'bg-[#DC143C] text-white'
-                      : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
-                  }`}
-                >
-                  <span className="text-base">🤖</span>
-                  {isGeneratingAngles ? 'Generating...' : 'Generate Packages'}
-                </button>
-              </div>
+            <div className="flex-shrink-0 px-4 md:px-6 py-3 border-b border-[#3F3F46] bg-[#141414]">
+              {isMobile ? (
+                // Mobile: Dropdown menu
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="w-full flex items-center justify-between px-4 py-3 min-h-[44px] bg-[#1F1F1F] hover:bg-[#2A2A2A] rounded-lg text-white text-sm font-medium transition-colors">
+                      <div className="flex items-center gap-2">
+                        {activeTab === 'references' ? (
+                          <>
+                            <Box className="w-4 h-4" />
+                            <span>References ({allImages.length})</span>
+                          </>
+                        ) : activeTab === 'generate' ? (
+                          <>
+                            <span className="text-base">🤖</span>
+                            <span>Generate Packages</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-4 h-4" />
+                            <span>Info</span>
+                          </>
+                        )}
+                      </div>
+                      <MoreVertical className="w-4 h-4 text-[#808080]" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm bg-[#1F1F1F]/95 backdrop-blur-md border-[#3F3F46] shadow-xl">
+                    {/* References - First */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('references');
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'references'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <Box className="w-4 h-4" />
+                      <span>References ({allImages.length})</span>
+                      {activeTab === 'references' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    <div className="border-t border-[#3F3F46] my-1"></div>
+                    {/* Generate Packages */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        handleGeneratePackages();
+                      }}
+                      disabled={isGeneratingAngles}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        activeTab === 'generate'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-white hover:bg-[#2A2A2A]'
+                      }`}
+                    >
+                      <span className="text-base">🤖</span>
+                      <span>{isGeneratingAngles ? 'Generating...' : 'Generate Packages'}</span>
+                      {activeTab === 'generate' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    <div className="border-t border-[#3F3F46] my-1"></div>
+                    {/* Info - Last */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('info');
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'info'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Info</span>
+                      {activeTab === 'info' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                // Desktop: Horizontal button tabs
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab('info')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'info'
+                        ? 'bg-[#DC143C] text-white'
+                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4 inline mr-2" />
+                    Info
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('references')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'references'
+                        ? 'bg-[#DC143C] text-white'
+                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                    }`}
+                  >
+                    <Box className="w-4 h-4 inline mr-2" />
+                    References ({allImages.length})
+                  </button>
+                  
+                  {/* Generate Packages Button - Always visible */}
+                  <div className="ml-auto">
+                    <button
+                      onClick={handleGeneratePackages}
+                      disabled={isGeneratingAngles}
+                      className={`px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium ${
+                        activeTab === 'generate'
+                          ? 'bg-[#DC143C] text-white'
+                          : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                      }`}
+                    >
+                      <span className="text-base">🤖</span>
+                      {isGeneratingAngles ? 'Generating...' : 'Generate Packages'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Content */}
@@ -1013,8 +1128,8 @@ export function LocationDetailModal({
 
               {activeTab === 'references' && (
                 <div className="p-6 space-y-6">
-                  {/* Phase 2: Selection Mode Toggle & Bulk Actions */}
-                  {(angleVariations.length > 0 || backgrounds.length > 0) && (
+                  {/* Phase 2: Selection Mode Toggle & Bulk Actions - Desktop only */}
+                  {(angleVariations.length > 0 || backgrounds.length > 0) && !isMobile && (
                     <div className="flex items-center justify-between mb-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
                       <div className="flex items-center gap-3">
                         <button
@@ -1122,7 +1237,7 @@ export function LocationDetailModal({
                                   {backgrounds.length > 0 && (
                                     <p className="text-xs text-[#808080] uppercase tracking-wide">Angles</p>
                                   )}
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
                                     {variations.map((variation: any) => {
                           const img = allImages.find(i => i.s3Key === variation.s3Key && !i.isBase);
                           if (!img) return null;
@@ -1421,7 +1536,7 @@ export function LocationDetailModal({
                                     <p className="text-xs text-[#808080] uppercase tracking-wide">Backgrounds</p>
                                   )}
                                   {/* 🔥 FIX: Use more columns for smaller thumbnails (match ModernGallery) */}
-                                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
                                     {backgrounds.map((background: LocationBackground) => {
                                       const img = allImages.find(i => i.s3Key === background.s3Key && !i.isBase);
                                       if (!img) return null;
@@ -1691,9 +1806,9 @@ export function LocationDetailModal({
                                                           });
                                                           
                           // 🔥 FIX: Invalidate location queries to refresh UI immediately (EXACT same pattern as angles - no locations refetch)
-                          queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
@@ -1734,7 +1849,7 @@ export function LocationDetailModal({
                           <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
                         {allCreationImages.map((img) => (
                           <div
                             key={img.id}
