@@ -142,8 +142,11 @@ export function SceneAnalysisStep({
                 </label>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      // Select All: Assign all props to all enabled shots
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // Select All: Assign all props to all enabled shots (or all shots if none enabled)
                       const allSlots = enabledShots.length > 0 ? enabledShots : shots.map((s: any) => s.slot);
                       const newPropsToShots: Record<string, number[]> = {};
                       sceneProps.forEach(prop => {
@@ -151,16 +154,19 @@ export function SceneAnalysisStep({
                       });
                       onPropsToShotsChange(newPropsToShots);
                     }}
-                    className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors"
+                    className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
                   >
                     Select All
                   </button>
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       // Deselect All: Remove all props from all shots
                       onPropsToShotsChange({});
                     }}
-                    className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors"
+                    className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
                   >
                     Deselect All
                   </button>
@@ -219,17 +225,25 @@ export function SceneAnalysisStep({
               </label>
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     const allSlots = shots.map((s: any) => s.slot);
                     onEnabledShotsChange(allSlots);
                   }}
-                  className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors"
+                  className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
                 >
                   Select All
                 </button>
                 <button
-                  onClick={() => onEnabledShotsChange([])}
-                  className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onEnabledShotsChange([]);
+                  }}
+                  className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
                 >
                   Deselect All
                 </button>
