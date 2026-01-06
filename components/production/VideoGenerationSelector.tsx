@@ -22,6 +22,7 @@ interface VideoGenerationSelectorProps {
   onCameraAngleChange?: (shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => void;
   shotDuration?: 'quick-cut' | 'extended-take';
   onDurationChange?: (shotSlot: number, duration: 'quick-cut' | 'extended-take' | undefined) => void;
+  isLipSyncWorkflow?: boolean; // 🔥 NEW: If true, only show quality (hide camera angle, video type, duration)
 }
 
 export function VideoGenerationSelector({
@@ -36,7 +37,7 @@ export function VideoGenerationSelector({
   shotDuration,
   onDurationChange,
   isLipSyncWorkflow = false // 🔥 NEW: Flag to hide camera angle for lip-sync workflows
-}: VideoGenerationSelectorProps & { isLipSyncWorkflow?: boolean }) {
+}: VideoGenerationSelectorProps) {
   // 🔥 NEW: For dialogue lip-sync shots, show only Quality (no Camera Angle, Video Type, or Duration)
   if (shotType === 'dialogue' && isLipSyncWorkflow) {
     const selectQuality = selectedQuality ?? 'hd';
