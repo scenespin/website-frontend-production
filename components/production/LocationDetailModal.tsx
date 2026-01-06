@@ -412,7 +412,19 @@ export function LocationDetailModal({
       return file.s3Key.includes(locationIdPattern);
     });
     
-    return [...entityMediaFiles, ...filtered];
+    const result = [...entityMediaFiles, ...filtered];
+    
+    // 🔥 DEBUG: Log mediaFiles composition to track why it's not updating
+    console.log('[LocationDetailModal] 📦 MEDIA FILES COMPOSITION:', {
+      entityMediaFilesCount: entityMediaFiles.length,
+      allMediaFilesCount: allMediaFiles.length,
+      filteredCount: filtered.length,
+      totalMediaFilesCount: result.length,
+      entityMediaFilesS3Keys: entityMediaFiles.map((f: any) => f.s3Key).slice(0, 5),
+      allMediaFilesS3Keys: allMediaFiles.map((f: any) => f.s3Key).slice(0, 5)
+    });
+    
+    return result;
   }, [entityMediaFiles, allMediaFiles, location.locationId, isOpen]);
   
   // Create metadata maps from location prop (DynamoDB) for enrichment
@@ -1712,13 +1724,10 @@ export function LocationDetailModal({
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
-                                                          // 🔥 FIX: Invalidate and refetch location queries to refresh UI immediately (same pattern as characters)
+                                                          // 🔥 FIX: Invalidate location queries to refresh UI immediately (EXACT same pattern as angles - no locations refetch)
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                                          await Promise.all([
-                                                            queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
-                                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-                                                          ]);
+                                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
