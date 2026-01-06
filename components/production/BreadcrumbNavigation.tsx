@@ -20,6 +20,17 @@ export function BreadcrumbNavigation({ path, onNavigate }: BreadcrumbNavigationP
     onNavigate(index);
   };
 
+  /**
+   * Convert folder name for display (visual only - doesn't change backend data)
+   * Maps "Assets" to "Props" for user clarity
+   */
+  const getDisplayName = (folderName: string): string => {
+    if (folderName === 'Assets') {
+      return 'Props';
+    }
+    return folderName;
+  };
+
   return (
     <div className="flex items-center gap-2 p-4 bg-[#141414] border-b border-[#3F3F46]">
       <button
@@ -39,7 +50,7 @@ export function BreadcrumbNavigation({ path, onNavigate }: BreadcrumbNavigationP
                 className="text-sm text-[#808080] hover:text-[#FFFFFF] transition-colors truncate max-w-[150px]"
                 title={segment}
               >
-                {segment}
+                {getDisplayName(segment)}
               </button>
               {index < path.length - 1 && (
                 <ChevronRight className="w-4 h-4 text-[#808080]" />

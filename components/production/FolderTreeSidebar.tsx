@@ -109,12 +109,24 @@ export function FolderTreeSidebar({
   };
 
   /**
+   * Convert folder name for display (visual only - doesn't change backend data)
+   * Maps "Assets" to "Props" for user clarity
+   */
+  const getDisplayName = (folderName: string): string => {
+    // Visual change only - display "Props" instead of "Assets" in the UI
+    if (folderName === 'Assets') {
+      return 'Props';
+    }
+    return folderName;
+  };
+
+  /**
    * Convert S3 folder tree to FolderNode format
    */
   const convertS3TreeToNodes = (tree: FolderTreeNode[], level: number = 0): FolderNode[] => {
     return tree.map(folder => ({
       id: folder.folderId,
-      name: folder.folderName,
+      name: getDisplayName(folder.folderName), // Use display name mapping
       path: folder.folderPath,
       folderId: folder.folderId,
       storageType: 's3' as const,
