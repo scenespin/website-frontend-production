@@ -25,11 +25,14 @@ export interface AvailableImage {
  * Get all available images for a prop, following the priority order:
  * 1. angleReferences (Production Hub images)
  * 2. images[] (Creation images) - only if no angleReferences
- * 3. baseReference (Creation image fallback)
+ * 3. baseReference (Creation image fallback) - ONLY as last resort if no Production Hub images
  * 4. prop.imageUrl (Default fallback)
  * 
  * Media Library is the source of truth.
  * Note: angleReferences may have s3Key but empty imageUrl - presigned URLs will be fetched separately.
+ * 
+ * 🔥 FIX: Match location pattern - only show creation image (baseReference) as last resort
+ * if there are NO Production Hub images (angleReferences).
  */
 export function getAvailablePropImages(prop: PropType): AvailableImage[] {
   const availableImages: AvailableImage[] = [];
@@ -64,13 +67,15 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
     });
   }
   
-  // Fallback to baseReference (creation image) if no valid angleReferences or images
-  // This ensures we show the creation image when Production Hub images are deleted/broken
-  if (availableImages.length === 0 && prop.baseReference?.imageUrl) {
+  // 🔥 FIX: Only show baseReference (creation image) as LAST RESORT if NO Production Hub images
+  // This matches the pattern used for locations - creation image only when no Production Hub images exist
+  // IMPORTANT: Only include baseReference if there are NO angleReferences (Production Hub images)
+  const hasProductionHubImages = prop.angleReferences && prop.angleReferences.length > 0;
+  if (!hasProductionHubImages && availableImages.length === 0 && prop.baseReference?.imageUrl) {
     availableImages.push({
       id: prop.baseReference.imageUrl || prop.baseReference.s3Key || 'base-reference',
       imageUrl: prop.baseReference.imageUrl,
-      label: 'Creation Image'
+      label: 'Creation Image (Last Resort)'
     });
   }
   

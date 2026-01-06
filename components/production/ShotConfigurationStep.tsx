@@ -27,6 +27,7 @@ import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
 import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
+import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
 
 // Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
@@ -303,6 +304,111 @@ export function ShotConfigurationStep({
   const finalSelectedDialogueWorkflow = state.selectedDialogueWorkflows[shotSlot];
   const finalDialogueWorkflowPrompt = state.dialogueWorkflowPrompts[shotSlot];
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
+  
+  // 🔥 NEW: Fetch presigned URLs for prop images (for references section)
+  // Collect all prop image S3 keys for this shot
+  const propImageS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    const shotPropsForThisShot = finalSceneProps.filter(prop => 
+      finalPropsToShots[prop.id]?.includes(shot.slot)
+    );
+    
+    shotPropsForThisShot.forEach(prop => {
+      const propConfig = finalShotProps[shot.slot]?.[prop.id];
+      const availableImages = getAvailablePropImages(prop);
+      const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+      const selectedImage = selectedImageId 
+        ? availableImages.find(img => img.id === selectedImageId)
+        : availableImages[0];
+      
+      if (selectedImage) {
+        // Find the s3Key for the selected image
+        const fullProp = prop as typeof prop & {
+          angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+          images?: Array<{ url: string; s3Key?: string }>;
+          baseReference?: { s3Key?: string; imageUrl?: string };
+        };
+        
+        let imageS3Key: string | null = null;
+        if (fullProp.angleReferences) {
+          const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id);
+          if (ref?.s3Key) imageS3Key = ref.s3Key;
+        }
+        if (!imageS3Key && fullProp.images) {
+          const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id);
+          if (imgData?.s3Key) imageS3Key = imgData.s3Key;
+        }
+        if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') {
+          imageS3Key = fullProp.baseReference.s3Key;
+        }
+        
+        if (imageS3Key) {
+          keys.push(imageS3Key);
+        }
+      }
+    });
+    
+    return keys;
+  }, [finalSceneProps, finalPropsToShots, finalShotProps, shot.slot]);
+  
+  // Fetch presigned URLs for prop images
+  const { data: propImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    propImageS3Keys,
+    propImageS3Keys.length > 0
+  );
+  
+  // Also fetch thumbnail URLs if available
+  const propThumbnailS3Keys = useMemo(() => {
+    if (!finalPropThumbnailS3KeyMap) return [];
+    const keys: string[] = [];
+    const shotPropsForThisShot = finalSceneProps.filter(prop => 
+      finalPropsToShots[prop.id]?.includes(shot.slot)
+    );
+    
+    shotPropsForThisShot.forEach(prop => {
+      const propConfig = finalShotProps[shot.slot]?.[prop.id];
+      const availableImages = getAvailablePropImages(prop);
+      const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+      const selectedImage = selectedImageId 
+        ? availableImages.find(img => img.id === selectedImageId)
+        : availableImages[0];
+      
+      if (selectedImage) {
+        const fullProp = prop as typeof prop & {
+          angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+          images?: Array<{ url: string; s3Key?: string }>;
+          baseReference?: { s3Key?: string; imageUrl?: string };
+        };
+        
+        let imageS3Key: string | null = null;
+        if (fullProp.angleReferences) {
+          const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id);
+          if (ref?.s3Key) imageS3Key = ref.s3Key;
+        }
+        if (!imageS3Key && fullProp.images) {
+          const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id);
+          if (imgData?.s3Key) imageS3Key = imgData.s3Key;
+        }
+        if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') {
+          imageS3Key = fullProp.baseReference.s3Key;
+        }
+        
+        if (imageS3Key && finalPropThumbnailS3KeyMap.has(imageS3Key)) {
+          const thumbnailS3Key = finalPropThumbnailS3KeyMap.get(imageS3Key);
+          if (thumbnailS3Key) {
+            keys.push(thumbnailS3Key);
+          }
+        }
+      }
+    });
+    
+    return keys;
+  }, [finalSceneProps, finalPropsToShots, finalShotProps, finalPropThumbnailS3KeyMap, shot.slot]);
+  
+  const { data: propThumbnailUrlsMap = new Map() } = useBulkPresignedUrls(
+    propThumbnailS3Keys,
+    propThumbnailS3Keys.length > 0
+  );
   
   // Create handlers that use context actions
   const finalOnLocationAngleChange = useCallback((shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => {
@@ -967,24 +1073,68 @@ export function ShotConfigurationStep({
                   });
                 }
                 
-                // Prop references
+                // 🔥 FIX: Prop references - show all props with their actual images (not generic icon)
                 const shotPropsForThisShot = finalSceneProps.filter(prop => 
                   finalPropsToShots[prop.id]?.includes(shot.slot)
                 );
                 shotPropsForThisShot.forEach(prop => {
                   const propConfig = finalShotProps[shot.slot]?.[prop.id];
+                  const availableImages = getAvailablePropImages(prop);
+                  const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                  const selectedImage = selectedImageId 
+                    ? availableImages.find(img => img.id === selectedImageId)
+                    : availableImages[0];
                   
-                  // Use centralized prop image utility
-                  const propImageUrl = getSelectedPropImageUrl(prop, propConfig?.selectedImageId);
-                  
-                  // Add to references if we have an image URL
-                  if (propImageUrl) {
-                    references.push({
-                      type: 'prop',
-                      imageUrl: propImageUrl,
-                      label: prop.name,
-                      id: `prop-${prop.id}`
-                    });
+                  if (selectedImage) {
+                    // Find the s3Key for the selected image
+                    const fullProp = prop as typeof prop & {
+                      angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+                      images?: Array<{ url: string; s3Key?: string }>;
+                      baseReference?: { s3Key?: string; imageUrl?: string };
+                    };
+                    
+                    let imageS3Key: string | null = null;
+                    if (fullProp.angleReferences) {
+                      const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id);
+                      if (ref?.s3Key) imageS3Key = ref.s3Key;
+                    }
+                    if (!imageS3Key && fullProp.images) {
+                      const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id);
+                      if (imgData?.s3Key) imageS3Key = imgData.s3Key;
+                    }
+                    if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') {
+                      imageS3Key = fullProp.baseReference.s3Key;
+                    }
+                    
+                    // Get presigned URL from maps (thumbnail first, then full image)
+                    let displayUrl: string | undefined;
+                    if (imageS3Key) {
+                      // Try thumbnail first
+                      if (finalPropThumbnailS3KeyMap?.has(imageS3Key)) {
+                        const thumbnailS3Key = finalPropThumbnailS3KeyMap.get(imageS3Key);
+                        if (thumbnailS3Key && propThumbnailUrlsMap?.has(thumbnailS3Key)) {
+                          displayUrl = propThumbnailUrlsMap.get(thumbnailS3Key);
+                        }
+                      }
+                      // Fallback to full image
+                      if (!displayUrl && propImageUrlsMap?.has(imageS3Key)) {
+                        displayUrl = propImageUrlsMap.get(imageS3Key);
+                      }
+                    }
+                    // Final fallback to selectedImage.imageUrl or baseReference
+                    if (!displayUrl) {
+                      displayUrl = selectedImage.imageUrl || fullProp.baseReference?.imageUrl || prop.imageUrl;
+                    }
+                    
+                    // Add to references if we have a display URL
+                    if (displayUrl) {
+                      references.push({
+                        type: 'prop',
+                        imageUrl: displayUrl,
+                        label: prop.name,
+                        id: `prop-${prop.id}`
+                      });
+                    }
                   }
                 });
                 
