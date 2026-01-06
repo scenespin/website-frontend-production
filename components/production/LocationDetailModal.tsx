@@ -431,8 +431,8 @@ export function LocationDetailModal({
       });
     }
     
-    // Add creationImages metadata
-    (latestLocation.creationImages || []).forEach((img: LocationReference) => {
+    // Add creationImages metadata (if it exists on the location)
+    ((latestLocation as any).creationImages || []).forEach((img: LocationReference) => {
       if (img.s3Key) {
         map.set(img.s3Key, {
           id: img.id,
