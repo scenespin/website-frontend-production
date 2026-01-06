@@ -698,7 +698,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Get fresh location metadata from Location Bank if available
   const locationMetadata = React.useMemo(() => {
     if (!locationId || allLocations.length === 0) return null;
-    return allLocations.find(loc => loc.id === locationId) || null;
+    return allLocations.find(loc => loc.locationId === locationId) || null;
   }, [locationId, allLocations]);
   
   // 🔥 NEW: Use custom hook for location references
