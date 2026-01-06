@@ -1086,6 +1086,53 @@ export function ShotConfigurationPanel({
             </div>
           )}
             
+            {/* 🔥 NEW: Location Selection for non-lip-sync workflows */}
+            {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && sceneAnalysisResult?.location && shouldShowLocation && (
+              <div className="mt-4 pb-3 border-b border-[#3F3F46]">
+                <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
+                <LocationAngleSelector
+                  locationId={sceneAnalysisResult.location.id}
+                  locationName={sceneAnalysisResult.location.name || 'Location'}
+                  angleVariations={sceneAnalysisResult.location.angleVariations || []}
+                  backgrounds={sceneAnalysisResult.location.backgrounds || []}
+                  baseReference={sceneAnalysisResult.location.baseReference}
+                  selectedAngle={selectedLocationReferences[shot.slot]}
+                  selectedLocationReference={selectedLocationReferences[shot.slot] ? {
+                    type: (selectedLocationReferences[shot.slot] as any).type || 'angle',
+                    angleId: selectedLocationReferences[shot.slot].angleId,
+                    backgroundId: (selectedLocationReferences[shot.slot] as any).backgroundId,
+                    s3Key: selectedLocationReferences[shot.slot].s3Key,
+                    imageUrl: selectedLocationReferences[shot.slot].imageUrl
+                  } : undefined}
+                  onAngleChange={(locationId, angle) => {
+                    onLocationAngleChange?.(shot.slot, locationId, angle);
+                  }}
+                  onLocationReferenceChange={(locationId, reference) => {
+                    if (onLocationAngleChange) {
+                      onLocationAngleChange(shot.slot, locationId, reference ? {
+                        angleId: reference.angleId,
+                        backgroundId: reference.backgroundId as any,
+                        s3Key: reference.s3Key,
+                        imageUrl: reference.imageUrl,
+                        type: reference.type as any
+                      } as any : undefined);
+                    }
+                  }}
+                  isRequired={isLocationAngleRequired(shot)}
+                  recommended={sceneAnalysisResult.location.recommended}
+                  optOut={locationOptOuts[shot.slot] || false}
+                  onOptOutChange={(optOut) => {
+                    onLocationOptOutChange?.(shot.slot, optOut);
+                  }}
+                  locationDescription={locationDescriptions[shot.slot] || ''}
+                  onLocationDescriptionChange={(description) => {
+                    onLocationDescriptionChange?.(shot.slot, description);
+                  }}
+                  splitLayout={false}
+                />
+              </div>
+            )}
+
             {/* Additional Characters Section for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) - placed below prompt box */}
             {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && shot.type === 'dialogue' && onCharactersForShotChange && (
               <div className="mt-4">
