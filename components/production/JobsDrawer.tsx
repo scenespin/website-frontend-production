@@ -654,9 +654,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
    * 🔥 CATCH-ALL: Refresh credits for ANY completed job that used credits
    * This ensures credits update immediately regardless of job type
    * Also refreshes when jobs transition to completed status
+   * NOTE: This runs even when drawer is closed to ensure credits always update
    */
   useEffect(() => {
-    if (!isOpen) return; // Only process when drawer is open
+    // Process even when drawer is closed - credits need to update regardless of UI state
     
     // Only log debug info if we have jobs (reduce noise)
     if (jobs.length > 0) {
