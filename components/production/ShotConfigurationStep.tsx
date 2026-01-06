@@ -967,7 +967,9 @@ export function ShotConfigurationStep({
           {/* Video Generation Selection */}
           {/* Show for action shots OR dialogue lip-sync shots (basic tab) - ONLY if it's actually a lip-sync workflow */}
           {(() => {
-            const isLipSyncWorkflow = shot.type === 'dialogue' && (finalSelectedDialogueWorkflow === 'first-frame-lipsync' || finalSelectedDialogueWorkflow === 'extreme-closeup' || finalSelectedDialogueWorkflow === 'extreme-closeup-mouth');
+            // 🔥 FIX: Default to 'first-frame-lipsync' if no workflow is selected (basic tab defaults to lip-sync)
+            const effectiveWorkflow = finalSelectedDialogueWorkflow || (shot.type === 'dialogue' && activeTab === 'basic' ? 'first-frame-lipsync' : undefined);
+            const isLipSyncWorkflow = shot.type === 'dialogue' && (effectiveWorkflow === 'first-frame-lipsync' || effectiveWorkflow === 'extreme-closeup' || effectiveWorkflow === 'extreme-closeup-mouth');
             const shouldShowForDialogue = shot.type === 'dialogue' && isDialogueShot && activeTab === 'basic' && onVideoQualityChange && isLipSyncWorkflow;
             return (onVideoTypeChange && onVideoQualityChange) || shouldShowForDialogue;
           })() && (
@@ -983,7 +985,11 @@ export function ShotConfigurationStep({
                 onCameraAngleChange={finalOnCameraAngleChange}
                 shotDuration={shotDuration}
                 onDurationChange={finalOnDurationChange}
-                isLipSyncWorkflow={shot.type === 'dialogue' && (finalSelectedDialogueWorkflow === 'first-frame-lipsync' || finalSelectedDialogueWorkflow === 'extreme-closeup' || finalSelectedDialogueWorkflow === 'extreme-closeup-mouth')}
+                isLipSyncWorkflow={(() => {
+                  // 🔥 FIX: Default to 'first-frame-lipsync' if no workflow is selected (basic tab defaults to lip-sync)
+                  const effectiveWorkflow = finalSelectedDialogueWorkflow || (shot.type === 'dialogue' && activeTab === 'basic' ? 'first-frame-lipsync' : undefined);
+                  return shot.type === 'dialogue' && (effectiveWorkflow === 'first-frame-lipsync' || effectiveWorkflow === 'extreme-closeup' || effectiveWorkflow === 'extreme-closeup-mouth');
+                })()}
               />
               {/* Aspect Ratio Selector */}
               {onAspectRatioChange && (
