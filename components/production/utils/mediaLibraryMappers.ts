@@ -201,6 +201,16 @@ export function mapMediaFilesToPropStructure(
   
   mediaFiles.forEach((file) => {
     if ((file.metadata?.entityId || file.entityId) === propId) {
+      // Skip thumbnails (Media Library source of truth)
+      if (file.s3Key?.startsWith('thumbnails/')) return;
+      
+      // Skip if no s3Key (invalid file)
+      if (!file.s3Key) return;
+      
+      // Skip archived/deleted files (Media Library source of truth)
+      // Note: This is a safeguard - usePropReferences should already filter these out
+      if (file.isArchived === true || file.metadata?.isArchived === true) return;
+      
       const isProductionHub =
         file.metadata?.createdIn === 'production-hub' ||
         file.metadata?.source === 'angle-generation' ||

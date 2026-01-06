@@ -52,7 +52,8 @@ export function usePropReferences(
     'asset' // entityType only, no entityId (get all asset images)
   );
 
-  // Filter Media Library files by prop IDs
+  // Filter Media Library files by prop IDs and exclude archived/deleted files
+  // Media Library is source of truth - only show files that exist and are not archived
   const propMediaFiles = useMemo(() => {
     if (!allAssetMediaFiles || propIds.length === 0) {
       console.log('[PropImageDebug] usePropReferences: No files or propIds', {
@@ -63,19 +64,26 @@ export function usePropReferences(
       return [];
     }
     const filtered = allAssetMediaFiles.filter((file: any) => {
+      // Exclude archived/deleted files (Media Library source of truth)
+      if (file.isArchived === true || file.metadata?.isArchived === true) {
+        return false;
+      }
+      // Filter by prop IDs
       const fileEntityId = file.metadata?.entityId || file.entityId;
       return propIds.includes(fileEntityId);
     });
-    console.log('[PropImageDebug] usePropReferences: Filtered Media Library files', {
+    console.log('[PropImageDebug] usePropReferences: Filtered Media Library files (excluding archived)', {
       allAssetMediaFilesCount: allAssetMediaFiles.length,
       propIds: propIds,
       filteredCount: filtered.length,
+      archivedCount: allAssetMediaFiles.filter((f: any) => f.isArchived === true || f.metadata?.isArchived === true).length,
       filteredFiles: filtered.map((f: any) => ({
         s3Key: f.s3Key,
         entityId: f.metadata?.entityId || f.entityId,
         createdIn: f.metadata?.createdIn,
         source: f.metadata?.source,
         uploadMethod: f.metadata?.uploadMethod,
+        isArchived: f.isArchived || f.metadata?.isArchived,
         metadata: f.metadata,
         fullFile: f
       }))
