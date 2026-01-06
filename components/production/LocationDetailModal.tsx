@@ -614,8 +614,8 @@ export function LocationDetailModal({
       });
     }
     
-    // Check creationImages
-    (latestLocation.creationImages || []).forEach((img: LocationReference) => {
+    // Check creationImages (if it exists on the location)
+    ((latestLocation as any).creationImages || []).forEach((img: LocationReference) => {
       if (img.s3Key && !mediaLibraryS3KeysSet.has(img.s3Key)) {
         fallback.push({
           id: img.id,
