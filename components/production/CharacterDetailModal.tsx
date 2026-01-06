@@ -1241,8 +1241,8 @@ export function CharacterDetailModal({
               <div className={`flex items-center gap-2 md:gap-4 flex-1 min-w-0 ${isMobile ? 'flex-col items-start' : ''}`}>
                 {!isMobile && (
                   <div className="p-2 bg-[#DC143C]/10 rounded-lg flex-shrink-0">
-                    <User className="w-6 h-6 text-[#DC143C]" />
-                  </div>
+                  <User className="w-6 h-6 text-[#DC143C]" />
+                </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -1269,16 +1269,16 @@ export function CharacterDetailModal({
                     </div>
                   ) : (
                     // Desktop: Full layout
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-sm text-[#808080] capitalize">
-                        {displayType} character
-                        {isInScript && <span className="ml-2 text-[#6B7280]">(locked - appears in script)</span>}
-                      </p>
-                      {/* 🔥 READ-ONLY BADGE */}
-                      <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
-                        Read-only - Edit in Creation section
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-[#808080] capitalize">
+                      {displayType} character
+                      {isInScript && <span className="ml-2 text-[#6B7280]">(locked - appears in script)</span>}
+                    </p>
+                    {/* 🔥 READ-ONLY BADGE */}
+                    <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
+                      Read-only - Edit in Creation section
+                    </span>
+                  </div>
                   )}
                 </div>
               </div>
@@ -1439,89 +1439,89 @@ export function CharacterDetailModal({
               ) : (
                 // Desktop: Horizontal tabs
                 <div className="flex items-center gap-2">
-                  {/* Left side: Standard tabs */}
+              {/* Left side: Standard tabs */}
+              <button
+                onClick={() => {
+                  setActiveTab('info');
+                  setCoverageTab(null);
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'info' && !coverageTab
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                }`}
+              >
+                <FileText className="w-4 h-4 inline mr-2" />
+                Info
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('references');
+                  setCoverageTab(null);
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'references' && !coverageTab
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                }`}
+              >
+                <Box className="w-4 h-4 inline mr-2" />
+                References ({allImages.length})
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('voice');
+                  setCoverageTab(null);
+                  if (!voiceProfile && !isLoadingVoice) {
+                    fetchVoiceProfile();
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'voice' && !coverageTab
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                }`}
+              >
+                <Volume2 className="w-4 h-4 inline mr-2" />
+                Voice
+                {voiceProfile && (
+                  <span className={`ml-2 text-xs ${activeTab === 'voice' && !coverageTab ? 'opacity-75' : 'text-green-400'}`}>●</span>
+                )}
+              </button>
+              
+              {/* Right side: Coverage buttons */}
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setCoverageTab('upload');
+                    setActiveTab('references'); // Keep references as active tab for context
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    coverageTab === 'upload'
+                      ? 'bg-[#DC143C] text-white'
+                      : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                  }`}
+                >
+                  <Upload className="w-4 h-4 inline mr-2" />
+                  Upload Wardrobe
+                </button>
+                {onGeneratePosePackage && (
                   <button
                     onClick={() => {
-                      setActiveTab('info');
-                      setCoverageTab(null);
+                      setCoverageTab('generate');
+                      setActiveTab('references'); // Keep references as active tab for context
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === 'info' && !coverageTab
+                      coverageTab === 'generate'
                         ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                        : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
                     }`}
-                  >
-                    <FileText className="w-4 h-4 inline mr-2" />
-                    Info
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab('references');
-                      setCoverageTab(null);
-                    }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === 'references' && !coverageTab
-                        ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                    }`}
-                  >
-                    <Box className="w-4 h-4 inline mr-2" />
-                    References ({allImages.length})
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab('voice');
-                      setCoverageTab(null);
-                      if (!voiceProfile && !isLoadingVoice) {
-                        fetchVoiceProfile();
-                      }
-                    }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === 'voice' && !coverageTab
-                        ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
-                    }`}
-                  >
-                    <Volume2 className="w-4 h-4 inline mr-2" />
-                    Voice
-                    {voiceProfile && (
-                      <span className={`ml-2 text-xs ${activeTab === 'voice' && !coverageTab ? 'opacity-75' : 'text-green-400'}`}>●</span>
-                    )}
-                  </button>
-                  
-                  {/* Right side: Coverage buttons */}
-                  <div className="ml-auto flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setCoverageTab('upload');
-                        setActiveTab('references'); // Keep references as active tab for context
-                      }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        coverageTab === 'upload'
-                          ? 'bg-[#DC143C] text-white'
-                          : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
-                      }`}
                     >
-                      <Upload className="w-4 h-4 inline mr-2" />
-                      Upload Wardrobe
+                      <span className="text-base mr-2">🤖</span>
+                      Generate Wardrobe
                     </button>
-                    {onGeneratePosePackage && (
-                      <button
-                        onClick={() => {
-                          setCoverageTab('generate');
-                          setActiveTab('references'); // Keep references as active tab for context
-                        }}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          coverageTab === 'generate'
-                            ? 'bg-[#DC143C] text-white'
-                            : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
-                        }`}
-                        >
-                          <span className="text-base mr-2">🤖</span>
-                          Generate Wardrobe
-                        </button>
-                    )}
-                  </div>
+                )}
+              </div>
                 </div>
               )}
             </div>
@@ -2100,7 +2100,7 @@ export function CharacterDetailModal({
                                 );
                               })()}
                               {/* Three dots dropdown - always visible on mobile, always visible on desktop (simplest solution) */}
-                              {!img.isBase && !selectionMode && (
+                                {!img.isBase && !selectionMode && (
                                 <div className="absolute top-2 right-2 pointer-events-auto z-20">
                                   <DropdownMenu
                                     open={openDropdownId === img.id}
@@ -2112,8 +2112,8 @@ export function CharacterDetailModal({
                                       }
                                     }}
                                   >
-                                    <DropdownMenuTrigger asChild>
-                                      <button
+                                  <DropdownMenuTrigger asChild>
+                                    <button
                                         className={`${isMobile ? 'p-1.5 bg-[#DC143C]' : 'p-2 bg-[#DC143C]/90 hover:bg-[#DC143C]'} rounded-lg transition-colors ${isMobile ? 'min-w-[32px] min-h-[32px]' : 'min-w-[36px] min-h-[36px]'} flex items-center justify-center shadow-lg`}
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -2122,10 +2122,10 @@ export function CharacterDetailModal({
                                             setOpenDropdownId(img.id);
                                           }
                                         }}
-                                      >
+                                    >
                                         <MoreVertical className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white`} />
-                                      </button>
-                                    </DropdownMenuTrigger>
+                                    </button>
+                                  </DropdownMenuTrigger>
                                   <DropdownMenuContent 
                                     align="end"
                                     className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
@@ -2271,10 +2271,10 @@ export function CharacterDetailModal({
                                           
                                           // Delete from Media Library first (source of truth) - same pattern as locations
                                           try {
-                                            const token = await getToken({ template: 'wryda-backend' });
-                                            if (!token) {
+                                          const token = await getToken({ template: 'wryda-backend' });
+                                          if (!token) {
                                               throw new Error('Authentication required');
-                                            }
+                                          }
                                             const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
                                             await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
                                               method: 'POST',
@@ -2289,18 +2289,42 @@ export function CharacterDetailModal({
                                             // Continue with character update even if Media Library deletion fails
                                           }
                                           
-                                          // Use same simple pattern as location angles: filter and update
+                                          // Use same working pattern as location backgrounds: filter derived data, optimistic update, then onUpdate
                                           if (isPoseRef) {
-                                            // Remove from poseReferences (AI-generated poses) - same pattern as location angles
+                                            // Remove from poseReferences (AI-generated poses) - same pattern as location backgrounds
                                             const currentPoseReferences = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
                                             const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== img.s3Key;
                                             });
                                             
+                                            console.log('[CharacterDetailModal] 🔄 Calling onUpdate with filtered poseReferences:', {
+                                              beforeCount: currentPoseReferences.length,
+                                              afterCount: updatedPoseReferences.length,
+                                              deletedS3Key: img.s3Key,
+                                              updatedPoseRefS3Keys: updatedPoseReferences.map((ref: any) => typeof ref === 'string' ? ref : ref.s3Key)
+                                            });
+                                            
+                                            // 🔥 OPTIMISTIC UPDATE: Update React Query cache immediately (same pattern as location backgrounds)
+                                            queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
+                                              if (!old) return old;
+                                              return old.map((char) => {
+                                                if (char.id !== latestCharacter.id) return char;
+                                                return {
+                                                  ...char,
+                                                  poseReferences: updatedPoseReferences,
+                                                  angleReferences: updatedPoseReferences // Also update angleReferences for compatibility
+                                                };
+                                              });
+                                            });
+                                            
+                                            console.log('[CharacterDetailModal] ✅ Optimistic update applied to cache (poseReferences)');
+                                            
                                             await onUpdate(latestCharacter.id, { 
                                               poseReferences: updatedPoseReferences
                                             });
+                                            
+                                            console.log('[CharacterDetailModal] ✅ onUpdate completed, checking cache...');
                                           } else {
                                             // Remove from references (user-uploaded references)
                                             const currentReferences = latestCharacter.references || [];
@@ -2309,19 +2333,59 @@ export function CharacterDetailModal({
                                               return refS3Key !== img.s3Key;
                                             });
                                             
+                                            console.log('[CharacterDetailModal] 🔄 Calling onUpdate with filtered references:', {
+                                              beforeCount: currentReferences.length,
+                                              afterCount: updatedReferences.length,
+                                              deletedS3Key: img.s3Key,
+                                              updatedRefS3Keys: updatedReferences.map((ref: any) => typeof ref === 'string' ? ref : ref.s3Key)
+                                            });
+                                            
+                                            // 🔥 OPTIMISTIC UPDATE: Update React Query cache immediately (same pattern as location backgrounds)
+                                            queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
+                                              if (!old) return old;
+                                              return old.map((char) => {
+                                                if (char.id !== latestCharacter.id) return char;
+                                                return {
+                                                  ...char,
+                                                  references: updatedReferences
+                                                };
+                                              });
+                                            });
+                                            
+                                            console.log('[CharacterDetailModal] ✅ Optimistic update applied to cache (references)');
+                                            
                                             await onUpdate(latestCharacter.id, { 
                                               references: updatedReferences 
                                             });
+                                            
+                                            console.log('[CharacterDetailModal] ✅ onUpdate completed, checking cache...');
                                           }
                                           
-                                          // Same pattern as location angles: invalidate and refetch BOTH queries
-                                          queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                          // 🔥 DEBUG: Check cache before refetch
+                                          const cacheBefore = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+                                          const cachedCharacter = cacheBefore?.find(c => c.id === latestCharacter.id);
+                                          console.log('[CharacterDetailModal] 📊 Cache BEFORE refetch:', {
+                                            hasCache: !!cacheBefore,
+                                            cachedPoseRefsCount: ((cachedCharacter as any)?.angleReferences || cachedCharacter?.poseReferences || []).length,
+                                            cachedRefsCount: (cachedCharacter?.references || []).length
+                                          });
+                                          
+                                          // 🔥 FIX: Invalidate and refetch media (EXACT same pattern as location backgrounds - onUpdate already handles characters)
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          // 🔥 FIX: Await refetch of BOTH queries to ensure UI updates immediately
-                                          await Promise.all([
-                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
-                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-                                          ]);
+                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          
+                                          // 🔥 DEBUG: Also explicitly refetch characters to ensure latestCharacter updates
+                                          console.log('[CharacterDetailModal] 🔄 Explicitly refetching characters...');
+                                          await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                          
+                                          // 🔥 DEBUG: Check cache after refetch
+                                          const cacheAfter = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+                                          const cachedCharacterAfter = cacheAfter?.find(c => c.id === latestCharacter.id);
+                                          console.log('[CharacterDetailModal] 📊 Cache AFTER refetch:', {
+                                            hasCache: !!cacheAfter,
+                                            cachedPoseRefsCount: ((cachedCharacterAfter as any)?.angleReferences || cachedCharacterAfter?.poseReferences || []).length,
+                                            cachedRefsCount: (cachedCharacterAfter?.references || []).length
+                                          });
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
@@ -2344,7 +2408,7 @@ export function CharacterDetailModal({
                                 <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
                                   <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
                                 </div>
-                              </div>
+                          </div>
                         </div>
                       );
                         });
@@ -2690,16 +2754,47 @@ export function CharacterDetailModal({
                       return !s3KeysToDelete.has(refS3Key);
                     });
                     
+                    console.log('[CharacterDetailModal] 🔄 Calling onUpdate with filtered poseReferences and references:', {
+                      beforePoseRefsCount: currentPoseReferences.length,
+                      afterPoseRefsCount: updatedPoseReferences.length,
+                      beforeRefsCount: currentReferences.length,
+                      afterRefsCount: updatedReferences.length,
+                      deletedS3Keys: Array.from(s3KeysToDelete)
+                    });
+                    
                     // Single update call for all deletions
                     await onUpdate(latestCharacter.id, { 
                       poseReferences: updatedPoseReferences,
                       references: updatedReferences
                     });
                     
-                    // 🔥 FIX: Only invalidate queries - parent component (CharacterBankPanel) will refetch after onUpdate completes
-                    // This prevents race condition where our refetch overwrites optimistic update before server responds
-                    queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    console.log('[CharacterDetailModal] ✅ onUpdate completed, checking cache...');
+                    
+                    // 🔥 DEBUG: Check cache before refetch
+                    const cacheBefore = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+                    const cachedCharacter = cacheBefore?.find(c => c.id === latestCharacter.id);
+                    console.log('[CharacterDetailModal] 📊 Cache BEFORE refetch (bulk):', {
+                      hasCache: !!cacheBefore,
+                      cachedPoseRefsCount: ((cachedCharacter as any)?.angleReferences || cachedCharacter?.poseReferences || []).length,
+                      cachedRefsCount: (cachedCharacter?.references || []).length
+                    });
+                    
+                    // 🔥 FIX: Invalidate and refetch media (EXACT same pattern as location backgrounds - onUpdate already handles characters)
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                    await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                    
+                    // 🔥 DEBUG: Also explicitly refetch characters to ensure latestCharacter updates
+                    console.log('[CharacterDetailModal] 🔄 Explicitly refetching characters (bulk)...');
+                    await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    
+                    // 🔥 DEBUG: Check cache after refetch
+                    const cacheAfter = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+                    const cachedCharacterAfter = cacheAfter?.find(c => c.id === latestCharacter.id);
+                    console.log('[CharacterDetailModal] 📊 Cache AFTER refetch (bulk):', {
+                      hasCache: !!cacheAfter,
+                      cachedPoseRefsCount: ((cachedCharacterAfter as any)?.angleReferences || cachedCharacterAfter?.poseReferences || []).length,
+                      cachedRefsCount: (cachedCharacterAfter?.references || []).length
+                    });
                     
                     // Note: No toast here - CharacterBankPanel.updateCharacter shows "Character updated successfully"
                   } catch (error: any) {
