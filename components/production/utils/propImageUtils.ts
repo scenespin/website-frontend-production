@@ -28,19 +28,22 @@ export interface AvailableImage {
  * 3. baseReference (Creation image fallback)
  * 4. prop.imageUrl (Default fallback)
  * 
- * Media Library is the source of truth - only valid, non-empty imageUrls are included.
+ * Media Library is the source of truth.
+ * Note: angleReferences may have s3Key but empty imageUrl - presigned URLs will be fetched separately.
  */
 export function getAvailablePropImages(prop: PropType): AvailableImage[] {
   const availableImages: AvailableImage[] = [];
   
-  // Add angleReferences first (Production Hub images) - only if they have valid imageUrl
+  // Add angleReferences first (Production Hub images)
+  // 🔥 FIX: Include angleReferences that have s3Key (even if imageUrl is empty)
+  // Presigned URLs will be fetched separately and used for display
   if (prop.angleReferences && prop.angleReferences.length > 0) {
     prop.angleReferences.forEach(ref => {
-      // Only add if imageUrl exists and is not empty
-      if (ref.imageUrl && ref.imageUrl.trim() !== '') {
+      // Include if it has s3Key (presigned URL will be fetched) OR if it has a valid imageUrl
+      if (ref.s3Key || (ref.imageUrl && ref.imageUrl.trim() !== '')) {
         availableImages.push({
           id: ref.id,
-          imageUrl: ref.imageUrl,
+          imageUrl: ref.imageUrl || ref.s3Key || '', // Use s3Key as fallback if imageUrl is empty
           label: ref.label
         });
       }
@@ -50,11 +53,11 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
   // Add images[] (Creation images) if no valid angleReferences
   if (availableImages.length === 0 && prop.images && prop.images.length > 0) {
     prop.images.forEach(img => {
-      // Only add if image has a valid URL
-      if (img.url && img.url.trim() !== '') {
+      // Include if it has s3Key OR a valid URL
+      if (img.s3Key || (img.url && img.url.trim() !== '')) {
         availableImages.push({
-          id: img.url,
-          imageUrl: img.url,
+          id: img.url || img.s3Key || '',
+          imageUrl: img.url || img.s3Key || '',
           label: undefined
         });
       }
