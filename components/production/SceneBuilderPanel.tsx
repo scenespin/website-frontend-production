@@ -534,7 +534,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     if (needsUpdate) {
       setSelectedCharacterReferences(updated);
     }
-  }, [characterFullImageUrlsMap, selectedCharacterReferences]);
+    // 🔥 FIX: Removed selectedCharacterReferences from dependencies - it causes infinite loop
+    // We already track changes with signature comparison (lastProcessedRefsRef)
+    // The effect only needs to run when characterFullImageUrlsMap changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characterFullImageUrlsMap]);
 
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
