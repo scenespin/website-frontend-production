@@ -403,14 +403,22 @@ export function ShotConfigurationStep({
   
   // 🔥 NEW: Clear character references when switching to non-lip-sync tab or workflow
   // Non-lip-sync workflows generate their own first frame, so they don't need character references from lip-sync
+  // 🔥 FIX: Use ref to track last state to prevent infinite loops
+  const lastTabWorkflowRef = React.useRef<{ tab: string; workflow?: string }>({ tab: 'basic' });
   React.useEffect(() => {
     if (!isDialogueShot || !onCharacterReferenceChange) return;
     
     const isNonLipSyncTab = activeTab === 'advanced';
     const isNonLipSyncWorkflow = finalSelectedDialogueWorkflow === 'scene-voiceover' || finalSelectedDialogueWorkflow === 'off-frame-voiceover';
+    const currentState = { tab: activeTab, workflow: finalSelectedDialogueWorkflow };
+    const lastState = lastTabWorkflowRef.current;
     
-    // Clear character references if on non-lip-sync tab or non-lip-sync workflow
-    if (isNonLipSyncTab || isNonLipSyncWorkflow) {
+    // Only clear if we're switching TO non-lip-sync (not if we're already there)
+    const wasNonLipSync = lastState.tab === 'advanced' || lastState.workflow === 'scene-voiceover' || lastState.workflow === 'off-frame-voiceover';
+    const isNowNonLipSync = isNonLipSyncTab || isNonLipSyncWorkflow;
+    
+    // Only clear if we just switched to non-lip-sync (not if we're already there)
+    if (isNowNonLipSync && !wasNonLipSync) {
       const shotRefs = selectedCharacterReferences[shot.slot];
       if (shotRefs && Object.keys(shotRefs).length > 0) {
         // Clear all character references for this shot
@@ -419,7 +427,10 @@ export function ShotConfigurationStep({
         });
       }
     }
-  }, [activeTab, finalSelectedDialogueWorkflow, isDialogueShot, shot.slot, selectedCharacterReferences, onCharacterReferenceChange]);
+    
+    // Update ref to track current state
+    lastTabWorkflowRef.current = currentState;
+  }, [activeTab, finalSelectedDialogueWorkflow, isDialogueShot, shot.slot, onCharacterReferenceChange]);
   
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {

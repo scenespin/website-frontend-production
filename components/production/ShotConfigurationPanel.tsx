@@ -1151,6 +1151,7 @@ export function ShotConfigurationPanel({
                           type="checkbox"
                           checked={isSelected}
                           onChange={(e) => {
+                            e.stopPropagation(); // Prevent event bubbling
                             if (!onCharactersForShotChange) return;
                             const current = selectedCharactersForShots[shot.slot] || [];
                             const updated = e.target.checked
@@ -1158,7 +1159,9 @@ export function ShotConfigurationPanel({
                               : current.filter((id: string) => id !== char.id);
                             onCharactersForShotChange(shot.slot, updated);
                           }}
+                          onClick={(e) => e.stopPropagation()} // Also prevent click bubbling
                           className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                          disabled={!onCharactersForShotChange} // Disable if handler not available
                         />
                         <span className="text-xs text-[#FFFFFF] flex-1">
                           {char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}

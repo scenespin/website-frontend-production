@@ -456,8 +456,31 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
   
   // 🔥 FIX: Update selectedCharacterReferences with presigned URLs when available
+  // 🔥 FIX: Use ref to track last processed state to prevent infinite loops
+  const lastProcessedRefsRef = useRef<string>('');
   useEffect(() => {
     if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) return;
+    
+    // Create a stable signature of current state (only s3Keys that need URLs)
+    const currentSignature = JSON.stringify(
+      Object.entries(selectedCharacterReferences)
+        .map(([shotSlot, shotRefs]) => {
+          if (!shotRefs || typeof shotRefs !== 'object') return null;
+          return [
+            shotSlot,
+            Object.entries(shotRefs)
+              .filter(([_, charRef]) => 
+                charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))
+              )
+              .map(([charId, charRef]) => [charId, charRef.s3Key])
+          ];
+        })
+        .filter(Boolean)
+    );
+    
+    // Only process if signature changed (prevents infinite loops)
+    if (currentSignature === lastProcessedRefsRef.current) return;
+    lastProcessedRefsRef.current = currentSignature;
     
     // Check if any selectedCharacterReferences need presigned URLs
     let needsUpdate = false;
