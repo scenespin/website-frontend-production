@@ -714,35 +714,72 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     enabled: !!locationId
   });
   
-  // 🔥 NEW: Map location hook data to expected format
+  // 🔥 NEW: Map location hook data to expected format, enriched with DynamoDB metadata
   const locationDataFromMediaLibrary = React.useMemo(() => {
     if (!locationId || (locationAngleVariations.length === 0 && locationBackgrounds.length === 0)) {
       return null;
     }
     
+    // 🔥 FIX: Create maps from DynamoDB location metadata for fast lookup by s3Key
+    const angleMetadataMap = new Map<string, { timeOfDay?: string; weather?: string; angle?: string; label?: string }>();
+    const backgroundMetadataMap = new Map<string, { timeOfDay?: string; weather?: string; backgroundType?: string }>();
+    
+    if (locationMetadata) {
+      // Map angle variations from DynamoDB
+      locationMetadata.angleVariations?.forEach(angle => {
+        if (angle.s3Key) {
+          angleMetadataMap.set(angle.s3Key, {
+            timeOfDay: angle.timeOfDay,
+            weather: angle.weather,
+            angle: angle.angle,
+            label: angle.angle // Use angle as label if no explicit label
+          });
+        }
+      });
+      
+      // Map backgrounds from DynamoDB
+      locationMetadata.backgrounds?.forEach(bg => {
+        if (bg.s3Key) {
+          backgroundMetadataMap.set(bg.s3Key, {
+            timeOfDay: bg.timeOfDay,
+            weather: bg.weather,
+            backgroundType: bg.backgroundType
+          });
+        }
+      });
+    }
+    
     return {
-      angleVariations: locationAngleVariations.map(angle => ({
-        angleId: angle.angleId,
-        angle: angle.angle,
-        s3Key: angle.s3Key,
-        imageUrl: angle.imageUrl,
-        label: angle.label,
-        timeOfDay: angle.timeOfDay,
-        weather: angle.weather
-      })),
-      backgrounds: locationBackgrounds.map(bg => ({
-        id: bg.id,
-        imageUrl: bg.imageUrl,
-        s3Key: bg.s3Key,
-        backgroundType: (bg.backgroundType || 'custom') as 'custom' | 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature',
-        sourceType: bg.sourceType as 'angle-variations' | 'reference-images' | undefined,
-        sourceAngleId: bg.sourceAngleId,
-        metadata: bg.metadata,
-        timeOfDay: bg.timeOfDay,
-        weather: bg.weather
-      }))
+      angleVariations: locationAngleVariations.map(angle => {
+        // 🔥 FIX: Enrich with DynamoDB metadata if available
+        const dbMetadata = angleMetadataMap.get(angle.s3Key);
+        return {
+          angleId: angle.angleId,
+          angle: dbMetadata?.angle || angle.angle,
+          s3Key: angle.s3Key,
+          imageUrl: angle.imageUrl,
+          label: dbMetadata?.label || angle.label || angle.angle,
+          timeOfDay: dbMetadata?.timeOfDay || angle.timeOfDay,
+          weather: dbMetadata?.weather || angle.weather
+        };
+      }),
+      backgrounds: locationBackgrounds.map(bg => {
+        // 🔥 FIX: Enrich with DynamoDB metadata if available
+        const dbMetadata = backgroundMetadataMap.get(bg.s3Key);
+        return {
+          id: bg.id,
+          imageUrl: bg.imageUrl,
+          s3Key: bg.s3Key,
+          backgroundType: (dbMetadata?.backgroundType || bg.backgroundType || 'custom') as 'custom' | 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature',
+          sourceType: bg.sourceType as 'angle-variations' | 'reference-images' | undefined,
+          sourceAngleId: bg.sourceAngleId,
+          metadata: bg.metadata,
+          timeOfDay: dbMetadata?.timeOfDay || bg.timeOfDay,
+          weather: dbMetadata?.weather || bg.weather
+        };
+      })
     };
-  }, [locationId, locationAngleVariations, locationBackgrounds]);
+  }, [locationId, locationAngleVariations, locationBackgrounds, locationMetadata]);
   
   // 🔥 NEW: Merge Media Library location data with sceneAnalysisResult
   // Also merge fresh location metadata from Location Bank if available
