@@ -832,10 +832,15 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     }, [])
   };
 
-  const value: SceneBuilderContextValue = {
+  // 🔥 CRITICAL FIX: Memoize the context value to prevent infinite re-renders
+  // The value object was being recreated on every render, causing all consumers to re-render
+  // Only include 'state' in dependencies - all actions are useCallback with empty deps (stable)
+  // Even though 'actions' object is recreated each render, the functions inside are stable,
+  // so consumers won't re-render unnecessarily. The key is that 'value' only changes when 'state' changes.
+  const value: SceneBuilderContextValue = useMemo(() => ({
     state,
     actions
-  };
+  }), [state]); // Only state changes - all action functions are stable (useCallback)
 
   return (
     <SceneBuilderContext.Provider value={value}>
