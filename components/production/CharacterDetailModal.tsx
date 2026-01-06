@@ -2332,6 +2332,15 @@ export function CharacterDetailModal({
                                           // 🔥 FIX: Invalidate and refetch character queries to refresh UI immediately (same pattern as angles)
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          
+                                          // 🔥 FIX: Manually remove deleted file from allMediaFiles cache (fallback query is disabled, so it won't refetch)
+                                          // The allMediaFiles query key is: ['media', 'files', screenplayId, 'root', 'all', undefined, undefined]
+                                          const allMediaFilesCacheKey = ['media', 'files', screenplayId || '', 'root', 'all', undefined, undefined];
+                                          const allMediaFilesCache = queryClient.getQueryData<any[]>(allMediaFilesCacheKey);
+                                          if (allMediaFilesCache) {
+                                            queryClient.setQueryData(allMediaFilesCacheKey, allMediaFilesCache.filter((file: any) => file.s3Key !== img.s3Key));
+                                          }
+                                          
                                           await Promise.all([
                                             queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
                                             queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
@@ -2680,6 +2689,15 @@ export function CharacterDetailModal({
                     // 🔥 FIX: Invalidate and refetch character queries to refresh UI immediately (same pattern as angles)
                     queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                    
+                    // 🔥 FIX: Manually remove deleted files from allMediaFiles cache (fallback query is disabled, so it won't refetch)
+                    // The allMediaFiles query key is: ['media', 'files', screenplayId, 'root', 'all', undefined, undefined]
+                    const allMediaFilesCacheKey = ['media', 'files', screenplayId || '', 'root', 'all', undefined, undefined];
+                    const allMediaFilesCache = queryClient.getQueryData<any[]>(allMediaFilesCacheKey);
+                    if (allMediaFilesCache) {
+                      queryClient.setQueryData(allMediaFilesCacheKey, allMediaFilesCache.filter((file: any) => !s3KeysToDelete.has(file.s3Key)));
+                    }
+                    
                     await Promise.all([
                       queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
                       queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
