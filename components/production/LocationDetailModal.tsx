@@ -1701,32 +1701,20 @@ export function LocationDetailModal({
                                                             // Continue with location update even if Media Library deletion fails
                                                           }
                                                           
-                                                          // 🔥 FIX: Use latestLocation.backgrounds (from React Query) directly (source of truth)
-                                                          // This ensures we use the most up-to-date data from cache
-                                                          const currentBackgrounds = latestLocation.backgrounds || [];
-                                                          
-                                                          console.log('[LocationDetailModal] 🔍 Backgrounds check:', {
-                                                            locationId: latestLocation.locationId,
-                                                            hasBackgroundsProp: 'backgrounds' in latestLocation,
-                                                            backgroundsPropValue: latestLocation.backgrounds,
-                                                            currentBackgroundsLength: currentBackgrounds.length,
-                                                            derivedBackgroundsLength: backgrounds.length,
-                                                            backgroundToDelete: background.s3Key
-                                                          });
-                                                          
-                                                          const updatedBackgrounds = currentBackgrounds.filter(
+                                                          // Use same working pattern as angles: filter derived backgrounds (from allImages)
+                                                          // This is the pattern that works for location angles, so use it for backgrounds too
+                                                          const updatedBackgrounds = backgrounds.filter(
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
                                                           
-                                                          console.log('[LocationDetailModal] 📤 Calling onUpdate with backgrounds:', {
-                                                            locationId: latestLocation.locationId,
-                                                            source: 'latestLocation (React Query)',
-                                                            beforeCount: currentBackgrounds.length,
+                                                          console.log('[LocationDetailModal] 📤 Calling onUpdate with backgrounds (using derived pattern like angles):', {
+                                                            locationId: location.locationId,
+                                                            beforeCount: backgrounds.length,
                                                             afterCount: updatedBackgrounds.length,
                                                             removedS3Key: background.s3Key
                                                           });
                                                           
-                                                          await onUpdate(latestLocation.locationId, {
+                                                          await onUpdate(location.locationId, {
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
