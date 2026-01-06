@@ -387,11 +387,9 @@ export function GenerateLocationTab({
         const result = await response.json();
         
         if (result.jobId) {
-          // 🔥 Refresh credits immediately after job creation (credits are deducted when job starts)
-          console.log('[GenerateLocationTab] 🔥 Job created, refreshing credits...', result.jobId);
-          if (typeof window !== 'undefined' && (window as any).refreshCredits) {
-            (window as any).refreshCredits();
-          }
+          // Note: Credits are deducted asynchronously as each pose generates, not when job is created
+          // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
+          console.log('[GenerateLocationTab] ✅ Job created:', result.jobId);
           
           // Toast notification handled by parent (LocationDetailModal) in onComplete callback
           if (onComplete) {
@@ -436,11 +434,9 @@ export function GenerateLocationTab({
         const result = await response.json();
         
         if (result.jobId) {
-          // 🔥 Refresh credits immediately after job creation (credits are deducted when job starts)
-          console.log('[GenerateLocationTab] 🔥 Background job created, refreshing credits...', result.jobId);
-          if (typeof window !== 'undefined' && (window as any).refreshCredits) {
-            (window as any).refreshCredits();
-          }
+          // Note: Credits are deducted asynchronously as each background generates, not when job is created
+          // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
+          console.log('[GenerateLocationTab] ✅ Background job created:', result.jobId);
           
           // Toast notification handled by parent (LocationDetailModal) in onComplete callback
           if (onComplete) {

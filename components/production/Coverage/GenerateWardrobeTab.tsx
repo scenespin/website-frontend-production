@@ -321,11 +321,9 @@ export function GenerateWardrobeTab({
 
       const result = await response.json();
       
-      // 🔥 Refresh credits immediately after job creation (credits are deducted when job starts)
-      console.log('[GenerateWardrobeTab] 🔥 Job created, refreshing credits...', result.jobId);
-      if (typeof window !== 'undefined' && (window as any).refreshCredits) {
-        (window as any).refreshCredits();
-      }
+      // Note: Credits are deducted asynchronously as each pose generates, not when job is created
+      // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
+      console.log('[GenerateWardrobeTab] ✅ Job created:', result.jobId);
       
       toast.dismiss('wardrobe-gen-start');
       toast.success('Wardrobe generation started!', {
