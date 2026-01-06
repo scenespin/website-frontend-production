@@ -44,11 +44,13 @@ export function usePropReferences(
   initialProps: PropType[]
 ): UsePropReferencesReturn {
   // Query Media Library for all asset images (single query for efficiency)
+  // 🔥 FIX: Use includeAllFolders: true to get files from subfolders like "Angles"
+  // This matches the pattern used for characters (which need files from outfit folders)
   const { data: allAssetMediaFiles = [], isLoading: isLoadingFiles } = useMediaFiles(
     projectId,
     undefined,
     enabled && propIds.length > 0,
-    false,
+    true, // includeAllFolders: true (needed to get files from Angles subfolders)
     'asset' // entityType only, no entityId (get all asset images)
   );
 
