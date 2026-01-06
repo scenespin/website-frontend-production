@@ -2289,42 +2289,19 @@ export function CharacterDetailModal({
                                             // Continue with character update even if Media Library deletion fails
                                           }
                                           
-                                          // Use same working pattern as location backgrounds: filter derived data, optimistic update, then onUpdate
+                                          // Use same working pattern as location angles: filter derived data, then onUpdate (no optimistic update)
                                           if (isPoseRef) {
-                                            // Remove from poseReferences (AI-generated poses) - same pattern as location backgrounds
+                                            // Remove from poseReferences (AI-generated poses) - same pattern as location angles
                                             const currentPoseReferences = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
                                             const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== img.s3Key;
                                             });
                                             
-                                            console.log('[CharacterDetailModal] 🔄 Calling onUpdate with filtered poseReferences:', {
-                                              beforeCount: currentPoseReferences.length,
-                                              afterCount: updatedPoseReferences.length,
-                                              deletedS3Key: img.s3Key,
-                                              updatedPoseRefS3Keys: updatedPoseReferences.map((ref: any) => typeof ref === 'string' ? ref : ref.s3Key)
-                                            });
-                                            
-                                            // 🔥 OPTIMISTIC UPDATE: Update React Query cache immediately (same pattern as location backgrounds)
-                                            queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
-                                              if (!old) return old;
-                                              return old.map((char) => {
-                                                if (char.id !== latestCharacter.id) return char;
-                                                return {
-                                                  ...char,
-                                                  poseReferences: updatedPoseReferences,
-                                                  angleReferences: updatedPoseReferences // Also update angleReferences for compatibility
-                                                };
-                                              });
-                                            });
-                                            
-                                            console.log('[CharacterDetailModal] ✅ Optimistic update applied to cache (poseReferences)');
-                                            
+                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as angles)
                                             await onUpdate(latestCharacter.id, { 
                                               poseReferences: updatedPoseReferences
                                             });
-                                            
-                                            console.log('[CharacterDetailModal] ✅ onUpdate completed, checking cache...');
                                           } else {
                                             // Remove from references (user-uploaded references)
                                             const currentReferences = latestCharacter.references || [];
@@ -2333,59 +2310,16 @@ export function CharacterDetailModal({
                                               return refS3Key !== img.s3Key;
                                             });
                                             
-                                            console.log('[CharacterDetailModal] 🔄 Calling onUpdate with filtered references:', {
-                                              beforeCount: currentReferences.length,
-                                              afterCount: updatedReferences.length,
-                                              deletedS3Key: img.s3Key,
-                                              updatedRefS3Keys: updatedReferences.map((ref: any) => typeof ref === 'string' ? ref : ref.s3Key)
-                                            });
-                                            
-                                            // 🔥 OPTIMISTIC UPDATE: Update React Query cache immediately (same pattern as location backgrounds)
-                                            queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
-                                              if (!old) return old;
-                                              return old.map((char) => {
-                                                if (char.id !== latestCharacter.id) return char;
-                                                return {
-                                                  ...char,
-                                                  references: updatedReferences
-                                                };
-                                              });
-                                            });
-                                            
-                                            console.log('[CharacterDetailModal] ✅ Optimistic update applied to cache (references)');
-                                            
+                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as angles)
                                             await onUpdate(latestCharacter.id, { 
                                               references: updatedReferences 
                                             });
-                                            
-                                            console.log('[CharacterDetailModal] ✅ onUpdate completed, checking cache...');
                                           }
                                           
-                                          // 🔥 DEBUG: Check cache before refetch
-                                          const cacheBefore = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
-                                          const cachedCharacter = cacheBefore?.find(c => c.id === latestCharacter.id);
-                                          console.log('[CharacterDetailModal] 📊 Cache BEFORE refetch:', {
-                                            hasCache: !!cacheBefore,
-                                            cachedPoseRefsCount: ((cachedCharacter as any)?.angleReferences || cachedCharacter?.poseReferences || []).length,
-                                            cachedRefsCount: (cachedCharacter?.references || []).length
-                                          });
-                                          
-                                          // 🔥 FIX: Invalidate and refetch media (EXACT same pattern as location backgrounds - onUpdate already handles characters)
+                                          // 🔥 FIX: Invalidate character queries to refresh UI immediately (same pattern as angles)
+                                          queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          
-                                          // 🔥 DEBUG: Also explicitly refetch characters to ensure latestCharacter updates
-                                          console.log('[CharacterDetailModal] 🔄 Explicitly refetching characters...');
-                                          await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                          
-                                          // 🔥 DEBUG: Check cache after refetch
-                                          const cacheAfter = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
-                                          const cachedCharacterAfter = cacheAfter?.find(c => c.id === latestCharacter.id);
-                                          console.log('[CharacterDetailModal] 📊 Cache AFTER refetch:', {
-                                            hasCache: !!cacheAfter,
-                                            cachedPoseRefsCount: ((cachedCharacterAfter as any)?.angleReferences || cachedCharacterAfter?.poseReferences || []).length,
-                                            cachedRefsCount: (cachedCharacterAfter?.references || []).length
-                                          });
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
@@ -2640,10 +2574,6 @@ export function CharacterDetailModal({
                 onClick={async () => {
                   setShowBulkDeleteConfirm(false);
                   
-                  // 🔥 OPTIMISTIC UPDATE: Cancel outgoing queries and snapshot current data
-                  await queryClient.cancelQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                  const previousCharacters = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
-                  
                   try {
                     const selectedImages = poseReferences.filter(img => selectedImageIds.has(img.id));
                     
@@ -2683,36 +2613,7 @@ export function CharacterDetailModal({
                       return;
                     }
                     
-                    // 🔥 OPTIMISTIC UPDATE: Remove images from React Query cache immediately
-                    queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
-                      if (!old) return old;
-                      return old.map((char) => {
-                        if (char.id !== character.id) return char;
-                        
-                        // Filter out deleted images from poseReferences and references
-                        const currentPoseReferences = (char as any).angleReferences || char.poseReferences || [];
-                        const currentReferences = char.references || [];
-                        
-                        const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
-                          const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                          return !s3KeysToDelete.has(refS3Key);
-                        });
-                        
-                        const updatedReferences = currentReferences.filter((ref: any) => {
-                          const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                          return !s3KeysToDelete.has(refS3Key);
-                        });
-                        
-                        return {
-                          ...char,
-                          poseReferences: updatedPoseReferences,
-                          angleReferences: updatedPoseReferences, // Also update angleReferences for compatibility
-                          references: updatedReferences
-                        };
-                      });
-                    });
-                    
-                    // Clear selection and exit selection mode immediately (optimistic)
+                    // Clear selection and exit selection mode
                     setSelectedImageIds(new Set());
                     setSelectionMode(false);
                     
@@ -2754,54 +2655,19 @@ export function CharacterDetailModal({
                       return !s3KeysToDelete.has(refS3Key);
                     });
                     
-                    console.log('[CharacterDetailModal] 🔄 Calling onUpdate with filtered poseReferences and references:', {
-                      beforePoseRefsCount: currentPoseReferences.length,
-                      afterPoseRefsCount: updatedPoseReferences.length,
-                      beforeRefsCount: currentReferences.length,
-                      afterRefsCount: updatedReferences.length,
-                      deletedS3Keys: Array.from(s3KeysToDelete)
-                    });
-                    
-                    // Single update call for all deletions
+                    // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as angles)
                     await onUpdate(latestCharacter.id, { 
                       poseReferences: updatedPoseReferences,
                       references: updatedReferences
                     });
                     
-                    console.log('[CharacterDetailModal] ✅ onUpdate completed, checking cache...');
-                    
-                    // 🔥 DEBUG: Check cache before refetch
-                    const cacheBefore = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
-                    const cachedCharacter = cacheBefore?.find(c => c.id === latestCharacter.id);
-                    console.log('[CharacterDetailModal] 📊 Cache BEFORE refetch (bulk):', {
-                      hasCache: !!cacheBefore,
-                      cachedPoseRefsCount: ((cachedCharacter as any)?.angleReferences || cachedCharacter?.poseReferences || []).length,
-                      cachedRefsCount: (cachedCharacter?.references || []).length
-                    });
-                    
-                    // 🔥 FIX: Invalidate and refetch media (EXACT same pattern as location backgrounds - onUpdate already handles characters)
+                    // 🔥 FIX: Invalidate character queries to refresh UI immediately (same pattern as angles)
+                    queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                     await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                     
-                    // 🔥 DEBUG: Also explicitly refetch characters to ensure latestCharacter updates
-                    console.log('[CharacterDetailModal] 🔄 Explicitly refetching characters (bulk)...');
-                    await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                    
-                    // 🔥 DEBUG: Check cache after refetch
-                    const cacheAfter = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
-                    const cachedCharacterAfter = cacheAfter?.find(c => c.id === latestCharacter.id);
-                    console.log('[CharacterDetailModal] 📊 Cache AFTER refetch (bulk):', {
-                      hasCache: !!cacheAfter,
-                      cachedPoseRefsCount: ((cachedCharacterAfter as any)?.angleReferences || cachedCharacterAfter?.poseReferences || []).length,
-                      cachedRefsCount: (cachedCharacterAfter?.references || []).length
-                    });
-                    
                     // Note: No toast here - CharacterBankPanel.updateCharacter shows "Character updated successfully"
                   } catch (error: any) {
-                    // 🔥 ROLLBACK: Restore previous data on error
-                    if (previousCharacters) {
-                      queryClient.setQueryData(['characters', screenplayId, 'production-hub'], previousCharacters);
-                    }
                     // Restore selection mode on error
                     setSelectionMode(true);
                     console.error('[CharacterDetailModal] Bulk deletion error:', error);

@@ -1707,58 +1707,15 @@ export function LocationDetailModal({
                                                             (b: LocationBackground) => b.s3Key !== background.s3Key
                                                           );
                                                           
-                                                          console.log('[LocationDetailModal] 🔄 Calling onUpdate with filtered backgrounds:', {
-                                                            beforeCount: backgrounds.length,
-                                                            afterCount: updatedBackgrounds.length,
-                                                            deletedS3Key: background.s3Key,
-                                                            updatedBackgroundS3Keys: updatedBackgrounds.map(b => b.s3Key)
-                                                          });
-                                                          
-                                                          // 🔥 OPTIMISTIC UPDATE: Update React Query cache immediately (like characters do)
-                                                          queryClient.setQueryData<any[]>(['locations', screenplayId, 'production-hub'], (old) => {
-                                                            if (!old) return old;
-                                                            return old.map((loc) => {
-                                                              if (loc.locationId !== location.locationId) return loc;
-                                                              return {
-                                                                ...loc,
-                                                                backgrounds: updatedBackgrounds
-                                                              };
-                                                            });
-                                                          });
-                                                          
-                                                          console.log('[LocationDetailModal] ✅ Optimistic update applied to cache');
-                                                          
+                                                          // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as angles)
                                                           await onUpdate(location.locationId, {
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
-                                                          console.log('[LocationDetailModal] ✅ onUpdate completed, checking cache...');
-                                                          
-                                                          // 🔥 DEBUG: Check cache before refetch
-                                                          const cacheBefore = queryClient.getQueryData<any[]>(['locations', screenplayId, 'production-hub']);
-                                                          const cachedLocation = cacheBefore?.find(l => l.locationId === location.locationId);
-                                                          console.log('[LocationDetailModal] 📊 Cache BEFORE refetch:', {
-                                                            hasCache: !!cacheBefore,
-                                                            cachedLocationBackgroundsCount: cachedLocation?.backgrounds?.length || 0,
-                                                            cachedLocationBackgroundS3Keys: cachedLocation?.backgrounds?.map((b: LocationBackground) => b.s3Key) || []
-                                                          });
-                                                          
-                                                          // 🔥 FIX: Invalidate and refetch media (EXACT same pattern as angles - onUpdate already handles locations)
+                                                          // 🔥 FIX: Invalidate location queries to refresh UI immediately (same pattern as angles)
+                                                          queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
-                                                          
-                                                          // 🔥 DEBUG: Also explicitly refetch locations to ensure latestLocation updates
-                                                          console.log('[LocationDetailModal] 🔄 Explicitly refetching locations...');
-                                                          await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                                          
-                                                          // 🔥 DEBUG: Check cache after refetch
-                                                          const cacheAfter = queryClient.getQueryData<any[]>(['locations', screenplayId, 'production-hub']);
-                                                          const cachedLocationAfter = cacheAfter?.find(l => l.locationId === location.locationId);
-                                                          console.log('[LocationDetailModal] 📊 Cache AFTER refetch:', {
-                                                            hasCache: !!cacheAfter,
-                                                            cachedLocationBackgroundsCount: cachedLocationAfter?.backgrounds?.length || 0,
-                                                            cachedLocationBackgroundS3Keys: cachedLocationAfter?.backgrounds?.map((b: LocationBackground) => b.s3Key) || []
-                                                          });
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
