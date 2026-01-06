@@ -36,9 +36,73 @@ export function VideoGenerationSelector({
   shotDuration,
   onDurationChange
 }: VideoGenerationSelectorProps) {
-  // Only show for non-dialogue shots (dialogue has its own workflow system)
+  // 🔥 NEW: For dialogue shots, show only Quality and Camera Angle (no Video Type or Duration)
   if (shotType === 'dialogue') {
-    return null;
+    const selectCameraAngle = shotCameraAngle ?? 'auto';
+    const selectQuality = selectedQuality ?? 'hd';
+    
+    return (
+      <div className="pt-3 pb-3 border-t border-b border-[#3F3F46]">
+        <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Generation</div>
+        <div className="space-y-3">
+          {/* Camera Angle - Available for dialogue shots */}
+          {onCameraAngleChange && (
+            <div>
+              <label className="text-[10px] text-[#808080] mb-1.5 block">Camera Angle</label>
+              <select
+                value={selectCameraAngle}
+                onChange={(e) => {
+                  const angle = e.target.value as 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto';
+                  if (angle === 'auto') {
+                    onCameraAngleChange(shotSlot, undefined);
+                  } else {
+                    onCameraAngleChange(shotSlot, angle);
+                  }
+                }}
+                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+              >
+                <option value="auto" className="bg-[#1A1A1A] text-[#FFFFFF]">Auto (Content-aware) - Default</option>
+                <option value="close-up" className="bg-[#1A1A1A] text-[#FFFFFF]">Close-up</option>
+                <option value="medium-shot" className="bg-[#1A1A1A] text-[#FFFFFF]">Medium Shot</option>
+                <option value="wide-shot" className="bg-[#1A1A1A] text-[#FFFFFF]">Wide Shot</option>
+                <option value="extreme-close-up" className="bg-[#1A1A1A] text-[#FFFFFF]">Extreme Close-up</option>
+                <option value="extreme-wide-shot" className="bg-[#1A1A1A] text-[#FFFFFF]">Extreme Wide Shot</option>
+                <option value="over-the-shoulder" className="bg-[#1A1A1A] text-[#FFFFFF]">Over-the-Shoulder</option>
+                <option value="low-angle" className="bg-[#1A1A1A] text-[#FFFFFF]">Low Angle</option>
+                <option value="high-angle" className="bg-[#1A1A1A] text-[#FFFFFF]">High Angle</option>
+                <option value="dutch-angle" className="bg-[#1A1A1A] text-[#FFFFFF]">Dutch Angle</option>
+              </select>
+              {selectCameraAngle !== 'auto' ? (
+                <div className="text-[10px] text-[#808080] italic mt-1">
+                  Override: Using {selectCameraAngle.replace('-', ' ')} instead of auto-detection
+                </div>
+              ) : (
+                <div className="text-[10px] text-[#808080] italic mt-1">
+                  Using auto-detection (content-aware selection)
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quality Selection - Available for dialogue shots */}
+          {onQualityChange && (
+            <div>
+              <label className="text-[10px] text-[#808080] mb-1.5 block">Quality</label>
+              <select
+                value={selectQuality}
+                onChange={(e) => {
+                  onQualityChange(shotSlot, e.target.value as 'hd' | '4k');
+                }}
+                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+              >
+                <option value="4k" className="bg-[#1A1A1A] text-[#FFFFFF]">4K - Highest quality</option>
+                <option value="hd" className="bg-[#1A1A1A] text-[#FFFFFF]">HD - 1080p, standard</option>
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const videoTypes = [

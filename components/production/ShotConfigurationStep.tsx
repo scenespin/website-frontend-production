@@ -965,7 +965,8 @@ export function ShotConfigurationStep({
           )}
 
           {/* Video Generation Selection */}
-          {onVideoTypeChange && onVideoQualityChange && (
+          {/* Show for action shots (requires both onVideoTypeChange and onVideoQualityChange) OR dialogue shots (only needs onVideoQualityChange and onCameraAngleChange) */}
+          {((onVideoTypeChange && onVideoQualityChange) || (shot.type === 'dialogue' && onVideoQualityChange && onCameraAngleChange)) && (
             <>
               <VideoGenerationSelector
                 shotSlot={shot.slot}
