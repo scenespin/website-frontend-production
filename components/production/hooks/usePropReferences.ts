@@ -54,10 +54,29 @@ export function usePropReferences(
 
   // Filter Media Library files by prop IDs
   const propMediaFiles = useMemo(() => {
-    if (!allAssetMediaFiles || propIds.length === 0) return [];
-    return allAssetMediaFiles.filter((file: any) => 
-      propIds.includes(file.metadata?.entityId || file.entityId)
-    );
+    if (!allAssetMediaFiles || propIds.length === 0) {
+      console.log('[PropImageDebug] usePropReferences: No files or propIds', {
+        allAssetMediaFilesCount: allAssetMediaFiles?.length || 0,
+        propIdsCount: propIds.length,
+        propIds: propIds
+      });
+      return [];
+    }
+    const filtered = allAssetMediaFiles.filter((file: any) => {
+      const fileEntityId = file.metadata?.entityId || file.entityId;
+      return propIds.includes(fileEntityId);
+    });
+    console.log('[PropImageDebug] usePropReferences: Filtered Media Library files', {
+      allAssetMediaFilesCount: allAssetMediaFiles.length,
+      propIds: propIds,
+      filteredCount: filtered.length,
+      filteredFiles: filtered.map((f: any) => ({
+        s3Key: f.s3Key,
+        entityId: f.metadata?.entityId || f.entityId,
+        metadata: f.metadata
+      }))
+    });
+    return filtered;
   }, [allAssetMediaFiles, propIds]);
 
   // Build thumbnailS3KeyMap from Media Library results
@@ -88,8 +107,19 @@ export function usePropReferences(
         (file.metadata?.entityId || file.entityId) === prop.id
       );
       
+      console.log('[PropImageDebug] usePropReferences: Enriching prop', prop.id, prop.name, {
+        propMediaFilesForPropCount: propMediaFilesForProp.length,
+        propMediaFilesForProp: propMediaFilesForProp.map((f: any) => ({
+          s3Key: f.s3Key,
+          entityId: f.metadata?.entityId || f.entityId,
+          createdIn: f.metadata?.createdIn,
+          source: f.metadata?.source
+        }))
+      });
+      
       if (propMediaFilesForProp.length === 0) {
         // No Media Library files found for this prop - use empty arrays
+        console.log('[PropImageDebug] usePropReferences: No Media Library files for prop', prop.id, '- returning empty arrays');
         return {
           ...prop,
           angleReferences: [],
@@ -102,6 +132,13 @@ export function usePropReferences(
         propMediaFilesForProp as any[],
         prop.id
       );
+      
+      console.log('[PropImageDebug] usePropReferences: Mapped structure for prop', prop.id, {
+        angleReferencesCount: mlAngleReferences.length,
+        imagesCount: mlImages.length,
+        angleReferences: mlAngleReferences,
+        images: mlImages
+      });
       
       // Use Media Library data as source of truth - only use what exists in Media Library
       return {

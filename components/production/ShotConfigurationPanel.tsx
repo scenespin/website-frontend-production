@@ -899,7 +899,9 @@ export function ShotConfigurationPanel({
                             propThumbnailS3KeyMapSize: propThumbnailS3KeyMap?.size || 0,
                             propThumbnailUrlsMapSize: propThumbnailUrlsMap?.size || 0,
                             propFullImageUrlsMapSize: propFullImageUrlsMap?.size || 0,
-                            fullProp: fullProp
+                            fullProp: fullProp,
+                            rawProp: prop,
+                            allPropKeys: Object.keys(prop)
                           });
                           
                           // 🔥 FIX: Use presigned URLs from maps, similar to characters and locations
