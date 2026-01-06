@@ -1726,14 +1726,9 @@ export function LocationDetailModal({
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
-                                                          // Exact same pattern as location angles: invalidate and refetch BOTH queries
-                                                          queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                                                          // 🔥 FIX: Invalidate and refetch media (EXACT same pattern as angles - onUpdate already handles locations)
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                                          // 🔥 FIX: Await refetch of BOTH queries to ensure UI updates immediately
-                                                          await Promise.all([
-                                                            queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
-                                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-                                                          ]);
+                                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
