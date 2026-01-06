@@ -729,6 +729,11 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
         refJobs: completedCharacterRefJobs.length
       });
       
+      // 🔥 Refresh credits immediately after job completion
+      if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+        (window as any).refreshCredits();
+      }
+      
       // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
@@ -757,6 +762,11 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
         .catch(err => console.error('[ProductionJobsPanel] Error refetching Media Library after screenplay reading:', err));
+      
+      // 🔥 Refresh credits immediately after job completion
+      if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+        (window as any).refreshCredits();
+      }
     }
   }, [jobs, screenplayId, queryClient]);
 
@@ -829,6 +839,11 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       if (completedLocationAngleJobs.length > 0) jobTypes.push('angle');
       if (completedLocationBackgroundJobs.length > 0) jobTypes.push('background');
       console.log(`[ProductionJobsPanel] Location ${jobTypes.join(' and ')} generation completed, refreshing locations...`, totalJobs);
+      
+      // 🔥 Refresh credits immediately after job completion
+      if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+        (window as any).refreshCredits();
+      }
       // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
@@ -841,6 +856,11 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     
     if (completedAssetAngleJobs.length > 0) {
       console.log('[ProductionJobsPanel] Asset angle generation completed, refreshing assets...', completedAssetAngleJobs.length);
+      
+      // 🔥 Refresh credits immediately after job completion
+      if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+        (window as any).refreshCredits();
+      }
       // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
@@ -854,6 +874,11 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     // For generic angle jobs, invalidate both (defensive)
     if (completedGenericAngleJobs.length > 0) {
       console.log('[ProductionJobsPanel] Generic angle generation completed, refreshing locations and assets...', completedGenericAngleJobs.length);
+      
+      // 🔥 Refresh credits immediately after job completion
+      if (typeof window !== 'undefined' && (window as any).refreshCredits) {
+        (window as any).refreshCredits();
+      }
       // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
@@ -1302,6 +1327,9 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                       hasResults: !!job.results,
                       hasAngleReferences: !!job.results?.angleReferences,
                       angleReferencesCount: job.results?.angleReferences?.length || 0,
+                      hasBackgroundReferences: !!job.results?.backgroundReferences,
+                      backgroundReferencesCount: job.results?.backgroundReferences?.length || 0,
+                      backgroundReferences: job.results?.backgroundReferences,
                       angleReferences: job.results?.angleReferences,
                       allResultsKeys: job.results ? Object.keys(job.results) : []
                     });
