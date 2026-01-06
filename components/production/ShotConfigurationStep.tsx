@@ -401,6 +401,26 @@ export function ShotConfigurationStep({
   // Determine if this is a dialogue shot (only dialogue shots have tabs)
   const isDialogueShot = shot.type === 'dialogue';
   
+  // 🔥 NEW: Clear character references when switching to non-lip-sync tab or workflow
+  // Non-lip-sync workflows generate their own first frame, so they don't need character references from lip-sync
+  React.useEffect(() => {
+    if (!isDialogueShot || !onCharacterReferenceChange) return;
+    
+    const isNonLipSyncTab = activeTab === 'advanced';
+    const isNonLipSyncWorkflow = finalSelectedDialogueWorkflow === 'scene-voiceover' || finalSelectedDialogueWorkflow === 'off-frame-voiceover';
+    
+    // Clear character references if on non-lip-sync tab or non-lip-sync workflow
+    if (isNonLipSyncTab || isNonLipSyncWorkflow) {
+      const shotRefs = selectedCharacterReferences[shot.slot];
+      if (shotRefs && Object.keys(shotRefs).length > 0) {
+        // Clear all character references for this shot
+        Object.keys(shotRefs).forEach(characterId => {
+          onCharacterReferenceChange(shot.slot, characterId, undefined);
+        });
+      }
+    }
+  }, [activeTab, finalSelectedDialogueWorkflow, isDialogueShot, shot.slot, selectedCharacterReferences, onCharacterReferenceChange]);
+  
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
     const scrollContainer = document.querySelector('.h-full.overflow-auto');
