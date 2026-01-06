@@ -496,7 +496,7 @@ export function LocationDetailModal({
     });
     
     return map;
-  }, [latestLocation.baseReference, latestLocation.creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId]);
+  }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId]);
   
   // Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
   const imagesFromMediaLibrary = useMemo(() => {
@@ -686,7 +686,7 @@ export function LocationDetailModal({
     });
     
     return fallback;
-  }, [latestLocation.baseReference, latestLocation.creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
+  }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from location prop)
   const allImages = useMemo(() => {
