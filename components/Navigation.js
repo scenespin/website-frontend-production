@@ -120,15 +120,32 @@ export default function Navigation() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.refreshCredits = () => {
+        console.log('[Navigation] 🔔 window.refreshCredits() called from external component');
+        console.log('[Navigation] 🔔 Stack trace:', new Error().stack);
         fetchCreditBalance(0, true); // Force refresh when called externally
         // Dispatch custom event so other components (like CreditWidget) can listen
         if (typeof window !== 'undefined') {
+          console.log('[Navigation] 🔔 Dispatching creditsRefreshed event');
           window.dispatchEvent(new CustomEvent('creditsRefreshed'));
         }
       };
+      
+      // Add manual test function for debugging
+      window.testCreditRefresh = () => {
+        console.log('[Navigation] 🧪 TEST: Manual credit refresh triggered');
+        if (window.refreshCredits) {
+          window.refreshCredits();
+        } else {
+          console.error('[Navigation] ❌ TEST FAILED: window.refreshCredits is not available');
+        }
+      };
+      
+      console.log('[Navigation] ✅ window.refreshCredits() function registered');
+      console.log('[Navigation] ✅ window.testCreditRefresh() function registered (for debugging)');
     }
     return () => {
       if (typeof window !== 'undefined' && window.refreshCredits) {
+        console.log('[Navigation] 🧹 Cleaning up window.refreshCredits()');
         delete window.refreshCredits;
       }
     };
@@ -140,27 +157,41 @@ export default function Navigation() {
           const { api, setAuthTokenGetter } = await import('@/lib/api');
           setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
           
-          console.log('[Navigation] Fetching credits, user ID:', user?.id, 'forceRefresh:', forceRefresh);
+          console.log('[Navigation] 🔄 Fetching credits, user ID:', user?.id, 'forceRefresh:', forceRefresh, 'retryCount:', retryCount);
           
           // Use refresh parameter to bypass cache if forceRefresh is true
+          const startTime = Date.now();
           const response = await api.user.getCredits(forceRefresh);
+          const fetchDuration = Date.now() - startTime;
           
-          console.log('[Navigation] Credits API response:', response);
-          console.log('[Navigation] Credits response.data:', response.data);
-          console.log('[Navigation] Credits response.data.data:', response.data?.data);
+          console.log('[Navigation] 📡 API call completed in', fetchDuration + 'ms');
+          console.log('[Navigation] 📦 Full API response:', JSON.stringify(response, null, 2));
+          console.log('[Navigation] 📦 response.data:', response.data);
+          console.log('[Navigation] 📦 response.data.data:', response.data?.data);
           
           // FIX: API response is response.data.data.balance (not response.data.balance)
           const creditsData = response.data.data;
           
-          console.log('[Navigation] Parsed creditsData:', creditsData);
-          console.log('[Navigation] Credits balance value:', creditsData?.balance);
+          console.log('[Navigation] 🔍 Parsed creditsData:', creditsData);
+          console.log('[Navigation] 🔍 Credits balance value:', creditsData?.balance, 'type:', typeof creditsData?.balance);
           
           if (creditsData && typeof creditsData.balance === 'number') {
+            const oldCredits = credits;
             setCredits(creditsData.balance);
             lastFetchTime.current = Date.now(); // Update last fetch time
-            console.log('[Navigation] ✅ Set credits to:', creditsData.balance);
+            console.log('[Navigation] ✅ Credits updated:', {
+              old: oldCredits,
+              new: creditsData.balance,
+              change: creditsData.balance - (oldCredits || 0),
+              forceRefresh,
+              fetchDuration: fetchDuration + 'ms'
+            });
           } else {
-            console.log('[Navigation] ⚠️ Invalid credits data, setting to 0');
+            console.error('[Navigation] ❌ Invalid credits data, setting to 0', {
+              creditsData,
+              balanceType: typeof creditsData?.balance,
+              balanceValue: creditsData?.balance
+            });
             setCredits(0);
           }
         } catch (error) {

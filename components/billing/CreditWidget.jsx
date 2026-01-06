@@ -29,13 +29,16 @@ export default function CreditWidget() {
     if (typeof window !== 'undefined') {
       // Create a custom event listener for credit refresh
       const handleRefresh = () => {
+        console.log('[CreditWidget] 🔔 creditsRefreshed event received, forcing refresh...');
         fetchData(true); // Force refresh when event is triggered
       };
       
       // Listen to custom credit refresh events (dispatched by Navigation component)
       window.addEventListener('creditsRefreshed', handleRefresh);
+      console.log('[CreditWidget] ✅ Registered creditsRefreshed event listener');
       
       return () => {
+        console.log('[CreditWidget] 🧹 Removing creditsRefreshed event listener');
         window.removeEventListener('creditsRefreshed', handleRefresh);
       };
     }
@@ -83,15 +86,33 @@ export default function CreditWidget() {
 
   async function fetchData(forceRefresh = false) {
     try {
+      console.log('[CreditWidget] 🔄 fetchData called, forceRefresh:', forceRefresh);
       setLoading(true);
       // Auth token is handled globally by LayoutClient.js
       // The API interceptor will handle auth token retrieval
       // If auth isn't ready yet, the request will fail gracefully
 
       // Fetch credits (use refresh parameter to bypass cache if needed)
+      const startTime = Date.now();
       const creditsResponse = await api.user.getCredits(forceRefresh);
+      const fetchDuration = Date.now() - startTime;
+      
+      console.log('[CreditWidget] 📡 API call completed in', fetchDuration + 'ms');
+      console.log('[CreditWidget] 📦 API response:', creditsResponse);
+      
       const creditsData = creditsResponse.data.data;
-      setCredits(creditsData?.balance || 0);
+      const oldCredits = credits;
+      const newCredits = creditsData?.balance || 0;
+      
+      console.log('[CreditWidget] 🔍 Credits data:', {
+        old: oldCredits,
+        new: newCredits,
+        change: newCredits - (oldCredits || 0),
+        forceRefresh,
+        fetchDuration: fetchDuration + 'ms'
+      });
+      
+      setCredits(newCredits);
 
       // Fetch auto-recharge status
       try {
