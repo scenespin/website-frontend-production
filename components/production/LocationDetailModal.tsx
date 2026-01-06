@@ -1712,10 +1712,13 @@ export function LocationDetailModal({
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
-                                                          // 🔥 FIX: Invalidate location queries to refresh UI immediately (same pattern as angles)
+                                                          // 🔥 FIX: Invalidate and refetch location queries to refresh UI immediately (same pattern as characters)
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          await Promise.all([
+                                                            queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
+                                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+                                                          ]);
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
