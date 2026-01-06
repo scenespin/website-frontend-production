@@ -555,17 +555,29 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   /**
-   * Load jobs when drawer opens
+   * Load jobs when drawer opens OR when screenplayId changes
+   * Also load jobs periodically even when closed to catch completed jobs for credit refresh
    */
   useEffect(() => {
-    if (!isOpen) return;
+    if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
     
-    const shouldShowLoading = jobs.length === 0 && !hasLoadedOnce;
+    const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
+    
+    // If drawer is closed, still poll occasionally (every 10 seconds) to catch completed jobs
+    // This ensures the catch-all credit refresh handler can detect completed jobs
+    if (!isOpen) {
+      const interval = setInterval(() => {
+        loadJobs(false); // Silent refresh when drawer is closed
+      }, 10000); // Poll every 10 seconds when closed
+      
+      return () => clearInterval(interval);
+    }
   }, [screenplayId, isOpen, hasLoadedOnce]);
 
   /**
    * Adaptive polling: poll frequently when jobs are running, less when idle
+   * NOTE: This only runs when drawer is open - background polling is handled above
    */
   useEffect(() => {
     if (!isOpen) {
