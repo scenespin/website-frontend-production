@@ -1590,11 +1590,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       // For each selected character, check if they have a reference selected
       characterIds.forEach((charId: string) => {
+        // 🔥 FIX: Wait for headshots to finish loading before auto-selecting
+        if (loadingHeadshots[charId] === true) return;
+        
         const currentRef = selectedCharacterReferences[shotSlot]?.[charId];
         if (!currentRef && characterHeadshots[charId] && characterHeadshots[charId].length > 0) {
           // Auto-select the first available headshot
           const firstHeadshot = characterHeadshots[charId][0];
-          if (firstHeadshot) {
+          if (firstHeadshot && firstHeadshot.s3Key) {
             setSelectedCharacterReferences(prev => {
               const shotRefs = prev[shotSlot] || {};
               return {
@@ -1604,7 +1607,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   [charId]: {
                     poseId: firstHeadshot.poseId,
                     s3Key: firstHeadshot.s3Key,
-                    imageUrl: firstHeadshot.imageUrl
+                    imageUrl: firstHeadshot.imageUrl || '' // Will be updated by presigned URL effect
                   }
                 }
               };
@@ -1613,7 +1616,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         }
       });
     });
-  }, [selectedCharactersForShots, characterHeadshots, selectedCharacterReferences, sceneAnalysisResult]);
+  }, [selectedCharactersForShots, characterHeadshots, loadingHeadshots, selectedCharacterReferences, sceneAnalysisResult]);
   
   // Check voice profile when character is selected
   useEffect(() => {
@@ -3743,10 +3746,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               const renderCharacterImagesOnly = (charId: string, shotSlot: number, pronounsForChar?: string[]) => {
                 const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
                 if (!char) return null;
+                
+                // 🔥 FIX: Don't show stale data - if headshots are loading, wait for them
+                const isLoading = loadingHeadshots[charId] === true;
                 const allHeadshots = characterHeadshots[charId] || [];
                 const selectedHeadshot = selectedCharacterReferences[shotSlot]?.[charId];
                 const selectedOutfit = characterOutfits[shotSlot]?.[charId];
-                const headshots = selectedOutfit && selectedOutfit !== 'default' 
+                
+                // 🔥 FIX: Only filter by outfit if headshots are loaded (not loading)
+                const headshots = !isLoading && selectedOutfit && selectedOutfit !== 'default' 
                   ? allHeadshots.filter((h: any) => {
                       const headshotOutfit = h.outfitName || h.metadata?.outfitName;
                       return headshotOutfit === selectedOutfit;
@@ -3758,7 +3766,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                     {pronounsForChar && pronounsForChar.length > 0 && (
                       <div className="text-[10px] text-[#808080] mb-1">({pronounsForChar.join(', ')})</div>
                     )}
-                    {loadingHeadshots[charId] ? (
+                    {isLoading ? (
                       <div className="text-[10px] text-[#808080]">Loading headshots...</div>
                     ) : headshots.length > 0 ? (
                       <div>
@@ -3830,7 +3838,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                                     return result;
                                   });
                                 }}
-                                className={`relative aspect-square rounded border-2 transition-all ${
+                                className={`relative aspect-video bg-[#141414] rounded border-2 transition-all ${
                                   isSelected
                                     ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                                     : isCreationImage
@@ -3842,7 +3850,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                                   <img
                                     src={displayUrl}
                                     alt={headshot.label || `Headshot ${idx + 1}`}
-                                    className="w-full h-full object-cover rounded"
+                                    className="w-full h-full object-cover"
+                                    style={{
+                                      maxWidth: '640px',
+                                      maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
+                                    }}
                                     loading="lazy"
                                     onError={(e) => {
                                       // 🔥 FIX: If thumbnail fails, try full image URL (if different)

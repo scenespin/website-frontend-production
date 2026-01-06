@@ -560,7 +560,7 @@ export function LocationAngleSelector({
                 imageUrl: photo.imageUrl
               });
             }}
-            className={`relative aspect-square rounded border-2 transition-all ${
+            className={`relative aspect-video bg-[#141414] rounded border-2 transition-all ${
               selected
                 ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                 : 'border-[#3F3F46] hover:border-[#808080]'
@@ -579,7 +579,11 @@ export function LocationAngleSelector({
                 <img
                   src={displayUrl}
                   alt={photo.label}
-                  className="w-full h-full object-cover rounded"
+                  className="w-full h-full object-cover"
+                  style={{
+                    maxWidth: '640px',
+                    maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
+                  }}
                   loading="lazy"
                   onError={(e) => {
                     // 🔥 NEW: Fallback to full image if thumbnail fails
