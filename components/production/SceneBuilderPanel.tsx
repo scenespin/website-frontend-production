@@ -729,7 +729,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     propIdsCount: propIds.length,
     propIds: propIds,
     basePropsCount: baseProps.length,
-    baseProps: baseProps.map(p => ({ id: p.id, name: p.name }))
+    baseProps: baseProps.map(p => ({ 
+      id: p.id, 
+      name: p.name,
+      imageUrl: p.imageUrl,
+      angleReferences: p.angleReferences?.length || 0,
+      images: p.images?.length || 0,
+      baseReference: p.baseReference
+    }))
   });
   const {
     enrichedProps: enrichedPropsFromHook,
@@ -752,8 +759,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       id: p.id,
       name: p.name,
       angleReferencesCount: p.angleReferences?.length || 0,
+      angleReferences: p.angleReferences,
       imagesCount: p.images?.length || 0,
-      baseReference: p.baseReference
+      images: p.images,
+      baseReference: p.baseReference,
+      fullProp: p
     }))
   });
   

@@ -73,7 +73,11 @@ export function usePropReferences(
       filteredFiles: filtered.map((f: any) => ({
         s3Key: f.s3Key,
         entityId: f.metadata?.entityId || f.entityId,
-        metadata: f.metadata
+        createdIn: f.metadata?.createdIn,
+        source: f.metadata?.source,
+        uploadMethod: f.metadata?.uploadMethod,
+        metadata: f.metadata,
+        fullFile: f
       }))
     });
     return filtered;
@@ -113,7 +117,10 @@ export function usePropReferences(
           s3Key: f.s3Key,
           entityId: f.metadata?.entityId || f.entityId,
           createdIn: f.metadata?.createdIn,
-          source: f.metadata?.source
+          source: f.metadata?.source,
+          uploadMethod: f.metadata?.uploadMethod,
+          angle: f.metadata?.angle,
+          fullMetadata: f.metadata
         }))
       });
       
@@ -136,8 +143,16 @@ export function usePropReferences(
       console.log('[PropImageDebug] usePropReferences: Mapped structure for prop', prop.id, {
         angleReferencesCount: mlAngleReferences.length,
         imagesCount: mlImages.length,
-        angleReferences: mlAngleReferences,
-        images: mlImages
+        angleReferences: mlAngleReferences.map((ref: any) => ({
+          id: ref.id,
+          s3Key: ref.s3Key,
+          imageUrl: ref.imageUrl,
+          label: ref.label
+        })),
+        images: mlImages.map((img: any) => ({
+          url: img.url,
+          s3Key: img.s3Key
+        }))
       });
       
       // Use Media Library data as source of truth - only use what exists in Media Library
