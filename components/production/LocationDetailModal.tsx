@@ -1548,15 +1548,23 @@ export function LocationDetailModal({
                                             onClick={(e) => {
                                               if (!selectionMode) {
                                                 e.stopPropagation();
-                                                // 🔥 FIX: Use img.id instead of imgId to find the correct image in allImages
+                                                // 🔥 FIX: Find the correct image in allImages by matching s3Key (most reliable)
                                                 const imageIndex = allImages.findIndex(i => 
-                                                  i.id === img.id || i.s3Key === img.s3Key || i.s3Key === background.s3Key
+                                                  i.s3Key === background.s3Key || i.s3Key === img.s3Key || i.id === img.id
                                                 );
                                                 if (imageIndex >= 0) {
                                                   setPreviewImageIndex(imageIndex);
-                                                  setPreviewGroupName(displayName);
+                                                  // 🔥 FIX: Don't set previewGroupName for backgrounds - use allImages directly
+                                                  // This ensures backgrounds are shown correctly, not angles
+                                                  setPreviewGroupName(null);
                                                 } else {
-                                                  console.warn('[LocationDetailModal] Could not find image in allImages:', { imgId, imgId2: img.id, s3Key: img.s3Key });
+                                                  console.warn('[LocationDetailModal] Could not find background image in allImages:', { 
+                                                    imgId, 
+                                                    imgId2: img.id, 
+                                                    s3Key: img.s3Key,
+                                                    backgroundS3Key: background.s3Key,
+                                                    allImagesS3Keys: allImages.map(i => i.s3Key).slice(0, 5)
+                                                  });
                                                 }
                                               }
                                             }}
@@ -1604,15 +1612,22 @@ export function LocationDetailModal({
                                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        // 🔥 FIX: Use img.id instead of imgId to find the correct image in allImages
+                                                        // 🔥 FIX: Find the correct image in allImages by matching s3Key (most reliable)
                                                         const imageIndex = allImages.findIndex(i => 
-                                                          i.id === img.id || i.s3Key === img.s3Key || i.s3Key === background.s3Key
+                                                          i.s3Key === background.s3Key || i.s3Key === img.s3Key || i.id === img.id
                                                         );
                                                         if (imageIndex >= 0) {
                                                           setPreviewImageIndex(imageIndex);
-                                                          setPreviewGroupName(displayName);
+                                                          // 🔥 FIX: Don't set previewGroupName for backgrounds - use allImages directly
+                                                          // This ensures backgrounds are shown correctly, not angles
+                                                          setPreviewGroupName(null);
                                                         } else {
-                                                          console.warn('[LocationDetailModal] Could not find image in allImages:', { imgId, imgId2: img.id, s3Key: img.s3Key });
+                                                          console.warn('[LocationDetailModal] Could not find background image in allImages:', { 
+                                                            imgId, 
+                                                            imgId2: img.id, 
+                                                            s3Key: img.s3Key,
+                                                            backgroundS3Key: background.s3Key
+                                                          });
                                                         }
                                                       }}
                                                     >
@@ -1711,10 +1726,14 @@ export function LocationDetailModal({
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
-                                                          // Exact same pattern as location angles: invalidate and refetch
+                                                          // Exact same pattern as location angles: invalidate and refetch BOTH queries
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          // 🔥 FIX: Await refetch of BOTH queries to ensure UI updates immediately
+                                                          await Promise.all([
+                                                            queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
+                                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+                                                          ]);
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {

@@ -130,9 +130,14 @@ export function LocationBankPanel({
       // Invalidate React Query cache - Production Hub context only
       console.log('[LocationBankPanel] 🔄 Invalidating locations cache');
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       
-      // Note: We don't await refetch here - React Query will refetch automatically when component re-renders
-      // This is different from characters which explicitly refetches
+      // 🔥 FIX: Await refetch like CharacterBankPanel does to ensure immediate UI update
+      console.log('[LocationBankPanel] 🔄 Refetching locations after update');
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]);
       
       if (onLocationsUpdate) onLocationsUpdate();
     } catch (error: any) {

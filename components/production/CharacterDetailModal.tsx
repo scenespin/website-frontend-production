@@ -2314,10 +2314,14 @@ export function CharacterDetailModal({
                                             });
                                           }
                                           
-                                          // Same pattern as location angles: invalidate and refetch
+                                          // Same pattern as location angles: invalidate and refetch BOTH queries
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          // 🔥 FIX: Await refetch of BOTH queries to ensure UI updates immediately
+                                          await Promise.all([
+                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
+                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+                                          ]);
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
