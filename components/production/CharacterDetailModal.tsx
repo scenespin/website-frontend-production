@@ -410,7 +410,20 @@ export function CharacterDetailModal({
     });
     
     // Merge entity files with fallback results
-    return [...entityMediaFiles, ...filtered];
+    const result = [...entityMediaFiles, ...filtered];
+    
+    // 🔥 DEBUG: Log mediaFiles composition to track why it's not updating
+    console.log('[CharacterDetailModal] 📦 MEDIA FILES COMPOSITION:', {
+      characterId: character.id,
+      entityMediaFilesCount: entityMediaFiles.length,
+      allMediaFilesCount: allMediaFiles.length,
+      filteredCount: filtered.length,
+      totalMediaFilesCount: result.length,
+      entityMediaFilesS3Keys: entityMediaFiles.map((f: any) => f.s3Key).slice(0, 5),
+      allMediaFilesS3Keys: allMediaFiles.map((f: any) => f.s3Key).slice(0, 5)
+    });
+    
+    return result;
   }, [entityMediaFiles, allMediaFiles, character.id, isOpen]);
   
   // Extract outfit names from Media Library folder paths
