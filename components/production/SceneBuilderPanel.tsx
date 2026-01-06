@@ -459,6 +459,26 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 FIX: Use ref to track last processed state to prevent infinite loops
   const lastProcessedRefsRef = useRef<string>('');
   useEffect(() => {
+    const effectName = 'characterReferencesPresignedUrls';
+    const now = Date.now();
+    const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
+    runInfo.count++;
+    const timeSinceLastRun = now - runInfo.lastRun;
+    const depsChanged = JSON.stringify([characterFullImageUrlsMap?.size, Object.keys(selectedCharacterReferences).length]) !== JSON.stringify(runInfo.lastDeps);
+    
+    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+      characterFullImageUrlsMapSize: characterFullImageUrlsMap?.size || 0,
+      selectedCharacterReferencesKeys: Object.keys(selectedCharacterReferences).length
+    });
+    
+    if (timeSinceLastRun < 100 && runInfo.count > 5) {
+      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    }
+    
+    runInfo.lastRun = now;
+    runInfo.lastDeps = [characterFullImageUrlsMap?.size, Object.keys(selectedCharacterReferences).length];
+    useEffectRunCountsRef.current[effectName] = runInfo;
+    
     if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) return;
     
     // Create a stable signature of current state (only s3Keys that need URLs)
@@ -546,6 +566,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 FIX: Track last fetched scene ID and prop IDs to prevent redundant fetches
   const lastFetchedSceneRef = useRef<{ sceneId: string | null; propIds: string }>({ sceneId: null, propIds: '' });
   
+  // 🔥 DIAGNOSTIC: Track useEffect run counts to identify infinite loops
+  const useEffectRunCountsRef = useRef<Record<string, { count: number; lastRun: number; lastDeps: any }>>({});
+  const DIAGNOSTIC_LOG_PREFIX = '[SceneBuilderPanel-DIAGNOSTIC]';
+  
   // 🔥 NEW: Use custom hook for prop references
   // Pass baseProps instead of sceneProps to break the circular dependency
   // The hook will only recalculate when baseProps changes (when fetching new props), not when sceneProps changes
@@ -566,6 +590,26 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // Sync enriched props to state (for backward compatibility during refactor)
   // 🔥 FIX: Only sync when enriched props actually change, and prevent circular updates
   useEffect(() => {
+    const effectName = 'propsEnrichmentSync';
+    const now = Date.now();
+    const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
+    runInfo.count++;
+    const timeSinceLastRun = now - runInfo.lastRun;
+    const depsChanged = JSON.stringify([enrichedPropsFromHook.length, baseProps.length]) !== JSON.stringify(runInfo.lastDeps);
+    
+    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+      enrichedPropsCount: enrichedPropsFromHook.length,
+      basePropsCount: baseProps.length
+    });
+    
+    if (timeSinceLastRun < 100 && runInfo.count > 5) {
+      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    }
+    
+    runInfo.lastRun = now;
+    runInfo.lastDeps = [enrichedPropsFromHook.length, baseProps.length];
+    useEffectRunCountsRef.current[effectName] = runInfo;
+    
     // Skip if no props to sync
     if (enrichedPropsFromHook.length === 0 && baseProps.length === 0) {
       return;
@@ -878,6 +922,26 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // NOTE: Props are stored in scene.fountain.tags.props (manually linked via UI)
   // The relationships.scenes[sceneId].props is NOT populated/synced, so we only use fountain.tags.props
   useEffect(() => {
+    const effectName = 'fetchSceneProps';
+    const now = Date.now();
+    const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
+    runInfo.count++;
+    const timeSinceLastRun = now - runInfo.lastRun;
+    const depsChanged = JSON.stringify([selectedSceneId, projectId]) !== JSON.stringify(runInfo.lastDeps);
+    
+    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+      selectedSceneId,
+      projectId: projectId?.substring(0, 20) + '...'
+    });
+    
+    if (timeSinceLastRun < 100 && runInfo.count > 5) {
+      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    }
+    
+    runInfo.lastRun = now;
+    runInfo.lastDeps = [selectedSceneId, projectId];
+    useEffectRunCountsRef.current[effectName] = runInfo;
+    
     async function fetchSceneProps() {
       if (!selectedSceneId || !projectId) return;
       
@@ -952,6 +1016,27 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
 
   // Fetch full scene content when scene is selected
   useEffect(() => {
+    const effectName = 'fetchSceneContent';
+    const now = Date.now();
+    const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
+    runInfo.count++;
+    const timeSinceLastRun = now - runInfo.lastRun;
+    const depsChanged = JSON.stringify([selectedSceneId, projectId]) !== JSON.stringify(runInfo.lastDeps);
+    
+    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+      selectedSceneId,
+      projectId: projectId?.substring(0, 20) + '...',
+      alreadyLoaded: !!fullSceneContent[selectedSceneId || '']
+    });
+    
+    if (timeSinceLastRun < 100 && runInfo.count > 5) {
+      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    }
+    
+    runInfo.lastRun = now;
+    runInfo.lastDeps = [selectedSceneId, projectId];
+    useEffectRunCountsRef.current[effectName] = runInfo;
+    
     const fetchSceneContent = async () => {
       if (!selectedSceneId || !projectId) return;
       
