@@ -758,12 +758,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       ? locationDataFromMediaLibrary.backgrounds
       : sceneAnalysisResult.location.backgrounds || [];
     
-    // 🔥 FIX: Merge fresh location metadata from Location Bank (name, address, etc.)
+    // 🔥 FIX: Merge fresh location metadata from Location Bank (name, etc.)
     const enrichedLocation = locationMetadata
       ? {
           ...sceneAnalysisResult.location,
           name: locationMetadata.name || sceneAnalysisResult.location.name,
-          address: locationMetadata.address || sceneAnalysisResult.location.address,
           angleVariations: finalAngleVariations,
           backgrounds: finalBackgrounds
         }
