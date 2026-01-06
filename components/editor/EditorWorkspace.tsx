@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, startTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -428,7 +428,9 @@ export default function EditorWorkspace() {
             // Cmd/Ctrl + E = Toggle scene navigator
             else if ((e.metaKey || e.ctrlKey) && key === 'e') {
                 e.preventDefault();
-                setIsSceneNavVisible(prev => !prev);
+                startTransition(() => {
+                    setIsSceneNavVisible(prev => !prev);
+                });
             }
             // Cmd/Ctrl + P = Export PDF
             else if ((e.metaKey || e.ctrlKey) && key === 'p') {
@@ -461,7 +463,11 @@ export default function EditorWorkspace() {
                                 <h2 className="text-sm font-semibold text-base-content flex items-center justify-between">
                                     <span>Scenes</span>
                                     <button
-                                        onClick={() => setIsSceneNavVisible(false)}
+                                        onClick={() => {
+                                            startTransition(() => {
+                                                setIsSceneNavVisible(false);
+                                            });
+                                        }}
                                         className="btn btn-ghost btn-xs"
                                         title="Hide scene navigator (Cmd+E)"
                                     >
@@ -482,7 +488,12 @@ export default function EditorWorkspace() {
                 
                 {/* Mobile: Slide-out drawer (below lg) - Only render on mobile to avoid overlay on desktop */}
                 {isMobile && isSceneNavVisible && (!isEditorFullscreen || isMobile) && (
-                    <Sheet open={isSceneNavVisible} onOpenChange={setIsSceneNavVisible}>
+                    <Sheet open={isSceneNavVisible} onOpenChange={(open) => {
+                        // Use startTransition to prevent React error #185 (updating during render)
+                        startTransition(() => {
+                            setIsSceneNavVisible(open);
+                        });
+                    }}>
                         <SheetContent 
                             side="left" 
                             showOverlay={false}
@@ -499,7 +510,9 @@ export default function EditorWorkspace() {
                                     onSceneClick={(scene) => {
                                         handleSceneClick(scene);
                                         // Close drawer after selecting a scene on mobile
-                                        setIsSceneNavVisible(false);
+                                        startTransition(() => {
+                                            setIsSceneNavVisible(false);
+                                        });
                                     }}
                                     className="h-full border-none rounded-none"
                                 />
@@ -533,7 +546,12 @@ export default function EditorWorkspace() {
                             }
                         }}
                         onOpenVersionHistory={() => setIsVersionHistoryModalOpen(true)}
-                        onToggleSceneNav={() => setIsSceneNavVisible(prev => !prev)}
+                        onToggleSceneNav={() => {
+                            // Use startTransition to prevent React error #185 (updating during render)
+                            startTransition(() => {
+                                setIsSceneNavVisible(prev => !prev);
+                            });
+                        }}
                     />
                     
                     {/* Word Count & Duration - Below Toolbar */}
@@ -542,7 +560,12 @@ export default function EditorWorkspace() {
                         isDirty={state.isDirty}
                         wordCount={wordCount}
                         duration={duration}
-                        onToggleSceneNav={() => setIsSceneNavVisible(prev => !prev)}
+                        onToggleSceneNav={() => {
+                            // Use startTransition to prevent React error #185 (updating during render)
+                            startTransition(() => {
+                                setIsSceneNavVisible(prev => !prev);
+                            });
+                        }}
                     />
                     
                     {/* Editor */}
