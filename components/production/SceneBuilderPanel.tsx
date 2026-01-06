@@ -65,6 +65,7 @@ import { getScreenplay } from '@/utils/screenplayStorage';
 import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
 // useCharacterReferences is now called in SceneBuilderProvider - no import needed here
 import type { CharacterHeadshot } from './hooks/useCharacterReferences';
+import { useCharacters } from '@/hooks/useCharacterBank';
 import { usePropReferences } from './hooks/usePropReferences';
 import { useLocationReferences } from './hooks/useLocationReferences';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
@@ -392,7 +393,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // Dialogue system state (Feature 0130)
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-  const [characters, setCharacters] = useState<any[]>([]);
+  
+  // 🔥 FIX: Use React Query hook for character metadata (aligns with CharacterBankPanel pattern)
+  // This ensures characters refresh when added/deleted, fixing stale cache issue
+  const { data: characters = [] } = useCharacters(
+    projectId || '',
+    'production-hub',
+    !!projectId
+  );
   const [voiceProfileStatus, setVoiceProfileStatus] = useState<{
     hasVoice: boolean;
     voiceName?: string;
@@ -1140,29 +1148,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
   }, [sceneDescription, characters, selectedCharacterId]);
   
-  // Load characters for dialogue selection AND pronoun detection character selector
-  const [allCharacters, setAllCharacters] = useState<any[]>([]);
-  
-  useEffect(() => {
-    async function loadCharacters() {
-      if (!projectId) return;
-      
-      try {
-        const characters = await SceneBuilderService.fetchCharacters(projectId, getToken);
-          // 🔥 FIX: Defer state update to prevent React error #300
-          setTimeout(() => {
-            startTransition(() => {
-              setCharacters(characters);
-              setAllCharacters(characters); // Store for pronoun detection selector
-            });
-          }, 0);
-      } catch (error) {
-        console.error('[SceneBuilder] Failed to load characters:', error);
-      }
-    }
-    
-    loadCharacters();
-  }, [projectId, getToken]);
+  // 🔥 FIX: Use same characters data for pronoun detection and validation
+  // React Query hook handles caching, refetching, and invalidation automatically
+  const allCharacters = characters;
   
   // Character IDs for Media Library are now derived automatically in SceneBuilderProvider
   // The provider derives IDs from:
