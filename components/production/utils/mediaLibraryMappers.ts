@@ -9,6 +9,7 @@ export interface MediaFile {
   s3Key?: string;
   s3Url?: string;
   entityId?: string;
+  isArchived?: boolean; // Feature: Archive instead of delete - preserves history and metadata
   metadata?: {
     entityId?: string;
     createdIn?: string;
@@ -24,6 +25,7 @@ export interface MediaFile {
     isClothingReference?: boolean;
     backgroundType?: string;
     sourceType?: string;
+    isArchived?: boolean; // Also check metadata.isArchived (backend may store it either way)
   };
   fileName?: string;
 }
@@ -209,6 +211,7 @@ export function mapMediaFilesToPropStructure(
       
       // Skip archived/deleted files (Media Library source of truth)
       // Note: This is a safeguard - usePropReferences should already filter these out
+      // Check both top-level isArchived and metadata.isArchived (backend may store it either way)
       if (file.isArchived === true || file.metadata?.isArchived === true) return;
       
       const isProductionHub =
