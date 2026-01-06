@@ -51,11 +51,6 @@ export default function Footer() {
                   Pricing
                 </Link>
               </li>
-              <li>
-                <Link href="/help" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Help Center
-                </Link>
-              </li>
             </ul>
           </div>
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
-import { Sparkles, MessageSquare, Film, Edit3 } from "lucide-react";
+// Icons removed - using FAB emojis instead
 
 export const metadata = getSEOTags({
   title: `Writing & Fountain Editor | ${config.appName} Help`,
@@ -516,7 +516,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-700">
-                    <MessageSquare className="h-6 w-6 text-white" />
+                    <span className="text-2xl">🌟</span>
                   </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">
@@ -593,7 +593,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700">
-                    <Edit3 className="h-6 w-6 text-white" />
+                    <span className="text-2xl">✍️</span>
                   </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">Screenwriter</h3>
@@ -667,7 +667,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-700">
-                    <Film className="h-6 w-6 text-white" />
+                    <span className="text-2xl">🎬</span>
                   </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">Director</h3>
@@ -741,7 +741,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-700">
-                    <MessageSquare className="h-6 w-6 text-white" />
+                    <span className="text-2xl">💬</span>
                   </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">Dialogue</h3>
@@ -815,7 +815,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cinema-red to-red-800">
-                    <Sparkles className="h-6 w-6 text-white" />
+                    <span className="text-2xl">💫</span>
                   </div>
                   <div>
                     <h3 className="card-title text-2xl text-[#FFFFFF]">Rewrite</h3>
