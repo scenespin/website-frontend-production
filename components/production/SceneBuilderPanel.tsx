@@ -724,6 +724,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Use custom hook for prop references
   // Pass baseProps instead of sceneProps to break the circular dependency
   // The hook will only recalculate when baseProps changes (when fetching new props), not when sceneProps changes
+  console.log('[PropImageDebug] SceneBuilderPanel: Calling usePropReferences with', {
+    projectId,
+    propIdsCount: propIds.length,
+    propIds: propIds,
+    basePropsCount: baseProps.length,
+    baseProps: baseProps.map(p => ({ id: p.id, name: p.name }))
+  });
   const {
     enrichedProps: enrichedPropsFromHook,
     propThumbnailS3KeyMap,
@@ -737,6 +744,18 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     },
     baseProps
   );
+  console.log('[PropImageDebug] SceneBuilderPanel: usePropReferences returned', {
+    enrichedPropsCount: enrichedPropsFromHook.length,
+    propThumbnailS3KeyMapSize: propThumbnailS3KeyMap?.size || 0,
+    loading: loadingProps,
+    enrichedProps: enrichedPropsFromHook.map(p => ({
+      id: p.id,
+      name: p.name,
+      angleReferencesCount: p.angleReferences?.length || 0,
+      imagesCount: p.images?.length || 0,
+      baseReference: p.baseReference
+    }))
+  });
   
   // 🔥 FIX: Calculate stable dependency values outside useEffect using useMemo
   const enrichedPropsIdsString = useMemo(() => 
