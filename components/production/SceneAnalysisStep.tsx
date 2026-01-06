@@ -49,21 +49,29 @@ export function SceneAnalysisStep({
   const actions = useSceneBuilderActions();
   
   // Use context values, fallback to props for backward compatibility
+  // IMPORTANT: Always prefer context state over props since context is the source of truth
+  // Even if state values are empty arrays/objects, they represent the actual state
   const sceneAnalysisResult = state.sceneAnalysisResult || sceneAnalysisResultProp;
-  const enabledShots = state.enabledShots.length > 0 ? state.enabledShots : enabledShotsProp;
+  // Always use state.enabledShots (even if empty) - context is source of truth
+  const enabledShots = state.enabledShots;
   const sceneProps = state.sceneProps.length > 0 ? state.sceneProps : scenePropsProp;
-  const propsToShots = Object.keys(state.propsToShots).length > 0 ? state.propsToShots : propsToShotsProp;
+  // Always use state.propsToShots (even if empty) - context is source of truth
+  const propsToShots = state.propsToShots;
   
   // Create handlers that use context actions
   const onEnabledShotsChange = useCallback((shots: number[]) => {
+    console.log('[SceneAnalysisStep] onEnabledShotsChange called with:', shots);
     actions.setEnabledShots(shots);
+    console.log('[SceneAnalysisStep] onEnabledShotsChange - context action called, checking state...');
     if (onEnabledShotsChangeProp) {
       onEnabledShotsChangeProp(shots);
     }
   }, [actions, onEnabledShotsChangeProp]);
   
   const onPropsToShotsChange = useCallback((assignment: Record<string, number[]>) => {
+    console.log('[SceneAnalysisStep] onPropsToShotsChange called with:', assignment);
     actions.setPropsToShots(assignment);
+    console.log('[SceneAnalysisStep] onPropsToShotsChange - context action called, checking state...');
     if (onPropsToShotsChangeProp) {
       onPropsToShotsChangeProp(assignment);
     }
@@ -146,12 +154,14 @@ export function SceneAnalysisStep({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      console.log('[SceneAnalysisStep] Props Select All clicked', { enabledShots, shots: shots.map((s: any) => s.slot), sceneProps });
                       // Select All: Assign all props to all enabled shots (or all shots if none enabled)
                       const allSlots = enabledShots.length > 0 ? enabledShots : shots.map((s: any) => s.slot);
                       const newPropsToShots: Record<string, number[]> = {};
                       sceneProps.forEach(prop => {
                         newPropsToShots[prop.id] = [...allSlots];
                       });
+                      console.log('[SceneAnalysisStep] Props Select All - calling onPropsToShotsChange with:', newPropsToShots);
                       onPropsToShotsChange(newPropsToShots);
                     }}
                     className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
@@ -163,7 +173,9 @@ export function SceneAnalysisStep({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      console.log('[SceneAnalysisStep] Props Deselect All clicked');
                       // Deselect All: Remove all props from all shots
+                      console.log('[SceneAnalysisStep] Props Deselect All - calling onPropsToShotsChange with: {}');
                       onPropsToShotsChange({});
                     }}
                     className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
@@ -229,7 +241,9 @@ export function SceneAnalysisStep({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    console.log('[SceneAnalysisStep] Shots Select All clicked', { shots: shots.map((s: any) => s.slot) });
                     const allSlots = shots.map((s: any) => s.slot);
+                    console.log('[SceneAnalysisStep] Shots Select All - calling onEnabledShotsChange with:', allSlots);
                     onEnabledShotsChange(allSlots);
                   }}
                   className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
@@ -241,6 +255,8 @@ export function SceneAnalysisStep({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    console.log('[SceneAnalysisStep] Shots Deselect All clicked');
+                    console.log('[SceneAnalysisStep] Shots Deselect All - calling onEnabledShotsChange with: []');
                     onEnabledShotsChange([]);
                   }}
                   className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
