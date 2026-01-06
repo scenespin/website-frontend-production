@@ -91,6 +91,14 @@ export default function BuyCreditsPage() {
             <p className="text-base-content/60">
               Choose a package to continue creating
             </p>
+            <p className="text-xs text-base-content/50 mt-3 max-w-md mx-auto">
+              <span className="inline-flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Note: Your receipt will show "Garden State Concentrate LLC" - that's our parent company. Your purchase is for Wryda.ai services.
+              </span>
+            </p>
           </div>
         </div>
       </div>

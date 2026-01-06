@@ -144,6 +144,22 @@ const faqList = [
       </div>
     ),
   },
+  {
+    question: "Why does my receipt show 'Garden State Concentrate LLC' instead of Wryda.ai?",
+    answer: (
+      <div className="space-y-2 leading-relaxed">
+        <p><strong>Wryda.ai is a product of Garden State Concentrate LLC.</strong> This is our parent company that handles all legal and financial operations.</p>
+        <p>When you make a purchase, your receipt and credit card statement will show "Garden State Concentrate LLC" as the merchant name. This is normal and required for tax and compliance purposes.</p>
+        <p><strong>What you'll see:</strong></p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>Receipts/Invoices:</strong> "Garden State Concentrate LLC" (legal entity name)</li>
+          <li><strong>Credit Card Statement:</strong> "WRYDA.AI" (statement descriptor)</li>
+          <li><strong>Checkout Page:</strong> "Wryda.ai" branding and messaging</li>
+        </ul>
+        <p>Your purchase is 100% for Wryda.ai services - the parent company name is just for legal/billing purposes. This is a standard practice for businesses operating under a DBA (Doing Business As) structure.</p>
+      </div>
+    ),
+  },
 ];
 
 const Item = ({ item }) => {

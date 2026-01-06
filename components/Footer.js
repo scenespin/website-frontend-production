@@ -104,6 +104,8 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-xs text-gray-500">
               © {currentYear} {config.appName}. All rights reserved.
+              <br />
+              <span className="text-gray-600">Wryda.ai is a product of Garden State Concentrate LLC</span>
             </p>
             <div className="flex items-center gap-4">
               {/* Social links can be added here later */}
