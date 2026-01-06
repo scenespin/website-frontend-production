@@ -162,9 +162,37 @@ export function useLocationReferences({
     locationThumbnailS3Keys.length > 0
   );
 
+  // 🔥 FIX: Collect all full image S3 keys and fetch presigned URLs
+  const fullImageS3Keys = useMemo(() => {
+    return [...angleVariations, ...backgrounds]
+      .map(item => item.s3Key)
+      .filter((key): key is string => !!key);
+  }, [angleVariations, backgrounds]);
+
+  // Fetch presigned URLs for full images (not just thumbnails)
+  const { data: fullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    fullImageS3Keys,
+    fullImageS3Keys.length > 0
+  );
+
+  // 🔥 FIX: Enrich angleVariations and backgrounds with presigned URLs
+  const enrichedAngleVariations = useMemo(() => {
+    return angleVariations.map(angle => ({
+      ...angle,
+      imageUrl: fullImageUrlsMap.get(angle.s3Key) || angle.imageUrl || ''
+    }));
+  }, [angleVariations, fullImageUrlsMap]);
+
+  const enrichedBackgrounds = useMemo(() => {
+    return backgrounds.map(bg => ({
+      ...bg,
+      imageUrl: fullImageUrlsMap.get(bg.s3Key) || bg.imageUrl || ''
+    }));
+  }, [backgrounds, fullImageUrlsMap]);
+
   return {
-    angleVariations,
-    backgrounds,
+    angleVariations: enrichedAngleVariations,
+    backgrounds: enrichedBackgrounds,
     locationThumbnailS3KeyMap,
     locationThumbnailUrlsMap,
     loading: isLoadingFiles
