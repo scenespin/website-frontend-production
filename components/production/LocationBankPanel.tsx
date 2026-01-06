@@ -211,7 +211,8 @@ export function LocationBankPanel({
               {locations.map((location) => {
                 const allReferences: CinemaCardImage[] = [];
                 
-                if (location.baseReference) {
+                // Add base reference (only if it has imageUrl)
+                if (location.baseReference?.imageUrl) {
                   allReferences.push({
                     id: location.baseReference.id,
                     imageUrl: location.baseReference.imageUrl,
@@ -219,12 +220,15 @@ export function LocationBankPanel({
                   });
                 }
                 
+                // Add angle variations (only if they have imageUrl)
                 (location.angleVariations || []).forEach((variation) => {
-                  allReferences.push({
-                    id: variation.id,
-                    imageUrl: variation.imageUrl,
-                    label: `${location.name} - ${variation.angle} view`
-                  });
+                  if (variation?.imageUrl) {
+                    allReferences.push({
+                      id: variation.id,
+                      imageUrl: variation.imageUrl,
+                      label: `${location.name} - ${variation.angle} view`
+                    });
+                  }
                 });
 
                 const locationType = location.type;

@@ -114,7 +114,7 @@ export function CinemaCard({
   };
   
   // Display reference count or custom metadata
-  const displayMetadata = metadata || (referenceCount > 0 ? `${referenceCount} ${referenceCount === 1 ? 'ref' : 'refs'}` : null);
+  const displayMetadata = metadata || `${referenceCount} ${referenceCount === 1 ? 'ref' : 'refs'}`;
   
   // Show up to 3 reference images in sidebar
   const visibleReferences = referenceImages.slice(0, 3);

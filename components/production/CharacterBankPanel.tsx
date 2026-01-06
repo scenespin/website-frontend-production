@@ -309,8 +309,8 @@ export function CharacterBankPanel({
               {sortedCharacters.map((character) => {
                 const allReferences: CinemaCardImage[] = [];
                 
-                // Add base reference
-                if (character.baseReference) {
+                // Add base reference (only if it has imageUrl)
+                if (character.baseReference?.imageUrl) {
                   allReferences.push({
                     id: 'base',
                     imageUrl: character.baseReference.imageUrl,
@@ -318,13 +318,15 @@ export function CharacterBankPanel({
                   });
                 }
                 
-                // Add user-uploaded references
+                // Add user-uploaded references (only if they have imageUrl)
                 (character.references || []).forEach((ref) => {
-                  allReferences.push({
-                    id: ref.id,
-                    imageUrl: ref.imageUrl,
-                    label: ref.label || 'Reference'
-                  });
+                  if (ref?.imageUrl) {
+                    allReferences.push({
+                      id: ref.id,
+                      imageUrl: ref.imageUrl,
+                      label: ref.label || 'Reference'
+                    });
+                  }
                 });
                 
                 // Add AI-generated pose references (like locations add angleVariations)
