@@ -4287,6 +4287,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   characterThumbnailUrlsMap={characterThumbnailUrlsMap}
                   selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
                   visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
+                  locationReferenceFullImageUrlsMap={locationReferenceFullImageUrlsMap} // 🔥 NEW: Pass location URL map for references section
                   onCharacterReferenceChange={(shotSlot, characterId, reference) => {
                     setSelectedCharacterReferences(prev => {
                       const shotRefs = prev[shotSlot] || {};

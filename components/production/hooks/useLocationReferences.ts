@@ -106,9 +106,11 @@ export function useLocationReferences({
 
         if (isBackground) {
           // Background image
+          // 🔥 FIX: Set imageUrl to null (not empty string) so resolver knows to use URL maps
+          // Empty string is treated as a valid URL by isValidImageUrl, causing issues
           backgrounds.push({
             id: file.s3Key, // Use s3Key as ID for backend compatibility
-            imageUrl: file.s3Url || '',
+            imageUrl: (file.s3Url && (file.s3Url.startsWith('http://') || file.s3Url.startsWith('https://') || file.s3Url.startsWith('data:'))) ? file.s3Url : null as any,
             s3Key: file.s3Key,
             backgroundType: file.metadata?.backgroundType || 'custom',
             sourceType: file.metadata?.sourceType,
@@ -122,11 +124,13 @@ export function useLocationReferences({
           });
         } else {
           // Angle variation
+          // 🔥 FIX: Set imageUrl to null (not empty string) so resolver knows to use URL maps
+          // Empty string is treated as a valid URL by isValidImageUrl, causing issues
           angleVariations.push({
             angleId: file.s3Key, // Use s3Key as ID for backend compatibility
             angle: file.metadata?.angle || 'unknown',
             s3Key: file.s3Key,
-            imageUrl: file.s3Url || '',
+            imageUrl: (file.s3Url && (file.s3Url.startsWith('http://') || file.s3Url.startsWith('https://') || file.s3Url.startsWith('data:'))) ? file.s3Url : null as any,
             label: file.metadata?.angle,
             timeOfDay: file.metadata?.timeOfDay,
             weather: file.metadata?.weather

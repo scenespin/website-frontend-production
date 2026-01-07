@@ -152,6 +152,7 @@ interface ShotConfigurationStepProps {
   characterThumbnailUrlsMap?: Map<string, string>; // Map of thumbnailS3Key -> presigned URL
   selectedReferenceFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for selected references)
   visibleHeadshotFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for visible headshots)
+  locationReferenceFullImageUrlsMap?: Map<string, string>; // 🔥 NEW: Map of s3Key -> full image presigned URL (for selected location references)
   // Dialogue workflows - NEW: Unified dropdown
   selectedDialogueQuality?: 'premium' | 'reliable';
   selectedDialogueWorkflow?: DialogueWorkflowType;
@@ -245,6 +246,7 @@ export function ShotConfigurationStep({
   characterThumbnailUrlsMap,
   selectedReferenceFullImageUrlsMap,
   visibleHeadshotFullImageUrlsMap,
+  locationReferenceFullImageUrlsMap, // 🔥 NEW: Location URL map for references section
   selectedDialogueQuality,
   selectedDialogueWorkflow,
   selectedBaseWorkflow,
@@ -1080,13 +1082,13 @@ export function ShotConfigurationStep({
                 if (locationRef) {
                   const location = finalSceneProps.find(loc => loc.id === shot.locationId);
                   
-                  // 🔥 FIX: Use standardized URL resolution utility
+                  // 🔥 FIX: Use standardized URL resolution utility with proper location URL map
                   const locationImageUrl = resolveLocationImageUrl(
                     locationRef,
                     {
                       thumbnailS3KeyMap: null, // Location references don't use thumbnail maps in references section
                       thumbnailUrlsMap: null,
-                      fullImageUrlsMap: propImageUrlsMap // Use prop map as fallback (location URLs should be in locationRef.imageUrl)
+                      fullImageUrlsMap: locationReferenceFullImageUrlsMap || propImageUrlsMap // 🔥 FIX: Use location map first, prop map as fallback
                     }
                   );
                   
