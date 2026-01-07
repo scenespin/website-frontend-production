@@ -66,6 +66,11 @@ export async function getEditorLock(screenplayId: string): Promise<EditorLockSta
         // Feature not enabled on backend
         return null;
       }
+      if (response.status === 503) {
+        // Feature not configured (table doesn't exist) - graceful degradation
+        console.warn('[EditorLockStorage] Editor lock feature not configured on backend');
+        return null;
+      }
       throw new Error(`Failed to get editor lock: ${response.statusText}`);
     }
 
@@ -105,6 +110,11 @@ export async function acquireEditorLock(screenplayId: string): Promise<EditorLoc
       }
       if (response.status === 404) {
         throw new Error('Editor lock feature is not enabled');
+      }
+      if (response.status === 503) {
+        // Feature not configured (table doesn't exist) - graceful degradation
+        console.warn('[EditorLockStorage] Editor lock feature not configured on backend');
+        throw new Error('Editor lock feature is not configured');
       }
       throw new Error(`Failed to acquire editor lock: ${response.statusText}`);
     }
