@@ -61,7 +61,25 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
       }
 
       const data = await response.json();
-      return data.characters || data.data?.characters || [];
+      const characters = data.characters || data.data?.characters || [];
+      
+      // 🔥 DEBUG: Log character data to see what we're getting
+      console.log('[useCharacterBank] 📊 API Response:', {
+        characterCount: characters.length,
+        characters: characters.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          hasBaseReference: !!c.baseReference,
+          baseReferenceImageUrl: c.baseReference?.imageUrl,
+          baseReferenceS3Key: c.baseReference?.s3Key,
+          referencesCount: c.references?.length || 0,
+          referencesWithUrls: c.references?.filter((r: any) => r?.imageUrl).length || 0,
+          poseRefsCount: (c.poseReferences || c.angleReferences || []).length,
+          poseRefsWithUrls: (c.poseReferences || c.angleReferences || []).filter((r: any) => r?.imageUrl).length
+        }))
+      });
+      
+      return characters;
     },
     enabled: enabled && !!screenplayId,
     staleTime: 0, // Always consider data stale - force refetch on mount/refresh
