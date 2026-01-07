@@ -100,7 +100,15 @@ const AuthInitializer = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('[Auth] ✅ Active session registered for single-device login', data);
+        console.log('[Auth] ✅ Active session registered for single-device login', {
+          sessionId: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
+          registeredSessionId: data?.session?.sessionId || 'N/A',
+          success: data?.success
+        });
+        // Ensure sessionId is set after successful registration
+        if (sessionId) {
+          setCurrentSessionId(sessionId);
+        }
       } else {
         const errorText = await response.text();
         let errorData;
