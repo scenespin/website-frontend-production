@@ -579,12 +579,30 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     return keys;
   }, [characterHeadshots]);
 
-  // Fetch presigned URLs for visible headshots (fallback when thumbnails aren't ready)
-  // Only fetch if thumbnails map is empty or very small (thumbnails still loading)
-  // This prevents empty images while maintaining performance (thumbnails are still prioritized)
+  // 🔥 FIX: Fetch presigned URLs for visible headshots (fallback when thumbnails aren't ready)
+  // Always fetch full images if we have headshots but thumbnails aren't fully loaded yet
+  // This ensures images show immediately, even if thumbnails are slow
+  const shouldFetchVisibleFullImages = useMemo(() => {
+    if (visibleHeadshotS3Keys.length === 0) return false;
+    
+    // Count how many headshots we have
+    const totalHeadshots = Object.values(characterHeadshots).reduce((sum, headshots) => sum + headshots.length, 0);
+    if (totalHeadshots === 0) return false;
+    
+    // Count how many thumbnails we expect (one per headshot)
+    const expectedThumbnails = totalHeadshots;
+    
+    // Fetch full images if:
+    // 1. No thumbnails loaded yet, OR
+    // 2. Less than 80% of expected thumbnails loaded (more aggressive threshold)
+    // This ensures images show even if thumbnails are slow to load
+    return characterThumbnailUrlsMap.size === 0 || 
+           characterThumbnailUrlsMap.size < expectedThumbnails * 0.8;
+  }, [visibleHeadshotS3Keys.length, characterThumbnailUrlsMap.size, characterHeadshots]);
+  
   const { data: visibleHeadshotFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
     visibleHeadshotS3Keys,
-    visibleHeadshotS3Keys.length > 0 && (characterThumbnailUrlsMap.size === 0 || characterThumbnailUrlsMap.size < visibleHeadshotS3Keys.length * 0.3) // Fetch if no thumbnails or less than 30% loaded
+    shouldFetchVisibleFullImages
   );
 
   // 🔥 PERFORMANCE FIX: Fetch full images on-demand only for selected references (not all headshots)
@@ -3862,6 +3880,21 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                                 fullImageUrlsMap: visibleHeadshotFullImageUrlsMap
                               }
                             ) || '';
+                            
+                            // 🔥 DIAGNOSTIC: Log URL resolution for first few headshots
+                            if (idx < 3 && charId) {
+                              console.log(`[CharacterImageDebug] Headshot ${idx} for ${charId}:`, {
+                                s3Key: headshot.s3Key?.substring(0, 50) + '...',
+                                imageUrl: headshot.imageUrl,
+                                thumbnailS3KeyMapSize: characterThumbnailS3KeyMap?.size || 0,
+                                thumbnailUrlsMapSize: characterThumbnailUrlsMap?.size || 0,
+                                visibleHeadshotFullImageUrlsMapSize: visibleHeadshotFullImageUrlsMap?.size || 0,
+                                hasThumbnailS3Key: headshot.s3Key && characterThumbnailS3KeyMap?.has(headshot.s3Key),
+                                hasThumbnailUrl: headshot.s3Key && characterThumbnailS3KeyMap?.has(headshot.s3Key) && characterThumbnailUrlsMap?.has(characterThumbnailS3KeyMap.get(headshot.s3Key) || ''),
+                                hasFullImageUrl: headshot.s3Key && visibleHeadshotFullImageUrlsMap?.has(headshot.s3Key),
+                                displayUrl: displayUrl ? displayUrl.substring(0, 50) + '...' : 'NULL'
+                              });
+                            }
                             
                             // Get thumbnail and full image URLs for error handling
                             let thumbnailS3Key: string | null = null;
