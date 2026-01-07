@@ -1970,7 +1970,11 @@ export function useTimeline(options: UseTimelineOptions = {}) {
       }
     };
     
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    // Only attach event listener when there's an active project
+    // This prevents the "Leave site?" dialog from appearing on public pages
+    if (project?.id) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
     
     // Cleanup on unmount
     return () => {
@@ -1981,7 +1985,10 @@ export function useTimeline(options: UseTimelineOptions = {}) {
         saveToLocalStorage(project);
       }
       
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Only remove listener if it was attached
+      if (project?.id) {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      }
       
       // Clear retry interval
       if (retryIntervalRef.current) {

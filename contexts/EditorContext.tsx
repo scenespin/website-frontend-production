@@ -1246,13 +1246,22 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             }
         };
 
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        // Only attach event listeners when there's an active project/screenplay
+        // This prevents the "Leave site?" dialog from appearing on public pages (pricing, sign-up, etc.)
+        const activeId = projectId || screenplayIdRef.current;
+        if (activeId) {
+            window.addEventListener('beforeunload', handleBeforeUnload);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
 
         return () => {
             console.log('[EditorContext] 🧹 useEffect cleanup running - removing event listeners');
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            // Only remove listeners if they were attached
+            const activeId = projectId || screenplayIdRef.current;
+            if (activeId) {
+                window.removeEventListener('beforeunload', handleBeforeUnload);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }
             
             // 🔥 BEST PRACTICE (per Stack Overflow articles): Always check for unsaved changes on unmount
             // Don't just check if debounce is pending - check if there are actual unsaved changes
