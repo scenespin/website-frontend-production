@@ -75,7 +75,10 @@ export function mapMediaFilesToHeadshots(
   // First pass: collect all images and check if we have production images
   mediaFiles.forEach((file) => {
     if ((file.metadata?.entityId || file.entityId) === characterId) {
-      // Skip thumbnails only
+      // Skip thumbnail FILES (separate files in S3 that are just smaller versions)
+      // We don't want to show both the full image AND its thumbnail as two separate options
+      // BUT we DO use thumbnails for fast loading - that's handled separately via thumbnailUrlsMap
+      // which maps full image s3Keys -> thumbnail presigned URLs for fast display
       if (file.s3Key?.startsWith('thumbnails/')) return;
       
       // Skip if no s3Key (invalid file)
