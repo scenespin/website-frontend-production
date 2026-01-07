@@ -40,7 +40,7 @@ import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
 import { getScreenplay } from '@/utils/screenplayStorage';
-import { Settings, Info } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { 
   useMediaFiles, 
   useStorageConnectionsQuery, 
@@ -302,45 +302,11 @@ export default function MediaLibrary({
   const [screenplayData, setScreenplayData] = useState<{ cloudStorageProvider?: 'google-drive' | 'dropbox' | null; title?: string } | null>(null);
   const [isLoadingScreenplay, setIsLoadingScreenplay] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
-  
-  // Check if banner should be dismissed (from localStorage)
-  useEffect(() => {
-    const dismissed = localStorage.getItem('mediaLibraryAutoSyncBannerDismissed') === 'true';
-    setIsBannerDismissed(dismissed);
-  }, []);
   
   // Check if any providers are connected
   const hasConnectedProviders = (cloudConnections as CloudStorageConnection[]).some(
     c => c.connected && (c.provider === 'google-drive' || c.provider === 'dropbox')
   );
-  
-  // Reset banner dismissal when all providers are disconnected
-  useEffect(() => {
-    if (!hasConnectedProviders && isBannerDismissed) {
-      // If all providers are disconnected and banner was dismissed, show it again
-      setIsBannerDismissed(false);
-      localStorage.removeItem('mediaLibraryAutoSyncBannerDismissed');
-    }
-  }, [hasConnectedProviders, isBannerDismissed]);
-  
-  // Hide banner permanently once a provider is connected
-  useEffect(() => {
-    if (hasConnectedProviders && !isBannerDismissed) {
-      setIsBannerDismissed(true);
-      localStorage.setItem('mediaLibraryAutoSyncBannerDismissed', 'true');
-    }
-  }, [hasConnectedProviders, isBannerDismissed]);
-  
-  const handleDismissBanner = () => {
-    console.log('[MediaLibrary] Dismissing banner');
-    setIsBannerDismissed(true);
-    localStorage.setItem('mediaLibraryAutoSyncBannerDismissed', 'true');
-    // Force a small delay to ensure state update
-    setTimeout(() => {
-      console.log('[MediaLibrary] Banner dismissed, isBannerDismissed:', localStorage.getItem('mediaLibraryAutoSyncBannerDismissed'));
-    }, 100);
-  };
 
   // ============================================================================
   // API CALLS
@@ -1868,48 +1834,6 @@ export default function MediaLibrary({
           </div>
         </div>
 
-        {/* Auto-Sync Status Banner - Feature 0144 */}
-        {/* Only show when no providers connected and not dismissed */}
-        {projectId && projectId.startsWith('screenplay_') && screenplayData && !hasConnectedProviders && !isBannerDismissed && (
-          <div className="mt-4 p-3 rounded-lg border bg-[#3F3F46]/20 border-[#3F3F46] text-[#808080] relative">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Immediately update state and localStorage
-                const newDismissed = true;
-                setIsBannerDismissed(newDismissed);
-                localStorage.setItem('mediaLibraryAutoSyncBannerDismissed', 'true');
-                // Force immediate re-render by updating state again
-                setTimeout(() => {
-                  setIsBannerDismissed(true);
-                }, 0);
-              }}
-              className="absolute top-2 right-2 p-1.5 hover:bg-[#3F3F46] rounded transition-colors z-10"
-              title="Dismiss"
-              type="button"
-            >
-              <X className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
-            </button>
-            <div className="flex items-start gap-3 pr-8">
-              <Info className="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <div className="text-sm font-medium">Auto-sync not configured</div>
-                <div className="text-xs mt-1 opacity-80">
-                  Enable auto-sync to automatically save files to your cloud storage. Each screenplay can use a different provider, but all files in this screenplay will use the same provider.
-                </div>
-              </div>
-              <button
-                onClick={() => setShowSettingsModal(true)}
-                className="text-xs underline hover:no-underline flex-shrink-0 text-[#DC143C]"
-                type="button"
-              >
-                Configure
-              </button>
-            </div>
-          </div>
-        )}
-        
         {/* Auto-Sync Enabled Banner (always show when configured) */}
         {projectId && projectId.startsWith('screenplay_') && screenplayData && screenplayData.cloudStorageProvider && (
           <div className="mt-4 p-3 rounded-lg border bg-[#00D9FF]/10 border-[#00D9FF]/30 text-[#00D9FF]">
