@@ -68,15 +68,23 @@ const AuthInitializer = () => {
         ? `${navigator.userAgent} - ${navigator.platform}` 
         : 'unknown';
 
+      // Build headers with session ID if available
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      };
+      
+      // Add X-Session-Id header if we have it (for middleware session validation)
+      if (sessionId) {
+        headers['X-Session-Id'] = sessionId;
+      }
+
       const response = await fetch('/api/sessions/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({ 
           deviceInfo,
-          sessionId: sessionId // Pass session ID explicitly
+          sessionId: sessionId // Pass session ID explicitly in body too
         }),
       });
 
