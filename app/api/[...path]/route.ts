@@ -127,12 +127,24 @@ async function forwardRequest(
     }
     
     // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
-    const sessionIdHeader = request.headers.get('x-session-id');
+    // Check both lowercase and mixed case (HTTP headers are case-insensitive, but Next.js might preserve case)
+    const sessionIdHeader = request.headers.get('x-session-id') || request.headers.get('X-Session-Id');
     if (sessionIdHeader) {
       headers['X-Session-Id'] = sessionIdHeader;
-      console.error(`[API Proxy] ✅ Forwarding X-Session-Id header: ${sessionIdHeader.substring(0, 20)}...`);
+      console.error(`[API Proxy] ✅ Forwarding X-Session-Id header: ${sessionIdHeader.substring(0, 20)}...`, {
+        path,
+        method,
+        headerLength: sessionIdHeader.length
+      });
     } else {
-      console.error(`[API Proxy] ⚠️ No X-Session-Id header in request - session validation may fail`);
+      // 🔥 DEBUG: Log all headers to see what's actually being sent
+      const allHeaders = Object.fromEntries(request.headers.entries());
+      console.error(`[API Proxy] ⚠️ No X-Session-Id header in request - session validation may fail`, {
+        path,
+        method,
+        availableHeaders: Object.keys(allHeaders).filter(h => h.toLowerCase().includes('session')).join(', '),
+        allHeaderKeys: Object.keys(allHeaders).join(', ')
+      });
     }
     
     console.error(`[API Proxy] 📤 Forwarding with Content-Type: ${isMultipart ? 'auto (multipart)' : (headers['Content-Type'] || 'none')}`);

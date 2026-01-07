@@ -8,7 +8,7 @@ import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 import { Tooltip } from "react-tooltip";
 import config from "@/config";
-import { setAuthTokenGetter, setCurrentSessionId } from "@/lib/api";
+import { setAuthTokenGetter, setCurrentSessionId, getCurrentSessionId } from "@/lib/api";
 import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
 import { EditorProvider } from "@/contexts/EditorContext";
 import { DrawerProvider } from "@/contexts/DrawerContext";
@@ -48,13 +48,16 @@ const AuthInitializer = () => {
         console.warn('[Auth] ⚠️ No session ID available from Clerk session object - will use JWT fallback');
         // Continue anyway - backend will try to extract from JWT as fallback
       } else {
-        // 🔥 CRITICAL: Store session ID globally BEFORE making any API calls
-        // This ensures all subsequent API requests include the X-Session-Id header
-        setCurrentSessionId(sessionId);
-        console.log('[Auth] ✅ Session ID stored globally:', sessionId.substring(0, 20) + '...', {
-          fullLength: sessionId.length,
-          willBeUsedInHeader: true
-        });
+        // 🔥 NOTE: Session ID should already be set synchronously in the useEffect above
+        // But we set it here again as a safety measure in case the useEffect hasn't run yet
+        // This ensures the session ID is available for the registration request itself
+        if (getCurrentSessionId() !== sessionId) {
+          setCurrentSessionId(sessionId);
+          console.log('[Auth] ✅ Session ID stored globally (fallback):', sessionId.substring(0, 20) + '...', {
+            fullLength: sessionId.length,
+            willBeUsedInHeader: true
+          });
+        }
       }
 
       const deviceInfo = typeof navigator !== 'undefined' 
@@ -136,16 +139,21 @@ const AuthInitializer = () => {
 
   // 🔥 CRITICAL: Separate effect to watch for session.id availability
   // The session object might not be available immediately, so we need to watch for it
+  // IMPORTANT: Set session ID SYNCHRONOUSLY before any API calls are made
   useEffect(() => {
     if (isSignedIn && session?.id) {
       const sessionId = session.id;
+      // 🔥 CRITICAL: Set session ID IMMEDIATELY and SYNCHRONOUSLY
+      // This must happen before any API calls, including registerActiveSession
       setCurrentSessionId(sessionId);
-      console.log('[Auth] ✅ Session ID set from session object:', sessionId.substring(0, 20) + '...', {
+      console.log('[Auth] ✅ Session ID set synchronously from session object:', sessionId.substring(0, 20) + '...', {
         fullLength: sessionId.length,
-        willBeUsedInHeader: true
+        willBeUsedInHeader: true,
+        setBeforeRegistration: true
       });
       
       // Register session once we have the session ID
+      // This will replace any existing session on the backend
       registerActiveSession();
     } else if (!isSignedIn) {
       setCurrentSessionId(null);
