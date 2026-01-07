@@ -161,6 +161,11 @@ interface ShotConfigurationPanelProps {
   characterOutfits: Record<number, Record<string, string>>; // Per-shot, per-character: shotSlot -> characterId -> outfitName
   onCharacterReferenceChange: (shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   onCharacterOutfitChange: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
+  // 🔥 NEW: URL maps for resolving presigned URLs (same as SceneBuilderPanel)
+  characterThumbnailS3KeyMap?: Map<string, string>; // Map of s3Key -> thumbnailS3Key
+  characterThumbnailUrlsMap?: Map<string, string>; // Map of thumbnailS3Key -> presigned URL
+  selectedReferenceFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for selected references)
+  visibleHeadshotFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for visible headshots)
   // Dialogue workflow selection (per-shot) - NEW: Unified dropdown
   selectedDialogueQuality?: DialogueQuality; // 'premium' or 'reliable'
   selectedDialogueWorkflow?: DialogueWorkflowType; // Selected workflow for this shot (overrides auto-detection)
@@ -228,6 +233,10 @@ export function ShotConfigurationPanel({
   characterOutfits,
   onCharacterReferenceChange,
   onCharacterOutfitChange,
+  characterThumbnailS3KeyMap,
+  characterThumbnailUrlsMap,
+  selectedReferenceFullImageUrlsMap,
+  visibleHeadshotFullImageUrlsMap,
   selectedDialogueQuality,
   selectedDialogueWorkflow,
   selectedBaseWorkflow,
@@ -712,6 +721,10 @@ export function ShotConfigurationPanel({
                               hideSectionLabels={true}
                               pronounExtrasPrompts={pronounExtrasPrompts}
                               onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                              characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
+                              characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                              selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
+                              visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
                             />
                           </div>
                           {/* Images - only show if character is mapped and not already rendered */}

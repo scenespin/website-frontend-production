@@ -146,6 +146,11 @@ interface ShotConfigurationStepProps {
   characterOutfits: Record<number, Record<string, string>>;
   onCharacterReferenceChange: (shotSlot: number, characterId: string, reference: { poseId?: string; s3Key?: string; imageUrl?: string } | undefined) => void;
   onCharacterOutfitChange: (shotSlot: number, characterId: string, outfitName: string | undefined) => void;
+  // 🔥 NEW: URL maps for resolving presigned URLs (same as SceneBuilderPanel)
+  characterThumbnailS3KeyMap?: Map<string, string>; // Map of s3Key -> thumbnailS3Key
+  characterThumbnailUrlsMap?: Map<string, string>; // Map of thumbnailS3Key -> presigned URL
+  selectedReferenceFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for selected references)
+  visibleHeadshotFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for visible headshots)
   // Dialogue workflows - NEW: Unified dropdown
   selectedDialogueQuality?: 'premium' | 'reliable';
   selectedDialogueWorkflow?: DialogueWorkflowType;
@@ -235,6 +240,10 @@ export function ShotConfigurationStep({
   characterOutfits,
   onCharacterReferenceChange,
   onCharacterOutfitChange,
+  characterThumbnailS3KeyMap,
+  characterThumbnailUrlsMap,
+  selectedReferenceFullImageUrlsMap,
+  visibleHeadshotFullImageUrlsMap,
   selectedDialogueQuality,
   selectedDialogueWorkflow,
   selectedBaseWorkflow,
@@ -979,6 +988,10 @@ export function ShotConfigurationStep({
               characterOutfits={finalCharacterOutfits}
               onCharacterReferenceChange={finalOnCharacterReferenceChange}
               onCharacterOutfitChange={finalOnCharacterOutfitChange}
+              characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
+              characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+              selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
+              visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
               selectedDialogueQuality={finalSelectedDialogueQuality}
               selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
               onDialogueQualityChange={finalOnDialogueQualityChange}

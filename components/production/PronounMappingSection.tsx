@@ -12,13 +12,21 @@ function CharacterSelector({
   availableChars, 
   onChange,
   characterHeadshots = {},
-  loadingHeadshots = {}
+  loadingHeadshots = {},
+  characterThumbnailS3KeyMap,
+  characterThumbnailUrlsMap,
+  selectedReferenceFullImageUrlsMap,
+  visibleHeadshotFullImageUrlsMap
 }: { 
   value: string; 
   availableChars: Character[]; 
   onChange: (value: string) => void;
   characterHeadshots?: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
   loadingHeadshots?: Record<string, boolean>;
+  characterThumbnailS3KeyMap?: Map<string, string>;
+  characterThumbnailUrlsMap?: Map<string, string>;
+  selectedReferenceFullImageUrlsMap?: Map<string, string>;
+  visibleHeadshotFullImageUrlsMap?: Map<string, string>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -31,12 +39,38 @@ function CharacterSelector({
   };
 
   // Get headshot image for a character (first available headshot)
+  // 🔥 FIX: Use the same URL resolution logic as SceneBuilderPanel
+  // Check thumbnail URLs first, then full image URLs, then fall back to imageUrl
   const getCharacterHeadshotImage = (charId: string): string | null => {
     const headshots = characterHeadshots[charId];
     if (!headshots || headshots.length === 0) return null;
-    // Get first headshot with an imageUrl
-    const firstHeadshot = headshots.find(h => h.imageUrl) || headshots[0];
-    return firstHeadshot?.imageUrl || null;
+    
+    // Get first headshot (already sorted by priority)
+    const firstHeadshot = headshots[0];
+    if (!firstHeadshot || !firstHeadshot.s3Key) return null;
+    
+    // 🔥 FIX: Use thumbnail URL if available (same logic as SceneBuilderPanel)
+    let thumbnailS3Key: string | null = null;
+    if (characterThumbnailS3KeyMap?.has(firstHeadshot.s3Key)) {
+      thumbnailS3Key = characterThumbnailS3KeyMap.get(firstHeadshot.s3Key) || null;
+    }
+    const thumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.get(thumbnailS3Key);
+    
+    // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
+    // Check selected references first (for selected characters), then visible headshots
+    const fullImageUrl = selectedReferenceFullImageUrlsMap?.get(firstHeadshot.s3Key) || 
+                         visibleHeadshotFullImageUrlsMap?.get(firstHeadshot.s3Key);
+    
+    // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then imageUrl
+    const displayUrl = thumbnailUrl || fullImageUrl || firstHeadshot.imageUrl;
+    
+    // If displayUrl is empty or looks like an s3Key (not a URL), return null
+    // The component will show a placeholder instead
+    if (!displayUrl || (!displayUrl.startsWith('http') && !displayUrl.startsWith('data:'))) {
+      return null;
+    }
+    
+    return displayUrl;
   };
 
   // Close dropdown when clicking outside
@@ -215,6 +249,11 @@ interface PronounMappingSectionProps {
   onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
   // Hide section labels (used when component is called from parent that manages its own section labels)
   hideSectionLabels?: boolean;
+  // 🔥 NEW: URL maps for resolving presigned URLs (same as SceneBuilderPanel)
+  characterThumbnailS3KeyMap?: Map<string, string>; // Map of s3Key -> thumbnailS3Key
+  characterThumbnailUrlsMap?: Map<string, string>; // Map of thumbnailS3Key -> presigned URL
+  selectedReferenceFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for selected references)
+  visibleHeadshotFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for visible headshots)
 }
 
 export function PronounMappingSection({
@@ -235,7 +274,11 @@ export function PronounMappingSection({
   allCharactersWithOutfits = [],
   pronounExtrasPrompts = {},
   onPronounExtrasPromptChange,
-  hideSectionLabels = false
+  hideSectionLabels = false,
+  characterThumbnailS3KeyMap,
+  characterThumbnailUrlsMap,
+  selectedReferenceFullImageUrlsMap,
+  visibleHeadshotFullImageUrlsMap
 }: PronounMappingSectionProps) {
   // Get outfit for a character in this shot
   const getOutfitForCharacter = (charId: string): string | undefined => {
@@ -327,12 +370,38 @@ export function PronounMappingSection({
   });
   
   // Get headshot image for a character (first available headshot)
+  // 🔥 FIX: Use the same URL resolution logic as SceneBuilderPanel
+  // Check thumbnail URLs first, then full image URLs, then fall back to imageUrl
   const getCharacterHeadshotImage = (charId: string): string | null => {
     const headshots = characterHeadshots[charId];
     if (!headshots || headshots.length === 0) return null;
-    // Get first headshot with an imageUrl
-    const firstHeadshot = headshots.find(h => h.imageUrl) || headshots[0];
-    return firstHeadshot?.imageUrl || null;
+    
+    // Get first headshot (already sorted by priority)
+    const firstHeadshot = headshots[0];
+    if (!firstHeadshot || !firstHeadshot.s3Key) return null;
+    
+    // 🔥 FIX: Use thumbnail URL if available (same logic as SceneBuilderPanel)
+    let thumbnailS3Key: string | null = null;
+    if (characterThumbnailS3KeyMap?.has(firstHeadshot.s3Key)) {
+      thumbnailS3Key = characterThumbnailS3KeyMap.get(firstHeadshot.s3Key) || null;
+    }
+    const thumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.get(thumbnailS3Key);
+    
+    // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
+    // Check selected references first (for selected characters), then visible headshots
+    const fullImageUrl = selectedReferenceFullImageUrlsMap?.get(firstHeadshot.s3Key) || 
+                         visibleHeadshotFullImageUrlsMap?.get(firstHeadshot.s3Key);
+    
+    // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then imageUrl
+    const displayUrl = thumbnailUrl || fullImageUrl || firstHeadshot.imageUrl;
+    
+    // If displayUrl is empty or looks like an s3Key (not a URL), return null
+    // The component will show a placeholder instead
+    if (!displayUrl || (!displayUrl.startsWith('http') && !displayUrl.startsWith('data:'))) {
+      return null;
+    }
+    
+    return displayUrl;
   };
 
   // Get available characters for selection (excluding already selected ones, up to maxTotalCharacters)
@@ -403,6 +472,10 @@ export function PronounMappingSection({
                       availableChars={availableChars}
                       characterHeadshots={characterHeadshots}
                       loadingHeadshots={loadingHeadshots}
+                      characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
+                      characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                      selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
+                      visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
                       onChange={(value) => {
                         // Special values: "__select__" = no selection, "__ignore__" = skip
                         if (value === '__select__') {

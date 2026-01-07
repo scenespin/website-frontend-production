@@ -4205,6 +4205,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   loadingHeadshots={loadingHeadshots}
                   selectedCharacterReferences={selectedCharacterReferences}
                   characterOutfits={characterOutfits}
+                  characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
+                  characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                  selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
+                  visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
                   onCharacterReferenceChange={(shotSlot, characterId, reference) => {
                     setSelectedCharacterReferences(prev => {
                       const shotRefs = prev[shotSlot] || {};
