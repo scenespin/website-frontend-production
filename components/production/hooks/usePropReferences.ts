@@ -125,11 +125,41 @@ export function usePropReferences(
       propsByEntityId.forEach((files, entityId) => {
         const { angleReferences, images } = mapMediaFilesToPropStructure(files as any[], entityId);
         
-        // Try to extract name from metadata (some files might have assetName or name in metadata)
-        const name = files[0]?.metadata?.assetName || 
-                    files[0]?.metadata?.name || 
-                    files[0]?.fileName?.replace(/\.[^/.]+$/, '') || // Use filename without extension
-                    'Unnamed Prop';
+        // 🔥 FIX: Extract name from folder path or metadata, skipping thumbnails
+        // Try to find a non-thumbnail file first (thumbnails have generic names like "thumb_angle-side-...")
+        const nonThumbnailFile = files.find((f: any) => !f.s3Key?.startsWith('thumbnails/') && !f.fileName?.startsWith('thumb_'));
+        const fileToUse = nonThumbnailFile || files[0];
+        
+        // Try to extract name from folder path (e.g., ['Assets', 'Folder Name', 'Angles'] -> 'Folder Name')
+        let name: string | undefined;
+        if (fileToUse?.folderPath && Array.isArray(fileToUse.folderPath)) {
+          // Find the folder name that's not 'Assets' or 'Angles' (the actual prop/asset folder)
+          const assetFolderIndex = fileToUse.folderPath.findIndex((p: string) => p === 'Assets' || p === 'Props');
+          if (assetFolderIndex >= 0 && assetFolderIndex < fileToUse.folderPath.length - 1) {
+            // Get the folder name after 'Assets' or 'Props'
+            name = fileToUse.folderPath[assetFolderIndex + 1];
+          }
+        }
+        
+        // Fallback to metadata
+        if (!name) {
+          name = fileToUse?.metadata?.assetName || 
+                 fileToUse?.metadata?.name;
+        }
+        
+        // Final fallback: use filename (but skip if it looks like a thumbnail ID)
+        if (!name && fileToUse?.fileName) {
+          const fileName = fileToUse.fileName.replace(/\.[^/.]+$/, '');
+          // Skip if it looks like a thumbnail ID (starts with "thumb_" or is just a hash)
+          if (!fileName.startsWith('thumb_') && fileName.length > 10) {
+            name = fileName;
+          }
+        }
+        
+        // Last resort
+        if (!name) {
+          name = 'Unnamed Prop';
+        }
         
         createdProps.push({
           id: entityId,

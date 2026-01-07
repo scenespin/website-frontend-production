@@ -1106,6 +1106,11 @@ export function ShotConfigurationStep({
                       imageS3Key = fullProp.baseReference.s3Key;
                     }
                     
+                    // 🔥 FIX: Also check if selectedImage.id is the s3Key itself
+                    if (!imageS3Key && selectedImage.id && (selectedImage.id.startsWith('asset/') || selectedImage.id.includes('/'))) {
+                      imageS3Key = selectedImage.id;
+                    }
+                    
                     // Get presigned URL from maps (thumbnail first, then full image)
                     let displayUrl: string | undefined;
                     if (imageS3Key) {
@@ -1121,12 +1126,25 @@ export function ShotConfigurationStep({
                         displayUrl = propImageUrlsMap.get(imageS3Key);
                       }
                     }
-                    // Final fallback to selectedImage.imageUrl or baseReference
+                    // 🔥 FIX: If displayUrl is still empty, try selectedImage.imageUrl
+                    // It might already be a presigned URL or a direct URL
+                    if (!displayUrl && selectedImage.imageUrl) {
+                      // Check if it's already a URL (starts with http) or might be an s3Key
+                      if (selectedImage.imageUrl.startsWith('http')) {
+                        displayUrl = selectedImage.imageUrl;
+                      } else if (propImageUrlsMap?.has(selectedImage.imageUrl)) {
+                        // It's an s3Key that's in the map
+                        displayUrl = propImageUrlsMap.get(selectedImage.imageUrl);
+                      }
+                    }
+                    // Final fallback to baseReference or prop.imageUrl
                     if (!displayUrl) {
-                      displayUrl = selectedImage.imageUrl || fullProp.baseReference?.imageUrl || prop.imageUrl;
+                      displayUrl = fullProp.baseReference?.imageUrl || prop.imageUrl;
                     }
                     
-                    // Add to references if we have a display URL
+                    // 🔥 FIX: Add to references if we have a display URL
+                    // If displayUrl is an s3Key (not a URL), it will fail to load, but that's okay
+                    // The onError handler in ReferencePreview will show the fallback icon
                     if (displayUrl) {
                       references.push({
                         type: 'prop',
