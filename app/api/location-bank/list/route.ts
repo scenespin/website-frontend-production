@@ -59,12 +59,22 @@ export async function GET(request: NextRequest) {
     
     console.log('[Location Bank List] Forwarding to backend:', { url, screenplayId });
 
+    // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
+    const sessionIdHeader = request.headers.get('x-session-id');
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+    if (sessionIdHeader) {
+      headers['X-Session-Id'] = sessionIdHeader;
+      console.log('[Location Bank List] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
+    } else {
+      console.error('[Location Bank List] ⚠️ No X-Session-Id header in request - session validation may fail');
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
 
     console.log('[Location Bank List] Backend response:', { 
