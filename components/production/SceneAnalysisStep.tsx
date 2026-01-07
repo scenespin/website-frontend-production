@@ -168,20 +168,22 @@ export function SceneAnalysisStep({
                   >
                     Select All
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('[SceneAnalysisStep] Props Deselect All clicked');
-                      // Deselect All: Remove all props from all shots
-                      console.log('[SceneAnalysisStep] Props Deselect All - calling onPropsToShotsChange with: {}');
-                      onPropsToShotsChange({});
-                    }}
-                    className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
-                  >
-                    Deselect All
-                  </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('[SceneAnalysisStep] Props Deselect All clicked', { currentPropsToShots: propsToShots });
+                    // Deselect All: Remove all props from all shots
+                    // 🔥 FIX: Force state update by creating a new empty object (not reusing empty object)
+                    const emptyPropsToShots: Record<string, number[]> = {};
+                    console.log('[SceneAnalysisStep] Props Deselect All - calling onPropsToShotsChange with:', emptyPropsToShots);
+                    onPropsToShotsChange(emptyPropsToShots);
+                  }}
+                  className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
+                >
+                  Deselect All
+                </button>
                 </div>
               </div>
               {/* Props List with Checkboxes */}
@@ -255,9 +257,11 @@ export function SceneAnalysisStep({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('[SceneAnalysisStep] Shots Deselect All clicked');
-                    console.log('[SceneAnalysisStep] Shots Deselect All - calling onEnabledShotsChange with: []');
-                    onEnabledShotsChange([]);
+                    console.log('[SceneAnalysisStep] Shots Deselect All clicked', { currentEnabledShots: enabledShots });
+                    // 🔥 FIX: Force state update by creating a new empty array (not reusing empty array)
+                    const emptyShots: number[] = [];
+                    console.log('[SceneAnalysisStep] Shots Deselect All - calling onEnabledShotsChange with:', emptyShots);
+                    onEnabledShotsChange(emptyShots);
                   }}
                   className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
                 >

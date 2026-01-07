@@ -95,14 +95,21 @@ export function useLocationReferences({
         if (file.s3Key?.startsWith('thumbnails/')) return;
         if (!file.s3Key) return;
 
+        // 🔥 FIX: Prioritize angle detection - if it has angle metadata, it's an angle
+        // Only check for background if it doesn't have angle metadata
+        const hasAngleMetadata = file.metadata?.angle !== undefined || 
+          (file.metadata?.sourceType === 'angle-variations' && file.metadata?.backgroundType === undefined);
+        
         // 🔥 FIX: Use isBackgroundFile which now correctly checks for backgroundType
         // Backgrounds from angle packages have sourceType === 'angle-variations' AND backgroundType set
         // If sourceType === 'angle-variations' but no backgroundType, it's an angle, not a background
-        const isBackground = isBackgroundFile(file) ||
+        const isBackground = !hasAngleMetadata && (
+          isBackgroundFile(file) ||
           file.metadata?.source === 'background-generation' ||
           file.metadata?.uploadMethod === 'background-generation' ||
           file.metadata?.generationMethod === 'background-generation' ||
-          (file.folderPath && file.folderPath.some((path: string) => path.toLowerCase().includes('background')));
+          (file.folderPath && file.folderPath.some((path: string) => path.toLowerCase().includes('background')))
+        );
 
         if (isBackground) {
           // Background image
@@ -123,8 +130,10 @@ export function useLocationReferences({
             timeOfDay: file.metadata?.timeOfDay,
             weather: file.metadata?.weather
           });
-        } else {
-          // Angle variation
+        } else if (hasAngleMetadata || !isBackground) {
+          // Angle variation - prioritize files with angle metadata or files that aren't backgrounds
+          // 🔥 FIX: Also include files that have sourceType === 'angle-variations' without backgroundType
+          // This ensures angle variations from angle packages are correctly identified
           // 🔥 PROFESSIONAL FIX: Set imageUrl to null (not empty string) if s3Url is missing/invalid
           // The resolver's isValidImageUrl will validate it - no need to duplicate validation logic here
           // This follows single responsibility: hook provides data, resolver validates URLs
@@ -138,6 +147,7 @@ export function useLocationReferences({
             weather: file.metadata?.weather
           });
         }
+        // 🔥 FIX: If file doesn't match angle or background criteria, skip it (don't add to either array)
       }
     });
 
