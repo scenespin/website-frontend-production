@@ -69,9 +69,13 @@ const AuthInitializer = () => {
         console.warn('[Auth] ⚠️ No session ID available from Clerk session object - will use JWT fallback');
         // Continue anyway - backend will try to extract from JWT as fallback
       } else {
-        // Store session ID globally for use in API requests
+        // 🔥 CRITICAL: Store session ID globally BEFORE making any API calls
+        // This ensures all subsequent API requests include the X-Session-Id header
         setCurrentSessionId(sessionId);
-        console.log('[Auth] ✅ Session ID stored:', sessionId.substring(0, 20) + '...');
+        console.log('[Auth] ✅ Session ID stored globally:', sessionId.substring(0, 20) + '...', {
+          fullLength: sessionId.length,
+          willBeUsedInHeader: true
+        });
       }
 
       const deviceInfo = typeof navigator !== 'undefined' 
