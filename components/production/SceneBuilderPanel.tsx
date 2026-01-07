@@ -562,6 +562,30 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Map Media Library files to character headshot structure
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
   
+  // 🔥 FIX: Fetch full images on-demand for visible headshots when thumbnails aren't available
+  // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)
+  const visibleHeadshotS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    // Collect s3Keys for all visible headshots (for fallback when thumbnails aren't ready)
+    Object.values(characterHeadshots).forEach(headshots => {
+      headshots.forEach(headshot => {
+        // Only fetch if we have an s3Key and imageUrl is empty or not a valid URL (needs presigned URL)
+        if (headshot.s3Key && (!headshot.imageUrl || (!headshot.imageUrl.startsWith('http') && !headshot.imageUrl.startsWith('data:')))) {
+          keys.push(headshot.s3Key);
+        }
+      });
+    });
+    return keys;
+  }, [characterHeadshots]);
+
+  // Fetch presigned URLs for visible headshots (fallback when thumbnails aren't ready)
+  // Only fetch if thumbnails map is empty or very small (thumbnails still loading)
+  // This prevents empty images while maintaining performance (thumbnails are still prioritized)
+  const { data: visibleHeadshotFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    visibleHeadshotS3Keys,
+    visibleHeadshotS3Keys.length > 0 && (characterThumbnailUrlsMap.size === 0 || characterThumbnailUrlsMap.size < visibleHeadshotS3Keys.length * 0.3) // Fetch if no thumbnails or less than 30% loaded
+  );
+
   // 🔥 PERFORMANCE FIX: Fetch full images on-demand only for selected references (not all headshots)
   // This dramatically improves initial load time since we only fetch thumbnails upfront
   const selectedReferenceS3Keys = useMemo(() => {
@@ -3810,10 +3834,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                             // Get presigned URL for thumbnail if available
                             const thumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.get(thumbnailS3Key);
                             
-                            // 🔥 PERFORMANCE: Full images are not fetched upfront - only use thumbnail for grid display
-                            // Full images are only fetched on-demand when selected for generation
-                            // If thumbnail is not available, fall back to headshot.imageUrl (which may be from Media Library)
-                            const displayUrl = thumbnailUrl || headshot.imageUrl || '';
+                            // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
+                            // This prevents empty/flickering images while thumbnails are loading
+                            const fullImageUrl = headshot.s3Key && visibleHeadshotFullImageUrlsMap?.get(headshot.s3Key);
+                            
+                            // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then empty
+                            // Full images are fetched on-demand for visible headshots when thumbnails aren't ready
+                            const displayUrl = thumbnailUrl || fullImageUrl || headshot.imageUrl || '';
                             
                             // Check if this is the creation image (last resort)
                             const isCreationImage = headshot.poseId === 'base-reference' || headshot.label === 'Creation Image (Last Resort)';

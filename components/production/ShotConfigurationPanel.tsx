@@ -300,10 +300,51 @@ export function ShotConfigurationPanel({
   // 🔥 NEW: Fetch thumbnail URLs for all prop images
   const { data: propThumbnailUrlsMap } = useBulkPresignedUrls(propThumbnailS3Keys, propThumbnailS3Keys.length > 0);
   
-  // 🔥 PERFORMANCE FIX: Only fetch full images for selected prop images (not all assigned props)
-  // This dramatically reduces initial load time since we only fetch thumbnails upfront
-  // Full images are only needed when a specific prop image is selected for generation
-  const propFullImageS3Keys = React.useMemo(() => {
+  // 🔥 FIX: Fetch full images for visible prop images when thumbnails aren't available yet
+  // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)
+  const visiblePropImageS3Keys = React.useMemo(() => {
+    const keys: string[] = [];
+    const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
+    
+    assignedProps.forEach(prop => {
+      const fullProp = prop as typeof prop & {
+        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+        images?: Array<{ url: string; s3Key?: string }>;
+        baseReference?: { s3Key?: string; imageUrl?: string };
+      };
+      
+      // Collect s3Keys for all visible prop images (for fallback when thumbnails aren't ready)
+      if (fullProp.angleReferences) {
+        fullProp.angleReferences.forEach(ref => {
+          if (ref.s3Key && (!ref.imageUrl || !ref.imageUrl.startsWith('http'))) {
+            keys.push(ref.s3Key);
+          }
+        });
+      }
+      if (fullProp.images) {
+        fullProp.images.forEach(img => {
+          if (img.s3Key && (!img.url || !img.url.startsWith('http'))) {
+            keys.push(img.s3Key);
+          }
+        });
+      }
+      if (fullProp.baseReference?.s3Key && (!fullProp.baseReference.imageUrl || !fullProp.baseReference.imageUrl.startsWith('http'))) {
+        keys.push(fullProp.baseReference.s3Key);
+      }
+    });
+    
+    return keys;
+  }, [sceneProps, propsToShots, shot.slot]);
+  
+  // Fetch full images for visible props only if thumbnails aren't loaded yet (prevents empty/flickering images)
+  // This maintains performance (thumbnails are still prioritized) while ensuring images display
+  const { data: visiblePropFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    visiblePropImageS3Keys,
+    visiblePropImageS3Keys.length > 0 && (!propThumbnailUrlsMap || propThumbnailUrlsMap.size === 0 || propThumbnailUrlsMap.size < visiblePropImageS3Keys.length * 0.3) // Fetch if no thumbnails or less than 30% loaded
+  );
+  
+  // 🔥 PERFORMANCE FIX: Also fetch full images for selected prop images (for generation)
+  const selectedPropImageS3Keys = React.useMemo(() => {
     const keys: string[] = [];
     const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
     
@@ -334,20 +375,27 @@ export function ShotConfigurationPanel({
         }
         
         // Only add if we found an s3Key and it needs a presigned URL
-        if (imageS3Key) {
+        if (imageS3Key && !visiblePropFullImageUrlsMap.has(imageS3Key)) {
           keys.push(imageS3Key);
         }
       }
     });
     
     return keys;
-  }, [sceneProps, propsToShots, shotProps, shot.slot]);
+  }, [sceneProps, propsToShots, shotProps, shot.slot, visiblePropFullImageUrlsMap]);
   
-  // 🔥 PERFORMANCE FIX: Fetch presigned URLs for selected prop images only (lazy loading)
-  const { data: propFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
-    propFullImageS3Keys,
-    propFullImageS3Keys.length > 0
+  // Fetch presigned URLs for selected prop images (for generation)
+  const { data: selectedPropFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    selectedPropImageS3Keys,
+    selectedPropImageS3Keys.length > 0
   );
+  
+  // Combine visible and selected prop full image maps
+  const propFullImageUrlsMap = React.useMemo(() => {
+    const combined = new Map(visiblePropFullImageUrlsMap);
+    selectedPropFullImageUrlsMap.forEach((url, key) => combined.set(key, url));
+    return combined;
+  }, [visiblePropFullImageUrlsMap, selectedPropFullImageUrlsMap]);
   
   // 🔥 DIAGNOSTIC: Log map sizes and sample data (always log)
   React.useEffect(() => {

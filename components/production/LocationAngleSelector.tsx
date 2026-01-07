@@ -331,6 +331,26 @@ export function LocationAngleSelector({
 
   // 🔥 NEW: Fetch thumbnail URLs for all photos
   const { data: thumbnailUrlsMap } = useBulkPresignedUrls(thumbnailS3Keys, thumbnailS3Keys.length > 0);
+  
+  // 🔥 FIX: Fetch full image URLs on-demand when thumbnails aren't available yet
+  // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)
+  const fullImageS3Keys = React.useMemo(() => {
+    const keys: string[] = [];
+    allPhotos.forEach(photo => {
+      // Only fetch if we have an s3Key and imageUrl is empty or not a valid URL
+      if (photo.s3Key && (!photo.imageUrl || (!photo.imageUrl.startsWith('http') && !photo.imageUrl.startsWith('data:')))) {
+        keys.push(photo.s3Key);
+      }
+    });
+    return keys;
+  }, [allPhotos]);
+  
+  // Fetch full images only if thumbnails aren't loaded yet (prevents empty/flickering images)
+  // This maintains performance (thumbnails are still prioritized) while ensuring images display
+  const { data: fullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    fullImageS3Keys,
+    fullImageS3Keys.length > 0 && (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0 || thumbnailUrlsMap.size < fullImageS3Keys.length * 0.3) // Fetch if no thumbnails or less than 30% loaded
+  );
 
   const getAngleLabel = (angle: string): string => {
     const labels: Record<string, string> = {
@@ -567,13 +587,15 @@ export function LocationAngleSelector({
             }`}
             title={`${photo.label}${photo.timeOfDay ? ` - ${photo.timeOfDay}` : ''}${photo.weather ? ` - ${photo.weather}` : ''}`}
           >
-            {photo.imageUrl ? (() => {
+            {photo.imageUrl || photo.s3Key ? (() => {
               // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
               const thumbnailKey = photo.s3Key 
                 ? `thumbnails/${photo.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`
                 : null;
               const thumbnailUrl = thumbnailKey && thumbnailUrlsMap?.get(thumbnailKey);
-              const displayUrl = thumbnailUrl || photo.imageUrl;
+              // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
+              const fullImageUrl = photo.s3Key && fullImageUrlsMap?.get(photo.s3Key);
+              const displayUrl = thumbnailUrl || fullImageUrl || photo.imageUrl;
               
               return (
                 <img
