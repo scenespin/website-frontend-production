@@ -4,7 +4,7 @@ import { SignUp } from '@clerk/nextjs'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import config from '@/config'
-import { CheckCircle, Shield, Zap, Sparkles, Video } from 'lucide-react'
+import { CheckCircle, Shield, Zap, Sparkles, Video, FileText, Image, Film } from 'lucide-react'
 
 export default function SignUpPage() {
   const searchParams = useSearchParams()
@@ -91,6 +91,77 @@ export default function SignUpPage() {
               </div>
             )}
 
+            {/* Your Complete Workflow */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2 text-white">
+                <Film className="w-5 h-5 text-[#DC143C]" />
+                Your Complete Workflow
+              </h3>
+              
+              {/* Step 1: CREATE */}
+              <div className="bg-[#141414] border border-white/10 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                    1
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <FileText className="w-4 h-4 text-[#DC143C]" />
+                      <h4 className="font-semibold text-white">CREATE</h4>
+                    </div>
+                    <ul className="text-sm text-gray-300 space-y-1 ml-6">
+                      <li>• Write or import Fountain scripts</li>
+                      <li>• AI agents help you write</li>
+                      <li>• Auto-detect characters/locations</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: PRODUCE */}
+              <div className="bg-[#141414] border border-white/10 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                    2
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Image className="w-4 h-4 text-[#DC143C]" />
+                      <h4 className="font-semibold text-white">PRODUCE</h4>
+                    </div>
+                    <ul className="text-sm text-gray-300 space-y-1 ml-6">
+                      <li>• Generate AI characters/locations</li>
+                      <li>• Create angle packages</li>
+                      <li>• Upload your own footage</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: DIRECT */}
+              <div className="bg-[#141414] border border-white/10 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                    3
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Video className="w-4 h-4 text-[#DC143C]" />
+                      <h4 className="font-semibold text-white">DIRECT</h4>
+                      <span className="text-xs font-semibold text-gray-400 bg-[#0A0A0A] px-2 py-0.5 rounded-full">
+                        Beta
+                      </span>
+                    </div>
+                    <ul className="text-sm text-gray-300 space-y-1 ml-6">
+                      <li>• Scene Builder (Beta)</li>
+                      <li>• Timeline editor</li>
+                      <li>• Export 1080p & 4K videos</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* What You Get */}
             <div className="bg-[#141414] border border-white/10 rounded-lg p-6 space-y-4">
               <h3 className="font-semibold text-lg flex items-center gap-2 text-white">
@@ -105,7 +176,7 @@ export default function SignUpPage() {
                     <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-white">50 signup credits</strong>
-                      <p className="text-sm text-gray-400">Worth $0.50 - create ~2 professional videos</p>
+                      <p className="text-sm text-gray-400">Try AI agents in the writing editor</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
@@ -156,11 +227,22 @@ export default function SignUpPage() {
 
             {/* Cost Comparison Highlight */}
             <div className="bg-gradient-to-r from-[#DC143C]/10 to-transparent rounded-lg p-4 border-l-4 border-[#DC143C]">
-              <p className="text-sm font-semibold mb-1 text-white">
-                💰 Save $1,776/year vs traditional tools
+              <p className="text-sm font-semibold mb-2 text-white">
+                📊 vs Traditional Tools
               </p>
-              <p className="text-xs text-gray-400">
-                Compare: Final Draft ($250) + Premiere Pro ($263) + After Effects ($263) + Stock Footage ($500) + Stock Music ($300) + Cloud Storage ($200)
+              <div className="space-y-2 text-xs text-gray-300 mb-3">
+                <p className="font-medium text-white">Instead of paying separately for:</p>
+                <ul className="space-y-1 ml-4">
+                  <li>• Final Draft ($250) → <span className="text-green-400 font-semibold">✅ FREE Forever</span></li>
+                  <li>• Manual asset organization → <span className="text-green-400 font-semibold">✅ Automated</span></li>
+                  <li>• Maintaining character/location/prop consistency → <span className="text-green-400 font-semibold">✅ Built-in</span></li>
+                </ul>
+              </div>
+              <p className="text-xs text-gray-300 mb-2">
+                Create all your production assets with screenplay continuity. Download what you need, or use our Scene Builder.
+              </p>
+              <p className="text-sm font-semibold text-white">
+                Save $250+/year + hours of manual work
               </p>
             </div>
 
