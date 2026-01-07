@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import config from "@/config";
 import Footer from "@/components/Footer";
+import logo from "@/app/icon.png";
 
 export default function Page() {
   return (
@@ -10,6 +12,14 @@ export default function Page() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-2">
+              <Image
+                src={logo}
+                alt={`${config.appName} logo`}
+                width={40}
+                height={40}
+                className="w-10 h-10"
+                priority={true}
+              />
               <span className="text-2xl font-extrabold text-white">
                 {config.appName}<span className="text-[#DC143C]">.ai</span>
               </span>

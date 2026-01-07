@@ -1,6 +1,8 @@
 ﻿import Link from "next/link";
+import Image from "next/image";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
+import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
   title: `Production Help | ${config.appName}`,
@@ -13,6 +15,14 @@ export default function ProductionHelp() {
     <div className="min-h-screen bg-[#0A0A0A]">
       <header className="p-4 flex justify-between items-center max-w-7xl mx-auto bg-[#0A0A0A] border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
+          <Image
+            src={logo}
+            alt={`${config.appName} logo`}
+            width={40}
+            height={40}
+            className="w-10 h-10"
+            priority={true}
+          />
           <span className="text-2xl font-extrabold text-[#FFFFFF]">
             {config.appName}<span className="text-[#DC143C]">.ai</span>
           </span>
