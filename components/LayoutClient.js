@@ -110,15 +110,18 @@ const AuthInitializer = () => {
           errorData = { message: errorText };
         }
         
+        // Expand error object for better debugging
+        const errorMessage = errorData?.message || errorData?.error || JSON.stringify(errorData);
         console.error('[Auth] ❌ Failed to register session:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorData,
-          errorMessage: errorData?.message || errorData?.error || 'Unknown error',
+          errorMessage: errorMessage,
+          fullError: errorData,
           hasSessionId: !!sessionId,
           sessionIdPreview: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
           hasToken: !!token,
-          tokenLength: token?.length || 0
+          tokenLength: token?.length || 0,
+          headersSent: Object.keys(headers)
         });
         
         if (response.status === 401) {

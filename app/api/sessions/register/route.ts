@@ -12,15 +12,31 @@ const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_BACKE
 
 export async function POST(request: NextRequest) {
   try {
-    const { getToken } = await auth();
+    const { getToken, userId } = await auth();
+    
+    if (!userId) {
+      console.error('[Sessions API] No userId from auth()');
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'User not authenticated' },
+        { status: 401 }
+      );
+    }
+    
     const token = await getToken({ template: 'wryda-backend' });
     
     if (!token) {
+      console.error('[Sessions API] No token from getToken()');
       return NextResponse.json(
         { error: 'Unauthorized', message: 'No authentication token' },
         { status: 401 }
       );
     }
+    
+    console.log('[Sessions API] Proxying to backend', {
+      userId,
+      hasToken: !!token,
+      tokenLength: token.length
+    });
 
     const body = await request.json();
     const deviceInfo = body.deviceInfo || request.headers.get('user-agent') || 'unknown';
@@ -47,11 +63,30 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    const data = await response.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText };
+      }
+      
+      console.error('[Sessions API] Backend returned error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        backendUrl: `${BACKEND_URL}/api/sessions/register`
+      });
+      
+      return NextResponse.json(errorData, { status: response.status });
+    }
 
+    const data = await response.json();
+    console.log('[Sessions API] ✅ Session registered successfully');
     return NextResponse.json(data, { status: response.status });
   } catch (error: any) {
-    console.error('[Sessions API] Failed to register session:', error);
+    console.error('[Sessions API] Exception during registration:', error);
     return NextResponse.json(
       { error: 'Internal Server Error', message: error.message },
       { status: 500 }
