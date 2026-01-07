@@ -1176,6 +1176,8 @@ export interface RolePreset {
     canManageAssets: boolean;
     canManageOwnAssets: boolean;
     canGenerateAssets: boolean;
+    canAccessProductionHub: boolean; // 🔥 FIX: Add missing permission
+    canUploadCreationImages: boolean; // 🔥 FIX: Add missing permission
     canUploadAssets: boolean;
     canViewAssets: boolean;
     canUseAI: boolean;
