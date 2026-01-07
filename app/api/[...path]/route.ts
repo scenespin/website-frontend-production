@@ -127,23 +127,39 @@ async function forwardRequest(
     }
     
     // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
-    // Check both lowercase and mixed case (HTTP headers are case-insensitive, but Next.js might preserve case)
-    const sessionIdHeader = request.headers.get('x-session-id') || request.headers.get('X-Session-Id');
+    // Next.js API routes need to explicitly forward headers from client requests
+    // Check all possible case variations (HTTP headers are case-insensitive, but Next.js preserves case)
+    const sessionIdHeader = 
+      request.headers.get('x-session-id') || 
+      request.headers.get('X-Session-Id') ||
+      request.headers.get('x-sessionid') ||
+      request.headers.get('X-SessionID');
+    
     if (sessionIdHeader) {
       headers['X-Session-Id'] = sessionIdHeader;
       console.error(`[API Proxy] ✅ Forwarding X-Session-Id header: ${sessionIdHeader.substring(0, 20)}...`, {
         path,
         method,
-        headerLength: sessionIdHeader.length
+        headerLength: sessionIdHeader.length,
+        originalHeaderName: request.headers.get('x-session-id') ? 'x-session-id' : 
+                           (request.headers.get('X-Session-Id') ? 'X-Session-Id' : 'unknown')
       });
     } else {
       // 🔥 DEBUG: Log all headers to see what's actually being sent
+      // This helps identify if axios is sending the header with a different name
       const allHeaders = Object.fromEntries(request.headers.entries());
+      const headerKeys = Object.keys(allHeaders);
+      const sessionRelatedHeaders = headerKeys.filter(h => 
+        h.toLowerCase().includes('session') || 
+        h.toLowerCase().includes('sid')
+      );
+      
       console.error(`[API Proxy] ⚠️ No X-Session-Id header in request - session validation may fail`, {
         path,
         method,
-        availableHeaders: Object.keys(allHeaders).filter(h => h.toLowerCase().includes('session')).join(', '),
-        allHeaderKeys: Object.keys(allHeaders).join(', ')
+        sessionRelatedHeaders: sessionRelatedHeaders.length > 0 ? sessionRelatedHeaders.join(', ') : 'none',
+        allHeaderKeys: headerKeys.slice(0, 20).join(', '), // First 20 headers to avoid log spam
+        totalHeaders: headerKeys.length
       });
     }
     
