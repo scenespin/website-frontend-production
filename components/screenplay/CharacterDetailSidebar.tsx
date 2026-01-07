@@ -191,6 +191,7 @@ export default function CharacterDetailSidebar({
       // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
       const syncCharacter = async () => {
         await new Promise(resolve => setTimeout(resolve, 500));
+        
         // 🔥 FIX: Use ref to get latest characters to avoid stale closures
         const updatedCharacterFromContext = charactersRef.current.find(c => c.id === character.id);
         if (updatedCharacterFromContext) {
@@ -569,6 +570,12 @@ export default function CharacterDetailSidebar({
             images: transformedImages
           });
           console.log('[CharacterDetailSidebar] ✅ Character updated in context');
+
+          // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
+          // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
+          if (screenplayId) {
+            queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+          }
 
           toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
 
@@ -1100,6 +1107,11 @@ export default function CharacterDetailSidebar({
                                   queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                 }
                                 
+                                // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
+                                if (screenplayId) {
+                                  queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                }
+                                
                                 // 🔥 FIX: Don't sync from context immediately after deletion
                                 // The useEffect hook will handle syncing when context actually updates
                                 // This prevents overwriting the optimistic update with stale data if user clicks Save quickly
@@ -1307,6 +1319,12 @@ export default function CharacterDetailSidebar({
                 await updateCharacter(character.id, {
                   images: transformedImages
                 });
+
+                // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
+                // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
+                if (screenplayId) {
+                  queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                }
 
                 toast.success('Image generated and uploaded');
               } else if (isCreating) {

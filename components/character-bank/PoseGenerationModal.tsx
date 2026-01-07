@@ -14,6 +14,7 @@ import { OutfitSelector } from '../production/OutfitSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { fetchWithSessionId } from '@/lib/api';
 
 interface PoseGenerationModalProps {
   isOpen: boolean;
@@ -65,7 +66,7 @@ export default function PoseGenerationModal({
         try {
           const token = await getToken({ template: 'wryda-backend' });
           // Get character from screenplay characters API
-          const response = await fetch(`/api/screenplays/${projectId}/characters/${characterId}`, {
+          const response = await fetchWithSessionId(`/api/screenplays/${projectId}/characters/${characterId}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -99,7 +100,7 @@ export default function PoseGenerationModal({
           return;
         }
 
-        const response = await fetch(`/api/model-selection/characters/${quality}`, {
+        const response = await fetchWithSessionId(`/api/model-selection/characters/${quality}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -309,7 +310,7 @@ export default function PoseGenerationModal({
             
             // Get presigned download URL immediately (same pattern as SceneBuilderPanel)
             // Use POST /api/s3/download-url endpoint (not GET /api/s3/get-download-url)
-            const downloadUrlResponse = await fetch('/api/s3/download-url', {
+            const downloadUrlResponse = await fetchWithSessionId('/api/s3/download-url', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -404,7 +405,7 @@ export default function PoseGenerationModal({
             clothingReferences.push(clothingImage.presignedUrl);
           } else if (clothingImage.s3Key) {
             // Get presigned URL for existing S3 key (use POST endpoint)
-            const downloadResponse = await fetch('/api/s3/download-url', {
+            const downloadResponse = await fetchWithSessionId('/api/s3/download-url', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -448,7 +449,7 @@ export default function PoseGenerationModal({
         packageId
       });
       
-      const response = await fetch(apiUrl, {
+      const response = await fetchWithSessionId(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

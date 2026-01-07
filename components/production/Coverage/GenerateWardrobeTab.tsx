@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import PosePackageSelector from '../../character-bank/PosePackageSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { fetchWithSessionId } from '@/lib/api';
 
 interface GenerateWardrobeTabProps {
   characterId: string;
@@ -305,7 +306,7 @@ export function GenerateWardrobeTab({
         // (removed from UI per user request - backend populates automatically)
       };
 
-      const response = await fetch(apiUrl, {
+      const response = await fetchWithSessionId(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
