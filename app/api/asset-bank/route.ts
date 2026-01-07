@@ -49,18 +49,10 @@ export async function GET(request: NextRequest) {
     // Forward request to backend
     const url = `${BACKEND_API_URL}/api/asset-bank${queryString ? `?${queryString}` : ''}`;
 
-    // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
-    const sessionIdHeader = request.headers.get('x-session-id');
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
-    if (sessionIdHeader) {
-      headers['X-Session-Id'] = sessionIdHeader;
-      console.error('[Asset Bank Proxy] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
-    } else {
-      console.error('[Asset Bank Proxy] ⚠️ No X-Session-Id header in request - session validation may fail');
-    }
 
     const response = await fetch(url, {
       method: 'GET',
@@ -142,18 +134,10 @@ export async function POST(request: NextRequest) {
     const url = `${BACKEND_API_URL}/api/asset-bank`;
     console.log('[Asset Bank Proxy] Forwarding to backend:', url);
 
-    // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
-    const sessionIdHeader = request.headers.get('x-session-id');
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
-    if (sessionIdHeader) {
-      headers['X-Session-Id'] = sessionIdHeader;
-      console.error('[Asset Bank Proxy] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
-    } else {
-      console.error('[Asset Bank Proxy] ⚠️ No X-Session-Id header in request - session validation may fail');
-    }
 
     const response = await fetch(url, {
       method: 'POST',

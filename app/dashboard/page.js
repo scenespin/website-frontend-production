@@ -273,12 +273,10 @@ export default function Dashboard() {
       
       // Feature 0130: Fetch data independently so one failure doesn't break everything
       // Only fetch screenplays - no project API fallback
-      // 🔥 FIX: Import fetchWithSessionId to ensure X-Session-Id header is included
-      const { fetchWithSessionId } = await import('@/lib/api');
       // Note: Next.js API routes handle auth server-side, so we don't need to send token
       const [creditsRes, screenplaysRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
-        fetchWithSessionId('/api/screenplays/list?status=active&limit=100', {
+        fetch('/api/screenplays/list?status=active&limit=100', {
           cache: 'no-store', // 🔥 FIX: Prevent browser caching
           headers: {
             'Cache-Control': 'no-cache'

@@ -55,7 +55,6 @@ import {
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useQueryClient } from '@tanstack/react-query';
 import { Folder, FolderOpen } from 'lucide-react';
-import { fetchWithSessionId } from '@/lib/api';
 
 // ============================================================================
 // VIDEO THUMBNAIL COMPONENT
@@ -354,7 +353,7 @@ export default function MediaLibrary({
       if (folderId) {
         // Load files from specific folder (cloud storage)
         try {
-          const connectionsResponse = await fetchWithSessionId('/api/storage/connections', {
+          const connectionsResponse = await fetch('/api/storage/connections', {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -370,7 +369,7 @@ export default function MediaLibrary({
 
             if (connection) {
               try {
-                const filesResponse = await fetchWithSessionId(`/api/storage/files/${provider}?folderId=${encodeURIComponent(folderId)}`, {
+                const filesResponse = await fetch(`/api/storage/files/${provider}?folderId=${encodeURIComponent(folderId)}`, {
                   headers: {
                     'Authorization': `Bearer ${token}`,
                   },
@@ -402,7 +401,7 @@ export default function MediaLibrary({
         // Load all files (no folder filter)
         // Load local/S3 files
         // Use screenplayId as primary, projectId as fallback (projectId prop is actually screenplayId)
-        const localResponse = await fetchWithSessionId(`/api/media/list?screenplayId=${projectId}&projectId=${projectId}`, {
+        const localResponse = await fetch(`/api/media/list?screenplayId=${projectId}&projectId=${projectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -429,7 +428,7 @@ export default function MediaLibrary({
               
               if (file.s3Key) {
                 try {
-                  const presignedResponse = await fetchWithSessionId('/api/s3/download-url', {
+                  const presignedResponse = await fetch('/api/s3/download-url', {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${token}`,
@@ -470,7 +469,7 @@ export default function MediaLibrary({
 
         // Load cloud storage files (Google Drive & Dropbox)
         try {
-          const connectionsResponse = await fetchWithSessionId('/api/storage/connections', {
+          const connectionsResponse = await fetch('/api/storage/connections', {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -484,7 +483,7 @@ export default function MediaLibrary({
             for (const connection of connections) {
               if (connection.status === 'active' || connection.status === 'connected') {
                 try {
-                  const filesResponse = await fetchWithSessionId(`/api/storage/files/${connection.provider}`, {
+                  const filesResponse = await fetch(`/api/storage/files/${connection.provider}`, {
                     headers: {
                       'Authorization': `Bearer ${token}`,
                     },
@@ -824,7 +823,7 @@ export default function MediaLibrary({
       
       let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
       try {
-        const downloadResponse = await fetchWithSessionId('/api/s3/download-url', {
+        const downloadResponse = await fetch('/api/s3/download-url', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1081,7 +1080,7 @@ export default function MediaLibrary({
               const token = await getToken({ template: 'wryda-backend' });
               if (!token) throw new Error('Not authenticated');
               
-              const response = await fetchWithSessionId('/api/s3/download-url', {
+              const response = await fetch('/api/s3/download-url', {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -1125,7 +1124,7 @@ export default function MediaLibrary({
             } else {
               // For videos/audio, get download URL from backend
               try {
-                const response = await fetchWithSessionId(`/api/storage/download/google-drive/${file.id}`, {
+                const response = await fetch(`/api/storage/download/google-drive/${file.id}`, {
                   headers: {
                     'Authorization': `Bearer ${token}`,
                   },
@@ -1142,7 +1141,7 @@ export default function MediaLibrary({
           } else if (file.storageType === 'dropbox') {
             // Dropbox: Get download URL from backend
             try {
-              const response = await fetchWithSessionId(`/api/storage/download/dropbox/${file.id}`, {
+              const response = await fetch(`/api/storage/download/dropbox/${file.id}`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                 },
@@ -1198,7 +1197,7 @@ export default function MediaLibrary({
           const token = await getToken({ template: 'wryda-backend' });
           if (!token) throw new Error('Not authenticated');
           
-          const presignedResponse = await fetchWithSessionId('/api/s3/download-url', {
+          const presignedResponse = await fetch('/api/s3/download-url', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -1265,7 +1264,7 @@ export default function MediaLibrary({
           return;
         }
         
-        const response = await fetchWithSessionId(`/api/storage/download/${file.storageType}/${file.id}`, {
+        const response = await fetch(`/api/storage/download/${file.storageType}/${file.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -1374,7 +1373,7 @@ export default function MediaLibrary({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      const response = await fetchWithSessionId('/api/storage/sync-file-to-cloud', {
+      const response = await fetch('/api/storage/sync-file-to-cloud', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1430,7 +1429,7 @@ export default function MediaLibrary({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      const response = await fetchWithSessionId('/api/storage/sync-folder-to-cloud', {
+      const response = await fetch('/api/storage/sync-folder-to-cloud', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1477,7 +1476,7 @@ export default function MediaLibrary({
       if (!token) throw new Error('Not authenticated');
 
       // Get OAuth authorization URL from backend
-      const response = await fetchWithSessionId(`/api/storage/connect/${storageType}`, {
+      const response = await fetch(`/api/storage/connect/${storageType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -1495,7 +1494,7 @@ export default function MediaLibrary({
       // Poll for connection status
       const pollInterval = setInterval(async () => {
         try {
-          const statusResponse = await fetchWithSessionId(`/api/auth/${storageType === 'google-drive' ? 'google' : 'dropbox'}/status`, {
+          const statusResponse = await fetch(`/api/auth/${storageType === 'google-drive' ? 'google' : 'dropbox'}/status`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },

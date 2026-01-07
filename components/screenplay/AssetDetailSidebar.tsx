@@ -10,7 +10,7 @@ import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImagePromptModal } from '@/components/images/ImagePromptModal'
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
-import { api, fetchWithSessionId } from '@/lib/api'
+import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
 interface AssetDetailSidebarProps {
@@ -151,7 +151,7 @@ export default function AssetDetailSidebar({
         // This ensures URLs are always fresh with 7-day expiration
         if (img.s3Key) {
           try {
-            const downloadResponse = await fetchWithSessionId('/api/s3/download-url', {
+            const downloadResponse = await fetch('/api/s3/download-url', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -287,7 +287,7 @@ export default function AssetDetailSidebar({
       // Upload all files to S3
       for (const file of fileArray) {
         // Step 1: Get presigned POST URL for S3 upload
-        const presignedResponse = await fetchWithSessionId(
+        const presignedResponse = await fetch(
           `/api/video/upload/get-presigned-url?` + 
           `fileName=${encodeURIComponent(file.name)}` +
           `&fileType=${encodeURIComponent(file.type)}` +
@@ -367,7 +367,7 @@ export default function AssetDetailSidebar({
         
         let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
         try {
-          const downloadResponse = await fetchWithSessionId('/api/s3/download-url', {
+          const downloadResponse = await fetch('/api/s3/download-url', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -1296,7 +1296,7 @@ export default function AssetDetailSidebar({
                   }
 
                   // Get presigned URL
-                  const presignedResponse = await fetchWithSessionId(
+                  const presignedResponse = await fetch(
                     `/api/video/upload/get-presigned-url?` + 
                     `fileName=${encodeURIComponent(file.name)}` +
                     `&fileType=${encodeURIComponent(file.type)}` +
@@ -1331,7 +1331,7 @@ export default function AssetDetailSidebar({
                   // Get presigned download URL
                   let downloadUrl = imageUrl; // Fallback
                   try {
-                    const downloadResponse = await fetchWithSessionId('/api/s3/download-url', {
+                    const downloadResponse = await fetch('/api/s3/download-url', {
                       method: 'POST',
                       headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1412,7 +1412,7 @@ export default function AssetDetailSidebar({
                   }
 
                   // Get presigned URL
-                  const presignedResponse = await fetchWithSessionId(
+                  const presignedResponse = await fetch(
                     `/api/video/upload/get-presigned-url?` + 
                     `fileName=${encodeURIComponent(file.name)}` +
                     `&fileType=${encodeURIComponent(file.type)}` +
@@ -1447,7 +1447,7 @@ export default function AssetDetailSidebar({
                   // Get presigned download URL
                   let downloadUrl = imageUrl; // Fallback
                   try {
-                    const downloadResponse = await fetchWithSessionId('/api/s3/download-url', {
+                    const downloadResponse = await fetch('/api/s3/download-url', {
                       method: 'POST',
                       headers: {
                         'Authorization': `Bearer ${token}`,

@@ -77,18 +77,10 @@ export async function POST(
       providerId // 🔥 FIX: Log providerId
     });
 
-    // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
-    const sessionIdHeader = request.headers.get('x-session-id');
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
-    if (sessionIdHeader) {
-      headers['X-Session-Id'] = sessionIdHeader;
-      console.error('[Asset Bank Generate Angles] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
-    } else {
-      console.error('[Asset Bank Generate Angles] ⚠️ No X-Session-Id header in request - session validation may fail');
-    }
 
     const response = await fetch(url, {
       method: 'POST',

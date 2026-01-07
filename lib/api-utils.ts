@@ -1,9 +1,6 @@
 /**
  * Shared utilities for Next.js API routes
  * Provides reusable functions for forwarding requests to the backend
- * 
- * This module eliminates code duplication across API routes and ensures
- * consistent header forwarding, especially for X-Session-Id (single-device login)
  */
 
 import { NextRequest } from 'next/server';
@@ -12,7 +9,6 @@ const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai
 
 /**
  * Builds headers for forwarding requests to the backend
- * Automatically includes X-Session-Id header if present in the request
  * 
  * @param request - The incoming Next.js request
  * @param token - The authentication token
@@ -33,15 +29,6 @@ export function buildBackendHeaders(
   // Only set Content-Type if not skipped (e.g., for multipart/form-data)
   if (!skipContentType) {
     headers['Content-Type'] = contentType;
-  }
-
-  // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
-  const sessionIdHeader = request.headers.get('x-session-id');
-  if (sessionIdHeader) {
-    headers['X-Session-Id'] = sessionIdHeader;
-    console.error('[API Utils] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
-  } else {
-    console.error('[API Utils] ⚠️ No X-Session-Id header in request - session validation may fail');
   }
 
   return headers;

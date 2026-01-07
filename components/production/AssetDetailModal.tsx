@@ -21,7 +21,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { fetchWithSessionId } from '@/lib/api';
 import AssetAngleGenerationModal from './AssetAngleGenerationModal';
 import {
   DropdownMenu,
@@ -574,7 +573,7 @@ export default function AssetDetailModal({
         const formData = new FormData();
         formData.append('image', file);
 
-        const response = await fetchWithSessionId(`/api/asset-bank/${asset.id}/images`, {
+        const response = await fetch(`/api/asset-bank/${asset.id}/images`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

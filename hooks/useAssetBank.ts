@@ -11,9 +11,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import type { Asset } from '@/types/asset';
-import { fetchWithSessionId } from '@/lib/api';
 
-// 🔥 FIX: Use relative URLs to go through Next.js API proxy (which forwards X-Session-Id header)
+// Use relative URLs to go through Next.js API proxy
 // Don't call backend directly - go through /api/asset-bank route
 
 // ============================================================================
@@ -51,8 +50,8 @@ export function useAssets(screenplayId: string, context: 'creation' | 'productio
       }
 
       const contextParam = context ? `&context=${context}` : '';
-      // 🔥 FIX: Use relative URL to go through Next.js API proxy (which forwards X-Session-Id header)
-      const response = await fetchWithSessionId(`/api/asset-bank?screenplayId=${encodeURIComponent(screenplayId)}${contextParam}`, {
+      // Use relative URL to go through Next.js API proxy
+      const response = await fetch(`/api/asset-bank?screenplayId=${encodeURIComponent(screenplayId)}${contextParam}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -106,8 +105,8 @@ export function useDeleteAsset(screenplayId: string) {
         throw new Error('Not authenticated');
       }
 
-      // 🔥 FIX: Use relative URL to go through Next.js API proxy (which forwards X-Session-Id header)
-      const response = await fetchWithSessionId(`/api/asset-bank/${assetId}`, {
+      // Use relative URL to go through Next.js API proxy
+      const response = await fetch(`/api/asset-bank/${assetId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

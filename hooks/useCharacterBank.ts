@@ -11,7 +11,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import type { CharacterProfile } from '@/components/production/types';
-// import { fetchWithSessionId } from '@/lib/api'; // TEMP: Reverted to test
 
 // ============================================================================
 // HELPER: Get auth token

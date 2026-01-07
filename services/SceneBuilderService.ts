@@ -5,7 +5,7 @@
  * Handles all API calls with proper error handling and token management.
  */
 
-import { api, fetchWithSessionId } from '@/lib/api';
+import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
 
 export interface ScenePropsResponse {
@@ -103,7 +103,7 @@ export class SceneBuilderService {
     const token = await this.getToken(getTokenFn);
     
     try {
-      const response = await fetchWithSessionId(`/api/assets?ids=${propIds.join(',')}`, {
+      const response = await fetch(`/api/assets?ids=${propIds.join(',')}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -166,7 +166,7 @@ export class SceneBuilderService {
   ): Promise<any[]> {
     const token = await this.getToken(getTokenFn);
     
-    const response = await fetchWithSessionId(`/api/character-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
+    const response = await fetch(`/api/character-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
@@ -188,7 +188,7 @@ export class SceneBuilderService {
   ): Promise<CharacterHeadshot[]> {
     const token = await this.getToken(getTokenFn);
     
-    const response = await fetchWithSessionId(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+    const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     

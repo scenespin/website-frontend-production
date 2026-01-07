@@ -10,7 +10,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
-import { fetchWithSessionId } from '@/lib/api';
 
 // Location Profile from Location Bank API
 export interface LocationReference {
@@ -121,7 +120,7 @@ export function useLocations(screenplayId: string, context: 'creation' | 'produc
         throw new Error('Not authenticated');
       }
 
-      const response = await fetchWithSessionId(`/api/location-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
+      const response = await fetch(`/api/location-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -161,7 +160,7 @@ export function useDeleteLocation(screenplayId: string) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetchWithSessionId(`/api/location-bank/${locationId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+      const response = await fetch(`/api/location-bank/${locationId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

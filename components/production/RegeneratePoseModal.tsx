@@ -20,7 +20,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Sparkles, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
-import { fetchWithSessionId } from '@/lib/api';
 
 interface Model {
   id: string;
@@ -74,7 +73,7 @@ export function RegeneratePoseModal({
           return;
         }
 
-        const response = await fetchWithSessionId(`/api/model-selection/characters/${selectedQuality}`, {
+        const response = await fetch(`/api/model-selection/characters/${selectedQuality}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

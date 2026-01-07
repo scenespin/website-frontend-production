@@ -13,7 +13,6 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { fetchWithSessionId } from '@/lib/api'
 
 interface LocationDetailSidebarProps {
   location?: Location | null
@@ -166,7 +165,7 @@ export default function LocationDetailSidebar({
         const s3Key = img.metadata?.s3Key;
         if (s3Key) {
           try {
-            const downloadResponse = await fetchWithSessionId('/api/s3/download-url', {
+            const downloadResponse = await fetch('/api/s3/download-url', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -313,7 +312,7 @@ export default function LocationDetailSidebar({
         console.log(`[LocationDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
         // Step 1: Get presigned POST URL for direct S3 upload
-        const presignedResponse = await fetchWithSessionId(
+        const presignedResponse = await fetch(
           `/api/locations/upload/get-presigned-url?` +
           `fileName=${encodeURIComponent(file.name)}` +
           `&fileType=${encodeURIComponent(file.type)}` +
@@ -369,7 +368,7 @@ export default function LocationDetailSidebar({
         // Step 3: Register the uploaded image with the location via backend (only if location exists)
         // 🔥 FIX: If creating, skip registration and store in pendingImages instead
         if (location && !isCreating) {
-          const registerResponse = await fetchWithSessionId(
+          const registerResponse = await fetch(
             `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
             {
               method: 'POST',
@@ -406,7 +405,7 @@ export default function LocationDetailSidebar({
         } else if (isCreating) {
           // 🔥 FIX: During creation, generate presigned URL for display and store in pendingImages
           try {
-            const presignedUrlResponse = await fetchWithSessionId(
+            const presignedUrlResponse = await fetch(
               `/api/s3/download-url`,
               {
                 method: 'POST',
@@ -509,6 +508,12 @@ export default function LocationDetailSidebar({
           await updateLocation(location.id, {
             images: uploadedImages
           });
+
+          // 🔥 FIX: Invalidate location bank query cache so Production Hub cards refresh
+          // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
+          if (screenplayId) {
+            queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+          }
 
           // Update parent component
           const updatedLocation = { ...location, images: uploadedImages };
@@ -969,7 +974,7 @@ export default function LocationDetailSidebar({
               if (!token) throw new Error('Not authenticated');
 
               // Get presigned URL
-              const presignedResponse = await fetchWithSessionId(
+              const presignedResponse = await fetch(
                 `/api/video/upload/get-presigned-url?` + 
                 `fileName=${encodeURIComponent(file.name)}` +
                 `&fileType=${encodeURIComponent(file.type)}` +
@@ -1007,7 +1012,7 @@ export default function LocationDetailSidebar({
               const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
               let downloadUrl = s3Url; // Fallback
               try {
-                const downloadResponse = await fetchWithSessionId('/api/s3/download-url', {
+                const downloadResponse = await fetch('/api/s3/download-url', {
                   method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1049,6 +1054,12 @@ export default function LocationDetailSidebar({
                 await updateLocation(location.id, {
                   images: updatedImages
                 });
+                
+                // 🔥 FIX: Invalidate location bank query cache so Production Hub cards refresh
+                // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
+                if (screenplayId) {
+                  queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                }
                 
                 // 🔥 FIX: Sync location data from context after update (with delay for DynamoDB consistency)
                 await new Promise(resolve => setTimeout(resolve, 500));

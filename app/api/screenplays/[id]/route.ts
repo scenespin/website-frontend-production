@@ -46,18 +46,10 @@ export async function GET(
     const backendUrl = `${BACKEND_API_URL}/api/screenplays/${id}`;
     console.log('[Screenplay Get API] Proxying to backend:', backendUrl);
     
-    // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
-    const sessionIdHeader = request.headers.get('x-session-id');
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
-    if (sessionIdHeader) {
-      headers['X-Session-Id'] = sessionIdHeader;
-      console.log('[Screenplay Get API] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
-    } else {
-      console.error('[Screenplay Get API] ⚠️ No X-Session-Id header in request - session validation may fail');
-    }
     
     const backendResponse = await fetch(backendUrl, {
       method: 'GET',

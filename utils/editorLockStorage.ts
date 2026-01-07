@@ -5,7 +5,6 @@
  * Client-side functions for editor lock management
  */
 
-import { fetchWithSessionId } from '../lib/api';
 
 // ============================================================================
 // TYPES
@@ -54,7 +53,7 @@ export async function getEditorLock(screenplayId: string): Promise<EditorLockSta
   }
 
   try {
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/editor-lock`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -96,7 +95,7 @@ export async function acquireEditorLock(screenplayId: string): Promise<EditorLoc
   }
 
   try {
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/editor-lock`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -138,7 +137,7 @@ export async function releaseEditorLock(screenplayId: string): Promise<void> {
   }
 
   try {
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/editor-lock`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -170,7 +169,7 @@ export async function updateLockHeartbeat(screenplayId: string): Promise<void> {
   }
 
   try {
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/editor-lock/heartbeat`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock/heartbeat`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

@@ -6,7 +6,6 @@
  */
 
 import { useAuth } from '@clerk/nextjs';
-import { fetchWithSessionId as fetchWithSessionIdFromApi } from '../lib/api';
 
 // ============================================================================
 // TYPES
@@ -158,8 +157,6 @@ export interface UpdateScreenplayParams {
 // HELPER FUNCTIONS
 // ============================================================================
 
-// Use the shared fetchWithSessionId from lib/api.js
-const fetchWithSessionId = fetchWithSessionIdFromApi;
 
 // ============================================================================
 // API CLIENT FUNCTIONS
@@ -176,7 +173,7 @@ export async function createScreenplay(
   // No need to send Authorization header - the route uses auth() to get token
   console.log('[screenplayStorage] Creating screenplay with params:', { title: params.title, author: params.author });
   
-  const response = await fetchWithSessionId('/api/screenplays', {
+  const response = await fetch('/api/screenplays', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -238,7 +235,7 @@ export async function getScreenplay(
   // 🔥 CRITICAL: Disable browser caching to ensure fresh data is always fetched
   // Add cache-busting query parameter to force fresh request
   const cacheBuster = `?t=${Date.now()}`;
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}${cacheBuster}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}${cacheBuster}`, {
     cache: 'no-store', // Prevent browser from caching the response
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -304,7 +301,7 @@ export async function updateScreenplay(
   });
   
   // Note: Next.js API route handles auth server-side, so we don't need to send token
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplay_id}`, {
+  const response = await fetch(`/api/screenplays/${screenplay_id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -371,7 +368,7 @@ export async function deleteScreenplay(
   }
   
   // Note: Next.js API route handles auth server-side, so we don't need to send token
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json'
@@ -400,7 +397,7 @@ export async function listScreenplays(
   limit: number = 50
 ): Promise<Screenplay[]> {
   // Note: Next.js API route handles auth server-side, so we don't need to send token
-  const response = await fetchWithSessionId(`/api/screenplays/list?status=${status}&limit=${limit}`);
+  const response = await fetch(`/api/screenplays/list?status=${status}&limit=${limit}`);
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
@@ -434,7 +431,7 @@ export async function getScreenplayCount(
 ): Promise<number> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/count?status=${status}`, {
+  const response = await fetch(`/api/screenplays/count?status=${status}`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -465,7 +462,7 @@ export async function listCharacters(
   
   console.error('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/characters?context=' + context);
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/characters?context=${context}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters?context=${context}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -499,7 +496,7 @@ export async function createCharacter(
 ): Promise<Character> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/characters`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -529,7 +526,7 @@ export async function bulkCreateCharacters(
   
   console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/characters/bulk', { count: characters.length });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/characters/bulk`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -580,7 +577,7 @@ export async function bulkUpsertCharacters(
   
   console.log('[screenplayStorage] 🔥 PUT /api/screenplays/' + screenplayId + '/characters/bulk (UPSERT)', { count: characters.length });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/characters/bulk`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters/bulk`, {
     method: 'PUT', // ← PUT for UPSERT, not POST
     headers: {
       'Content-Type': 'application/json',
@@ -610,7 +607,7 @@ export async function updateCharacter(
 ): Promise<Character> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/characters/${characterId}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters/${characterId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -638,7 +635,7 @@ export async function deleteCharacter(
 ): Promise<void> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/characters/${characterId}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters/${characterId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -665,7 +662,7 @@ export async function listLocations(
 ): Promise<Location[]> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/locations?context=${context}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations?context=${context}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -693,7 +690,7 @@ export async function createLocation(
 ): Promise<Location> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/locations`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -723,7 +720,7 @@ export async function bulkCreateLocations(
   
   console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/locations/bulk', { count: locations.length });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/locations/bulk`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -753,7 +750,7 @@ export async function updateLocation(
 ): Promise<Location> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/locations/${locationId}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations/${locationId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -781,7 +778,7 @@ export async function deleteLocation(
 ): Promise<void> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/locations/${locationId}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations/${locationId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -810,7 +807,7 @@ export async function deleteAllCharacters(
   
   console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/characters (all)');
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/characters`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -836,7 +833,7 @@ export async function deleteAllLocations(
   
   console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/locations (all)');
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/locations`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -866,7 +863,7 @@ export async function listScenes(
   
   console.log('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/scenes');
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/scenes`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -892,7 +889,7 @@ export async function createScene(
 ): Promise<Scene> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/scenes`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -922,7 +919,7 @@ export async function bulkCreateScenes(
   
   console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/scenes/bulk', { count: scenes.length });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/scenes/bulk`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -952,7 +949,7 @@ export async function updateScene(
 ): Promise<Scene> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/scenes/${sceneId}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes/${sceneId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -999,7 +996,7 @@ export async function batchUpdatePropAssociations(
   
   console.log('[screenplayStorage] ✅ Token obtained, making request to:', url);
   
-  const response = await fetchWithSessionId(url, {
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1043,7 +1040,7 @@ export async function deleteScene(
 ): Promise<void> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/scenes/${sceneId}`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes/${sceneId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -1067,7 +1064,7 @@ export async function deleteAllScenes(
   
   console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/scenes (all)');
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/scenes`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -1096,7 +1093,7 @@ export async function updateRelationships(
 ): Promise<Relationships> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/relationships`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/relationships`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -1198,7 +1195,7 @@ export async function listScreenplayCollaborators(
 ): Promise<Collaborator[]> {
   try {
     const token = await getToken({ template: 'wryda-backend' });
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/collaborators`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -1233,7 +1230,7 @@ export async function addScreenplayCollaborator(
 ): Promise<Screenplay> {
   try {
     const token = await getToken({ template: 'wryda-backend' });
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/collaborators`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -1272,7 +1269,7 @@ export async function removeScreenplayCollaborator(
 ): Promise<Screenplay> {
   try {
     const token = await getToken({ template: 'wryda-backend' });
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/collaborators/${encodeURIComponent(identifier)}`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators/${encodeURIComponent(identifier)}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -1307,7 +1304,7 @@ export async function updateCollaboratorRole(
 ): Promise<Screenplay> {
   try {
     const token = await getToken({ template: 'wryda-backend' });
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/collaborators/${encodeURIComponent(identifier)}/role`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators/${encodeURIComponent(identifier)}/role`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -1345,7 +1342,7 @@ export async function getAvailableRoles(
 ): Promise<RolePreset[]> {
   try {
     const token = await getToken({ template: 'wryda-backend' });
-    const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/collaborators/roles`, {
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators/roles`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -1377,7 +1374,7 @@ export async function checkScreenplayPermission(
 ): Promise<boolean> {
   try {
     const token = await getToken({ template: 'wryda-backend' });
-    const response = await fetchWithSessionId(`/api/screenplays/test-permissions/${screenplayId}`, {
+    const response = await fetch(`/api/screenplays/test-permissions/${screenplayId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

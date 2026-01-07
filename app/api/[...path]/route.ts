@@ -114,29 +114,6 @@ async function forwardRequest(
       allHeadersArray.push([name, value]);
     });
     
-    // Always log for axios requests (credits, screenplays/list, etc.)
-    const isAxiosRequest = path.includes('credits') || 
-                          (path === 'screenplays/list') || 
-                          path.includes('video/jobs');
-    
-    if (isAxiosRequest || allHeadersArray.length < 10) { // Log for axios requests or if few headers (debugging)
-      console.error(`[API Proxy] 🔍 ALL HEADERS for ${method} ${path}:`, {
-        totalHeaders: allHeadersArray.length,
-        headers: allHeadersArray.map(([name, value]) => ({
-          name,
-          value: value.length > 50 ? value.substring(0, 50) + '...' : value,
-          lowerName: name.toLowerCase()
-        })),
-        hasSessionHeader: allHeadersArray.some(([name]) => {
-          const lower = name.toLowerCase();
-          return lower.includes('session') || (lower.includes('sid') && allHeadersArray.find(([n]) => n.toLowerCase() === lower)?.[1]?.startsWith('sess_'));
-        }),
-        sessionHeaders: allHeadersArray.filter(([name]) => {
-          const lower = name.toLowerCase();
-          return lower.includes('session') || lower.includes('sid');
-        }).map(([name, value]) => ({ name, value: value.substring(0, 30) + '...' }))
-      });
-    }
     
     // 🔥 FIX: Preserve Content-Type header and handle multipart/form-data correctly
     const contentType = request.headers.get('content-type') || '';
@@ -173,79 +150,6 @@ async function forwardRequest(
     
     if (authHeader) {
       headers['Authorization'] = authHeader;
-    }
-    
-    // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
-    // Next.js API routes need to explicitly forward headers from client requests
-    // Axios may send headers with different casing, so we need to check all variations
-    // Iterate through all headers to find session ID (case-insensitive search)
-    let sessionIdHeader = null;
-    let sessionIdHeaderName = null;
-    
-    // First, try common variations
-    const commonVariations = ['x-session-id', 'X-Session-Id', 'x-sessionid', 'X-SessionID'];
-    for (const headerName of commonVariations) {
-      const value = request.headers.get(headerName);
-      if (value) {
-        sessionIdHeader = value;
-        sessionIdHeaderName = headerName;
-        break;
-      }
-    }
-    
-    // If not found, iterate through ALL headers to find any that match "session" or "sid"
-    // Next.js headers might be stored in a Headers object, so we need to iterate properly
-    if (!sessionIdHeader) {
-      // Try iterating through headers using forEach (Headers API method)
-      request.headers.forEach((value, name) => {
-        const lowerName = name.toLowerCase();
-        if ((lowerName.includes('session') && lowerName.includes('id')) || 
-            lowerName === 'x-session-id' ||
-            (lowerName.includes('sid') && value && value.startsWith('sess_'))) {
-          if (!sessionIdHeader) { // Only set first match
-            sessionIdHeader = value;
-            sessionIdHeaderName = name;
-            console.error(`[API Proxy] 🔍 Found session ID header via iteration: ${name} = ${value.substring(0, 20)}...`);
-          }
-        }
-      });
-    }
-    
-    if (sessionIdHeader) {
-      headers['X-Session-Id'] = sessionIdHeader;
-      console.error(`[API Proxy] ✅ Forwarding X-Session-Id header: ${sessionIdHeader.substring(0, 20)}...`, {
-        path,
-        method,
-        headerLength: sessionIdHeader.length,
-        originalHeaderName: sessionIdHeaderName,
-        foundVia: sessionIdHeaderName ? 'direct' : 'iteration'
-      });
-    } else {
-      // 🔥 DEBUG: Log all headers to see what's actually being sent
-      // This helps identify if axios is sending the header with a different name
-      const allHeaders = Object.fromEntries(request.headers.entries());
-      const headerKeys = Object.keys(allHeaders);
-      const sessionRelatedHeaders = headerKeys.filter(h => {
-        const lower = h.toLowerCase();
-        return lower.includes('session') || lower.includes('sid');
-      });
-      
-      // Log first few header values for debugging (but truncate long values)
-      const headerPreview = Object.fromEntries(
-        headerKeys.slice(0, 10).map(key => [
-          key, 
-          allHeaders[key]?.length > 50 ? allHeaders[key].substring(0, 50) + '...' : allHeaders[key]
-        ])
-      );
-      
-      console.error(`[API Proxy] ⚠️ No X-Session-Id header in request - session validation may fail`, {
-        path,
-        method,
-        sessionRelatedHeaders: sessionRelatedHeaders.length > 0 ? sessionRelatedHeaders.join(', ') : 'none',
-        allHeaderKeys: headerKeys.slice(0, 20).join(', '), // First 20 headers to avoid log spam
-        totalHeaders: headerKeys.length,
-        headerPreview: JSON.stringify(headerPreview)
-      });
     }
     
     console.error(`[API Proxy] 📤 Forwarding with Content-Type: ${isMultipart ? 'auto (multipart)' : (headers['Content-Type'] || 'none')}`);

@@ -46,9 +46,6 @@ export async function GET(
       );
     }
 
-    // Extract X-Session-Id header from incoming request and forward to backend
-    const sessionIdHeader = request.headers.get('x-session-id') || request.headers.get('X-Session-Id');
-    
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
     const url = `${backendUrl}/api/character-bank/${characterId}?screenplayId=${screenplayId}`;
@@ -57,14 +54,6 @@ export async function GET(
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
-    
-    // Forward X-Session-Id header if present
-    if (sessionIdHeader) {
-      backendHeaders['X-Session-Id'] = sessionIdHeader;
-      console.log('[Character Bank API] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
-    } else {
-      console.warn('[Character Bank API] ⚠️ No X-Session-Id header in request - session validation may fail');
-    }
 
     const response = await fetch(url, {
       method: 'GET',
@@ -137,9 +126,6 @@ export async function PUT(
     // Get request body
     const body = await request.json();
 
-    // Extract X-Session-Id header from incoming request and forward to backend
-    const sessionIdHeader = request.headers.get('x-session-id') || request.headers.get('X-Session-Id');
-    
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
     const url = `${backendUrl}/api/character-bank/${characterId}${screenplayId ? `?screenplayId=${encodeURIComponent(screenplayId)}` : ''}`;
@@ -148,14 +134,6 @@ export async function PUT(
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
-    
-    // Forward X-Session-Id header if present
-    if (sessionIdHeader) {
-      backendHeaders['X-Session-Id'] = sessionIdHeader;
-      console.log('[Character Bank PUT API] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
-    } else {
-      console.warn('[Character Bank PUT API] ⚠️ No X-Session-Id header in request - session validation may fail');
-    }
 
     const response = await fetch(url, {
       method: 'PUT',

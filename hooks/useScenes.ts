@@ -13,7 +13,6 @@ import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import type { MediaFile } from '@/types/media';
 import { useMediaFiles, useMediaFolderTree } from './useMediaLibrary';
-import { fetchWithSessionId } from '@/lib/api';
 
 /**
  * Scene video data structure
@@ -46,7 +45,7 @@ export function useScenes(screenplayId: string, enabled: boolean = true) {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      const response = await fetchWithSessionId(`/api/screenplay/${screenplayId}/scenes`, {
+      const response = await fetch(`/api/screenplay/${screenplayId}/scenes`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 

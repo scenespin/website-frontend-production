@@ -13,7 +13,6 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-// import { fetchWithSessionId } from '@/lib/api' // TEMP: Reverted to test
 
 interface CharacterDetailSidebarProps {
   character?: Character | null

@@ -9,7 +9,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { fetchWithSessionId } from '@/lib/api';
 
 interface StorageConnection {
   provider: string;
@@ -61,7 +60,7 @@ export function useStorageConnections(): StorageConnections {
         return;
       }
 
-      const response = await fetchWithSessionId('/api/storage/connections', {
+      const response = await fetch('/api/storage/connections', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
