@@ -390,12 +390,33 @@ export function LocationAngleSelector({
     return keys;
   }, [allPhotos]);
   
-  // 🔥 FIX: Use provided locationFullImageUrlsMap if available, otherwise fetch our own
+  // 🔥 FIX: Check if provided locationFullImageUrlsMap actually has URLs for the photos we need
+  // If not, we need to fetch them ourselves
+  const providedMapHasNeededUrls = React.useMemo(() => {
+    if (!locationFullImageUrlsMap || locationFullImageUrlsMap.size === 0) return false;
+    // Check if at least 30% of our photos have URLs in the provided map
+    let foundCount = 0;
+    allPhotos.forEach(photo => {
+      if (photo.s3Key && locationFullImageUrlsMap.has(photo.s3Key)) {
+        foundCount++;
+      }
+    });
+    return foundCount >= allPhotos.length * 0.3;
+  }, [locationFullImageUrlsMap, allPhotos]);
+  
+  // 🔥 FIX: Use provided locationFullImageUrlsMap if it has the URLs we need, otherwise fetch our own
   const { data: fetchedFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
     fullImageS3Keys,
-    fullImageS3Keys.length > 0 && !locationFullImageUrlsMap && (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0 || thumbnailUrlsMap.size < fullImageS3Keys.length * 0.3) // Fetch if no provided map and no thumbnails or less than 30% loaded
+    fullImageS3Keys.length > 0 && !providedMapHasNeededUrls && (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0 || thumbnailUrlsMap.size < fullImageS3Keys.length * 0.3) // Fetch if provided map doesn't have needed URLs and no thumbnails or less than 30% loaded
   );
-  const fullImageUrlsMap = locationFullImageUrlsMap || fetchedFullImageUrlsMap;
+  // Merge provided map with fetched map (fetched map takes precedence for missing entries)
+  const fullImageUrlsMap = React.useMemo(() => {
+    const merged = new Map(locationFullImageUrlsMap || new Map());
+    fetchedFullImageUrlsMap.forEach((url, s3Key) => {
+      merged.set(s3Key, url);
+    });
+    return merged;
+  }, [locationFullImageUrlsMap, fetchedFullImageUrlsMap]);
 
   const getAngleLabel = (angle: string): string => {
     const labels: Record<string, string> = {

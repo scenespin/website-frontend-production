@@ -109,6 +109,10 @@ export function SceneAnalysisStep({
         onPropsToShotsChange({ ...propsToShots, ...initialAssignment });
       }
     }
+    // Reset flag when props are manually selected again
+    if (Object.keys(propsToShots).length > 0) {
+      userDeselectedPropsRef.current = false;
+    }
   }, [sceneAnalysisResult?.shotBreakdown?.shots, sceneProps, propsToShots, onPropsToShotsChange]);
 
   if (isAnalyzing) {
@@ -184,6 +188,8 @@ export function SceneAnalysisStep({
                     e.preventDefault();
                     e.stopPropagation();
                     console.log('[SceneAnalysisStep] Props Deselect All clicked', { currentPropsToShots: propsToShots });
+                    // 🔥 FIX: Set flag to prevent auto-select from re-selecting
+                    userDeselectedPropsRef.current = true;
                     // Deselect All: Remove all props from all shots
                     // 🔥 FIX: Force state update by creating a new empty object (not reusing empty object)
                     const emptyPropsToShots: Record<string, number[]> = {};
