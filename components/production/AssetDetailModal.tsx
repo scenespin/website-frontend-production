@@ -1080,8 +1080,8 @@ export default function AssetDetailModal({
                               {regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim() && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                               )}
-                              {/* Top-right label: Angle/Regenerated */}
-                              <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
+                              {/* Top-left label: Angle/Regenerated */}
+                              <div className={`absolute top-1 left-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
                                 img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
                               }`}>
                                 {img.isRegenerated ? 'Regenerated' : 'Angle'}
@@ -1106,16 +1106,16 @@ export default function AssetDetailModal({
                                 <div className="absolute bottom-2 left-2 right-2">
                                   <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
                                 </div>
-                                {/* Delete button - all Production Hub images can be deleted - only show when not in selection mode */}
+                                {/* Three dots dropdown - always visible (matching character style) */}
                                 {!img.isBase && !selectionMode && (
-                              <div className="absolute top-2 right-2">
+                              <div className="absolute top-2 right-2 pointer-events-auto z-20">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <button
-                                      className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
+                                      className={`${isMobile ? 'p-1.5 bg-[#DC143C]' : 'p-2 bg-[#DC143C]/90 hover:bg-[#DC143C]'} rounded-lg transition-colors ${isMobile ? 'min-w-[32px] min-h-[32px]' : 'min-w-[36px] min-h-[36px]'} flex items-center justify-center shadow-lg`}
                                       onClick={(e) => e.stopPropagation()}
                                     >
-                                      <MoreVertical className="w-3 h-3 text-white" />
+                                      <MoreVertical className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white`} />
                                     </button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent 
