@@ -131,24 +131,13 @@ export function LocationAngleSelector({
       isBase?: boolean;
     }>> = {};
     
-    // Add base reference to "Creation" group
-    if (baseReference) {
-      if (!groups['Creation']) groups['Creation'] = [];
-      groups['Creation'].push({
-        type: 'angle',
-        id: undefined,
-        angleId: undefined,
-        imageUrl: baseReference.imageUrl,
-        s3Key: baseReference.s3Key,
-        label: `Base (${baseReference.angle})`,
-        badge: 'Angle',
-        isBase: true
-      });
-    }
+    // 🔥 FIX: Track which s3Keys are already added to avoid duplication
+    const addedS3Keys = new Set<string>();
     
-    // Group angle variations by timeOfDay/weather
+    // Group angle variations by timeOfDay/weather FIRST
+    // This ensures baseReference that's also in angleVariations gets grouped correctly
     angleVariations.forEach(angle => {
-      // 🔥 FIX: Check if this is the base reference (creation image)
+      // Check if this is the base reference (creation image)
       const isBaseReference = baseReference && angle.s3Key === baseReference.s3Key;
       
       const metadataParts = [
@@ -157,6 +146,7 @@ export function LocationAngleSelector({
       ].filter(Boolean);
       
       // 🔥 FIX: If it's the base reference and has no metadata, put it in "Creation Image" group
+      // Otherwise use metadata or "No Metadata"
       const groupKey = isBaseReference && metadataParts.length === 0
         ? 'Creation Image'
         : metadataParts.length > 0 
@@ -176,7 +166,26 @@ export function LocationAngleSelector({
         weather: angle.weather,
         isBase: isBaseReference
       });
+      
+      addedS3Keys.add(angle.s3Key);
     });
+    
+    // 🔥 FIX: Only add baseReference to "Creation Image" group if it's NOT already in angleVariations
+    // This prevents duplication - baseReference should only appear once
+    if (baseReference && !addedS3Keys.has(baseReference.s3Key)) {
+      if (!groups['Creation Image']) groups['Creation Image'] = [];
+      groups['Creation Image'].push({
+        type: 'angle',
+        id: undefined,
+        angleId: undefined,
+        imageUrl: baseReference.imageUrl,
+        s3Key: baseReference.s3Key,
+        label: `Base (${baseReference.angle})`,
+        badge: 'Angle',
+        isBase: true
+      });
+      addedS3Keys.add(baseReference.s3Key);
+    }
     
     // Group backgrounds by timeOfDay/weather (same grouping logic)
     backgrounds.forEach(background => {
@@ -219,32 +228,41 @@ export function LocationAngleSelector({
       
       if (isOnlyCreationImage) {
         // Rename "No Metadata" to "Creation Image"
-        groups['Creation Image'] = groups['No Metadata'];
+        groups['Creation Image'] = groups['Creation Image'] || [];
+        groups['Creation Image'].push(...groups['No Metadata']);
         delete groups['No Metadata'];
       }
+    }
+    
+    // 🔥 FIX: Merge "Creation" and "Creation Image" into a single "Creation Image" group
+    if (groups['Creation'] && groups['Creation Image']) {
+      groups['Creation Image'].push(...groups['Creation']);
+      delete groups['Creation'];
+    } else if (groups['Creation']) {
+      // Rename "Creation" to "Creation Image" for consistency
+      groups['Creation Image'] = groups['Creation'];
+      delete groups['Creation'];
     }
     
     return groups;
   }, [baseReference, angleVariations, backgrounds]);
   
   // Get all group keys (sorted: "No Metadata" last, then alphabetically)
-  // IMPORTANT: Only include "Creation" if there are NO Production Hub images
+  // IMPORTANT: Only include "Creation Image" if there are NO Production Hub images
   const groupKeys = React.useMemo(() => {
     const keys = Object.keys(groupedPhotos);
-    const hasProductionHubImages = keys.some(k => k !== 'Creation' && k !== 'Creation Image' && k !== 'No Metadata');
+    const hasProductionHubImages = keys.some(k => k !== 'Creation Image' && k !== 'No Metadata');
     
-    // Only include Creation if it's the absolute last resort (no Production Hub images)
+    // Only include Creation Image if it's the absolute last resort (no Production Hub images)
     const filteredKeys = hasProductionHubImages 
-      ? keys.filter(k => k !== 'Creation')
+      ? keys.filter(k => k !== 'Creation Image')
       : keys;
     
     return filteredKeys.sort((a, b) => {
       if (a === 'No Metadata') return 1;
       if (b === 'No Metadata') return -1;
-      if (a === 'Creation Image') return 1;
+      if (a === 'Creation Image') return 1; // Creation Image last (only if no Production Hub)
       if (b === 'Creation Image') return -1;
-      if (a === 'Creation') return -1; // Creation first (only if no Production Hub)
-      if (b === 'Creation') return 1;
       return a.localeCompare(b);
     });
   }, [groupedPhotos]);
@@ -259,12 +277,12 @@ export function LocationAngleSelector({
   const [selectedGroup, setSelectedGroup] = React.useState<string>(() => {
     // If we have a selected reference, find which group it belongs to
     if (currentSelection) {
-      // Check if it's in baseReference (Creation group)
+      // Check if it's in baseReference (Creation Image group)
       if (baseReference && (
         (currentSelection.s3Key && baseReference.s3Key === currentSelection.s3Key) ||
         (currentSelection.imageUrl && baseReference.imageUrl === currentSelection.imageUrl)
       )) {
-        return 'Creation';
+        return 'Creation Image';
       }
       // Check all photos (angles and backgrounds)
       for (const [groupKey, photos] of Object.entries(groupedPhotos)) {
@@ -279,9 +297,9 @@ export function LocationAngleSelector({
         }
       }
     }
-    // Prefer first Production Hub group (not "Creation")
-    const productionHubGroups = groupKeys.filter(k => k !== 'Creation');
-    return productionHubGroups.length > 0 ? productionHubGroups[0] : groupKeys[0] || 'Creation';
+    // Prefer first Production Hub group (not "Creation Image")
+    const productionHubGroups = groupKeys.filter(k => k !== 'Creation Image');
+    return productionHubGroups.length > 0 ? productionHubGroups[0] : groupKeys[0] || 'Creation Image';
   });
   
   // Sync selectedGroup when currentSelection changes externally
@@ -292,8 +310,8 @@ export function LocationAngleSelector({
         (currentSelection.s3Key && baseReference.s3Key === currentSelection.s3Key) ||
         (currentSelection.imageUrl && baseReference.imageUrl === currentSelection.imageUrl)
       )) {
-        if (groupKeys.includes('Creation')) {
-          setSelectedGroup('Creation');
+        if (groupKeys.includes('Creation Image')) {
+          setSelectedGroup('Creation Image');
         }
         return;
       }
@@ -488,10 +506,10 @@ export function LocationAngleSelector({
             </div>
           )}
           
-          {/* Time of Day/Weather Group Selector (similar to outfit dropdown) - Only show if angles available AND not just Creation/No Metadata */}
+          {/* Time of Day/Weather Group Selector (similar to outfit dropdown) - Only show if angles available AND not just Creation Image/No Metadata */}
           {(() => {
-            // 🔥 FIX: Hide dropdown if only "Creation" and/or "No Metadata" are available
-            const hasProductionHubImages = groupKeys.some(k => k !== 'Creation' && k !== 'No Metadata');
+            // 🔥 FIX: Hide dropdown if only "Creation Image" and/or "No Metadata" are available
+            const hasProductionHubImages = groupKeys.some(k => k !== 'Creation Image' && k !== 'No Metadata');
             return groupKeys.length > 1 && allPhotos.length > 0 && hasProductionHubImages;
           })() && (
             <div className="flex items-center gap-2">
@@ -521,7 +539,7 @@ export function LocationAngleSelector({
                 {groupKeys.map((groupKey) => {
                   const count = groupedPhotos[groupKey]?.length || 0;
                   let displayName: string;
-                  if (groupKey === 'Creation') {
+                  if (groupKey === 'Creation Image') {
                     displayName = 'Creation Image';
                   } else if (groupKey === 'No Metadata') {
                     displayName = 'No Metadata';
@@ -573,6 +591,8 @@ export function LocationAngleSelector({
           <button
             key={photo.s3Key || photo.imageUrl || `${photo.type}-${photo.id || idx}`}
             onClick={() => {
+              // 🔥 FIX: Always trigger callback, even if already selected
+              // This ensures the parent state updates and the reference section refreshes
               handleSelectionChange({
                 type: photo.type,
                 angleId: photo.angleId,
@@ -618,6 +638,11 @@ export function LocationAngleSelector({
                 );
               }
               
+              // 🔥 FIX: Get fallback URLs for progressive loading (capture in closure)
+              const thumbnailUrl = thumbnailS3Key ? thumbnailUrlsMap?.get(thumbnailS3Key) : null;
+              const fullImageUrl = photo.s3Key ? fullImageUrlsMap?.get(photo.s3Key) : null;
+              const fallbackUrl = photo.imageUrl;
+              
               return (
                 <img
                   src={displayUrl}
@@ -630,8 +655,22 @@ export function LocationAngleSelector({
                   loading="lazy"
                   onError={(e) => {
                     const imgElement = e.target as HTMLImageElement;
-                    // If image fails, hide it
-                    imgElement.style.display = 'none';
+                    const currentSrc = imgElement.src;
+                    
+                    // 🔥 FIX: Progressive fallback - try thumbnail, then full image, then fallback URL
+                    if (currentSrc === displayUrl && thumbnailUrl && thumbnailUrl !== displayUrl) {
+                      // Try thumbnail URL if different from current
+                      imgElement.src = thumbnailUrl;
+                    } else if (currentSrc !== fullImageUrl && fullImageUrl && fullImageUrl !== displayUrl && fullImageUrl !== thumbnailUrl) {
+                      // Try full image URL if different from current and thumbnail
+                      imgElement.src = fullImageUrl;
+                    } else if (currentSrc !== fallbackUrl && fallbackUrl && isValidImageUrl(fallbackUrl)) {
+                      // Try fallback URL if it's a valid URL
+                      imgElement.src = fallbackUrl;
+                    } else {
+                      // If all fallbacks fail, show placeholder
+                      imgElement.style.display = 'none';
+                    }
                   }}
                 />
               );
