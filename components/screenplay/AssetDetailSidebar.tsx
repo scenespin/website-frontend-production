@@ -436,14 +436,20 @@ export default function AssetDetailSidebar({
             images: updatedImages
           });
           
-          // 🔥 FIX: Invalidate and refetch asset bank query cache so Production Hub cards refresh
-          // Add small delay to account for DynamoDB eventual consistency
+          // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
+          // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
           if (screenplayId) {
+            // First, remove the query from cache completely to force a fresh fetch
+            queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            // Then invalidate to mark as stale (in case query is recreated before refetch)
             queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            // Force immediate refetch after delay to ensure fresh data
+            // Force refetch after delay to ensure fresh data from DynamoDB
             setTimeout(() => {
-              queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            }, 1000); // 1 second delay for DynamoDB eventual consistency
+              queryClient.refetchQueries({ 
+                queryKey: ['assets', screenplayId, 'production-hub'],
+                type: 'active' // Only refetch active queries
+              });
+            }, 2000); // 2 second delay for DynamoDB eventual consistency
           }
           
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
@@ -579,14 +585,20 @@ export default function AssetDetailSidebar({
       // Update via API
       await updateAsset(asset.id, updateData);
       
-      // 🔥 FIX: Invalidate and refetch asset bank query cache so Production Hub cards refresh
-      // Add small delay to account for DynamoDB eventual consistency
+      // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
+      // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
       if (screenplayId) {
+        // First, remove the query from cache completely to force a fresh fetch
+        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        // Then invalidate to mark as stale (in case query is recreated before refetch)
         queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        // Force immediate refetch after delay to ensure fresh data
+        // Force refetch after delay to ensure fresh data from DynamoDB
         setTimeout(() => {
-          queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        }, 1000); // 1 second delay for DynamoDB eventual consistency
+          queryClient.refetchQueries({ 
+            queryKey: ['assets', screenplayId, 'production-hub'],
+            type: 'active' // Only refetch active queries
+          });
+        }, 2000); // 2 second delay for DynamoDB eventual consistency
       }
       
       // Sync from context after update (with delay for DynamoDB consistency)

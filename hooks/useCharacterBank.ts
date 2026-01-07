@@ -65,7 +65,8 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
       return characters;
     },
     enabled: enabled && !!screenplayId,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Always consider data stale to allow refetches after cache invalidation
+    refetchOnMount: 'always', // Always refetch when component mounts to ensure fresh data
   });
 }
 

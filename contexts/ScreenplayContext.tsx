@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { useAuth, useUser } from '@clerk/nextjs';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import type {
     StoryBeat,
     Scene,
@@ -2857,6 +2858,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 console.log('[ScreenplayContext] ✅ Deleted character from DynamoDB');
                 
+                // 🔥 FIX: Aggressively clear and refetch Production Hub cache so cards update immediately
+                if (screenplayId) {
+                    // First, remove the query from cache completely to force a fresh fetch
+                    queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    // Then invalidate to mark as stale (in case query is recreated before refetch)
+                    queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                    // Force refetch after delay to ensure fresh data from DynamoDB
+                    setTimeout(() => {
+                        queryClient.refetchQueries({ 
+                            queryKey: ['characters', screenplayId, 'production-hub'],
+                            type: 'active' // Only refetch active queries
+                        });
+                    }, 2000); // 2 second delay for DynamoDB eventual consistency
+                }
+                
                 // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
                 forceReloadRef.current = true;
                 hasInitializedRef.current = false;
@@ -2876,7 +2892,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             entityType: 'character',
             removedReferences: removedCount
         };
-    }, [characters, relationships, screenplayId, getToken]);
+    }, [characters, relationships, screenplayId, getToken, queryClient]);
     
     const addCharacterToScene = useCallback(async (characterId: string, sceneId: string) => {
         setRelationships(prev => {
@@ -4124,6 +4140,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const apiCharacters = transformCharactersToAPI(newCharacters);
                 await bulkCreateCharacters(idToUse, apiCharacters, getToken);
                 console.log('[ScreenplayContext] ✅ Saved new characters to DynamoDB');
+                
+                // 🔥 FIX: Aggressively clear and refetch Production Hub cache so cards update with new characters
+                if (idToUse) {
+                    // First, remove the query from cache completely to force a fresh fetch
+                    queryClient.removeQueries({ queryKey: ['characters', idToUse, 'production-hub'] });
+                    // Then invalidate to mark as stale (in case query is recreated before refetch)
+                    queryClient.invalidateQueries({ queryKey: ['characters', idToUse, 'production-hub'] });
+                    // Force refetch after delay to ensure fresh data from DynamoDB
+                    setTimeout(() => {
+                        queryClient.refetchQueries({ 
+                            queryKey: ['characters', idToUse, 'production-hub'],
+                            type: 'active' // Only refetch active queries
+                        });
+                    }, 2000); // 2 second delay for DynamoDB eventual consistency
+                }
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save characters:', error);
                 throw error;
@@ -4136,7 +4167,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         console.log('[ScreenplayContext] ✅ Bulk import complete:', newCharacters.length, 'new characters,', allCharacters.length, 'total');
         return newCharacters;
-    }, [characters, screenplayId]);
+    }, [characters, screenplayId, getToken, queryClient]);
     
     const bulkImportLocations = useCallback(async (
         locationNames: string[], 
@@ -5385,6 +5416,31 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 ]);
                 
                 console.log('[ScreenplayContext] ✅ Cleared EVERYTHING from DynamoDB (scenes, characters, locations)');
+                
+                // 🔥 FIX: Aggressively clear and refetch Production Hub cache so cards update immediately
+                // Remove all queries from cache completely to force fresh fetches
+                queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                // Then invalidate to mark as stale (in case queries are recreated before refetch)
+                queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                // Force refetch after delay to ensure fresh data from DynamoDB
+                setTimeout(() => {
+                    queryClient.refetchQueries({ 
+                        queryKey: ['characters', screenplayId, 'production-hub'],
+                        type: 'active' // Only refetch active queries
+                    });
+                    queryClient.refetchQueries({ 
+                        queryKey: ['locations', screenplayId, 'production-hub'],
+                        type: 'active'
+                    });
+                    queryClient.refetchQueries({ 
+                        queryKey: ['assets', screenplayId, 'production-hub'],
+                        type: 'active'
+                    });
+                }, 2000); // 2 second delay for DynamoDB eventual consistency
             } catch (err) {
                 console.error('[ScreenplayContext] Failed to clear from DynamoDB:', err);
                 throw err; // Re-throw so toolbar shows error
@@ -5413,7 +5469,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         console.log('[ScreenplayContext] ✅ ALL data cleared from DynamoDB + local state (COMPLETE RESET)');
         console.log('[ScreenplayContext] 🔓 Reset flags - will create fresh 8-sequence structure on next initialization');
-    }, [screenplayId]);
+    }, [screenplayId, getToken, queryClient]);
     
     // ========================================================================
     // Get Current State (No Closure Issues)
