@@ -27,12 +27,17 @@ const AuthInitializer = () => {
 
   // 🔥 NEW: Register active session (called on login)
   // Memoized with useCallback to avoid infinite loops in useEffect
-  const registerActiveSession = useCallback(async () => {
+  // 🔥 FIX: Added retry logic with exponential backoff to handle race conditions
+  const registerActiveSession = useCallback(async (retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAYS = [100, 300, 500]; // Exponential backoff delays in ms
+    
     try {
       console.log('[Auth] 🔄 Starting session registration...', {
         hasSession: !!session,
         sessionId: session?.id || 'none',
-        isSignedIn
+        isSignedIn,
+        retryAttempt: retryCount
       });
 
       const token = await getToken({ template: 'wryda-backend' });
@@ -89,7 +94,8 @@ const AuthInitializer = () => {
         console.log('[Auth] ✅ Active session registered for single-device login', {
           sessionId: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
           registeredSessionId: data?.session?.sessionId || 'N/A',
-          success: data?.success
+          success: data?.success,
+          retryAttempt: retryCount
         });
         // Ensure sessionId is set after successful registration
         if (sessionId) {
@@ -106,6 +112,25 @@ const AuthInitializer = () => {
         
         // Expand error object for better debugging
         const errorMessage = errorData?.message || errorData?.error || JSON.stringify(errorData);
+        
+        // 🔥 FIX: Retry on 500 errors (server errors) or 401 if it's not SessionExpired
+        // This handles race conditions where the backend might be processing another registration
+        const shouldRetry = (response.status === 500 || (response.status === 401 && errorData.error !== 'SessionExpired')) 
+          && retryCount < MAX_RETRIES;
+        
+        if (shouldRetry) {
+          const delay = RETRY_DELAYS[retryCount] || 500;
+          console.warn(`[Auth] ⚠️ Registration failed, retrying in ${delay}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`, {
+            status: response.status,
+            errorMessage: errorMessage,
+            sessionId: sessionId ? sessionId.substring(0, 20) + '...' : 'none'
+          });
+          
+          // Retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return registerActiveSession(retryCount + 1);
+        }
+        
         console.error('[Auth] ❌ Failed to register session:', {
           status: response.status,
           statusText: response.statusText,
@@ -115,7 +140,9 @@ const AuthInitializer = () => {
           sessionIdPreview: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
           hasToken: !!token,
           tokenLength: token?.length || 0,
-          headersSent: Object.keys(headers)
+          headersSent: Object.keys(headers),
+          retryAttempt: retryCount,
+          maxRetriesReached: retryCount >= MAX_RETRIES
         });
         
         if (response.status === 401) {
@@ -132,14 +159,27 @@ const AuthInitializer = () => {
         }
       }
     } catch (error) {
-      console.error('[Auth] ❌ Exception during session registration:', error);
-      // Don't block login if session registration fails
+      // 🔥 FIX: Retry on network errors too
+      if (retryCount < MAX_RETRIES) {
+        const delay = RETRY_DELAYS[retryCount] || 500;
+        console.warn(`[Auth] ⚠️ Network error during registration, retrying in ${delay}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`, {
+          error: error.message,
+          sessionId: session?.id ? session.id.substring(0, 20) + '...' : 'none'
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return registerActiveSession(retryCount + 1);
+      }
+      
+      console.error('[Auth] ❌ Exception during session registration (max retries reached):', error);
+      // Don't block login if session registration fails after retries
     }
   }, [isSignedIn, session?.id, getToken]); // Dependencies for registerActiveSession
 
   // 🔥 CRITICAL: Separate effect to watch for session.id availability
   // The session object might not be available immediately, so we need to watch for it
   // IMPORTANT: Set session ID SYNCHRONOUSLY before any API calls are made
+  // 🔥 FIX: Added debouncing to prevent rapid re-registrations during device switching
   useEffect(() => {
     if (isSignedIn && session?.id) {
       const sessionId = session.id;
@@ -152,9 +192,28 @@ const AuthInitializer = () => {
         setBeforeRegistration: true
       });
       
-      // Register session once we have the session ID
-      // This will replace any existing session on the backend
-      registerActiveSession();
+      // 🔥 FIX: Debounce session registration to prevent rapid re-registrations
+      // This prevents race conditions when switching between devices rapidly
+      // Wait 200ms before registering to ensure session ID is stable
+      const registrationTimer = setTimeout(() => {
+        // Double-check session ID hasn't changed during the debounce period
+        if (session?.id === sessionId && isSignedIn) {
+          // Register session once we have the session ID
+          // This will replace any existing session on the backend
+          registerActiveSession();
+        } else {
+          console.log('[Auth] ⏭️ Skipping registration - session ID changed during debounce period', {
+            originalSessionId: sessionId.substring(0, 20) + '...',
+            currentSessionId: session?.id ? session.id.substring(0, 20) + '...' : 'none',
+            stillSignedIn: isSignedIn
+          });
+        }
+      }, 200); // 200ms debounce delay
+      
+      // Cleanup: cancel registration if session ID changes before debounce completes
+      return () => {
+        clearTimeout(registrationTimer);
+      };
     } else if (!isSignedIn) {
       setCurrentSessionId(null);
     }
