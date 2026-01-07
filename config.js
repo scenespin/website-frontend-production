@@ -40,8 +40,8 @@ const config = {
         isFeatured: true,
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1SKx4VICG7b2tCpeJWQJnGER" // $29/mo
-            : "price_pro_prod_TODO",
+            ? "price_1SKx4VICG7b2tCpeJWQJnGER" // $29/mo (test mode)
+            : "price_1Smba9ICG7b2tCpeg7QYsNYr", // $29/mo (live mode)
         name: "Pro",
         description: "Same features. Just more credits.",
         price: 29,
@@ -61,14 +61,14 @@ const config = {
       {
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1SNesiICG7b2tCpeTKDjOfHU" // $149/mo
-            : "price_ultra_prod_TODO",
+            ? "price_1SNesiICG7b2tCpeTKDjOfHU" // $99/mo (test mode)
+            : "price_1SmbaAICG7b2tCpej3EDo7Vf", // $99/mo (live mode)
         name: "Ultra",
         description: "Production volume. Same features.",
-        price: 149,
+        price: 99,
         priceAnchor: null,
         features: [
-          { name: "20,000 credits/month" },
+          { name: "12,000 credits/month" },
           { name: "Everything in Free" },
           { name: "All quality tiers unlocked" },
           { name: "Perfect for studios & agencies" },
@@ -77,20 +77,20 @@ const config = {
         // Signup page specific
         signupHeadline: "Scale Your Production",
         signupSubheadline: "Enterprise-grade tools for teams and agencies",
-        signupValueProp: "20,000 monthly credits for unlimited creative power",
+        signupValueProp: "12,000 monthly credits for unlimited creative power",
         targetAudience: "Production companies, agencies, and high-volume creators",
       },
       {
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1SN5tWICG7b2tCpecu9dNwif" // $399/mo
-            : "price_studio_prod_TODO",
+            ? "price_1SN5tWICG7b2tCpecu9dNwif" // $399/mo (test mode)
+            : "price_1SmbaBICG7b2tCpeyOXjzalB", // $399/mo (live mode)
         name: "Studio",
         description: "Enterprise teams. Same features.",
         price: 399,
         priceAnchor: null,
         features: [
-          { name: "75,000 credits/month" },
+          { name: "50,000 credits/month" },
           { name: "Everything in Free" },
           { name: "All quality tiers unlocked" },
           { name: "Massive production capacity" },
@@ -99,7 +99,7 @@ const config = {
         // Signup page specific
         signupHeadline: "Enterprise-Level Power",
         signupSubheadline: "Built for studios and large production teams",
-        signupValueProp: "75,000 monthly credits for enterprise-grade reliability",
+        signupValueProp: "50,000 monthly credits for enterprise-grade reliability",
         targetAudience: "Large studios, streaming platforms, and enterprise teams",
       },
     ],

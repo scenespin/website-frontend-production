@@ -686,58 +686,58 @@ export function ImageViewer({
               ) : (
                 // Desktop: Full controls
                 <>
-                  {onDownload && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDownload(currentImage);
-                      }}
-                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-                      aria-label="Download"
-                    >
-                      <Download className="w-5 h-5 text-white" />
-                    </button>
+              {onDownload && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownload(currentImage);
+                  }}
+                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                  aria-label="Download"
+                >
+                  <Download className="w-5 h-5 text-white" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm('Delete this image? This action cannot be undone.')) {
+                      onDelete(currentImage);
+                    }
+                  }}
+                  className="p-2 hover:bg-[#DC143C]/20 rounded-lg transition-colors"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="w-5 h-5 text-[#DC143C]" />
+                </button>
+              )}
+              {enableFullscreen && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="w-5 h-5 text-white" />
+                  ) : (
+                    <Maximize2 className="w-5 h-5 text-white" />
                   )}
-                  {onDelete && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm('Delete this image? This action cannot be undone.')) {
-                          onDelete(currentImage);
-                        }
-                      }}
-                      className="p-2 hover:bg-[#DC143C]/20 rounded-lg transition-colors"
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="w-5 h-5 text-[#DC143C]" />
-                    </button>
-                  )}
-                  {enableFullscreen && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFullscreen();
-                      }}
-                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-                      aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                    >
-                      {isFullscreen ? (
-                        <Minimize2 className="w-5 h-5 text-white" />
-                      ) : (
-                        <Maximize2 className="w-5 h-5 text-white" />
-                      )}
-                    </button>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onClose();
-                    }}
-                    className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-                    aria-label="Close"
-                  >
-                    <X className="w-5 h-5 text-white" />
-                  </button>
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
                 </>
               )}
             </div>
@@ -1029,56 +1029,56 @@ export function ImageViewer({
                 </>
               ) : (
                 // Desktop: Bottom Overlay
-                <motion.div
-                  initial={{ y: 100, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 100, opacity: 0 }}
-                  className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-4 rounded-b-lg"
-                >
-                  <div className="w-full">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
-                      {displayImages.map((img, idx) => (
-                        <button
-                          key={img.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentIndex(idx);
-                            setZoom(1);
-                            setPosition({ x: 0, y: 0 });
-                            setIsLoading(true);
-                            onNavigate?.(idx);
-                          }}
-                          className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
-                            idx === currentIndex
-                              ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                              : 'border-[#3F3F46] hover:border-[#808080]'
-                          }`}
-                        >
-                          {getMediaType(img) === 'video' ? (
-                            <>
-                              <img
-                                src={img.thumbnailUrl || img.url}
-                                alt={img.label}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                              />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                                <VideoIcon className="w-6 h-6 text-white" />
-                              </div>
-                            </>
-                          ) : (
-                            <img
-                              src={img.url}
-                              alt={img.label}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-4 rounded-b-lg"
+            >
+              <div className="w-full">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
+                  {displayImages.map((img, idx) => (
+                    <button
+                      key={img.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentIndex(idx);
+                        setZoom(1);
+                        setPosition({ x: 0, y: 0 });
+                        setIsLoading(true);
+                        onNavigate?.(idx);
+                      }}
+                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
+                        idx === currentIndex
+                          ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                          : 'border-[#3F3F46] hover:border-[#808080]'
+                      }`}
+                    >
+                      {getMediaType(img) === 'video' ? (
+                        <>
+                          <img
+                            src={img.thumbnailUrl || img.url}
+                            alt={img.label}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <VideoIcon className="w-6 h-6 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <img
+                          src={img.url}
+                          alt={img.label}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
               )}
             </>
           )}
@@ -1112,29 +1112,29 @@ export function ImageViewer({
                 <>
                   {/* Hide bottom bar zoom controls on mobile when zoomed (overlay controls are showing) */}
                   {!(isMobile && zoom !== 1) && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleZoomOut();
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleZoomOut();
                           handleShowControls();
-                        }}
+                    }}
                         className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors flex items-center justify-center`}
-                        aria-label="Zoom out"
-                      >
+                    aria-label="Zoom out"
+                  >
                         <ZoomOut className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleZoomIn();
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleZoomIn();
                           handleShowControls();
-                        }}
+                    }}
                         className={`${isMobile ? 'p-3 min-w-[48px] min-h-[48px]' : 'p-2'} bg-[#1F1F1F] text-[#808080] hover:text-white rounded-lg transition-colors flex items-center justify-center`}
-                        aria-label="Zoom in"
-                      >
+                    aria-label="Zoom in"
+                  >
                         <ZoomIn className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
-                      </button>
+                  </button>
                     </>
                   )}
                   {/* Reset button - only show on mobile when NOT zoomed, or on desktop when zoomed */}
@@ -1154,9 +1154,9 @@ export function ImageViewer({
               )}
             </div>
             {!isMobile && (
-              <div className="text-sm text-[#808080]">
-                Use arrow keys to navigate • {enableZoom && currentMediaType === 'image' && 'Scroll to zoom • '}Press T for thumbnails • Press F for fullscreen
-              </div>
+            <div className="text-sm text-[#808080]">
+              Use arrow keys to navigate • {enableZoom && currentMediaType === 'image' && 'Scroll to zoom • '}Press T for thumbnails • Press F for fullscreen
+            </div>
             )}
           </div>
         </div>

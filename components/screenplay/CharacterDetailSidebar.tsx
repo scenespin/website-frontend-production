@@ -574,11 +574,12 @@ export default function CharacterDetailSidebar({
           });
           console.log('[CharacterDetailSidebar] ✅ Character updated in context');
 
-          // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
+          // 🔥 FIX: Invalidate and refetch character bank query cache so Production Hub cards refresh immediately
           // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
-          // EXACT WORKING PATTERN from commit 7128e409 - just invalidate, React Query will refetch when needed
           if (screenplayId) {
             queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+            // Explicitly refetch to ensure cards update immediately (not just when component remounts)
+            await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
           }
 
           toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
@@ -1324,10 +1325,12 @@ export default function CharacterDetailSidebar({
                   images: transformedImages
                 });
 
-                // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
+                // 🔥 FIX: Invalidate and refetch character bank query cache so Production Hub cards refresh immediately
                 // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
                 if (screenplayId) {
                   queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                  // Explicitly refetch to ensure cards update immediately (not just when component remounts)
+                  await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                 }
 
                 toast.success('Image generated and uploaded');
