@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useUser, useAuth, useSession } from "@clerk/nextjs";
 import { Crisp } from "crisp-sdk-web";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 import { Tooltip } from "react-tooltip";
 import config from "@/config";
-import { setAuthTokenGetter } from "@/lib/api";
+import { setAuthTokenGetter, setCurrentSessionId } from "@/lib/api";
 import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
 import { EditorProvider } from "@/contexts/EditorContext";
 import { DrawerProvider } from "@/contexts/DrawerContext";
@@ -23,6 +23,7 @@ import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
 const AuthInitializer = () => {
   const { getToken } = useAuth();
   const { isSignedIn, user } = useUser();
+  const { session } = useSession();
 
   useEffect(() => {
     if (isSignedIn && getToken && typeof getToken === 'function') {
@@ -36,6 +37,7 @@ const AuthInitializer = () => {
     } else if (!isSignedIn) {
       // Clear token getter when user signs out
       setAuthTokenGetter(null);
+      setCurrentSessionId(null); // Clear session ID
       console.log('[Auth] Token getter cleared (user signed out)');
       
       // 🔥 NEW: Delete active session on logout
@@ -43,13 +45,24 @@ const AuthInitializer = () => {
     } else if (!getToken || typeof getToken !== 'function') {
       console.warn('[Auth] getToken is not available or not a function:', typeof getToken);
     }
-  }, [isSignedIn, getToken, user]);
+  }, [isSignedIn, getToken, user, session]);
 
   // 🔥 NEW: Register active session (called on login)
   const registerActiveSession = async () => {
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) return;
+
+      // Get session ID from Clerk session object (sid is a default claim in session tokens)
+      // JWT template tokens may not include sid, so we get it from the session object
+      const sessionId = session?.id || null;
+      if (!sessionId) {
+        console.warn('[Auth] ⚠️ No session ID available from Clerk session object');
+        // Continue anyway - backend will try to extract from JWT as fallback
+      } else {
+        // Store session ID globally for use in API requests
+        setCurrentSessionId(sessionId);
+      }
 
       const deviceInfo = typeof navigator !== 'undefined' 
         ? `${navigator.userAgent} - ${navigator.platform}` 
@@ -61,7 +74,10 @@ const AuthInitializer = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ deviceInfo }),
+        body: JSON.stringify({ 
+          deviceInfo,
+          sessionId: sessionId // Pass session ID explicitly
+        }),
       });
 
       if (response.ok) {
