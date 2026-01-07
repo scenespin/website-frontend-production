@@ -6,7 +6,7 @@
  */
 
 import { useAuth } from '@clerk/nextjs';
-import { getCurrentSessionId } from '../lib/api';
+import { fetchWithSessionId as fetchWithSessionIdFromApi } from '../lib/api';
 
 // ============================================================================
 // TYPES
@@ -158,46 +158,8 @@ export interface UpdateScreenplayParams {
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Wrapper for fetch() that automatically adds X-Session-Id header
- * This ensures all API requests include the session ID for single-device login
- */
-async function fetchWithSessionId(url: string, options: RequestInit = {}): Promise<Response> {
-  const sessionId = getCurrentSessionId();
-  
-  // Create headers object, handling all possible input types
-  const headers = new Headers();
-  
-  // Copy existing headers if present
-  if (options.headers) {
-    if (options.headers instanceof Headers) {
-      options.headers.forEach((value, key) => {
-        headers.set(key, value);
-      });
-    } else if (Array.isArray(options.headers)) {
-      options.headers.forEach(([key, value]) => {
-        headers.set(key, value);
-      });
-    } else {
-      // Plain object
-      Object.entries(options.headers).forEach(([key, value]) => {
-        if (value) {
-          headers.set(key, value as string);
-        }
-      });
-    }
-  }
-  
-  // Add X-Session-Id header if available
-  if (sessionId) {
-    headers.set('X-Session-Id', sessionId);
-  }
-  
-  return fetch(url, {
-    ...options,
-    headers,
-  });
-}
+// Use the shared fetchWithSessionId from lib/api.js
+const fetchWithSessionId = fetchWithSessionIdFromApi;
 
 // ============================================================================
 // API CLIENT FUNCTIONS
