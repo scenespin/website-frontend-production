@@ -60,15 +60,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
+    // Extract X-Session-Id header from incoming request and forward to backend
+    const sessionIdHeader = request.headers.get('x-session-id') || request.headers.get('X-Session-Id');
+    
     // Fetch each asset individually (since backend doesn't have bulk fetch)
     // Handle 404s gracefully - some assets might not exist
     const assetPromises = assetIds.map(async (assetId) => {
       try {
+        const backendHeaders: Record<string, string> = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
+        
+        // Forward X-Session-Id header if present
+        if (sessionIdHeader) {
+          backendHeaders['X-Session-Id'] = sessionIdHeader;
+          console.log('[Assets API] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
+        } else {
+          console.warn('[Assets API] ⚠️ No X-Session-Id header in request - session validation may fail');
+        }
+        
         const response = await fetch(`${BACKEND_API_URL}/api/asset-bank/${assetId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: backendHeaders,
         });
 
         if (!response.ok) {
