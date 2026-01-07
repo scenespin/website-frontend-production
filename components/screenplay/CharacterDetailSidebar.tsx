@@ -13,7 +13,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { fetchWithSessionId } from '@/lib/api'
+// import { fetchWithSessionId } from '@/lib/api' // TEMP: Reverted to test
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -370,7 +370,7 @@ export default function CharacterDetailSidebar({
         // Step 3: Register the uploaded image with the character via backend (only if character exists)
         // 🔥 FIX: If creating, skip registration and store in pendingImages instead
         if (character && !isCreating) {
-          const registerResponse = await fetchWithSessionId(
+          const registerResponse = await fetch(
             `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
             {
               method: 'POST',
@@ -1275,7 +1275,7 @@ export default function CharacterDetailSidebar({
               const formData = new FormData();
               formData.append('image', file);
 
-              const uploadResponse = await fetchWithSessionId(
+              const uploadResponse = await fetch(
                 `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
                 {
                   method: 'POST',
