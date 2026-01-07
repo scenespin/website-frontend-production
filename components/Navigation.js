@@ -2,7 +2,9 @@
 
 import { useUser, useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
+import logo from '@/app/icon.png';
 import { 
   MessageSquare,
   Video,
@@ -21,7 +23,7 @@ import {
   Layers,
   Clock,
   Music,
-  Image,
+  Image as ImageIcon,
   Plus,
   Clapperboard,
   Archive,
@@ -301,9 +303,14 @@ export default function Navigation() {
             <div className="flex items-center gap-4">
               {/* Logo */}
               <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-cinema-red rounded-lg flex items-center justify-center">
-                  <span className="text-base-content font-bold text-xl">W</span>
-                </div>
+                <Image
+                  src={logo}
+                  alt="Wryda.ai logo"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10"
+                  priority={true}
+                />
                 <span className="text-xl font-bold">
                   Wryda<span className="text-cinema-red">.ai</span>
                 </span>
@@ -370,9 +377,14 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16 px-4">
           {/* Logo */}
           <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-cinema-red rounded-lg flex items-center justify-center">
-              <span className="text-base-content font-bold">W</span>
-            </div>
+            <Image
+              src={logo}
+              alt="Wryda.ai logo"
+              width={32}
+              height={32}
+              className="w-8 h-8"
+              priority={true}
+            />
             <span className="font-bold">
               Wryda<span className="text-cinema-red">.ai</span>
             </span>
