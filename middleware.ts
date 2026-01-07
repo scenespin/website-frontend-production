@@ -8,7 +8,10 @@ function isPublicRoute(pathname: string): boolean {
       pathname === '/features' || 
       pathname === '/compare' || 
       pathname === '/pricing' || 
-      pathname === '/help') {
+      pathname === '/help' ||
+      pathname === '/how-it-works' ||
+      pathname === '/tos' ||
+      pathname === '/privacy-policy') {
     return true
   }
   
