@@ -32,6 +32,16 @@ const AuthInitializer = () => {
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       console.log('[Auth] Token getter initialized with wryda-backend template');
       
+      // 🔥 CRITICAL: Set sessionId IMMEDIATELY and SYNCHRONOUSLY before any API calls
+      // This ensures the X-Session-Id header is available for all requests
+      const sessionId = session?.id || null;
+      if (sessionId) {
+        setCurrentSessionId(sessionId);
+        console.log('[Auth] ✅ Session ID set synchronously:', sessionId.substring(0, 20) + '...');
+      } else {
+        console.warn('[Auth] ⚠️ No session ID available from session object');
+      }
+      
       // 🔥 NEW: Register active session for single-device login
       registerActiveSession();
     } else if (!isSignedIn) {
