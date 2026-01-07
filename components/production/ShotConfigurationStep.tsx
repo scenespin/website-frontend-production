@@ -153,6 +153,9 @@ interface ShotConfigurationStepProps {
   selectedReferenceFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for selected references)
   visibleHeadshotFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for visible headshots)
   locationReferenceFullImageUrlsMap?: Map<string, string>; // 🔥 NEW: Map of s3Key -> full image presigned URL (for selected location references)
+  locationThumbnailS3KeyMap?: Map<string, string>; // 🔥 NEW: Map of location s3Key -> thumbnailS3Key
+  locationThumbnailUrlsMap?: Map<string, string>; // 🔥 NEW: Map of location thumbnailS3Key -> presigned URL
+  locationFullImageUrlsMap?: Map<string, string>; // 🔥 NEW: Map of location s3Key -> full image presigned URL
   // Dialogue workflows - NEW: Unified dropdown
   selectedDialogueQuality?: 'premium' | 'reliable';
   selectedDialogueWorkflow?: DialogueWorkflowType;
@@ -247,6 +250,9 @@ export function ShotConfigurationStep({
   selectedReferenceFullImageUrlsMap,
   visibleHeadshotFullImageUrlsMap,
   locationReferenceFullImageUrlsMap, // 🔥 NEW: Location URL map for references section
+  locationThumbnailS3KeyMap, // 🔥 NEW: Location URL maps for LocationAngleSelector
+  locationThumbnailUrlsMap,
+  locationFullImageUrlsMap,
   selectedDialogueQuality,
   selectedDialogueWorkflow,
   selectedBaseWorkflow,
@@ -886,6 +892,13 @@ export function ShotConfigurationStep({
                   characterOutfits={finalCharacterOutfits}
                   onCharacterReferenceChange={finalOnCharacterReferenceChange}
                   onCharacterOutfitChange={finalOnCharacterOutfitChange}
+                  characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
+                  characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                  selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
+                  visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
+                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps
+                  locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                  locationFullImageUrlsMap={locationFullImageUrlsMap}
                   selectedDialogueQuality={selectedDialogueQuality}
                   selectedDialogueWorkflow={selectedDialogueWorkflow}
                   onDialogueQualityChange={finalOnDialogueQualityChange}
@@ -939,6 +952,13 @@ export function ShotConfigurationStep({
                   characterOutfits={finalCharacterOutfits}
                   onCharacterReferenceChange={finalOnCharacterReferenceChange}
                   onCharacterOutfitChange={finalOnCharacterOutfitChange}
+                  characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
+                  characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                  selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
+                  visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
+                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps
+                  locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                  locationFullImageUrlsMap={locationFullImageUrlsMap}
                   selectedDialogueQuality={selectedDialogueQuality}
                   selectedDialogueWorkflow={selectedDialogueWorkflow}
                   onDialogueQualityChange={finalOnDialogueQualityChange}
@@ -996,6 +1016,9 @@ export function ShotConfigurationStep({
               characterThumbnailUrlsMap={characterThumbnailUrlsMap}
               selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
               visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
+              locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps
+              locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+              locationFullImageUrlsMap={locationFullImageUrlsMap}
               selectedDialogueQuality={finalSelectedDialogueQuality}
               selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
               onDialogueQualityChange={finalOnDialogueQualityChange}

@@ -166,6 +166,9 @@ interface ShotConfigurationPanelProps {
   characterThumbnailUrlsMap?: Map<string, string>; // Map of thumbnailS3Key -> presigned URL
   selectedReferenceFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for selected references)
   visibleHeadshotFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL (for visible headshots)
+  locationThumbnailS3KeyMap?: Map<string, string>; // 🔥 NEW: Map of location s3Key -> thumbnailS3Key
+  locationThumbnailUrlsMap?: Map<string, string>; // 🔥 NEW: Map of location thumbnailS3Key -> presigned URL
+  locationFullImageUrlsMap?: Map<string, string>; // 🔥 NEW: Map of location s3Key -> full image presigned URL
   // Dialogue workflow selection (per-shot) - NEW: Unified dropdown
   selectedDialogueQuality?: DialogueQuality; // 'premium' or 'reliable'
   selectedDialogueWorkflow?: DialogueWorkflowType; // Selected workflow for this shot (overrides auto-detection)
@@ -237,6 +240,9 @@ export function ShotConfigurationPanel({
   characterThumbnailUrlsMap,
   selectedReferenceFullImageUrlsMap,
   visibleHeadshotFullImageUrlsMap,
+  locationThumbnailS3KeyMap, // 🔥 NEW: Location URL maps for LocationAngleSelector
+  locationThumbnailUrlsMap,
+  locationFullImageUrlsMap,
   selectedDialogueQuality,
   selectedDialogueWorkflow,
   selectedBaseWorkflow,
@@ -883,6 +889,9 @@ export function ShotConfigurationPanel({
               s3Key: selectedLocationReferences[shot.slot].s3Key,
               imageUrl: selectedLocationReferences[shot.slot].imageUrl
             } : undefined}
+            locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps
+            locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+            locationFullImageUrlsMap={locationFullImageUrlsMap}
             onAngleChange={(locationId, angle) => {
               // KEPT for backward compat
               onLocationAngleChange?.(shot.slot, locationId, angle);

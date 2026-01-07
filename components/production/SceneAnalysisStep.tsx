@@ -10,7 +10,7 @@
  * - Continue to shot configuration
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,17 +77,27 @@ export function SceneAnalysisStep({
     }
   }, [actions, onPropsToShotsChangeProp]);
   
-  // Auto-select all shots when analysis completes
+  // 🔥 FIX: Track if user has explicitly deselected shots to prevent auto-select
+  const userDeselectedShotsRef = useRef(false);
+  
+  // Auto-select all shots when analysis completes (only if user hasn't explicitly deselected)
   useEffect(() => {
-    if (sceneAnalysisResult?.shotBreakdown?.shots && enabledShots.length === 0) {
+    if (sceneAnalysisResult?.shotBreakdown?.shots && enabledShots.length === 0 && !userDeselectedShotsRef.current) {
       const allShotSlots = sceneAnalysisResult.shotBreakdown.shots.map((s: any) => s.slot);
       onEnabledShotsChange(allShotSlots);
     }
+    // Reset flag when shots are manually selected again
+    if (enabledShots.length > 0) {
+      userDeselectedShotsRef.current = false;
+    }
   }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots.length, onEnabledShotsChange]);
 
-  // Initialize props-to-shots assignment (default: all props in all shots)
+  // 🔥 FIX: Track if user has explicitly deselected props to prevent auto-select
+  const userDeselectedPropsRef = useRef(false);
+  
+  // Initialize props-to-shots assignment (default: all props in all shots, only if user hasn't explicitly deselected)
   useEffect(() => {
-    if (sceneAnalysisResult?.shotBreakdown?.shots && sceneProps.length > 0) {
+    if (sceneAnalysisResult?.shotBreakdown?.shots && sceneProps.length > 0 && !userDeselectedPropsRef.current) {
       const allShotSlots = sceneAnalysisResult.shotBreakdown.shots.map((s: any) => s.slot);
       const initialAssignment: Record<string, number[]> = {};
       sceneProps.forEach(prop => {
@@ -271,6 +281,8 @@ export function SceneAnalysisStep({
                     e.preventDefault();
                     e.stopPropagation();
                     console.log('[SceneAnalysisStep] Shots Deselect All clicked', { currentEnabledShots: enabledShots });
+                    // 🔥 FIX: Set flag to prevent auto-select from re-selecting
+                    userDeselectedShotsRef.current = true;
                     // 🔥 FIX: Force state update by creating a new empty array (not reusing empty array)
                     const emptyShots: number[] = [];
                     console.log('[SceneAnalysisStep] Shots Deselect All - calling onEnabledShotsChange with:', emptyShots);

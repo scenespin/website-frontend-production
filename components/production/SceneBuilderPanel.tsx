@@ -1121,6 +1121,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     return allLocations.find(loc => loc.locationId === locationId) || null;
   }, [locationId, allLocations]);
   
+  // 🔥 DEBUG: Log locationId before calling hook
+  console.log('[SceneBuilderPanel] useLocationReferences hook call:', {
+    projectId,
+    locationId,
+    enabled: !!locationId,
+    locationName: sceneAnalysisResult?.location?.name
+  });
+  
   // 🔥 NEW: Use custom hook for location references
   const {
     angleVariations: locationAngleVariations,
@@ -1132,6 +1140,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     projectId,
     locationId: locationId || null,
     enabled: !!locationId
+  });
+  
+  // 🔥 DEBUG: Log hook results
+  console.log('[SceneBuilderPanel] useLocationReferences hook results:', {
+    locationId,
+    angleVariationsCount: locationAngleVariations.length,
+    backgroundsCount: locationBackgrounds.length,
+    loading: loadingLocation
   });
   
   // 🔥 NEW: Map location hook data to expected format, enriched with DynamoDB metadata
@@ -4288,6 +4304,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
                   visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
                   locationReferenceFullImageUrlsMap={locationReferenceFullImageUrlsMap} // 🔥 NEW: Pass location URL map for references section
+                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps for LocationAngleSelector
+                  locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                  locationFullImageUrlsMap={locationReferenceFullImageUrlsMap} // Use same map for full images
                   onCharacterReferenceChange={(shotSlot, characterId, reference) => {
                     setSelectedCharacterReferences(prev => {
                       const shotRefs = prev[shotSlot] || {};

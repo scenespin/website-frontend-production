@@ -67,6 +67,10 @@ interface LocationAngleSelectorProps {
   locationDescription?: string; // Description of location when optOut is true
   onLocationDescriptionChange?: (description: string) => void; // Callback when description changes
   splitLayout?: boolean; // If true, returns fragment with controls and images separate for grid layout
+  // 🔥 NEW: Location URL maps for proper image resolution (same pattern as character headshots)
+  locationThumbnailS3KeyMap?: Map<string, string>; // Map of s3Key -> thumbnailS3Key
+  locationThumbnailUrlsMap?: Map<string, string>; // Map of thumbnailS3Key -> presigned URL
+  locationFullImageUrlsMap?: Map<string, string>; // Map of s3Key -> full image presigned URL
 }
 
 export function LocationAngleSelector({
@@ -85,7 +89,10 @@ export function LocationAngleSelector({
   onOptOutChange,
   locationDescription = '',
   onLocationDescriptionChange,
-  splitLayout = false
+  splitLayout = false,
+  locationThumbnailS3KeyMap, // 🔥 NEW: Location URL maps
+  locationThumbnailUrlsMap,
+  locationFullImageUrlsMap
 }: LocationAngleSelectorProps) {
   // Use unified selection if available, otherwise fall back to selectedAngle
   const currentSelection = selectedLocationReference || (selectedAngle ? {
@@ -336,8 +343,23 @@ export function LocationAngleSelector({
     return groupedPhotos[selectedGroup] || [];
   }, [groupedPhotos, selectedGroup]);
 
-  // 🔥 NEW: Collect all thumbnail S3 keys for photos
+  // 🔥 FIX: Use provided locationThumbnailUrlsMap if available, otherwise fetch our own
+  // This ensures we use the same URL maps that work in the references section
   const thumbnailS3Keys = React.useMemo(() => {
+    // If we have locationThumbnailS3KeyMap, use it to get thumbnail keys
+    if (locationThumbnailS3KeyMap) {
+      const keys: string[] = [];
+      allPhotos.forEach(photo => {
+        if (photo.s3Key && locationThumbnailS3KeyMap.has(photo.s3Key)) {
+          const thumbnailS3Key = locationThumbnailS3KeyMap.get(photo.s3Key);
+          if (thumbnailS3Key) {
+            keys.push(thumbnailS3Key);
+          }
+        }
+      });
+      return keys;
+    }
+    // Fallback: construct thumbnail keys manually (old behavior)
     const keys: string[] = [];
     allPhotos.forEach(photo => {
       if (photo.s3Key) {
@@ -346,10 +368,14 @@ export function LocationAngleSelector({
       }
     });
     return keys;
-  }, [allPhotos]);
+  }, [allPhotos, locationThumbnailS3KeyMap]);
 
-  // 🔥 NEW: Fetch thumbnail URLs for all photos
-  const { data: thumbnailUrlsMap } = useBulkPresignedUrls(thumbnailS3Keys, thumbnailS3Keys.length > 0);
+  // 🔥 FIX: Use provided locationThumbnailUrlsMap if available, otherwise fetch our own
+  const { data: fetchedThumbnailUrlsMap } = useBulkPresignedUrls(
+    thumbnailS3Keys, 
+    thumbnailS3Keys.length > 0 && !locationThumbnailUrlsMap // Only fetch if we don't have the map
+  );
+  const thumbnailUrlsMap = locationThumbnailUrlsMap || fetchedThumbnailUrlsMap || new Map();
   
   // 🔥 FIX: Fetch full image URLs on-demand when thumbnails aren't available yet
   // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)
@@ -364,12 +390,12 @@ export function LocationAngleSelector({
     return keys;
   }, [allPhotos]);
   
-  // Fetch full images only if thumbnails aren't loaded yet (prevents empty/flickering images)
-  // This maintains performance (thumbnails are still prioritized) while ensuring images display
-  const { data: fullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+  // 🔥 FIX: Use provided locationFullImageUrlsMap if available, otherwise fetch our own
+  const { data: fetchedFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
     fullImageS3Keys,
-    fullImageS3Keys.length > 0 && (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0 || thumbnailUrlsMap.size < fullImageS3Keys.length * 0.3) // Fetch if no thumbnails or less than 30% loaded
+    fullImageS3Keys.length > 0 && !locationFullImageUrlsMap && (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0 || thumbnailUrlsMap.size < fullImageS3Keys.length * 0.3) // Fetch if no provided map and no thumbnails or less than 30% loaded
   );
+  const fullImageUrlsMap = locationFullImageUrlsMap || fetchedFullImageUrlsMap;
 
   const getAngleLabel = (angle: string): string => {
     const labels: Record<string, string> = {
@@ -609,24 +635,11 @@ export function LocationAngleSelector({
             title={`${photo.label}${photo.timeOfDay ? ` - ${photo.timeOfDay}` : ''}${photo.weather ? ` - ${photo.weather}` : ''}`}
           >
             {photo.imageUrl || photo.s3Key ? (() => {
-              // 🔥 FIX: Use standardized URL resolution utility
-              // Construct thumbnail key manually (LocationAngleSelector doesn't have locationThumbnailS3KeyMap)
-              let thumbnailS3Key: string | null = null;
-              if (photo.s3Key) {
-                const thumbnailKey = `thumbnails/${photo.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`;
-                thumbnailS3Key = thumbnailKey;
-              }
-              
-              // Create a temporary map for thumbnail lookup
-              const tempThumbnailS3KeyMap = thumbnailS3Key && photo.s3Key 
-                ? new Map([[photo.s3Key, thumbnailS3Key]])
-                : null;
-              
-              // 🔥 PROFESSIONAL FIX: Use resolveImageUrl utility (handles priority chain: thumbnail → full → fallback)
-              // Trust the resolver - it's the single source of truth for URL resolution
+              // 🔥 FIX: Use standardized URL resolution utility with proper location URL maps
+              // Use the provided maps if available (same as references section)
               const displayUrl = resolveImageUrl({
                 s3Key: photo.s3Key || null,
-                thumbnailS3KeyMap: tempThumbnailS3KeyMap,
+                thumbnailS3KeyMap: locationThumbnailS3KeyMap,
                 thumbnailUrlsMap: thumbnailUrlsMap,
                 fullImageUrlsMap: fullImageUrlsMap,
                 fallbackImageUrl: photo.imageUrl
