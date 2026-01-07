@@ -142,7 +142,7 @@ export function GenerateWardrobeTab({
           return;
         }
 
-        const response = await fetch(`/api/model-selection/characters/${quality}`, {
+        const response = await fetchWithSessionId(`/api/model-selection/characters/${quality}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
