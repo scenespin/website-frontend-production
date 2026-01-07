@@ -310,7 +310,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
   // Derive Character IDs for Media Library Query
   // ============================================================================
   
-  // Derive character IDs from context state (scene analysis + pronoun selections)
+  // Derive character IDs from context state (scene analysis + pronoun selections + all scene characters)
   const characterIdsForMediaLibrary = useMemo(() => {
     const characterIds: string[] = [];
     
@@ -344,11 +344,23 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     const pronounSelectedCharacterIds = Object.values(state.selectedCharactersForShots).flat();
     characterIds.push(...pronounSelectedCharacterIds);
     
+    // 🔥 FIX: Also include ALL characters from sceneAnalysisResult.characters
+    // This ensures all characters in the scene have their headshots loaded, not just those mentioned in shots
+    // This is critical for pronoun mapping where users can select any character
+    if (state.sceneAnalysisResult?.characters && Array.isArray(state.sceneAnalysisResult.characters)) {
+      state.sceneAnalysisResult.characters.forEach((char: any) => {
+        if (char?.id) {
+          characterIds.push(char.id);
+        }
+      });
+    }
+    
     // Filter and deduplicate
     const validIds = filterValidCharacterIds(characterIds);
     return [...new Set(validIds)];
   }, [
     state.sceneAnalysisResult?.shotBreakdown?.shots,
+    state.sceneAnalysisResult?.characters,
     state.selectedCharactersForShots
   ]);
   

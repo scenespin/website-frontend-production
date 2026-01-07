@@ -588,14 +588,38 @@ export function LocationAngleSelector({
             title={`${photo.label}${photo.timeOfDay ? ` - ${photo.timeOfDay}` : ''}${photo.weather ? ` - ${photo.weather}` : ''}`}
           >
             {photo.imageUrl || photo.s3Key ? (() => {
-              // 🔥 NEW: Get thumbnail URL if available, otherwise use full image
-              const thumbnailKey = photo.s3Key 
-                ? `thumbnails/${photo.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`
-                : null;
-              const thumbnailUrl = thumbnailKey && thumbnailUrlsMap?.get(thumbnailKey);
+              // 🔥 FIX: Get thumbnail URL using locationThumbnailS3KeyMap (from useLocationReferences)
+              // This matches the pattern used for characters and props
+              let thumbnailS3Key: string | null = null;
+              // Note: LocationAngleSelector doesn't have access to locationThumbnailS3KeyMap
+              // So we'll use the pattern-based approach for now, but check if photo.imageUrl is valid
+              if (photo.s3Key) {
+                const thumbnailKey = `thumbnails/${photo.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`;
+                thumbnailS3Key = thumbnailKey;
+              }
+              const thumbnailUrl = thumbnailS3Key && thumbnailUrlsMap?.get(thumbnailS3Key);
+              
               // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
               const fullImageUrl = photo.s3Key && fullImageUrlsMap?.get(photo.s3Key);
-              const displayUrl = thumbnailUrl || fullImageUrl || photo.imageUrl;
+              
+              // 🔥 FIX: Use imageUrl as fallback if it's already a valid presigned URL
+              // The imageUrl from useLocationReferences should already be a presigned URL (or empty)
+              const imageUrlFallback = photo.imageUrl && 
+                                      (photo.imageUrl.startsWith('http') || photo.imageUrl.startsWith('data:'))
+                                      ? photo.imageUrl 
+                                      : null;
+              
+              // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then imageUrl
+              const displayUrl = thumbnailUrl || fullImageUrl || imageUrlFallback;
+              
+              // If displayUrl is empty or looks like an s3Key (not a URL), don't render image
+              if (!displayUrl || (!displayUrl.startsWith('http') && !displayUrl.startsWith('data:'))) {
+                return (
+                  <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
+                    No image
+                  </div>
+                );
+              }
               
               return (
                 <img
@@ -608,9 +632,15 @@ export function LocationAngleSelector({
                   }}
                   loading="lazy"
                   onError={(e) => {
-                    // 🔥 NEW: Fallback to full image if thumbnail fails
-                    if (thumbnailUrl && displayUrl === thumbnailUrl) {
-                      (e.target as HTMLImageElement).src = photo.imageUrl;
+                    const imgElement = e.target as HTMLImageElement;
+                    // Try full image if thumbnail fails
+                    if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
+                      imgElement.src = fullImageUrl;
+                    } else if (imageUrlFallback && imgElement.src !== imageUrlFallback) {
+                      imgElement.src = imageUrlFallback;
+                    } else {
+                      // If all fail, hide image and show placeholder
+                      imgElement.style.display = 'none';
                     }
                   }}
                 />
