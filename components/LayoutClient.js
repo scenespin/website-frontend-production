@@ -194,7 +194,8 @@ const AuthInitializer = () => {
       
       // 🔥 FIX: Debounce session registration to prevent rapid re-registrations
       // This prevents race conditions when switching between devices rapidly
-      // Wait 200ms before registering to ensure session ID is stable
+      // Wait 100ms before registering to ensure session ID is stable
+      // Backend has 5-second grace period, so short delay is safe
       const registrationTimer = setTimeout(() => {
         // Double-check session ID hasn't changed during the debounce period
         if (session?.id === sessionId && isSignedIn) {
@@ -208,7 +209,7 @@ const AuthInitializer = () => {
             stillSignedIn: isSignedIn
           });
         }
-      }, 200); // 200ms debounce delay
+      }, 100); // 100ms debounce delay (reduced from 200ms since backend has grace period)
       
       // Cleanup: cancel registration if session ID changes before debounce completes
       return () => {
