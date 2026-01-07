@@ -12,22 +12,24 @@ const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_BACKE
 
 export async function POST(request: NextRequest) {
   try {
-    const { getToken, userId } = await auth();
-    
-    if (!userId) {
-      console.error('[Sessions API] No userId from auth()');
+    // Extract token from Authorization header (client sends it directly)
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[Sessions API] No Authorization header with Bearer token');
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'User not authenticated' },
+        { error: 'Unauthorized', message: 'No authentication token' },
         { status: 401 }
       );
     }
     
-    const token = await getToken({ template: 'wryda-backend' });
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     
-    if (!token) {
-      console.error('[Sessions API] No token from getToken()');
+    // Also verify user is authenticated via Clerk (for security)
+    const { userId } = await auth();
+    if (!userId) {
+      console.error('[Sessions API] No userId from auth() - user not authenticated');
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'No authentication token' },
+        { error: 'Unauthorized', message: 'User not authenticated' },
         { status: 401 }
       );
     }
