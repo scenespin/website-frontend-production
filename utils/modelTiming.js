@@ -12,12 +12,19 @@ export const MODEL_TIMING = {
     typicalTimeSeconds: 10,
     description: 'High quality, balanced speed'
   },
+  'claude-opus-4-5-20251101': {
+    name: 'Claude Opus 4.5',
+    provider: 'Anthropic',
+    typicalTime: '10-15s',
+    typicalTimeSeconds: 12,
+    description: 'Most powerful, improved efficiency (3x cheaper!)'
+  },
   'claude-opus-4-1-20250805': {
     name: 'Claude Opus 4.1',
     provider: 'Anthropic',
     typicalTime: '12-18s',
     typicalTimeSeconds: 15,
-    description: 'Most powerful, slower response'
+    description: 'Legacy model - use Opus 4.5 instead'
   },
   'claude-haiku-4-5-20251001': {
     name: 'Claude Haiku 4.5',

@@ -13,6 +13,7 @@
 const MODEL_CONTEXT_WINDOWS = {
   // Claude (Anthropic) - typically 200K tokens
   'claude-sonnet-4-5-20250929': 200000,
+  'claude-opus-4-5-20251101': 200000,
   'claude-opus-4-1-20250805': 200000,
   'claude-haiku-4-5-20251001': 200000,
   'claude-3-5-sonnet-20241022': 200000,

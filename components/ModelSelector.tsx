@@ -37,12 +37,12 @@ const AI_MODELS: AIModel[] = [
     recommended: true,
   },
   {
-    id: 'claude-opus-4-1-20250805',
-    name: 'Claude Opus 4.1',
+    id: 'claude-opus-4-5-20251101',
+    name: 'Claude Opus 4.5',
     provider: 'Anthropic',
     providerShort: 'Claude',
-    description: 'Most powerful, deep analysis',
-    cost: 'High',
+    description: 'Most powerful, deep analysis (3x cheaper!)',
+    cost: 'Medium',
   },
   {
     id: 'claude-haiku-4-5-20251001',
