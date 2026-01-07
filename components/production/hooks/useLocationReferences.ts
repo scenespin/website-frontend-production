@@ -106,11 +106,12 @@ export function useLocationReferences({
 
         if (isBackground) {
           // Background image
-          // 🔥 FIX: Set imageUrl to null (not empty string) so resolver knows to use URL maps
-          // Empty string is treated as a valid URL by isValidImageUrl, causing issues
+          // 🔥 PROFESSIONAL FIX: Set imageUrl to null (not empty string) if s3Url is missing/invalid
+          // The resolver's isValidImageUrl will validate it - no need to duplicate validation logic here
+          // This follows single responsibility: hook provides data, resolver validates URLs
           backgrounds.push({
             id: file.s3Key, // Use s3Key as ID for backend compatibility
-            imageUrl: (file.s3Url && (file.s3Url.startsWith('http://') || file.s3Url.startsWith('https://') || file.s3Url.startsWith('data:'))) ? file.s3Url : null as any,
+            imageUrl: file.s3Url || null,
             s3Key: file.s3Key,
             backgroundType: file.metadata?.backgroundType || 'custom',
             sourceType: file.metadata?.sourceType,
@@ -124,13 +125,14 @@ export function useLocationReferences({
           });
         } else {
           // Angle variation
-          // 🔥 FIX: Set imageUrl to null (not empty string) so resolver knows to use URL maps
-          // Empty string is treated as a valid URL by isValidImageUrl, causing issues
+          // 🔥 PROFESSIONAL FIX: Set imageUrl to null (not empty string) if s3Url is missing/invalid
+          // The resolver's isValidImageUrl will validate it - no need to duplicate validation logic here
+          // This follows single responsibility: hook provides data, resolver validates URLs
           angleVariations.push({
             angleId: file.s3Key, // Use s3Key as ID for backend compatibility
             angle: file.metadata?.angle || 'unknown',
             s3Key: file.s3Key,
-            imageUrl: (file.s3Url && (file.s3Url.startsWith('http://') || file.s3Url.startsWith('https://') || file.s3Url.startsWith('data:'))) ? file.s3Url : null as any,
+            imageUrl: file.s3Url || null,
             label: file.metadata?.angle,
             timeOfDay: file.metadata?.timeOfDay,
             weather: file.metadata?.weather
