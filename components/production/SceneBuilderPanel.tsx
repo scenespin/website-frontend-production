@@ -82,6 +82,7 @@ import { isValidCharacterId, filterValidCharacterIds } from './utils/characterId
 import { categorizeCharacters } from './utils/characterCategorization';
 import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
+import { resolveCharacterHeadshotUrl } from './utils/imageUrlResolver';
 import {
   getFullShotText,
   actionShotHasExplicitCharacter,
@@ -3834,23 +3835,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                               (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
                             );
                             
-                            // 🔥 FIX: Get thumbnail URL using thumbnailS3Key from Media Library (not manual construction)
-                            // Use the thumbnailS3Key from characterThumbnailS3KeyMap if available
-                            let thumbnailS3Key: string | null = null;
-                            if (headshot.s3Key && characterThumbnailS3KeyMap.has(headshot.s3Key)) {
-                              thumbnailS3Key = characterThumbnailS3KeyMap.get(headshot.s3Key) || null;
-                            }
-                            
-                            // Get presigned URL for thumbnail if available
-                            const thumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.get(thumbnailS3Key);
-                            
-                            // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
-                            // This prevents empty/flickering images while thumbnails are loading
-                            const fullImageUrl = headshot.s3Key && visibleHeadshotFullImageUrlsMap?.get(headshot.s3Key);
-                            
-                            // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then empty
-                            // Full images are fetched on-demand for visible headshots when thumbnails aren't ready
-                            const displayUrl = thumbnailUrl || fullImageUrl || headshot.imageUrl || '';
+                            // 🔥 FIX: Use standardized URL resolution utility
+                            const displayUrl = resolveCharacterHeadshotUrl(
+                              headshot,
+                              {
+                                thumbnailS3KeyMap: characterThumbnailS3KeyMap,
+                                thumbnailUrlsMap: characterThumbnailUrlsMap,
+                                fullImageUrlsMap: visibleHeadshotFullImageUrlsMap
+                              }
+                            ) || '';
                             
                             // Check if this is the creation image (last resort)
                             const isCreationImage = headshot.poseId === 'base-reference' || headshot.label === 'Creation Image (Last Resort)';

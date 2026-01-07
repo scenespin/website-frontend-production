@@ -166,7 +166,9 @@ export function mapMediaFilesToHeadshots(
     headshots.push({
       poseId: poseId || (isCreationImage ? 'base-reference' : file.s3Key),
       s3Key: file.s3Key!,
-      imageUrl: file.s3Url || '',
+      // 🔥 FIX: Media Library files don't have s3Url - presigned URLs are fetched separately
+      // Set imageUrl to null (not empty string) - will be resolved via URL maps
+      imageUrl: null as any, // Will be resolved via thumbnailUrlsMap or fullImageUrlsMap
       label,
       priority,
       outfitName: file.metadata?.outfitName
@@ -225,7 +227,9 @@ export function mapMediaFilesToPropStructure(
         angleReferences.push({
           id: file.s3Key!, // Use s3Key as ID for backend compatibility
           s3Key: file.s3Key!,
-          imageUrl: file.s3Url || '', // Will be replaced with presigned URL if needed
+          // 🔥 FIX: Media Library files don't have s3Url - presigned URLs are fetched separately
+      // Set imageUrl to null (not empty string) - will be resolved via URL maps
+      imageUrl: null as any, // Will be resolved via thumbnailUrlsMap or fullImageUrlsMap // Will be replaced with presigned URL if needed
           label: file.metadata?.angle
         });
       } else {

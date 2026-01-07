@@ -5,6 +5,7 @@ import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { resolveCharacterHeadshotUrl } from './utils/imageUrlResolver';
 
 // Character Selector Component (Custom DaisyUI Dropdown)
 function CharacterSelector({ 
