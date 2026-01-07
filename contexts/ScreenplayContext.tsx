@@ -272,6 +272,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return [];
     });
     
+    // 🔥 NEW: React Query client for cache invalidation
+    const queryClient = useQueryClient();
+    
     // 🔥 NEW: Refs to access current state without closure issues
     // These are updated in sync with state and can be read in callbacks without stale closures
     const beatsRef = useRef<StoryBeat[]>([]);
