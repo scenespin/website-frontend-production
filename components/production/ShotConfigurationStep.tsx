@@ -1076,14 +1076,23 @@ export function ShotConfigurationStep({
                 
                 // Location reference
                 const locationRef = finalSelectedLocationReferences[shot.slot];
-                if (locationRef?.imageUrl) {
+                if (locationRef) {
                   const location = finalSceneProps.find(loc => loc.id === shot.locationId);
-                  references.push({
-                    type: 'location',
-                    imageUrl: locationRef.imageUrl,
-                    label: location?.name || 'Location',
-                    id: `loc-${shot.slot}`
-                  });
+                  // 🔥 FIX: Check if imageUrl is a valid presigned URL (not an s3Key)
+                  const locationImageUrl = locationRef.imageUrl && 
+                                          (locationRef.imageUrl.startsWith('http') || locationRef.imageUrl.startsWith('data:'))
+                                          ? locationRef.imageUrl 
+                                          : null;
+                  
+                  // Only add if we have a valid URL
+                  if (locationImageUrl) {
+                    references.push({
+                      type: 'location',
+                      imageUrl: locationImageUrl,
+                      label: location?.name || 'Location',
+                      id: `loc-${shot.slot}`
+                    });
+                  }
                 }
                 
                 // 🔥 FIX: Prop references - show all props with their actual images (not generic icon)

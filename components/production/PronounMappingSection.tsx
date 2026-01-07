@@ -61,8 +61,17 @@ function CharacterSelector({
     const fullImageUrl = selectedReferenceFullImageUrlsMap?.get(firstHeadshot.s3Key) || 
                          visibleHeadshotFullImageUrlsMap?.get(firstHeadshot.s3Key);
     
+    // 🔥 FIX: Use imageUrl as fallback if it's already a valid presigned URL
+    // The imageUrl from useCharacterReferences should already be a presigned URL (or empty)
+    // This is important because characterThumbnailUrlsMap might not have all thumbnails yet
+    const imageUrlFallback = firstHeadshot.imageUrl && 
+                            (firstHeadshot.imageUrl.startsWith('http') || firstHeadshot.imageUrl.startsWith('data:'))
+                            ? firstHeadshot.imageUrl 
+                            : null;
+    
     // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then imageUrl
-    const displayUrl = thumbnailUrl || fullImageUrl || firstHeadshot.imageUrl;
+    // This ensures all characters show images, not just those with thumbnails in the map
+    const displayUrl = thumbnailUrl || fullImageUrl || imageUrlFallback;
     
     // If displayUrl is empty or looks like an s3Key (not a URL), return null
     // The component will show a placeholder instead
@@ -392,8 +401,17 @@ export function PronounMappingSection({
     const fullImageUrl = selectedReferenceFullImageUrlsMap?.get(firstHeadshot.s3Key) || 
                          visibleHeadshotFullImageUrlsMap?.get(firstHeadshot.s3Key);
     
+    // 🔥 FIX: Use imageUrl as fallback if it's already a valid presigned URL
+    // The imageUrl from useCharacterReferences should already be a presigned URL (or empty)
+    // This is important because characterThumbnailUrlsMap might not have all thumbnails yet
+    const imageUrlFallback = firstHeadshot.imageUrl && 
+                            (firstHeadshot.imageUrl.startsWith('http') || firstHeadshot.imageUrl.startsWith('data:'))
+                            ? firstHeadshot.imageUrl 
+                            : null;
+    
     // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then imageUrl
-    const displayUrl = thumbnailUrl || fullImageUrl || firstHeadshot.imageUrl;
+    // This ensures all characters show images, not just those with thumbnails in the map
+    const displayUrl = thumbnailUrl || fullImageUrl || imageUrlFallback;
     
     // If displayUrl is empty or looks like an s3Key (not a URL), return null
     // The component will show a placeholder instead
