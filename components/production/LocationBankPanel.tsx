@@ -264,11 +264,15 @@ export function LocationBankPanel({
                 if (location.images && Array.isArray(location.images)) {
                   // Count from unified images array
                   location.images.forEach((img: any) => {
-                    if (img.metadata?.isBackground) {
+                    // Check for backgrounds: isBackground flag OR source is 'background-generation'
+                    if (img.metadata?.isBackground || img.metadata?.source === 'background-generation') {
                       backgroundCount++;
-                    } else if (img.metadata?.isAngle || img.metadata?.source === 'angle-generation') {
+                    } 
+                    // Check for angles: isAngle flag OR source is 'angle-generation' (but NOT backgrounds)
+                    else if (img.metadata?.isAngle || img.metadata?.source === 'angle-generation') {
                       angleCount++;
                     }
+                    // Base references and creation images don't count as angles or backgrounds
                   });
                 } else {
                   // Fallback: Use separate fields and Media Library count
