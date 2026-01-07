@@ -43,11 +43,21 @@ function CharacterSelector({
   // 🔥 FIX: Use standardized URL resolution utility
   const getCharacterHeadshotImage = (charId: string): string | null => {
     const headshots = characterHeadshots[charId];
-    if (!headshots || headshots.length === 0) return null;
+    if (!headshots || headshots.length === 0) {
+      // 🔍 DIAGNOSTIC: Log when no headshots found (CharacterSelector)
+      console.log(`[CharacterSelector] ⚠️ No headshots for ${charId}:`, {
+        characterHeadshotsKeys: Object.keys(characterHeadshots),
+        hasHeadshotsForChar: charId in characterHeadshots
+      });
+      return null;
+    }
     
     // Get first headshot (already sorted by priority)
     const firstHeadshot = headshots[0];
-    if (!firstHeadshot || !firstHeadshot.s3Key) return null;
+    if (!firstHeadshot || !firstHeadshot.s3Key) {
+      console.log(`[CharacterSelector] ⚠️ First headshot has no s3Key for ${charId}`);
+      return null;
+    }
     
     // Use standardized resolution - combines selected and visible maps
     const combinedFullImageUrlsMap = new Map<string, string>();
@@ -58,7 +68,7 @@ function CharacterSelector({
       visibleHeadshotFullImageUrlsMap.forEach((url, key) => combinedFullImageUrlsMap.set(key, url));
     }
     
-    return resolveCharacterHeadshotUrl(
+    const resolvedUrl = resolveCharacterHeadshotUrl(
       firstHeadshot,
       {
         thumbnailS3KeyMap: characterThumbnailS3KeyMap,
@@ -66,6 +76,21 @@ function CharacterSelector({
         fullImageUrlsMap: combinedFullImageUrlsMap
       }
     );
+    
+    // 🔍 DIAGNOSTIC: Log resolution result for CharacterSelector
+    if (!resolvedUrl) {
+      console.log(`[CharacterSelector] ❌ URL resolution failed for ${charId}:`, {
+        s3Key: firstHeadshot.s3Key?.substring(0, 40) + '...',
+        thumbnailS3KeyMapSize: characterThumbnailS3KeyMap?.size || 0,
+        thumbnailUrlsMapSize: characterThumbnailUrlsMap?.size || 0,
+        hasThumbnailS3Key: firstHeadshot.s3Key && characterThumbnailS3KeyMap?.has(firstHeadshot.s3Key),
+        thumbnailS3Key: firstHeadshot.s3Key && characterThumbnailS3KeyMap?.get(firstHeadshot.s3Key)?.substring(0, 40),
+        hasThumbnailUrl: firstHeadshot.s3Key && characterThumbnailS3KeyMap?.has(firstHeadshot.s3Key) && 
+          characterThumbnailUrlsMap?.has(characterThumbnailS3KeyMap?.get(firstHeadshot.s3Key) || '')
+      });
+    }
+    
+    return resolvedUrl;
   };
 
   // Close dropdown when clicking outside
@@ -368,11 +393,21 @@ export function PronounMappingSection({
   // 🔥 FIX: Use standardized URL resolution utility
   const getCharacterHeadshotImage = (charId: string): string | null => {
     const headshots = characterHeadshots[charId];
-    if (!headshots || headshots.length === 0) return null;
+    if (!headshots || headshots.length === 0) {
+      // 🔍 DIAGNOSTIC: Log when no headshots found (PronounMappingSection main)
+      console.log(`[PronounMappingSection:Main] ⚠️ No headshots for ${charId}:`, {
+        characterHeadshotsKeys: Object.keys(characterHeadshots),
+        hasHeadshotsForChar: charId in characterHeadshots
+      });
+      return null;
+    }
     
     // Get first headshot (already sorted by priority)
     const firstHeadshot = headshots[0];
-    if (!firstHeadshot || !firstHeadshot.s3Key) return null;
+    if (!firstHeadshot || !firstHeadshot.s3Key) {
+      console.log(`[PronounMappingSection:Main] ⚠️ First headshot has no s3Key for ${charId}`);
+      return null;
+    }
     
     // Use standardized resolution - combines selected and visible maps
     const combinedFullImageUrlsMap = new Map<string, string>();
@@ -383,7 +418,7 @@ export function PronounMappingSection({
       visibleHeadshotFullImageUrlsMap.forEach((url, key) => combinedFullImageUrlsMap.set(key, url));
     }
     
-    return resolveCharacterHeadshotUrl(
+    const resolvedUrl = resolveCharacterHeadshotUrl(
       firstHeadshot,
       {
         thumbnailS3KeyMap: characterThumbnailS3KeyMap,
@@ -391,6 +426,21 @@ export function PronounMappingSection({
         fullImageUrlsMap: combinedFullImageUrlsMap
       }
     );
+    
+    // 🔍 DIAGNOSTIC: Log resolution result
+    if (!resolvedUrl) {
+      console.log(`[PronounMappingSection:Main] ❌ URL resolution failed for ${charId}:`, {
+        s3Key: firstHeadshot.s3Key?.substring(0, 40) + '...',
+        thumbnailS3KeyMapSize: characterThumbnailS3KeyMap?.size || 0,
+        thumbnailUrlsMapSize: characterThumbnailUrlsMap?.size || 0,
+        hasThumbnailS3Key: firstHeadshot.s3Key && characterThumbnailS3KeyMap?.has(firstHeadshot.s3Key),
+        thumbnailS3Key: firstHeadshot.s3Key && characterThumbnailS3KeyMap?.get(firstHeadshot.s3Key)?.substring(0, 40),
+        hasThumbnailUrl: firstHeadshot.s3Key && characterThumbnailS3KeyMap?.has(firstHeadshot.s3Key) && 
+          characterThumbnailUrlsMap?.has(characterThumbnailS3KeyMap?.get(firstHeadshot.s3Key) || '')
+      });
+    }
+    
+    return resolvedUrl;
   };
 
   // Get available characters for selection (excluding already selected ones, up to maxTotalCharacters)

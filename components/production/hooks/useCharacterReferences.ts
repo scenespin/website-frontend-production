@@ -52,14 +52,57 @@ export function useCharacterReferences({
     'character' // entityType: query all character files
   );
 
+  // 🔍 DIAGNOSTIC: Log what characterIds we're looking for
+  useMemo(() => {
+    if (characterIds.length > 0 && !isLoadingFiles) {
+      console.log('[useCharacterReferences] 📋 Character IDs requested:', {
+        count: characterIds.length,
+        ids: characterIds.slice(0, 5),
+        allFilesCount: allCharacterMediaFiles.length,
+        isLoading: isLoadingFiles
+      });
+      
+      // Log unique entityIds found in files
+      const uniqueEntityIds = new Set<string>();
+      allCharacterMediaFiles.forEach((file: any) => {
+        const entityId = file.metadata?.entityId || file.entityId;
+        if (entityId) uniqueEntityIds.add(entityId);
+      });
+      console.log('[useCharacterReferences] 📁 EntityIds in Media Library files:', {
+        uniqueCount: uniqueEntityIds.size,
+        sample: Array.from(uniqueEntityIds).slice(0, 5)
+      });
+      
+      // Check which characterIds are NOT found in files
+      const missingCharacterIds = characterIds.filter(id => !uniqueEntityIds.has(id));
+      if (missingCharacterIds.length > 0) {
+        console.warn('[useCharacterReferences] ⚠️ Characters NOT found in Media Library:', missingCharacterIds);
+      }
+    }
+  }, [characterIds.join(','), allCharacterMediaFiles.length, isLoadingFiles]);
+
   // Filter Media Library files by character IDs (client-side filtering)
   const characterMediaFiles = useMemo(() => {
     if (!allCharacterMediaFiles || characterIds.length === 0) return [];
     
-    return allCharacterMediaFiles.filter((file: any) => {
+    const filtered = allCharacterMediaFiles.filter((file: any) => {
       const fileEntityId = file.metadata?.entityId || file.entityId;
       return characterIds.includes(fileEntityId);
     });
+    
+    // 🔍 DIAGNOSTIC: Log filtered results
+    console.log('[useCharacterReferences] 🔍 Filtered files by characterIds:', {
+      inputFiles: allCharacterMediaFiles.length,
+      filteredFiles: filtered.length,
+      filesWithThumbnails: filtered.filter((f: any) => f.thumbnailS3Key).length,
+      sampleFiles: filtered.slice(0, 3).map((f: any) => ({
+        s3Key: f.s3Key?.substring(0, 40) + '...',
+        entityId: f.metadata?.entityId || f.entityId,
+        thumbnailS3Key: f.thumbnailS3Key ? 'YES' : 'NO'
+      }))
+    });
+    
+    return filtered;
   }, [allCharacterMediaFiles, characterIds]);
 
   // Build character thumbnailS3KeyMap from Media Library results
@@ -70,6 +113,17 @@ export function useCharacterReferences({
         map.set(file.s3Key, file.thumbnailS3Key);
       }
     });
+    
+    // 🔍 DIAGNOSTIC: Log thumbnail map
+    console.log('[useCharacterReferences] 🗺️ ThumbnailS3KeyMap built:', {
+      mapSize: map.size,
+      filesWithoutThumbnails: characterMediaFiles.filter((f: any) => !f.thumbnailS3Key).length,
+      sample: Array.from(map.entries()).slice(0, 2).map(([s3Key, thumbKey]) => ({
+        s3Key: s3Key.substring(0, 40) + '...',
+        thumbKey: thumbKey.substring(0, 40) + '...'
+      }))
+    });
+    
     return map;
   }, [characterMediaFiles]);
 
@@ -106,6 +160,16 @@ export function useCharacterReferences({
         }
       });
     });
+    
+    // 🔍 DIAGNOSTIC: Log thumbnail keys being requested
+    console.log('[useCharacterReferences] 🔑 Thumbnail S3 keys to fetch:', {
+      keysCount: keys.length,
+      headshotsCount: Object.values(characterHeadshots).reduce((sum, h) => sum + h.length, 0),
+      headshotsWithS3Key: Object.values(characterHeadshots).reduce((sum, h) => sum + h.filter(x => x.s3Key).length, 0),
+      headshotsInMap: Object.values(characterHeadshots).reduce((sum, h) => sum + h.filter(x => x.s3Key && characterThumbnailS3KeyMap.has(x.s3Key)).length, 0),
+      sample: keys.slice(0, 2).map(k => k.substring(0, 40) + '...')
+    });
+    
     return keys;
   }, [characterHeadshots, characterThumbnailS3KeyMap]);
 
@@ -116,6 +180,19 @@ export function useCharacterReferences({
     headshotThumbnailS3Keys,
     headshotThumbnailS3Keys.length > 0
   );
+
+  // 🔍 DIAGNOSTIC: Log final URL map
+  useMemo(() => {
+    if (thumbnailUrlsMap.size > 0) {
+      console.log('[useCharacterReferences] ✅ ThumbnailUrlsMap populated:', {
+        urlsCount: thumbnailUrlsMap.size,
+        sample: Array.from(thumbnailUrlsMap.entries()).slice(0, 2).map(([key, url]) => ({
+          key: key.substring(0, 40) + '...',
+          url: url.substring(0, 50) + '...'
+        }))
+      });
+    }
+  }, [thumbnailUrlsMap.size]);
 
   // 🔥 PERFORMANCE FIX: Don't fetch full images upfront - they're only needed for selected references
   // Full images will be fetched on-demand in SceneBuilderPanel when references are selected
