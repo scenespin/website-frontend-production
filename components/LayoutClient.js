@@ -192,29 +192,36 @@ const AuthInitializer = () => {
         setBeforeRegistration: true
       });
       
-      // 🔥 FIX: Debounce session registration to prevent rapid re-registrations
-      // This prevents race conditions when switching between devices rapidly
-      // Wait 100ms before registering to ensure session ID is stable
-      // Backend has 5-second grace period, so short delay is safe
-      const registrationTimer = setTimeout(() => {
-        // Double-check session ID hasn't changed during the debounce period
-        if (session?.id === sessionId && isSignedIn) {
-          // Register session once we have the session ID
-          // This will replace any existing session on the backend
-          registerActiveSession();
-        } else {
-          console.log('[Auth] ⏭️ Skipping registration - session ID changed during debounce period', {
-            originalSessionId: sessionId.substring(0, 20) + '...',
-            currentSessionId: session?.id ? session.id.substring(0, 20) + '...' : 'none',
-            stillSignedIn: isSignedIn
-          });
-        }
-      }, 100); // 100ms debounce delay (reduced from 200ms since backend has grace period)
+      // 🔥 FEATURE FLAG: Can be disabled via NEXT_PUBLIC_ENABLE_SINGLE_DEVICE_LOGIN=false
+      const singleDeviceLoginEnabled = process.env.NEXT_PUBLIC_ENABLE_SINGLE_DEVICE_LOGIN !== 'false';
       
-      // Cleanup: cancel registration if session ID changes before debounce completes
-      return () => {
-        clearTimeout(registrationTimer);
-      };
+      if (singleDeviceLoginEnabled) {
+        // 🔥 FIX: Debounce session registration to prevent rapid re-registrations
+        // This prevents race conditions when switching between devices rapidly
+        // Wait 100ms before registering to ensure session ID is stable
+        // Backend has 5-second grace period, so short delay is safe
+        const registrationTimer = setTimeout(() => {
+          // Double-check session ID hasn't changed during the debounce period
+          if (session?.id === sessionId && isSignedIn) {
+            // Register session once we have the session ID
+            // This will replace any existing session on the backend
+            registerActiveSession();
+          } else {
+            console.log('[Auth] ⏭️ Skipping registration - session ID changed during debounce period', {
+              originalSessionId: sessionId.substring(0, 20) + '...',
+              currentSessionId: session?.id ? session.id.substring(0, 20) + '...' : 'none',
+              stillSignedIn: isSignedIn
+            });
+          }
+        }, 100); // 100ms debounce delay (reduced from 200ms since backend has grace period)
+        
+        // Cleanup: cancel registration if session ID changes before debounce completes
+        return () => {
+          clearTimeout(registrationTimer);
+        };
+      } else {
+        console.log('[Auth] ⏭️ Single-device login disabled via feature flag - skipping session registration');
+      }
     } else if (!isSignedIn) {
       setCurrentSessionId(null);
     }
