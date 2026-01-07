@@ -12,6 +12,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AssetDetailSidebarProps {
   asset?: Asset | null
@@ -42,6 +43,7 @@ export default function AssetDetailSidebar({
   }, [assets]);
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
+  const queryClient = useQueryClient() // 🔥 NEW: For invalidating Production Hub cache
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -434,6 +436,16 @@ export default function AssetDetailSidebar({
             images: updatedImages
           });
           
+          // 🔥 FIX: Invalidate and refetch asset bank query cache so Production Hub cards refresh
+          // Add small delay to account for DynamoDB eventual consistency
+          if (screenplayId) {
+            queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            // Force immediate refetch after delay to ensure fresh data
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            }, 1000); // 1 second delay for DynamoDB eventual consistency
+          }
+          
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
           // Use ref to get latest assets after update
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -566,6 +578,16 @@ export default function AssetDetailSidebar({
       
       // Update via API
       await updateAsset(asset.id, updateData);
+      
+      // 🔥 FIX: Invalidate and refetch asset bank query cache so Production Hub cards refresh
+      // Add small delay to account for DynamoDB eventual consistency
+      if (screenplayId) {
+        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        // Force immediate refetch after delay to ensure fresh data
+        setTimeout(() => {
+          queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        }, 1000); // 1 second delay for DynamoDB eventual consistency
+      }
       
       // Sync from context after update (with delay for DynamoDB consistency)
       await new Promise(resolve => setTimeout(resolve, 500));

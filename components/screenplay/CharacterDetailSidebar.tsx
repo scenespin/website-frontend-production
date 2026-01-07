@@ -573,10 +573,14 @@ export default function CharacterDetailSidebar({
           });
           console.log('[CharacterDetailSidebar] ✅ Character updated in context');
 
-          // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
-          // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
+          // 🔥 FIX: Invalidate and refetch character bank query cache so Production Hub cards refresh
+          // Add small delay to account for DynamoDB eventual consistency
           if (screenplayId) {
             queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+            // Force immediate refetch after delay to ensure fresh data
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+            }, 1000); // 1 second delay for DynamoDB eventual consistency
           }
 
           toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
@@ -1109,9 +1113,14 @@ export default function CharacterDetailSidebar({
                                   queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                 }
                                 
-                                // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
+                                // 🔥 FIX: Invalidate and refetch character bank query cache so Production Hub cards refresh
+                                // Add small delay to account for DynamoDB eventual consistency
                                 if (screenplayId) {
                                   queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                  // Force immediate refetch after delay to ensure fresh data
+                                  setTimeout(() => {
+                                    queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                                  }, 1000); // 1 second delay for DynamoDB eventual consistency
                                 }
                                 
                                 // 🔥 FIX: Don't sync from context immediately after deletion
@@ -1322,10 +1331,14 @@ export default function CharacterDetailSidebar({
                   images: transformedImages
                 });
 
-                // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
-                // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
+                // 🔥 FIX: Invalidate and refetch character bank query cache so Production Hub cards refresh
+                // Add small delay to account for DynamoDB eventual consistency
                 if (screenplayId) {
                   queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                  // Force immediate refetch after delay to ensure fresh data
+                  setTimeout(() => {
+                    queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+                  }, 1000); // 1 second delay for DynamoDB eventual consistency
                 }
 
                 toast.success('Image generated and uploaded');

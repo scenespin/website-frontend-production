@@ -509,6 +509,16 @@ export default function LocationDetailSidebar({
             images: uploadedImages
           });
 
+          // 🔥 FIX: Invalidate and refetch location bank query cache so Production Hub cards refresh
+          // Add small delay to account for DynamoDB eventual consistency
+          if (screenplayId) {
+            queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+            // Force immediate refetch after delay to ensure fresh data
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+            }, 1000); // 1 second delay for DynamoDB eventual consistency
+          }
+
           // Update parent component
           const updatedLocation = { ...location, images: uploadedImages };
           onUpdate(updatedLocation);
@@ -836,6 +846,16 @@ export default function LocationDetailSidebar({
                             // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
                             if (screenplayId) {
                               queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                            }
+                            
+                            // 🔥 FIX: Invalidate and refetch location bank query cache so Production Hub cards refresh
+                            // Add small delay to account for DynamoDB eventual consistency
+                            if (screenplayId) {
+                              queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                              // Force immediate refetch after delay to ensure fresh data
+                              setTimeout(() => {
+                                queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                              }, 1000); // 1 second delay for DynamoDB eventual consistency
                             }
                             
                             // 🔥 FIX: Don't sync from context immediately after deletion
