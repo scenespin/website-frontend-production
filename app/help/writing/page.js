@@ -256,7 +256,6 @@ export default function WritingHelp() {
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
                   <li>• <strong className="text-[#FFFFFF]">Click any scene</strong> to jump there instantly</li>
-                  <li>• <strong className="text-[#FFFFFF]">Drag scenes</strong> to reorder them</li>
                   <li>• <strong className="text-[#FFFFFF]">See character appearances</strong> per scene</li>
                   <li>• <strong className="text-[#FFFFFF]">View page count</strong> per scene</li>
                   <li>• <strong className="text-[#FFFFFF]">Toggle with</strong> <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl+E</kbd> / <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘+E</kbd></li>
