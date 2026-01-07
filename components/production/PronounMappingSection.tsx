@@ -52,7 +52,7 @@ function CharacterSelector({
       return null;
     }
     
-    // Get first headshot (already sorted by priority)
+    // Get first headshot (no sorting - user can choose any image)
     const firstHeadshot = headshots[0];
     if (!firstHeadshot || !firstHeadshot.s3Key) {
       console.log(`[CharacterSelector] ⚠️ First headshot has no s3Key for ${charId}`);
@@ -402,7 +402,7 @@ export function PronounMappingSection({
       return null;
     }
     
-    // Get first headshot (already sorted by priority)
+    // Get first headshot (no sorting - user can choose any image)
     const firstHeadshot = headshots[0];
     if (!firstHeadshot || !firstHeadshot.s3Key) {
       console.log(`[PronounMappingSection:Main] ⚠️ First headshot has no s3Key for ${charId}`);

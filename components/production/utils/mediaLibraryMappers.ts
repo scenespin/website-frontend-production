@@ -54,38 +54,25 @@ export interface PropImage {
 /**
  * Map Media Library files to character headshot structure.
  * 
- * Logic:
+ * SIMPLIFIED LOGIC:
  * - Media Library is the source of truth
- * - Show Production Hub images if available, otherwise show creation images (never mix)
+ * - Fetch ALL images associated with the character
+ * - Only filter: Don't show creation images UNLESS there are no production images (last resort)
  * - Filter out clothing references from virtual try-on
- * - Prioritize headshots > Production Hub > Other > Creation Image
+ * - No sorting, no prioritization, no limits - let the user decide
  * 
  * @param mediaFiles - Media Library files for the character
  * @param characterId - Character ID to filter files
- * @returns Array of headshots sorted by priority
+ * @returns Array of all headshots (unsorted, unlimited)
  */
 export function mapMediaFilesToHeadshots(
   mediaFiles: MediaFile[],
   characterId: string
 ): CharacterHeadshot[] {
-  const headshotPoseIds = [
-    'close-up-front-facing',
-    'close-up',
-    'extreme-close-up',
-    'close-up-three-quarter',
-    'headshot-front',
-    'headshot-3/4',
-    'front-facing'
-  ];
+  const allImages: MediaFile[] = [];
+  let hasProductionImages = false;
   
-  const allImages: Array<{
-    file: MediaFile;
-    isHeadshot: boolean;
-    isProductionHub: boolean;
-    isCreationImage: boolean;
-  }> = [];
-  
-  // First pass: collect and categorize all images
+  // First pass: collect all images and check if we have production images
   mediaFiles.forEach((file) => {
     if ((file.metadata?.entityId || file.entityId) === characterId) {
       // Skip thumbnails only
@@ -105,16 +92,14 @@ export function mapMediaFilesToHeadshots(
         return; // Skip clothing references
       }
       
-      const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
-      const isHeadshot =
-        poseId &&
-        headshotPoseIds.some((hp) =>
-          poseId.toLowerCase().includes(hp.toLowerCase())
-        );
-      const isProductionHub =
+      // Check if this is a production image (not a creation image)
+      const isProductionImage =
         file.metadata?.createdIn === 'production-hub' ||
         file.metadata?.source === 'pose-generation' ||
-        file.metadata?.uploadMethod === 'pose-generation';
+        file.metadata?.uploadMethod === 'pose-generation' ||
+        file.metadata?.poseId || // Any pose ID means it's from production
+        file.metadata?.angle; // Any angle means it's from production
+      
       const isCreationImage =
         file.metadata?.createdIn === 'creation' ||
         file.metadata?.referenceType === 'base' ||
@@ -122,63 +107,47 @@ export function mapMediaFilesToHeadshots(
         file.metadata?.uploadMethod === 'character-generation' ||
         file.metadata?.uploadMethod === 'character-bank';
       
-      allImages.push({ file, isHeadshot, isProductionHub, isCreationImage });
+      if (isProductionImage) {
+        hasProductionImages = true;
+      }
+      
+      allImages.push(file);
     }
   });
   
-  // Check if there are any Production Hub images (headshots or Production Hub uploads)
-  const hasProductionHubImages = allImages.some(
-    (img) => img.isHeadshot || img.isProductionHub
-  );
+  // Filter: if production images exist, exclude creation images (last resort only)
+  // If no production images, include creation images
+  const filteredImages = hasProductionImages
+    ? allImages.filter((file) => {
+        const isCreationImage =
+          file.metadata?.createdIn === 'creation' ||
+          file.metadata?.referenceType === 'base' ||
+          file.metadata?.uploadMethod === 'character-creation' ||
+          file.metadata?.uploadMethod === 'character-generation' ||
+          file.metadata?.uploadMethod === 'character-bank';
+        return !isCreationImage; // Exclude creation images if production images exist
+      })
+    : allImages; // Include everything (including creation) if no production images
   
-  // Filter: if Production Hub images exist, exclude creation images
-  // If no Production Hub images, include creation images
-  const filteredImages = hasProductionHubImages
-    ? allImages.filter((img) => !img.isCreationImage) // Exclude creation images if Production Hub exists
-    : allImages; // Include everything (including creation) if no Production Hub
-  
-  // Map to headshot structure with proper prioritization
-  const headshots: CharacterHeadshot[] = [];
-  
-  filteredImages.forEach(({ file, isHeadshot, isProductionHub, isCreationImage }) => {
+  // Map to headshot structure - no sorting, no prioritization, no limits
+  const headshots: CharacterHeadshot[] = filteredImages.map((file) => {
     const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
+    const label = file.metadata?.poseName || file.metadata?.angle || file.metadata?.fileName || 'Image';
     
-    // Determine label and priority based on image type
-    let label = file.metadata?.poseName || file.metadata?.angle || 'Headshot';
-    let priority: number;
-    
-    // Priority assignment (lower number = higher priority, shown first):
-    if (isHeadshot) {
-      // Headshot poses: highest priority (1-100 range)
-      priority = file.metadata?.priority || 50;
-    } else if (isProductionHub) {
-      // Production Hub images: medium priority (100-500 range)
-      priority = file.metadata?.priority || 200;
-    } else if (isCreationImage && file.metadata?.referenceType === 'base') {
-      // Creation images (base references): lowest priority (last resort)
-      label = 'Creation Image (Last Resort)';
-      priority = 9999; // Lowest priority (highest number)
-    } else {
-      // Other images (user uploads, etc.): medium-low priority (500-900 range)
-      priority = file.metadata?.priority || 700;
-    }
-    
-    headshots.push({
-      poseId: poseId || (isCreationImage ? 'base-reference' : file.s3Key),
+    return {
+      poseId: poseId || file.s3Key,
       s3Key: file.s3Key!,
       // 🔥 FIX: Media Library files don't have s3Url - presigned URLs are fetched separately
       // Set imageUrl to null (not empty string) - will be resolved via URL maps
       imageUrl: null as any, // Will be resolved via thumbnailUrlsMap or fullImageUrlsMap
       label,
-      priority,
+      priority: 0, // No prioritization - all images are equal
       outfitName: file.metadata?.outfitName
-    });
+    };
   });
   
-  // Sort by priority (lower number = higher priority)
-  headshots.sort((a, b) => (a.priority || 999) - (b.priority || 999));
-  
-  return headshots.slice(0, 10); // Limit to 10 headshots
+  // Return all headshots - no sorting, no limiting - let the user decide
+  return headshots;
 }
 
 /**

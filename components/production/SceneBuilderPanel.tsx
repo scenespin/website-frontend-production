@@ -1072,10 +1072,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     
     if (!sceneAnalysisResult || Object.keys(characterHeadshots).length === 0) return;
     
-    // Auto-select highest priority headshot for each character
+    // Auto-select first headshot for each character (user can change selection)
     Object.entries(characterHeadshots).forEach(([characterId, headshots]) => {
       if (headshots.length > 0) {
-        const bestHeadshot = headshots[0]; // Already sorted by priority
+        const bestHeadshot = headshots[0]; // Pick first available (no sorting - user decides)
         
         // Find all shots for this character and auto-select the best headshot
         const shotsForCharacter = sceneAnalysisResult?.shotBreakdown?.shots?.filter((s: any) => 
