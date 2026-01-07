@@ -309,39 +309,60 @@ export function CharacterBankPanel({
               {sortedCharacters.map((character) => {
                 const allReferences: CinemaCardImage[] = [];
                 
-                // Add base reference (only if it has imageUrl)
-                if (character.baseReference?.imageUrl) {
-                  allReferences.push({
-                    id: 'base',
-                    imageUrl: character.baseReference.imageUrl,
-                    label: `${character.name} - Base Reference`
+                // 🔥 NEW: Check unified images array first (like AssetBankPanel)
+                // This is the primary source of truth for all character images
+                if (character.images && Array.isArray(character.images) && character.images.length > 0) {
+                  character.images.forEach((img: any) => {
+                    // Use imageUrl (characters use imageUrl, not url like assets)
+                    const imageUrl = img.imageUrl || img.url;
+                    if (imageUrl) {
+                      allReferences.push({
+                        id: img.s3Key || img.metadata?.s3Key || `img-${character.id}-${allReferences.length}`,
+                        imageUrl: imageUrl,
+                        label: img.metadata?.isBase 
+                          ? `${character.name} - Base Reference`
+                          : img.metadata?.outfitName
+                          ? `${character.name} - ${img.metadata.outfitName}`
+                          : img.metadata?.poseName || img.label || 'Reference'
+                      });
+                    }
+                  });
+                } else {
+                  // Fallback to separate fields for backward compatibility
+                  // Add base reference (only if it has imageUrl)
+                  if (character.baseReference?.imageUrl) {
+                    allReferences.push({
+                      id: 'base',
+                      imageUrl: character.baseReference.imageUrl,
+                      label: `${character.name} - Base Reference`
+                    });
+                  }
+                  
+                  // Add user-uploaded references (only if they have imageUrl)
+                  (character.references || []).forEach((ref) => {
+                    if (ref?.imageUrl) {
+                      allReferences.push({
+                        id: ref.id,
+                        imageUrl: ref.imageUrl,
+                        label: ref.label || 'Reference'
+                      });
+                    }
+                  });
+                  
+                  // Add AI-generated pose references (like locations add angleVariations)
+                  // Backend may return as angleReferences OR poseReferences - check both!
+                  const poseRefs = (character as any).angleReferences || character.poseReferences || [];
+                  poseRefs.forEach((poseRef: any) => {
+                    const ref = typeof poseRef === 'string' ? null : poseRef;
+                    if (ref && ref.imageUrl) {
+                      allReferences.push({
+                        id: ref.id || `pose-${ref.s3Key}`,
+                        imageUrl: ref.imageUrl,
+                        label: ref.label || 'Pose'
+                      });
+                    }
                   });
                 }
-                
-                // Add user-uploaded references (only if they have imageUrl)
-                (character.references || []).forEach((ref) => {
-                  if (ref?.imageUrl) {
-                    allReferences.push({
-                      id: ref.id,
-                      imageUrl: ref.imageUrl,
-                      label: ref.label || 'Reference'
-                    });
-                  }
-                });
-                
-                // Add AI-generated pose references (like locations add angleVariations)
-                // Backend may return as angleReferences OR poseReferences - check both!
-                const poseRefs = (character as any).angleReferences || character.poseReferences || [];
-                poseRefs.forEach((poseRef: any) => {
-                  const ref = typeof poseRef === 'string' ? null : poseRef;
-                  if (ref && ref.imageUrl) {
-                    allReferences.push({
-                      id: ref.id || `pose-${ref.s3Key}`,
-                      imageUrl: ref.imageUrl,
-                      label: ref.label || 'Pose'
-                    });
-                  }
-                });
 
                 return (
                   <CinemaCard

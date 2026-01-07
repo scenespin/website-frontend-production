@@ -211,34 +211,71 @@ export function LocationBankPanel({
               {locations.map((location) => {
                 const allReferences: CinemaCardImage[] = [];
                 
-                // Add base reference (only if it has imageUrl)
-                if (location.baseReference?.imageUrl) {
-                  allReferences.push({
-                    id: location.baseReference.id,
-                    imageUrl: location.baseReference.imageUrl,
-                    label: `${location.name} - Base Reference`
+                // 🔥 NEW: Check unified images array first (like AssetBankPanel and CharacterBankPanel)
+                // This is the primary source of truth for all location images
+                if (location.images && Array.isArray(location.images) && location.images.length > 0) {
+                  location.images.forEach((img: any) => {
+                    // Use imageUrl (locations use imageUrl, not url like assets)
+                    const imageUrl = img.imageUrl || img.url;
+                    if (imageUrl) {
+                      allReferences.push({
+                        id: img.s3Key || img.metadata?.s3Key || `img-${location.locationId}-${allReferences.length}`,
+                        imageUrl: imageUrl,
+                        label: img.metadata?.isBase
+                          ? `${location.name} - Base Reference`
+                          : img.metadata?.isBackground
+                          ? `${location.name} - ${img.metadata.backgroundType || 'Background'}`
+                          : `${location.name} - ${img.metadata?.angle || 'Angle'} view`
+                      });
+                    }
                   });
-                }
-                
-                // Add angle variations (only if they have imageUrl)
-                (location.angleVariations || []).forEach((variation) => {
-                  if (variation?.imageUrl) {
+                } else {
+                  // Fallback to separate fields for backward compatibility
+                  // Add base reference (only if it has imageUrl)
+                  if (location.baseReference?.imageUrl) {
                     allReferences.push({
-                      id: variation.id,
-                      imageUrl: variation.imageUrl,
-                      label: `${location.name} - ${variation.angle} view`
+                      id: location.baseReference.id,
+                      imageUrl: location.baseReference.imageUrl,
+                      label: `${location.name} - Base Reference`
                     });
                   }
-                });
+                  
+                  // Add angle variations (only if they have imageUrl)
+                  (location.angleVariations || []).forEach((variation) => {
+                    if (variation?.imageUrl) {
+                      allReferences.push({
+                        id: variation.id,
+                        imageUrl: variation.imageUrl,
+                        label: `${location.name} - ${variation.angle} view`
+                      });
+                    }
+                  });
+                }
 
                 const locationType = location.type;
                 const typeLabel = location.type === 'interior' ? 'INT.' : 
                                  location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
                 // 🔥 FIX: Build metadata string with angles and backgrounds count
-                // Use Media Library count for backgrounds (source of truth), not stale location.backgrounds
-                const angleCount = location.angleVariations?.length || 0;
-                const backgroundCount = backgroundCountsByLocationId.get(location.locationId) || 0;
+                // Count from unified images array if available, otherwise use separate fields
+                let angleCount = 0;
+                let backgroundCount = 0;
+                
+                if (location.images && Array.isArray(location.images)) {
+                  // Count from unified images array
+                  location.images.forEach((img: any) => {
+                    if (img.metadata?.isBackground) {
+                      backgroundCount++;
+                    } else if (img.metadata?.isAngle || img.metadata?.source === 'angle-generation') {
+                      angleCount++;
+                    }
+                  });
+                } else {
+                  // Fallback: Use separate fields and Media Library count
+                  angleCount = location.angleVariations?.length || 0;
+                  backgroundCount = backgroundCountsByLocationId.get(location.locationId) || 0;
+                }
+                
                 let metadata: string | undefined;
                 if (angleCount > 0 && backgroundCount > 0) {
                   metadata = `${angleCount} angle${angleCount !== 1 ? 's' : ''}, ${backgroundCount} background${backgroundCount !== 1 ? 's' : ''}`;
