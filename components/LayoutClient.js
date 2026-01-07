@@ -114,8 +114,11 @@ const AuthInitializer = () => {
           status: response.status,
           statusText: response.statusText,
           error: errorData,
+          errorMessage: errorData?.message || errorData?.error || 'Unknown error',
           hasSessionId: !!sessionId,
-          sessionIdPreview: sessionId ? sessionId.substring(0, 20) + '...' : 'none'
+          sessionIdPreview: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
+          hasToken: !!token,
+          tokenLength: token?.length || 0
         });
         
         if (response.status === 401) {
