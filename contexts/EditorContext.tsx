@@ -1267,7 +1267,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             // Don't just check if debounce is pending - check if there are actual unsaved changes
             // The debounce might have fired but not completed, or might not have fired yet
             const currentState = stateRef.current;
-            const activeId = projectId || screenplayIdRef.current;
+            // Reuse activeId from above - no need to redeclare
             
             // Clear any pending debounce (we're saving now if needed)
             if (saveDebounceRef.current) {
