@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { useUser, useAuth, useSession } from "@clerk/nextjs";
+import { useCallback } from "react";
 import { Crisp } from "crisp-sdk-web";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
@@ -25,40 +26,9 @@ const AuthInitializer = () => {
   const { isSignedIn, user } = useUser();
   const { session } = useSession();
 
-  useEffect(() => {
-    if (isSignedIn && getToken && typeof getToken === 'function') {
-      // Set the global auth token getter for all API requests
-      // Using wryda-backend template for consistent JWT claims
-      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
-      console.log('[Auth] Token getter initialized with wryda-backend template');
-      
-      // 🔥 CRITICAL: Set sessionId IMMEDIATELY and SYNCHRONOUSLY before any API calls
-      // This ensures the X-Session-Id header is available for all requests
-      const sessionId = session?.id || null;
-      if (sessionId) {
-        setCurrentSessionId(sessionId);
-        console.log('[Auth] ✅ Session ID set synchronously:', sessionId.substring(0, 20) + '...');
-      } else {
-        console.warn('[Auth] ⚠️ No session ID available from session object');
-      }
-      
-      // 🔥 NEW: Register active session for single-device login
-      registerActiveSession();
-    } else if (!isSignedIn) {
-      // Clear token getter when user signs out
-      setAuthTokenGetter(null);
-      setCurrentSessionId(null); // Clear session ID
-      console.log('[Auth] Token getter cleared (user signed out)');
-      
-      // 🔥 NEW: Delete active session on logout
-      deleteActiveSession();
-    } else if (!getToken || typeof getToken !== 'function') {
-      console.warn('[Auth] getToken is not available or not a function:', typeof getToken);
-    }
-  }, [isSignedIn, getToken, user, session]);
-
   // 🔥 NEW: Register active session (called on login)
-  const registerActiveSession = async () => {
+  // Memoized with useCallback to avoid infinite loops in useEffect
+  const registerActiveSession = useCallback(async () => {
     try {
       console.log('[Auth] 🔄 Starting session registration...', {
         hasSession: !!session,
@@ -163,7 +133,44 @@ const AuthInitializer = () => {
       console.error('[Auth] ❌ Exception during session registration:', error);
       // Don't block login if session registration fails
     }
-  };
+  }, [isSignedIn, session?.id, getToken]); // Dependencies for registerActiveSession
+
+  // 🔥 CRITICAL: Separate effect to watch for session.id availability
+  // The session object might not be available immediately, so we need to watch for it
+  useEffect(() => {
+    if (isSignedIn && session?.id) {
+      const sessionId = session.id;
+      setCurrentSessionId(sessionId);
+      console.log('[Auth] ✅ Session ID set from session object:', sessionId.substring(0, 20) + '...', {
+        fullLength: sessionId.length,
+        willBeUsedInHeader: true
+      });
+      
+      // Register session once we have the session ID
+      registerActiveSession();
+    } else if (!isSignedIn) {
+      setCurrentSessionId(null);
+    }
+  }, [isSignedIn, session?.id, registerActiveSession]); // Watch specifically for session.id changes
+
+  useEffect(() => {
+    if (isSignedIn && getToken && typeof getToken === 'function') {
+      // Set the global auth token getter for all API requests
+      // Using wryda-backend template for consistent JWT claims
+      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      console.log('[Auth] Token getter initialized with wryda-backend template');
+    } else if (!isSignedIn) {
+      // Clear token getter when user signs out
+      setAuthTokenGetter(null);
+      setCurrentSessionId(null); // Clear session ID
+      console.log('[Auth] Token getter cleared (user signed out)');
+      
+      // 🔥 NEW: Delete active session on logout
+      deleteActiveSession();
+    } else if (!getToken || typeof getToken !== 'function') {
+      console.warn('[Auth] getToken is not available or not a function:', typeof getToken);
+    }
+  }, [isSignedIn, getToken, user]);
 
   // 🔥 NEW: Delete active session (called on logout)
   const deleteActiveSession = async () => {
