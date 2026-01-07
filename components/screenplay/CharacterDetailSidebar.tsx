@@ -185,6 +185,7 @@ export default function CharacterDetailSidebar({
 
   // 🔥 FIX: Refetch character data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest character data, including newly uploaded images
+  // EXACT WORKING PATTERN from before - just sync from context, no cache invalidation here
   useEffect(() => {
     if (!showStorageModal && character?.id) {
       // Modal just closed - sync from context (which should have been updated by the upload)
@@ -562,6 +563,8 @@ export default function CharacterDetailSidebar({
           });
 
           // Update character in context to trigger re-render
+          // NOTE: Backend already saved images via /api/screenplays/.../images endpoint
+          // This updateCharacter call updates local context only - backend already has the images
           console.log('[CharacterDetailSidebar] 🔄 Updating character in context:', {
             characterId: character.id,
             imageCount: transformedImages.length
@@ -571,16 +574,11 @@ export default function CharacterDetailSidebar({
           });
           console.log('[CharacterDetailSidebar] ✅ Character updated in context');
 
-          // 🔥 FIX: Invalidate and refetch character bank query cache so Production Hub cards refresh immediately
+          // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
           // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
+          // EXACT WORKING PATTERN from commit 7128e409 - just invalidate, React Query will refetch when needed
           if (screenplayId) {
             queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-            // Immediately refetch to update Production Hub UI (same pattern as CharacterDetailModal)
-            await Promise.all([
-              queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
-              queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-            ]);
           }
 
           toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
