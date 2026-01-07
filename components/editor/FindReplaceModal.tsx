@@ -13,7 +13,7 @@ interface FindReplaceModalProps {
 }
 
 export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalProps) {
-    const { state, setContent, setCursorPosition, replaceSelection } = useEditor();
+    const { state, setContent, setCursorPosition, replaceSelection, setHighlightRange, clearHighlight } = useEditor();
     const [searchText, setSearchText] = useState('');
     const [replaceText, setReplaceText] = useState('');
     const [caseSensitive, setCaseSensitive] = useState(false);
@@ -29,6 +29,8 @@ export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalPr
         if (!searchText) {
             setMatches([]);
             setCurrentMatchIndex(-1);
+            // REVERT POINT: Remove this line if highlighting causes issues
+            clearHighlight();
             return;
         }
         
@@ -54,7 +56,7 @@ export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalPr
         } else {
             setCurrentMatchIndex(-1);
         }
-    }, [searchText, caseSensitive, wholeWord, displayContent]);
+    }, [searchText, caseSensitive, wholeWord, displayContent, clearHighlight]);
     
     // Focus search input when modal opens
     useEffect(() => {
@@ -73,8 +75,10 @@ export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalPr
             setReplaceText('');
             setMatches([]);
             setCurrentMatchIndex(-1);
+            // REVERT POINT: Remove this line if highlighting causes issues
+            clearHighlight();
         }
-    }, [isOpen]);
+    }, [isOpen, clearHighlight]);
     
     const escapeRegex = (text: string): string => {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -87,6 +91,10 @@ export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalPr
         
         // Set cursor position to match and select it
         setCursorPosition(fullStart);
+        
+        // REVERT POINT: Remove these 2 lines if highlighting causes issues
+        // Highlight the match so user can see what will be replaced
+        setHighlightRange({ start: fullStart, end: fullEnd });
         
         // Note: The textarea selection will be handled by EditorContext's setCursorPosition
         // We just need to ensure the editor is focused
@@ -118,6 +126,9 @@ export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalPr
         const fullStart = mapDisplayPositionToFullContent(displayContent, state.content, match.start);
         const fullEnd = mapDisplayPositionToFullContent(displayContent, state.content, match.end);
         
+        // REVERT POINT: Remove this line if highlighting causes issues
+        clearHighlight();
+        
         replaceSelection(replaceText, fullStart, fullEnd);
         
         // Remove this match from matches array and adjust index
@@ -132,11 +143,16 @@ export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalPr
             }
         } else {
             setCurrentMatchIndex(-1);
+            // REVERT POINT: Remove this line if highlighting causes issues
+            clearHighlight();
         }
     };
     
     const handleReplaceAll = () => {
         if (matches.length === 0) return;
+        
+        // REVERT POINT: Remove this line if highlighting causes issues
+        clearHighlight();
         
         // Replace all matches (in reverse order to maintain positions)
         const sortedMatches = [...matches].sort((a, b) => b.start - a.start);
@@ -178,7 +194,7 @@ export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalPr
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+                    <div className="fixed inset-0 bg-black/50" />
                 </Transition.Child>
                 
                 <div className="fixed inset-0 overflow-y-auto">
