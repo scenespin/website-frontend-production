@@ -1623,12 +1623,20 @@ export default function MediaLibrary({
     }
 
     // Type filter
-    if (filterType !== 'all' && file.fileType !== filterType) {
+    // Use mediaFileType if available (simplified type), otherwise normalize fileType
+    const validTypes = ['video', 'image', 'audio', '3d-model', 'other'] as const;
+    const normalizedFileType: 'video' | 'image' | 'audio' | '3d-model' | 'other' = 
+      file.mediaFileType || 
+      (typeof file.fileType === 'string' && validTypes.includes(file.fileType as any)
+        ? (file.fileType as 'video' | 'image' | 'audio' | '3d-model' | 'other')
+        : detectFileType(file.fileType));
+    
+    if (filterType !== 'all' && normalizedFileType !== filterType) {
       return false;
     }
 
     // Allowed types filter
-    if (filterTypes && !filterTypes.includes(file.fileType)) {
+    if (filterTypes && !filterTypes.includes(normalizedFileType)) {
       return false;
     }
 
