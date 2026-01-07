@@ -82,7 +82,7 @@ import { isValidCharacterId, filterValidCharacterIds } from './utils/characterId
 import { categorizeCharacters } from './utils/characterCategorization';
 import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
-import { resolveCharacterHeadshotUrl } from './utils/imageUrlResolver';
+import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
 import {
   getFullShotText,
   actionShotHasExplicitCharacter,
