@@ -3863,6 +3863,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                               }
                             ) || '';
                             
+                            // Get thumbnail and full image URLs for error handling
+                            let thumbnailS3Key: string | null = null;
+                            if (headshot.s3Key && characterThumbnailS3KeyMap.has(headshot.s3Key)) {
+                              thumbnailS3Key = characterThumbnailS3KeyMap.get(headshot.s3Key) || null;
+                            }
+                            const thumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.get(thumbnailS3Key);
+                            const fullImageUrl = headshot.s3Key && visibleHeadshotFullImageUrlsMap?.get(headshot.s3Key);
+                            
                             // Check if this is the creation image (last resort)
                             const isCreationImage = headshot.poseId === 'base-reference' || headshot.label === 'Creation Image (Last Resort)';
                             
@@ -3914,7 +3922,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                                     onError={(e) => {
                                       // 🔥 FIX: If thumbnail fails, try full image URL (if different)
                                       const imgElement = e.target as HTMLImageElement;
-                                      if (thumbnailUrl && displayUrl === thumbnailUrl && headshot.imageUrl && headshot.imageUrl !== displayUrl) {
+                                      if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
+                                        imgElement.src = fullImageUrl;
+                                      } else if (headshot.imageUrl && isValidImageUrl(headshot.imageUrl) && imgElement.src !== headshot.imageUrl) {
                                         imgElement.src = headshot.imageUrl;
                                       } else {
                                         // If image fails completely, show placeholder
