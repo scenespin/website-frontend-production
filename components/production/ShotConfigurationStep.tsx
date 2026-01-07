@@ -1081,7 +1081,6 @@ export function ShotConfigurationStep({
                   const location = finalSceneProps.find(loc => loc.id === shot.locationId);
                   
                   // 🔥 FIX: Use standardized URL resolution utility
-                  const { resolveLocationImageUrl } = require('./utils/imageUrlResolver');
                   const locationImageUrl = resolveLocationImageUrl(
                     locationRef,
                     {
