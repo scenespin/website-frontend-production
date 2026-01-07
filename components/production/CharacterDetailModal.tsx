@@ -808,47 +808,13 @@ export function CharacterDetailModal({
     return [...enrichedMediaLibraryImages, ...enrichedFallbackImages];
   }, [enrichedMediaLibraryImages, enrichedFallbackImages]);
   
-  // Keep old userReferences and poseReferences for backward compatibility (used in other parts of code)
-  // 🔥 MEDIA LIBRARY AS SOURCE OF TRUTH: Filter for creation section images using Media Library metadata only
-  // Creation section images are identified by Media Library metadata: createdIn: 'creation' or uploadMethod: 'character-creation'
-  // DynamoDB arrays (character.references) are only used for metadata enrichment (labels, etc.), not for identification
+  // 🔥 FIX: Use same simple filtering approach as LocationDetailModal and AssetDetailModal
+  // Filter by boolean flags (isPose) instead of metadata, matching the pattern used by locations and assets
+  // Locations: allCreationImages = allImages.filter(img => !img.isAngle && !img.isBackground)
+  // Assets: userImages = allImages.filter(img => !img.isAngleReference)
+  // Characters: userReferences = allImages.filter(img => !img.isPose)
   const userReferences = useMemo(() => {
-    return allImages.filter(img => {
-      // 🔥 MEDIA LIBRARY AS SOURCE OF TRUTH: Use Media Library metadata to identify creation images
-      const isFromCreation = img.metadata?.createdIn === 'creation' || 
-                            img.metadata?.uploadMethod === 'character-creation';
-      
-      // Must be identified as creation image by Media Library metadata
-      if (!isFromCreation) {
-        return false;
-      }
-      
-      // Exclude poses and base references (these shouldn't be in references, but double-check)
-      if (img.isPose || img.isBase) return false;
-      
-      // 🔥 FIX: Exclude images from Outfits folder (these are Production Hub generated poses)
-      // Production Hub images are in: Characters/{Name}/Outfits/{Outfit Name}/
-      // Creation section images are in: Characters/{Name}/References/ or root character folder
-      if (img.s3Key) {
-        const s3KeyLower = img.s3Key.toLowerCase();
-        // Exclude if in Outfits folder (Production Hub)
-        if (s3KeyLower.includes('/outfits/')) {
-          return false;
-        }
-      }
-      
-      // 🔥 FIX: Exclude clothing references from creation images
-      // Check if image is a clothing reference by checking metadata or s3Key
-      if (img.metadata?.isClothingReference === true || 
-          img.metadata?.referenceType === 'clothing' ||
-          img.s3Key?.toLowerCase().includes('clothing_reference') ||
-          img.s3Key?.toLowerCase().includes('clothing-reference') ||
-          img.label?.toLowerCase().includes('clothing reference')) {
-        return false;
-      }
-      
-      return true;
-    });
+    return allImages.filter(img => !img.isPose);
   }, [allImages]);
   
   const poseReferences: PoseReferenceWithOutfit[] = useMemo(() => {
