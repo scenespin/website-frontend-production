@@ -608,6 +608,18 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     selectedReferenceS3Keys.length > 0
   );
 
+  // 🔥 FIX: Create stable signature for Map to prevent infinite loops
+  // The Map object is recreated on every render, so we use a signature instead
+  const selectedRefsMapSignature = useMemo(() => {
+    if (!selectedReferenceFullImageUrlsMap || selectedReferenceFullImageUrlsMap.size === 0) {
+      return '';
+    }
+    return Array.from(selectedReferenceFullImageUrlsMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${value}`)
+      .join('|');
+  }, [selectedReferenceFullImageUrlsMap]);
+
   // 🔥 FIX: Update selectedCharacterReferences with presigned URLs when available
   // 🔥 FIX: Use ref to track last processed state to prevent infinite loops
   const lastProcessedRefsRef = useRef<string>('');
@@ -618,11 +630,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     runInfo.count++;
     const timeSinceLastRun = now - runInfo.lastRun;
     
-    // Create combined signature for both dependencies
-    const selectedRefsMapSignature = Array.from(selectedReferenceFullImageUrlsMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value]) => `${key}:${value}`)
-      .join('|');
+    // Use memoized signature instead of recalculating
     const combinedSignature = `${selectedRefsMapSignature}|${selectedCharacterReferencesSignature}`;
     const depsChanged = combinedSignature !== runInfo.lastDeps;
     
@@ -703,8 +711,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     // 🔥 FIX: Use stable signatures only - prevents infinite loops when objects are recreated
     // The signatures only change when the actual data changes, not when object references change
+    // Use memoized signature instead of Map object to prevent infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedReferenceFullImageUrlsMap, selectedCharacterReferencesSignature]);
+  }, [selectedRefsMapSignature, selectedCharacterReferencesSignature]);
 
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {

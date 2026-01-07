@@ -10,11 +10,15 @@ import { cn } from '@/lib/utils';
 function CharacterSelector({ 
   value, 
   availableChars, 
-  onChange 
+  onChange,
+  characterHeadshots = {},
+  loadingHeadshots = {}
 }: { 
   value: string; 
   availableChars: Character[]; 
   onChange: (value: string) => void;
+  characterHeadshots?: Record<string, Array<{ poseId?: string; s3Key: string; imageUrl: string; label?: string; priority?: number; outfitName?: string }>>;
+  loadingHeadshots?: Record<string, boolean>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -24,6 +28,15 @@ function CharacterSelector({
     if (value === '__ignore__') return '-- Skip (extras/background only) --';
     const char = availableChars.find(c => c.id === value);
     return char ? char.name : '-- Select character --';
+  };
+
+  // Get headshot image for a character (first available headshot)
+  const getCharacterHeadshotImage = (charId: string): string | null => {
+    const headshots = characterHeadshots[charId];
+    if (!headshots || headshots.length === 0) return null;
+    // Get first headshot with an imageUrl
+    const firstHeadshot = headshots.find(h => h.imageUrl) || headshots[0];
+    return firstHeadshot?.imageUrl || null;
   };
 
   // Close dropdown when clicking outside
@@ -51,9 +64,30 @@ function CharacterSelector({
           e.preventDefault();
           setIsOpen(!isOpen);
         }}
-        className="flex-1 h-8 text-xs px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+        className="flex-1 h-8 text-xs px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent gap-2"
       >
-        <span className="truncate">{getDisplayLabel()}</span>
+        {(() => {
+          // Show headshot image if character is selected and has headshots
+          if (value && value !== '__select__' && value !== '__ignore__') {
+            const headshotImage = getCharacterHeadshotImage(value);
+            if (headshotImage) {
+              return (
+                <>
+                  <img
+                    src={headshotImage}
+                    alt=""
+                    className="w-6 h-6 rounded object-cover flex-shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <span className="truncate flex-1">{getDisplayLabel()}</span>
+                </>
+              );
+            }
+          }
+          return <span className="truncate flex-1">{getDisplayLabel()}</span>;
+        })()}
         <ChevronDown className={cn("w-3.5 h-3.5 transition-transform flex-shrink-0", isOpen && "rotate-180")} />
       </button>
       {isOpen && (
@@ -100,27 +134,51 @@ function CharacterSelector({
               -- Skip (extras/background only) --
             </button>
           </li>
-          {availableChars.map((char) => (
-            <li key={char.id}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange(char.id);
-                  setIsOpen(false);
-                }}
-                className={cn(
-                  "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs",
-                  value === char.id
-                    ? "bg-[#DC143C]/20 text-[#FFFFFF]"
-                    : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
-                )}
-              >
-                {char.name}
-              </button>
-            </li>
-          ))}
+          {availableChars.map((char) => {
+            const headshotImage = getCharacterHeadshotImage(char.id);
+            const isLoading = loadingHeadshots[char.id] === true;
+            return (
+              <li key={char.id}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onChange(char.id);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs",
+                    value === char.id
+                      ? "bg-[#DC143C]/20 text-[#FFFFFF]"
+                      : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
+                  )}
+                >
+                  {isLoading ? (
+                    <div className="w-6 h-6 rounded bg-[#3F3F46] flex items-center justify-center flex-shrink-0">
+                      <span className="text-[8px] text-[#808080]">...</span>
+                    </div>
+                  ) : headshotImage ? (
+                    <img
+                      src={headshotImage}
+                      alt={char.name}
+                      className="w-6 h-6 rounded object-cover flex-shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        const placeholder = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                        if (placeholder) placeholder.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  {/* Fallback placeholder if image fails */}
+                  <div className="hidden w-6 h-6 rounded bg-[#3F3F46] flex items-center justify-center flex-shrink-0">
+                    <span className="text-[8px] text-[#808080]">?</span>
+                  </div>
+                  <span className="truncate flex-1">{char.name}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -268,6 +326,15 @@ export function PronounMappingSection({
     return mapping && (Array.isArray(mapping) ? mapping.length > 0 : true);
   });
   
+  // Get headshot image for a character (first available headshot)
+  const getCharacterHeadshotImage = (charId: string): string | null => {
+    const headshots = characterHeadshots[charId];
+    if (!headshots || headshots.length === 0) return null;
+    // Get first headshot with an imageUrl
+    const firstHeadshot = headshots.find(h => h.imageUrl) || headshots[0];
+    return firstHeadshot?.imageUrl || null;
+  };
+
   // Get available characters for selection (excluding already selected ones, up to maxTotalCharacters)
   // For singular pronouns: allow same character for multiple pronouns (e.g., "she" and "her" can both map to SARAH)
   // For plural pronouns: respect the 5 unique character limit
@@ -334,6 +401,8 @@ export function PronounMappingSection({
                     <CharacterSelector
                       value={mappedCharacterId || '__select__'}
                       availableChars={availableChars}
+                      characterHeadshots={characterHeadshots}
+                      loadingHeadshots={loadingHeadshots}
                       onChange={(value) => {
                         // Special values: "__select__" = no selection, "__ignore__" = skip
                         if (value === '__select__') {
@@ -479,6 +548,8 @@ export function PronounMappingSection({
                             const isSelected = mappedCharacterIds.includes(char.id);
                             const canSelect = isSelected || remainingSlots > 0;
                             
+                            const headshotImage = getCharacterHeadshotImage(char.id);
+                            const isLoading = loadingHeadshots[char.id] === true;
                             return (
                               <label
                                 key={char.id}
@@ -512,6 +583,26 @@ export function PronounMappingSection({
                                   }}
                                   className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer disabled:cursor-not-allowed"
                                 />
+                                {isLoading ? (
+                                  <div className="w-6 h-6 rounded bg-[#3F3F46] flex items-center justify-center flex-shrink-0">
+                                    <span className="text-[8px] text-[#808080]">...</span>
+                                  </div>
+                                ) : headshotImage ? (
+                                  <img
+                                    src={headshotImage}
+                                    alt={char.name}
+                                    className="w-6 h-6 rounded object-cover flex-shrink-0"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      const placeholder = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                                      if (placeholder) placeholder.classList.remove('hidden');
+                                    }}
+                                  />
+                                ) : null}
+                                {/* Fallback placeholder if image fails */}
+                                <div className="hidden w-6 h-6 rounded bg-[#3F3F46] flex items-center justify-center flex-shrink-0">
+                                  <span className="text-[8px] text-[#808080]">?</span>
+                                </div>
                                 <span className="text-xs text-[#FFFFFF] flex-1">{char.name}</span>
                                 {isSelected && (
                                   <span className="text-[10px] text-[#DC143C]">✓</span>
