@@ -44,12 +44,23 @@ export async function GET(request: NextRequest) {
     // Proxy to backend
     const backendUrl = `${BACKEND_API_URL}/api/screenplays/list?status=${status}&limit=${limit}`;
     console.log('[Screenplay List API] Proxying to backend:', backendUrl);
+    
+    // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
+    const sessionIdHeader = request.headers.get('x-session-id');
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+    if (sessionIdHeader) {
+      headers['X-Session-Id'] = sessionIdHeader;
+      console.log('[Screenplay List API] ✅ Forwarding X-Session-Id header:', sessionIdHeader.substring(0, 20) + '...');
+    } else {
+      console.error('[Screenplay List API] ⚠️ No X-Session-Id header in request - session validation may fail');
+    }
+    
     const backendResponse = await fetch(backendUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
 
     console.log('[Screenplay List API] Backend response status:', backendResponse.status);
