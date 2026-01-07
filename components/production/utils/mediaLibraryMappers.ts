@@ -135,7 +135,7 @@ export function mapMediaFilesToHeadshots(
   // Map to headshot structure - no sorting, no prioritization, no limits
   const headshots: CharacterHeadshot[] = filteredImages.map((file) => {
     const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
-    const label = file.metadata?.poseName || file.metadata?.angle || file.metadata?.fileName || 'Image';
+    const label = file.metadata?.poseName || file.metadata?.angle || file.fileName || 'Image';
     
     return {
       poseId: poseId || file.s3Key,
