@@ -648,10 +648,10 @@ export default function AssetDetailModal({
 
   if (!isOpen) return null;
 
-  const getCategoryIcon = () => {
+  const getCategoryIcon = (size: string = 'w-6 h-6') => {
     const icons = { prop: Package, vehicle: Car, furniture: Armchair, other: Box };
     const Icon = icons[asset.category];
-    return <Icon className="w-6 h-6" />;
+    return <Icon className={size} />;
   };
 
   return (
@@ -689,9 +689,7 @@ export default function AssetDetailModal({
                   <div className="flex items-center gap-2">
                     {isMobile && (
                       <div className="p-1.5 bg-[#DC143C]/10 rounded flex-shrink-0">
-                        {React.cloneElement(getCategoryIcon() as React.ReactElement, { 
-                          className: 'w-4 h-4'
-                        })}
+                        {getCategoryIcon('w-4 h-4')}
                       </div>
                     )}
                     <h2 className={`font-bold text-[#FFFFFF] truncate ${isMobile ? 'text-base' : 'text-xl'}`}>
