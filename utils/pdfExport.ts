@@ -332,10 +332,6 @@ async function addWatermarkWithPdfLib(
         const imgWidth = inchesToPoints(imageWidth);
         const imgHeight = inchesToPoints(imageHeight);
 
-        // Calculate position (centered)
-        const x = centerX - imgWidth / 2;
-        const y = centerY - imgHeight / 2;
-
         // Clamp opacity between 0 and 1
         const opacityValue = Math.max(0, Math.min(1, opacity));
 
