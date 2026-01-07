@@ -81,7 +81,10 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
     const sceneFiles = allFiles.filter(file => {
       const metadata = (file as any).metadata || {};
       const isSceneFile = metadata.entityType === 'scene' && metadata.sceneId;
-      const isVideo = file.fileType === 'video';
+      // 🔥 FIX: Check both mediaFileType (simplified) and fileType (MIME type) for video detection
+      const isVideo = (file as any).mediaFileType === 'video' || 
+                      file.fileType === 'video' || 
+                      (typeof file.fileType === 'string' && file.fileType.startsWith('video/'));
       const isFullScene = metadata.isFullScene === true;
       // Include individual shot videos only, exclude metadata files, first frames, and full stitched scenes
       return isSceneFile && isVideo && !metadata.isMetadata && !metadata.isFirstFrame && !isFullScene;

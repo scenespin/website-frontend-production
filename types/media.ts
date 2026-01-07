@@ -20,7 +20,8 @@ export interface MediaFile {
   id: string;
   fileName: string;
   s3Key: string; // Required - used to generate presigned URLs on-demand
-  fileType: 'video' | 'image' | 'audio' | '3d-model' | 'other';
+  fileType: 'video' | 'image' | 'audio' | '3d-model' | 'other' | string; // 🔥 FIX: Allow MIME types like 'video/mp4'
+  mediaFileType?: 'video' | 'image' | 'audio' | '3d-model' | 'other'; // 🔥 NEW: Simplified file type from backend
   fileSize: number;
   storageType: 'google-drive' | 'dropbox' | 'wryda-temp' | 'local';
   uploadedAt: string;
