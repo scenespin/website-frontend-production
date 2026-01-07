@@ -47,6 +47,11 @@ export async function getEditorLock(screenplayId: string): Promise<EditorLockSta
   if (!isFeatureEnabled()) {
     return null; // Feature disabled, return null (no lock)
   }
+  
+  // Defensive check - don't make API calls if feature is disabled
+  if (process.env.NEXT_PUBLIC_ENABLE_EDITOR_LOCK !== 'true') {
+    return null;
+  }
 
   try {
     const response = await fetchWithSessionId(`/api/screenplays/${screenplayId}/editor-lock`, {

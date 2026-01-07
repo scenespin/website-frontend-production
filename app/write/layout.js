@@ -15,6 +15,10 @@ export const dynamic = 'force-dynamic';
 export default function WriteLayout({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
+  
+  // 🔥 FIX: Hooks must be called unconditionally, but EditorProvider should be available
+  // If it's not, the error will be caught by error boundary
+  // The issue might be a race condition during navigation - ensure EditorProvider is in root layout
   const { state: editorState, insertText, replaceSelection, isEditorFullscreen } = useEditor();
   const { isDrawerOpen } = useDrawer();
 

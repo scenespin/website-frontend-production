@@ -59,8 +59,20 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
   // Check lock status when screenplayId changes
   useEffect(() => {
+    // Early return if feature is disabled (double-check)
+    if (!isFeatureEnabled) {
+      setLockStatus(null);
+      return;
+    }
+    
     if (!screenplayId || !user?.id || !session?.id) {
       // No screenplay open or user not authenticated
+      setLockStatus(null);
+      return;
+    }
+    
+    // Don't make API calls if feature is disabled (defensive check)
+    if (process.env.NEXT_PUBLIC_ENABLE_EDITOR_LOCK !== 'true') {
       setLockStatus(null);
       return;
     }
@@ -91,6 +103,11 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
   // Acquire lock
   const acquireLock = useCallback(async () => {
+    // Early return if feature is disabled
+    if (!isFeatureEnabled) {
+      return;
+    }
+    
     if (!screenplayId || !user?.id || !session?.id) {
       return;
     }
@@ -113,6 +130,11 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
   // Release lock
   const releaseLock = useCallback(async () => {
+    // Early return if feature is disabled
+    if (!isFeatureEnabled) {
+      return;
+    }
+    
     if (!screenplayId) {
       return;
     }
@@ -127,6 +149,11 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
   // Send heartbeat
   const sendHeartbeat = useCallback(async () => {
+    // Early return if feature is disabled
+    if (!isFeatureEnabled) {
+      return;
+    }
+    
     if (!screenplayId) {
       return;
     }

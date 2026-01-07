@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
@@ -61,8 +62,25 @@ async function forwardRequest(
   method: string
 ) {
   try {
-    // Get authorization header from client request
-    const authHeader = request.headers.get('authorization');
+    // Get authorization header from client request, or generate token server-side
+    let authHeader = request.headers.get('authorization');
+    
+    // If no auth header, try to generate one using Clerk auth (server-side)
+    if (!authHeader) {
+      try {
+        const { getToken } = await auth();
+        if (getToken) {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (token) {
+            authHeader = `Bearer ${token}`;
+            console.error(`[API Proxy] ✅ Generated server-side token for ${pathSegments.join('/')}`);
+          }
+        }
+      } catch (authError) {
+        // If auth fails, continue without token (will fail on backend, but that's expected)
+        console.error(`[API Proxy] ⚠️ Could not generate server-side token:`, authError);
+      }
+    }
     
     // Build backend URL
     const path = pathSegments.join('/');
