@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
-const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
 export async function DELETE(request: NextRequest) {
   try {
