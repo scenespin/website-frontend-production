@@ -12,6 +12,7 @@ import { getCurrentScreenplayId, setCurrentScreenplayId, migrateFromLocalStorage
 import { toast } from 'sonner';
 import { broadcastCursorPosition, clearCursorPosition, getCursorPositions } from '@/utils/cursorPositionStorage';
 import { CursorPosition } from '@/types/collaboration';
+import { useEditorLock } from '@/hooks/useEditorLock';
 // ConflictResolutionModal removed - using "last write wins" strategy instead
 
 interface EditorState {
@@ -102,6 +103,11 @@ interface EditorContextType {
     // Editor fullscreen mode (hides navigation)
     isEditorFullscreen: boolean;
     setIsEditorFullscreen: (value: boolean) => void;
+    
+    // Feature 0187: Editor Lock for Multi-Device Conflict Prevention
+    isEditorLocked: boolean; // True if locked by same user on different device
+    isCollaboratorEditing: boolean; // True if different user has lock
+    lockedBy: string | null; // Display name of user who has lock
 }
 
 const defaultState: EditorState = {
@@ -134,6 +140,17 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
+    
+    // Feature 0187: Editor Lock for Multi-Device Conflict Prevention
+    // Lock is per screenplayId - each screenplay has its own independent lock
+    const {
+        isLocked,
+        isCollaboratorEditing,
+        lockedBy,
+        acquireLock,
+        releaseLock,
+        sendHeartbeat
+    } = useEditorLock(projectId);
     
     // 🔥 FIX 1: Guard pattern - track which screenplay_id we've loaded (like ScreenplayContext)
     // Stores the last screenplay_id (or 'no-id') that we initialized for
@@ -211,6 +228,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     
     // Manual save function - defined before setContent so it can be used in dependencies
     const saveNow = useCallback(async () => {
+        // Feature 0187: Check if editor is locked before saving
+        if (isLocked) {
+            console.warn('[EditorContext] ⚠️ Save blocked - editor is locked by another device');
+            toast.error('Editor is locked by another device. Cannot save.');
+            return false;
+        }
+        
         const currentState = stateRef.current;
         const contentLength = currentState.content.length;
         const contentTrimmed = currentState.content.trim();
@@ -346,6 +370,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     // 🔥 FIX: Update lastSyncedContent after successful save
                     setLastSyncedContent(currentState.content);
                     
+                    // Feature 0187: Send heartbeat after successful save to keep lock alive
+                    if (activeScreenplayId) {
+                        sendHeartbeat().catch(err => {
+                            console.debug('[EditorContext] Heartbeat failed after save (non-critical):', err);
+                        });
+                    }
+                    
                     console.log('[EditorContext] ✅ Updated screenplay content:', activeScreenplayId, '| Saved', contentLength, 'chars');
                 } catch (error: any) {
                     // 🔥 SIMPLIFIED: "Last write wins" - if save fails, just log and retry with force
@@ -431,6 +462,12 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const pendingUndoSnapshotRef = useRef<{ content: string; cursorPosition: number; timestamp: number } | null>(null);
     
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
+        // Feature 0187: Check if editor is locked before allowing edits
+        if (isLocked && markDirty) {
+            console.warn('[EditorContext] ⚠️ Edit blocked - editor is locked by another device');
+            return; // Don't allow edits if locked
+        }
+        
         setState(prev => {
             const currentCursor = prev.cursorPosition ?? 0;
             const previousContent = previousContentForUndoRef.current;
@@ -1025,7 +1062,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         reset,
         hasUnsavedChanges,
         otherUsersCursors, // Feature 0134: Expose other users' cursor positions
-        lastSyncedContent // Feature 0134: Last synced content from server (for cursor position calculations)
+        lastSyncedContent, // Feature 0134: Last synced content from server (for cursor position calculations)
+        // Feature 0187: Editor Lock state
+        isEditorLocked: isLocked,
+        isCollaboratorEditing,
+        lockedBy
     };
     
     // ========================================================================
@@ -1446,6 +1487,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 }
                                 
                                 // screenplayIdRef already set above
+                                
+                                // Feature 0187: Acquire editor lock when screenplay loads
+                                if (projectId) {
+                                    acquireLock().catch(err => {
+                                        console.warn('[EditorContext] Failed to acquire lock on load (non-critical):', err);
+                                        // Don't block loading if lock acquisition fails
+                                    });
+                                }
                                 
                                 // Save to Clerk metadata
                                 try {
@@ -2376,6 +2425,10 @@ const createMinimalContextValue = (): EditorContextType => ({
     lastSyncedContent: '', // Feature 0134: Empty string for minimal context
     isEditorFullscreen: false,
     setIsEditorFullscreen: () => {},
+    // Feature 0187: Editor Lock state (defaults for minimal context)
+    isEditorLocked: false,
+    isCollaboratorEditing: false,
+    lockedBy: null,
 });
 
 // Public EditorProvider that wraps the search params logic in Suspense

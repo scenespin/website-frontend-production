@@ -10,6 +10,7 @@ import FountainEditor from './FountainEditor';
 import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
 import EditorToolbar from './EditorToolbar';
+import EditorLockBanner from './EditorLockBanner';
 import SceneNavigator from './SceneNavigator';
 import AgentFABGroup from './AgentFABGroup';
 import { ExportPDFModal } from '../screenplay/ExportPDFModal';
@@ -34,7 +35,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
  */
 export default function EditorWorkspace() {
     const router = useRouter();
-    const { state, setContent, setCurrentLine, replaceSelection, insertText, isEditorFullscreen, setIsEditorFullscreen, undo, redo } = useEditor();
+    const { state, setContent, setCurrentLine, replaceSelection, insertText, isEditorFullscreen, setIsEditorFullscreen, undo, redo, isEditorLocked, isCollaboratorEditing, lockedBy } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
@@ -554,6 +555,13 @@ export default function EditorWorkspace() {
                         }}
                     />
                     
+                    {/* Feature 0187: Editor Lock Banner */}
+                    <EditorLockBanner
+                        isLocked={isEditorLocked}
+                        isCollaboratorEditing={isCollaboratorEditing}
+                        lockedBy={lockedBy}
+                    />
+                    
                     {/* Word Count & Duration - Below Toolbar */}
                     <EditorHeader
                         currentLine={state.currentLine}
@@ -572,6 +580,7 @@ export default function EditorWorkspace() {
                     <div className="flex-1 overflow-hidden">
                         <FountainEditor
                             className="h-full w-full"
+                            readonly={isEditorLocked} // Feature 0187: Make editor read-only when locked
                             placeholder="Start writing your screenplay...
 
 Tip: 
