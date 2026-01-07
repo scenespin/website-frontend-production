@@ -106,6 +106,53 @@ export function usePropReferences(
 
   // Enrich props with Media Library data (Media Library is source of truth)
   const enrichedProps = useMemo(() => {
+    // 🔥 FIX: If initialProps is empty but Media Library has files, create props from Media Library
+    if (initialProps.length === 0 && propMediaFiles.length > 0) {
+      // Group Media Library files by entityId to create props
+      const propsByEntityId = new Map<string, any[]>();
+      propMediaFiles.forEach((file: any) => {
+        const entityId = file.metadata?.entityId || file.entityId;
+        if (entityId) {
+          if (!propsByEntityId.has(entityId)) {
+            propsByEntityId.set(entityId, []);
+          }
+          propsByEntityId.get(entityId)!.push(file);
+        }
+      });
+      
+      // Create props from Media Library files
+      const createdProps: PropType[] = [];
+      propsByEntityId.forEach((files, entityId) => {
+        const { angleReferences, images } = mapMediaFilesToPropStructure(files as any[], entityId);
+        
+        // Try to extract name from metadata (some files might have assetName or name in metadata)
+        const name = files[0]?.metadata?.assetName || 
+                    files[0]?.metadata?.name || 
+                    files[0]?.fileName?.replace(/\.[^/.]+$/, '') || // Use filename without extension
+                    'Unnamed Prop';
+        
+        createdProps.push({
+          id: entityId,
+          name: name,
+          angleReferences: angleReferences,
+          images: images,
+          baseReference: images.length > 0 ? { s3Key: images[0].s3Key, imageUrl: images[0].url } : undefined
+        });
+      });
+      
+      console.log('[PropImageDebug] usePropReferences: Created props from Media Library files', {
+        createdPropsCount: createdProps.length,
+        createdProps: createdProps.map(p => ({
+          id: p.id,
+          name: p.name,
+          angleReferencesCount: p.angleReferences?.length || 0,
+          imagesCount: p.images?.length || 0
+        }))
+      });
+      
+      return createdProps;
+    }
+    
     if (initialProps.length === 0 || propMediaFiles.length === 0) {
       // No Media Library files found - use empty arrays (don't use old database references)
       return initialProps.map(prop => ({

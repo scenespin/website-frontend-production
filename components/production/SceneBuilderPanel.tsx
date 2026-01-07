@@ -847,7 +847,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     runInfo.lastDeps = [enrichedPropsFromHook.length, baseProps.length, enrichedPropsIdsString, basePropsIdsString];
     useEffectRunCountsRef.current[effectName] = runInfo;
     
-    // Skip if no props to sync
+    // 🔥 FIX: Skip early if no props to sync - this prevents infinite loops
+    // Check this BEFORE any other logic to avoid unnecessary work
     if (enrichedPropsFromHook.length === 0 && baseProps.length === 0) {
       return;
     }
