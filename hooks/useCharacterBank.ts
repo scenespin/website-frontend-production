@@ -11,8 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import type { CharacterProfile } from '@/components/production/types';
-
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+import { fetchWithSessionId } from '@/lib/api';
 
 // ============================================================================
 // HELPER: Get auth token
@@ -48,7 +47,7 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/character-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
+      const response = await fetchWithSessionId(`/api/character-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -88,7 +87,7 @@ export function useDeleteCharacter(screenplayId: string) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+      const response = await fetchWithSessionId(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

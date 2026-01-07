@@ -28,8 +28,7 @@ import type {
   MediaFolderTreeResponse
 } from '@/types/media';
 import { mediaCacheKeys } from '@/types/media';
-
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+import { fetchWithSessionId } from '@/lib/api';
 
 // ============================================================================
 // HELPER: Get auth token
@@ -88,7 +87,7 @@ export function useMediaFiles(
         params.append('entityId', entityId);
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/list?${params.toString()}`, {
+      const response = await fetchWithSessionId(`/api/media/list?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -181,7 +180,7 @@ export function usePresignedUrl(s3Key: string | null, enabled: boolean = false) 
         expiresIn: 3600, // 1 hour
       };
 
-      const response = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+      const response = await fetchWithSessionId('/api/s3/download-url', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -234,7 +233,7 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
         areThumbnails: s3Keys.some(k => k.includes('thumbnails/'))
       });
 
-      const response = await fetch(`${BACKEND_API_URL}/api/s3/bulk-download-urls`, {
+      const response = await fetchWithSessionId('/api/s3/bulk-download-urls', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -302,7 +301,7 @@ export function useStorageConnectionsQuery(enabled: boolean = true) {
         return []; // Not authenticated - return empty array (not an error)
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/storage/connections`, {
+      const response = await fetchWithSessionId('/api/storage/connections', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -354,7 +353,7 @@ export function useStorageQuota(enabled: boolean = true) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/storage/quota`, {
+      const response = await fetchWithSessionId('/api/storage/quota', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -406,7 +405,7 @@ export function useUploadMedia(screenplayId: string) {
         folderId: fileData.folderId, // Feature 0128: Optional folder ID
       };
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/register`, {
+      const response = await fetchWithSessionId('/api/media/register', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -443,7 +442,7 @@ export function useDeleteMedia(screenplayId: string) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/${fileId}`, {
+      const response = await fetchWithSessionId(`/api/media/${fileId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -487,7 +486,7 @@ export function useMediaFolders(screenplayId: string, parentFolderId?: string, e
         params.append('parentFolderId', parentFolderId);
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/folders?${params.toString()}`, {
+      const response = await fetchWithSessionId(`/api/media/folders?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -521,7 +520,7 @@ export function useMediaFolderTree(screenplayId: string, enabled: boolean = true
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/folders/tree?screenplayId=${screenplayId}`, {
+      const response = await fetchWithSessionId(`/api/media/folders/tree?screenplayId=${screenplayId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -559,7 +558,7 @@ export function useCreateFolder(screenplayId: string) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/folders`, {
+      const response = await fetchWithSessionId('/api/media/folders', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -598,7 +597,7 @@ export function useRenameFolder(screenplayId: string) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/folders/${folderId}`, {
+      const response = await fetchWithSessionId(`/api/media/folders/${folderId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -639,10 +638,9 @@ export function useDeleteFolder(screenplayId: string) {
       }
 
       // Add moveFilesToParent query parameter
-      const url = new URL(`${BACKEND_API_URL}/api/media/folders/${folderId}`);
-      url.searchParams.set('moveFilesToParent', moveFilesToParent.toString());
+      const url = `/api/media/folders/${folderId}?moveFilesToParent=${moveFilesToParent.toString()}`;
 
-      const response = await fetch(url.toString(), {
+      const response = await fetchWithSessionId(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -677,7 +675,7 @@ export function useInitializeFolders(screenplayId: string) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/folders/initialize`, {
+      const response = await fetchWithSessionId('/api/media/folders/initialize', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -750,7 +748,7 @@ export function useRegenerateThumbnail() {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/regenerate-thumbnail`, {
+      const response = await fetchWithSessionId('/api/media/regenerate-thumbnail', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

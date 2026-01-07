@@ -9,9 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-
-// Backend API URL for direct calls (Phase 2A: Direct Backend Auth)
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+import { fetchWithSessionId } from '@/lib/api';
 
 interface StorageConnection {
   provider: string;
@@ -63,7 +61,7 @@ export function useStorageConnections(): StorageConnections {
         return;
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/storage/connections`, {
+      const response = await fetchWithSessionId('/api/storage/connections', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
