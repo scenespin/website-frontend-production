@@ -407,13 +407,14 @@ export function ShotConfigurationPanel({
       propThumbnailS3KeyMapSize: propThumbnailS3KeyMap?.size || 0,
       propThumbnailUrlsMapSize: propThumbnailUrlsMap?.size || 0,
       propFullImageUrlsMapSize: propFullImageUrlsMap?.size || 0,
-      propFullImageS3KeysCount: propFullImageS3Keys.length,
+      visiblePropImageS3KeysCount: visiblePropImageS3Keys.length,
+      selectedPropImageS3KeysCount: selectedPropImageS3Keys.length,
       propThumbnailS3KeysCount: propThumbnailS3Keys.length,
       sampleThumbnailMap: propThumbnailS3KeyMap ? Array.from(propThumbnailS3KeyMap.entries()).slice(0, 3) : [],
       sampleFullImageMap: propFullImageUrlsMap ? Array.from(propFullImageUrlsMap.entries()).slice(0, 3) : [],
       sampleThumbnailUrls: propThumbnailUrlsMap ? Array.from(propThumbnailUrlsMap.entries()).slice(0, 3) : []
     });
-  }, [propThumbnailS3KeyMap, propThumbnailUrlsMap, propFullImageUrlsMap, propFullImageS3Keys, propThumbnailS3Keys, sceneProps, propsToShots, shot.slot]);
+  }, [propThumbnailS3KeyMap, propThumbnailUrlsMap, propFullImageUrlsMap, visiblePropImageS3Keys, selectedPropImageS3Keys, propThumbnailS3Keys, sceneProps, propsToShots, shot.slot]);
   
   // Reset character selection when workflow changes away from 'scene-voiceover'
   React.useEffect(() => {
