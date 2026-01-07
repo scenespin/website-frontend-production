@@ -622,9 +622,8 @@ export function LocationAngleSelector({
                 ? new Map([[photo.s3Key, thumbnailS3Key]])
                 : null;
               
-              // 🔥 PROFESSIONAL FIX: Use resolveImageUrl utility (already handles priority chain)
-              // The utility handles: thumbnail → full image → fallback
-              // We trust it and only handle final error state
+              // 🔥 PROFESSIONAL FIX: Use resolveImageUrl utility (handles priority chain: thumbnail → full → fallback)
+              // Trust the resolver - it's the single source of truth for URL resolution
               const displayUrl = resolveImageUrl({
                 s3Key: photo.s3Key || null,
                 thumbnailS3KeyMap: tempThumbnailS3KeyMap,
@@ -633,11 +632,13 @@ export function LocationAngleSelector({
                 fallbackImageUrl: photo.imageUrl
               });
               
-              // Show placeholder if no URL available (URL maps may still be loading)
+              // Show loading state if URL maps aren't ready yet (better UX than black images)
+              const isLoading = photo.s3Key && 
+                (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0) && 
+                (!fullImageUrlsMap || fullImageUrlsMap.size === 0) &&
+                !photo.imageUrl; // Only show loading if we don't have a fallback URL
+              
               if (!displayUrl) {
-                // Check if we're still loading URLs (maps are empty but we have s3Key)
-                const isLoading = photo.s3Key && (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0) && (!fullImageUrlsMap || fullImageUrlsMap.size === 0);
-                
                 return (
                   <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
                     {isLoading ? 'Loading...' : 'No image'}
@@ -656,17 +657,11 @@ export function LocationAngleSelector({
                   }}
                   loading="lazy"
                   onError={(e) => {
-                    // 🔥 PROFESSIONAL FIX: Only handle final error state
-                    // Don't try to fix URL resolution here - that's resolveImageUrl's job
-                    // If it fails, show placeholder (URL may be invalid/expired)
+                    // 🔥 PROFESSIONAL FIX: Only handle final error state (URL invalid/expired/network issue)
+                    // Don't try to fix URL resolution here - that's resolveImageUrl's responsibility
+                    // The resolver already tried all available sources, so if it fails, it's a real error
                     const imgElement = e.target as HTMLImageElement;
                     imgElement.style.display = 'none';
-                    
-                    // Show placeholder div
-                    const placeholder = document.createElement('div');
-                    placeholder.className = 'w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded';
-                    placeholder.textContent = 'Image unavailable';
-                    imgElement.parentElement?.appendChild(placeholder);
                   }}
                 />
               );
