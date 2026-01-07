@@ -148,18 +148,23 @@ export function useCharacterReferences({
   }, [characterMediaFiles, characterIds]);
 
   // Collect all headshot thumbnail S3 keys
+  // 🔥 FIX: Sort and deduplicate to create stable array reference
+  // This prevents React Query from refetching when array order changes
   const headshotThumbnailS3Keys = useMemo(() => {
-    const keys: string[] = [];
+    const keysSet = new Set<string>();
     Object.values(characterHeadshots).forEach(headshots => {
       headshots.forEach(headshot => {
         if (headshot.s3Key && characterThumbnailS3KeyMap.has(headshot.s3Key)) {
           const thumbnailS3Key = characterThumbnailS3KeyMap.get(headshot.s3Key);
           if (thumbnailS3Key) {
-            keys.push(thumbnailS3Key);
+            keysSet.add(thumbnailS3Key);
           }
         }
       });
     });
+    
+    // Convert to sorted array for stable reference
+    const keys = Array.from(keysSet).sort();
     
     // 🔍 DIAGNOSTIC: Log thumbnail keys being requested
     console.log('[useCharacterReferences] 🔑 Thumbnail S3 keys to fetch:', {

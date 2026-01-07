@@ -565,39 +565,59 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // 🔥 FIX: Fetch full images on-demand for visible headshots when thumbnails aren't available
   // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)
+  // 🔥 FIX: Sort and deduplicate to create stable array reference
   const visibleHeadshotS3Keys = useMemo(() => {
-    const keys: string[] = [];
+    const keysSet = new Set<string>();
     // Collect s3Keys for all visible headshots (for fallback when thumbnails aren't ready)
     Object.values(characterHeadshots).forEach(headshots => {
       headshots.forEach(headshot => {
         // Only fetch if we have an s3Key and imageUrl is empty or not a valid URL (needs presigned URL)
         if (headshot.s3Key && (!headshot.imageUrl || (!headshot.imageUrl.startsWith('http') && !headshot.imageUrl.startsWith('data:')))) {
-          keys.push(headshot.s3Key);
+          keysSet.add(headshot.s3Key);
         }
       });
     });
-    return keys;
+    // Convert to sorted array for stable reference
+    return Array.from(keysSet).sort();
   }, [characterHeadshots]);
 
   // 🔥 FIX: Fetch presigned URLs for visible headshots (fallback when thumbnails aren't ready)
-  // Always fetch full images if we have headshots but thumbnails aren't fully loaded yet
-  // This ensures images show immediately, even if thumbnails are slow
+  // Use a ref to track if we've already started fetching to prevent feedback loops
+  const hasStartedFetchingFullImagesRef = useRef(false);
   const shouldFetchVisibleFullImages = useMemo(() => {
-    if (visibleHeadshotS3Keys.length === 0) return false;
+    if (visibleHeadshotS3Keys.length === 0) {
+      hasStartedFetchingFullImagesRef.current = false;
+      return false;
+    }
     
     // Count how many headshots we have
     const totalHeadshots = Object.values(characterHeadshots).reduce((sum, headshots) => sum + headshots.length, 0);
-    if (totalHeadshots === 0) return false;
+    if (totalHeadshots === 0) {
+      hasStartedFetchingFullImagesRef.current = false;
+      return false;
+    }
     
     // Count how many thumbnails we expect (one per headshot)
     const expectedThumbnails = totalHeadshots;
     
-    // Fetch full images if:
+    // Once we start fetching full images, keep fetching until thumbnails are ready
+    // This prevents the flash where thumbnails load → stop fetching → thumbnails clear → start fetching again
+    if (hasStartedFetchingFullImagesRef.current) {
+      // Keep fetching until we have at least 90% of thumbnails (more stable threshold)
+      return characterThumbnailUrlsMap.size < expectedThumbnails * 0.9;
+    }
+    
+    // Start fetching if:
     // 1. No thumbnails loaded yet, OR
-    // 2. Less than 80% of expected thumbnails loaded (more aggressive threshold)
-    // This ensures images show even if thumbnails are slow to load
-    return characterThumbnailUrlsMap.size === 0 || 
-           characterThumbnailUrlsMap.size < expectedThumbnails * 0.8;
+    // 2. Less than 80% of expected thumbnails loaded
+    const shouldStart = characterThumbnailUrlsMap.size === 0 || 
+                        characterThumbnailUrlsMap.size < expectedThumbnails * 0.8;
+    
+    if (shouldStart) {
+      hasStartedFetchingFullImagesRef.current = true;
+    }
+    
+    return shouldStart;
   }, [visibleHeadshotS3Keys.length, characterThumbnailUrlsMap.size, characterHeadshots]);
   
   const { data: visibleHeadshotFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
@@ -607,18 +627,20 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
 
   // 🔥 PERFORMANCE FIX: Fetch full images on-demand only for selected references (not all headshots)
   // This dramatically improves initial load time since we only fetch thumbnails upfront
+  // 🔥 FIX: Sort and deduplicate to create stable array reference
   const selectedReferenceS3Keys = useMemo(() => {
-    const keys: string[] = [];
+    const keysSet = new Set<string>();
     Object.values(selectedCharacterReferences).forEach(shotRefs => {
       if (!shotRefs || typeof shotRefs !== 'object') return;
       Object.values(shotRefs).forEach(charRef => {
         // Only fetch if we have an s3Key and need a presigned URL (imageUrl is empty or is an s3Key)
         if (charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))) {
-          keys.push(charRef.s3Key);
+          keysSet.add(charRef.s3Key);
         }
       });
     });
-    return keys;
+    // Convert to sorted array for stable reference
+    return Array.from(keysSet).sort();
   }, [selectedCharacterReferences]);
 
   // Fetch presigned URLs for selected references only (lazy loading)
@@ -628,15 +650,17 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   );
 
   // 🔥 FIX: Fetch presigned URLs for location references (similar to character references)
+  // 🔥 FIX: Sort and deduplicate to create stable array reference
   const locationReferenceS3Keys = useMemo(() => {
-    const keys: string[] = [];
+    const keysSet = new Set<string>();
     Object.entries(selectedLocationReferences).forEach(([shotSlotStr, locationRef]) => {
       // Only fetch if we have an s3Key and need a presigned URL (imageUrl is empty or is an s3Key)
       if (locationRef?.s3Key && (!locationRef.imageUrl || (!locationRef.imageUrl.startsWith('http') && !locationRef.imageUrl.startsWith('data:')))) {
-        keys.push(locationRef.s3Key);
+        keysSet.add(locationRef.s3Key);
       }
     });
-    return keys;
+    // Convert to sorted array for stable reference
+    return Array.from(keysSet).sort();
   }, [selectedLocationReferences]);
 
   // Fetch presigned URLs for location references
