@@ -24,15 +24,27 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const deviceInfo = body.deviceInfo || request.headers.get('user-agent') || 'unknown';
+    const sessionId = body.sessionId || request.headers.get('x-session-id') || null;
+
+    // Build headers for backend request
+    const backendHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+    
+    // Forward X-Session-Id header if present
+    if (sessionId) {
+      backendHeaders['X-Session-Id'] = sessionId;
+    }
 
     // Proxy to backend API
     const response = await fetch(`${BACKEND_URL}/api/sessions/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ deviceInfo }),
+      headers: backendHeaders,
+      body: JSON.stringify({ 
+        deviceInfo,
+        sessionId: sessionId // Pass sessionId in body too
+      }),
     });
 
     const data = await response.json();
