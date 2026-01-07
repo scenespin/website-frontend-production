@@ -757,10 +757,11 @@ export function ShotConfigurationStep({
   const enabledShotsList = shots.filter(s => enabledShots.includes(s.slot));
 
   return (
-    <div className={isMobile ? "space-y-4" : "grid grid-cols-3 gap-4 items-start"}>
+    // 🔥 MOBILE FIX: Use Tailwind responsive classes - stacks on mobile, side-by-side on desktop
+    <div className="flex flex-col space-y-4 md:grid md:grid-cols-3 md:gap-4 md:items-start">
       {/* Shot Navigator (Left side: 1/3 width on desktop, top on mobile) */}
       {onShotSelect && (
-        <div className={isMobile ? "w-full" : "sticky top-4 flex flex-col"}>
+        <div className="w-full md:sticky md:top-4 flex flex-col">
           <label className="text-xs font-medium mb-2 block text-[#808080]">
             Select Shot
           </label>
@@ -788,7 +789,7 @@ export function ShotConfigurationStep({
       )}
       
       {/* Shot Configuration (Right side: 2/3 width on desktop, bottom on mobile) */}
-      <div className={isMobile ? "w-full" : "col-span-2"}>
+      <div className="w-full md:col-span-2">
         <div className={`space-y-4 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
         <Card className="bg-[#141414] border-[#3F3F46]">
         <CardHeader className="pb-3">
