@@ -1242,11 +1242,10 @@ export default function AssetDetailModal({
                                           // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
-                                          // 🔥 FIX: Use refetchQueries for immediate UI update (same pattern as CharacterDetailModal)
-                                          await Promise.all([
-                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] }),
-                                            queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })
-                                          ]);
+                                          // 🔥 FIX: Invalidate asset queries to refresh UI immediately (EXACT same pattern as location angles/backgrounds)
+                                          queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                           
                                           onUpdate(); // Refresh asset list in parent
                                           toast.success('Image deleted');
@@ -1478,11 +1477,10 @@ export default function AssetDetailModal({
                     throw new Error(errorData.error || 'Failed to delete images');
                   }
                   
-                  // Refetch queries for immediate UI update (same pattern as single deletion)
-                  await Promise.all([
-                    queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] }),
-                    queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })
-                  ]);
+                  // 🔥 FIX: Invalidate asset queries to refresh UI immediately (EXACT same pattern as location angles/backgrounds)
+                  queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                  queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                  await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                   
                   // Trigger parent update
                   onUpdate();

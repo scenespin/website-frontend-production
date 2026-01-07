@@ -2295,13 +2295,10 @@ export function CharacterDetailModal({
                                             });
                                           }
                                           
-                                          // 🔥 FIX: Invalidate and refetch character queries to refresh UI immediately (same pattern as angles)
+                                          // 🔥 FIX: Invalidate character queries to refresh UI immediately (EXACT same pattern as location angles/backgrounds)
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          await Promise.all([
-                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
-                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-                                          ]);
+                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
@@ -2643,13 +2640,10 @@ export function CharacterDetailModal({
                       references: updatedReferences
                     });
                     
-                    // 🔥 FIX: Invalidate and refetch character queries to refresh UI immediately (same pattern as angles)
+                    // 🔥 FIX: Invalidate character queries to refresh UI immediately (EXACT same pattern as location angles/backgrounds)
                     queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                    await Promise.all([
-                      queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
-                      queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-                    ]);
+                    await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                     
                     // Note: No toast here - CharacterBankPanel.updateCharacter shows "Character updated successfully"
                   } catch (error: any) {

@@ -65,6 +65,7 @@
     "next-sitemap": "^4.2.3",
     "nextjs-toploader": "^3.7.15",
     "nodemailer": "^7.0.10",
+    "pdf-lib": "^1.17.1",
     "react": "^19.1.2",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.1.2",
