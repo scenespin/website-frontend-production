@@ -64,7 +64,9 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
       return data.characters || data.data?.characters || [];
     },
     enabled: enabled && !!screenplayId,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Always consider data stale - force refetch on mount/refresh
+    refetchOnMount: 'always', // Always refetch when component mounts (including page refresh)
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 }
 
