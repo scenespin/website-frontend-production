@@ -16,7 +16,7 @@
  * - Compact job cards optimized for drawer width
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
@@ -335,6 +335,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   
   // Track which jobs we've already processed for credit refresh (avoid duplicates)
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
+  // Track previous jobs state to prevent infinite loops
+  const previousJobsHash = useRef<string>('');
   
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -683,29 +685,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   useEffect(() => {
     // Process even when drawer is closed - credits need to update regardless of UI state
     
-    // Only log debug info if we have jobs (reduce noise)
-    if (jobs.length > 0) {
-      console.log('[JobsDrawer] 🔍 DEBUG: Checking jobs for credit refresh', {
-        totalJobs: jobs.length,
-        completedJobs: jobs.filter(j => j.status === 'completed').length,
-        processedIds: Array.from(processedJobIdsForCredits.current)
-      });
+    // Create a stable hash of jobs to detect actual changes
+    const currentJobsHash = jobs
+      .map(j => `${j.jobId}:${j.status}:${j.creditsUsed || 0}:${j.results?.totalCreditsUsed || 0}`)
+      .sort()
+      .join('|');
+    
+    // Only process if jobs actually changed
+    if (currentJobsHash === previousJobsHash.current) {
+      return;
     }
+    previousJobsHash.current = currentJobsHash;
     
     const newlyCompletedJobs = jobs.filter(job => {
       const isCompleted = job.status === 'completed';
       const notProcessed = !processedJobIdsForCredits.current.has(job.jobId);
       const hasCredits = job.creditsUsed > 0 || job.results?.totalCreditsUsed > 0;
-      
-      if (isCompleted && notProcessed && hasCredits) {
-        console.log('[JobsDrawer] 🔍 DEBUG: Found newly completed job with credits', {
-          jobId: job.jobId,
-          jobType: job.jobType,
-          status: job.status,
-          creditsUsed: job.creditsUsed,
-          resultsTotalCredits: job.results?.totalCreditsUsed
-        });
-      }
       
       return isCompleted && notProcessed && hasCredits;
     });
@@ -721,15 +716,11 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       // Mark these jobs as processed
       newlyCompletedJobs.forEach(job => {
         processedJobIdsForCredits.current.add(job.jobId);
-        console.log('[JobsDrawer] ✅ Marked job as processed:', job.jobId);
       });
       
       // Refresh credits immediately
       if (typeof window !== 'undefined' && (window as any).refreshCredits) {
-        console.log('[JobsDrawer] 🔄 Calling window.refreshCredits()...');
         (window as any).refreshCredits();
-      } else {
-        console.error('[JobsDrawer] ❌ window.refreshCredits() is not available!');
       }
     }
   }, [jobs, isOpen]);
