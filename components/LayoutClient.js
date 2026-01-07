@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { useUser, useAuth, useSession } from "@clerk/nextjs";
-import { useCallback } from "react";
 import { Crisp } from "crisp-sdk-web";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
