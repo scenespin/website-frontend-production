@@ -89,20 +89,34 @@ async function forwardRequest(
     
     console.error(`[API Proxy] 🚀 ${method} ${path} -> ${backendUrl}`);
     
-    // 🔥 DEBUG: Log ALL headers for axios requests to diagnose header transmission
-    if (method === 'GET' && (path.includes('credits') || path.includes('screenplays') || path.includes('video'))) {
-      const allHeadersArray: Array<[string, string]> = [];
-      request.headers.forEach((value, name) => {
-        allHeadersArray.push([name, value]);
-      });
-      console.error(`[API Proxy] 🔍 ALL HEADERS for ${path}:`, {
+    // 🔥 DEBUG: Log ALL headers for ALL requests to diagnose header transmission
+    // This is critical for debugging why axios headers aren't reaching the backend
+    const allHeadersArray: Array<[string, string]> = [];
+    request.headers.forEach((value, name) => {
+      allHeadersArray.push([name, value]);
+    });
+    
+    // Always log for axios requests (credits, screenplays/list, etc.)
+    const isAxiosRequest = path.includes('credits') || 
+                          (path === 'screenplays/list') || 
+                          path.includes('video/jobs');
+    
+    if (isAxiosRequest || allHeadersArray.length < 10) { // Log for axios requests or if few headers (debugging)
+      console.error(`[API Proxy] 🔍 ALL HEADERS for ${method} ${path}:`, {
         totalHeaders: allHeadersArray.length,
         headers: allHeadersArray.map(([name, value]) => ({
           name,
           value: value.length > 50 ? value.substring(0, 50) + '...' : value,
           lowerName: name.toLowerCase()
         })),
-        hasSessionHeader: allHeadersArray.some(([name]) => name.toLowerCase().includes('session'))
+        hasSessionHeader: allHeadersArray.some(([name]) => {
+          const lower = name.toLowerCase();
+          return lower.includes('session') || (lower.includes('sid') && allHeadersArray.find(([n]) => n.toLowerCase() === lower)?.[1]?.startsWith('sess_'));
+        }),
+        sessionHeaders: allHeadersArray.filter(([name]) => {
+          const lower = name.toLowerCase();
+          return lower.includes('session') || lower.includes('sid');
+        }).map(([name, value]) => ({ name, value: value.substring(0, 30) + '...' }))
       });
     }
     
