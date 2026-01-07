@@ -57,6 +57,10 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     };
   }
 
+  // Track previous user ID to detect logout/login
+  const previousUserIdRef = useRef<string | null>(null);
+  const previousSessionIdRef = useRef<string | null>(null);
+
   // Check lock status when screenplayId changes
   useEffect(() => {
     // Early return if feature is disabled (double-check)
@@ -76,6 +80,24 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       setLockStatus(null);
       return;
     }
+
+    // If user or session changed (logout/login), try to release any stale locks
+    const currentUserId = user.id;
+    const currentSessionId = session.id;
+    const previousUserId = previousUserIdRef.current;
+    const previousSessionId = previousSessionIdRef.current;
+    
+    if (previousUserId !== null && (previousUserId !== currentUserId || previousSessionId !== currentSessionId)) {
+      // User changed or session changed - try to release stale lock for current screenplay
+      if (screenplayId) {
+        releaseEditorLock(screenplayId).catch(err => {
+          console.warn('[useEditorLock] Failed to release stale lock after user change:', err);
+        });
+      }
+    }
+    
+    previousUserIdRef.current = currentUserId;
+    previousSessionIdRef.current = currentSessionId;
 
     // If screenplay changed, release lock for previous screenplay
     if (previousScreenplayIdRef.current && previousScreenplayIdRef.current !== screenplayId) {
