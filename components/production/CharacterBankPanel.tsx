@@ -307,25 +307,6 @@ export function CharacterBankPanel({
           <div className="p-4 mx-4">
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2.5">
               {sortedCharacters.map((character) => {
-                // 🔥 DEBUG: Log character data before processing
-                console.log(`[CharacterBankPanel] 🔍 Processing character "${character.name}":`, {
-                  id: character.id,
-                  hasBaseReference: !!character.baseReference,
-                  baseReference: character.baseReference ? {
-                    hasImageUrl: !!character.baseReference.imageUrl,
-                    hasS3Key: !!character.baseReference.s3Key,
-                    imageUrl: character.baseReference.imageUrl?.substring(0, 50) + '...',
-                    s3Key: character.baseReference.s3Key
-                  } : null,
-                  referencesCount: character.references?.length || 0,
-                  references: (character.references || []).map((r: any) => ({
-                    hasImageUrl: !!r?.imageUrl,
-                    hasS3Key: !!r?.s3Key,
-                    imageUrl: r?.imageUrl?.substring(0, 50) + '...',
-                    s3Key: r?.s3Key
-                  }))
-                });
-                
                 const allReferences: CinemaCardImage[] = [];
                 
                 // Add base reference (only if it has imageUrl)
@@ -334,12 +315,6 @@ export function CharacterBankPanel({
                     id: 'base',
                     imageUrl: character.baseReference.imageUrl,
                     label: `${character.name} - Base Reference`
-                  });
-                } else if (character.baseReference?.s3Key) {
-                  // 🔥 DEBUG: Base reference has s3Key but no imageUrl
-                  console.warn(`[CharacterBankPanel] ⚠️ Character "${character.name}" has baseReference.s3Key but no imageUrl:`, {
-                    s3Key: character.baseReference.s3Key,
-                    baseReference: character.baseReference
                   });
                 }
                 
@@ -351,21 +326,12 @@ export function CharacterBankPanel({
                       imageUrl: ref.imageUrl,
                       label: ref.label || 'Reference'
                     });
-                  } else if (ref?.s3Key) {
-                    // 🔥 DEBUG: Reference has s3Key but no imageUrl
-                    console.warn(`[CharacterBankPanel] ⚠️ Character "${character.name}" has reference with s3Key but no imageUrl:`, {
-                      s3Key: ref.s3Key,
-                      ref
-                    });
                   }
                 });
                 
                 // Add AI-generated pose references (like locations add angleVariations)
                 // Backend may return as angleReferences OR poseReferences - check both!
                 const poseRefs = (character as any).angleReferences || character.poseReferences || [];
-                if (poseRefs.length > 0) {
-                  console.log(`[CharacterBankPanel] Found ${poseRefs.length} pose/angle references for ${character.name}:`, poseRefs);
-                }
                 poseRefs.forEach((poseRef: any) => {
                   const ref = typeof poseRef === 'string' ? null : poseRef;
                   if (ref && ref.imageUrl) {
@@ -374,20 +340,7 @@ export function CharacterBankPanel({
                       imageUrl: ref.imageUrl,
                       label: ref.label || 'Pose'
                     });
-                  } else if (ref && !ref.imageUrl) {
-                    console.warn(`[CharacterBankPanel] Pose reference missing imageUrl for ${character.name}:`, ref);
                   }
-                });
-
-                // 🔥 DEBUG: Log final allReferences array
-                console.log(`[CharacterBankPanel] ✅ Final allReferences for "${character.name}":`, {
-                  count: allReferences.length,
-                  references: allReferences.map(r => ({
-                    id: r.id,
-                    hasImageUrl: !!r.imageUrl,
-                    imageUrl: r.imageUrl?.substring(0, 50) + '...',
-                    label: r.label
-                  }))
                 });
 
                 return (

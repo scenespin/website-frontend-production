@@ -509,12 +509,6 @@ export default function LocationDetailSidebar({
             images: uploadedImages
           });
 
-          // 🔥 FIX: Invalidate location bank query cache so Production Hub cards refresh
-          // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
-          if (screenplayId) {
-            queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-          }
-
           // Update parent component
           const updatedLocation = { ...location, images: uploadedImages };
           onUpdate(updatedLocation);
@@ -1054,12 +1048,6 @@ export default function LocationDetailSidebar({
                 await updateLocation(location.id, {
                   images: updatedImages
                 });
-                
-                // 🔥 FIX: Invalidate location bank query cache so Production Hub cards refresh
-                // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
-                if (screenplayId) {
-                  queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                }
                 
                 // 🔥 FIX: Sync location data from context after update (with delay for DynamoDB consistency)
                 await new Promise(resolve => setTimeout(resolve, 500));
