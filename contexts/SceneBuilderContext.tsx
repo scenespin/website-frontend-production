@@ -15,6 +15,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import { useCharacterReferences } from '@/components/production/hooks/useCharacterReferences';
 import { filterValidCharacterIds } from '@/components/production/utils/characterIdValidation';
 import { getCharactersFromActionShot } from '@/components/production/utils/sceneBuilderUtils';
+import { useCharacters } from '@/hooks/useCharacterBank';
 
 // ============================================================================
 // Types
@@ -310,7 +311,16 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
   // Derive Character IDs for Media Library Query
   // ============================================================================
   
-  // Derive character IDs from context state (scene analysis + pronoun selections + all scene characters)
+  // 🔥 CRITICAL FIX: Fetch ALL characters from screenplay to ensure dropdown has images
+  // The dropdown uses allCharacters (from screenplay), not just sceneAnalysisResult.characters
+  // We need to include ALL screenplay characters in the Media Library query
+  const { data: allScreenplayCharacters = [] } = useCharacters(
+    projectId,
+    'production-hub',
+    true // enabled
+  );
+  
+  // Derive character IDs from context state (scene analysis + pronoun selections + ALL screenplay characters)
   const characterIdsForMediaLibrary = useMemo(() => {
     const characterIds: string[] = [];
     
@@ -344,9 +354,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     const pronounSelectedCharacterIds = Object.values(state.selectedCharactersForShots).flat();
     characterIds.push(...pronounSelectedCharacterIds);
     
-    // 🔥 FIX: Also include ALL characters from sceneAnalysisResult.characters
-    // This ensures all characters in the scene have their headshots loaded, not just those mentioned in shots
-    // This is critical for pronoun mapping where users can select any character
+    // 3. Include ALL characters from sceneAnalysisResult.characters
     if (state.sceneAnalysisResult?.characters && Array.isArray(state.sceneAnalysisResult.characters)) {
       state.sceneAnalysisResult.characters.forEach((char: any) => {
         if (char?.id) {
@@ -355,13 +363,23 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       });
     }
     
+    // 🔥 CRITICAL FIX: Include ALL characters from screenplay (this is what dropdown uses)
+    // The dropdown uses getCharacterSource(allCharacters, sceneAnalysisResult) which prioritizes allCharacters
+    // We MUST include all screenplay characters so dropdown images work
+    allScreenplayCharacters.forEach((char: any) => {
+      if (char?.id) {
+        characterIds.push(char.id);
+      }
+    });
+    
     // Filter and deduplicate
     const validIds = filterValidCharacterIds(characterIds);
     return [...new Set(validIds)];
   }, [
     state.sceneAnalysisResult?.shotBreakdown?.shots,
     state.sceneAnalysisResult?.characters,
-    state.selectedCharactersForShots
+    state.selectedCharactersForShots,
+    allScreenplayCharacters // 🔥 CRITICAL: Include all screenplay characters
   ]);
   
   // ============================================================================
