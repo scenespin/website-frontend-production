@@ -191,8 +191,21 @@ export function SceneAnalysisStep({
                 {sceneProps.map((prop) => {
                   // Check if prop is assigned to all enabled shots (or all shots if none enabled)
                   const targetShots = enabledShots.length > 0 ? enabledShots : shots.map((s: any) => s.slot);
+                  const assignedShots = propsToShots[prop.id] || [];
                   const isAssignedToAll = targetShots.length > 0 && 
-                    targetShots.every(slot => propsToShots[prop.id]?.includes(slot));
+                    targetShots.every(slot => assignedShots.includes(slot));
+                  
+                  // 🔥 DEBUG: Log checkbox state
+                  if (prop.id === sceneProps[0]?.id) {
+                    console.log('[SceneAnalysisStep] Prop checkbox state:', {
+                      propId: prop.id,
+                      targetShots,
+                      assignedShots,
+                      isAssignedToAll,
+                      propsToShotsKeys: Object.keys(propsToShots),
+                      propsToShotsEmpty: Object.keys(propsToShots).length === 0
+                    });
+                  }
                   
                   return (
                     <label
@@ -276,6 +289,17 @@ export function SceneAnalysisStep({
                 const assignedProps = sceneProps.filter(prop => 
                   propsToShots[prop.id]?.includes(shot.slot)
                 );
+                
+                // 🔥 DEBUG: Log shot checkbox state
+                if (shot.slot === shots[0]?.slot) {
+                  console.log('[SceneAnalysisStep] Shot checkbox state:', {
+                    shotSlot: shot.slot,
+                    enabledShots,
+                    isSelected,
+                    enabledShotsLength: enabledShots.length,
+                    enabledShotsEmpty: enabledShots.length === 0
+                  });
+                }
                 
                 return (
                   <div

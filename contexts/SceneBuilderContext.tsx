@@ -636,7 +636,21 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     }, []),
     
     setPropsToShots: useCallback((propsToShots) => {
-      setState(prev => ({ ...prev, propsToShots }));
+      console.log('[SceneBuilderContext] setPropsToShots called with:', { 
+        propsToShots, 
+        keys: Object.keys(propsToShots),
+        isEmpty: Object.keys(propsToShots).length === 0
+      });
+      setState(prev => {
+        const newState = { ...prev, propsToShots };
+        console.log('[SceneBuilderContext] setPropsToShots state update:', {
+          prevKeys: Object.keys(prev.propsToShots),
+          newKeys: Object.keys(newState.propsToShots),
+          prevEmpty: Object.keys(prev.propsToShots).length === 0,
+          newEmpty: Object.keys(newState.propsToShots).length === 0
+        });
+        return newState;
+      });
     }, []),
     
     updatePropsToShots: useCallback((propId, shotSlots) => {
@@ -890,7 +904,21 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     }, []),
     
     setEnabledShots: useCallback((shots) => {
-      setState(prev => ({ ...prev, enabledShots: shots }));
+      console.log('[SceneBuilderContext] setEnabledShots called with:', { 
+        shots, 
+        length: shots.length,
+        isEmpty: shots.length === 0
+      });
+      setState(prev => {
+        const newState = { ...prev, enabledShots: shots };
+        console.log('[SceneBuilderContext] setEnabledShots state update:', {
+          prevLength: prev.enabledShots.length,
+          newLength: newState.enabledShots.length,
+          prevEmpty: prev.enabledShots.length === 0,
+          newEmpty: newState.enabledShots.length === 0
+        });
+        return newState;
+      });
     }, []),
     
     // Scene Analysis Actions

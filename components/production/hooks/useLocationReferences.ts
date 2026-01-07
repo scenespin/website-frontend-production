@@ -83,8 +83,22 @@ export function useLocationReferences({
   // Process location files into angles and backgrounds
   const { angleVariations, backgrounds } = useMemo(() => {
     if (!locationId || locationMediaFiles.length === 0) {
+      console.log('[useLocationReferences] No files or locationId:', { locationId, fileCount: locationMediaFiles.length });
       return { angleVariations: [], backgrounds: [] };
     }
+
+    console.log('[useLocationReferences] Processing files:', { 
+      locationId, 
+      fileCount: locationMediaFiles.length,
+      files: locationMediaFiles.map((f: any) => ({
+        s3Key: f.s3Key?.substring(0, 50),
+        entityId: f.metadata?.entityId || f.entityId,
+        angle: f.metadata?.angle,
+        backgroundType: f.metadata?.backgroundType,
+        sourceType: f.metadata?.sourceType,
+        isThumbnail: f.s3Key?.startsWith('thumbnails/')
+      }))
+    });
 
     const angleVariations: LocationAngle[] = [];
     const backgrounds: LocationBackground[] = [];
@@ -110,6 +124,17 @@ export function useLocationReferences({
           file.metadata?.generationMethod === 'background-generation' ||
           (file.folderPath && file.folderPath.some((path: string) => path.toLowerCase().includes('background')))
         );
+
+        // 🔥 DEBUG: Log classification for each file
+        console.log('[useLocationReferences] Classifying file:', {
+          s3Key: file.s3Key?.substring(0, 50),
+          hasAngleMetadata,
+          isBackground,
+          angle: file.metadata?.angle,
+          backgroundType: file.metadata?.backgroundType,
+          sourceType: file.metadata?.sourceType,
+          isBackgroundFileResult: isBackgroundFile(file)
+        });
 
         if (isBackground) {
           // Background image
@@ -149,6 +174,14 @@ export function useLocationReferences({
         }
         // 🔥 FIX: If file doesn't match angle or background criteria, skip it (don't add to either array)
       }
+    });
+
+    console.log('[useLocationReferences] Classification results:', {
+      locationId,
+      angleCount: angleVariations.length,
+      backgroundCount: backgrounds.length,
+      angles: angleVariations.map(a => ({ angle: a.angle, s3Key: a.s3Key?.substring(0, 50) })),
+      backgrounds: backgrounds.map(b => ({ backgroundType: b.backgroundType, s3Key: b.s3Key?.substring(0, 50) }))
     });
 
     return { angleVariations, backgrounds };
