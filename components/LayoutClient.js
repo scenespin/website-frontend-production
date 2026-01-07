@@ -196,29 +196,34 @@ const AuthInitializer = () => {
       const singleDeviceLoginEnabled = process.env.NEXT_PUBLIC_ENABLE_SINGLE_DEVICE_LOGIN !== 'false';
       
       if (singleDeviceLoginEnabled) {
-        // 🔥 FIX: Debounce session registration to prevent rapid re-registrations
-        // This prevents race conditions when switching between devices rapidly
-        // Wait 100ms before registering to ensure session ID is stable
-        // Backend has 5-second grace period, so short delay is safe
-        const registrationTimer = setTimeout(() => {
-          // Double-check session ID hasn't changed during the debounce period
+        // 🔥 FIX: Improved registration timing - ensure it completes before API calls
+        // Register immediately (no debounce) but wait for completion
+        // This ensures the session is registered before any API calls can fire
+        const performRegistration = async () => {
+          // Double-check session ID hasn't changed
           if (session?.id === sessionId && isSignedIn) {
-            // Register session once we have the session ID
-            // This will replace any existing session on the backend
-            registerActiveSession();
+            console.log('[Auth] 🚀 Registering session immediately (awaiting completion)...', {
+              sessionId: sessionId.substring(0, 20) + '...'
+            });
+            // Await registration to ensure it completes before allowing API calls
+            await registerActiveSession();
+            console.log('[Auth] ✅ Session registration completed', {
+              sessionId: sessionId.substring(0, 20) + '...'
+            });
           } else {
-            console.log('[Auth] ⏭️ Skipping registration - session ID changed during debounce period', {
+            console.log('[Auth] ⏭️ Skipping registration - session ID changed', {
               originalSessionId: sessionId.substring(0, 20) + '...',
               currentSessionId: session?.id ? session.id.substring(0, 20) + '...' : 'none',
               stillSignedIn: isSignedIn
             });
           }
-        }, 100); // 100ms debounce delay (reduced from 200ms since backend has grace period)
-        
-        // Cleanup: cancel registration if session ID changes before debounce completes
-        return () => {
-          clearTimeout(registrationTimer);
         };
+        
+        // Start registration immediately (no debounce needed since we await it)
+        performRegistration().catch(error => {
+          console.error('[Auth] ❌ Registration failed in useEffect:', error);
+          // Don't block - registration will retry on its own
+        });
       } else {
         console.log('[Auth] ⏭️ Single-device login disabled via feature flag - skipping session registration');
       }
