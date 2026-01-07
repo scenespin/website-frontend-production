@@ -50,18 +50,28 @@ const AuthInitializer = () => {
   // 🔥 NEW: Register active session (called on login)
   const registerActiveSession = async () => {
     try {
+      console.log('[Auth] 🔄 Starting session registration...', {
+        hasSession: !!session,
+        sessionId: session?.id || 'none',
+        isSignedIn
+      });
+
       const token = await getToken({ template: 'wryda-backend' });
-      if (!token) return;
+      if (!token) {
+        console.warn('[Auth] ⚠️ No token available for session registration');
+        return;
+      }
 
       // Get session ID from Clerk session object (sid is a default claim in session tokens)
       // JWT template tokens may not include sid, so we get it from the session object
       const sessionId = session?.id || null;
       if (!sessionId) {
-        console.warn('[Auth] ⚠️ No session ID available from Clerk session object');
+        console.warn('[Auth] ⚠️ No session ID available from Clerk session object - will use JWT fallback');
         // Continue anyway - backend will try to extract from JWT as fallback
       } else {
         // Store session ID globally for use in API requests
         setCurrentSessionId(sessionId);
+        console.log('[Auth] ✅ Session ID stored:', sessionId.substring(0, 20) + '...');
       }
 
       const deviceInfo = typeof navigator !== 'undefined' 
@@ -89,22 +99,40 @@ const AuthInitializer = () => {
       });
 
       if (response.ok) {
-        console.log('[Auth] ✅ Active session registered for single-device login');
-      } else if (response.status === 401) {
         const data = await response.json();
-        if (data.error === 'SessionExpired') {
-          console.warn('[Auth] ⚠️ Session expired - user logged in elsewhere');
-          // Show message to user
-          if (typeof window !== 'undefined' && window.location) {
-            alert('You were logged out because you logged in on another device. Please refresh the page.');
-            window.location.reload();
+        console.log('[Auth] ✅ Active session registered for single-device login', data);
+      } else {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { message: errorText };
+        }
+        
+        console.error('[Auth] ❌ Failed to register session:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          hasSessionId: !!sessionId,
+          sessionIdPreview: sessionId ? sessionId.substring(0, 20) + '...' : 'none'
+        });
+        
+        if (response.status === 401) {
+          if (errorData.error === 'SessionExpired') {
+            console.warn('[Auth] ⚠️ Session expired - user logged in elsewhere');
+            // Show message to user
+            if (typeof window !== 'undefined' && window.location) {
+              alert('You were logged out because you logged in on another device. Please refresh the page.');
+              window.location.reload();
+            }
+          } else {
+            console.error('[Auth] ❌ 401 Unauthorized during registration - JWT may be invalid or expired');
           }
         }
-      } else {
-        console.warn('[Auth] ⚠️ Failed to register session (non-critical):', response.status);
       }
     } catch (error) {
-      console.error('[Auth] ❌ Failed to register active session:', error);
+      console.error('[Auth] ❌ Exception during session registration:', error);
       // Don't block login if session registration fails
     }
   };
