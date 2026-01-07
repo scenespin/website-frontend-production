@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssets } from '@/hooks/useAssetBank';
+import { fetchWithSessionId } from '@/lib/api';
 
 interface AssetBankPanelProps {
   className?: string;
@@ -95,7 +96,7 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
       if (updates.description !== undefined) apiUpdates.description = updates.description;
       if (updates.category !== undefined) apiUpdates.category = updates.category;
 
-      const response = await fetch(`/api/asset-bank/${assetId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+      const response = await fetchWithSessionId(`/api/asset-bank/${assetId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

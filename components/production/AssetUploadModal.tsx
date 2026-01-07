@@ -12,6 +12,7 @@ import { useDropzone } from 'react-dropzone';
 import { useAuth } from '@clerk/nextjs';
 import { X, Upload, Image as ImageIcon, Trash2, Check } from 'lucide-react';
 import { AssetCategory, ASSET_CATEGORY_METADATA, CreateAssetRequest } from '@/types/asset';
+import { fetchWithSessionId } from '@/lib/api';
 
 interface AssetUploadModalProps {
   isOpen: boolean;
@@ -95,7 +96,7 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
       }
 
       // Step 1: Create asset
-      const createResponse = await fetch('/api/asset-bank', {
+      const createResponse = await fetchWithSessionId('/api/asset-bank', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,7 +123,7 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
         const file = images[i].file;
         
         // Get presigned POST URL for direct S3 upload
-        const presignedResponse = await fetch(
+        const presignedResponse = await fetchWithSessionId(
           `/api/assets/upload/get-presigned-url?` +
           `fileName=${encodeURIComponent(file.name)}` +
           `&fileType=${encodeURIComponent(file.type)}` +
@@ -171,7 +172,7 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
         }
 
         // Register the uploaded image with the asset via backend
-        const registerResponse = await fetch(`/api/asset-bank/${assetId}/images`, {
+        const registerResponse = await fetchWithSessionId(`/api/asset-bank/${assetId}/images`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
