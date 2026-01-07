@@ -5618,6 +5618,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 setCanManageAssets(true);
                 setCanManageOwnAssets(true);
                 setCanGenerateAssets(true);
+                setCanAccessProductionHub(true); // 🔥 FIX: Owner (director) should have Production Hub access
+                setCanUploadCreationImages(true); // 🔥 FIX: Owner (director) should have creation image upload access
                 setCanUploadAssets(true);
                 setCanViewAssets(true);
                 setCanUseAI(true);
