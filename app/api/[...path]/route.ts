@@ -126,6 +126,15 @@ async function forwardRequest(
       headers['Authorization'] = authHeader;
     }
     
+    // 🔥 CRITICAL: Forward X-Session-Id header for single-device login
+    const sessionIdHeader = request.headers.get('x-session-id');
+    if (sessionIdHeader) {
+      headers['X-Session-Id'] = sessionIdHeader;
+      console.error(`[API Proxy] ✅ Forwarding X-Session-Id header: ${sessionIdHeader.substring(0, 20)}...`);
+    } else {
+      console.error(`[API Proxy] ⚠️ No X-Session-Id header in request - session validation may fail`);
+    }
+    
     console.error(`[API Proxy] 📤 Forwarding with Content-Type: ${isMultipart ? 'auto (multipart)' : (headers['Content-Type'] || 'none')}`);
     
     const response = await fetch(backendUrl, {
