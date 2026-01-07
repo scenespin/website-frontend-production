@@ -571,10 +571,16 @@ export default function CharacterDetailSidebar({
           });
           console.log('[CharacterDetailSidebar] ✅ Character updated in context');
 
-          // 🔥 FIX: Invalidate character bank query cache so Production Hub cards refresh
+          // 🔥 FIX: Invalidate and refetch character bank query cache so Production Hub cards refresh immediately
           // Do this immediately after upload, not when modal closes (modal may not show if already shown this session)
           if (screenplayId) {
             queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+            // Immediately refetch to update Production Hub UI (same pattern as CharacterDetailModal)
+            await Promise.all([
+              queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
+              queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+            ]);
           }
 
           toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
