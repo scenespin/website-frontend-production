@@ -89,6 +89,23 @@ async function forwardRequest(
     
     console.error(`[API Proxy] 🚀 ${method} ${path} -> ${backendUrl}`);
     
+    // 🔥 DEBUG: Log ALL headers for axios requests to diagnose header transmission
+    if (method === 'GET' && (path.includes('credits') || path.includes('screenplays') || path.includes('video'))) {
+      const allHeadersArray: Array<[string, string]> = [];
+      request.headers.forEach((value, name) => {
+        allHeadersArray.push([name, value]);
+      });
+      console.error(`[API Proxy] 🔍 ALL HEADERS for ${path}:`, {
+        totalHeaders: allHeadersArray.length,
+        headers: allHeadersArray.map(([name, value]) => ({
+          name,
+          value: value.length > 50 ? value.substring(0, 50) + '...' : value,
+          lowerName: name.toLowerCase()
+        })),
+        hasSessionHeader: allHeadersArray.some(([name]) => name.toLowerCase().includes('session'))
+      });
+    }
+    
     // 🔥 FIX: Preserve Content-Type header and handle multipart/form-data correctly
     const contentType = request.headers.get('content-type') || '';
     const isMultipart = contentType.includes('multipart/form-data');
