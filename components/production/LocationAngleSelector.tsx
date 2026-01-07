@@ -11,6 +11,7 @@ import React from 'react';
 import { Check, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { resolveImageUrl, isValidImageUrl } from './utils/imageUrlResolver';
 
 interface LocationAngleSelectorProps {
   locationId: string;
@@ -588,32 +589,28 @@ export function LocationAngleSelector({
             title={`${photo.label}${photo.timeOfDay ? ` - ${photo.timeOfDay}` : ''}${photo.weather ? ` - ${photo.weather}` : ''}`}
           >
             {photo.imageUrl || photo.s3Key ? (() => {
-              // 🔥 FIX: Get thumbnail URL using locationThumbnailS3KeyMap (from useLocationReferences)
-              // This matches the pattern used for characters and props
+              // 🔥 FIX: Use standardized URL resolution utility
+              // Construct thumbnail key manually (LocationAngleSelector doesn't have locationThumbnailS3KeyMap)
               let thumbnailS3Key: string | null = null;
-              // Note: LocationAngleSelector doesn't have access to locationThumbnailS3KeyMap
-              // So we'll use the pattern-based approach for now, but check if photo.imageUrl is valid
               if (photo.s3Key) {
                 const thumbnailKey = `thumbnails/${photo.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg')}`;
                 thumbnailS3Key = thumbnailKey;
               }
-              const thumbnailUrl = thumbnailS3Key && thumbnailUrlsMap?.get(thumbnailS3Key);
               
-              // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
-              const fullImageUrl = photo.s3Key && fullImageUrlsMap?.get(photo.s3Key);
+              // Create a temporary map for thumbnail lookup
+              const tempThumbnailS3KeyMap = thumbnailS3Key && photo.s3Key 
+                ? new Map([[photo.s3Key, thumbnailS3Key]])
+                : null;
               
-              // 🔥 FIX: Use imageUrl as fallback if it's already a valid presigned URL
-              // The imageUrl from useLocationReferences should already be a presigned URL (or empty)
-              const imageUrlFallback = photo.imageUrl && 
-                                      (photo.imageUrl.startsWith('http') || photo.imageUrl.startsWith('data:'))
-                                      ? photo.imageUrl 
-                                      : null;
+              const displayUrl = resolveImageUrl({
+                s3Key: photo.s3Key || null,
+                thumbnailS3KeyMap: tempThumbnailS3KeyMap,
+                thumbnailUrlsMap: thumbnailUrlsMap,
+                fullImageUrlsMap: fullImageUrlsMap,
+                fallbackImageUrl: photo.imageUrl
+              });
               
-              // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then imageUrl
-              const displayUrl = thumbnailUrl || fullImageUrl || imageUrlFallback;
-              
-              // If displayUrl is empty or looks like an s3Key (not a URL), don't render image
-              if (!displayUrl || (!displayUrl.startsWith('http') && !displayUrl.startsWith('data:'))) {
+              if (!displayUrl) {
                 return (
                   <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
                     No image
@@ -633,15 +630,8 @@ export function LocationAngleSelector({
                   loading="lazy"
                   onError={(e) => {
                     const imgElement = e.target as HTMLImageElement;
-                    // Try full image if thumbnail fails
-                    if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
-                      imgElement.src = fullImageUrl;
-                    } else if (imageUrlFallback && imgElement.src !== imageUrlFallback) {
-                      imgElement.src = imageUrlFallback;
-                    } else {
-                      // If all fail, hide image and show placeholder
-                      imgElement.style.display = 'none';
-                    }
+                    // If image fails, hide it
+                    imgElement.style.display = 'none';
                   }}
                 />
               );

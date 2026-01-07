@@ -40,8 +40,7 @@ function CharacterSelector({
   };
 
   // Get headshot image for a character (first available headshot)
-  // 🔥 FIX: Use the same URL resolution logic as SceneBuilderPanel
-  // Check thumbnail URLs first, then full image URLs, then fall back to imageUrl
+  // 🔥 FIX: Use standardized URL resolution utility
   const getCharacterHeadshotImage = (charId: string): string | null => {
     const headshots = characterHeadshots[charId];
     if (!headshots || headshots.length === 0) return null;
@@ -50,37 +49,23 @@ function CharacterSelector({
     const firstHeadshot = headshots[0];
     if (!firstHeadshot || !firstHeadshot.s3Key) return null;
     
-    // 🔥 FIX: Use thumbnail URL if available (same logic as SceneBuilderPanel)
-    let thumbnailS3Key: string | null = null;
-    if (characterThumbnailS3KeyMap?.has(firstHeadshot.s3Key)) {
-      thumbnailS3Key = characterThumbnailS3KeyMap.get(firstHeadshot.s3Key) || null;
+    // Use standardized resolution - combines selected and visible maps
+    const combinedFullImageUrlsMap = new Map<string, string>();
+    if (selectedReferenceFullImageUrlsMap) {
+      selectedReferenceFullImageUrlsMap.forEach((url, key) => combinedFullImageUrlsMap.set(key, url));
     }
-    const thumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.get(thumbnailS3Key);
-    
-    // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
-    // Check selected references first (for selected characters), then visible headshots
-    const fullImageUrl = selectedReferenceFullImageUrlsMap?.get(firstHeadshot.s3Key) || 
-                         visibleHeadshotFullImageUrlsMap?.get(firstHeadshot.s3Key);
-    
-    // 🔥 FIX: Use imageUrl as fallback if it's already a valid presigned URL
-    // The imageUrl from useCharacterReferences should already be a presigned URL (or empty)
-    // This is important because characterThumbnailUrlsMap might not have all thumbnails yet
-    const imageUrlFallback = firstHeadshot.imageUrl && 
-                            (firstHeadshot.imageUrl.startsWith('http') || firstHeadshot.imageUrl.startsWith('data:'))
-                            ? firstHeadshot.imageUrl 
-                            : null;
-    
-    // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then imageUrl
-    // This ensures all characters show images, not just those with thumbnails in the map
-    const displayUrl = thumbnailUrl || fullImageUrl || imageUrlFallback;
-    
-    // If displayUrl is empty or looks like an s3Key (not a URL), return null
-    // The component will show a placeholder instead
-    if (!displayUrl || (!displayUrl.startsWith('http') && !displayUrl.startsWith('data:'))) {
-      return null;
+    if (visibleHeadshotFullImageUrlsMap) {
+      visibleHeadshotFullImageUrlsMap.forEach((url, key) => combinedFullImageUrlsMap.set(key, url));
     }
     
-    return displayUrl;
+    return resolveCharacterHeadshotUrl(
+      firstHeadshot,
+      {
+        thumbnailS3KeyMap: characterThumbnailS3KeyMap,
+        thumbnailUrlsMap: characterThumbnailUrlsMap,
+        fullImageUrlsMap: combinedFullImageUrlsMap
+      }
+    );
   };
 
   // Close dropdown when clicking outside
@@ -380,8 +365,7 @@ export function PronounMappingSection({
   });
   
   // Get headshot image for a character (first available headshot)
-  // 🔥 FIX: Use the same URL resolution logic as SceneBuilderPanel
-  // Check thumbnail URLs first, then full image URLs, then fall back to imageUrl
+  // 🔥 FIX: Use standardized URL resolution utility
   const getCharacterHeadshotImage = (charId: string): string | null => {
     const headshots = characterHeadshots[charId];
     if (!headshots || headshots.length === 0) return null;
@@ -390,37 +374,23 @@ export function PronounMappingSection({
     const firstHeadshot = headshots[0];
     if (!firstHeadshot || !firstHeadshot.s3Key) return null;
     
-    // 🔥 FIX: Use thumbnail URL if available (same logic as SceneBuilderPanel)
-    let thumbnailS3Key: string | null = null;
-    if (characterThumbnailS3KeyMap?.has(firstHeadshot.s3Key)) {
-      thumbnailS3Key = characterThumbnailS3KeyMap.get(firstHeadshot.s3Key) || null;
+    // Use standardized resolution - combines selected and visible maps
+    const combinedFullImageUrlsMap = new Map<string, string>();
+    if (selectedReferenceFullImageUrlsMap) {
+      selectedReferenceFullImageUrlsMap.forEach((url, key) => combinedFullImageUrlsMap.set(key, url));
     }
-    const thumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.get(thumbnailS3Key);
-    
-    // 🔥 FIX: Get full image URL as fallback if thumbnail isn't available yet
-    // Check selected references first (for selected characters), then visible headshots
-    const fullImageUrl = selectedReferenceFullImageUrlsMap?.get(firstHeadshot.s3Key) || 
-                         visibleHeadshotFullImageUrlsMap?.get(firstHeadshot.s3Key);
-    
-    // 🔥 FIX: Use imageUrl as fallback if it's already a valid presigned URL
-    // The imageUrl from useCharacterReferences should already be a presigned URL (or empty)
-    // This is important because characterThumbnailUrlsMap might not have all thumbnails yet
-    const imageUrlFallback = firstHeadshot.imageUrl && 
-                            (firstHeadshot.imageUrl.startsWith('http') || firstHeadshot.imageUrl.startsWith('data:'))
-                            ? firstHeadshot.imageUrl 
-                            : null;
-    
-    // 🔥 PERFORMANCE: Use thumbnail first (fastest), then full image fallback, then imageUrl
-    // This ensures all characters show images, not just those with thumbnails in the map
-    const displayUrl = thumbnailUrl || fullImageUrl || imageUrlFallback;
-    
-    // If displayUrl is empty or looks like an s3Key (not a URL), return null
-    // The component will show a placeholder instead
-    if (!displayUrl || (!displayUrl.startsWith('http') && !displayUrl.startsWith('data:'))) {
-      return null;
+    if (visibleHeadshotFullImageUrlsMap) {
+      visibleHeadshotFullImageUrlsMap.forEach((url, key) => combinedFullImageUrlsMap.set(key, url));
     }
     
-    return displayUrl;
+    return resolveCharacterHeadshotUrl(
+      firstHeadshot,
+      {
+        thumbnailS3KeyMap: characterThumbnailS3KeyMap,
+        thumbnailUrlsMap: characterThumbnailUrlsMap,
+        fullImageUrlsMap: combinedFullImageUrlsMap
+      }
+    );
   };
 
   // Get available characters for selection (excluding already selected ones, up to maxTotalCharacters)
