@@ -84,6 +84,34 @@ export interface LocationProfile {
   consistencyRating?: number;
   createdAt: string;
   updatedAt: string;
+  
+  // 🔥 NEW: Unified images array (primary source of truth, like AssetBank)
+  // Includes baseReference, angleVariations, and backgrounds with metadata
+  images?: Array<{
+    imageUrl: string;
+    url?: string; // Fallback for assets compatibility
+    s3Key?: string;
+    createdAt?: string;
+    metadata?: {
+      s3Key?: string;
+      source?: 'user-upload' | 'angle-generation' | 'background-generation';
+      createdIn?: 'creation' | 'production-hub';
+      isBase?: boolean;
+      isAngle?: boolean;
+      isBackground?: boolean;
+      angle?: string;
+      backgroundType?: string;
+      timeOfDay?: string;
+      weather?: string;
+      season?: string;
+      generationMethod?: string;
+      creditsUsed?: number;
+      providerId?: string;
+      quality?: string;
+      isRegenerated?: boolean;
+      [key: string]: any; // Allow additional metadata fields
+    };
+  }>;
 }
 
 // ============================================================================

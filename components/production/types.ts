@@ -64,6 +64,30 @@ export interface CharacterProfile {
   poseReferences?: CharacterReference[]; // AI-generated pose images
   referenceCount: number;
   
+  // 🔥 NEW: Unified images array (primary source of truth, like AssetBank)
+  // Includes baseReference, references, and poseReferences with metadata
+  images?: Array<{
+    imageUrl: string;
+    url?: string; // Fallback for assets compatibility
+    s3Key?: string;
+    createdAt?: string;
+    metadata?: {
+      s3Key?: string;
+      source?: 'user-upload' | 'pose-generation';
+      createdIn?: 'creation' | 'production-hub';
+      isBase?: boolean;
+      isPose?: boolean;
+      outfitName?: string;
+      poseId?: string;
+      poseName?: string;
+      referenceType?: string;
+      providerId?: string;
+      quality?: string;
+      isRegenerated?: boolean;
+      [key: string]: any; // Allow additional metadata fields
+    };
+  }>;
+  
   // Performance settings for character animation
   performanceSettings?: {
     facialPerformance: number;      // 0-2 range: 0=subtle, 1=natural (default), 2=dramatic
