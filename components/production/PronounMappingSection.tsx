@@ -269,6 +269,8 @@ interface PronounMappingSectionProps {
   onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
   // Hide section labels (used when component is called from parent that manages its own section labels)
   hideSectionLabels?: boolean;
+  // 🔥 NEW: Hide internal separators (used when parent manages separators for dropdown + images grouping)
+  hideInternalSeparators?: boolean;
   // 🔥 NEW: URL maps for resolving presigned URLs (same as SceneBuilderPanel)
   characterThumbnailS3KeyMap?: Map<string, string>; // Map of s3Key -> thumbnailS3Key
   characterThumbnailUrlsMap?: Map<string, string>; // Map of thumbnailS3Key -> presigned URL
@@ -295,6 +297,7 @@ export function PronounMappingSection({
   pronounExtrasPrompts = {},
   onPronounExtrasPromptChange,
   hideSectionLabels = false,
+  hideInternalSeparators = false, // 🔥 NEW: Allow parent to manage separators
   characterThumbnailS3KeyMap,
   characterThumbnailUrlsMap,
   selectedReferenceFullImageUrlsMap,
@@ -480,7 +483,7 @@ export function PronounMappingSection({
         
         {/* Single Character Section */}
         {singularPronouns.length > 0 && (
-          <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
+          <div className={`space-y-3 ${hideInternalSeparators ? '' : 'pb-3 border-b border-[#3F3F46]'}`}>
             {!hideSectionLabels && (
               <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide mb-2">
                 Single Character
@@ -500,7 +503,7 @@ export function PronounMappingSection({
               const selectedOutfit = mappedCharacterId && !isIgnored ? getOutfitForCharacter(mappedCharacterId) : undefined;
               
               return (
-                <div key={pronoun} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
+                <div key={pronoun} className={`space-y-2 ${hideInternalSeparators ? '' : 'pb-2 border-b border-[#3F3F46] last:border-b-0'}`}>
                   <div className="flex items-center gap-3">
                     <label className="text-xs text-[#808080] min-w-[60px]">
                       "{pronoun}"
@@ -627,7 +630,7 @@ export function PronounMappingSection({
               const remainingSlots = maxTotalCharacters - otherMappedIds.length;
               
               return (
-                <div key={pronoun} className="space-y-2 pb-2 border-b border-[#3F3F46] last:border-b-0">
+                <div key={pronoun} className={`space-y-2 ${hideInternalSeparators ? '' : 'pb-2 border-b border-[#3F3F46] last:border-b-0'}`}>
                   <div className="space-y-2">
                     <label className="block text-xs text-[#808080]">
                       "{pronoun}"
@@ -802,7 +805,7 @@ export function PronounMappingSection({
                         
                         const hasAnyOutfits = (char.availableOutfits?.length || 0) > 0 || !!char.defaultOutfit;
                         return (
-                          <div key={charId} className="pb-2 border-b border-[#3F3F46] last:border-b-0">
+                          <div key={charId} className={`pb-2 ${hideInternalSeparators ? '' : 'border-b border-[#3F3F46] last:border-b-0'}`}>
                             <div className="flex items-center gap-2 flex-wrap">
                               <div className="text-xs font-medium text-[#FFFFFF]">
                                 {char.name}

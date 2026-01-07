@@ -608,23 +608,29 @@ export function ShotConfigurationPanel({
             </div>
           )}
           <div className="space-y-4">
-            {explicitCharacters.map((charId) => {
+            {explicitCharacters.map((charId, index) => {
               // Grey out narrator when Narrate Shot (scene-voiceover) is selected (they're the narrator)
               const isNarrator = currentWorkflow === 'scene-voiceover' && charId === speakingCharacterId;
               // Check if narrator is also manually selected (will show normally in that section)
               const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
               // Check if this character is already rendered in pronoun sections
               const alreadyRenderedInPronouns = allRenderedCharacters.has(charId);
+              
+              // 🔥 FIX: Wrap explicit character controls + images with separator
+              const isLastExplicit = index === explicitCharacters.length - 1;
+              
               return (
-                <div key={charId} className={`space-y-3 ${isNarrator ? 'opacity-50' : ''}`}>
-                  {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                  {isNarrator && (
-                    <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                      Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
-                    </div>
-                  )}
-                  {/* Always show images in Character(s) section, even if also mapped to pronoun */}
-                  {renderCharacterImagesOnly(charId, shot.slot)}
+                <div key={charId} className={`pb-3 ${isLastExplicit ? '' : 'border-b border-[#3F3F46]'} ${isNarrator ? 'opacity-50' : ''}`}>
+                  <div className="space-y-3">
+                    {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                    {isNarrator && (
+                      <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                        Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
+                      </div>
+                    )}
+                    {/* Always show images in Character(s) section, even if also mapped to pronoun */}
+                    {renderCharacterImagesOnly(charId, shot.slot)}
+                  </div>
                 </div>
               );
             })}
@@ -678,7 +684,7 @@ export function ShotConfigurationPanel({
                 </div>
                 {pronounInfo.pronouns
                   .filter((p: string) => ['she', 'her', 'hers', 'he', 'him', 'his'].includes(p.toLowerCase()))
-                  .map((pronoun: string) => {
+                  .map((pronoun: string, index: number, array: string[]) => {
                     const pronounLower = pronoun.toLowerCase();
                     const mapping = shotMappings[pronounLower];
                     const mappedCharacterId = Array.isArray(mapping) ? mapping[0] : mapping;
@@ -694,8 +700,11 @@ export function ShotConfigurationPanel({
                       renderedCharacters.add(char.id);
                     }
                     
+                    // 🔥 FIX: Wrap dropdown + images in single container with separator
+                    const isLast = index === array.length - 1;
+                    
                     return (
-                      <div key={pronoun} className="space-y-2">
+                      <div key={pronoun} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
                         {/* Stacked layout: controls + photos vertically */}
                         <div className="space-y-3">
                           <div>
@@ -719,6 +728,7 @@ export function ShotConfigurationPanel({
                               onCharacterOutfitChange={onCharacterOutfitChange}
                               allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
                               hideSectionLabels={true}
+                              hideInternalSeparators={true} // 🔥 FIX: Parent manages separators
                               pronounExtrasPrompts={pronounExtrasPrompts}
                               onPronounExtrasPromptChange={onPronounExtrasPromptChange}
                               characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
@@ -771,21 +781,24 @@ export function ShotConfigurationPanel({
                 }
               });
             
+            const pluralPronounsList = pronounInfo.pronouns.filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase()));
+            
             return (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-3 border-b border-[#3F3F46]">
               <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">
                 Multiple Characters
               </div>
-              {pronounInfo.pronouns
-                .filter((p: string) => ['they', 'them', 'their', 'theirs'].includes(p.toLowerCase()))
-                .map((pronoun: string) => {
+              {pluralPronounsList.map((pronoun: string, index: number) => {
                   const pronounLower = pronoun.toLowerCase();
                   const mapping = shotMappings[pronounLower];
                   const isIgnored = mapping === '__ignore__';
                   const mappedCharacterIds = isIgnored ? [] : (Array.isArray(mapping) ? mapping : (mapping ? [mapping] : []));
                   
+                  // 🔥 FIX: Wrap dropdown + images in single container with separator
+                  const isLast = index === pluralPronounsList.length - 1;
+                  
                   return (
-                    <div key={pronoun} className="space-y-2">
+                    <div key={pronoun} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
                       {/* Stacked layout: controls + photos vertically */}
                       <div className="space-y-3">
                         <div>
@@ -809,8 +822,13 @@ export function ShotConfigurationPanel({
                             onCharacterOutfitChange={onCharacterOutfitChange}
                             allCharactersWithOutfits={sceneAnalysisResult?.characters || allCharacters}
                             hideSectionLabels={true}
+                            hideInternalSeparators={true} // 🔥 FIX: Parent manages separators
                             pronounExtrasPrompts={pronounExtrasPrompts}
                             onPronounExtrasPromptChange={onPronounExtrasPromptChange}
+                            characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
+                            characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                            selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
+                            visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
                           />
                         </div>
                         {/* Images - only show if characters are mapped */}
@@ -1398,26 +1416,18 @@ export function ShotConfigurationPanel({
                 </div>
                 {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
                   <div className="mt-4 space-y-4">
-                    {selectedCharactersForShots[shot.slot].map((charId: string) => {
+                    {selectedCharactersForShots[shot.slot].map((charId: string, index: number) => {
                       const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
                       if (!char) return null;
+                      const isLast = index === selectedCharactersForShots[shot.slot].length - 1;
+                      
+                      // 🔥 FIX: Wrap additional character controls + images with separator
                       return (
-                        <div key={charId}>
-                          {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {/* Character images for selected additional characters - stacked below */}
-                {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
-                  <div className="mt-4 space-y-4">
-                    {selectedCharactersForShots[shot.slot].map((charId: string) => {
-                      const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
-                      if (!char) return null;
-                      return (
-                        <div key={charId}>
-                          {renderCharacterImagesOnly(charId, shot.slot)}
+                        <div key={charId} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
+                          <div className="space-y-3">
+                            {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                            {renderCharacterImagesOnly(charId, shot.slot)}
+                          </div>
                         </div>
                       );
                     })}
