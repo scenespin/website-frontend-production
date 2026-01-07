@@ -609,6 +609,24 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     selectedReferenceS3Keys.length > 0
   );
 
+  // 🔥 FIX: Fetch presigned URLs for location references (similar to character references)
+  const locationReferenceS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    Object.entries(selectedLocationReferences).forEach(([shotSlotStr, locationRef]) => {
+      // Only fetch if we have an s3Key and need a presigned URL (imageUrl is empty or is an s3Key)
+      if (locationRef?.s3Key && (!locationRef.imageUrl || (!locationRef.imageUrl.startsWith('http') && !locationRef.imageUrl.startsWith('data:')))) {
+        keys.push(locationRef.s3Key);
+      }
+    });
+    return keys;
+  }, [selectedLocationReferences]);
+
+  // Fetch presigned URLs for location references
+  const { data: locationReferenceFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    locationReferenceS3Keys,
+    locationReferenceS3Keys.length > 0
+  );
+
   // 🔥 FIX: Create stable signature for Map to prevent infinite loops
   // The Map object is recreated on every render, so we use a signature instead
   const selectedRefsMapSignature = useMemo(() => {

@@ -29,6 +29,7 @@ import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propIma
 import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
+import { resolveLocationImageUrl } from './utils/imageUrlResolver';
 
 // Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
 function AspectRatioSelector({ value, onChange }: { value: string; onChange: (value: '16:9' | '9:16' | '1:1') => void }) {
@@ -1079,22 +1080,16 @@ export function ShotConfigurationStep({
                 if (locationRef) {
                   const location = finalSceneProps.find(loc => loc.id === shot.locationId);
                   
-                  // 🔥 FIX: Resolve location image URL
-                  // Check if imageUrl is a valid presigned URL (not an s3Key)
-                  let locationImageUrl: string | null = null;
-                  
-                  if (locationRef.imageUrl && 
-                      (locationRef.imageUrl.startsWith('http') || locationRef.imageUrl.startsWith('data:'))) {
-                    // Already a valid URL
-                    locationImageUrl = locationRef.imageUrl;
-                  } else if (locationRef.s3Key) {
-                    // If imageUrl is not valid but we have s3Key, try to get presigned URL from propImageUrlsMap
-                    // (Note: We should ideally have locationImageUrlsMap, but for now use propImageUrlsMap as fallback)
-                    // Actually, locationRef.imageUrl should already be set when location is selected
-                    // But if it's not, we'll need to fetch it
-                    // For now, skip if no valid URL
-                    locationImageUrl = null;
-                  }
+                  // 🔥 FIX: Use standardized URL resolution utility
+                  const { resolveLocationImageUrl } = require('./utils/imageUrlResolver');
+                  const locationImageUrl = resolveLocationImageUrl(
+                    locationRef,
+                    {
+                      thumbnailS3KeyMap: null, // Location references don't use thumbnail maps in references section
+                      thumbnailUrlsMap: null,
+                      fullImageUrlsMap: propImageUrlsMap // Use prop map as fallback (location URLs should be in locationRef.imageUrl)
+                    }
+                  );
                   
                   // Only add if we have a valid URL
                   if (locationImageUrl) {
