@@ -154,39 +154,21 @@ export function useLocationReferences({
     return keys;
   }, [angleVariations, backgrounds, locationThumbnailS3KeyMap]);
 
-  // Fetch thumbnail URLs for all location images
+  // 🔥 PERFORMANCE FIX: Only fetch thumbnails upfront (for grid display)
+  // Full images will be fetched lazily when needed (e.g., when selected for generation)
+  // This dramatically reduces initial load time since thumbnails are much smaller
   const { data: locationThumbnailUrlsMap = new Map() } = useBulkPresignedUrls(
     locationThumbnailS3Keys,
     locationThumbnailS3Keys.length > 0
   );
 
-  // 🔥 FIX: Collect all full image S3 keys and fetch presigned URLs
-  const fullImageS3Keys = useMemo(() => {
-    return [...angleVariations, ...backgrounds]
-      .map(item => item.s3Key)
-      .filter((key): key is string => !!key);
-  }, [angleVariations, backgrounds]);
-
-  // Fetch presigned URLs for full images (not just thumbnails)
-  const { data: fullImageUrlsMap = new Map() } = useBulkPresignedUrls(
-    fullImageS3Keys,
-    fullImageS3Keys.length > 0
-  );
-
-  // 🔥 FIX: Enrich angleVariations and backgrounds with presigned URLs
-  const enrichedAngleVariations = useMemo(() => {
-    return angleVariations.map(angle => ({
-      ...angle,
-      imageUrl: fullImageUrlsMap.get(angle.s3Key) || angle.imageUrl || ''
-    }));
-  }, [angleVariations, fullImageUrlsMap]);
-
-  const enrichedBackgrounds = useMemo(() => {
-    return backgrounds.map(bg => ({
-      ...bg,
-      imageUrl: fullImageUrlsMap.get(bg.s3Key) || bg.imageUrl || ''
-    }));
-  }, [backgrounds, fullImageUrlsMap]);
+  // 🔥 PERFORMANCE FIX: Don't fetch full images upfront - they're only needed for selected references
+  // Full images will be fetched on-demand in LocationAngleSelector when references are selected
+  // This prevents loading hundreds of full-size images that may never be used
+  // Note: angleVariations and backgrounds keep their original imageUrl (from Media Library s3Url)
+  // which can be used as fallback, but thumbnails are preferred for display
+  const enrichedAngleVariations = angleVariations;
+  const enrichedBackgrounds = backgrounds;
 
   return {
     angleVariations: enrichedAngleVariations,

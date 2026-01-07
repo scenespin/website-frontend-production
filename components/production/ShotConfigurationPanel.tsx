@@ -300,71 +300,50 @@ export function ShotConfigurationPanel({
   // 🔥 NEW: Fetch thumbnail URLs for all prop images
   const { data: propThumbnailUrlsMap } = useBulkPresignedUrls(propThumbnailS3Keys, propThumbnailS3Keys.length > 0);
   
-  // 🔥 NEW: Collect all full image S3 keys and fetch presigned URLs (not just thumbnails)
+  // 🔥 PERFORMANCE FIX: Only fetch full images for selected prop images (not all assigned props)
+  // This dramatically reduces initial load time since we only fetch thumbnails upfront
+  // Full images are only needed when a specific prop image is selected for generation
   const propFullImageS3Keys = React.useMemo(() => {
     const keys: string[] = [];
     const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
     
-    // 🔥 DIAGNOSTIC: Log assigned props structure (always log)
-    if (assignedProps.length > 0) {
-      console.log('[PropImageDebug] Assigned props for shot', shot.slot, ':', assignedProps.map(p => ({
-        id: p.id,
-        name: p.name,
-        imageUrl: p.imageUrl,
-        hasAngleReferences: !!(p as any).angleReferences?.length,
-        angleReferences: (p as any).angleReferences,
-        hasImages: !!(p as any).images?.length,
-        images: (p as any).images,
-        hasBaseReference: !!(p as any).baseReference,
-        baseReference: (p as any).baseReference,
-        fullProp: p
-      })));
-    } else {
-      console.log('[PropImageDebug] No assigned props for shot', shot.slot, '- sceneProps:', sceneProps.length, 'propsToShots:', propsToShots);
-    }
-    
     assignedProps.forEach(prop => {
-      const fullProp = prop as typeof prop & {
-        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
-        images?: Array<{ url: string; s3Key?: string }>;
-        baseReference?: { s3Key?: string; imageUrl?: string };
-      };
+      const propConfig = shotProps[shot.slot]?.[prop.id];
+      const selectedImageId = propConfig?.selectedImageId;
       
-      // Add angleReferences full image s3Keys
-      if (fullProp.angleReferences) {
-        fullProp.angleReferences.forEach(ref => {
-          if (ref.s3Key) {
-            keys.push(ref.s3Key);
-          }
-        });
-      }
-      
-      // Add images[] full image s3Keys
-      if (fullProp.images) {
-        fullProp.images.forEach(img => {
-          if (img.s3Key) {
-            keys.push(img.s3Key);
-          }
-        });
-      }
-      
-      // Add baseReference s3Key if available
-      if (fullProp.baseReference?.s3Key) {
-        keys.push(fullProp.baseReference.s3Key);
+      // Only fetch full image for the selected image (if one is selected)
+      if (selectedImageId) {
+        const fullProp = prop as typeof prop & {
+          angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+          images?: Array<{ url: string; s3Key?: string }>;
+          baseReference?: { s3Key?: string; imageUrl?: string };
+        };
+        
+        // Find the selected image's s3Key
+        let imageS3Key: string | null = null;
+        if (fullProp.angleReferences) {
+          const ref = fullProp.angleReferences.find(r => r.id === selectedImageId);
+          if (ref?.s3Key) imageS3Key = ref.s3Key;
+        }
+        if (!imageS3Key && fullProp.images) {
+          const imgData = fullProp.images.find(i => i.url === selectedImageId || i.s3Key === selectedImageId);
+          if (imgData?.s3Key) imageS3Key = imgData.s3Key;
+        }
+        if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImageId === (fullProp.baseReference.imageUrl || fullProp.baseReference.s3Key)) {
+          imageS3Key = fullProp.baseReference.s3Key;
+        }
+        
+        // Only add if we found an s3Key and it needs a presigned URL
+        if (imageS3Key) {
+          keys.push(imageS3Key);
+        }
       }
     });
     
-    // 🔥 DIAGNOSTIC: Log collected S3 keys (always log)
-    if (keys.length > 0) {
-      console.log('[PropImageDebug] Collected full image S3 keys:', keys);
-    } else {
-      console.log('[PropImageDebug] No S3 keys collected for shot', shot.slot);
-    }
-    
     return keys;
-  }, [sceneProps, propsToShots, shot.slot]);
+  }, [sceneProps, propsToShots, shotProps, shot.slot]);
   
-  // 🔥 NEW: Fetch presigned URLs for full images (not just thumbnails)
+  // 🔥 PERFORMANCE FIX: Fetch presigned URLs for selected prop images only (lazy loading)
   const { data: propFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
     propFullImageS3Keys,
     propFullImageS3Keys.length > 0

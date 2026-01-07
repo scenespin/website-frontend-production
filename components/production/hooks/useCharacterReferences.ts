@@ -109,31 +109,18 @@ export function useCharacterReferences({
     return keys;
   }, [characterHeadshots, characterThumbnailS3KeyMap]);
 
-  // Collect all headshot full image S3 keys (for presigned URL generation if imageUrl is empty)
-  const headshotFullImageS3Keys = useMemo(() => {
-    const keys: string[] = [];
-    Object.values(characterHeadshots).forEach(headshots => {
-      headshots.forEach(headshot => {
-        // If imageUrl is empty or looks like an s3Key (not a full URL), we need to generate presigned URL
-        if (headshot.s3Key && (!headshot.imageUrl || (!headshot.imageUrl.startsWith('http') && !headshot.imageUrl.startsWith('data:')))) {
-          keys.push(headshot.s3Key);
-        }
-      });
-    });
-    return keys;
-  }, [characterHeadshots]);
-
-  // Fetch thumbnail URLs for all headshots
+  // 🔥 PERFORMANCE FIX: Only fetch thumbnails upfront (for grid display)
+  // Full images will be fetched lazily when needed (e.g., when selected for generation)
+  // This dramatically reduces initial load time since thumbnails are much smaller
   const { data: thumbnailUrlsMap = new Map() } = useBulkPresignedUrls(
     headshotThumbnailS3Keys,
     headshotThumbnailS3Keys.length > 0
   );
 
-  // Fetch presigned URLs for full images (when imageUrl is empty or is an s3Key)
-  const { data: fullImageUrlsMap = new Map() } = useBulkPresignedUrls(
-    headshotFullImageS3Keys,
-    headshotFullImageS3Keys.length > 0
-  );
+  // 🔥 PERFORMANCE FIX: Don't fetch full images upfront - they're only needed for selected references
+  // Full images will be fetched on-demand in SceneBuilderPanel when references are selected
+  // This prevents loading hundreds of full-size images that may never be used
+  const fullImageUrlsMap = new Map<string, string>();
 
   return {
     characterHeadshots,

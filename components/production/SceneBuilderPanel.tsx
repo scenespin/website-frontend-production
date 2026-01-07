@@ -506,18 +506,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // No sync needed - context is updated directly in the provider
   const characterThumbnailS3KeyMap = contextState.characterThumbnailS3KeyMap;
   const characterThumbnailUrlsMap = contextState.characterThumbnailUrlsMap;
+  // 🔥 PERFORMANCE: characterFullImageUrlsMap is no longer populated upfront (only thumbnails are fetched)
+  // Full images are fetched on-demand for selected references only
   const characterFullImageUrlsMap = contextState.characterFullImageUrlsMap;
-  
-  // 🔥 FIX: Create stable signature from characterFullImageUrlsMap to prevent infinite loops
-  // The Map object may be recreated on every render even if contents are the same
-  const characterFullImageUrlsMapSignature = useMemo(() => {
-    if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) return '';
-    // Create stable signature from sorted keys and values
-    return Array.from(characterFullImageUrlsMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value]) => `${key}:${value}`)
-      .join('|');
-  }, [characterFullImageUrlsMap]);
   
   // 🔥 FIX: Create stable signature from selectedCharacterReferences to track changes
   // Only track references that need URLs (have s3Key but no valid imageUrl)
@@ -571,6 +562,28 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Map Media Library files to character headshot structure
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
   
+  // 🔥 PERFORMANCE FIX: Fetch full images on-demand only for selected references (not all headshots)
+  // This dramatically improves initial load time since we only fetch thumbnails upfront
+  const selectedReferenceS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    Object.values(selectedCharacterReferences).forEach(shotRefs => {
+      if (!shotRefs || typeof shotRefs !== 'object') return;
+      Object.values(shotRefs).forEach(charRef => {
+        // Only fetch if we have an s3Key and need a presigned URL (imageUrl is empty or is an s3Key)
+        if (charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))) {
+          keys.push(charRef.s3Key);
+        }
+      });
+    });
+    return keys;
+  }, [selectedCharacterReferences]);
+
+  // Fetch presigned URLs for selected references only (lazy loading)
+  const { data: selectedReferenceFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    selectedReferenceS3Keys,
+    selectedReferenceS3Keys.length > 0
+  );
+
   // 🔥 FIX: Update selectedCharacterReferences with presigned URLs when available
   // 🔥 FIX: Use ref to track last processed state to prevent infinite loops
   const lastProcessedRefsRef = useRef<string>('');
@@ -582,12 +595,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const timeSinceLastRun = now - runInfo.lastRun;
     
     // Create combined signature for both dependencies
-    const combinedSignature = `${characterFullImageUrlsMapSignature}|${selectedCharacterReferencesSignature}`;
+    const selectedRefsMapSignature = Array.from(selectedReferenceFullImageUrlsMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${value}`)
+      .join('|');
+    const combinedSignature = `${selectedRefsMapSignature}|${selectedCharacterReferencesSignature}`;
     const depsChanged = combinedSignature !== runInfo.lastDeps;
     
     console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
-      characterFullImageUrlsMapSize: characterFullImageUrlsMap?.size || 0,
-      mapSignatureLength: characterFullImageUrlsMapSignature.length,
+      selectedReferenceFullImageUrlsMapSize: selectedReferenceFullImageUrlsMap?.size || 0,
+      mapSignatureLength: selectedRefsMapSignature.length,
       refsSignatureLength: selectedCharacterReferencesSignature.length
     });
     
@@ -599,7 +616,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     runInfo.lastDeps = combinedSignature;
     useEffectRunCountsRef.current[effectName] = runInfo;
     
-    if (!characterFullImageUrlsMap || characterFullImageUrlsMap.size === 0) {
+    if (!selectedReferenceFullImageUrlsMap || selectedReferenceFullImageUrlsMap.size === 0) {
       // Clear the last processed ref if map is empty
       if (lastProcessedRefsRef.current !== '') {
         lastProcessedRefsRef.current = '';
@@ -640,7 +657,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       Object.entries(shotRefs).forEach(([charId, charRef]) => {
         // If imageUrl is empty or is an s3Key (not a full URL), try to get presigned URL
         if (charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))) {
-          const presignedUrl = characterFullImageUrlsMap.get(charRef.s3Key);
+          const presignedUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
           if (presignedUrl && presignedUrl !== charRef.imageUrl) {
             updatedShotRefs[charId] = {
               ...charRef,
@@ -662,9 +679,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     // 🔥 FIX: Use stable signatures only - prevents infinite loops when objects are recreated
     // The signatures only change when the actual data changes, not when object references change
-    // Note: characterFullImageUrlsMap is accessed via closure but not in deps to prevent loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [characterFullImageUrlsMapSignature, selectedCharacterReferencesSignature]);
+  }, [selectedReferenceFullImageUrlsMap, selectedCharacterReferencesSignature]);
 
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
@@ -3794,19 +3810,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                             // Get presigned URL for thumbnail if available
                             const thumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.get(thumbnailS3Key);
                             
-                            // Get presigned URL for full image if thumbnail not available and imageUrl is empty or is an s3Key
-                            let fullImageUrl: string | undefined;
-                            if (!thumbnailUrl && headshot.s3Key) {
-                              // Check if we have a presigned URL for the full image
-                              fullImageUrl = characterFullImageUrlsMap?.get(headshot.s3Key);
-                              // If not, and imageUrl is a full URL, use it
-                              if (!fullImageUrl && headshot.imageUrl && (headshot.imageUrl.startsWith('http') || headshot.imageUrl.startsWith('data:'))) {
-                                fullImageUrl = headshot.imageUrl;
-                              }
-                            }
-                            
-                            // Use thumbnail first, then full image presigned URL, then imageUrl
-                            const displayUrl = thumbnailUrl || fullImageUrl || headshot.imageUrl || '';
+                            // 🔥 PERFORMANCE: Full images are not fetched upfront - only use thumbnail for grid display
+                            // Full images are only fetched on-demand when selected for generation
+                            // If thumbnail is not available, fall back to headshot.imageUrl (which may be from Media Library)
+                            const displayUrl = thumbnailUrl || headshot.imageUrl || '';
                             
                             // Check if this is the creation image (last resort)
                             const isCreationImage = headshot.poseId === 'base-reference' || headshot.label === 'Creation Image (Last Resort)';
