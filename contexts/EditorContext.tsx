@@ -1397,6 +1397,24 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
     }, [projectId, getScreenplayStorageKey, clearScreenplayStorage]);
     
+    // 🔥 FIX: Reset initialization guard when user changes (logout/login)
+    const previousUserIdRef = useRef<string | null>(null);
+    useEffect(() => {
+        const currentUserId = user?.id || null;
+        const previousUserId = previousUserIdRef.current;
+        
+        // If user changed (logout/login), reset initialization guard
+        if (previousUserId !== null && currentUserId !== previousUserId) {
+            console.log('[EditorContext] 🔄 User changed (logout/login) - resetting initialization guard');
+            hasInitializedRef.current = false;
+            screenplayIdRef.current = null;
+            screenplayVersionRef.current = null;
+            setState(defaultState);
+        }
+        
+        previousUserIdRef.current = currentUserId;
+    }, [user?.id]);
+
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
         // 🔥 FIX 1: Guard pattern - check if already initialized for this screenplay (like ScreenplayContext)

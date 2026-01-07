@@ -1203,6 +1203,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 FIX #3: Only depend on stable values - use refs inside handler instead
     }, [screenplayId, getToken, buildRelationshipsFromScenes]);
 
+    // 🔥 FIX: Reset initialization guard when user changes (logout/login)
+    const previousUserIdRef = useRef<string | null>(null);
+    useEffect(() => {
+        const currentUserId = user?.id || null;
+        const previousUserId = previousUserIdRef.current;
+        
+        // If user changed (logout/login), reset initialization guard
+        if (previousUserId !== null && currentUserId !== previousUserId) {
+            console.log('[ScreenplayContext] 🔄 User changed (logout/login) - resetting initialization guard');
+            hasInitializedRef.current = false;
+            isInitializingRef.current = false;
+            // Clear state to force fresh load
+            setCharacters([]);
+            setLocations([]);
+            setScenes([]);
+            setBeats([]);
+        }
+        
+        previousUserIdRef.current = currentUserId;
+    }, [user?.id]);
+
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
         console.log('[ScreenplayContext] 🔍 INIT EFFECT RUNNING - screenplayId:', screenplayId, 'hasInitializedRef:', hasInitializedRef.current, 'isInitializing:', isInitializingRef.current);
