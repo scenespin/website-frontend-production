@@ -6,7 +6,6 @@ import { api } from '@/lib/api';
 import apiClient from '@/lib/api';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import WelcomeModal from '@/components/WelcomeModal';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
@@ -48,7 +47,6 @@ export default function Dashboard() {
   const [ownedScreenplays, setOwnedScreenplays] = useState([]);
   const [collaboratedScreenplays, setCollaboratedScreenplays] = useState([]);
   const [recentVideos, setRecentVideos] = useState([]);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [currentScreenplayId, setCurrentScreenplayId] = useState(null);
   // Feature 0130: Use screenplayId (not projectId) for consistency
@@ -207,60 +205,6 @@ export default function Dashboard() {
 
     return () => clearTimeout(timeoutId);
   }, [pathname, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Check first visit ONCE on mount (not every time user changes)
-  useEffect(() => {
-    if (user) {
-      checkFirstVisit();
-    }
-  }, []); // Empty dependency array = run once on mount
-
-  const checkFirstVisit = async () => {
-    try {
-      // Check if user has seen welcome modal (local storage fallback)
-      const localHasSeenWelcome = typeof window !== 'undefined' && localStorage.getItem('hasSeenWelcome');
-      const hasSeenWelcome = user?.publicMetadata?.hasSeenWelcome || localHasSeenWelcome === 'true';
-      
-      if (!hasSeenWelcome && user) {
-        setShowWelcomeModal(true);
-      }
-    } catch (error) {
-      console.error('Error checking first visit:', error);
-    }
-  };
-
-  const handleCloseWelcome = async () => {
-    // Close modal immediately for better UX
-    setShowWelcomeModal(false);
-    
-    // Save to localStorage first (instant, works offline)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hasSeenWelcome', 'true');
-    }
-    
-    // Update Clerk metadata via backend API (syncs across devices)
-    // Falls back gracefully if API fails - localStorage already saved
-    try {
-      const response = await fetch('/api/user/metadata', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          publicMetadata: {
-            hasSeenWelcome: true
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update metadata');
-      }
-    } catch (error) {
-      // Silent failure - localStorage already saved, so UX is not affected
-      console.log('[Dashboard] Metadata update failed, using localStorage fallback');
-    }
-  };
 
   const fetchDashboardData = async () => {
     try {
@@ -679,13 +623,6 @@ export default function Dashboard() {
     <>
       {/* ResponsiveHeader removed - Navigation.js comes from dashboard/layout.js (was causing double header) */}
       <main className="min-h-screen bg-[#0A0A0A]">
-      
-      {/* Welcome Modal for First-Time Users */}
-      <WelcomeModal 
-        isOpen={showWelcomeModal}
-        onClose={handleCloseWelcome}
-        userCredits={credits?.balance || 50}
-      />
       
       {/* Delete Confirmation Modal - Requires Typing Name */}
       {deleteConfirmModal && (
