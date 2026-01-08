@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, Package, MoreVertical, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query'
+import { invalidateProductionHubCache } from '@/utils/cacheInvalidation';
 import { useEditor } from '@/contexts/EditorContext';
 import type { Asset, AssetCategory } from '@/types/asset';
 import AssetDetailSidebar from './AssetDetailSidebar';
@@ -365,8 +366,8 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                             
                                             // 🔥 FIX: Refetch Production Hub asset cache so new asset appears immediately
                                             if (screenplayId) {
-                                                // Use refetchQueries for immediate update (matches deletion pattern)
-                                                queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                                                // Use aggressive cache invalidation pattern (matches locations pattern)
+                                                invalidateProductionHubCache(queryClient, 'assets', screenplayId);
                                             }
                                             
                                             // 🔥 FIX: Apply scene associations after asset creation

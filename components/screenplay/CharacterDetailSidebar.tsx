@@ -13,6 +13,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
+import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -1114,25 +1115,9 @@ export default function CharacterDetailSidebar({
                                 
                                 await updateCharacter(character.id, { images: updatedImages });
                                 
-                                // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
-                                if (screenplayId) {
-                                  queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                }
-                                
                                 // 🔥 FIX: Aggressively clear and refetch character bank query cache so Production Hub cards refresh
-                                // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
                                 if (screenplayId) {
-                                  // First, remove the query from cache completely to force a fresh fetch
-                                  queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                  // Then invalidate to mark as stale (in case query is recreated before refetch)
-                                  queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                  // Force refetch after delay to ensure fresh data from DynamoDB
-                                  setTimeout(() => {
-                                    queryClient.refetchQueries({ 
-                                      queryKey: ['characters', screenplayId, 'production-hub'],
-                                      type: 'active' // Only refetch active queries
-                                    });
-                                  }, 2000); // 2 second delay for DynamoDB eventual consistency
+                                  invalidateProductionHubAndMediaCache(queryClient, 'characters', screenplayId);
                                 }
                                 
                                 // 🔥 FIX: Don't sync from context immediately after deletion
@@ -1344,19 +1329,8 @@ export default function CharacterDetailSidebar({
                 });
 
                 // 🔥 FIX: Aggressively clear and refetch character bank query cache so Production Hub cards refresh
-                // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
                 if (screenplayId) {
-                  // First, remove the query from cache completely to force a fresh fetch
-                  queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                  // Then invalidate to mark as stale (in case query is recreated before refetch)
-                  queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                  // Force refetch after delay to ensure fresh data from DynamoDB
-                  setTimeout(() => {
-                    queryClient.refetchQueries({ 
-                      queryKey: ['characters', screenplayId, 'production-hub'],
-                      type: 'active' // Only refetch active queries
-                    });
-                  }, 2000); // 2 second delay for DynamoDB eventual consistency
+                  invalidateProductionHubAndMediaCache(queryClient, 'characters', screenplayId);
                 }
 
                 toast.success('Image generated and uploaded');
