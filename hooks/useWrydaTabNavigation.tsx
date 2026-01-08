@@ -136,7 +136,7 @@ export function useWrydaTabNavigation(
         
         // Ensure dropdown stays within viewport bounds
         const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+        // viewportHeight already declared above (line 116) - reuse it
         const dropdownWidth = 288; // w-72 = 288px
         
         // Clamp left position to viewport
