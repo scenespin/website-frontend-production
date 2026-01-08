@@ -41,7 +41,13 @@ export default function EditorWorkspace() {
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
     const [showExportModal, setShowExportModal] = useState(false);
     const [showCollaborationModal, setShowCollaborationModal] = useState(false);
-    const [isSceneNavVisible, setIsSceneNavVisible] = useState(true);
+    // Scene Navigator: closed by default on mobile, open by default on desktop
+    const [isSceneNavVisible, setIsSceneNavVisible] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth >= 1024; // lg breakpoint - desktop
+        }
+        return false; // Default to closed (mobile-first)
+    });
     const [isSaving, setIsSaving] = useState(false);
     
     // Mobile detection and selection state for FABs

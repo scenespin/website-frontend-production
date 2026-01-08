@@ -781,15 +781,15 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </div>
                     )}
                     
-                    {/* Download (PDF) */}
-                    {onExportPDF && (
-                        <div className="tooltip tooltip-bottom" data-tip="Export PDF • Industry-standard format">
+                    {/* Scene Navigator toggle - Mobile only */}
+                    {onToggleSceneNav && (
+                        <div className="tooltip tooltip-bottom md:hidden" data-tip="Toggle Scene Navigator">
                             <button
-                                onClick={onExportPDF}
+                                onClick={onToggleSceneNav}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
                             >
-                                <span className="text-sm">⬇️</span>
-                                <span className="text-[8px] leading-tight">Download</span>
+                                <span className="text-sm">🎬</span>
+                                <span className="text-[8px] leading-tight">Scenes</span>
                             </button>
                         </div>
                     )}
@@ -847,19 +847,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             )}
                         </button>
                     </div>
-                    
-                    {/* Scenes */}
-                    {onToggleSceneNav && (
-                        <div className="tooltip tooltip-bottom" data-tip="Toggle Scene Navigator">
-                            <button
-                                onClick={onToggleSceneNav}
-                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
-                            >
-                                <span className="text-sm">🎬</span>
-                                <span className="text-[8px] leading-tight">Scenes</span>
-                            </button>
-                        </div>
-                    )}
                 </div>
                 
                 {/* ROW 2: Formatting Controls (8 buttons) - Hidden in fullscreen */}
@@ -929,6 +916,19 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             >
                                 <span className="text-sm italic font-semibold">I</span>
                                 <span className="text-[8px] leading-tight">Italic</span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Download (PDF) - Moved to bottom row */}
+                    {onExportPDF && (
+                        <div className="tooltip tooltip-bottom" data-tip="Export PDF • Industry-standard format">
+                            <button
+                                onClick={onExportPDF}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-sm">⬇️</span>
+                                <span className="text-[8px] leading-tight">Download</span>
                             </button>
                         </div>
                     )}
