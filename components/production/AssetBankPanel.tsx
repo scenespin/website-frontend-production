@@ -42,6 +42,19 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
   );
 
   const isLoading = queryLoading;
+  
+  // 🔥 DEBUG: Log when assets data changes
+  useEffect(() => {
+    console.log('[AssetBankPanel] 🔍 Assets data changed:', {
+      assetCount: assets.length,
+      assets: assets.map(a => ({
+        id: a.id,
+        name: a.name,
+        imageCount: a.images?.length || 0,
+        images: a.images?.map(img => ({ url: img.url?.substring(0, 50), s3Key: img.s3Key }))
+      }))
+    });
+  }, [assets]);
 
   // Local UI state only
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');

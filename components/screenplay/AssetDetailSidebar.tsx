@@ -435,13 +435,32 @@ export default function AssetDetailSidebar({
           // Production Hub reads from React Query cache, not ScreenplayContext
           // This makes Production Hub cards update immediately
           if (screenplayId) {
-            queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
-              if (!old) return old;
-              return old.map(a => {
+            const queryKey = ['assets', screenplayId, 'production-hub'];
+            const cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
+            console.log('[AssetDetailSidebar] 🔍 DEBUG: Cache before optimistic update:', {
+              hasCache: !!cacheBefore,
+              cacheLength: cacheBefore?.length || 0,
+              assetInCache: cacheBefore?.find(a => a.id === asset.id),
+              assetImageCount: cacheBefore?.find(a => a.id === asset.id)?.images?.length || 0
+            });
+            
+            queryClient.setQueryData<Asset[]>(queryKey, (old) => {
+              if (!old) {
+                console.warn('[AssetDetailSidebar] ⚠️ Cache is empty, cannot optimistically update');
+                return old;
+              }
+              const updated = old.map(a => {
                 if (a.id === asset.id) {
                   // Merge new images with existing images (including angleReferences if they exist)
                   const existingImages = a.images || [];
                   const mergedImages = [...existingImages, ...newImageObjects];
+                  console.log('[AssetDetailSidebar] 🔄 Updating asset in cache:', {
+                    assetId: a.id,
+                    assetName: a.name,
+                    existingImageCount: existingImages.length,
+                    newImageCount: newImageObjects.length,
+                    mergedImageCount: mergedImages.length
+                  });
                   return {
                     ...a,
                     images: mergedImages
@@ -449,8 +468,16 @@ export default function AssetDetailSidebar({
                 }
                 return a;
               });
+              return updated;
             });
-            console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache for Production Hub');
+            
+            const cacheAfter = queryClient.getQueryData<Asset[]>(queryKey);
+            const updatedAsset = cacheAfter?.find(a => a.id === asset.id);
+            console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache:', {
+              hasCacheAfter: !!cacheAfter,
+              updatedAssetImageCount: updatedAsset?.images?.length || 0,
+              updatedAssetImages: updatedAsset?.images?.map(img => ({ url: img.url?.substring(0, 50), s3Key: img.s3Key }))
+            });
           }
           
           // Register all images with the asset via ScreenplayContext (updates both API and local state)
@@ -615,14 +642,35 @@ export default function AssetDetailSidebar({
       // Production Hub reads from React Query cache, not ScreenplayContext
       // This makes Production Hub cards update immediately
       if (screenplayId) {
-        queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
-          if (!old) return old;
-          return old.map(a => {
+        const queryKey = ['assets', screenplayId, 'production-hub'];
+        const cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
+        console.log('[AssetDetailSidebar] 🔍 DEBUG: Cache before optimistic delete:', {
+          hasCache: !!cacheBefore,
+          cacheLength: cacheBefore?.length || 0,
+          assetInCache: cacheBefore?.find(a => a.id === asset.id),
+          assetImageCount: cacheBefore?.find(a => a.id === asset.id)?.images?.length || 0,
+          deletingS3Key: imageS3Key
+        });
+        
+        queryClient.setQueryData<Asset[]>(queryKey, (old) => {
+          if (!old) {
+            console.warn('[AssetDetailSidebar] ⚠️ Cache is empty, cannot optimistically update');
+            return old;
+          }
+          const updated = old.map(a => {
             if (a.id === asset.id) {
               // Remove deleted image from cache (match by s3Key)
+              const beforeFilter = (a.images || []).length;
               const filteredImages = (a.images || []).filter((img: any) => {
                 const imgS3Key = img.metadata?.s3Key || img.s3Key;
                 return imgS3Key !== imageS3Key;
+              });
+              console.log('[AssetDetailSidebar] 🔄 Removing image from cache:', {
+                assetId: a.id,
+                assetName: a.name,
+                beforeCount: beforeFilter,
+                afterCount: filteredImages.length,
+                deletedS3Key: imageS3Key
               });
               return {
                 ...a,
@@ -631,8 +679,15 @@ export default function AssetDetailSidebar({
             }
             return a;
           });
+          return updated;
         });
-        console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache for Production Hub (deleted image)');
+        
+        const cacheAfter = queryClient.getQueryData<Asset[]>(queryKey);
+        const updatedAsset = cacheAfter?.find(a => a.id === asset.id);
+        console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache (deleted image):', {
+          hasCacheAfter: !!cacheAfter,
+          updatedAssetImageCount: updatedAsset?.images?.length || 0
+        });
       }
       
       // Update via API

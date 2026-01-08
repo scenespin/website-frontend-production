@@ -48,8 +48,13 @@ export async function GET(
     // Next.js 15: params is now a Promise
     const { assetId } = await params;
 
+    // 🔥 FIX: Forward context query parameter to backend
+    const searchParams = request.nextUrl.searchParams;
+    const context = searchParams.get('context');
+    const contextParam = context ? `?context=${context}` : '';
+
     // Forward request to backend
-    const url = `${BACKEND_API_URL}/api/asset-bank/${assetId}`;
+    const url = `${BACKEND_API_URL}/api/asset-bank/${assetId}${contextParam}`;
 
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
@@ -121,8 +126,15 @@ export async function PUT(
     const { assetId } = await params;
     const body = await request.json();
 
+    // 🔥 FIX: Forward context query parameter to backend
+    const searchParams = request.nextUrl.searchParams;
+    const context = searchParams.get('context');
+    const contextParam = context ? `?context=${context}` : '';
+    
     // Forward request to backend
-    const url = `${BACKEND_API_URL}/api/asset-bank/${assetId}`;
+    const url = `${BACKEND_API_URL}/api/asset-bank/${assetId}${contextParam}`;
+
+    console.log('[Asset Bank Proxy] PUT request:', { assetId, context, url });
 
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
