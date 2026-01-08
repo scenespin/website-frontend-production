@@ -38,6 +38,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
 
   const renderElement = (element: ParsedElement, index: number) => {
     const key = `element-${index}`;
+    
+    // Check if dialogue follows a parenthetical (for alignment)
+    const previousElement = index > 0 ? elements[index - 1] : null;
+    const isDialogueAfterParenthetical = element.type === 'dialogue' && previousElement?.type === 'parenthetical';
 
     switch (element.type) {
       case 'blank':
@@ -114,14 +118,22 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         );
 
       case 'dialogue':
+        // If dialogue follows a parenthetical, align it with the parenthetical's left edge
+        const dialogueIndent = isDialogueAfterParenthetical 
+          ? SCREENPLAY_FORMAT.indent.parenthetical 
+          : SCREENPLAY_FORMAT.indent.dialogue;
+        const dialogueWidth = isDialogueAfterParenthetical
+          ? SCREENPLAY_FORMAT.width.parenthetical
+          : SCREENPLAY_FORMAT.width.dialogue;
+        
         return (
           <div
             key={key}
             className="mb-3 screenplay-dialogue"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.dialogue)})`,
+              marginLeft: `calc(${leftMargin} + ${inchesToRem(dialogueIndent)})`,
               marginRight: rightMargin,
-              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.dialogue),
+              maxWidth: inchesToRem(dialogueWidth),
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
