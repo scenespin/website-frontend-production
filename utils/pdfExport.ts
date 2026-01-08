@@ -9,7 +9,7 @@
  */
 
 import { jsPDF } from 'jspdf';
-import { PDFDocument, PDFPage, PDFImage, rgb } from 'pdf-lib';
+import { PDFDocument, PDFPage, PDFImage, rgb, degrees } from 'pdf-lib';
 
 // Industry-standard screenplay formatting
 const SCREENPLAY_FORMAT = {
@@ -154,6 +154,18 @@ function parseFountain(fountain: string): ParsedElement[] {
         elements.push({ type: 'dialogue', text: nextLine });
         i++;
       }
+      continue;
+    }
+    
+    // Skip synopsis lines (starting with =)
+    if (trimmed.startsWith('=')) {
+      i++;
+      continue;
+    }
+    
+    // Skip section/act headings (starting with #)
+    if (trimmed.startsWith('#')) {
+      i++;
       continue;
     }
     
@@ -335,49 +347,38 @@ async function addWatermarkWithPdfLib(
         // Clamp opacity between 0 and 1
         const opacityValue = Math.max(0, Math.min(1, opacity));
 
-        // Convert angle to radians
-        const radians = (angle * Math.PI) / 180;
-
         // Calculate position (centered)
         const x = centerX - imgWidth / 2;
         const y = centerY - imgHeight / 2;
 
-        // Save graphics state
-        page.pushGraphicsState();
-
-        // Set opacity using ExtGState
-        page.setAlpha(opacityValue);
-
+        // pdf-lib's drawImage supports opacity and rotate directly!
+        // This is the simplest and most reliable approach
         if (angle !== 0) {
-          // Rotate around center: translate to center, rotate, translate back
+          // Rotate around center
           const { width, height } = page.getSize();
           const pageCenterX = width / 2;
           const pageCenterY = height / 2;
           
-          // Apply transformations in order: translate, rotate, translate back
-          page.translateContent(pageCenterX, pageCenterY);
-          page.rotateContent(radians);
-          page.translateContent(-pageCenterX, -pageCenterY);
-          
-          // Draw image at center (after transformation, center is at origin)
+          // Draw image with opacity and rotation
+          // pdf-lib handles rotation around the image's center point
           page.drawImage(pdfImage, {
-            x: -imgWidth / 2,
-            y: -imgHeight / 2,
+            x: pageCenterX - imgWidth / 2,
+            y: pageCenterY - imgHeight / 2,
             width: imgWidth,
             height: imgHeight,
+            opacity: opacityValue,
+            rotate: degrees(angle),
           });
         } else {
-          // No rotation - simple placement
+          // No rotation - simple placement with opacity
           page.drawImage(pdfImage, {
             x,
             y,
             width: imgWidth,
             height: imgHeight,
+            opacity: opacityValue,
           });
         }
-
-        // Restore graphics state
-        page.popGraphicsState();
 
         console.log('[PDF Watermark] Image watermark added successfully with pdf-lib');
       } catch (error) {
@@ -679,7 +680,8 @@ export async function exportScreenplayToPDF(
       
       // Save and return the watermarked PDF
       const watermarkedPdfBytes = await pdfDoc.save();
-      return new Blob([watermarkedPdfBytes], { type: 'application/pdf' });
+      // Uint8Array is compatible with Blob constructor
+      return new Blob([watermarkedPdfBytes as BlobPart], { type: 'application/pdf' });
     } catch (error) {
       console.error('[PDF Export] Failed to add watermark with pdf-lib, returning unwatermarked PDF:', error);
       // Return original PDF if watermarking fails
