@@ -431,6 +431,28 @@ export default function AssetDetailSidebar({
             images: updatedImages
           }));
           
+          // 🔥 CRITICAL FIX: Optimistically update React Query cache BEFORE API call
+          // Production Hub reads from React Query cache, not ScreenplayContext
+          // This makes Production Hub cards update immediately
+          if (screenplayId) {
+            queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
+              if (!old) return old;
+              return old.map(a => {
+                if (a.id === asset.id) {
+                  // Merge new images with existing images (including angleReferences if they exist)
+                  const existingImages = a.images || [];
+                  const mergedImages = [...existingImages, ...newImageObjects];
+                  return {
+                    ...a,
+                    images: mergedImages
+                  };
+                }
+                return a;
+              });
+            });
+            console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache for Production Hub');
+          }
+          
           // Register all images with the asset via ScreenplayContext (updates both API and local state)
           await updateAsset(asset.id, {
             images: updatedImages
@@ -588,6 +610,30 @@ export default function AssetDetailSidebar({
         ...prev,
         images: updatedImages
       }));
+      
+      // 🔥 CRITICAL FIX: Optimistically update React Query cache BEFORE API call
+      // Production Hub reads from React Query cache, not ScreenplayContext
+      // This makes Production Hub cards update immediately
+      if (screenplayId) {
+        queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
+          if (!old) return old;
+          return old.map(a => {
+            if (a.id === asset.id) {
+              // Remove deleted image from cache (match by s3Key)
+              const filteredImages = (a.images || []).filter((img: any) => {
+                const imgS3Key = img.metadata?.s3Key || img.s3Key;
+                return imgS3Key !== imageS3Key;
+              });
+              return {
+                ...a,
+                images: filteredImages
+              };
+            }
+            return a;
+          });
+        });
+        console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache for Production Hub (deleted image)');
+      }
       
       // Update via API
       await updateAsset(asset.id, updateData);
