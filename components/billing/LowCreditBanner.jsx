@@ -220,7 +220,7 @@ export default function LowCreditBanner() {
       icon: 'text-emerald-500'
     }
   };
-  const colors = colorClasses[progressiveMsg.color as keyof typeof colorClasses];
+  const colors = colorClasses[progressiveMsg.color] || colorClasses.emerald;
 
   return (
     <>
