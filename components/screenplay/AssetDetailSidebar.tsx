@@ -498,7 +498,6 @@ export default function AssetDetailSidebar({
                     ...a,
                     images: mergedImages,
                     // Ensure all other nested properties are also new references if they exist
-                    metadata: a.metadata ? { ...a.metadata } : undefined,
                     angleReferences: a.angleReferences ? [...(a.angleReferences || [])] : undefined
                   };
                 }
@@ -772,7 +771,6 @@ export default function AssetDetailSidebar({
                 ...a,
                 images: filteredImages,
                 // Ensure all other nested properties are also new references if they exist
-                metadata: a.metadata ? { ...a.metadata } : undefined,
                 angleReferences: a.angleReferences ? [...(a.angleReferences || [])] : undefined
               };
             }
