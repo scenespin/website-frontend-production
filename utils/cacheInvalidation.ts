@@ -30,18 +30,36 @@ export function invalidateProductionHubCache(
 ): void {
   const queryKey = [entityType, screenplayId, 'production-hub'];
   
+  console.log(`[cacheInvalidation] 🔄 Invalidating ${entityType} cache for Production Hub:`, { queryKey, screenplayId });
+  
   // Step 1: Remove query from cache completely to force a fresh fetch
   queryClient.removeQueries({ queryKey });
   
   // Step 2: Invalidate to mark as stale (in case query is recreated before refetch)
   queryClient.invalidateQueries({ queryKey });
   
-  // Step 3: Refetch after delay to ensure fresh data from DynamoDB
+  // Step 3: Refetch immediately (for active queries) - this ensures UI updates right away
+  console.log(`[cacheInvalidation] 🔄 Refetching ${entityType} queries immediately`);
+  queryClient.refetchQueries({ 
+    queryKey,
+    type: 'active' // Only refetch active queries
+  }).then(() => {
+    console.log(`[cacheInvalidation] ✅ Immediate refetch completed for ${entityType}`);
+  }).catch((error) => {
+    console.error(`[cacheInvalidation] ❌ Immediate refetch failed for ${entityType}:`, error);
+  });
+  
+  // Step 4: Refetch again after delay to ensure fresh data from DynamoDB (handles eventual consistency)
   // The delay accounts for DynamoDB eventual consistency
   setTimeout(() => {
+    console.log(`[cacheInvalidation] 🔄 Refetching ${entityType} queries after ${delay}ms delay (DynamoDB eventual consistency)`);
     queryClient.refetchQueries({ 
       queryKey,
       type: 'active' // Only refetch active queries
+    }).then(() => {
+      console.log(`[cacheInvalidation] ✅ Delayed refetch completed for ${entityType}`);
+    }).catch((error) => {
+      console.error(`[cacheInvalidation] ❌ Delayed refetch failed for ${entityType}:`, error);
     });
   }, delay);
 }
@@ -62,6 +80,8 @@ export function invalidateProductionHubAndMediaCache(
   screenplayId: string,
   delay: number = 2000
 ): void {
+  console.log(`[cacheInvalidation] 🔄 Invalidating ${entityType} and Media Library cache:`, { screenplayId });
+  
   // Invalidate Production Hub cache
   invalidateProductionHubCache(queryClient, entityType, screenplayId, delay);
   
@@ -69,4 +89,6 @@ export function invalidateProductionHubAndMediaCache(
   queryClient.invalidateQueries({ 
     queryKey: ['media', 'files', screenplayId] 
   });
+  
+  console.log(`[cacheInvalidation] ✅ Invalidated Media Library cache`);
 }
