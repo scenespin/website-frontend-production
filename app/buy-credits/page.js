@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { ArrowLeft, Zap } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import QuickPurchaseModal from '@/components/billing/QuickPurchaseModal';
 import { api } from '@/lib/api';
 
@@ -82,7 +82,6 @@ export default function BuyCreditsPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg mb-4">
-              <Zap className="w-4 h-4 text-cinema-red" />
               <span className="text-sm font-semibold text-base-content">
                 {loadingCredits ? 'Loading...' : `${credits?.toLocaleString() || '0'} credits`}
               </span>
