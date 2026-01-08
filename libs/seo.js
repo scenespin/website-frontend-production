@@ -33,14 +33,16 @@ export const getSEOTags = ({
       description: openGraph?.description || config.appDescription,
       url: openGraph?.url || `https://${config.domainName}/`,
       siteName: openGraph?.title || config.appName,
-      // If you add an opengraph-image.(jpg|jpeg|png|gif) image to the /app folder, you don't need the code below
-      // images: [
-      //   {
-      //     url: `https://${config.domainName}/share.png`,
-      //     width: 1200,
-      //     height: 660,
-      //   },
-      // ],
+      // Next.js 13+ automatically uses opengraph-image.png from /app folder
+      // But we explicitly set it here to ensure it's always correct
+      images: [
+        {
+          url: `/opengraph-image.png`,
+          width: 1200,
+          height: 630,
+          alt: config.appName,
+        },
+      ],
       locale: "en_US",
       type: "website",
     },
@@ -48,10 +50,28 @@ export const getSEOTags = ({
     twitter: {
       title: openGraph?.title || config.appName,
       description: openGraph?.description || config.appDescription,
-      // If you add an twitter-image.(jpg|jpeg|png|gif) image to the /app folder, you don't need the code below
-      // images: [openGraph?.image || defaults.og.image],
+      // Next.js 13+ automatically uses twitter-image.png from /app folder
+      // But we explicitly set it here to ensure it's always correct
+      images: [`/twitter-image.png`],
       card: "summary_large_image",
       creator: "@marc_louvion",
+    },
+
+    // Icon configuration for favicons and mobile home screen
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/icons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+        { url: "/icons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+        { url: "/icons/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      ],
+      apple: [
+        { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+        { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      ],
+      other: [
+        { rel: "mask-icon", url: "/icons/favicon.svg", color: config.colors.main },
+      ],
     },
 
     // If a canonical URL is given, we add it. The metadataBase will turn the relative URL into a fully qualified URL
