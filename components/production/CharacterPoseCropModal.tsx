@@ -45,6 +45,7 @@ export function CharacterPoseCropModal({
   const [aspectRatio, setAspectRatio] = useState<number | undefined>(undefined); // undefined = free resize
   const imgRef = useRef<HTMLImageElement>(null);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [isDragging, setIsDragging] = useState(false);
 
   // Fetch image URL from S3 key
   useEffect(() => {
@@ -262,6 +263,59 @@ export function CharacterPoseCropModal({
     }
   }, [aspectRatio]);
 
+  // Track mouse drag state to prevent backdrop from closing during crop drag
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let mouseDownTime = 0;
+    let mouseDownX = 0;
+    let mouseDownY = 0;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Only track if clicking within the modal content area
+      const target = e.target as HTMLElement;
+      const modal = target.closest('[data-crop-modal]');
+      if (modal) {
+        mouseDownTime = Date.now();
+        mouseDownX = e.clientX;
+        mouseDownY = e.clientY;
+        setIsDragging(true);
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (mouseDownTime > 0) {
+        const dx = Math.abs(e.clientX - mouseDownX);
+        const dy = Math.abs(e.clientY - mouseDownY);
+        // If mouse moved more than 3px, consider it a drag
+        if (dx > 3 || dy > 3) {
+          setIsDragging(true);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      // Clear drag state after a short delay to prevent backdrop click
+      setTimeout(() => {
+        setIsDragging(false);
+        mouseDownTime = 0;
+      }, 150);
+    };
+
+    // Add listeners to document to catch drags that go outside the crop area
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseleave', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseleave', handleMouseUp);
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -273,7 +327,12 @@ export function CharacterPoseCropModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={(e) => {
+              // Prevent closing if user is actively dragging or clicking on modal content
+              if (!isDragging && e.target === e.currentTarget) {
+                onClose();
+              }
+            }}
             className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           >
             {/* Modal */}
@@ -282,6 +341,7 @@ export function CharacterPoseCropModal({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
+              data-crop-modal
               className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
             >
               {/* Header */}
@@ -307,7 +367,7 @@ export function CharacterPoseCropModal({
               </div>
 
               {/* Crop Area */}
-              <div className="flex-1 relative bg-[#141414] min-h-[500px] h-[500px] overflow-auto">
+              <div className="flex-1 relative bg-[#141414] min-h-[500px] overflow-hidden">
                 {imageError && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-[#DC143C]">
@@ -325,7 +385,7 @@ export function CharacterPoseCropModal({
                   </div>
                 )}
                 {imageUrl && !imageError && (
-                  <div className="absolute inset-0 flex items-center justify-center p-4 overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
                     {!imageLoaded && (
                       <div className="text-[#808080]">Loading image...</div>
                     )}
@@ -335,8 +395,13 @@ export function CharacterPoseCropModal({
                       <div className="w-full h-full flex items-center justify-center">
                         <ReactCrop
                           crop={crop}
-                          onChange={(_, percentCrop) => setCrop(percentCrop)}
+                          onChange={(_, percentCrop) => {
+                            setCrop(percentCrop);
+                            setIsDragging(true);
+                          }}
                           onComplete={(c) => {
+                            // Clear drag state after crop is complete
+                            setTimeout(() => setIsDragging(false), 100);
                             const img = imgRef.current;
                             if (!img) {
                               console.error('[CharacterPoseCropModal] ❌ imgRef.current is null in onComplete');
@@ -438,10 +503,11 @@ export function CharacterPoseCropModal({
                             }}
                             style={{ 
                               maxWidth: '100%', 
-                              maxHeight: 'calc(100% - 2rem)', 
+                              maxHeight: '100%', 
                               display: 'block',
                               width: 'auto',
-                              height: 'auto'
+                              height: 'auto',
+                              objectFit: 'contain'
                             }}
                           />
                         </ReactCrop>
@@ -490,10 +556,11 @@ export function CharacterPoseCropModal({
                         }}
                         style={{ 
                           maxWidth: '100%', 
-                          maxHeight: 'calc(100% - 2rem)', 
+                          maxHeight: '100%', 
                           display: 'block',
                           width: 'auto',
-                          height: 'auto'
+                          height: 'auto',
+                          objectFit: 'contain'
                         }}
                       />
                     )}
