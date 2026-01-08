@@ -79,7 +79,7 @@ export default function AccountPage() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="loading loading-spinner loading-lg text-cinema-red"></div>
       </div>
     );
@@ -138,14 +138,14 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 text-base-content">
+    <div className="min-h-screen bg-[#0A0A0A] text-base-content">
       {/* Header */}
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 border-b border-slate-700">
+      <div className="bg-gradient-to-br from-[#141414] to-[#0A0A0A] border-b border-[#3F3F46]">
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Back Button */}
           <button
             onClick={() => router.back()}
-            className="mb-4 text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+            className="mb-4 text-base-content/60 hover:text-base-content transition-colors flex items-center gap-2"
           >
             <ChevronRight className="w-4 h-4 rotate-180" />
             Back
@@ -158,7 +158,7 @@ export default function AccountPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">Account Settings</h1>
-              <p className="text-slate-400 mt-1">{user?.primaryEmailAddress?.emailAddress}</p>
+              <p className="text-base-content/60 mt-1">{user?.primaryEmailAddress?.emailAddress}</p>
             </div>
           </div>
         </div>
@@ -168,11 +168,11 @@ export default function AccountPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="space-y-6">
           {accountSections.map((section) => (
-            <div key={section.title} className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-700">
+            <div key={section.title} className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#3F3F46]">
                 <h2 className="text-lg font-semibold text-white">{section.title}</h2>
               </div>
-              <div className="divide-y divide-slate-700">
+              <div className="divide-y divide-[#3F3F46]">
                 {section.items.map((item) => (
                   <button
                     key={item.label}
@@ -180,19 +180,19 @@ export default function AccountPage() {
                     disabled={!item.action}
                     className={`w-full px-6 py-4 flex items-center justify-between transition-colors ${
                       item.action
-                        ? 'hover:bg-slate-700/50 cursor-pointer'
+                        ? 'hover:bg-[#1F1F1F] cursor-pointer'
                         : 'cursor-default'
                     }`}
                   >
                     <div className="flex items-center gap-4">
                       <item.icon className="w-5 h-5 text-cinema-red" />
                       <div className="text-left">
-                        <div className="text-sm font-medium text-slate-300">{item.label}</div>
-                        <div className="text-sm text-slate-400 mt-0.5">{item.value}</div>
+                        <div className="text-sm font-medium text-base-content">{item.label}</div>
+                        <div className="text-sm text-base-content/60 mt-0.5">{item.value}</div>
                       </div>
                     </div>
                     {item.action && (
-                      <ChevronRight className="w-5 h-5 text-slate-500" />
+                      <ChevronRight className="w-5 h-5 text-base-content/40" />
                     )}
                   </button>
                 ))}
@@ -201,8 +201,8 @@ export default function AccountPage() {
           ))}
 
           {/* Auto-Recharge Card */}
-          <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-700">
+          <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#3F3F46]">
               <h2 className="text-lg font-semibold text-white">Auto-Recharge</h2>
             </div>
             <div className="p-6">
@@ -214,8 +214,8 @@ export default function AccountPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-medium text-slate-300">Status</div>
-                      <div className="text-sm text-slate-400 mt-1">
+                      <div className="text-sm font-medium text-base-content">Status</div>
+                      <div className="text-sm text-base-content/60 mt-1">
                         {autoRecharge?.enabled ? (
                           <span className="inline-flex items-center gap-2">
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
@@ -223,7 +223,7 @@ export default function AccountPage() {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-2">
-                            <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
+                            <span className="w-2 h-2 bg-base-content/40 rounded-full"></span>
                             Disabled
                           </span>
                         )}
@@ -238,24 +238,24 @@ export default function AccountPage() {
                   </div>
 
                   {autoRecharge?.enabled && (
-                    <div className="pt-4 border-t border-slate-700 space-y-2">
+                    <div className="pt-4 border-t border-[#3F3F46] space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-400">Package</span>
-                        <span className="text-slate-300 font-medium">
+                        <span className="text-base-content/60">Package</span>
+                        <span className="text-base-content font-medium">
                           {autoRecharge?.package 
                             ? CREDIT_PACKAGES[autoRecharge.package]?.label || autoRecharge.package
                             : 'Not set'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-400">Threshold</span>
-                        <span className="text-slate-300 font-medium">
+                        <span className="text-base-content/60">Threshold</span>
+                        <span className="text-base-content font-medium">
                           {autoRecharge?.threshold?.toLocaleString() || '0'} credits
                         </span>
                       </div>
                       {autoRecharge?.package && CREDIT_PACKAGES[autoRecharge.package] && (
                         <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                          <div className="text-xs text-green-600 dark:text-green-400">
+                          <div className="text-xs text-green-400">
                             When your credits drop below {autoRecharge.threshold?.toLocaleString() || '0'}, we'll automatically purchase {CREDIT_PACKAGES[autoRecharge.package].credits.toLocaleString()} credits for ${CREDIT_PACKAGES[autoRecharge.package].priceUSD}.
                           </div>
                         </div>
@@ -268,7 +268,7 @@ export default function AccountPage() {
           </div>
 
           {/* Sign Out Button */}
-          <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+          <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
             <button
               onClick={handleSignOut}
               className="w-full px-6 py-4 flex items-center gap-4 hover:bg-red-900/20 transition-colors"
@@ -276,13 +276,13 @@ export default function AccountPage() {
               <LogOut className="w-5 h-5 text-red-500" />
               <div className="text-left">
                 <div className="text-sm font-medium text-red-500">Sign Out</div>
-                <div className="text-sm text-slate-400 mt-0.5">Sign out of your account</div>
+                <div className="text-sm text-base-content/60 mt-0.5">Sign out of your account</div>
               </div>
             </button>
           </div>
 
           {/* Footer Info */}
-          <div className="text-center text-sm text-slate-500 pt-8">
+          <div className="text-center text-sm text-base-content/50 pt-8">
             <p>Need help? Contact <a href="mailto:support@wryda.ai" className="text-cinema-red hover:underline">support@wryda.ai</a></p>
           </div>
         </div>

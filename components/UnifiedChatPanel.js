@@ -1428,6 +1428,8 @@ function UnifiedChatPanelInner({
           {/* Main Input Area - Compact ChatGPT/Claude Style */}
           <div className="w-full px-2 sm:px-3 md:px-4 py-2">
             <div className="relative bg-[#1F1F1F] rounded-lg sm:rounded-xl border border-[#3F3F46] focus-within:border-[#DC143C]/50 focus-within:ring-1 focus-within:ring-[#DC143C]/20 transition-all">
+              {/* text-base (16px) on mobile prevents iOS Safari auto-zoom when focusing input */}
+              {/* Users can still manually pinch-to-zoom if needed */}
               <textarea
                 value={state.input}
                 onChange={(e) => setInput(e.target.value)}
@@ -1439,7 +1441,7 @@ function UnifiedChatPanelInner({
                 }}
                 placeholder={state.inputPlaceholder}
                 disabled={state.isStreaming || isUploading}
-                className="w-full min-h-[44px] sm:min-h-[48px] max-h-[160px] sm:max-h-[200px] resize-none bg-transparent text-[#E5E7EB] placeholder:text-[#9CA3AF] focus:outline-none px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 text-xs sm:text-sm leading-relaxed tracking-normal pr-20 sm:pr-24"
+                className="w-full min-h-[44px] sm:min-h-[48px] max-h-[160px] sm:max-h-[200px] resize-none bg-transparent text-[#E5E7EB] placeholder:text-[#9CA3AF] focus:outline-none px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 text-base sm:text-sm leading-relaxed tracking-normal pr-20 sm:pr-24"
                 rows={1}
                 style={{ 
                   border: 'none',

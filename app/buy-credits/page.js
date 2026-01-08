@@ -43,7 +43,7 @@ export default function BuyCreditsPage() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="loading loading-spinner loading-lg text-cinema-red"></div>
       </div>
     );
@@ -51,7 +51,7 @@ export default function BuyCreditsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">
           <p className="text-base-content mb-4">Please sign in to purchase credits.</p>
           <Link href="/sign-in" className="btn btn-primary">
@@ -64,9 +64,9 @@ export default function BuyCreditsPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-[#0A0A0A]">
         {/* Simple Header */}
-        <div className="border-b border-slate-700">
+        <div className="border-b border-[#3F3F46]">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <Link
               href="/dashboard"

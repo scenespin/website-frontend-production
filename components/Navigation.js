@@ -502,8 +502,8 @@ export default function Navigation() {
 
             {/* NEW: Mobile Account Section */}
             <div className="pt-2 border-t border-base-300 space-y-2">
-              {/* User Info */}
-              <div className="flex items-center gap-3 px-4 py-3 bg-base-200 rounded-lg">
+              {/* User Info - REMOVED: Thick email bar with circular icon (no longer needed) */}
+              {/* <div className="flex items-center gap-3 px-4 py-3 bg-base-200 rounded-lg">
                 <div className="avatar">
                   <div className="w-10 h-10 rounded-full bg-cinema-red flex items-center justify-center text-white font-bold">
                     {user?.firstName?.charAt(0) || user?.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
@@ -517,7 +517,7 @@ export default function Navigation() {
                     {user?.emailAddresses?.[0]?.emailAddress}
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Account Settings Button */}
               <Link

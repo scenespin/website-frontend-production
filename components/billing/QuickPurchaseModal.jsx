@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { X, Zap, Sparkles, Star, Crown } from 'lucide-react';
+import { X } from 'lucide-react';
 import { createCreditCheckoutSession } from '@/lib/stripe-client';
 
 // Credit packages matching buy-credits page
@@ -68,18 +68,18 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-base-100 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#0A0A0A] rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#3F3F46]">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-base-300">
+        <div className="flex items-center justify-between p-6 border-b border-[#3F3F46]">
           <div>
-            <h2 className="text-2xl font-bold text-base-content">Add Credits</h2>
+            <h2 className="text-2xl font-bold text-white">Add Credits</h2>
             <p className="text-sm text-base-content/60 mt-1">
               Current balance: {currentCredits?.toLocaleString() || '0'} credits
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-base-200 rounded-lg transition-colors"
+            className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-base-content/60" />
           </button>
@@ -89,7 +89,6 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {QUICK_PACKAGES.map((pkg) => {
-              const Icon = pkg.icon;
               const isLoading = loading === pkg.id;
 
               return (
@@ -100,7 +99,7 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
                   className={`relative p-4 rounded-lg border-2 transition-all ${
                     pkg.popular
                       ? 'border-cinema-red bg-gradient-to-br from-cinema-red/10 to-cinema-red/5'
-                      : 'border-base-300 hover:border-cinema-red/50 bg-base-200'
+                      : 'border-[#3F3F46] hover:border-cinema-red/50 bg-[#141414]'
                   } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
                 >
                   {pkg.popular && (
@@ -110,11 +109,9 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
                   )}
 
                   <div className="flex flex-col items-center text-center space-y-2">
-                    <div className={`p-3 rounded-lg bg-gradient-to-br ${pkg.color}`}>
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
+                    {/* Icons removed per user request */}
                     <div>
-                      <div className="font-semibold text-base-content">{pkg.name}</div>
+                      <div className="font-semibold text-white">{pkg.name}</div>
                       <div className="text-2xl font-bold text-cinema-red mt-1">
                         ${pkg.price}
                       </div>
@@ -136,7 +133,7 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
           </div>
 
           {/* Footer */}
-          <div className="mt-6 pt-6 border-t border-base-300">
+          <div className="mt-6 pt-6 border-t border-[#3F3F46]">
             <a
               href="/buy-credits"
               className="block text-center text-sm text-cinema-red hover:underline"
