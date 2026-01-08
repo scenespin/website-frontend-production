@@ -1194,13 +1194,8 @@ export default function AssetDetailModal({
                                             throw new Error('Missing S3 key for image');
                                           }
                                           
+                                          // 🔥 FIX: Delete from Media Library first (source of truth) - EXACT same pattern as location backgrounds
                                           const token = await getToken({ template: 'wryda-backend' });
-                                          if (!token) {
-                                            toast.error('Authentication required');
-                                            return;
-                                          }
-                                          
-                                          // 🔥 FIX: Delete from Media Library first (source of truth) - same pattern as backgrounds
                                           try {
                                             const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
                                             await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
@@ -1216,13 +1211,12 @@ export default function AssetDetailModal({
                                             // Continue with asset update even if Media Library deletion fails
                                           }
                                           
-                                          // 🔥 FIX: For angle images, only update angleReferences (same pattern as LocationDetailModal)
-                                          // Angle images are stored in angleReferences, not in the images array
+                                          // Use exact same working pattern as location backgrounds: filter derived data, then update
                                           const updatedAngleReferences = (asset.angleReferences || []).filter(
                                             (ref: any) => ref.s3Key !== img.s3Key
                                           );
                                           
-                                          // Update asset via API - only update angleReferences for angle images
+                                          // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
                                           const response = await fetch(`/api/asset-bank/${asset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                                             method: 'PUT',
                                             headers: {
@@ -1239,10 +1233,7 @@ export default function AssetDetailModal({
                                             throw new Error(errorData.error || 'Failed to delete image');
                                           }
                                           
-                                          // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
-                                          // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
-                                          
-                                          // 🔥 FIX: Invalidate asset queries to refresh UI immediately (EXACT same pattern as location angles/backgrounds)
+                                          // 🔥 FIX: Invalidate asset queries to refresh UI immediately (EXACT same pattern as location backgrounds - no assets refetch)
                                           queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
@@ -1431,13 +1422,8 @@ export default function AssetDetailModal({
                     return;
                   }
                   
-                  // 🔥 FIX: Delete from Media Library first (source of truth) - batch delete
+                  // 🔥 FIX: Delete from Media Library first (source of truth) - batch delete (EXACT same pattern as location backgrounds)
                   const token = await getToken({ template: 'wryda-backend' });
-                  if (!token) {
-                    toast.error('Authentication required');
-                    return;
-                  }
-                  
                   const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
                   for (const s3Key of s3KeysToDelete) {
                     try {
@@ -1477,7 +1463,7 @@ export default function AssetDetailModal({
                     throw new Error(errorData.error || 'Failed to delete images');
                   }
                   
-                  // 🔥 FIX: Invalidate asset queries to refresh UI immediately (EXACT same pattern as location angles/backgrounds)
+                  // 🔥 FIX: Invalidate asset queries to refresh UI immediately (EXACT same pattern as location backgrounds - no assets refetch)
                   queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                   queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                   await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });

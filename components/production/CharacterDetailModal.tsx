@@ -2240,20 +2240,9 @@ export function CharacterDetailModal({
                                             throw new Error('Missing S3 key for image');
                                           }
                                           
-                                          // Use same working pattern as location angles: filter derived data and update
-                                          // Check if it's a pose reference (AI-generated) or user reference
-                                          const poseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
-                                          const isPoseRef = poseRefs.some((poseRef: any) => {
-                                            const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
-                                            return poseS3Key === img.s3Key;
-                                          });
-                                          
-                                          // Delete from Media Library first (source of truth) - same pattern as locations
+                                          // 🔥 FIX: Delete from Media Library first (source of truth) - EXACT same pattern as location backgrounds
                                           try {
-                                          const token = await getToken({ template: 'wryda-backend' });
-                                          if (!token) {
-                                              throw new Error('Authentication required');
-                                          }
+                                            const token = await getToken({ template: 'wryda-backend' });
                                             const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
                                             await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
                                               method: 'POST',
@@ -2268,16 +2257,23 @@ export function CharacterDetailModal({
                                             // Continue with character update even if Media Library deletion fails
                                           }
                                           
-                                          // Use same working pattern as location angles: filter derived data, then onUpdate (no optimistic update)
+                                          // Check if it's a pose reference (AI-generated) or user reference
+                                          const poseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
+                                          const isPoseRef = poseRefs.some((poseRef: any) => {
+                                            const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
+                                            return poseS3Key === img.s3Key;
+                                          });
+                                          
+                                          // Use exact same working pattern as location backgrounds: filter derived data, then onUpdate
                                           if (isPoseRef) {
-                                            // Remove from poseReferences (AI-generated poses) - same pattern as location angles
+                                            // Remove from poseReferences (AI-generated poses) - same pattern as location backgrounds
                                             const currentPoseReferences = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
                                             const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== img.s3Key;
                                             });
                                             
-                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as angles)
+                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
                                             await onUpdate(latestCharacter.id, { 
                                               poseReferences: updatedPoseReferences
                                             });
@@ -2289,13 +2285,13 @@ export function CharacterDetailModal({
                                               return refS3Key !== img.s3Key;
                                             });
                                             
-                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as angles)
+                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
                                             await onUpdate(latestCharacter.id, { 
                                               references: updatedReferences 
                                             });
                                           }
                                           
-                                          // 🔥 FIX: Invalidate character queries to refresh UI immediately (EXACT same pattern as location angles/backgrounds)
+                                          // 🔥 FIX: Invalidate character queries to refresh UI immediately (EXACT same pattern as location backgrounds - no characters refetch)
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
@@ -2596,13 +2592,8 @@ export function CharacterDetailModal({
                     setSelectedImageIds(new Set());
                     setSelectionMode(false);
                     
-                    // 🔥 FIX: Delete from Media Library first (source of truth) - batch delete
+                    // 🔥 FIX: Delete from Media Library first (source of truth) - batch delete (EXACT same pattern as location backgrounds)
                     const token = await getToken({ template: 'wryda-backend' });
-                    if (!token) {
-                      toast.error('Authentication required');
-                      return;
-                    }
-                    
                     const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
                     for (const s3Key of s3KeysToDelete) {
                       try {
@@ -2634,13 +2625,13 @@ export function CharacterDetailModal({
                       return !s3KeysToDelete.has(refS3Key);
                     });
                     
-                    // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as angles)
+                    // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
                     await onUpdate(latestCharacter.id, { 
                       poseReferences: updatedPoseReferences,
                       references: updatedReferences
                     });
                     
-                    // 🔥 FIX: Invalidate character queries to refresh UI immediately (EXACT same pattern as location angles/backgrounds)
+                    // 🔥 FIX: Invalidate character queries to refresh UI immediately (EXACT same pattern as location backgrounds - no characters refetch)
                     queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                     await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });

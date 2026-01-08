@@ -59,15 +59,40 @@ export function useLocationReferences({
   locationId,
   enabled = true
 }: UseLocationReferencesOptions): UseLocationReferencesReturn {
-  // Query Media Library for location images
-  const { data: locationMediaFiles = [], isLoading: isLoadingFiles } = useMediaFiles(
+  // 🔥 FIX: Follow same pattern as characters and props - query ALL location files, filter client-side
+  // This matches the working pattern used by useCharacterReferences and usePropReferences
+  const { data: allLocationMediaFiles = [], isLoading: isLoadingFiles } = useMediaFiles(
     projectId,
     undefined,
-    enabled && !!locationId,
+    enabled, // Enable query even when locationId is null (like characters/props do)
     true, // includeAllFolders: true
-    'location', // entityType
-    locationId || undefined // entityId
+    'location', // entityType only, no entityId (get all location files)
+    undefined // 🔥 FIX: Don't pass entityId - query all location files and filter client-side
   );
+
+  // 🔥 FIX: Filter Media Library files by locationId (client-side filtering, like characters/props)
+  const locationMediaFiles = useMemo(() => {
+    if (!allLocationMediaFiles || !locationId) return [];
+    
+    const filtered = allLocationMediaFiles.filter((file: any) => {
+      const fileEntityId = file.metadata?.entityId || file.entityId;
+      return fileEntityId === locationId;
+    });
+    
+    console.log('[useLocationReferences] 🔍 Filtered files by locationId:', {
+      inputFiles: allLocationMediaFiles.length,
+      locationId,
+      filteredFiles: filtered.length,
+      filesWithThumbnails: filtered.filter((f: any) => f.thumbnailS3Key).length,
+      sampleFiles: filtered.slice(0, 3).map((f: any) => ({
+        s3Key: f.s3Key?.substring(0, 40) + '...',
+        entityId: f.metadata?.entityId || f.entityId,
+        thumbnailS3Key: f.thumbnailS3Key ? 'YES' : 'NO'
+      }))
+    });
+    
+    return filtered;
+  }, [allLocationMediaFiles, locationId]);
 
   // Build location thumbnailS3KeyMap from Media Library results
   const locationThumbnailS3KeyMap = useMemo(() => {
