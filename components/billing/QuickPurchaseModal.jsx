@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { createCreditCheckoutSession } from '@/lib/stripe-client';
 
 // Credit packages matching buy-credits page
+// Icons removed per user request - no longer displayed in UI
 const QUICK_PACKAGES = [
   {
     id: "starter",
@@ -13,7 +14,6 @@ const QUICK_PACKAGES = [
     credits: 500,
     price: 10,
     packageKey: "starter",
-    icon: Zap,
     color: "from-[#DC143C] to-[#B91238]",
   },
   {
@@ -23,7 +23,6 @@ const QUICK_PACKAGES = [
     price: 25,
     packageKey: "booster",
     popular: true,
-    icon: Sparkles,
     color: "from-[#DC143C] to-[#A01030]",
   },
   {
@@ -32,7 +31,6 @@ const QUICK_PACKAGES = [
     credits: 4000,
     price: 60,
     packageKey: "mega",
-    icon: Star,
     color: "from-[#DC143C] to-[#B01030]",
   },
 ];
