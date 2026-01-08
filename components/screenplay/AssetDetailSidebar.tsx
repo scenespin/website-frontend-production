@@ -517,15 +517,13 @@ export default function AssetDetailSidebar({
             queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
           }
           
-          // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
-          // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
-          // MATCHES LOCATIONS PATTERN EXACTLY (no immediate refetch, only delayed)
+          // 🔥 CRITICAL FIX: After optimistic update, DON'T remove queries - that wipes out the optimistic update!
+          // Instead, just invalidate (mark as stale) and refetch after delay
+          // The optimistic update stays in cache until refetch replaces it with real data
           if (screenplayId) {
-            // First, remove the query from cache completely to force a fresh fetch
-            queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            // Then invalidate to mark as stale (in case query is recreated before refetch)
+            // Invalidate to mark as stale (but keep optimistic data until refetch)
             queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            // Force refetch after delay to ensure fresh data from DynamoDB
+            // Force refetch after delay to sync with backend (replaces optimistic data with real data)
             setTimeout(() => {
               queryClient.refetchQueries({ 
                 queryKey: ['assets', screenplayId, 'production-hub'],
@@ -752,15 +750,13 @@ export default function AssetDetailSidebar({
         queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       }
       
-      // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
-      // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
-      // MATCHES LOCATIONS PATTERN EXACTLY (no immediate refetch, only delayed)
+      // 🔥 CRITICAL FIX: After optimistic update, DON'T remove queries - that wipes out the optimistic update!
+      // Instead, just invalidate (mark as stale) and refetch after delay
+      // The optimistic update stays in cache until refetch replaces it with real data
       if (screenplayId) {
-        // First, remove the query from cache completely to force a fresh fetch
-        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        // Then invalidate to mark as stale (in case query is recreated before refetch)
+        // Invalidate to mark as stale (but keep optimistic data until refetch)
         queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        // Force refetch after delay to ensure fresh data from DynamoDB
+        // Force refetch after delay to sync with backend (replaces optimistic data with real data)
         setTimeout(() => {
           queryClient.refetchQueries({ 
             queryKey: ['assets', screenplayId, 'production-hub'],
