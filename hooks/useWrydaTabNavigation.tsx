@@ -128,11 +128,36 @@ export function useWrydaTabNavigation(
         
         const baseTop = lineTop + lineHeight;
         
+        // Calculate position
+        let top = showAbove 
+            ? baseTop - dropdownHeight - 5  // Show above with 5px gap
+            : baseTop + 5;                    // Show below with 5px gap
+        let left = cursorLeft + 10; // Position at cursor + small offset
+        
+        // Ensure dropdown stays within viewport bounds
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const dropdownWidth = 288; // w-72 = 288px
+        
+        // Clamp left position to viewport
+        if (left + dropdownWidth > viewportWidth - 20) {
+            left = viewportWidth - dropdownWidth - 20;
+        }
+        if (left < 10) {
+            left = 10;
+        }
+        
+        // Clamp top position to viewport
+        if (top < 10) {
+            top = 10;
+        }
+        if (top + dropdownHeight > viewportHeight - 10) {
+            top = viewportHeight - dropdownHeight - 10;
+        }
+        
         return {
-            top: showAbove 
-                ? baseTop - dropdownHeight - 5  // Show above with 5px gap
-                : baseTop + 5,                    // Show below with 5px gap
-            left: cursorLeft + 10, // Position at cursor + small offset
+            top,
+            left,
             above: showAbove
         };
     }, [textareaRef, state.content]);
@@ -190,10 +215,17 @@ export function useWrydaTabNavigation(
                 type: 'location' as const
             }));
         
+        const position = getDropdownPosition();
+        console.log('[WrydaTab] showLocationSmartType:', {
+            locationsCount: locations.length,
+            position,
+            query
+        });
+        
         setSmartType({
             show: true,
             items: locations,
-            position: getDropdownPosition(),
+            position,
             field: 'location',
             query
         });
@@ -209,10 +241,17 @@ export function useWrydaTabNavigation(
             type: 'time' as const
         }));
         
+        const position = getDropdownPosition();
+        console.log('[WrydaTab] showTimeSmartType:', {
+            timesCount: times.length,
+            position,
+            query
+        });
+        
         setSmartType({
             show: true,
             items: times,
-            position: getDropdownPosition(),
+            position,
             field: 'time',
             query
         });

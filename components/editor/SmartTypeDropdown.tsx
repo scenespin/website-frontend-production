@@ -98,13 +98,30 @@ export default function SmartTypeDropdown({
         }
     }, [selectedIndex]);
 
+    // Show empty state message instead of returning null
     if (filteredItems.length === 0) {
-        return null;
+        return (
+            <div
+                className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl w-72"
+                style={{
+                    top: `${position.top}px`,
+                    left: `${position.left}px`,
+                    maxWidth: `calc(100vw - ${position.left}px - 20px)`
+                }}
+            >
+                <div className="px-3 py-4 text-sm text-base-content/60 text-center">
+                    {query.trim() ? `No matches for "${query}"` : 'No options available'}
+                </div>
+                <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
+                    <kbd className="kbd kbd-sm">Esc</kbd> Close
+                </div>
+            </div>
+        );
     }
 
     return (
         <div
-            className="fixed z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg w-72 max-h-64 overflow-y-auto"
+            className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl w-72 max-h-64 overflow-y-auto"
             style={{
                 top: `${position.top}px`,
                 left: `${position.left}px`,
