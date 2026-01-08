@@ -1524,9 +1524,17 @@ export function LocationDetailModal({
                                             
                                             // 🔥 FIX: Invalidate and refetch location queries to refresh UI immediately (including card counts)
                                             queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                            // Invalidate all media queries for this screenplay (prefix match)
+                                            queryClient.invalidateQueries({ 
+                                              queryKey: ['media', 'files', screenplayId],
+                                              exact: false // Match all queries starting with this prefix
+                                            });
                                             await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                            await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                            // Refetch all media queries (they will auto-refetch after invalidation)
+                                            await queryClient.refetchQueries({ 
+                                              queryKey: ['media', 'files', screenplayId],
+                                              exact: false
+                                            });
                                             toast.success('Angle image deleted');
                                           } catch (error: any) {
                                             console.error('[LocationDetailModal] Failed to delete angle image:', error);
@@ -1827,9 +1835,17 @@ export function LocationDetailModal({
                                                           
                           // 🔥 FIX: Invalidate and refetch location queries to refresh UI immediately (including card counts)
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          // Invalidate all media queries for this screenplay (prefix match)
+                                                          queryClient.invalidateQueries({ 
+                                                            queryKey: ['media', 'files', screenplayId],
+                                                            exact: false // Match all queries starting with this prefix
+                                                          });
                                                           await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                                          await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          // Refetch all media queries (they will auto-refetch after invalidation)
+                                                          await queryClient.refetchQueries({ 
+                                                            queryKey: ['media', 'files', screenplayId],
+                                                            exact: false
+                                                          });
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {
