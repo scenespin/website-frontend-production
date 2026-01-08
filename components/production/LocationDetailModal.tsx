@@ -833,17 +833,23 @@ export function LocationDetailModal({
     try {
       await onUploadImage(latestLocation.locationId, file);
       
-      // 🔥 FIX: Invalidate and refetch both entity and media queries so cards update immediately
+      // 🔥 FIX: Aggressively clear and refetch location queries (same pattern as Creation section)
+      queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ 
         queryKey: ['media', 'files', screenplayId],
-        exact: false // Match all queries starting with this prefix
-      });
-      await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-      await queryClient.refetchQueries({ 
-        queryKey: ['media', 'files', screenplayId],
         exact: false
       });
+      setTimeout(() => {
+        queryClient.refetchQueries({ 
+          queryKey: ['locations', screenplayId, 'production-hub'],
+          type: 'active'
+        });
+        queryClient.refetchQueries({ 
+          queryKey: ['media', 'files', screenplayId],
+          exact: false
+        });
+      }, 2000);
       
       toast.success('Image uploaded successfully');
     } catch (error) {
@@ -1535,19 +1541,24 @@ export function LocationDetailModal({
                                               angleVariations: updatedAngleVariations
                                             });
                                             
-                                            // 🔥 FIX: Invalidate and refetch location queries to refresh UI immediately (including card counts)
+                                            // 🔥 FIX: Aggressively clear and refetch location queries (same pattern as Creation section)
+                                            // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
+                                            queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                             queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                            // Invalidate all media queries for this screenplay (prefix match)
                                             queryClient.invalidateQueries({ 
-                                              queryKey: ['media', 'files', screenplayId],
-                                              exact: false // Match all queries starting with this prefix
-                                            });
-                                            await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                            // Refetch all media queries (they will auto-refetch after invalidation)
-                                            await queryClient.refetchQueries({ 
                                               queryKey: ['media', 'files', screenplayId],
                                               exact: false
                                             });
+                                            setTimeout(() => {
+                                              queryClient.refetchQueries({ 
+                                                queryKey: ['locations', screenplayId, 'production-hub'],
+                                                type: 'active'
+                                              });
+                                              queryClient.refetchQueries({ 
+                                                queryKey: ['media', 'files', screenplayId],
+                                                exact: false
+                                              });
+                                            }, 2000);
                                             toast.success('Angle image deleted');
                                           } catch (error: any) {
                                             console.error('[LocationDetailModal] Failed to delete angle image:', error);
@@ -1846,19 +1857,24 @@ export function LocationDetailModal({
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
-                          // 🔥 FIX: Invalidate and refetch location queries to refresh UI immediately (including card counts)
+                                                          // 🔥 FIX: Aggressively clear and refetch location queries (same pattern as Creation section)
+                                                          // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
+                                                          queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                                          // Invalidate all media queries for this screenplay (prefix match)
                                                           queryClient.invalidateQueries({ 
-                                                            queryKey: ['media', 'files', screenplayId],
-                                                            exact: false // Match all queries starting with this prefix
-                                                          });
-                                                          await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                                                          // Refetch all media queries (they will auto-refetch after invalidation)
-                                                          await queryClient.refetchQueries({ 
                                                             queryKey: ['media', 'files', screenplayId],
                                                             exact: false
                                                           });
+                                                          setTimeout(() => {
+                                                            queryClient.refetchQueries({ 
+                                                              queryKey: ['locations', screenplayId, 'production-hub'],
+                                                              type: 'active'
+                                                            });
+                                                            queryClient.refetchQueries({ 
+                                                              queryKey: ['media', 'files', screenplayId],
+                                                              exact: false
+                                                            });
+                                                          }, 2000);
                                                           
                                                           toast.success('Background image deleted');
                                                         } catch (error: any) {

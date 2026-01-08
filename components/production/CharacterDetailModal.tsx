@@ -1180,17 +1180,23 @@ export function CharacterDetailModal({
     try {
       await onUploadImage(latestCharacter.id, file);
       
-      // 🔥 FIX: Invalidate and refetch both entity and media queries so cards update immediately
+      // 🔥 FIX: Aggressively clear and refetch character queries (same pattern as Creation section)
+      queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ 
         queryKey: ['media', 'files', screenplayId],
-        exact: false // Match all queries starting with this prefix
-      });
-      await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-      await queryClient.refetchQueries({ 
-        queryKey: ['media', 'files', screenplayId],
         exact: false
       });
+      setTimeout(() => {
+        queryClient.refetchQueries({ 
+          queryKey: ['characters', screenplayId, 'production-hub'],
+          type: 'active'
+        });
+        queryClient.refetchQueries({ 
+          queryKey: ['media', 'files', screenplayId],
+          exact: false
+        });
+      }, 2000);
       
       toast.success(`Image uploaded successfully${angle ? ` (${headshotAngles.find(a => a.value === angle)?.label || angle})` : ''}`);
     } catch (error) {
@@ -2324,19 +2330,24 @@ export function CharacterDetailModal({
                                             });
                                           }
                                           
-                                          // 🔥 FIX: Invalidate and refetch character queries to refresh UI immediately (including card counts)
+                                          // 🔥 FIX: Aggressively clear and refetch character queries (same pattern as Creation section)
+                                          // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
+                                          queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                          // Invalidate all media queries for this screenplay (prefix match)
                                           queryClient.invalidateQueries({ 
-                                            queryKey: ['media', 'files', screenplayId],
-                                            exact: false // Match all queries starting with this prefix
-                                          });
-                                          await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                                          // Refetch all media queries (they will auto-refetch after invalidation)
-                                          await queryClient.refetchQueries({ 
                                             queryKey: ['media', 'files', screenplayId],
                                             exact: false
                                           });
+                                          setTimeout(() => {
+                                            queryClient.refetchQueries({ 
+                                              queryKey: ['characters', screenplayId, 'production-hub'],
+                                              type: 'active'
+                                            });
+                                            queryClient.refetchQueries({ 
+                                              queryKey: ['media', 'files', screenplayId],
+                                              exact: false
+                                            });
+                                          }, 2000);
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
@@ -2673,10 +2684,23 @@ export function CharacterDetailModal({
                       references: updatedReferences
                     });
                     
-                    // 🔥 FIX: Invalidate character queries to refresh UI immediately (EXACT same pattern as location backgrounds - no characters refetch)
+                    // 🔥 FIX: Aggressively clear and refetch character queries (same pattern as Creation section)
+                    queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                    await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+                    queryClient.invalidateQueries({ 
+                      queryKey: ['media', 'files', screenplayId],
+                      exact: false
+                    });
+                    setTimeout(() => {
+                      queryClient.refetchQueries({ 
+                        queryKey: ['characters', screenplayId, 'production-hub'],
+                        type: 'active'
+                      });
+                      queryClient.refetchQueries({ 
+                        queryKey: ['media', 'files', screenplayId],
+                        exact: false
+                      });
+                    }, 2000);
                     
                     // Note: No toast here - CharacterBankPanel.updateCharacter shows "Character updated successfully"
                   } catch (error: any) {

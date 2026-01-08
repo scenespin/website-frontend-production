@@ -609,18 +609,24 @@ export default function AssetDetailModal({
 
       toast.success(`Successfully uploaded ${files.length} image${files.length > 1 ? 's' : ''}`);
       
-      // 🔥 FIX: Invalidate and refetch both entity and media queries so cards update immediately
+      // 🔥 FIX: Aggressively clear and refetch asset queries (same pattern as Creation section)
       if (screenplayId) {
+        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
         queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
         queryClient.invalidateQueries({ 
           queryKey: ['media', 'files', screenplayId],
-          exact: false // Match all queries starting with this prefix
-        });
-        await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        await queryClient.refetchQueries({ 
-          queryKey: ['media', 'files', screenplayId],
           exact: false
         });
+        setTimeout(() => {
+          queryClient.refetchQueries({ 
+            queryKey: ['assets', screenplayId, 'production-hub'],
+            type: 'active'
+          });
+          queryClient.refetchQueries({ 
+            queryKey: ['media', 'files', screenplayId],
+            exact: false
+          });
+        }, 2000);
       }
       
       // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
@@ -1272,19 +1278,23 @@ export default function AssetDetailModal({
                                             throw new Error(errorData.error || 'Failed to delete image');
                                           }
                                           
-                                          // 🔥 FIX: Invalidate and refetch asset queries to refresh UI immediately (including card counts)
+                                          // 🔥 FIX: Aggressively clear and refetch asset queries (same pattern as Creation section)
+                                          queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-                                          // Invalidate all media queries for this screenplay (prefix match)
                                           queryClient.invalidateQueries({ 
-                                            queryKey: ['media', 'files', screenplayId],
-                                            exact: false // Match all queries starting with this prefix
-                                          });
-                                          await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-                                          // Refetch all media queries (they will auto-refetch after invalidation)
-                                          await queryClient.refetchQueries({ 
                                             queryKey: ['media', 'files', screenplayId],
                                             exact: false
                                           });
+                                          setTimeout(() => {
+                                            queryClient.refetchQueries({ 
+                                              queryKey: ['assets', screenplayId, 'production-hub'],
+                                              type: 'active'
+                                            });
+                                            queryClient.refetchQueries({ 
+                                              queryKey: ['media', 'files', screenplayId],
+                                              exact: false
+                                            });
+                                          }, 2000);
                                           
                                           onUpdate(); // Refresh asset list in parent
                                           toast.success('Image deleted');
@@ -1521,19 +1531,23 @@ export default function AssetDetailModal({
                     throw new Error(errorData.error || 'Failed to delete images');
                   }
                   
-                  // 🔥 FIX: Invalidate and refetch asset queries to refresh UI immediately (including card counts)
+                  // 🔥 FIX: Aggressively clear and refetch asset queries (same pattern as Creation section)
+                  queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                   queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-                  // Invalidate all media queries for this screenplay (prefix match)
                   queryClient.invalidateQueries({ 
-                    queryKey: ['media', 'files', screenplayId],
-                    exact: false // Match all queries starting with this prefix
-                  });
-                  await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-                  // Refetch all media queries (they will auto-refetch after invalidation)
-                  await queryClient.refetchQueries({ 
                     queryKey: ['media', 'files', screenplayId],
                     exact: false
                   });
+                  setTimeout(() => {
+                    queryClient.refetchQueries({ 
+                      queryKey: ['assets', screenplayId, 'production-hub'],
+                      type: 'active'
+                    });
+                    queryClient.refetchQueries({ 
+                      queryKey: ['media', 'files', screenplayId],
+                      exact: false
+                    });
+                  }, 2000);
                   
                   // Trigger parent update
                   onUpdate();
