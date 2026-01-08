@@ -16,7 +16,8 @@ import { ChatProvider } from "@/contexts/ChatContext";
 import { QueryClientProvider } from "@/providers/QueryClientProvider";
 import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
 import { MobileBanner } from "@/components/ui/MobileBanner";
-import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
+// Temporarily disabled - Mobile Debug Panel (bug drawer on mobile)
+// import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
 
 // Auth Initializer: Sets up Clerk token getter for API calls
 // This MUST run before any API calls are made
@@ -258,8 +259,8 @@ const ClientLayout = ({ children }) => {
           {/* Mobile banner - recommends desktop for best experience */}
           <MobileBanner />
 
-          {/* Mobile Debug Panel - TEMPORARY: Remove import and this line to disable */}
-          <MobileDebugPanel />
+          {/* Mobile Debug Panel - TEMPORARILY DISABLED: Commented out as not needed currently */}
+          {/* <MobileDebugPanel /> */}
 
           {/* Content inside app/page.js files  */}
           {children}
