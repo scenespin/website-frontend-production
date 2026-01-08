@@ -370,12 +370,15 @@ export function LocationAngleSelector({
     return keys;
   }, [allPhotos, locationThumbnailS3KeyMap]);
 
-  // 🔥 FIX: Use provided locationThumbnailUrlsMap if available, otherwise fetch our own
+  // 🔥 FIX: Use provided locationThumbnailUrlsMap if available and populated, otherwise fetch our own
+  // Check if provided map exists AND has entries (not just empty Map)
+  const hasProvidedThumbnails = locationThumbnailUrlsMap && locationThumbnailUrlsMap.size > 0;
   const { data: fetchedThumbnailUrlsMap } = useBulkPresignedUrls(
     thumbnailS3Keys, 
-    thumbnailS3Keys.length > 0 && !locationThumbnailUrlsMap // Only fetch if we don't have the map
+    thumbnailS3Keys.length > 0 && !hasProvidedThumbnails // Fetch if we don't have a populated map
   );
-  const thumbnailUrlsMap = locationThumbnailUrlsMap || fetchedThumbnailUrlsMap || new Map();
+  // Use provided map if it has entries, otherwise use fetched map
+  const thumbnailUrlsMap = hasProvidedThumbnails ? locationThumbnailUrlsMap : (fetchedThumbnailUrlsMap || new Map());
   
   // 🔥 FIX: Fetch full image URLs on-demand when thumbnails aren't available yet
   // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)
@@ -666,11 +669,19 @@ export function LocationAngleSelector({
                 fallbackImageUrl: photo.imageUrl
               });
               
-              // Show loading state if URL maps aren't ready yet (better UX than black images)
+              // 🔥 FIX: Show loading state if URL maps aren't ready yet (better UX than black images)
+              // Check if we're waiting for thumbnail URLs to load
+              const hasThumbnailS3Key = photo.s3Key && locationThumbnailS3KeyMap?.has(photo.s3Key);
+              const thumbnailS3Key = hasThumbnailS3Key ? locationThumbnailS3KeyMap.get(photo.s3Key) : null;
+              const hasThumbnailUrl = thumbnailS3Key && thumbnailUrlsMap?.has(thumbnailS3Key);
+              const hasFullImageUrl = photo.s3Key && fullImageUrlsMap?.has(photo.s3Key);
+              const hasFallbackUrl = photo.imageUrl && isValidImageUrl(photo.imageUrl);
+              
+              // Show loading if we have an s3Key but no URLs available yet
               const isLoading = photo.s3Key && 
-                (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0) && 
-                (!fullImageUrlsMap || fullImageUrlsMap.size === 0) &&
-                !photo.imageUrl; // Only show loading if we don't have a fallback URL
+                !hasThumbnailUrl && 
+                !hasFullImageUrl && 
+                !hasFallbackUrl;
               
               if (!displayUrl) {
                 return (
@@ -689,12 +700,28 @@ export function LocationAngleSelector({
                     maxWidth: '640px',
                     maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
                   }}
-                  loading="lazy"
+                  loading="eager"
                   onError={(e) => {
-                    // 🔥 PROFESSIONAL FIX: Only handle final error state (URL invalid/expired/network issue)
-                    // Don't try to fix URL resolution here - that's resolveImageUrl's responsibility
-                    // The resolver already tried all available sources, so if it fails, it's a real error
+                    // 🔥 FIX: Try fallback URLs if thumbnail fails
                     const imgElement = e.target as HTMLImageElement;
+                    const currentSrc = imgElement.src;
+                    
+                    // If thumbnail failed, try full image URL
+                    if (photo.s3Key && fullImageUrlsMap?.has(photo.s3Key)) {
+                      const fullUrl = fullImageUrlsMap.get(photo.s3Key);
+                      if (fullUrl && fullUrl !== currentSrc && isValidImageUrl(fullUrl)) {
+                        imgElement.src = fullUrl;
+                        return;
+                      }
+                    }
+                    
+                    // If full image failed, try fallback imageUrl
+                    if (photo.imageUrl && isValidImageUrl(photo.imageUrl) && photo.imageUrl !== currentSrc) {
+                      imgElement.src = photo.imageUrl;
+                      return;
+                    }
+                    
+                    // If all URLs failed, hide the image and show placeholder
                     imgElement.style.display = 'none';
                   }}
                 />
