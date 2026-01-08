@@ -13,7 +13,6 @@ import { useAuth } from '@clerk/nextjs'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
 
 interface AssetDetailSidebarProps {
   asset?: Asset | null
@@ -437,9 +436,26 @@ export default function AssetDetailSidebar({
             images: updatedImages
           });
           
-          // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
+          // 🔥 NEW: Invalidate Media Library cache so new images appear
           if (screenplayId) {
-            invalidateProductionHubAndMediaCache(queryClient, 'assets', screenplayId);
+            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+          }
+          
+          // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
+          // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
+          // MATCHES LOCATIONS PATTERN EXACTLY (no immediate refetch, only delayed)
+          if (screenplayId) {
+            // First, remove the query from cache completely to force a fresh fetch
+            queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            // Then invalidate to mark as stale (in case query is recreated before refetch)
+            queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            // Force refetch after delay to ensure fresh data from DynamoDB
+            setTimeout(() => {
+              queryClient.refetchQueries({ 
+                queryKey: ['assets', screenplayId, 'production-hub'],
+                type: 'active' // Only refetch active queries
+              });
+            }, 2000); // 2 second delay for DynamoDB eventual consistency
           }
           
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
@@ -576,9 +592,26 @@ export default function AssetDetailSidebar({
       // Update via API
       await updateAsset(asset.id, updateData);
       
-      // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
+      // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
       if (screenplayId) {
-        invalidateProductionHubAndMediaCache(queryClient, 'assets', screenplayId);
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      }
+      
+      // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
+      // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
+      // MATCHES LOCATIONS PATTERN EXACTLY (no immediate refetch, only delayed)
+      if (screenplayId) {
+        // First, remove the query from cache completely to force a fresh fetch
+        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        // Then invalidate to mark as stale (in case query is recreated before refetch)
+        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        // Force refetch after delay to ensure fresh data from DynamoDB
+        setTimeout(() => {
+          queryClient.refetchQueries({ 
+            queryKey: ['assets', screenplayId, 'production-hub'],
+            type: 'active' // Only refetch active queries
+          });
+        }, 2000); // 2 second delay for DynamoDB eventual consistency
       }
       
       // Sync from context after update (with delay for DynamoDB consistency)

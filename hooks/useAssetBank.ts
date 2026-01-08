@@ -82,7 +82,7 @@ export function useAssets(screenplayId: string, context: 'creation' | 'productio
       return assets;
     },
     enabled: enabled && !!screenplayId,
-    staleTime: 0, // 🔥 FIX: Always refetch to ensure fresh data (was 30000ms, causing stale cache issues)
+    staleTime: 30000, // 30 seconds - MATCHES LOCATIONS PATTERN
   });
 }
 
