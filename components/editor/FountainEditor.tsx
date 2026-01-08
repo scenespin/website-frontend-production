@@ -24,6 +24,7 @@ import EditorFooter from './EditorFooter';
 import EntityAutocomplete from './EntityAutocomplete';
 import TextComparisonModal from './TextComparisonModal';
 import CursorOverlay from './CursorOverlay';
+import ScreenplayPreview from './ScreenplayPreview';
 
 interface FountainEditorProps {
     className?: string;
@@ -53,7 +54,7 @@ export default function FountainEditor({
     onToggleSceneNav
 }: FountainEditorProps) {
     // Context hooks
-    const { state, setContent, setCursorPosition, setCurrentLine, insertText, replaceSelection, markSaved, clearHighlight, otherUsersCursors, lastSyncedContent } = useEditor();
+    const { state, setContent, setCursorPosition, setCurrentLine, insertText, replaceSelection, markSaved, clearHighlight, otherUsersCursors, lastSyncedContent, isPreviewMode } = useEditor();
     const screenplay = useScreenplay();
     
     // Contextual Navigation - Update global context as user moves cursor
@@ -630,9 +631,12 @@ export default function FountainEditor({
                 }
             `}</style>
             
-            {/* Main Textarea Editor */}
+            {/* Main Editor - Preview or Textarea */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-                <textarea
+                {isPreviewMode ? (
+                    <ScreenplayPreview content={displayContent} />
+                ) : (
+                    <textarea
                     ref={textareaRef}
                     className="fountain-editor-textarea editor-textarea-clean min-h-[calc(100vh-10rem)] sm:min-h-[70vh]"
                     style={{
@@ -766,6 +770,7 @@ export default function FountainEditor({
                         content={syncedDisplayContent}
                         cursors={otherUsersCursors}
                     />
+                )}
                 )}
             </div>
             

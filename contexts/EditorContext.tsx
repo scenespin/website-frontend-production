@@ -104,6 +104,10 @@ interface EditorContextType {
     isEditorFullscreen: boolean;
     setIsEditorFullscreen: (value: boolean) => void;
     
+    // Preview mode (formatted read-only view)
+    isPreviewMode: boolean;
+    setIsPreviewMode: (value: boolean) => void;
+    
     // Feature 0187: Editor Lock for Multi-Device Conflict Prevention
     isEditorLocked: boolean; // True if locked by same user on different device
     isCollaboratorEditing: boolean; // True if different user has lock
@@ -137,6 +141,7 @@ export const EditorContext = createContext<EditorContextType | undefined>(undefi
 function EditorProviderInner({ children, projectId }: { children: ReactNode; projectId: string | null }) {
     const [state, setState] = useState<EditorState>(defaultState);
     const [isEditorFullscreen, setIsEditorFullscreen] = useState(false);
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
@@ -1058,6 +1063,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         setHighlightRange,
         isEditorFullscreen,
         setIsEditorFullscreen,
+        isPreviewMode,
+        setIsPreviewMode,
         clearHighlight,
         reset,
         hasUnsavedChanges,
@@ -2452,6 +2459,8 @@ const createMinimalContextValue = (): EditorContextType => ({
     lastSyncedContent: '', // Feature 0134: Empty string for minimal context
     isEditorFullscreen: false,
     setIsEditorFullscreen: () => {},
+    isPreviewMode: false,
+    setIsPreviewMode: () => {},
     // Feature 0187: Editor Lock state (defaults for minimal context)
     isEditorLocked: false,
     isCollaboratorEditing: false,

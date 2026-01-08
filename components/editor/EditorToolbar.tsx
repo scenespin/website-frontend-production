@@ -15,6 +15,8 @@ interface EditorToolbarProps {
     onSave?: () => void;
     isEditorFullscreen?: boolean;
     onToggleEditorFullscreen?: () => void;
+    isPreviewMode?: boolean;
+    onTogglePreview?: () => void;
     onOpenFindReplace?: () => void;
     onToggleItalics?: () => void;
     onOpenVersionHistory?: () => void;
@@ -136,8 +138,12 @@ function ExportToGitHubButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onToggleSceneNav }: EditorToolbarProps) {
-    const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow, isEditorLocked } = useEditor();
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onToggleSceneNav }: EditorToolbarProps) {
+    const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow, isEditorLocked, isPreviewMode: contextPreviewMode, setIsPreviewMode } = useEditor();
+    
+    // Use prop if provided, otherwise use context
+    const effectivePreviewMode = isPreviewMode !== undefined ? isPreviewMode : contextPreviewMode;
+    const handleTogglePreview = onTogglePreview || (() => setIsPreviewMode(!contextPreviewMode));
     const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner, isLoading, hasInitializedFromDynamoDB } = useScreenplay();
     
     // Feature 0133: Fix writer role save buttons - ensure canEditScript is true for writer role
@@ -660,6 +666,30 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         )}
                     </button>
                 </div>
+                
+                {/* Preview Mode toggle - Shows formatted read-only view */}
+                <div className="tooltip tooltip-bottom" data-tip={effectivePreviewMode ? 'Exit Preview Mode' : 'Preview Mode • View formatted screenplay'}>
+                    <button
+                        onClick={handleTogglePreview}
+                        className={`px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors ${
+                            effectivePreviewMode
+                                ? 'bg-[#DC143C] hover:bg-[#DC143C]/90 text-white'
+                                : 'bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C]'
+                        }`}
+                    >
+                        {effectivePreviewMode ? (
+                            <>
+                                <span className="text-base">👁️</span>
+                                <span className="text-[9px] hidden sm:inline">EXIT</span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="text-base">👁️</span>
+                                <span className="text-[9px] hidden sm:inline">VIEW</span>
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
             
             {/* Mobile toolbar - 2 rows of 8 buttons each */}
@@ -789,6 +819,30 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 <>
                                     <span className="text-sm">⛶</span>
                                     <span className="text-[8px] leading-tight">Full</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                    
+                    {/* Preview Mode toggle - Mobile */}
+                    <div className="tooltip tooltip-bottom" data-tip={effectivePreviewMode ? 'Exit Preview Mode' : 'Preview Mode'}>
+                        <button
+                            onClick={handleTogglePreview}
+                            className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors ${
+                                effectivePreviewMode
+                                    ? 'bg-[#DC143C] hover:bg-[#DC143C]/90 text-white'
+                                    : 'bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C]'
+                            }`}
+                        >
+                            {effectivePreviewMode ? (
+                                <>
+                                    <span className="text-sm">👁️</span>
+                                    <span className="text-[8px] leading-tight">Exit</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-sm">👁️</span>
+                                    <span className="text-[8px] leading-tight">View</span>
                                 </>
                             )}
                         </button>

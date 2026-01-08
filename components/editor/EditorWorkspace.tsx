@@ -35,7 +35,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
  */
 export default function EditorWorkspace() {
     const router = useRouter();
-    const { state, setContent, setCurrentLine, replaceSelection, insertText, isEditorFullscreen, setIsEditorFullscreen, undo, redo, isEditorLocked, isCollaboratorEditing, lockedBy } = useEditor();
+    const { state, setContent, setCurrentLine, replaceSelection, insertText, isEditorFullscreen, setIsEditorFullscreen, isPreviewMode, setIsPreviewMode, undo, redo, isEditorLocked, isCollaboratorEditing, lockedBy } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
@@ -532,6 +532,8 @@ export default function EditorWorkspace() {
                         onSave={handleManualSave}
                         isEditorFullscreen={isEditorFullscreen}
                         onToggleEditorFullscreen={() => setIsEditorFullscreen(!isEditorFullscreen)}
+                        isPreviewMode={isPreviewMode}
+                        onTogglePreview={() => setIsPreviewMode(!isPreviewMode)}
                         onOpenFindReplace={() => setIsFindReplaceModalOpen(true)}
                         onToggleItalics={() => {
                             // Trigger Ctrl+I programmatically

@@ -12,7 +12,7 @@ import { jsPDF } from 'jspdf';
 import { PDFDocument, PDFPage, PDFImage, rgb, degrees } from 'pdf-lib';
 
 // Industry-standard screenplay formatting
-const SCREENPLAY_FORMAT = {
+export const SCREENPLAY_FORMAT = {
   // Page settings (US Letter)
   pageWidth: 8.5,
   pageHeight: 11,
@@ -53,7 +53,7 @@ const SCREENPLAY_FORMAT = {
   pageNumberTop: 0.5,
 };
 
-interface ParsedElement {
+export interface ParsedElement {
   type: 'scene' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition' | 'blank';
   text: string;
   pageNumber?: number;
@@ -73,7 +73,7 @@ export interface WatermarkOptions {
 /**
  * Parse Fountain screenplay into structured elements
  */
-function parseFountain(fountain: string): ParsedElement[] {
+export function parseFountain(fountain: string): ParsedElement[] {
   const lines = fountain.split('\n');
   const elements: ParsedElement[] = [];
   
