@@ -128,11 +128,13 @@ export function useWrydaTabNavigation(
         
         const baseTop = lineTop + lineHeight;
         
-        // Calculate position
+        // Calculate position - align with text line, slightly below
+        // Use smaller offset to position closer to the text line
         let top = showAbove 
-            ? baseTop - dropdownHeight - 5  // Show above with 5px gap
-            : baseTop + 5;                    // Show below with 5px gap
-        let left = cursorLeft + 10; // Position at cursor + small offset
+            ? baseTop - dropdownHeight - 2  // Show above with 2px gap
+            : lineTop + 2;                    // Show below, aligned with line start (2px below line)
+        // Align left with text area padding (where text starts), not cursor position
+        let left = textareaRect.left + paddingLeft;
         
         // Ensure dropdown stays within viewport bounds
         const viewportWidth = window.innerWidth;
