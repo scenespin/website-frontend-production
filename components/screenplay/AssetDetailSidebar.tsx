@@ -436,7 +436,7 @@ export default function AssetDetailSidebar({
           // This makes Production Hub cards update immediately
           if (screenplayId) {
             const queryKey = ['assets', screenplayId, 'production-hub'];
-            const cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
+            let cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
             console.log('[AssetDetailSidebar] 🔍 DEBUG: Cache before optimistic update:', {
               hasCache: !!cacheBefore,
               cacheLength: cacheBefore?.length || 0,
@@ -444,10 +444,25 @@ export default function AssetDetailSidebar({
               assetImageCount: cacheBefore?.find(a => a.id === asset.id)?.images?.length || 0
             });
             
+            // 🔥 FIX: If cache is empty, initialize it with current assets from ScreenplayContext
+            // This allows optimistic updates even when Production Hub hasn't loaded yet
+            if (!cacheBefore) {
+              console.log('[AssetDetailSidebar] 🔄 Cache is empty, initializing with assets from context');
+              const allAssets = assetsRef.current || [];
+              cacheBefore = allAssets;
+              // Initialize cache with current assets
+              queryClient.setQueryData<Asset[]>(queryKey, allAssets);
+            }
+            
             queryClient.setQueryData<Asset[]>(queryKey, (old) => {
               if (!old) {
-                console.warn('[AssetDetailSidebar] ⚠️ Cache is empty, cannot optimistically update');
-                return old;
+                // Should not happen now, but fallback: create cache with just this asset
+                console.warn('[AssetDetailSidebar] ⚠️ Cache still empty, creating with current asset');
+                const assetWithNewImages = {
+                  ...asset,
+                  images: [...(asset.images || []), ...newImageObjects]
+                };
+                return [assetWithNewImages];
               }
               const updated = old.map(a => {
                 if (a.id === asset.id) {
@@ -468,6 +483,17 @@ export default function AssetDetailSidebar({
                 }
                 return a;
               });
+              
+              // If asset not found in cache, add it
+              const assetExists = updated.some(a => a.id === asset.id);
+              if (!assetExists) {
+                console.log('[AssetDetailSidebar] 🔄 Asset not in cache, adding it');
+                updated.push({
+                  ...asset,
+                  images: [...(asset.images || []), ...newImageObjects]
+                });
+              }
+              
               return updated;
             });
             
@@ -475,6 +501,7 @@ export default function AssetDetailSidebar({
             const updatedAsset = cacheAfter?.find(a => a.id === asset.id);
             console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache:', {
               hasCacheAfter: !!cacheAfter,
+              cacheLength: cacheAfter?.length || 0,
               updatedAssetImageCount: updatedAsset?.images?.length || 0,
               updatedAssetImages: updatedAsset?.images?.map(img => ({ url: img.url?.substring(0, 50), s3Key: img.s3Key }))
             });
@@ -643,7 +670,7 @@ export default function AssetDetailSidebar({
       // This makes Production Hub cards update immediately
       if (screenplayId) {
         const queryKey = ['assets', screenplayId, 'production-hub'];
-        const cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
+        let cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
         console.log('[AssetDetailSidebar] 🔍 DEBUG: Cache before optimistic delete:', {
           hasCache: !!cacheBefore,
           cacheLength: cacheBefore?.length || 0,
@@ -652,10 +679,25 @@ export default function AssetDetailSidebar({
           deletingS3Key: imageS3Key
         });
         
+        // 🔥 FIX: If cache is empty, initialize it with current assets from ScreenplayContext
+        // This allows optimistic updates even when Production Hub hasn't loaded yet
+        if (!cacheBefore) {
+          console.log('[AssetDetailSidebar] 🔄 Cache is empty, initializing with assets from context');
+          const allAssets = assetsRef.current || [];
+          cacheBefore = allAssets;
+          // Initialize cache with current assets
+          queryClient.setQueryData<Asset[]>(queryKey, allAssets);
+        }
+        
         queryClient.setQueryData<Asset[]>(queryKey, (old) => {
           if (!old) {
-            console.warn('[AssetDetailSidebar] ⚠️ Cache is empty, cannot optimistically update');
-            return old;
+            // Should not happen now, but fallback: create cache with just this asset (without deleted image)
+            console.warn('[AssetDetailSidebar] ⚠️ Cache still empty, creating with current asset');
+            const assetWithoutDeletedImage = {
+              ...asset,
+              images: updatedImages // Already filtered
+            };
+            return [assetWithoutDeletedImage];
           }
           const updated = old.map(a => {
             if (a.id === asset.id) {
@@ -679,6 +721,17 @@ export default function AssetDetailSidebar({
             }
             return a;
           });
+          
+          // If asset not found in cache, add it (without deleted image)
+          const assetExists = updated.some(a => a.id === asset.id);
+          if (!assetExists) {
+            console.log('[AssetDetailSidebar] 🔄 Asset not in cache, adding it (without deleted image)');
+            updated.push({
+              ...asset,
+              images: updatedImages // Already filtered
+            });
+          }
+          
           return updated;
         });
         
@@ -686,6 +739,7 @@ export default function AssetDetailSidebar({
         const updatedAsset = cacheAfter?.find(a => a.id === asset.id);
         console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache (deleted image):', {
           hasCacheAfter: !!cacheAfter,
+          cacheLength: cacheAfter?.length || 0,
           updatedAssetImageCount: updatedAsset?.images?.length || 0
         });
       }
