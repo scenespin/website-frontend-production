@@ -1493,6 +1493,25 @@ export function LocationDetailModal({
                                               throw new Error('Missing S3 key for image');
                                             }
                                             
+                                            // 🔥 FIX: Delete from Media Library first (source of truth) - EXACT same pattern as backgrounds
+                                            try {
+                                              const token = await getToken({ template: 'wryda-backend' });
+                                              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                              console.log('[LocationDetailModal] 🗑️ Deleting angle from Media Library:', variation.s3Key);
+                                              await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+                                                method: 'POST',
+                                                headers: {
+                                                  'Authorization': `Bearer ${token}`,
+                                                  'Content-Type': 'application/json',
+                                                },
+                                                body: JSON.stringify({ s3Key: variation.s3Key }),
+                                              });
+                                              console.log('[LocationDetailModal] ✅ Media Library deletion successful');
+                                            } catch (mediaError: any) {
+                                              console.warn('[LocationDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
+                                              // Continue with location update even if Media Library deletion fails
+                                            }
+                                            
                                             // Remove from angleVariations by matching s3Key (keep original working pattern)
                                             const updatedAngleVariations = angleVariations.filter(
                                               (v: any) => v.s3Key !== variation.s3Key
@@ -1503,9 +1522,10 @@ export function LocationDetailModal({
                                               angleVariations: updatedAngleVariations
                                             });
                                             
-                                            // 🔥 FIX: Invalidate location queries to refresh UI immediately (same pattern as backgrounds)
+                                            // 🔥 FIX: Invalidate and refetch location queries to refresh UI immediately (including card counts)
                                             queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                             queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                            await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                             await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                             toast.success('Angle image deleted');
                                           } catch (error: any) {
@@ -1805,9 +1825,10 @@ export function LocationDetailModal({
                                                             backgrounds: updatedBackgrounds
                                                           });
                                                           
-                          // 🔥 FIX: Invalidate location queries to refresh UI immediately (EXACT same pattern as angles - no locations refetch)
+                          // 🔥 FIX: Invalidate and refetch location queries to refresh UI immediately (including card counts)
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                          await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                                           
                                                           toast.success('Background image deleted');

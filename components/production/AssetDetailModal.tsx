@@ -1233,9 +1233,10 @@ export default function AssetDetailModal({
                                             throw new Error(errorData.error || 'Failed to delete image');
                                           }
                                           
-                                          // 🔥 FIX: Invalidate asset queries to refresh UI immediately (EXACT same pattern as location backgrounds - no assets refetch)
+                                          // 🔥 FIX: Invalidate and refetch asset queries to refresh UI immediately (including card counts)
                                           queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                           
                                           onUpdate(); // Refresh asset list in parent
@@ -1463,9 +1464,10 @@ export default function AssetDetailModal({
                     throw new Error(errorData.error || 'Failed to delete images');
                   }
                   
-                  // 🔥 FIX: Invalidate asset queries to refresh UI immediately (EXACT same pattern as location backgrounds - no assets refetch)
+                  // 🔥 FIX: Invalidate and refetch asset queries to refresh UI immediately (including card counts)
                   queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                   queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                  await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                   await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                   
                   // Trigger parent update

@@ -2291,9 +2291,10 @@ export function CharacterDetailModal({
                                             });
                                           }
                                           
-                                          // 🔥 FIX: Invalidate character queries to refresh UI immediately (EXACT same pattern as location backgrounds - no characters refetch)
+                                          // 🔥 FIX: Invalidate and refetch character queries to refresh UI immediately (including card counts)
                                           queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
                                           await queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
                                           
                                           toast.success('Image deleted');
