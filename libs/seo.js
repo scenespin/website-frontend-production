@@ -33,11 +33,11 @@ export const getSEOTags = ({
       description: openGraph?.description || config.appDescription,
       url: openGraph?.url || `https://${config.domainName}/`,
       siteName: openGraph?.title || config.appName,
-      // Next.js 13+ automatically uses opengraph-image.png from /app folder
-      // But we explicitly set it here to ensure it's always correct
+      // Use absolute URL for better LinkedIn compatibility
+      // LinkedIn requires absolute URLs and can be very picky about caching
       images: [
         {
-          url: `/opengraph-image.png`,
+          url: `https://${config.domainName}/opengraph-image.png`,
           width: 1200,
           height: 630,
           alt: config.appName,
@@ -50,9 +50,8 @@ export const getSEOTags = ({
     twitter: {
       title: openGraph?.title || config.appName,
       description: openGraph?.description || config.appDescription,
-      // Next.js 13+ automatically uses twitter-image.png from /app folder
-      // But we explicitly set it here to ensure it's always correct
-      images: [`/twitter-image.png`],
+      // Use absolute URL for better compatibility
+      images: [`https://${config.domainName}/twitter-image.png`],
       card: "summary_large_image",
       creator: "@marc_louvion",
     },
