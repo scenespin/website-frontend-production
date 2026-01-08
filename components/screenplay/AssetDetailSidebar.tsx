@@ -401,6 +401,8 @@ export default function AssetDetailSidebar({
       // After all files uploaded, update asset or store pending images
       if (asset) {
         // Existing asset - register all images with asset bank API
+        // 🔥 FIX: Declare previousCache outside try block so it's accessible in catch block
+        let previousCache: Asset[] | undefined;
         try {
           // Transform to AssetImage format (url, angle?, uploadedAt, s3Key)
           // 🔥 FIX: Store s3Key so we can regenerate presigned URLs when they expire
@@ -436,7 +438,6 @@ export default function AssetDetailSidebar({
           // Based on Stack Overflow findings: setQueryData only notifies subscribers of ACTIVE queries
           // We need to ensure proper immutability and check if query is active
           // Also store previous cache state for error rollback (TanStack Query best practice)
-          let previousCache: Asset[] | undefined;
           if (screenplayId) {
             const queryKey = ['assets', screenplayId, 'production-hub'];
             const queryState = queryClient.getQueryState(queryKey);
@@ -634,6 +635,8 @@ export default function AssetDetailSidebar({
     // Just proceed with the deletion
     deletingImageRef.current = index;
     
+    // 🔥 FIX: Declare previousCache outside try block so it's accessible in catch block
+    let previousCache: Asset[] | undefined;
     try {
       // 🔥 FIX: Use ref to get latest asset from context to avoid stale closures
       const currentAsset = assetsRef.current.find(a => a.id === asset.id) || asset;
@@ -706,7 +709,6 @@ export default function AssetDetailSidebar({
       // Based on Stack Overflow findings: setQueryData only notifies subscribers of ACTIVE queries
       // We need to ensure proper immutability and check if query is active
       // Also store previous cache state for error rollback (TanStack Query best practice)
-      let previousCache: Asset[] | undefined;
       if (screenplayId) {
         const queryKey = ['assets', screenplayId, 'production-hub'];
         const queryState = queryClient.getQueryState(queryKey);
