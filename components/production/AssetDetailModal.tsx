@@ -609,9 +609,18 @@ export default function AssetDetailModal({
 
       toast.success(`Successfully uploaded ${files.length} image${files.length > 1 ? 's' : ''}`);
       
-      // 🔥 NEW: Invalidate Media Library cache so new image appears
+      // 🔥 FIX: Invalidate and refetch both entity and media queries so cards update immediately
       if (screenplayId) {
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        queryClient.invalidateQueries({ 
+          queryKey: ['media', 'files', screenplayId],
+          exact: false // Match all queries starting with this prefix
+        });
+        await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        await queryClient.refetchQueries({ 
+          queryKey: ['media', 'files', screenplayId],
+          exact: false
+        });
       }
       
       // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub

@@ -831,7 +831,20 @@ export function LocationDetailModal({
 
     setIsUploading(true);
     try {
-      await onUploadImage(location.locationId, file);
+      await onUploadImage(latestLocation.locationId, file);
+      
+      // 🔥 FIX: Invalidate and refetch both entity and media queries so cards update immediately
+      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['media', 'files', screenplayId],
+        exact: false // Match all queries starting with this prefix
+      });
+      await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+      await queryClient.refetchQueries({ 
+        queryKey: ['media', 'files', screenplayId],
+        exact: false
+      });
+      
       toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Upload failed:', error);
