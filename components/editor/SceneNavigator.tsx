@@ -188,10 +188,10 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     // But timeout after 10 seconds to prevent infinite loading
     if (isInitializing && !loadingTimeout) {
         return (
-            <div className={cn("w-full rounded-lg border border-base-300 bg-[#0A0A0A] p-4", className)}>
+            <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm font-medium text-base-content/70">
+                    <div className="w-4 h-4 border-2 border-[#DC143C] border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm font-medium text-[#B3B3B3]">
                         Loading scenes...
                     </p>
                 </div>
@@ -202,11 +202,11 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     // 🔥 FIX: If timeout occurred, show empty state with message (allows user to proceed)
     if (isInitializing && loadingTimeout) {
         return (
-            <div className={cn("w-full rounded-lg border border-base-300 bg-[#0A0A0A] p-4", className)}>
-                <p className="text-sm font-medium text-base-content/70 mb-2">
+            <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
+                <p className="text-sm font-medium text-[#B3B3B3] mb-2">
                     Loading taking longer than expected
                 </p>
-                <p className="text-xs text-base-content/50 mb-2">
+                <p className="text-xs text-[#808080] mb-2">
                     Scenes may still be loading. Try refreshing or rescanning.
                 </p>
             </div>
@@ -216,11 +216,11 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     // Show empty state only after initialization is complete
     if (!allScenes || allScenes.length === 0) {
         return (
-            <div className={cn("w-full rounded-lg border border-base-300 bg-[#0A0A0A] p-4", className)}>
-                <p className="text-sm font-medium text-base-content/70 mb-2">
+            <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
+                <p className="text-sm font-medium text-[#B3B3B3] mb-2">
                     No scenes yet
                 </p>
-                <p className="text-xs text-base-content/50">
+                <p className="text-xs text-[#808080]">
                     Import a script to get started
                 </p>
             </div>
@@ -228,7 +228,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     }
 
     return (
-        <div className={cn("w-full h-full overflow-auto rounded-lg border border-base-300 bg-[#0A0A0A] p-2 scrollbar-hide", className)}>
+        <div className={cn("w-full h-full overflow-auto rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-2 scrollbar-hide", className)}>
             <div className="flex flex-col gap-1">
                 {allScenes.map((scene) => {
                     const isCurrent = scene.id === currentSceneId;
@@ -247,21 +247,21 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                             className={cn(
                                 "flex w-full flex-col items-start rounded-md transition-all p-2 gap-1",
                                 isCurrent 
-                                    ? "bg-base-300 text-base-content border-l-2 border-primary" 
-                                    : "text-base-content/60 hover:bg-base-200 border-l-2 border-transparent"
+                                    ? "bg-[#1F1F1F] text-white border-l-2 border-[#DC143C]" 
+                                    : "text-[#B3B3B3] hover:bg-[#141414] border-l-2 border-transparent"
                             )}
                         >
                             {/* Scene Number & Heading */}
                             <div className="flex items-center w-full gap-2">
                                 <span className={cn(
                                     "font-bold tabular-nums text-sm min-w-[24px]",
-                                    isCurrent ? "text-primary" : "text-base-content/40"
+                                    isCurrent ? "text-[#DC143C]" : "text-[#808080]"
                                 )}>
                                     {scene.number}
                                 </span>
                                 <span className={cn(
                                     "font-medium truncate flex-1 text-sm",
-                                    isCurrent ? "text-base-content" : "text-base-content/70"
+                                    isCurrent ? "text-white" : "text-[#B3B3B3]"
                                 )}>
                                     {scene.heading}
                                 </span>
@@ -273,7 +273,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                                 const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
                                 if (hasValidSynopsis) {
                                     return (
-                                        <p className="line-clamp-2 w-full text-left text-xs leading-relaxed text-base-content/50">
+                                        <p className="line-clamp-2 w-full text-left text-xs leading-relaxed text-[#808080]">
                                             {scene.synopsis}
                                         </p>
                                     );
@@ -283,7 +283,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                                 const firstLine = sceneFirstLines[scene.id];
                                 if (firstLine) {
                                     return (
-                                        <p className="line-clamp-2 w-full text-left text-xs leading-relaxed text-base-content/50">
+                                        <p className="line-clamp-2 w-full text-left text-xs leading-relaxed text-[#808080]">
                                             {firstLine}
                                         </p>
                                     );
@@ -293,23 +293,23 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                                 return null;
                             })()}
 
-                            {/* Badges */}
+                            {/* Badges - Cinema Theme */}
                             {(location || characters.length > 0 || assets.length > 0) && (
                                 <div className="flex flex-wrap w-full gap-1 mt-1">
                                     {location && (
-                                        <span className="badge badge-sm badge-secondary gap-1 max-w-[200px]">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#141414] text-[#00D9FF] border border-[#00D9FF]/30 max-w-[200px]">
                                             <MapPin className="w-3 h-3 flex-shrink-0" />
                                             <span className="truncate">{location}</span>
                                         </span>
                                     )}
                                     {characters.length > 0 && (
-                                        <span className="badge badge-sm badge-warning gap-1">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#141414] text-[#DC143C] border border-[#DC143C]/30">
                                             <Users className="w-3 h-3" />
                                             <span>{characters.length}</span>
                                         </span>
                                     )}
                                     {assets.length > 0 && (
-                                        <span className="badge badge-sm badge-info gap-1">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#141414] text-[#FFD700] border border-[#FFD700]/30">
                                             <Package className="w-3 h-3" />
                                             <span>{assets.length}</span>
                                         </span>
