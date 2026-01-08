@@ -557,27 +557,20 @@ export default function AssetDetailSidebar({
         s3Key: img.s3Key || img.metadata?.s3Key // Extract s3Key from metadata if needed
       }));
       
-      // 🔥 FIX: If deleting an angle-generated image, also remove from angleReferences
-      // This prevents the image from being added back when enrichAssetWithPresignedUrls runs
+      // 🔥 CRITICAL FIX: Creation section should NEVER update angleReferences
+      // angleReferences are Production Hub data and should only be updated from Production Hub
+      // If we delete a creation image that happens to match an angleReference s3Key, that's fine -
+      // the backend will handle it correctly when Production Hub fetches the asset
       let updateData: any = { images: transformedImages };
-      if (isAngleGenerated && imageS3Key && currentAsset.angleReferences) {
-        const updatedAngleReferences = currentAsset.angleReferences.filter(
-          (ref: any) => ref.s3Key !== imageS3Key
-        );
-        if (updatedAngleReferences.length !== currentAsset.angleReferences.length) {
-          updateData.angleReferences = updatedAngleReferences;
-          console.log('[AssetDetailSidebar] 🗑️ Also removing from angleReferences:', {
-            removedS3Key: imageS3Key,
-            remainingAngleRefs: updatedAngleReferences.length
-          });
-        }
-      }
+      
+      // 🔥 REMOVED: Don't update angleReferences from Creation section
+      // This was causing duplicates when angleReferences were accidentally included in updates
       
       // 🔥 FIX: Optimistic UI update - remove image immediately
+      // Don't update angleReferences in formData - that's Production Hub data
       setFormData(prev => ({
         ...prev,
-        images: updatedImages,
-        ...(updateData.angleReferences !== undefined && { angleReferences: updateData.angleReferences })
+        images: updatedImages
       }));
       
       // Update via API
