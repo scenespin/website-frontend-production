@@ -771,7 +771,6 @@ export default function FountainEditor({
                         cursors={otherUsersCursors}
                     />
                 )}
-                )}
             </div>
             
             {/* Entity Autocomplete - @ mentions */}
