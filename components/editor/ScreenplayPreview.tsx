@@ -88,8 +88,9 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mt-3 mb-1 screenplay-character"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.character)})`,
+              marginLeft: leftMargin,
               marginRight: rightMargin,
+              textAlign: 'center',
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               fontWeight: 'normal',
@@ -100,14 +101,19 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         );
 
       case 'parenthetical':
+        // Check if parenthetical follows a character name (for centering)
+        const prevElement = index > 0 ? elements[index - 1] : null;
+        const isParentheticalAfterCharacter = prevElement?.type === 'character';
+        
         return (
           <div
             key={key}
             className="mb-1 screenplay-parenthetical"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.parenthetical)})`,
+              marginLeft: isParentheticalAfterCharacter ? leftMargin : `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.parenthetical)})`,
               marginRight: rightMargin,
-              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.parenthetical),
+              maxWidth: isParentheticalAfterCharacter ? `calc(100% - ${leftMargin} - ${rightMargin})` : inchesToRem(SCREENPLAY_FORMAT.width.parenthetical),
+              textAlign: isParentheticalAfterCharacter ? 'center' : 'left',
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
@@ -118,22 +124,21 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         );
 
       case 'dialogue':
-        // If dialogue follows a parenthetical, align it with the parenthetical's left edge
-        const dialogueIndent = isDialogueAfterParenthetical 
-          ? SCREENPLAY_FORMAT.indent.parenthetical 
-          : SCREENPLAY_FORMAT.indent.dialogue;
-        const dialogueWidth = isDialogueAfterParenthetical
-          ? SCREENPLAY_FORMAT.width.parenthetical
-          : SCREENPLAY_FORMAT.width.dialogue;
+        // Check if dialogue follows a character name or parenthetical (for centering)
+        const prevElem = index > 0 ? elements[index - 1] : null;
+        const isDialogueAfterCharacter = prevElem?.type === 'character';
+        const isDialogueAfterParen = prevElem?.type === 'parenthetical';
+        const shouldCenterDialogue = isDialogueAfterCharacter || isDialogueAfterParen;
         
         return (
           <div
             key={key}
             className="mb-3 screenplay-dialogue"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(dialogueIndent)})`,
+              marginLeft: shouldCenterDialogue ? leftMargin : `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.dialogue)})`,
               marginRight: rightMargin,
-              maxWidth: inchesToRem(dialogueWidth),
+              maxWidth: shouldCenterDialogue ? `calc(100% - ${leftMargin} - ${rightMargin})` : inchesToRem(SCREENPLAY_FORMAT.width.dialogue),
+              textAlign: shouldCenterDialogue ? 'center' : 'left',
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
