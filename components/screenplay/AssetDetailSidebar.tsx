@@ -549,9 +549,17 @@ export default function AssetDetailSidebar({
         return imgS3Key !== imageS3Key;
       });
       
+      // 🔥 FIX: Transform images to backend format (url, uploadedAt, s3Key)
+      // Backend expects { url, uploadedAt, s3Key } not { imageUrl, createdAt, metadata: { s3Key } }
+      const transformedImages = updatedImages.map((img: any) => ({
+        url: img.url || img.imageUrl || '', // Backend expects 'url' not 'imageUrl'
+        uploadedAt: img.uploadedAt || img.createdAt || new Date().toISOString(), // Backend expects 'uploadedAt' not 'createdAt'
+        s3Key: img.s3Key || img.metadata?.s3Key // Extract s3Key from metadata if needed
+      }));
+      
       // 🔥 FIX: If deleting an angle-generated image, also remove from angleReferences
       // This prevents the image from being added back when enrichAssetWithPresignedUrls runs
-      let updateData: any = { images: updatedImages };
+      let updateData: any = { images: transformedImages };
       if (isAngleGenerated && imageS3Key && currentAsset.angleReferences) {
         const updatedAngleReferences = currentAsset.angleReferences.filter(
           (ref: any) => ref.s3Key !== imageS3Key
