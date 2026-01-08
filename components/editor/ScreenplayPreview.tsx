@@ -21,6 +21,13 @@ function inchesToRem(inches: number): string {
   return `${inches * 6}rem`;
 }
 
+/**
+ * Convert inches to rem for mobile (smaller scale)
+ */
+function inchesToRemMobile(inches: number): string {
+  return `${inches * 3}rem`; // Half scale for mobile
+}
+
 export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
   // Parse Fountain content into elements
   const elements = useMemo(() => {
@@ -47,12 +54,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="font-bold uppercase mb-3"
+            className="font-bold uppercase mb-2 sm:mb-3 px-2 sm:px-0"
             style={{
-              marginLeft: leftMargin,
-              marginRight: rightMargin,
               fontFamily: 'Courier, monospace',
-              fontSize: '12pt',
+              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
             }}
           >
             {element.text}
@@ -63,13 +68,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mb-1"
+            className="mb-1 px-2 sm:px-0"
             style={{
-              marginLeft: leftMargin,
-              marginRight: rightMargin,
-              maxWidth: `calc(100% - ${leftMargin} - ${rightMargin})`,
+              marginLeft: '0',
+              marginRight: '0',
+              maxWidth: '100%',
               fontFamily: 'Courier, monospace',
-              fontSize: '12pt',
+              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
               wordWrap: 'break-word',
               whiteSpace: 'pre-wrap',
             }}
@@ -82,12 +87,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mt-3 mb-1"
+            className="mt-2 sm:mt-3 mb-1 px-2 sm:px-0"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.character)})`,
-              marginRight: rightMargin,
+              marginLeft: '0',
+              marginRight: '0',
+              textAlign: 'center',
               fontFamily: 'Courier, monospace',
-              fontSize: '12pt',
+              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
               fontWeight: 'normal',
             }}
           >
@@ -99,13 +105,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mb-1"
+            className="mb-1 px-2 sm:px-0"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.parenthetical)})`,
-              marginRight: rightMargin,
-              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.parenthetical),
+              marginLeft: '1rem',
+              marginRight: '0',
+              maxWidth: 'calc(100% - 2rem)',
               fontFamily: 'Courier, monospace',
-              fontSize: '12pt',
+              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
               wordWrap: 'break-word',
             }}
           >
@@ -117,13 +123,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mb-3"
+            className="mb-2 sm:mb-3 px-2 sm:px-0"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.dialogue)})`,
-              marginRight: rightMargin,
-              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.dialogue),
+              marginLeft: '0.5rem',
+              marginRight: '0',
+              maxWidth: 'calc(100% - 1rem)',
               fontFamily: 'Courier, monospace',
-              fontSize: '12pt',
+              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
               wordWrap: 'break-word',
               whiteSpace: 'pre-wrap',
             }}
@@ -136,13 +142,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mt-3 mb-3 uppercase"
+            className="mt-2 sm:mt-3 mb-2 sm:mb-3 uppercase px-2 sm:px-0"
             style={{
-              marginLeft: leftMargin,
-              marginRight: rightMargin,
+              marginLeft: '0',
+              marginRight: '0',
               textAlign: 'right',
               fontFamily: 'Courier, monospace',
-              fontSize: '12pt',
+              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
             }}
           >
             {element.text}
@@ -170,14 +176,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
 
   return (
     <div
-      className="h-full overflow-auto"
+      className="h-full overflow-auto py-2 sm:py-4 px-0 sm:px-4"
       style={{
-        paddingTop: topMargin,
-        paddingBottom: bottomMargin,
-        paddingLeft: leftMargin,
-        paddingRight: rightMargin,
         fontFamily: 'Courier, monospace',
-        fontSize: '12pt',
+        fontSize: 'clamp(10pt, 2.5vw, 12pt)',
         lineHeight: '1.5',
         backgroundColor: 'var(--color-bg-secondary)',
         color: 'var(--color-text-primary)',
