@@ -636,7 +636,8 @@ export default function FountainEditor({
                 {isPreviewMode ? (
                     <ScreenplayPreview content={displayContent} />
                 ) : (
-                    <textarea
+                    <>
+                        <textarea
                     ref={textareaRef}
                     className="fountain-editor-textarea editor-textarea-clean min-h-[calc(100vh-10rem)] sm:min-h-[70vh]"
                     style={{
@@ -756,20 +757,22 @@ export default function FountainEditor({
                     onMouseUp={selection.handlers.onMouseUp}
                     onPointerUp={selection.handlers.onPointerUp}
                     placeholder={placeholder}
-                    readOnly={readonly}
-                    spellCheck={true}
-                />
-                {/* Feature 0134: Cursor Overlay - Shows other users' cursor positions */}
-                {/* 🔥 FIX: Use syncedDisplayContent (synced content from server) for cursor calculations
-                    Other users' cursor positions are based on the synced content from the server,
-                    not the local displayContent which may include unsaved changes. Using synced content
-                    ensures cursor positions match the content that the other users are seeing. */}
-                {otherUsersCursors && otherUsersCursors.length > 0 && !state.highlightRange && (
-                    <CursorOverlay
-                        textareaRef={textareaRef}
-                        content={syncedDisplayContent}
-                        cursors={otherUsersCursors}
-                    />
+                            readOnly={readonly}
+                            spellCheck={true}
+                        />
+                        {/* Feature 0134: Cursor Overlay - Shows other users' cursor positions */}
+                        {/* 🔥 FIX: Use syncedDisplayContent (synced content from server) for cursor calculations
+                            Other users' cursor positions are based on the synced content from the server,
+                            not the local displayContent which may include unsaved changes. Using synced content
+                            ensures cursor positions match the content that the other users are seeing. */}
+                        {otherUsersCursors && otherUsersCursors.length > 0 && !state.highlightRange && (
+                            <CursorOverlay
+                                textareaRef={textareaRef}
+                                content={syncedDisplayContent}
+                                cursors={otherUsersCursors}
+                            />
+                        )}
+                    </>
                 )}
             </div>
             
