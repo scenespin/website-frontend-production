@@ -21,13 +21,6 @@ function inchesToRem(inches: number): string {
   return `${inches * 6}rem`;
 }
 
-/**
- * Convert inches to rem for mobile (smaller scale)
- */
-function inchesToRemMobile(inches: number): string {
-  return `${inches * 3}rem`; // Half scale for mobile
-}
-
 export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
   // Parse Fountain content into elements
   const elements = useMemo(() => {
@@ -54,10 +47,12 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="font-bold uppercase mb-2 sm:mb-3 px-2 sm:px-0"
+            className="font-bold uppercase mb-3 screenplay-scene"
             style={{
+              marginLeft: leftMargin,
+              marginRight: rightMargin,
               fontFamily: 'Courier, monospace',
-              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
+              fontSize: '12pt',
             }}
           >
             {element.text}
@@ -68,13 +63,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mb-1 px-2 sm:px-0"
+            className="mb-1 screenplay-action"
             style={{
-              marginLeft: '0',
-              marginRight: '0',
-              maxWidth: '100%',
+              marginLeft: leftMargin,
+              marginRight: rightMargin,
+              maxWidth: `calc(100% - ${leftMargin} - ${rightMargin})`,
               fontFamily: 'Courier, monospace',
-              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
+              fontSize: '12pt',
               wordWrap: 'break-word',
               whiteSpace: 'pre-wrap',
             }}
@@ -87,13 +82,12 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mt-2 sm:mt-3 mb-1 px-2 sm:px-0"
+            className="mt-3 mb-1 screenplay-character"
             style={{
-              marginLeft: '0',
-              marginRight: '0',
-              textAlign: 'center',
+              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.character)})`,
+              marginRight: rightMargin,
               fontFamily: 'Courier, monospace',
-              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
+              fontSize: '12pt',
               fontWeight: 'normal',
             }}
           >
@@ -105,13 +99,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mb-1 px-2 sm:px-0"
+            className="mb-1 screenplay-parenthetical"
             style={{
-              marginLeft: '1rem',
-              marginRight: '0',
-              maxWidth: 'calc(100% - 2rem)',
+              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.parenthetical)})`,
+              marginRight: rightMargin,
+              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.parenthetical),
               fontFamily: 'Courier, monospace',
-              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
+              fontSize: '12pt',
               wordWrap: 'break-word',
             }}
           >
@@ -123,13 +117,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mb-2 sm:mb-3 px-2 sm:px-0"
+            className="mb-3 screenplay-dialogue"
             style={{
-              marginLeft: '0.5rem',
-              marginRight: '0',
-              maxWidth: 'calc(100% - 1rem)',
+              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.dialogue)})`,
+              marginRight: rightMargin,
+              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.dialogue),
               fontFamily: 'Courier, monospace',
-              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
+              fontSize: '12pt',
               wordWrap: 'break-word',
               whiteSpace: 'pre-wrap',
             }}
@@ -142,13 +136,13 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         return (
           <div
             key={key}
-            className="mt-2 sm:mt-3 mb-2 sm:mb-3 uppercase px-2 sm:px-0"
+            className="mt-3 mb-3 uppercase screenplay-transition"
             style={{
-              marginLeft: '0',
-              marginRight: '0',
+              marginLeft: leftMargin,
+              marginRight: rightMargin,
               textAlign: 'right',
               fontFamily: 'Courier, monospace',
-              fontSize: 'clamp(10pt, 2.5vw, 12pt)',
+              fontSize: '12pt',
             }}
           >
             {element.text}
@@ -175,17 +169,60 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
   }
 
   return (
-    <div
-      className="h-full overflow-auto py-2 sm:py-4 px-0 sm:px-4"
-      style={{
-        fontFamily: 'Courier, monospace',
-        fontSize: 'clamp(10pt, 2.5vw, 12pt)',
-        lineHeight: '1.5',
-        backgroundColor: 'var(--color-bg-secondary)',
-        color: 'var(--color-text-primary)',
-      }}
-    >
-      {elements.map((element, index) => renderElement(element, index))}
-    </div>
+    <>
+      <style jsx global>{`
+        @media (max-width: 640px) {
+          .screenplay-preview-container {
+            padding: 0.5rem !important;
+            font-size: clamp(10pt, 2.5vw, 12pt) !important;
+          }
+          .screenplay-preview-container .screenplay-scene {
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
+            margin-bottom: 0.5rem !important;
+          }
+          .screenplay-preview-container .screenplay-action {
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
+            max-width: calc(100% - 1rem) !important;
+          }
+          .screenplay-preview-container .screenplay-character {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            text-align: center !important;
+          }
+          .screenplay-preview-container .screenplay-parenthetical {
+            margin-left: 1rem !important;
+            margin-right: 0.5rem !important;
+            max-width: calc(100% - 1.5rem) !important;
+          }
+          .screenplay-preview-container .screenplay-dialogue {
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
+            max-width: calc(100% - 1rem) !important;
+          }
+          .screenplay-preview-container .screenplay-transition {
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
+          }
+        }
+      `}</style>
+      <div
+        className="h-full overflow-auto screenplay-preview-container"
+        style={{
+          paddingTop: topMargin,
+          paddingBottom: bottomMargin,
+          paddingLeft: leftMargin,
+          paddingRight: rightMargin,
+          fontFamily: 'Courier, monospace',
+          fontSize: '12pt',
+          lineHeight: '1.5',
+          backgroundColor: 'var(--color-bg-secondary)',
+          color: 'var(--color-text-primary)',
+        }}
+      >
+        {elements.map((element, index) => renderElement(element, index))}
+      </div>
+    </>
   );
 }
