@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Clapperboard } from 'lucide-react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { FountainElementType, formatElement } from '@/utils/fountain';
@@ -946,9 +947,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                     
-                    {/* Find/Replace */}
+                    {/* Find/Replace - Desktop only */}
                     {onOpenFindReplace && (
-                        <div className="tooltip tooltip-bottom" data-tip="Find & Replace • Ctrl+F">
+                        <div className="tooltip tooltip-bottom hidden md:block" data-tip="Find & Replace • Ctrl+F">
                             <button
                                 onClick={onOpenFindReplace}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
@@ -957,6 +958,19 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                                 <span className="text-[8px] leading-tight">Find</span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Scenes - Mobile only (replaces Find/Replace) */}
+                    {onToggleSceneNav && (
+                        <div className="tooltip tooltip-bottom md:hidden" data-tip="Toggle Scene Navigator">
+                            <button
+                                onClick={onToggleSceneNav}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <Clapperboard className="w-3.5 h-3.5" />
+                                <span className="text-[8px] leading-tight">Scenes</span>
                             </button>
                         </div>
                     )}
