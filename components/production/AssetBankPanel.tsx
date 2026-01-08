@@ -220,23 +220,16 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
             {filteredAssets.map((asset) => {
               const allReferences: CinemaCardImage[] = [];
               
-              // 🔥 DEBUG: Log full asset structure
-              if (asset.name === 'coffee cup') {
-                console.log(`[AssetBankPanel] Full asset data for ${asset.name}:`, {
-                  id: asset.id,
-                  name: asset.name,
-                  imagesCount: asset.images?.length || 0,
-                  angleReferencesCount: asset.angleReferences?.length || 0,
-                  angleReferences: asset.angleReferences,
-                  images: asset.images?.map((img: any) => ({
-                    url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
-                    s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
-                    source: img.metadata?.source || 'unknown',
-                    metadata: img.metadata, // 🔥 DEBUG: Show full metadata
-                    angle: img.angle || img.metadata?.angle
-                  }))
-                });
-              }
+              // 🔥 DEBUG: Log asset images for ALL assets to track updates
+              console.log(`[AssetBankPanel] Rendering card for ${asset.name}:`, {
+                id: asset.id,
+                imagesCount: asset.images?.length || 0,
+                images: asset.images?.map((img: any) => ({
+                  url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
+                  s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
+                  source: img.metadata?.source || 'unknown'
+                }))
+              });
               
               // Add base images (user-uploaded, from Creation section)
               if (asset.images && asset.images.length > 0) {

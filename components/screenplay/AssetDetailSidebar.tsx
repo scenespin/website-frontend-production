@@ -529,13 +529,16 @@ export default function AssetDetailSidebar({
               isQueryActive
             });
             
-            // 🔥 FIX: setQueryData should automatically trigger re-render if query is active and data reference changed
-            // According to TanStack Query docs: setQueryData notifies all active subscribers
-            // We don't need to call invalidateQueries/refetchQueries immediately - that would cause a race condition
-            // where we refetch from server before API call completes, overwriting our optimistic update
-            // We'll invalidate/refetch AFTER the API call completes (see below)
+            // 🔥 CRITICAL FIX: Invalidate queries immediately to notify subscribers (matches Locations pattern)
+            // This ensures AssetBankPanel re-renders with the optimistic update
+            // invalidateQueries marks query as stale and notifies subscribers, triggering re-render
+            // We'll refetch after API call completes to sync with server
+            queryClient.invalidateQueries({ queryKey });
+            
             if (!isQueryActive) {
               console.log('[AssetDetailSidebar] ⚠️ Query not active - optimistic update cached, will be visible when Production Hub opens');
+            } else {
+              console.log('[AssetDetailSidebar] ✅ Notified subscribers of cache update (query is active)');
             }
           }
           
@@ -802,13 +805,16 @@ export default function AssetDetailSidebar({
           isQueryActive
         });
         
-        // 🔥 FIX: setQueryData should automatically trigger re-render if query is active and data reference changed
-        // According to TanStack Query docs: setQueryData notifies all active subscribers
-        // We don't need to call invalidateQueries/refetchQueries immediately - that would cause a race condition
-        // where we refetch from server before API call completes, overwriting our optimistic update
-        // We'll invalidate/refetch AFTER the API call completes (see below)
+        // 🔥 CRITICAL FIX: Invalidate queries immediately to notify subscribers (matches Locations pattern)
+        // This ensures AssetBankPanel re-renders with the optimistic update
+        // invalidateQueries marks query as stale and notifies subscribers, triggering re-render
+        // We'll refetch after API call completes to sync with server
+        queryClient.invalidateQueries({ queryKey });
+        
         if (!isQueryActive) {
           console.log('[AssetDetailSidebar] ⚠️ Query not active - optimistic update cached, will be visible when Production Hub opens');
+        } else {
+          console.log('[AssetDetailSidebar] ✅ Notified subscribers of cache update (query is active)');
         }
       }
       
