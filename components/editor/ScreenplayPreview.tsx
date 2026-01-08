@@ -192,14 +192,16 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             text-align: center !important;
           }
           .screenplay-preview-container .screenplay-parenthetical {
-            margin-left: 1rem !important;
-            margin-right: 0.5rem !important;
-            max-width: calc(100% - 1.5rem) !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            text-align: center !important;
+            max-width: 100% !important;
           }
           .screenplay-preview-container .screenplay-dialogue {
-            margin-left: 0.5rem !important;
-            margin-right: 0.5rem !important;
-            max-width: calc(100% - 1rem) !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            text-align: center !important;
+            max-width: 100% !important;
           }
           .screenplay-preview-container .screenplay-transition {
             margin-left: 0.5rem !important;
