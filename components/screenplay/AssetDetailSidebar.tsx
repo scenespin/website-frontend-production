@@ -505,6 +505,18 @@ export default function AssetDetailSidebar({
               updatedAssetImageCount: updatedAsset?.images?.length || 0,
               updatedAssetImages: updatedAsset?.images?.map(img => ({ url: img.url?.substring(0, 50), s3Key: img.s3Key }))
             });
+            
+            // 🔥 CRITICAL FIX: Force React Query to notify subscribers immediately
+            // setQueryData updates cache but might not trigger re-render if query isn't "active"
+            // By invalidating and immediately refetching (if active), we ensure components see the update
+            queryClient.invalidateQueries({ queryKey });
+            // Immediately refetch if query is active (this triggers re-render)
+            queryClient.refetchQueries({ 
+              queryKey,
+              type: 'active' // Only refetch if Production Hub is open
+            }).catch(() => {
+              // Query might not be active yet - that's okay, delayed refetch will handle it
+            });
           }
           
           // Register all images with the asset via ScreenplayContext (updates both API and local state)
@@ -517,13 +529,9 @@ export default function AssetDetailSidebar({
             queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
           }
           
-          // 🔥 CRITICAL FIX: After optimistic update, DON'T remove queries - that wipes out the optimistic update!
-          // Instead, just invalidate (mark as stale) and refetch after delay
-          // The optimistic update stays in cache until refetch replaces it with real data
+          // 🔥 CRITICAL FIX: After API update, refetch again after delay to sync with backend
+          // This ensures we have the latest data from DynamoDB (handles eventual consistency)
           if (screenplayId) {
-            // Invalidate to mark as stale (but keep optimistic data until refetch)
-            queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            // Force refetch after delay to sync with backend (replaces optimistic data with real data)
             setTimeout(() => {
               queryClient.refetchQueries({ 
                 queryKey: ['assets', screenplayId, 'production-hub'],
@@ -740,6 +748,18 @@ export default function AssetDetailSidebar({
           cacheLength: cacheAfter?.length || 0,
           updatedAssetImageCount: updatedAsset?.images?.length || 0
         });
+        
+        // 🔥 CRITICAL FIX: Force React Query to notify subscribers immediately
+        // setQueryData updates cache but might not trigger re-render if query isn't "active"
+        // By invalidating and immediately refetching (if active), we ensure components see the update
+        queryClient.invalidateQueries({ queryKey });
+        // Immediately refetch if query is active (this triggers re-render)
+        queryClient.refetchQueries({ 
+          queryKey,
+          type: 'active' // Only refetch if Production Hub is open
+        }).catch(() => {
+          // Query might not be active yet - that's okay, delayed refetch will handle it
+        });
       }
       
       // Update via API
@@ -750,13 +770,9 @@ export default function AssetDetailSidebar({
         queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       }
       
-      // 🔥 CRITICAL FIX: After optimistic update, DON'T remove queries - that wipes out the optimistic update!
-      // Instead, just invalidate (mark as stale) and refetch after delay
-      // The optimistic update stays in cache until refetch replaces it with real data
+      // 🔥 CRITICAL FIX: After API update, refetch again after delay to sync with backend
+      // This ensures we have the latest data from DynamoDB (handles eventual consistency)
       if (screenplayId) {
-        // Invalidate to mark as stale (but keep optimistic data until refetch)
-        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        // Force refetch after delay to sync with backend (replaces optimistic data with real data)
         setTimeout(() => {
           queryClient.refetchQueries({ 
             queryKey: ['assets', screenplayId, 'production-hub'],
