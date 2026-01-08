@@ -15,7 +15,6 @@ import { DrawerProvider } from "@/contexts/DrawerContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { QueryClientProvider } from "@/providers/QueryClientProvider";
 import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
-import { MobileBanner } from "@/components/ui/MobileBanner";
 // Temporarily disabled - Mobile Debug Panel (bug drawer on mobile)
 // import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
 
@@ -255,9 +254,6 @@ const ClientLayout = ({ children }) => {
 
           {/* Show a progress bar at the top when navigating between pages */}
           <NextTopLoader color={config.colors.main} showSpinner={false} />
-
-          {/* Mobile banner - recommends desktop for best experience */}
-          <MobileBanner />
 
           {/* Mobile Debug Panel - TEMPORARILY DISABLED: Commented out as not needed currently */}
           {/* <MobileDebugPanel /> */}
