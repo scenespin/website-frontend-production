@@ -34,6 +34,7 @@ import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
 import { ModernGallery } from './Gallery/ModernGallery';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAssets } from '@/hooks/useAssetBank';
 
 /**
  * Get display label for provider ID
@@ -78,6 +79,25 @@ export default function AssetDetailModal({
   // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
   // 🔥 FIX: Use screenplayId (primary) with projectId fallback for backward compatibility
   const screenplayId = asset?.screenplayId || asset?.projectId;
+  
+  // 🔥 FIX: Use React Query hook directly to get latest assets (same as CharacterDetailModal/LocationDetailModal)
+  const { data: queryAssets = [] } = useAssets(
+    screenplayId || '',
+    'production-hub',
+    !!screenplayId && isOpen // Only fetch when modal is open
+  );
+  
+  // 🔥 FIX: Get latest asset from React Query cache (always up-to-date)
+  // This ensures UI updates immediately when cache changes (optimistic updates + refetches)
+  const latestAsset = useMemo(() => {
+    const queryAsset = queryAssets.find(a => a.id === asset.id);
+    if (queryAsset) {
+      // Use query asset (always fresh from cache)
+      return queryAsset;
+    }
+    // Fallback to prop if not in cache yet
+    return asset;
+  }, [queryAssets, asset.id, asset]);
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('references');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -167,7 +187,7 @@ export default function AssetDetailModal({
       if (!token) throw new Error('Not authenticated');
 
       const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-      const response = await fetch(`${BACKEND_API_URL}/api/asset-bank/${asset.id}/regenerate-angle?screenplayId=${screenplayId}`, {
+      const response = await fetch(`${BACKEND_API_URL}/api/asset-bank/${latestAsset.id}/regenerate-angle?screenplayId=${screenplayId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -203,8 +223,8 @@ export default function AssetDetailModal({
     }
   };
 
-  const categoryMeta = ASSET_CATEGORY_METADATA[asset.category];
-  const assetImages = asset.images || []; // Safety check for undefined images
+  const categoryMeta = ASSET_CATEGORY_METADATA[latestAsset.category];
+  const assetImages = latestAsset.images || []; // Safety check for undefined images
   
   // 🔥 PHASE 1: Media Library as Primary Source
   // Query Media Library FIRST for active files (creation images + angle references)
@@ -232,7 +252,7 @@ export default function AssetDetailModal({
   // Merge Media Library files
   const mediaFiles = useMemo(() => {
     const entityS3Keys = new Set(entityMediaFiles.map((f: any) => f.s3Key).filter(Boolean));
-    const assetIdPattern = `asset/${asset.id}/`;
+    const assetIdPattern = `asset/${latestAsset.id}/`;
     
     const filtered = allMediaFiles.filter((file: any) => {
       if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return false;
@@ -240,14 +260,14 @@ export default function AssetDetailModal({
       
       const entityType = (file as any).entityType || file.metadata?.entityType;
       const entityId = (file as any).entityId || file.metadata?.entityId;
-      if (entityType === 'asset' && entityId === asset.id) {
+      if (entityType === 'asset' && entityId === latestAsset.id) {
         return true;
       }
       return file.s3Key.includes(assetIdPattern);
     });
     
     return [...entityMediaFiles, ...filtered];
-  }, [entityMediaFiles, allMediaFiles, asset.id, isOpen]);
+  }, [entityMediaFiles, allMediaFiles, latestAsset.id, isOpen]);
   
   // Create metadata maps from asset prop (DynamoDB) for enrichment
   const dynamoDBMetadataMap = useMemo(() => {
@@ -262,7 +282,7 @@ export default function AssetDetailModal({
         const s3Key = img.s3Key || img.metadata?.s3Key;
         map.set(s3Key, {
           id: `img-${idx}`,
-          label: `${asset.name} - Image ${idx + 1}`,
+          label: `${latestAsset.name} - Image ${idx + 1}`,
           isBase: idx === 0,
           isAngleReference: false,
           isCreationImage: true,
@@ -271,13 +291,13 @@ export default function AssetDetailModal({
       }
     });
     
-    // Add angleReferences metadata (from asset.angleReferences)
-    const angleReferences = asset.angleReferences || [];
+    // Add angleReferences metadata (from latestAsset.angleReferences)
+    const angleReferences = latestAsset.angleReferences || [];
     angleReferences.forEach((ref: any) => {
       if (ref.s3Key) {
         map.set(ref.s3Key, {
           id: ref.id || `angle-${ref.angle || 'unknown'}`,
-          label: `${asset.name} - ${ref.angle || 'Angle'} view`,
+          label: `${latestAsset.name} - ${ref.angle || 'Angle'} view`,
           isBase: false,
           isAngleReference: true,
           isCreationImage: false,
@@ -298,7 +318,7 @@ export default function AssetDetailModal({
     });
     
     return map;
-  }, [asset.images, asset.angleReferences, asset.name]);
+  }, [latestAsset.images, latestAsset.angleReferences, latestAsset.name]);
   
   // Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
   const imagesFromMediaLibrary = useMemo(() => {
@@ -334,7 +354,7 @@ export default function AssetDetailModal({
       // Get label from DynamoDB metadata or Media Library
       const label = dynamoMetadata?.label ||
                     file.fileName?.replace(/\.[^/.]+$/, '') ||
-                    `${asset.name} - Image ${index + 1}`;
+                    `${latestAsset.name} - Image ${index + 1}`;
       
       images.push({
         id: dynamoMetadata?.id || file.id || `img-${index}`,
@@ -362,7 +382,7 @@ export default function AssetDetailModal({
       }
       return a.index - b.index;
     });
-  }, [mediaFiles, dynamoDBMetadataMap, asset.name]);
+  }, [mediaFiles, dynamoDBMetadataMap, latestAsset.name]);
   
   // Generate presigned URLs for Media Library images
   const mediaLibraryS3Keys = useMemo(() =>
@@ -411,7 +431,7 @@ export default function AssetDetailModal({
             id: `img-${idx}`,
             imageUrl: img.url || '',
             s3Key,
-            label: `${asset.name} - Image ${idx + 1}`,
+            label: `${latestAsset.name} - Image ${idx + 1}`,
             isBase: idx === 0,
             isAngleReference: false,
             metadata: img.metadata || {},
@@ -430,7 +450,7 @@ export default function AssetDetailModal({
           id: ref.id || `angle-${ref.angle || 'unknown'}`,
           imageUrl: ref.imageUrl || '',
           s3Key: ref.s3Key,
-          label: `${asset.name} - ${ref.angle || 'Angle'} view`,
+          label: `${latestAsset.name} - ${ref.angle || 'Angle'} view`,
           isBase: false,
           isAngleReference: true,
           angle: ref.angle,
@@ -451,7 +471,7 @@ export default function AssetDetailModal({
     });
     
     return fallback;
-  }, [asset.images, asset.angleReferences, asset.name, mediaLibraryS3Keys]);
+  }, [latestAsset.images, latestAsset.angleReferences, latestAsset.name, mediaLibraryS3Keys]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from asset prop)
   const allImages = useMemo(() => {
@@ -535,8 +555,8 @@ export default function AssetDetailModal({
   useEffect(() => {
     if (isOpen) {
       console.log('[AssetDetailModal] Asset images:', {
-        assetId: asset.id,
-        assetName: asset.name,
+        assetId: latestAsset.id,
+        assetName: latestAsset.name,
         mediaLibraryFilesCount: mediaFiles.length,
         imagesFromMediaLibraryCount: imagesFromMediaLibrary.length,
         enrichedMediaLibraryImagesCount: enrichedMediaLibraryImages.length,
@@ -547,7 +567,7 @@ export default function AssetDetailModal({
         canGenerateAngles,
       });
     }
-  }, [isOpen, asset.id, asset.name, mediaFiles.length, imagesFromMediaLibrary.length, enrichedMediaLibraryImages.length, fallbackImages.length, allImages.length, userImages.length, angleImageObjects.length, canGenerateAngles]);
+  }, [isOpen, latestAsset.id, latestAsset.name, mediaFiles.length, imagesFromMediaLibrary.length, enrichedMediaLibraryImages.length, fallbackImages.length, allImages.length, userImages.length, angleImageObjects.length, canGenerateAngles]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -573,7 +593,7 @@ export default function AssetDetailModal({
         const formData = new FormData();
         formData.append('image', file);
 
-        const response = await fetch(`/api/asset-bank/${asset.id}/images`, {
+        const response = await fetch(`/api/asset-bank/${latestAsset.id}/images`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -650,7 +670,7 @@ export default function AssetDetailModal({
 
   const getCategoryIcon = (size: string = 'w-6 h-6') => {
     const icons = { prop: Package, vehicle: Car, furniture: Armchair, other: Box };
-    const Icon = icons[asset.category];
+    const Icon = icons[latestAsset.category];
     return <Icon className={size} />;
   };
 
@@ -693,7 +713,7 @@ export default function AssetDetailModal({
                       </div>
                     )}
                     <h2 className={`font-bold text-[#FFFFFF] truncate ${isMobile ? 'text-base' : 'text-xl'}`}>
-                      {asset.name}
+                      {latestAsset.name}
                     </h2>
                   </div>
                   {isMobile ? (
@@ -875,7 +895,7 @@ export default function AssetDetailModal({
                     <div className="space-y-4">
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Name</label>
-                        <p className="text-[#FFFFFF]">{asset.name}</p>
+                        <p className="text-[#FFFFFF]">{latestAsset.name}</p>
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Category</label>
@@ -1147,7 +1167,7 @@ export default function AssetDetailModal({
                                         try {
                                           // Generate filename from metadata
                                           const angle = img.metadata?.angle || img.angle || 'angle';
-                                          const filename = `${asset.name}_${angle.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
+                                          const filename = `${latestAsset.name}_${angle.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
                                           await downloadImageAsBlob(img.imageUrl, filename, img.s3Key);
                                         } catch (error: any) {
                                           toast.error('Failed to download image');
@@ -1212,12 +1232,22 @@ export default function AssetDetailModal({
                                           }
                                           
                                           // Use exact same working pattern as location backgrounds: filter derived data, then update
-                                          const updatedAngleReferences = (asset.angleReferences || []).filter(
+                                          const updatedAngleReferences = (latestAsset.angleReferences || []).filter(
                                             (ref: any) => ref.s3Key !== img.s3Key
                                           );
                                           
+                                          // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
+                                          queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
+                                            if (!old) return old;
+                                            return old.map(a => 
+                                              a.id === latestAsset.id
+                                                ? { ...a, angleReferences: updatedAngleReferences }
+                                                : a
+                                            );
+                                          });
+                                          
                                           // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
-                                          const response = await fetch(`/api/asset-bank/${asset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+                                          const response = await fetch(`/api/asset-bank/${latestAsset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                                             method: 'PUT',
                                             headers: {
                                               'Content-Type': 'application/json',
@@ -1333,12 +1363,12 @@ export default function AssetDetailModal({
         onClose={() => {
           setShowAngleModal(false);
         }}
-        assetId={asset.id}
-        assetName={asset.name}
-        projectId={screenplayId || asset.projectId || ''}
-        asset={asset}
+        assetId={latestAsset.id}
+        assetName={latestAsset.name}
+        projectId={screenplayId || latestAsset.projectId || ''}
+        asset={latestAsset}
         onComplete={async (result) => {
-          toast.success(`Angle generation started for ${asset.name}!`, {
+          toast.success(`Angle generation started for ${latestAsset.name}!`, {
             description: 'Check the Jobs tab to track progress.'
           });
           setShowAngleModal(false);
@@ -1451,12 +1481,22 @@ export default function AssetDetailModal({
                   }
                   
                   // Batch delete: Remove all selected angle references in one update
-                  const updatedAngleReferences = (asset.angleReferences || []).filter((ref: any) => 
+                  const updatedAngleReferences = (latestAsset.angleReferences || []).filter((ref: any) => 
                     !s3KeysToDelete.has(ref.s3Key)
                   );
                   
+                  // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
+                  queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
+                    if (!old) return old;
+                    return old.map(a => 
+                      a.id === latestAsset.id
+                        ? { ...a, angleReferences: updatedAngleReferences }
+                        : a
+                    );
+                  });
+                  
                   // Make API call to update asset (same pattern as single deletion)
-                  const response = await fetch(`/api/asset-bank/${asset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+                  const response = await fetch(`/api/asset-bank/${latestAsset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                     method: 'PUT',
                     headers: {
                       'Content-Type': 'application/json',
@@ -1492,7 +1532,7 @@ export default function AssetDetailModal({
                   // Update asset via callback if provided
                   if (onAssetUpdate) {
                     onAssetUpdate({
-                      ...asset,
+                      ...latestAsset,
                       angleReferences: updatedAngleReferences
                     });
                   }

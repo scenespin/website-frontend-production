@@ -2273,6 +2273,16 @@ export function CharacterDetailModal({
                                               return refS3Key !== img.s3Key;
                                             });
                                             
+                                            // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
+                                            queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
+                                              if (!old) return old;
+                                              return old.map(char => 
+                                                char.id === latestCharacter.id
+                                                  ? { ...char, poseReferences: updatedPoseReferences, angleReferences: updatedPoseReferences }
+                                                  : char
+                                              );
+                                            });
+                                            
                                             // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
                                             await onUpdate(latestCharacter.id, { 
                                               poseReferences: updatedPoseReferences
@@ -2283,6 +2293,16 @@ export function CharacterDetailModal({
                                             const updatedReferences = currentReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== img.s3Key;
+                                            });
+                                            
+                                            // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
+                                            queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
+                                              if (!old) return old;
+                                              return old.map(char => 
+                                                char.id === latestCharacter.id
+                                                  ? { ...char, references: updatedReferences }
+                                                  : char
+                                              );
                                             });
                                             
                                             // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
