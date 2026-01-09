@@ -23,7 +23,8 @@ export interface AssetCardProps {
   className?: string;
 }
 
-export const AssetCard = React.memo<AssetCardProps>(({ 
+// 🔥 TEMPORARY: Remove React.memo to debug - will add back with better comparison
+export const AssetCard = (({ 
   asset, 
   onClick, 
   isSelected = false,
@@ -192,67 +193,6 @@ export const AssetCard = React.memo<AssetCardProps>(({
       </div>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // 🔥 CRITICAL: Custom comparison function for React.memo
-  // Return true = props are equal, don't re-render
-  // Return false = props are different, re-render
-  
-  // Always re-render if asset ID changes (different asset)
-  if (prevProps.asset.id !== nextProps.asset.id) {
-    console.log(`[AssetCard] Re-rendering: asset ID changed (${prevProps.asset.id} -> ${nextProps.asset.id})`);
-    return false;
-  }
-  
-  // Always re-render if selection state changes
-  if (prevProps.isSelected !== nextProps.isSelected) {
-    console.log(`[AssetCard] Re-rendering: selection changed`);
-    return false;
-  }
-  
-  // Compare images array - use JSON.stringify for deep comparison (simpler and more reliable)
-  const prevImagesStr = JSON.stringify((prevProps.asset.images || []).map(img => ({ 
-    s3Key: img.s3Key, 
-    url: img.url,
-    source: img.metadata?.source 
-  })));
-  const nextImagesStr = JSON.stringify((nextProps.asset.images || []).map(img => ({ 
-    s3Key: img.s3Key, 
-    url: img.url,
-    source: img.metadata?.source 
-  })));
-  
-  if (prevImagesStr !== nextImagesStr) {
-    console.log(`[AssetCard] Re-rendering: images changed for ${prevProps.asset.name}`, {
-      prevCount: prevProps.asset.images?.length || 0,
-      nextCount: nextProps.asset.images?.length || 0
-    });
-    return false;
-  }
-  
-  // Compare angleReferences
-  const prevAngleRefsStr = JSON.stringify((prevProps.asset.angleReferences || []).map(ref => ({ 
-    s3Key: ref.s3Key, 
-    imageUrl: ref.imageUrl 
-  })));
-  const nextAngleRefsStr = JSON.stringify((nextProps.asset.angleReferences || []).map(ref => ({ 
-    s3Key: ref.s3Key, 
-    imageUrl: ref.imageUrl 
-  })));
-  
-  if (prevAngleRefsStr !== nextAngleRefsStr) {
-    console.log(`[AssetCard] Re-rendering: angleReferences changed for ${prevProps.asset.name}`);
-    return false;
-  }
-  
-  // Compare name (in case it changed)
-  if (prevProps.asset.name !== nextProps.asset.name) {
-    console.log(`[AssetCard] Re-rendering: name changed`);
-    return false;
-  }
-  
-  // If all checks pass, props are equal - don't re-render
-  console.log(`[AssetCard] Skipping re-render: no changes detected for ${prevProps.asset.name}`);
-  return true;
-});
+}) as React.FC<AssetCardProps>;
 
 AssetCard.displayName = 'AssetCard';
