@@ -190,16 +190,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
     }, [state.isFocusMode, toggleFocusMode]);
-
-    // Detect mobile for dropdown close button
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768); // md breakpoint
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
     
     // ========================================================================
     // 🔥 FEATURE 0116: SCRIPT IMPORT MODAL (Clean & Simple)
