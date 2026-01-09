@@ -10,7 +10,6 @@ import FountainEditor from './FountainEditor';
 import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
 import EditorToolbar from './EditorToolbar';
-import { useDrawer } from '@/contexts/DrawerContext';
 import EditorLockBanner from './EditorLockBanner';
 import SceneNavigator from './SceneNavigator';
 import AgentFABGroup from './AgentFABGroup';
