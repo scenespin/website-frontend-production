@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { FountainElementType, formatElement } from '@/utils/fountain';
+import { FountainElementType, formatElement, detectElementType } from '@/utils/fountain';
 import { saveToGitHub } from '@/utils/github';
 import { toast } from 'sonner';
 import ScriptImportModal from './ScriptImportModal';
@@ -139,7 +139,7 @@ function ExportToGitHubButton() {
  * Theme-aware styling with DaisyUI classes
  */
 export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onToggleSceneNav }: EditorToolbarProps) {
-    const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow, isEditorLocked, isPreviewMode: contextPreviewMode, setIsPreviewMode } = useEditor();
+    const { state, setContent, setCursorPosition, toggleFocusMode, setFontSize, undo, redo, saveNow, isEditorLocked, isPreviewMode: contextPreviewMode, setIsPreviewMode } = useEditor();
     
     // Use prop if provided, otherwise use context
     const effectivePreviewMode = isPreviewMode !== undefined ? isPreviewMode : contextPreviewMode;
@@ -320,6 +320,55 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             setContent(newContent);
         }
     };
+
+    // Wryda Smart Tab button handler
+    const handleWrydaTabButton = () => {
+        const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        const cursorPos = textarea.selectionStart;
+        const textBeforeCursor = state.content.substring(0, cursorPos);
+        const textAfterCursor = state.content.substring(cursorPos);
+        const lines = textBeforeCursor.split('\n');
+        const currentLineText = lines[lines.length - 1] || '';
+        
+        // Check if current line is already a scene heading
+        const elementType = detectElementType(currentLineText);
+        
+        // If not a scene heading, insert "INT. " first
+        if (elementType !== 'scene_heading') {
+            const newTextBefore = textBeforeCursor + 'INT. ';
+            const newContent = newTextBefore + textAfterCursor;
+            setContent(newContent);
+            
+            // Wait for content update, then trigger Tab
+            setTimeout(() => {
+                if (textarea) {
+                    const newPos = newTextBefore.length;
+                    textarea.selectionStart = newPos;
+                    textarea.selectionEnd = newPos;
+                    setCursorPosition(newPos);
+                    // Trigger Tab key event
+                    const tabEvent = new KeyboardEvent('keydown', {
+                        key: 'Tab',
+                        code: 'Tab',
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    textarea.dispatchEvent(tabEvent);
+                }
+            }, 0);
+        } else {
+            // Already a scene heading, just trigger Tab
+            const tabEvent = new KeyboardEvent('keydown', {
+                key: 'Tab',
+                code: 'Tab',
+                bubbles: true,
+                cancelable: true
+            });
+            textarea.dispatchEvent(tabEvent);
+        }
+    };
     
     const increaseFontSize = () => {
         if (state.fontSize < 24) {
@@ -382,23 +431,13 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 
                 {/* Quick Formatting buttons */}
                 <div className="flex space-x-1">
-                    <div className="tooltip tooltip-bottom" data-tip="Scene Heading • Shift+Tab • Ex: INT. COFFEE SHOP - DAY">
+                    <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
                         <button
-                            onClick={() => formatCurrentLine('scene_heading')}
+                            onClick={handleWrydaTabButton}
                             className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                         >
-                            <span className="text-base">🎬</span>
-                            <span className="text-[9px] hidden sm:inline">SCENE</span>
-                        </button>
-                    </div>
-                    
-                    <div className="tooltip tooltip-bottom" data-tip="Character Name • Tab • Ex: SARAH">
-                        <button
-                            onClick={() => formatCurrentLine('character')}
-                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-base">👤</span>
-                            <span className="text-[9px] hidden sm:inline">CHAR</span>
+                            <span className="text-base font-bold">AW</span>
+                            <span className="text-[9px] hidden sm:inline">TAB</span>
                         </button>
                     </div>
                     
@@ -874,25 +913,14 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                     
-                    {/* Scene Heading */}
-                    <div className="tooltip tooltip-bottom" data-tip="Scene Heading • Shift+Tab">
+                    {/* Wryda Smart Tab */}
+                    <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
                         <button
-                            onClick={() => formatCurrentLine('scene_heading')}
+                            onClick={handleWrydaTabButton}
                             className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
                         >
-                            <span className="text-sm">🎬</span>
-                            <span className="text-[8px] leading-tight">Scene</span>
-                        </button>
-                    </div>
-                    
-                    {/* Character */}
-                    <div className="tooltip tooltip-bottom" data-tip="Character Name • Tab">
-                        <button
-                            onClick={() => formatCurrentLine('character')}
-                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-sm">👤</span>
-                            <span className="text-[8px] leading-tight">Char</span>
+                            <span className="text-sm font-bold">AW</span>
+                            <span className="text-[8px] leading-tight">TAB</span>
                         </button>
                     </div>
                     
