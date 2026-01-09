@@ -402,6 +402,172 @@ export default function EditorWorkspace() {
         toast.success('Text rewritten successfully');
     };
     
+    // Scene type items for dropdown
+    const sceneTypeItems = [
+        { id: 'int', label: 'INT.' },
+        { id: 'ext', label: 'EXT.' },
+        { id: 'int-ext', label: 'INT./EXT.' }
+    ];
+    
+    // Calculate dropdown position near cursor (exact same logic as SmartTypeDropdown)
+    const getCursorDropdownPosition = (): { top: number; left: number; above?: boolean } | null => {
+        const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                        document.querySelector('textarea') as HTMLTextAreaElement;
+        if (!textarea) return null;
+
+        const cursorPos = textarea.selectionStart;
+        
+        // Get textarea position
+        const textareaRect = textarea.getBoundingClientRect();
+        const lines = state.content.substring(0, cursorPos).split('\n');
+        const lineNumber = lines.length - 1;
+        const currentLineText = lines[lines.length - 1] || '';
+        const cursorInLine = currentLineText.length;
+        
+        // Get actual line height from computed style
+        const computedStyle = window.getComputedStyle(textarea);
+        const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+        const fontSize = parseFloat(computedStyle.fontSize) || 16;
+        const charWidth = fontSize * 0.6; // More accurate character width estimate (monospace)
+        
+        // Account for padding
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+        
+        // Calculate cursor position
+        const lineTop = textareaRect.top + paddingTop + (lineNumber * lineHeight);
+        const cursorLeft = textareaRect.left + paddingLeft + (cursorInLine * charWidth);
+        
+        // Use visualViewport on mobile to account for keyboard
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        const viewportTop = window.visualViewport?.offsetTop || 0;
+        
+        const dropdownHeight = 256; // max-h-64 = 256px (matching SmartTypeDropdown)
+        const spaceBelow = viewportHeight - (lineTop - viewportTop) - lineHeight;
+        const spaceAbove = lineTop - viewportTop;
+        
+        // On mobile, prefer showing above to avoid keyboard
+        const isMobileCheck = window.innerWidth < 768;
+        const showAbove = isMobileCheck 
+            ? (spaceBelow < dropdownHeight + 50 || spaceAbove > spaceBelow) // Prefer above on mobile
+            : (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight);
+        
+        const baseTop = lineTop + lineHeight;
+        
+        // Calculate position - align with text line, slightly below
+        let top = showAbove 
+            ? baseTop - dropdownHeight - 2  // Show above with 2px gap
+            : lineTop + 2;                    // Show below, aligned with line start (2px below line)
+        // Align left with text area padding (where text starts), not cursor position
+        let left = textareaRect.left + paddingLeft;
+        
+        // Ensure dropdown stays within viewport bounds
+        const viewportWidth = window.innerWidth;
+        const dropdownWidth = 288; // w-72 = 288px
+        
+        // Clamp left position to viewport
+        if (left + dropdownWidth > viewportWidth - 20) {
+            left = viewportWidth - dropdownWidth - 20;
+        }
+        if (left < 10) {
+            left = 10;
+        }
+        
+        // Clamp top position to viewport
+        if (top < 10) {
+            top = 10;
+        }
+        if (top + dropdownHeight > viewportHeight - 10) {
+            top = viewportHeight - dropdownHeight - 10;
+        }
+        
+        return { top, left, above: showAbove };
+    };
+    
+    // Insert scene type and trigger smart tab navigation
+    const insertSceneTypeAndTab = useCallback((sceneType: { id: string; label: string }) => {
+        console.log('[NAV-DIAG] EditorWorkspace: Closing scene type dropdown, inserting:', sceneType.label);
+        setShowSceneTypeDropdown(false);
+        setSceneTypeDropdownPosition(null);
+        
+        const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                        document.querySelector('textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        // Use saved cursor position (from when button was clicked) instead of current position
+        const cursorPos = savedCursorPositionRef.current ?? textarea.selectionStart;
+        savedCursorPositionRef.current = null; // Clear after use
+        
+        const textBeforeCursor = state.content.substring(0, cursorPos);
+        const textAfterCursor = state.content.substring(cursorPos);
+        
+        // Insert selected type with space
+        const newTextBefore = textBeforeCursor + sceneType.label + ' ';
+        const newContent = newTextBefore + textAfterCursor;
+        setContent(newContent);
+        
+        // Wait for content update, then trigger Tab
+        setTimeout(() => {
+            if (textarea) {
+                const newPos = newTextBefore.length;
+                textarea.selectionStart = newPos;
+                textarea.selectionEnd = newPos;
+                setCursorPosition(newPos);
+                // Trigger Tab key event
+                console.log('[NAV-DIAG] EditorWorkspace: Dispatching synthetic Tab event');
+                const tabEvent = new KeyboardEvent('keydown', {
+                    key: 'Tab',
+                    code: 'Tab',
+                    bubbles: true,
+                    cancelable: true
+                });
+                textarea.dispatchEvent(tabEvent);
+            }
+        }, 0);
+    }, [state.content, setContent, setCursorPosition]);
+    
+    // Wryda Smart Tab button handler
+    const handleWrydaTabButton = useCallback((e?: React.MouseEvent | React.SyntheticEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                        document.querySelector('textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        // Save cursor position BEFORE showing dropdown (before textarea potentially loses focus)
+        const cursorPos = textarea.selectionStart;
+        savedCursorPositionRef.current = cursorPos;
+        
+        const textBeforeCursor = state.content.substring(0, cursorPos);
+        const lines = textBeforeCursor.split('\n');
+        const currentLineText = lines[lines.length - 1] || '';
+        
+        // Check if current line is already a scene heading
+        const elementType = detectElementType(currentLineText);
+        
+        if (elementType === 'scene_heading') {
+            // Already a scene heading, just trigger Tab (don't show dropdown)
+            const tabEvent = new KeyboardEvent('keydown', {
+                key: 'Tab',
+                code: 'Tab',
+                bubbles: true,
+                cancelable: true
+            });
+            textarea.dispatchEvent(tabEvent);
+        } else {
+            // Not a scene heading, calculate position and show dropdown
+            const position = getCursorDropdownPosition();
+            if (position) {
+                console.log('[NAV-DIAG] EditorWorkspace: Opening scene type dropdown');
+                setSceneTypeDropdownPosition(position);
+                setShowSceneTypeDropdown(true);
+            }
+        }
+    }, [state.content]);
+    
     // Track navigation attempts for diagnostics
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
@@ -759,13 +925,6 @@ Tip:
                     }}
                 />
             )}
-            
-            {/* Wryda Tab FAB - Mobile only, bottom-left */}
-            <WrydaTabFAB
-                onWrydaTabClick={handleWrydaTabButton}
-                isDrawerOpen={isDrawerOpen}
-                isMobile={isMobile}
-            />
             
             {/* Scene Type Dropdown */}
             {showSceneTypeDropdown && sceneTypeDropdownPosition && (
