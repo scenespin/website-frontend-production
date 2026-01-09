@@ -16,9 +16,9 @@ import AssetDetailModal from './AssetDetailModal';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { toast } from 'sonner';
+import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssets } from '@/hooks/useAssetBank';
-import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 
 interface AssetBankPanelProps {
   className?: string;
@@ -42,30 +42,6 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
   );
 
   const isLoading = queryLoading;
-  
-  // 🔥 DEBUG: Log when assets data changes
-  useEffect(() => {
-    console.log('[AssetBankPanel] 🔍 Assets data changed:', {
-      assetCount: assets.length,
-      assets: assets.map(a => ({
-        id: a.id,
-        name: a.name,
-        imageCount: a.images?.length || 0,
-        angleReferencesCount: a.angleReferences?.length || 0,
-        images: a.images?.map(img => ({ 
-          url: img.url?.substring(0, 50), 
-          s3Key: img.s3Key?.substring(0, 80),
-          source: img.metadata?.source || 'unknown',
-          createdIn: img.metadata?.createdIn || 'unknown'
-        })),
-        angleReferences: a.angleReferences?.map(ref => ({
-          s3Key: ref.s3Key?.substring(0, 80),
-          angle: ref.angle,
-          hasImageUrl: !!ref.imageUrl
-        })) || []
-      }))
-    });
-  }, [assets]);
 
   // Local UI state only
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
@@ -141,10 +117,6 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
       toast.error(`Failed to update asset: ${error.message}`);
     }
   }
-
-  // 🔥 MATCH LOCATIONS PATTERN: Use asset.images directly (backend already provides presigned URLs)
-  // Media Library is NOT used for cards - only modals use Media Library
-  // This matches LocationBankPanel which uses location.images directly
 
   const filteredAssets = selectedCategory === 'all'
     ? assets
@@ -233,42 +205,79 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
             {filteredAssets.map((asset) => {
-              // 🔥 COPY LOCATIONS PATTERN EXACTLY: Process images inline, use CinemaCard
               const allReferences: CinemaCardImage[] = [];
               
-              // Process asset.images array (matches location.images pattern exactly)
-              if (asset.images && Array.isArray(asset.images) && asset.images.length > 0) {
-                asset.images.forEach((img: any) => {
-                  // Use imageUrl (standardize to imageUrl like locations use)
-                  const imageUrl = img.imageUrl || img.url;
-                  if (imageUrl) {
+              // 🔥 DEBUG: Log full asset structure
+              if (asset.name === 'coffee cup') {
+                console.log(`[AssetBankPanel] Full asset data for ${asset.name}:`, {
+                  id: asset.id,
+                  name: asset.name,
+                  imagesCount: asset.images?.length || 0,
+                  angleReferencesCount: asset.angleReferences?.length || 0,
+                  angleReferences: asset.angleReferences,
+                  images: asset.images?.map((img: any) => ({
+                    url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
+                    s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
+                    source: img.metadata?.source || 'unknown',
+                    metadata: img.metadata, // 🔥 DEBUG: Show full metadata
+                    angle: img.angle || img.metadata?.angle
+                  }))
+                });
+              }
+              
+              // Add base images (user-uploaded, from Creation section)
+              if (asset.images && asset.images.length > 0) {
+                asset.images.forEach((img, idx) => {
+                  // Only add images that are NOT angle-generated (those go in angleReferences section)
+                  const isAngleGenerated = img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation';
+                  if (!isAngleGenerated) {
                     allReferences.push({
-                      id: img.s3Key || img.metadata?.s3Key || `img-${asset.id}-${allReferences.length}`,
-                      imageUrl: imageUrl,
-                      label: `${asset.name} - Image ${allReferences.length + 1}`
+                      id: img.s3Key || `img-${asset.id}-${idx}`,
+                      imageUrl: img.url,
+                      label: `${asset.name} - Image ${idx + 1}`
                     });
                   }
                 });
               }
               
-              // Add angle references (Production Hub images) - matches location.angleVariations pattern
+              // Add angle references (like locations add angleVariations)
+              // 🔥 FIX: Use EITHER angleReferences OR angleImages from images array, but NOT both (prevents double-counting)
               const angleRefs = asset.angleReferences || [];
+              const angleImages = asset.images?.filter((img: any) => 
+                img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation'
+              ) || [];
+              
+              // Prefer angleReferences if it exists and has items, otherwise use angleImages from images array
               if (angleRefs.length > 0) {
-                angleRefs.forEach((ref: any) => {
-                  // Use imageUrl (matches location pattern)
-                  const imageUrl = ref.imageUrl || ref.url;
-                  if (imageUrl) {
+                console.log(`[AssetBankPanel] Found ${angleRefs.length} angle references for ${asset.name}:`, angleRefs);
+                // Add angleReferences from dedicated field
+                angleRefs.forEach((ref, idx) => {
+                  if (ref && ref.imageUrl) {
                     allReferences.push({
-                      id: ref.s3Key || `angle-${asset.id}-${allReferences.length}`,
-                      imageUrl: imageUrl,
+                      id: ref.s3Key || `angle-${asset.id}-${idx}`,
+                      imageUrl: ref.imageUrl,
                       label: `${asset.name} - ${ref.angle || 'angle'} view`
                     });
+                  } else if (ref && !ref.imageUrl) {
+                    console.warn(`[AssetBankPanel] Angle reference missing imageUrl for ${asset.name}:`, ref);
                   }
                 });
+              } else if (angleImages.length > 0) {
+                console.log(`[AssetBankPanel] Found ${angleImages.length} angle images in images array for ${asset.name}:`, angleImages);
+                // Add angle images from images array (backend merges them here)
+                angleImages.forEach((img, idx) => {
+                  allReferences.push({
+                    id: img.s3Key || `angle-img-${asset.id}-${idx}`,
+                    imageUrl: img.url,
+                    label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
+                  });
+                });
+              } else if (asset.name === 'coffee cup') {
+                console.warn(`[AssetBankPanel] ⚠️ No angleReferences or angle images found for ${asset.name}`);
+                console.log(`[AssetBankPanel] Full images array:`, asset.images);
               }
-              
-              const categoryMetadata = ASSET_CATEGORY_METADATA[asset.category];
-              const metadata = `${allReferences.length} image${allReferences.length !== 1 ? 's' : ''}`;
+
+              const metadata = `${allReferences.length} images`;
 
               return (
                 <CinemaCard
@@ -276,18 +285,17 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
                   id={asset.id}
                   name={asset.name}
                   type={asset.category}
-                  typeLabel={categoryMetadata.label}
+                  typeLabel={ASSET_CATEGORY_METADATA[asset.category].label}
                   mainImage={allReferences.length > 0 ? allReferences[0] : null}
                   referenceImages={allReferences.slice(1)}
                   referenceCount={allReferences.length}
                   metadata={metadata}
-                  description={asset.description && asset.description !== 'Imported from script' ? asset.description : undefined}
+                  description={asset.description}
                   cardType="asset"
                   onClick={() => {
                     setSelectedAssetId(asset.id);
                     setShowDetailModal(true);
                   }}
-                  isSelected={selectedAssetId === asset.id}
                 />
               );
             })}
