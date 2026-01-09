@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { X, Loader2, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
+import { X, Loader2, Sparkles, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { api } from '@/lib/api';
