@@ -18,7 +18,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssets } from '@/hooks/useAssetBank';
-import { AssetCard } from './AssetCard';
+import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 
 interface AssetBankPanelProps {
   className?: string;
@@ -233,10 +233,10 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
             {filteredAssets.map((asset) => {
-              // 🔥 COPY LOCATIONS PATTERN EXACTLY: Process images inline, use imageUrl property
-              const allReferences: Array<{ id: string; imageUrl: string; label: string }> = [];
+              // 🔥 COPY LOCATIONS PATTERN EXACTLY: Process images inline, use CinemaCard
+              const allReferences: CinemaCardImage[] = [];
               
-              // Process asset.images array (matches location.images pattern)
+              // Process asset.images array (matches location.images pattern exactly)
               if (asset.images && Array.isArray(asset.images) && asset.images.length > 0) {
                 asset.images.forEach((img: any) => {
                   // Use imageUrl (standardize to imageUrl like locations use)
@@ -271,16 +271,23 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
               const metadata = `${allReferences.length} image${allReferences.length !== 1 ? 's' : ''}`;
 
               return (
-                <AssetCard
+                <CinemaCard
                   key={asset.id}
-                  asset={asset}
+                  id={asset.id}
+                  name={asset.name}
+                  type={asset.category}
+                  typeLabel={categoryMetadata.label}
                   mainImage={allReferences.length > 0 ? allReferences[0] : null}
                   referenceImages={allReferences.slice(1)}
-                  imageCount={allReferences.length}
+                  referenceCount={allReferences.length}
+                  metadata={metadata}
+                  description={asset.description && asset.description !== 'Imported from script' ? asset.description : undefined}
+                  cardType="asset"
                   onClick={() => {
                     setSelectedAssetId(asset.id);
                     setShowDetailModal(true);
                   }}
+                  isSelected={selectedAssetId === asset.id}
                 />
               );
             })}
