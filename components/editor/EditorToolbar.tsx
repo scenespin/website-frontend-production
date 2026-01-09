@@ -7,6 +7,7 @@ import { FountainElementType, formatElement, detectElementType } from '@/utils/f
 import { saveToGitHub } from '@/utils/github';
 import { toast } from 'sonner';
 import ScriptImportModal from './ScriptImportModal';
+import { X } from 'lucide-react';
 
 interface EditorToolbarProps {
     className?: string;
@@ -166,6 +167,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [showImportModal, setShowImportModal] = useState(false);
     const [showSceneTypeDropdown, setShowSceneTypeDropdown] = useState(false);
     const [sceneTypeDropdownPosition, setSceneTypeDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
     const [rescanCooldown, setRescanCooldown] = useState(false); // Cooldown to prevent rapid re-clicks
     
@@ -188,6 +190,16 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
     }, [state.isFocusMode, toggleFocusMode]);
+
+    // Detect mobile for dropdown close button
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
     
     // ========================================================================
     // 🔥 FEATURE 0116: SCRIPT IMPORT MODAL (Clean & Simple)
@@ -358,62 +370,78 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         }, 0);
     };
 
-    // Calculate dropdown position near cursor (similar to SmartTypeDropdown)
+    // Calculate dropdown position near cursor (exact same logic as SmartTypeDropdown)
     const getCursorDropdownPosition = (): { top: number; left: number } | null => {
         const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
         if (!textarea) return null;
 
         const cursorPos = textarea.selectionStart;
+        
+        // Get textarea position
         const textareaRect = textarea.getBoundingClientRect();
         const lines = state.content.substring(0, cursorPos).split('\n');
         const lineNumber = lines.length - 1;
         const currentLineText = lines[lines.length - 1] || '';
         const cursorInLine = currentLineText.length;
-
-        // Get actual line height and font size from computed style
+        
+        // Get actual line height from computed style
         const computedStyle = window.getComputedStyle(textarea);
         const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
         const fontSize = parseFloat(computedStyle.fontSize) || 16;
-        const charWidth = fontSize * 0.6; // Monospace character width estimate
-
+        const charWidth = fontSize * 0.6; // More accurate character width estimate (monospace)
+        
         // Account for padding
         const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
         const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-
+        
         // Calculate cursor position
         const lineTop = textareaRect.top + paddingTop + (lineNumber * lineHeight);
         const cursorLeft = textareaRect.left + paddingLeft + (cursorInLine * charWidth);
-
-        // Position dropdown below the line, aligned with text start
-        const dropdownHeight = 120; // Approximate height for 3 items
-        const viewportHeight = window.innerHeight;
-        const spaceBelow = viewportHeight - lineTop - lineHeight;
-        const showAbove = spaceBelow < dropdownHeight;
-
-        const top = showAbove 
-            ? lineTop - dropdownHeight - 2
-            : lineTop + lineHeight + 2;
-
-        // Align with text area padding (where text starts)
-        let left = textareaRect.left + paddingLeft;
-
-        // Ensure dropdown stays within viewport
-        const dropdownWidth = 140;
-        const viewportWidth = window.innerWidth;
         
+        // Use visualViewport on mobile to account for keyboard
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        const viewportTop = window.visualViewport?.offsetTop || 0;
+        
+        const dropdownHeight = 256; // max-h-64 = 256px (matching SmartTypeDropdown)
+        const spaceBelow = viewportHeight - (lineTop - viewportTop) - lineHeight;
+        const spaceAbove = lineTop - viewportTop;
+        
+        // On mobile, prefer showing above to avoid keyboard
+        const isMobileCheck = window.innerWidth < 768;
+        const showAbove = isMobileCheck 
+            ? (spaceBelow < dropdownHeight + 50 || spaceAbove > spaceBelow) // Prefer above on mobile
+            : (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight);
+        
+        const baseTop = lineTop + lineHeight;
+        
+        // Calculate position - align with text line, slightly below
+        // Use smaller offset to position closer to the text line
+        let top = showAbove 
+            ? baseTop - dropdownHeight - 2  // Show above with 2px gap
+            : lineTop + 2;                    // Show below, aligned with line start (2px below line)
+        // Align left with text area padding (where text starts), not cursor position
+        let left = textareaRect.left + paddingLeft;
+        
+        // Ensure dropdown stays within viewport bounds
+        const viewportWidth = window.innerWidth;
+        const dropdownWidth = 288; // w-72 = 288px
+        
+        // Clamp left position to viewport
         if (left + dropdownWidth > viewportWidth - 20) {
             left = viewportWidth - dropdownWidth - 20;
         }
         if (left < 10) {
             left = 10;
         }
+        
+        // Clamp top position to viewport
         if (top < 10) {
-            return { top: 10, left };
+            top = 10;
         }
         if (top + dropdownHeight > viewportHeight - 10) {
-            return { top: viewportHeight - dropdownHeight - 10, left };
+            top = viewportHeight - dropdownHeight - 10;
         }
-
+        
         return { top, left };
     };
 
@@ -547,30 +575,52 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         {showSceneTypeDropdown && sceneTypeDropdownPosition && (
                             <div
                                 data-scene-type-dropdown
-                                className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl py-1 min-w-[140px]"
+                                className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl w-72"
                                 style={{
                                     top: `${sceneTypeDropdownPosition.top}px`,
-                                    left: `${sceneTypeDropdownPosition.left}px`
+                                    left: `${sceneTypeDropdownPosition.left}px`,
+                                    maxWidth: `calc(100vw - ${sceneTypeDropdownPosition.left}px - 20px)`
                                 }}
                             >
-                                <button
-                                    onClick={() => insertSceneTypeAndTab('INT.')}
-                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                >
-                                    INT.
-                                </button>
-                                <button
-                                    onClick={() => insertSceneTypeAndTab('EXT.')}
-                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                >
-                                    EXT.
-                                </button>
-                                <button
-                                    onClick={() => insertSceneTypeAndTab('INT./EXT.')}
-                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                >
-                                    INT./EXT.
-                                </button>
+                                {/* Wrapper with relative positioning for close button */}
+                                <div className="relative">
+                                    {/* Mobile-only close button */}
+                                    {isMobile && (
+                                        <button
+                                            onClick={() => {
+                                                setShowSceneTypeDropdown(false);
+                                                setSceneTypeDropdownPosition(null);
+                                            }}
+                                            className="absolute top-2 right-2 z-10 p-1.5 rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
+                                            aria-label="Close"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <div className="py-1">
+                                        <button
+                                            onClick={() => insertSceneTypeAndTab('INT.')}
+                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                        >
+                                            <span className="flex-1">INT.</span>
+                                        </button>
+                                        <button
+                                            onClick={() => insertSceneTypeAndTab('EXT.')}
+                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                        >
+                                            <span className="flex-1">EXT.</span>
+                                        </button>
+                                        <button
+                                            onClick={() => insertSceneTypeAndTab('INT./EXT.')}
+                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                        >
+                                            <span className="flex-1">INT./EXT.</span>
+                                        </button>
+                                    </div>
+                                    <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
+                                        <kbd className="kbd kbd-sm">Esc</kbd> Close
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1060,30 +1110,52 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         {showSceneTypeDropdown && sceneTypeDropdownPosition && (
                             <div
                                 data-scene-type-dropdown
-                                className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl py-1 min-w-[140px]"
+                                className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl w-72"
                                 style={{
                                     top: `${sceneTypeDropdownPosition.top}px`,
-                                    left: `${sceneTypeDropdownPosition.left}px`
+                                    left: `${sceneTypeDropdownPosition.left}px`,
+                                    maxWidth: `calc(100vw - ${sceneTypeDropdownPosition.left}px - 20px)`
                                 }}
                             >
-                                <button
-                                    onClick={() => insertSceneTypeAndTab('INT.')}
-                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                >
-                                    INT.
-                                </button>
-                                <button
-                                    onClick={() => insertSceneTypeAndTab('EXT.')}
-                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                >
-                                    EXT.
-                                </button>
-                                <button
-                                    onClick={() => insertSceneTypeAndTab('INT./EXT.')}
-                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                >
-                                    INT./EXT.
-                                </button>
+                                {/* Wrapper with relative positioning for close button */}
+                                <div className="relative">
+                                    {/* Mobile-only close button */}
+                                    {isMobile && (
+                                        <button
+                                            onClick={() => {
+                                                setShowSceneTypeDropdown(false);
+                                                setSceneTypeDropdownPosition(null);
+                                            }}
+                                            className="absolute top-2 right-2 z-10 p-1.5 rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
+                                            aria-label="Close"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <div className="py-1">
+                                        <button
+                                            onClick={() => insertSceneTypeAndTab('INT.')}
+                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                        >
+                                            <span className="flex-1">INT.</span>
+                                        </button>
+                                        <button
+                                            onClick={() => insertSceneTypeAndTab('EXT.')}
+                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                        >
+                                            <span className="flex-1">EXT.</span>
+                                        </button>
+                                        <button
+                                            onClick={() => insertSceneTypeAndTab('INT./EXT.')}
+                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                        >
+                                            <span className="flex-1">INT./EXT.</span>
+                                        </button>
+                                    </div>
+                                    <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
+                                        <kbd className="kbd kbd-sm">Esc</kbd> Close
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
