@@ -233,53 +233,50 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
             {filteredAssets.map((asset) => {
-              // 🔥 MATCH LOCATIONS PATTERN EXACTLY: Use asset.images directly (backend provides presigned URLs)
-              // This is simpler and matches what Locations does - no Media Library for cards
+              // 🔥 COPY LOCATIONS PATTERN EXACTLY: Process images inline, use imageUrl property
               const allReferences: Array<{ id: string; imageUrl: string; label: string }> = [];
               
-              // Add base images (user-uploaded, from Creation section)
-              // Backend already provides presigned URLs in asset.images[].url
-              if (asset.images && asset.images.length > 0) {
-                asset.images.forEach((img, idx) => {
-                  // Only add images that are NOT angle-generated
-                  const isAngleGenerated = img.metadata?.source === 'angle-generation' || 
-                                            img.metadata?.source === 'image-generation';
-                  if (!isAngleGenerated && img.url) {
+              // Process asset.images array (matches location.images pattern)
+              if (asset.images && Array.isArray(asset.images) && asset.images.length > 0) {
+                asset.images.forEach((img: any) => {
+                  // Use imageUrl (standardize to imageUrl like locations use)
+                  const imageUrl = img.imageUrl || img.url;
+                  if (imageUrl) {
                     allReferences.push({
-                      id: img.s3Key || `img-${asset.id}-${idx}`,
-                      imageUrl: img.url, // Backend already provides presigned URL
-                      label: `${asset.name} - Image ${idx + 1}`
+                      id: img.s3Key || img.metadata?.s3Key || `img-${asset.id}-${allReferences.length}`,
+                      imageUrl: imageUrl,
+                      label: `${asset.name} - Image ${allReferences.length + 1}`
                     });
                   }
                 });
               }
               
-              // Add angle references (Production Hub images)
-              // Backend already provides presigned URLs in asset.angleReferences[].imageUrl
+              // Add angle references (Production Hub images) - matches location.angleVariations pattern
               const angleRefs = asset.angleReferences || [];
               if (angleRefs.length > 0) {
-                angleRefs.forEach((ref, idx) => {
-                  if (ref && ref.imageUrl) {
+                angleRefs.forEach((ref: any) => {
+                  // Use imageUrl (matches location pattern)
+                  const imageUrl = ref.imageUrl || ref.url;
+                  if (imageUrl) {
                     allReferences.push({
-                      id: ref.s3Key || `angle-${asset.id}-${idx}`,
-                      imageUrl: ref.imageUrl, // Backend already provides presigned URL
+                      id: ref.s3Key || `angle-${asset.id}-${allReferences.length}`,
+                      imageUrl: imageUrl,
                       label: `${asset.name} - ${ref.angle || 'angle'} view`
                     });
                   }
                 });
               }
               
-              const mainImage = allReferences.length > 0 ? allReferences[0] : null;
-              const referenceImages = allReferences.slice(1);
-              const imageCount = allReferences.length;
+              const categoryMetadata = ASSET_CATEGORY_METADATA[asset.category];
+              const metadata = `${allReferences.length} image${allReferences.length !== 1 ? 's' : ''}`;
 
               return (
                 <AssetCard
                   key={asset.id}
                   asset={asset}
-                  mainImage={mainImage}
-                  referenceImages={referenceImages}
-                  imageCount={imageCount}
+                  mainImage={allReferences.length > 0 ? allReferences[0] : null}
+                  referenceImages={allReferences.slice(1)}
+                  imageCount={allReferences.length}
                   onClick={() => {
                     setSelectedAssetId(asset.id);
                     setShowDetailModal(true);
