@@ -82,7 +82,9 @@ export default function WriteLayout({ children }) {
   return (
     <div className="min-h-screen bg-base-100">
       {!isEditorFullscreen && <Navigation />}
-      {children}
+      <div className="pt-16 md:pt-0">
+        {children}
+      </div>
       <AgentDrawer>
         {/* 🔥 CRITICAL: Only mount UnifiedChatPanel when drawer is open to prevent effects from running */}
         {/* This prevents infinite loops when FAB buttons trigger state updates */}

@@ -373,7 +373,7 @@ export default function Navigation() {
       </div>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden bg-[#0A0A0A] border-b border-white/10">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A] border-b border-white/10">
         <div className="flex items-center justify-between h-16 px-4">
           {/* Logo */}
           <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
