@@ -163,12 +163,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         (permissionsLoading && !isOwner && !currentUserRole) // Only show optimistically if role is unknown (null)
     );
     const [isSaving, setIsSaving] = useState(false);
-    const [showSceneTypePicker, setShowSceneTypePicker] = useState(false);
-    const [sceneTypePickerPosition, setSceneTypePickerPosition] = useState<{ top: number; left: number } | null>(null);
-    const savedCursorPositionRef = useRef<number | null>(null);
-    const sceneTypeButtonRef = useRef<HTMLButtonElement>(null);
-    const sceneTypePickerRef = useRef<HTMLDivElement>(null);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showSceneTypeDropdown, setShowSceneTypeDropdown] = useState(false);
+    const [sceneTypeDropdownPosition, setSceneTypeDropdownPosition] = useState<{ top: number; left: number } | null>(null);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
     const [rescanCooldown, setRescanCooldown] = useState(false); // Cooldown to prevent rapid re-clicks
     
@@ -326,9 +323,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         }
     };
 
-    // Wryda Smart Tab button handler
-    const handleWrydaTabButton = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation(); // Prevent event from bubbling to click outside handler
+    // Insert scene type and trigger smart tab navigation
+    const insertSceneTypeAndTab = (sceneType: string) => {
+        setShowSceneTypeDropdown(false);
         
         const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
         if (!textarea) return;
@@ -336,54 +333,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         const cursorPos = textarea.selectionStart;
         const textBeforeCursor = state.content.substring(0, cursorPos);
         const textAfterCursor = state.content.substring(cursorPos);
-        const lines = textBeforeCursor.split('\n');
-        const currentLineText = lines[lines.length - 1] || '';
         
-        // Check if current line is already a scene heading
-        const elementType = detectElementType(currentLineText);
-        
-        // If not a scene heading, show type picker dropdown
-        if (elementType !== 'scene_heading') {
-            // Save cursor position BEFORE showing dropdown (before textarea loses focus)
-            savedCursorPositionRef.current = cursorPos;
-            
-            // Get button position for dropdown
-            const button = e.currentTarget;
-            const rect = button.getBoundingClientRect();
-            setSceneTypePickerPosition({
-                top: rect.bottom + 4,
-                left: rect.left
-            });
-            setShowSceneTypePicker(true);
-        } else {
-            // Already a scene heading, just trigger Tab
-            const tabEvent = new KeyboardEvent('keydown', {
-                key: 'Tab',
-                code: 'Tab',
-                bubbles: true,
-                cancelable: true
-            });
-            textarea.dispatchEvent(tabEvent);
-        }
-    };
-
-    // Handle scene type selection
-    const handleSceneTypeSelect = (type: string) => {
-        const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-        if (!textarea) return;
-
-        setShowSceneTypePicker(false);
-        setSceneTypePickerPosition(null);
-
-        // Use saved cursor position (from when button was clicked) instead of current position
-        const cursorPos = savedCursorPositionRef.current ?? textarea.selectionStart;
-        savedCursorPositionRef.current = null; // Clear after use
-        
-        const textBeforeCursor = state.content.substring(0, cursorPos);
-        const textAfterCursor = state.content.substring(cursorPos);
-        
-        // Insert selected type
-        const newTextBefore = textBeforeCursor + type + ' ';
+        // Insert selected type with space
+        const newTextBefore = textBeforeCursor + sceneType + ' ';
         const newContent = newTextBefore + textAfterCursor;
         setContent(newContent);
         
@@ -406,32 +358,121 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         }, 0);
     };
 
-    // Close picker when clicking outside
-    useEffect(() => {
-        if (!showSceneTypePicker) return;
+    // Calculate dropdown position near cursor (similar to SmartTypeDropdown)
+    const getCursorDropdownPosition = (): { top: number; left: number } | null => {
+        const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+        if (!textarea) return null;
+
+        const cursorPos = textarea.selectionStart;
+        const textareaRect = textarea.getBoundingClientRect();
+        const lines = state.content.substring(0, cursorPos).split('\n');
+        const lineNumber = lines.length - 1;
+        const currentLineText = lines[lines.length - 1] || '';
+        const cursorInLine = currentLineText.length;
+
+        // Get actual line height and font size from computed style
+        const computedStyle = window.getComputedStyle(textarea);
+        const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+        const fontSize = parseFloat(computedStyle.fontSize) || 16;
+        const charWidth = fontSize * 0.6; // Monospace character width estimate
+
+        // Account for padding
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+
+        // Calculate cursor position
+        const lineTop = textareaRect.top + paddingTop + (lineNumber * lineHeight);
+        const cursorLeft = textareaRect.left + paddingLeft + (cursorInLine * charWidth);
+
+        // Position dropdown below the line, aligned with text start
+        const dropdownHeight = 120; // Approximate height for 3 items
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - lineTop - lineHeight;
+        const showAbove = spaceBelow < dropdownHeight;
+
+        const top = showAbove 
+            ? lineTop - dropdownHeight - 2
+            : lineTop + lineHeight + 2;
+
+        // Align with text area padding (where text starts)
+        let left = textareaRect.left + paddingLeft;
+
+        // Ensure dropdown stays within viewport
+        const dropdownWidth = 140;
+        const viewportWidth = window.innerWidth;
         
+        if (left + dropdownWidth > viewportWidth - 20) {
+            left = viewportWidth - dropdownWidth - 20;
+        }
+        if (left < 10) {
+            left = 10;
+        }
+        if (top < 10) {
+            return { top: 10, left };
+        }
+        if (top + dropdownHeight > viewportHeight - 10) {
+            return { top: viewportHeight - dropdownHeight - 10, left };
+        }
+
+        return { top, left };
+    };
+
+    // Wryda Smart Tab button handler
+    const handleWrydaTabButton = (e: React.MouseEvent) => {
+        const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        const cursorPos = textarea.selectionStart;
+        const textBeforeCursor = state.content.substring(0, cursorPos);
+        const lines = textBeforeCursor.split('\n');
+        const currentLineText = lines[lines.length - 1] || '';
+        
+        // Check if current line is already a scene heading
+        const elementType = detectElementType(currentLineText);
+        
+        if (elementType === 'scene_heading') {
+            // Already a scene heading, just trigger Tab (don't show dropdown)
+            e.preventDefault();
+            const tabEvent = new KeyboardEvent('keydown', {
+                key: 'Tab',
+                code: 'Tab',
+                bubbles: true,
+                cancelable: true
+            });
+            textarea.dispatchEvent(tabEvent);
+        } else {
+            // Not a scene heading, calculate position and show dropdown
+            const position = getCursorDropdownPosition();
+            if (position) {
+                setSceneTypeDropdownPosition(position);
+                setShowSceneTypeDropdown(true);
+            }
+        }
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        if (!showSceneTypeDropdown) return;
+
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as Node;
-            const isClickOnButton = sceneTypeButtonRef.current?.contains(target);
-            const isClickOnPicker = sceneTypePickerRef.current?.contains(target);
-            
-            // Only close if click is outside both button and dropdown
-            if (!isClickOnButton && !isClickOnPicker) {
-                setShowSceneTypePicker(false);
-                setSceneTypePickerPosition(null);
+            const dropdown = document.querySelector('[data-scene-type-dropdown]');
+            if (dropdown && !dropdown.contains(target)) {
+                setShowSceneTypeDropdown(false);
+                setSceneTypeDropdownPosition(null);
             }
         };
-        
-        // Use a small delay to avoid closing immediately when opening
+
+        // Small delay to prevent immediate closure
         const timeoutId = setTimeout(() => {
             document.addEventListener('mousedown', handleClickOutside);
         }, 100);
-        
+
         return () => {
             clearTimeout(timeoutId);
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [showSceneTypePicker]);
+    }, [showSceneTypeDropdown]);
     
     const increaseFontSize = () => {
         if (state.fontSize < 24) {
@@ -495,47 +536,43 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 {/* Quick Formatting buttons */}
                 <div className="flex space-x-1">
                     <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
-                        <div className="relative">
-                            <button
-                                ref={sceneTypeButtonRef}
-                                onClick={handleWrydaTabButton}
-                                className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                        <button
+                            onClick={handleWrydaTabButton}
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-base font-bold">AW</span>
+                            <span className="text-[9px] hidden sm:inline">TAB</span>
+                        </button>
+                        {/* Scene Type Dropdown - positioned at cursor */}
+                        {showSceneTypeDropdown && sceneTypeDropdownPosition && (
+                            <div
+                                data-scene-type-dropdown
+                                className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl py-1 min-w-[140px]"
+                                style={{
+                                    top: `${sceneTypeDropdownPosition.top}px`,
+                                    left: `${sceneTypeDropdownPosition.left}px`
+                                }}
                             >
-                                <span className="text-base font-bold">AW</span>
-                                <span className="text-[9px] hidden sm:inline">TAB</span>
-                            </button>
-                            {/* Scene Type Picker Dropdown */}
-                            {showSceneTypePicker && sceneTypePickerPosition && (
-                                <div
-                                    ref={sceneTypePickerRef}
-                                    className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl py-1 min-w-[120px]"
-                                    style={{
-                                        top: `${sceneTypePickerPosition.top}px`,
-                                        left: `${sceneTypePickerPosition.left}px`
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
+                                <button
+                                    onClick={() => insertSceneTypeAndTab('INT.')}
+                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
                                 >
-                                    <button
-                                        onClick={() => handleSceneTypeSelect('INT.')}
-                                        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                    >
-                                        INT.
-                                    </button>
-                                    <button
-                                        onClick={() => handleSceneTypeSelect('EXT.')}
-                                        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                    >
-                                        EXT.
-                                    </button>
-                                    <button
-                                        onClick={() => handleSceneTypeSelect('INT./EXT.')}
-                                        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                    >
-                                        INT./EXT.
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                                    INT.
+                                </button>
+                                <button
+                                    onClick={() => insertSceneTypeAndTab('EXT.')}
+                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
+                                >
+                                    EXT.
+                                </button>
+                                <button
+                                    onClick={() => insertSceneTypeAndTab('INT./EXT.')}
+                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
+                                >
+                                    INT./EXT.
+                                </button>
+                            </div>
+                        )}
                     </div>
                     
                     <div className="tooltip tooltip-bottom" data-tip="Parenthetical/Wryly • Ex: (nervous)">
@@ -1012,47 +1049,43 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     
                     {/* Wryda Smart Tab */}
                     <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
-                        <div className="relative">
-                            <button
-                                ref={sceneTypeButtonRef}
-                                onClick={handleWrydaTabButton}
-                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        <button
+                            onClick={handleWrydaTabButton}
+                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-sm font-bold">AW</span>
+                            <span className="text-[8px] leading-tight">TAB</span>
+                        </button>
+                        {/* Scene Type Dropdown - positioned at cursor */}
+                        {showSceneTypeDropdown && sceneTypeDropdownPosition && (
+                            <div
+                                data-scene-type-dropdown
+                                className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl py-1 min-w-[140px]"
+                                style={{
+                                    top: `${sceneTypeDropdownPosition.top}px`,
+                                    left: `${sceneTypeDropdownPosition.left}px`
+                                }}
                             >
-                                <span className="text-sm font-bold">AW</span>
-                                <span className="text-[8px] leading-tight">TAB</span>
-                            </button>
-                            {/* Scene Type Picker Dropdown */}
-                            {showSceneTypePicker && sceneTypePickerPosition && (
-                                <div
-                                    ref={sceneTypePickerRef}
-                                    className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl py-1 min-w-[120px]"
-                                    style={{
-                                        top: `${sceneTypePickerPosition.top}px`,
-                                        left: `${sceneTypePickerPosition.left}px`
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
+                                <button
+                                    onClick={() => insertSceneTypeAndTab('INT.')}
+                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
                                 >
-                                    <button
-                                        onClick={() => handleSceneTypeSelect('INT.')}
-                                        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                    >
-                                        INT.
-                                    </button>
-                                    <button
-                                        onClick={() => handleSceneTypeSelect('EXT.')}
-                                        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                    >
-                                        EXT.
-                                    </button>
-                                    <button
-                                        onClick={() => handleSceneTypeSelect('INT./EXT.')}
-                                        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                    >
-                                        INT./EXT.
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                                    INT.
+                                </button>
+                                <button
+                                    onClick={() => insertSceneTypeAndTab('EXT.')}
+                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
+                                >
+                                    EXT.
+                                </button>
+                                <button
+                                    onClick={() => insertSceneTypeAndTab('INT./EXT.')}
+                                    className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
+                                >
+                                    INT./EXT.
+                                </button>
+                            </div>
+                        )}
                     </div>
                     
                     {/* Parenthetical */}
