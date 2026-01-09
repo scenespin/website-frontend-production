@@ -7,7 +7,7 @@ import { FountainElementType, formatElement, detectElementType } from '@/utils/f
 import { saveToGitHub } from '@/utils/github';
 import { toast } from 'sonner';
 import ScriptImportModal from './ScriptImportModal';
-import { X } from 'lucide-react';
+import { X, Film } from 'lucide-react';
 
 interface EditorToolbarProps {
     className?: string;
@@ -168,6 +168,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [showSceneTypeDropdown, setShowSceneTypeDropdown] = useState(false);
     const [sceneTypeDropdownPosition, setSceneTypeDropdownPosition] = useState<{ top: number; left: number } | null>(null);
     const [isMobile, setIsMobile] = useState(false);
+    const [selectedSceneTypeIndex, setSelectedSceneTypeIndex] = useState(0);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
     const [rescanCooldown, setRescanCooldown] = useState(false); // Cooldown to prevent rapid re-clicks
     
@@ -450,6 +451,15 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
         if (!textarea) return;
 
+        // If dropdown is already open, select the currently highlighted item
+        if (showSceneTypeDropdown) {
+            const sceneTypes = ['INT.', 'EXT.', 'INT./EXT.'];
+            if (sceneTypes[selectedSceneTypeIndex]) {
+                insertSceneTypeAndTab(sceneTypes[selectedSceneTypeIndex]);
+            }
+            return;
+        }
+
         const cursorPos = textarea.selectionStart;
         const textBeforeCursor = state.content.substring(0, cursorPos);
         const lines = textBeforeCursor.split('\n');
@@ -478,11 +488,61 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         }
     };
 
-    // Close dropdown when clicking outside
+    // Reset selected index when dropdown opens
+    useEffect(() => {
+        if (showSceneTypeDropdown) {
+            setSelectedSceneTypeIndex(0);
+        }
+    }, [showSceneTypeDropdown]);
+
+    // Keyboard navigation for scene type dropdown
     useEffect(() => {
         if (!showSceneTypeDropdown) return;
 
-        const handleClickOutside = (e: MouseEvent) => {
+        const sceneTypes = ['INT.', 'EXT.', 'INT./EXT.'];
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedSceneTypeIndex(prev => 
+                        prev < sceneTypes.length - 1 ? prev + 1 : 0
+                    );
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedSceneTypeIndex(prev => 
+                        prev > 0 ? prev - 1 : sceneTypes.length - 1
+                    );
+                    break;
+                case 'Enter':
+                case 'Tab':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (sceneTypes[selectedSceneTypeIndex]) {
+                        insertSceneTypeAndTab(sceneTypes[selectedSceneTypeIndex]);
+                    }
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowSceneTypeDropdown(false);
+                    setSceneTypeDropdownPosition(null);
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown, true);
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
+    }, [showSceneTypeDropdown, selectedSceneTypeIndex, insertSceneTypeAndTab]);
+
+    // Close dropdown when clicking outside (supports both mouse and touch)
+    useEffect(() => {
+        if (!showSceneTypeDropdown) return;
+
+        const handleClickOutside = (e: MouseEvent | TouchEvent) => {
             const target = e.target as Node;
             const dropdown = document.querySelector('[data-scene-type-dropdown]');
             if (dropdown && !dropdown.contains(target)) {
@@ -493,12 +553,15 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
 
         // Small delay to prevent immediate closure
         const timeoutId = setTimeout(() => {
+            // Support both mouse and touch events for mobile
             document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
         }, 100);
 
         return () => {
             clearTimeout(timeoutId);
             document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
         };
     }, [showSceneTypeDropdown]);
     
@@ -579,8 +642,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 style={{
                                     top: `${sceneTypeDropdownPosition.top}px`,
                                     left: `${sceneTypeDropdownPosition.left}px`,
-                                    maxWidth: `calc(100vw - ${sceneTypeDropdownPosition.left}px - 20px)`
+                                    maxWidth: `calc(100vw - ${sceneTypeDropdownPosition.left}px - 20px)`,
+                                    touchAction: 'manipulation'
                                 }}
+                                onTouchStart={(e) => e.stopPropagation()}
                             >
                                 {/* Wrapper with relative positioning for close button */}
                                 <div className="relative">
@@ -599,26 +664,65 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     )}
                                     <div className="py-1">
                                         <button
-                                            onClick={() => insertSceneTypeAndTab('INT.')}
-                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('INT.');
+                                            }}
+                                            onTouchStart={(e) => {
+                                                e.stopPropagation();
+                                            }}
+                                            onMouseEnter={() => setSelectedSceneTypeIndex(0)}
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                                selectedSceneTypeIndex === 0 ? 'bg-blue-500 text-white' : ''
+                                            }`}
+                                            style={{ touchAction: 'manipulation' }}
                                         >
-                                            <span className="flex-1">INT.</span>
+                                            <Film className="w-4 h-4 flex-shrink-0" />
+                                            <span className="flex-1 truncate">INT.</span>
                                         </button>
                                         <button
-                                            onClick={() => insertSceneTypeAndTab('EXT.')}
-                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('EXT.');
+                                            }}
+                                            onTouchStart={(e) => {
+                                                e.stopPropagation();
+                                            }}
+                                            onMouseEnter={() => setSelectedSceneTypeIndex(1)}
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                                selectedSceneTypeIndex === 1 ? 'bg-blue-500 text-white' : ''
+                                            }`}
+                                            style={{ touchAction: 'manipulation' }}
                                         >
-                                            <span className="flex-1">EXT.</span>
+                                            <Film className="w-4 h-4 flex-shrink-0" />
+                                            <span className="flex-1 truncate">EXT.</span>
                                         </button>
                                         <button
-                                            onClick={() => insertSceneTypeAndTab('INT./EXT.')}
-                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('INT./EXT.');
+                                            }}
+                                            onTouchStart={(e) => {
+                                                e.stopPropagation();
+                                            }}
+                                            onMouseEnter={() => setSelectedSceneTypeIndex(2)}
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                                selectedSceneTypeIndex === 2 ? 'bg-blue-500 text-white' : ''
+                                            }`}
+                                            style={{ touchAction: 'manipulation' }}
                                         >
-                                            <span className="flex-1">INT./EXT.</span>
+                                            <Film className="w-4 h-4 flex-shrink-0" />
+                                            <span className="flex-1 truncate">INT./EXT.</span>
                                         </button>
                                     </div>
                                     <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
-                                        <kbd className="kbd kbd-sm">Esc</kbd> Close
+                                        <kbd className="kbd kbd-sm">↑↓</kbd> Navigate • <kbd className="kbd kbd-sm">Tab</kbd> or <kbd className="kbd kbd-sm">Enter</kbd> Select • <kbd className="kbd kbd-sm">Esc</kbd> Close
                                     </div>
                                 </div>
                             </div>
@@ -1114,8 +1218,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 style={{
                                     top: `${sceneTypeDropdownPosition.top}px`,
                                     left: `${sceneTypeDropdownPosition.left}px`,
-                                    maxWidth: `calc(100vw - ${sceneTypeDropdownPosition.left}px - 20px)`
+                                    maxWidth: `calc(100vw - ${sceneTypeDropdownPosition.left}px - 20px)`,
+                                    touchAction: 'manipulation'
                                 }}
+                                onTouchStart={(e) => e.stopPropagation()}
                             >
                                 {/* Wrapper with relative positioning for close button */}
                                 <div className="relative">
@@ -1134,26 +1240,65 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     )}
                                     <div className="py-1">
                                         <button
-                                            onClick={() => insertSceneTypeAndTab('INT.')}
-                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('INT.');
+                                            }}
+                                            onTouchStart={(e) => {
+                                                e.stopPropagation();
+                                            }}
+                                            onMouseEnter={() => setSelectedSceneTypeIndex(0)}
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                                selectedSceneTypeIndex === 0 ? 'bg-blue-500 text-white' : ''
+                                            }`}
+                                            style={{ touchAction: 'manipulation' }}
                                         >
-                                            <span className="flex-1">INT.</span>
+                                            <Film className="w-4 h-4 flex-shrink-0" />
+                                            <span className="flex-1 truncate">INT.</span>
                                         </button>
                                         <button
-                                            onClick={() => insertSceneTypeAndTab('EXT.')}
-                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('EXT.');
+                                            }}
+                                            onTouchStart={(e) => {
+                                                e.stopPropagation();
+                                            }}
+                                            onMouseEnter={() => setSelectedSceneTypeIndex(1)}
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                                selectedSceneTypeIndex === 1 ? 'bg-blue-500 text-white' : ''
+                                            }`}
+                                            style={{ touchAction: 'manipulation' }}
                                         >
-                                            <span className="flex-1">EXT.</span>
+                                            <Film className="w-4 h-4 flex-shrink-0" />
+                                            <span className="flex-1 truncate">EXT.</span>
                                         </button>
                                         <button
-                                            onClick={() => insertSceneTypeAndTab('INT./EXT.')}
-                                            className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors"
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('INT./EXT.');
+                                            }}
+                                            onTouchStart={(e) => {
+                                                e.stopPropagation();
+                                            }}
+                                            onMouseEnter={() => setSelectedSceneTypeIndex(2)}
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                                selectedSceneTypeIndex === 2 ? 'bg-blue-500 text-white' : ''
+                                            }`}
+                                            style={{ touchAction: 'manipulation' }}
                                         >
-                                            <span className="flex-1">INT./EXT.</span>
+                                            <Film className="w-4 h-4 flex-shrink-0" />
+                                            <span className="flex-1 truncate">INT./EXT.</span>
                                         </button>
                                     </div>
                                     <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
-                                        <kbd className="kbd kbd-sm">Esc</kbd> Close
+                                        <kbd className="kbd kbd-sm">↑↓</kbd> Navigate • <kbd className="kbd kbd-sm">Tab</kbd> or <kbd className="kbd kbd-sm">Enter</kbd> Select • <kbd className="kbd kbd-sm">Esc</kbd> Close
                                     </div>
                                 </div>
                             </div>
