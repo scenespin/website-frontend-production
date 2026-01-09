@@ -25,212 +25,95 @@ interface EditorToolbarProps {
 }
 
 /**
- * Feature 0111: GitHub Save Button
- * Saves screenplay to GitHub with a user-friendly commit message prompt
- * Writers can describe their backup (e.g., "Finished Act 1", "Before major changes")
+ * Feature 0111: Export to GitHub Button
+ * Optional manual export since auto-sync is removed
  */
-function GitHubSaveButton() {
+function ExportToGitHubButton() {
     const { state } = useEditor();
-    const [saving, setSaving] = useState(false);
-    const [showModal, setShowModal] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const [showSetup, setShowSetup] = useState(false);
-    const [commitMessage, setCommitMessage] = useState('');
 
-    const handleSaveClick = () => {
+    const handleExport = async () => {
         const githubConfigStr = localStorage.getItem('screenplay_github_config');
         
         if (!githubConfigStr) {
             setShowSetup(true);
             return;
         }
-        
-        // Show the commit message modal
-        setCommitMessage('');
-        setShowModal(true);
-    };
-
-    const handleSave = async () => {
-        const githubConfigStr = localStorage.getItem('screenplay_github_config');
-        if (!githubConfigStr) return;
 
         try {
-            setSaving(true);
+            setExporting(true);
             const config = JSON.parse(githubConfigStr);
-            
-            // Use the user's message or a default
-            const message = commitMessage.trim() || `Backup: ${state.title || 'Untitled Screenplay'}`;
 
             await saveToGitHub(config, {
                 path: 'screenplay.fountain',
                 content: state.content,
-                message: message,
+                message: `Manual export: ${state.title}`,
                 branch: 'main'
             });
 
-            toast.success(
-                `Backup saved! "${message}"\n\nYou can restore this version anytime from Version History.`,
-                { duration: 5000 }
-            );
-            setShowModal(false);
+            alert('✅ Exported to GitHub successfully!');
         } catch (error: any) {
-            console.error('[GitHub Save] Failed:', error);
-            toast.error('Backup failed: ' + (error.message || 'Unknown error'));
+            console.error('[GitHub Export] Failed:', error);
+            alert('❌ Export failed: ' + (error.message || 'Unknown error'));
         } finally {
-            setSaving(false);
+            setExporting(false);
         }
     };
 
     const handleConnectGitHub = () => {
+        // Validate configuration
         const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
         
         if (!GITHUB_CLIENT_ID) {
-            toast.error('GitHub connection is not configured. Please contact support.');
+            alert('GitHub OAuth is not configured. Please contact support.');
+            console.error('[OAuth] Missing NEXT_PUBLIC_GITHUB_CLIENT_ID environment variable');
             return;
         }
         
+        // Redirect to GitHub OAuth (same flow as GitHubRequiredGate)
         const scope = 'repo,user';
-        const oauthState = 'github_oauth_wryda';
+        const state = 'github_oauth_wryda';
         const redirectUri = `${window.location.origin}/write`;
-        const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${oauthState}`;
+        const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
         
+        console.log('[OAuth] Redirecting to GitHub authorization');
         window.location.href = authUrl;
     };
 
-    // Check if GitHub is connected
-    const isConnected = typeof window !== 'undefined' && !!localStorage.getItem('screenplay_github_config');
-
     return (
         <>
-            {/* GitHub Save Button */}
-            <div className="hidden md:block tooltip tooltip-bottom" data-tip={isConnected ? "Save a backup • Creates a new version you can restore later" : "Connect GitHub to save backups"}>
+            <div className="tooltip tooltip-bottom" data-tip="Export to GitHub (Optional)">
                 <button
-                    onClick={handleSaveClick}
-                    disabled={saving}
-                    className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className="px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm text-purple-400"
                 >
-                    {saving ? (
+                    {exporting ? (
                         <>
                             <span className="loading loading-spinner loading-xs"></span>
-                            <span className="text-[9px] hidden sm:inline">SAVING...</span>
+                            <span className="hidden sm:inline">Exporting...</span>
                         </>
                     ) : (
                         <>
-                            <span className="text-base">😈</span>
-                            <span className="text-[9px] hidden sm:inline">BACKUP</span>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            <span className="hidden sm:inline">GitHub</span>
                         </>
                     )}
                 </button>
             </div>
 
-            {/* Commit Message Modal - User-friendly for writers */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-base-100 rounded-2xl p-6 max-w-md mx-4 shadow-xl w-full">
-                        <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                            <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                            </svg>
-                            Save a Backup
-                        </h3>
-                        
-                        <p className="text-sm text-base-content/70 mb-4">
-                            This saves your current screenplay so you can come back to it later. 
-                            Give it a short description to help you remember what changed.
-                        </p>
-                        
-                        <div className="mb-4">
-                            <label className="label">
-                                <span className="label-text font-medium">What did you work on?</span>
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="e.g., Finished Act 1, Fixed dialogue, Before big changes..."
-                                value={commitMessage}
-                                onChange={(e) => setCommitMessage(e.target.value)}
-                                className="input input-bordered w-full"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !saving) {
-                                        handleSave();
-                                    }
-                                }}
-                            />
-                            <label className="label">
-                                <span className="label-text-alt text-base-content/50">
-                                    Leave blank for a default description
-                                </span>
-                            </label>
-                        </div>
-                        
-                        <div className="bg-base-200 rounded-lg p-3 mb-4 text-sm text-base-content/70">
-                            <p className="flex items-start gap-2">
-                                <svg className="w-4 h-4 mt-0.5 text-info shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>
-                                    <strong>Tip:</strong> You can view all your saved backups in <strong>Version History</strong> 
-                                    and restore any previous version whenever you want!
-                                </span>
-                            </p>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="btn btn-primary flex-1 gap-2"
-                            >
-                                {saving ? (
-                                    <>
-                                        <span className="loading loading-spinner loading-sm"></span>
-                                        Saving...
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Save Backup
-                                    </>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                disabled={saving}
-                                className="btn btn-ghost"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* GitHub Setup Modal - For first-time connection */}
+            {/* Setup Modal */}
             {showSetup && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-base-100 rounded-2xl p-6 max-w-md mx-4 shadow-xl w-full">
-                        <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                            Connect GitHub
-                        </h3>
-                        
-                        <div className="space-y-3 text-sm text-base-content/80 mb-4">
-                            <p>
-                                <strong>What is GitHub?</strong> Think of it as a super-powered "save" feature. 
-                                It keeps every version of your screenplay safe in the cloud.
-                            </p>
-                            <p>
-                                <strong>Why use it?</strong> You can go back to any saved version at any time. 
-                                Made a mistake? Just restore an older backup!
-                            </p>
-                            <p className="text-base-content/60">
-                                Your screenplay also auto-saves locally, so GitHub is optional but recommended for extra safety.
-                            </p>
-                        </div>
-                        
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-base-200 rounded-lg p-6 max-w-md mx-4 shadow-xl">
+                        <h3 className="text-lg font-bold mb-3">Connect GitHub</h3>
+                        <p className="text-sm text-base-content/70 mb-4">
+                            GitHub connection is optional. Your screenplay auto-saves to secure cloud storage.
+                            Connect GitHub for version control and backup.
+                        </p>
                         <div className="flex gap-2">
                             <button
                                 onClick={handleConnectGitHub}
@@ -240,9 +123,9 @@ function GitHubSaveButton() {
                             </button>
                             <button
                                 onClick={() => setShowSetup(false)}
-                                className="btn btn-ghost"
+                                className="btn btn-ghost flex-1"
                             >
-                                Maybe Later
+                                Cancel
                             </button>
                         </div>
                     </div>
@@ -864,8 +747,46 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     );
                 })()}
                 
-                {/* Feature 0111: Save Backup to GitHub - Actually commits to GitHub */}
-                <GitHubSaveButton />
+                {/* Feature 0111: Optional Export to GitHub - Emoji (opens in new window) - Hidden on mobile */}
+                <div className="hidden md:block tooltip tooltip-bottom" data-tip="Export to GitHub (Optional) • Opens in new window">
+                    <button
+                        onClick={async () => {
+                            const githubConfigStr = localStorage.getItem('screenplay_github_config');
+                            if (!githubConfigStr) {
+                                // Show modal to connect GitHub directly
+                                const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+                                
+                                if (!GITHUB_CLIENT_ID) {
+                                    toast.error('GitHub OAuth is not configured. Please contact support.');
+                                    return;
+                                }
+                                
+                                // Ask user if they want to connect
+                                if (confirm('GitHub is not connected. Would you like to connect now?')) {
+                                    const scope = 'repo,user';
+                                    const state = 'github_oauth_wryda';
+                                    const redirectUri = `${window.location.origin}/write`;
+                                    const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
+                                    window.open(authUrl, '_blank');
+                                }
+                                return;
+                            }
+                            try {
+                                const config = JSON.parse(githubConfigStr);
+                                // Open GitHub repo in new window
+                                const repoUrl = `https://github.com/${config.owner}/${config.repo}`;
+                                window.open(repoUrl, '_blank');
+                                toast.success('✅ Opening GitHub repository in new window!');
+                            } catch (error: any) {
+                                toast.error('Export failed: ' + (error.message || 'Unknown error'));
+                            }
+                        }}
+                        className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                    >
+                        <span className="text-base">😈</span>
+                        <span className="text-[9px] hidden sm:inline">GITHUB</span>
+                    </button>
+                </div>
                 
                 {/* Divider */}
                 <div className="hidden md:block h-8 w-px bg-base-300 mx-2"></div>
