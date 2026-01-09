@@ -18,7 +18,6 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssets } from '@/hooks/useAssetBank';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { AssetCard } from './AssetCard';
 
 interface AssetBankPanelProps {
@@ -143,38 +142,9 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
     }
   }
 
-  // 🔥 FIX: Use Media Library as source of truth (matches AssetDetailModal pattern)
-  // Query Media Library for all asset files
-  const { data: allAssetMediaFiles = [] } = useMediaFiles(
-    screenplayId || '',
-    undefined,
-    !!screenplayId,
-    true, // includeAllFolders
-    'asset', // entityType
-    undefined // No entityId - get all asset files
-  );
-  
-  // Get presigned URLs for all asset media files
-  const assetS3Keys = allAssetMediaFiles
-    .filter(f => f.s3Key && !f.s3Key.startsWith('thumbnails/'))
-    .map(f => f.s3Key!);
-  
-  const { data: presignedUrls = new Map() } = useBulkPresignedUrls(
-    assetS3Keys,
-    !!screenplayId && assetS3Keys.length > 0
-  );
-  
-  // Create a map of asset ID -> media files for quick lookup
-  const mediaFilesByAssetId = new Map<string, typeof allAssetMediaFiles>();
-  allAssetMediaFiles.forEach((file: any) => {
-    const entityId = file.entityId || file.metadata?.entityId;
-    if (entityId) {
-      if (!mediaFilesByAssetId.has(entityId)) {
-        mediaFilesByAssetId.set(entityId, []);
-      }
-      mediaFilesByAssetId.get(entityId)!.push(file);
-    }
-  });
+  // 🔥 MATCH LOCATIONS PATTERN: Use asset.images directly (backend already provides presigned URLs)
+  // Media Library is NOT used for cards - only modals use Media Library
+  // This matches LocationBankPanel which uses location.images directly
 
   const filteredAssets = selectedCategory === 'all'
     ? assets
@@ -263,45 +233,41 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
             {filteredAssets.map((asset) => {
-              // 🔥 FIX: Use Media Library as source of truth (matches AssetDetailModal pattern)
+              // 🔥 MATCH LOCATIONS PATTERN EXACTLY: Use asset.images directly (backend provides presigned URLs)
+              // This is simpler and matches what Locations does - no Media Library for cards
               const allReferences: Array<{ id: string; imageUrl: string; label: string }> = [];
               
-              // Get Media Library files for this asset
-              const assetMediaFiles = mediaFilesByAssetId.get(asset.id) || [];
-              
-              // Process Media Library files (primary source)
-              assetMediaFiles.forEach((file: any) => {
-                if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
-                
-                // Get presigned URL from Media Library
-                const imageUrl = presignedUrls.get(file.s3Key) || '';
-                if (!imageUrl) return; // Skip if no URL yet
-                
-                // Determine image type from Media Library metadata
-                const isAngleReference = file.metadata?.source === 'angle-generation' ||
-                                        file.metadata?.uploadMethod === 'angle-generation';
-                const isCreationImage = !isAngleReference;
-                
-                // Get label from Media Library or DynamoDB metadata
-                const label = file.fileName?.replace(/\.[^/.]+$/, '') ||
-                             `${asset.name} - ${isAngleReference ? (file.metadata?.angle || 'angle') + ' view' : 'Image'}`;
-                
-                allReferences.push({
-                  id: file.s3Key || file.id || `img-${asset.id}-${allReferences.length}`,
-                  imageUrl,
-                  label
+              // Add base images (user-uploaded, from Creation section)
+              // Backend already provides presigned URLs in asset.images[].url
+              if (asset.images && asset.images.length > 0) {
+                asset.images.forEach((img, idx) => {
+                  // Only add images that are NOT angle-generated
+                  const isAngleGenerated = img.metadata?.source === 'angle-generation' || 
+                                            img.metadata?.source === 'image-generation';
+                  if (!isAngleGenerated && img.url) {
+                    allReferences.push({
+                      id: img.s3Key || `img-${asset.id}-${idx}`,
+                      imageUrl: img.url, // Backend already provides presigned URL
+                      label: `${asset.name} - Image ${idx + 1}`
+                    });
+                  }
                 });
-              });
+              }
               
-              // Sort: creation images first, then angle references
-              allReferences.sort((a, b) => {
-                const aIsAngle = a.label.includes('angle') || a.label.includes('view');
-                const bIsAngle = b.label.includes('angle') || b.label.includes('view');
-                if (aIsAngle !== bIsAngle) {
-                  return aIsAngle ? 1 : -1; // Creation images first
-                }
-                return 0;
-              });
+              // Add angle references (Production Hub images)
+              // Backend already provides presigned URLs in asset.angleReferences[].imageUrl
+              const angleRefs = asset.angleReferences || [];
+              if (angleRefs.length > 0) {
+                angleRefs.forEach((ref, idx) => {
+                  if (ref && ref.imageUrl) {
+                    allReferences.push({
+                      id: ref.s3Key || `angle-${asset.id}-${idx}`,
+                      imageUrl: ref.imageUrl, // Backend already provides presigned URL
+                      label: `${asset.name} - ${ref.angle || 'angle'} view`
+                    });
+                  }
+                });
+              }
               
               const mainImage = allReferences.length > 0 ? allReferences[0] : null;
               const referenceImages = allReferences.slice(1);
