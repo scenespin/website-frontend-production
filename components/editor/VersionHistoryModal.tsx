@@ -64,10 +64,32 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         }
     }, [isOpen, githubConfig]);
     
+    // State for showing expired token message
+    const [tokenExpired, setTokenExpired] = useState(false);
+    
+    const handleReconnectGitHub = () => {
+        // Clear invalid token
+        localStorage.removeItem('screenplay_github_config');
+        
+        const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+        if (!GITHUB_CLIENT_ID) {
+            toast.error('GitHub connection is not configured. Please contact support.');
+            return;
+        }
+        
+        const scope = 'repo,user';
+        const oauthState = 'github_oauth_wryda';
+        const redirectUri = `${window.location.origin}/write`;
+        const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${oauthState}`;
+        
+        window.location.href = authUrl;
+    };
+    
     const fetchCommits = async () => {
         if (!githubConfig) return;
         
         setLoading(true);
+        setTokenExpired(false);
         try {
             // Get default branch
             const defaultBranch = await getDefaultBranch(githubConfig);
@@ -78,7 +100,15 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
             setCommits(fileCommits);
         } catch (error: any) {
             console.error('[VersionHistory] Failed to fetch commits:', error);
-            toast.error(`Failed to load version history: ${error.message || 'Unknown error'}`);
+            
+            // Check if this is an authentication error
+            const errorMessage = error.message || '';
+            if (errorMessage.includes('Bad credentials') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+                setTokenExpired(true);
+                toast.error('Your GitHub connection has expired. Please reconnect.');
+            } else {
+                toast.error(`Failed to load version history: ${error.message || 'Unknown error'}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -357,6 +387,30 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                             <span className="ml-3 text-base-content/70">Loading your saved versions...</span>
                                         </div>
+                                    ) : tokenExpired ? (
+                                        <div className="text-center py-12 space-y-4">
+                                            <div className="w-16 h-16 mx-auto bg-warning/20 rounded-full flex items-center justify-center">
+                                                <svg className="h-8 w-8 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="text-base-content font-medium">GitHub Connection Expired</p>
+                                                <p className="text-sm text-base-content/60 mt-1 max-w-sm mx-auto">
+                                                    Your connection to GitHub has expired. This happens sometimes for security reasons. 
+                                                    Please reconnect to view your version history and save new backups.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={handleReconnectGitHub}
+                                                className="btn btn-primary gap-2"
+                                            >
+                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                                </svg>
+                                                Reconnect GitHub
+                                            </button>
+                                        </div>
                                     ) : commits.length === 0 ? (
                                         <div className="text-center py-12 space-y-4">
                                             <div className="w-16 h-16 mx-auto bg-base-200 rounded-full flex items-center justify-center">
@@ -365,7 +419,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                             <div>
                                                 <p className="text-base-content font-medium">No backups yet</p>
                                                 <p className="text-sm text-base-content/60 mt-1 max-w-sm mx-auto">
-                                                    Click the <strong>GitHub button</strong> in your toolbar to save your first backup. 
+                                                    Click the <strong>BACKUP button</strong> in your toolbar to save your first backup. 
                                                     It's like hitting "save" — but you can go back to any saved version later!
                                                 </p>
                                             </div>

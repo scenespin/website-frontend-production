@@ -74,7 +74,24 @@ function GitHubSaveButton() {
             setShowModal(false);
         } catch (error: any) {
             console.error('[GitHub Save] Failed:', error);
-            toast.error('Backup failed: ' + (error.message || 'Unknown error'));
+            
+            // Check if this is an authentication error (expired/revoked token)
+            const errorMessage = error.message || '';
+            if (errorMessage.includes('Bad credentials') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+                // Clear the invalid token
+                localStorage.removeItem('screenplay_github_config');
+                
+                toast.error(
+                    'Your GitHub connection has expired. Please reconnect to save backups.',
+                    { duration: 8000 }
+                );
+                
+                // Show the setup modal to reconnect
+                setShowModal(false);
+                setShowSetup(true);
+            } else {
+                toast.error('Backup failed: ' + (error.message || 'Unknown error'));
+            }
         } finally {
             setSaving(false);
         }
