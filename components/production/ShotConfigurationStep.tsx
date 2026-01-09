@@ -784,7 +784,7 @@ export function ShotConfigurationStep({
 
   return (
     // 🔥 MOBILE FIX: Stack on mobile (flex-col), grid on desktop (md:grid)
-    <div className="flex flex-col space-y-4 md:!grid md:grid-cols-3 md:gap-4 md:items-start">
+    <div className="flex flex-col space-y-4 md:!grid md:grid-cols-3 md:gap-4 md:items-start w-full max-w-full overflow-x-hidden">
       {/* Shot Navigator (Left side: 1/3 width on desktop, top on mobile) */}
       {onShotSelect && (
         <div className="w-full md:sticky md:top-4 flex flex-col order-1 md:order-none">
@@ -815,9 +815,9 @@ export function ShotConfigurationStep({
       )}
       
       {/* Shot Configuration (Right side: 2/3 width on desktop, bottom on mobile) */}
-      <div className="w-full md:col-span-2 order-2 md:order-none">
-        <div className={`space-y-4 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-        <Card className="bg-[#141414] border-[#3F3F46]">
+      <div className="w-full max-w-full md:col-span-2 order-2 md:order-none overflow-x-hidden">
+        <div className={`space-y-4 transition-opacity duration-500 w-full max-w-full ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+        <Card className="bg-[#141414] border-[#3F3F46] w-full max-w-full overflow-x-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>

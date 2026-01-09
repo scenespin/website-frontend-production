@@ -3455,10 +3455,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   }
   
   return (
-    <div className="h-full overflow-auto bg-[#0A0A0A]">
-      <div className="p-3 md:p-4 space-y-3 pb-20">
+    <div className="h-full overflow-y-auto overflow-x-hidden bg-[#0A0A0A] w-full max-w-full">
+      <div className="p-3 md:p-4 space-y-3 pb-20 w-full max-w-full">
         {/* Content */}
-        <div className="space-y-3">
+        <div className="space-y-3 w-full max-w-full">
         {/* Scene Builder Form - Wizard Flow */}
         {!isGenerating && !workflowStatus && (
           <motion.div

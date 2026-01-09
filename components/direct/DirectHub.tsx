@@ -74,9 +74,9 @@ export function DirectHub() {
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-hidden bg-[#0A0A0A]">
+      <div className="flex-1 overflow-hidden bg-[#0A0A0A] w-full max-w-full">
         {activeTab === 'scene-builder' && (
-          <div className="h-full overflow-y-auto">
+          <div className="h-full overflow-y-auto overflow-x-hidden w-full max-w-full">
             <SceneBuilderPanel
               projectId={screenplayId}
               isMobile={false}
