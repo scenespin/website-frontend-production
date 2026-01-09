@@ -195,9 +195,6 @@ export async function PUT(
       throw fetchError; // Re-throw to be caught by outer catch
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
-
   } catch (error: any) {
     console.error('[Asset Bank] API error:', error);
     return NextResponse.json(
