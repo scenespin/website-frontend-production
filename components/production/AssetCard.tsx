@@ -23,8 +23,7 @@ export interface AssetCardProps {
   className?: string;
 }
 
-// 🔥 TEMPORARY: Remove React.memo to debug - will add back with better comparison
-export const AssetCard = (({ 
+export const AssetCard = React.memo<AssetCardProps>(({ 
   asset, 
   onClick, 
   isSelected = false,
@@ -193,6 +192,64 @@ export const AssetCard = (({
       </div>
     </div>
   );
-}) as React.FC<AssetCardProps>;
+}, (prevProps, nextProps) => {
+  // 🔥 CRITICAL: Memo comparison that works with React Query cache updates
+  // When we do setQueryData with new object references, React Query creates new asset objects
+  // This comparison detects those changes reliably
+  
+  // Always re-render if asset object reference changed (React Query cache update or optimistic update)
+  // This is the most reliable indicator - when we update cache, we create new object references
+  if (prevProps.asset !== nextProps.asset) {
+    // Asset reference changed - this means React Query updated the cache
+    // Log for debugging but always re-render
+    const prevImagesCount = prevProps.asset.images?.length || 0;
+    const nextImagesCount = nextProps.asset.images?.length || 0;
+    const prevAngleRefsCount = prevProps.asset.angleReferences?.length || 0;
+    const nextAngleRefsCount = nextProps.asset.angleReferences?.length || 0;
+    
+    // Only log if counts actually changed (to reduce console noise)
+    if (prevImagesCount !== nextImagesCount || prevAngleRefsCount !== nextAngleRefsCount) {
+      console.log(`[AssetCard] Re-rendering: asset reference changed with different image counts for ${prevProps.asset.name}`, {
+        prevImages: prevImagesCount,
+        nextImages: nextImagesCount,
+        prevAngleRefs: prevAngleRefsCount,
+        nextAngleRefs: nextAngleRefsCount
+      });
+    }
+    return false; // Re-render - asset reference changed
+  }
+  
+  // Asset reference is the same - check if key fields changed (fallback for edge cases)
+  // This handles cases where React Query's structural sharing reuses the same reference
+  if (prevProps.asset.id !== nextProps.asset.id) {
+    return false; // Different asset
+  }
+  
+  if (prevProps.asset.name !== nextProps.asset.name) {
+    return false; // Name changed
+  }
+  
+  if (prevProps.isSelected !== nextProps.isSelected) {
+    return false; // Selection changed
+  }
+  
+  // Quick comparison of image counts (fast check)
+  const prevImagesCount = prevProps.asset.images?.length || 0;
+  const nextImagesCount = nextProps.asset.images?.length || 0;
+  const prevAngleRefsCount = prevProps.asset.angleReferences?.length || 0;
+  const nextAngleRefsCount = nextProps.asset.angleReferences?.length || 0;
+  
+  if (prevImagesCount !== nextImagesCount || prevAngleRefsCount !== nextAngleRefsCount) {
+    console.log(`[AssetCard] Re-rendering: image counts changed (same reference) for ${prevProps.asset.name}`);
+    return false; // Counts changed
+  }
+  
+  // If asset reference is the same AND all key fields are the same, skip re-render
+  // This is safe because:
+  // 1. Our optimistic updates create new object references (so reference check above catches them)
+  // 2. React Query cache updates create new object references (so reference check catches them)
+  // 3. This fallback only handles edge cases where structural sharing reuses references
+  return true; // Skip re-render - nothing changed
+});
 
 AssetCard.displayName = 'AssetCard';
