@@ -788,7 +788,7 @@ export default function EditorWorkspace() {
                     <div 
                         className="flex-1 overflow-hidden"
                         style={{
-                            paddingBottom: isMobile && isDrawerOpen ? '60px' : '0px'
+                            paddingBottom: isMobile && !isDrawerOpen ? '50px' : '0px'
                         }}
                     >
                         <FountainEditor
