@@ -30,6 +30,9 @@ export default function AdminAffiliateDashboard() {
   const [pendingPayouts, setPendingPayouts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [inviteCodes, setInviteCodes] = useState([]);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [newInviteCode, setNewInviteCode] = useState({ code: '', max_uses: 1, expires_at: '', notes: '' });
 
   useEffect(() => {
     if (user) {
@@ -52,22 +55,25 @@ export default function AdminAffiliateDashboard() {
       };
 
       // Fetch all admin data in parallel
-      const [overviewRes, affiliatesRes, topPerformersRes, pendingPayoutsRes] = await Promise.all([
+      const [overviewRes, affiliatesRes, topPerformersRes, pendingPayoutsRes, inviteCodesRes] = await Promise.all([
         fetch('/api/admin/affiliates/overview', { headers }),
         fetch(`/api/admin/affiliates?status=${statusFilter === 'all' ? '' : statusFilter}`, { headers }),
         fetch('/api/admin/affiliates/top-performers?limit=10', { headers }),
         fetch('/api/admin/affiliates/payouts/pending', { headers }),
+        fetch('/api/admin/affiliates/invite-codes?limit=100', { headers }),
       ]);
 
       const overviewData = await overviewRes.json();
       const affiliatesData = await affiliatesRes.json();
       const topPerformersData = await topPerformersRes.json();
       const pendingPayoutsData = await pendingPayoutsRes.json();
+      const inviteCodesData = await inviteCodesRes.json();
 
       setOverview(overviewData);
       setAffiliates(affiliatesData.affiliates || []);
       setTopPerformers(topPerformersData.top_performers || []);
       setPendingPayouts(pendingPayoutsData.payouts || []);
+      setInviteCodes(inviteCodesData.codes || []);
     } catch (error) {
       console.error('[Admin Affiliates] Failed to fetch data:', error);
     } finally {
@@ -397,6 +403,203 @@ export default function AdminAffiliateDashboard() {
           </div>
         </div>
       )}
+
+      {/* Invite Codes Management */}
+      <div className="card bg-base-200 shadow-lg">
+        <div className="card-body">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="card-title flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Invite Codes
+            </h2>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowInviteModal(true)}
+            >
+              Generate Code
+            </button>
+          </div>
+
+          {showInviteModal && (
+            <div className="modal modal-open">
+              <div className="modal-box">
+                <h3 className="font-bold text-lg mb-4">Generate Invite Code</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Code (leave empty for auto-generate)</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full"
+                      placeholder="WRYDA-XXXXXX"
+                      value={newInviteCode.code}
+                      onChange={(e) => setNewInviteCode({ ...newInviteCode, code: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Max Uses</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered w-full"
+                      value={newInviteCode.max_uses}
+                      onChange={(e) => setNewInviteCode({ ...newInviteCode, max_uses: parseInt(e.target.value) || 1 })}
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Expires At (optional, YYYY-MM-DD)</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="input input-bordered w-full"
+                      value={newInviteCode.expires_at}
+                      onChange={(e) => setNewInviteCode({ ...newInviteCode, expires_at: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Notes (optional)</span>
+                    </label>
+                    <textarea
+                      className="textarea textarea-bordered w-full"
+                      value={newInviteCode.notes}
+                      onChange={(e) => setNewInviteCode({ ...newInviteCode, notes: e.target.value })}
+                      placeholder="e.g., For YouTube partner X"
+                    />
+                  </div>
+                </div>
+                <div className="modal-action">
+                  <button 
+                    className="btn"
+                    onClick={() => {
+                      setShowInviteModal(false);
+                      setNewInviteCode({ code: '', max_uses: 1, expires_at: '', notes: '' });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={async () => {
+                      try {
+                        const token = await getToken({ template: 'wryda-backend' });
+                        const expiresAt = newInviteCode.expires_at 
+                          ? new Date(newInviteCode.expires_at).getTime() 
+                          : undefined;
+
+                        const res = await fetch('/api/admin/affiliates/invite-codes', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({
+                            code: newInviteCode.code || undefined,
+                            max_uses: newInviteCode.max_uses,
+                            expires_at: expiresAt,
+                            notes: newInviteCode.notes || undefined,
+                          }),
+                        });
+
+                        if (res.ok) {
+                          setShowInviteModal(false);
+                          setNewInviteCode({ code: '', max_uses: 1, expires_at: '', notes: '' });
+                          fetchDashboardData();
+                        } else {
+                          const error = await res.json();
+                          alert(`Error: ${error.error}`);
+                        }
+                      } catch (error) {
+                        console.error('Error creating invite code:', error);
+                        alert('Failed to create invite code');
+                      }
+                    }}
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="overflow-x-auto mt-4">
+            <table className="table table-zebra w-full">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Uses</th>
+                  <th>Max Uses</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inviteCodes.map((code) => (
+                  <tr key={code.code}>
+                    <td className="font-mono font-semibold">{code.code}</td>
+                    <td>{code.current_uses || 0}</td>
+                    <td>{code.max_uses}</td>
+                    <td>
+                      {code.expires_at 
+                        ? new Date(code.expires_at).toLocaleDateString()
+                        : 'Never'}
+                    </td>
+                    <td>
+                      <span className={`badge ${code.is_active ? 'badge-success' : 'badge-error'}`}>
+                        {code.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="text-sm text-base-content/60">{code.notes || '-'}</td>
+                    <td>
+                      {code.is_active && (
+                        <button
+                          className="btn btn-xs btn-error"
+                          onClick={async () => {
+                            if (confirm(`Deactivate invite code ${code.code}?`)) {
+                              try {
+                                const token = await getToken({ template: 'wryda-backend' });
+                                const res = await fetch(`/api/admin/affiliates/invite-codes/${code.code}`, {
+                                  method: 'DELETE',
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                  },
+                                });
+
+                                if (res.ok) {
+                                  fetchDashboardData();
+                                } else {
+                                  alert('Failed to deactivate code');
+                                }
+                              } catch (error) {
+                                console.error('Error deactivating invite code:', error);
+                                alert('Failed to deactivate code');
+                              }
+                            }
+                          }}
+                        >
+                          Deactivate
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {inviteCodes.length === 0 && (
+            <div className="text-center py-8 text-base-content/50">
+              No invite codes yet. Generate one to get started.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
