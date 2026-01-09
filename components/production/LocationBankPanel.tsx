@@ -189,17 +189,25 @@ export function LocationBankPanel({
         backgroundsCount: cacheBeforeInvalidate?.find(l => l.locationId === locationId)?.backgrounds?.length
       });
       
-      // Invalidate React Query cache - Production Hub context only
-      console.log('[LocationBankPanel] 🔄 Invalidating locations cache');
+      // 🔥 FIX: Use same aggressive pattern as LocationDetailModal (works!)
+      // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+      // This ensures disabled queries don't block invalidation (see GitHub issue #947)
+      queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-      
-      // 🔥 FIX: Await refetch like CharacterBankPanel does to ensure immediate UI update
-      console.log('[LocationBankPanel] 🔄 Refetching locations after update');
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
-        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-      ]);
+      queryClient.invalidateQueries({ 
+        queryKey: ['media', 'files', screenplayId],
+        exact: false
+      });
+      setTimeout(() => {
+        queryClient.refetchQueries({ 
+          queryKey: ['locations', screenplayId, 'production-hub'],
+          type: 'active' // Only refetch active (enabled) queries
+        });
+        queryClient.refetchQueries({ 
+          queryKey: ['media', 'files', screenplayId],
+          exact: false
+        });
+      }, 2000);
       
       if (onLocationsUpdate) onLocationsUpdate();
     } catch (error: any) {
@@ -372,11 +380,26 @@ export function LocationBankPanel({
           projectId={screenplayId}
           locationProfile={angleLocation}
           onComplete={async () => {
-            // Job started - refresh locations after delay - Production Hub context only
+            // 🔥 FIX: Use same aggressive pattern as LocationDetailModal (works!)
+            // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+            // This ensures disabled queries don't block invalidation (see GitHub issue #947)
+            queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+            queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+            queryClient.invalidateQueries({ 
+              queryKey: ['media', 'files', screenplayId],
+              exact: false
+            });
             setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+              queryClient.refetchQueries({ 
+                queryKey: ['locations', screenplayId, 'production-hub'],
+                type: 'active' // Only refetch active (enabled) queries
+              });
+              queryClient.refetchQueries({ 
+                queryKey: ['media', 'files', screenplayId],
+                exact: false
+              });
               if (onLocationsUpdate) onLocationsUpdate();
-            }, 5000);
+            }, 2000);
           }}
         />
       )}
