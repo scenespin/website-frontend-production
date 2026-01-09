@@ -10,7 +10,6 @@
 import React from 'react';
 import { Check, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { resolveImageUrl, isValidImageUrl } from './utils/imageUrlResolver';
 
 interface LocationAngleSelectorProps {
@@ -343,83 +342,11 @@ export function LocationAngleSelector({
     return groupedPhotos[selectedGroup] || [];
   }, [groupedPhotos, selectedGroup]);
 
-  // 🔥 FIX: Use provided locationThumbnailUrlsMap if available, otherwise fetch our own
-  // This ensures we use the same URL maps that work in the references section
-  const thumbnailS3Keys = React.useMemo(() => {
-    // If we have locationThumbnailS3KeyMap, use it to get thumbnail keys
-    if (locationThumbnailS3KeyMap) {
-      const keys: string[] = [];
-      allPhotos.forEach(photo => {
-        if (photo.s3Key && locationThumbnailS3KeyMap.has(photo.s3Key)) {
-          const thumbnailS3Key = locationThumbnailS3KeyMap.get(photo.s3Key);
-          if (thumbnailS3Key) {
-            keys.push(thumbnailS3Key);
-          }
-        }
-      });
-      return keys;
-    }
-    // Fallback: construct thumbnail keys manually (old behavior)
-    const keys: string[] = [];
-    allPhotos.forEach(photo => {
-      if (photo.s3Key) {
-        const thumbnailKey = photo.s3Key.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '.jpg');
-        keys.push(`thumbnails/${thumbnailKey}`);
-      }
-    });
-    return keys;
-  }, [allPhotos, locationThumbnailS3KeyMap]);
-
-  // 🔥 FIX: Use provided locationThumbnailUrlsMap if available and populated, otherwise fetch our own
-  // Check if provided map exists AND has entries (not just empty Map)
-  const hasProvidedThumbnails = locationThumbnailUrlsMap && locationThumbnailUrlsMap.size > 0;
-  const { data: fetchedThumbnailUrlsMap } = useBulkPresignedUrls(
-    thumbnailS3Keys, 
-    thumbnailS3Keys.length > 0 && !hasProvidedThumbnails // Fetch if we don't have a populated map
-  );
-  // Use provided map if it has entries, otherwise use fetched map
-  const thumbnailUrlsMap = hasProvidedThumbnails ? locationThumbnailUrlsMap : (fetchedThumbnailUrlsMap || new Map());
-  
-  // 🔥 FIX: Fetch full image URLs on-demand when thumbnails aren't available yet
-  // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)
-  const fullImageS3Keys = React.useMemo(() => {
-    const keys: string[] = [];
-    allPhotos.forEach(photo => {
-      // Only fetch if we have an s3Key and imageUrl is empty or not a valid URL
-      if (photo.s3Key && (!photo.imageUrl || (!photo.imageUrl.startsWith('http') && !photo.imageUrl.startsWith('data:')))) {
-        keys.push(photo.s3Key);
-      }
-    });
-    return keys;
-  }, [allPhotos]);
-  
-  // 🔥 FIX: Check if provided locationFullImageUrlsMap actually has URLs for the photos we need
-  // If not, we need to fetch them ourselves
-  const providedMapHasNeededUrls = React.useMemo(() => {
-    if (!locationFullImageUrlsMap || locationFullImageUrlsMap.size === 0) return false;
-    // Check if at least 30% of our photos have URLs in the provided map
-    let foundCount = 0;
-    allPhotos.forEach(photo => {
-      if (photo.s3Key && locationFullImageUrlsMap.has(photo.s3Key)) {
-        foundCount++;
-      }
-    });
-    return foundCount >= allPhotos.length * 0.3;
-  }, [locationFullImageUrlsMap, allPhotos]);
-  
-  // 🔥 FIX: Use provided locationFullImageUrlsMap if it has the URLs we need, otherwise fetch our own
-  const { data: fetchedFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
-    fullImageS3Keys,
-    fullImageS3Keys.length > 0 && !providedMapHasNeededUrls && (!thumbnailUrlsMap || thumbnailUrlsMap.size === 0 || thumbnailUrlsMap.size < fullImageS3Keys.length * 0.3) // Fetch if provided map doesn't have needed URLs and no thumbnails or less than 30% loaded
-  );
-  // Merge provided map with fetched map (fetched map takes precedence for missing entries)
-  const fullImageUrlsMap = React.useMemo(() => {
-    const merged = new Map(locationFullImageUrlsMap || new Map());
-    fetchedFullImageUrlsMap.forEach((url, s3Key) => {
-      merged.set(s3Key, url);
-    });
-    return merged;
-  }, [locationFullImageUrlsMap, fetchedFullImageUrlsMap]);
+  // 🔥 SIMPLIFIED: Just use the provided maps directly (same pattern as characters)
+  // No need to fetch our own URLs - parent component already provides them via useLocationReferences hook
+  // This matches the working character headshot pattern exactly
+  const thumbnailUrlsMap = locationThumbnailUrlsMap || new Map<string, string>();
+  const fullImageUrlsMap = locationFullImageUrlsMap || new Map<string, string>();
 
   const getAngleLabel = (angle: string): string => {
     const labels: Record<string, string> = {
@@ -669,62 +596,63 @@ export function LocationAngleSelector({
                 fallbackImageUrl: photo.imageUrl
               });
               
-              // 🔥 FIX: Show loading state if URL maps aren't ready yet (better UX than black images)
-              // Check if we're waiting for thumbnail URLs to load
-              const hasThumbnailS3Key = photo.s3Key && locationThumbnailS3KeyMap?.has(photo.s3Key);
-              const thumbnailS3Key = hasThumbnailS3Key ? locationThumbnailS3KeyMap.get(photo.s3Key) : null;
-              const hasThumbnailUrl = thumbnailS3Key && thumbnailUrlsMap?.has(thumbnailS3Key);
-              const hasFullImageUrl = photo.s3Key && fullImageUrlsMap?.has(photo.s3Key);
-              const hasFallbackUrl = photo.imageUrl && isValidImageUrl(photo.imageUrl);
+              // 🔥 FIX: Only show loading if we have an s3Key but displayUrl is still null
+              // This ensures we show loading only when we're actually waiting for URLs to load
+              // Once displayUrl resolves, it will automatically display (no need for loading state)
+              const isLoading = photo.s3Key && !displayUrl;
               
-              // Show loading if we have an s3Key but no URLs available yet
-              const isLoading = photo.s3Key && 
-                !hasThumbnailUrl && 
-                !hasFullImageUrl && 
-                !hasFallbackUrl;
+              // 🔥 SIMPLIFIED: Use displayUrl and map size in key so React re-renders when URL becomes available
+              // This ensures images update automatically when thumbnailUrlsMap gets populated
+              // Include a hash of the first part of displayUrl to force re-render when URL changes
+              const displayUrlHash = displayUrl ? displayUrl.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '') : 'no-url';
+              const imageKey = `${photo.s3Key || photo.angleId || photo.backgroundId || idx}-${displayUrlHash}-${thumbnailUrlsMap.size}`;
               
-              if (!displayUrl) {
+              // If we have a displayUrl, render the image (even if it was null before, React will re-render when it becomes available)
+              if (displayUrl) {
                 return (
-                  <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
-                    {isLoading ? 'Loading...' : 'No image'}
-                  </div>
+                  <img
+                    key={imageKey}
+                    src={displayUrl}
+                    alt={photo.label}
+                    className="w-full h-full object-cover"
+                    style={{
+                      maxWidth: '640px',
+                      maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
+                    }}
+                    loading="eager"
+                    onError={(e) => {
+                      // 🔥 FIX: Try fallback URLs if thumbnail fails
+                      const imgElement = e.target as HTMLImageElement;
+                      const currentSrc = imgElement.src;
+                      
+                      // If thumbnail failed, try full image URL
+                      if (photo.s3Key && fullImageUrlsMap?.has(photo.s3Key)) {
+                        const fullUrl = fullImageUrlsMap.get(photo.s3Key);
+                        if (fullUrl && fullUrl !== currentSrc && isValidImageUrl(fullUrl)) {
+                          imgElement.src = fullUrl;
+                          return;
+                        }
+                      }
+                      
+                      // If full image failed, try fallback imageUrl
+                      if (photo.imageUrl && isValidImageUrl(photo.imageUrl) && photo.imageUrl !== currentSrc) {
+                        imgElement.src = photo.imageUrl;
+                        return;
+                      }
+                      
+                      // If all URLs failed, hide the image and show placeholder
+                      imgElement.style.display = 'none';
+                    }}
+                  />
                 );
               }
               
+              // If no displayUrl yet, show loading state only if we have an s3Key (meaning we're waiting for URLs)
+              // Otherwise show "No image" if there's no s3Key at all
               return (
-                <img
-                  src={displayUrl}
-                  alt={photo.label}
-                  className="w-full h-full object-cover"
-                  style={{
-                    maxWidth: '640px',
-                    maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
-                  }}
-                  loading="eager"
-                  onError={(e) => {
-                    // 🔥 FIX: Try fallback URLs if thumbnail fails
-                    const imgElement = e.target as HTMLImageElement;
-                    const currentSrc = imgElement.src;
-                    
-                    // If thumbnail failed, try full image URL
-                    if (photo.s3Key && fullImageUrlsMap?.has(photo.s3Key)) {
-                      const fullUrl = fullImageUrlsMap.get(photo.s3Key);
-                      if (fullUrl && fullUrl !== currentSrc && isValidImageUrl(fullUrl)) {
-                        imgElement.src = fullUrl;
-                        return;
-                      }
-                    }
-                    
-                    // If full image failed, try fallback imageUrl
-                    if (photo.imageUrl && isValidImageUrl(photo.imageUrl) && photo.imageUrl !== currentSrc) {
-                      imgElement.src = photo.imageUrl;
-                      return;
-                    }
-                    
-                    // If all URLs failed, hide the image and show placeholder
-                    imgElement.style.display = 'none';
-                  }}
-                />
+                <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">
+                  {isLoading ? 'Loading...' : 'No image'}
+                </div>
               );
             })() : (
               <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] p-1 text-center rounded">

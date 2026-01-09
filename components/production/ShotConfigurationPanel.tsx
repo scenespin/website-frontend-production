@@ -1354,6 +1354,9 @@ export function ShotConfigurationPanel({
                     s3Key: selectedLocationReferences[shot.slot].s3Key,
                     imageUrl: selectedLocationReferences[shot.slot].imageUrl
                   } : undefined}
+                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 FIX: Pass location URL maps
+                  locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                  locationFullImageUrlsMap={locationFullImageUrlsMap}
                   onAngleChange={(locationId, angle) => {
                     onLocationAngleChange?.(shot.slot, locationId, angle);
                   }}
