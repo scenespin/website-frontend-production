@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, X } from 'lucide-react';
 
 interface SmartTypeItem {
     id: string;
@@ -29,7 +29,18 @@ export default function SmartTypeDropdown({
     query = ''
 }: SmartTypeDropdownProps) {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
+
+    // Detect mobile on mount and resize
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Filter items based on query
     const filteredItems = query.trim() === ''
@@ -109,6 +120,16 @@ export default function SmartTypeDropdown({
                     maxWidth: `calc(100vw - ${position.left}px - 20px)`
                 }}
             >
+                {/* Mobile-only close button */}
+                {isMobile && (
+                    <button
+                        onClick={onClose}
+                        className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
+                        aria-label="Close"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
                 <div className="px-3 py-4 text-sm text-base-content/60 text-center">
                     {query.trim() ? `No matches for "${query}"` : 'No options available'}
                 </div>
@@ -121,7 +142,7 @@ export default function SmartTypeDropdown({
 
     return (
         <div
-            className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl w-72 max-h-64 overflow-y-auto"
+            className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl w-72 max-h-64 overflow-y-auto relative"
             style={{
                 top: `${position.top}px`,
                 left: `${position.left}px`,
@@ -129,6 +150,16 @@ export default function SmartTypeDropdown({
                 maxWidth: `calc(100vw - ${position.left}px - 20px)`
             }}
         >
+            {/* Mobile-only close button - positioned in top-right corner */}
+            {isMobile && (
+                <button
+                    onClick={onClose}
+                    className="absolute top-2 right-2 z-10 p-1.5 rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
+                    aria-label="Close"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            )}
             <div ref={listRef} className="py-1">
                 {filteredItems.map((item, index) => {
                     const isSelected = index === selectedIndex;
