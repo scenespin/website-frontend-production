@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useRef, useEffect, useLayoutEffect, useMemo, ChangeEvent } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useMemo, useState, ChangeEvent } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useDrawer } from '@/contexts/DrawerContext';
 import { stripTagsForDisplay, getVisibleLineNumber, mapDisplayPositionToFullContent, mapFullContentPositionToDisplay } from '@/utils/fountain';
 import { AutoSaveManager } from '@/utils/AutoSaveManager';
 
@@ -645,6 +646,7 @@ export default function FountainEditor({
                         width: '100%',
                         margin: 0,
                         padding: 'var(--space-6)',
+                        paddingBottom: isMobile && !isDrawerOpen ? 'calc(var(--space-6) + 50px)' : 'var(--space-6)',
                         fontSize: `${state.fontSize}px`,
                         fontFamily: 'var(--font-mono)',
                         lineHeight: '1.625',
