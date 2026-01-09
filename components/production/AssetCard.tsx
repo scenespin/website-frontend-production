@@ -33,7 +33,17 @@ export const AssetCard = React.memo<AssetCardProps>(({
   console.log(`[AssetCard] Rendering card for ${asset.name}:`, {
     id: asset.id,
     imagesCount: asset.images?.length || 0,
-    angleReferencesCount: asset.angleReferences?.length || 0
+    angleReferencesCount: asset.angleReferences?.length || 0,
+    images: asset.images?.map(img => ({
+      s3Key: img.s3Key?.substring(0, 80),
+      source: img.metadata?.source || 'unknown',
+      createdIn: img.metadata?.createdIn || 'unknown'
+    })),
+    angleReferences: asset.angleReferences?.map(ref => ({
+      s3Key: ref.s3Key?.substring(0, 80),
+      angle: ref.angle,
+      hasImageUrl: !!ref.imageUrl
+    })) || []
   });
   
   // 🔥 OPTIMIZATION: Memoize image processing to avoid recalculation on every render
