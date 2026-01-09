@@ -340,7 +340,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const insertSceneTypeAndTab = (sceneType: string) => {
         setShowSceneTypeDropdown(false);
         
-        const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+        const textarea = textareaRef.current || document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                        document.querySelector('textarea') as HTMLTextAreaElement;
         if (!textarea) return;
 
         const cursorPos = textarea.selectionStart;
@@ -371,9 +372,30 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         }, 0);
     };
 
+    // Store textarea ref for reliable access
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+    // Update textarea ref when component mounts or content changes
+    useEffect(() => {
+        const updateTextareaRef = () => {
+            // Try to find the textarea - look for the one in the editor
+            const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                           document.querySelector('textarea[data-fountain-editor]') as HTMLTextAreaElement ||
+                           document.querySelector('textarea') as HTMLTextAreaElement;
+            if (textarea) {
+                textareaRef.current = textarea;
+            }
+        };
+        updateTextareaRef();
+        // Re-check periodically in case textarea is added dynamically
+        const interval = setInterval(updateTextareaRef, 100);
+        return () => clearInterval(interval);
+    }, [state.content]);
+
     // Calculate dropdown position near cursor (exact same logic as SmartTypeDropdown)
     const getCursorDropdownPosition = (): { top: number; left: number } | null => {
-        const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+        const textarea = textareaRef.current || document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                        document.querySelector('textarea') as HTMLTextAreaElement;
         if (!textarea) return null;
 
         const cursorPos = textarea.selectionStart;
@@ -448,7 +470,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
 
     // Wryda Smart Tab button handler
     const handleWrydaTabButton = (e: React.MouseEvent) => {
-        const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+        const textarea = textareaRef.current || document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                        document.querySelector('textarea') as HTMLTextAreaElement;
         if (!textarea) return;
 
         // If dropdown is already open, select the currently highlighted item
@@ -480,11 +503,14 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             textarea.dispatchEvent(tabEvent);
         } else {
             // Not a scene heading, calculate position and show dropdown
-            const position = getCursorDropdownPosition();
-            if (position) {
-                setSceneTypeDropdownPosition(position);
-                setShowSceneTypeDropdown(true);
-            }
+            // Use requestAnimationFrame to ensure textarea is ready and position is accurate
+            requestAnimationFrame(() => {
+                const position = getCursorDropdownPosition();
+                if (position) {
+                    setSceneTypeDropdownPosition(position);
+                    setShowSceneTypeDropdown(true);
+                }
+            });
         }
     };
 
@@ -542,10 +568,12 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     useEffect(() => {
         if (!showSceneTypeDropdown) return;
 
-        const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+        const handleClickOutside = (e: MouseEvent | TouchEvent | PointerEvent) => {
             const target = e.target as Node;
             const dropdown = document.querySelector('[data-scene-type-dropdown]');
-            if (dropdown && !dropdown.contains(target)) {
+            const button = document.querySelector('[data-wryda-tab-button]');
+            // Don't close if clicking on dropdown or button
+            if (dropdown && !dropdown.contains(target) && (!button || !button.contains(target))) {
                 setShowSceneTypeDropdown(false);
                 setSceneTypeDropdownPosition(null);
             }
@@ -553,15 +581,17 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
 
         // Small delay to prevent immediate closure
         const timeoutId = setTimeout(() => {
-            // Support both mouse and touch events for mobile
-            document.addEventListener('mousedown', handleClickOutside);
-            document.addEventListener('touchstart', handleClickOutside);
-        }, 100);
+            // Support mouse, touch, and pointer events for maximum compatibility
+            document.addEventListener('mousedown', handleClickOutside, true);
+            document.addEventListener('touchstart', handleClickOutside, true);
+            document.addEventListener('pointerdown', handleClickOutside, true);
+        }, 150);
 
         return () => {
             clearTimeout(timeoutId);
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('touchstart', handleClickOutside);
+            document.removeEventListener('mousedown', handleClickOutside, true);
+            document.removeEventListener('touchstart', handleClickOutside, true);
+            document.removeEventListener('pointerdown', handleClickOutside, true);
         };
     }, [showSceneTypeDropdown]);
     
@@ -628,6 +658,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 <div className="flex space-x-1">
                     <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
                         <button
+                            data-wryda-tab-button
                             onClick={handleWrydaTabButton}
                             className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                         >
@@ -665,57 +696,63 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     <div className="py-1">
                                         <button
                                             type="button"
+                                            onPointerDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('INT.');
+                                            }}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 insertSceneTypeAndTab('INT.');
                                             }}
-                                            onTouchStart={(e) => {
-                                                e.stopPropagation();
-                                            }}
                                             onMouseEnter={() => setSelectedSceneTypeIndex(0)}
-                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors ${
                                                 selectedSceneTypeIndex === 0 ? 'bg-blue-500 text-white' : ''
                                             }`}
-                                            style={{ touchAction: 'manipulation' }}
+                                            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                                         >
                                             <Film className="w-4 h-4 flex-shrink-0" />
                                             <span className="flex-1 truncate">INT.</span>
                                         </button>
                                         <button
                                             type="button"
+                                            onPointerDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('EXT.');
+                                            }}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 insertSceneTypeAndTab('EXT.');
                                             }}
-                                            onTouchStart={(e) => {
-                                                e.stopPropagation();
-                                            }}
                                             onMouseEnter={() => setSelectedSceneTypeIndex(1)}
-                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors ${
                                                 selectedSceneTypeIndex === 1 ? 'bg-blue-500 text-white' : ''
                                             }`}
-                                            style={{ touchAction: 'manipulation' }}
+                                            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                                         >
                                             <Film className="w-4 h-4 flex-shrink-0" />
                                             <span className="flex-1 truncate">EXT.</span>
                                         </button>
                                         <button
                                             type="button"
+                                            onPointerDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('INT./EXT.');
+                                            }}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 insertSceneTypeAndTab('INT./EXT.');
                                             }}
-                                            onTouchStart={(e) => {
-                                                e.stopPropagation();
-                                            }}
                                             onMouseEnter={() => setSelectedSceneTypeIndex(2)}
-                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors ${
                                                 selectedSceneTypeIndex === 2 ? 'bg-blue-500 text-white' : ''
                                             }`}
-                                            style={{ touchAction: 'manipulation' }}
+                                            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                                         >
                                             <Film className="w-4 h-4 flex-shrink-0" />
                                             <span className="flex-1 truncate">INT./EXT.</span>
@@ -1241,57 +1278,63 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     <div className="py-1">
                                         <button
                                             type="button"
+                                            onPointerDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('INT.');
+                                            }}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 insertSceneTypeAndTab('INT.');
                                             }}
-                                            onTouchStart={(e) => {
-                                                e.stopPropagation();
-                                            }}
                                             onMouseEnter={() => setSelectedSceneTypeIndex(0)}
-                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors ${
                                                 selectedSceneTypeIndex === 0 ? 'bg-blue-500 text-white' : ''
                                             }`}
-                                            style={{ touchAction: 'manipulation' }}
+                                            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                                         >
                                             <Film className="w-4 h-4 flex-shrink-0" />
                                             <span className="flex-1 truncate">INT.</span>
                                         </button>
                                         <button
                                             type="button"
+                                            onPointerDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('EXT.');
+                                            }}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 insertSceneTypeAndTab('EXT.');
                                             }}
-                                            onTouchStart={(e) => {
-                                                e.stopPropagation();
-                                            }}
                                             onMouseEnter={() => setSelectedSceneTypeIndex(1)}
-                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors ${
                                                 selectedSceneTypeIndex === 1 ? 'bg-blue-500 text-white' : ''
                                             }`}
-                                            style={{ touchAction: 'manipulation' }}
+                                            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                                         >
                                             <Film className="w-4 h-4 flex-shrink-0" />
                                             <span className="flex-1 truncate">EXT.</span>
                                         </button>
                                         <button
                                             type="button"
+                                            onPointerDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertSceneTypeAndTab('INT./EXT.');
+                                            }}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 insertSceneTypeAndTab('INT./EXT.');
                                             }}
-                                            onTouchStart={(e) => {
-                                                e.stopPropagation();
-                                            }}
                                             onMouseEnter={() => setSelectedSceneTypeIndex(2)}
-                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors touch-manipulation ${
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors ${
                                                 selectedSceneTypeIndex === 2 ? 'bg-blue-500 text-white' : ''
                                             }`}
-                                            style={{ touchAction: 'manipulation' }}
+                                            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                                         >
                                             <Film className="w-4 h-4 flex-shrink-0" />
                                             <span className="flex-1 truncate">INT./EXT.</span>
