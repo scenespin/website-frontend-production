@@ -30,6 +30,7 @@ interface AssetBankPanelProps {
 export default function AssetBankPanel({ className = '', isMobile = false, entityToOpen, onEntityOpened }: AssetBankPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId; // 🔥 MATCH MODALS: Use context directly (same as AssetDetailModal)
+  const editorContext = useEditorContext();
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
 
