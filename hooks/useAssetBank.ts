@@ -95,7 +95,8 @@ export function useAssets(screenplayId: string, context: 'creation' | 'productio
       return assets;
     },
     enabled: enabled && !!screenplayId,
-    staleTime: 30000, // 30 seconds - MATCHES LOCATIONS PATTERN
+    staleTime: 0, // Always consider data stale to ensure fresh data on Production Hub
+    refetchOnMount: 'always', // Always refetch when component mounts to ensure fresh data
   });
 }
 

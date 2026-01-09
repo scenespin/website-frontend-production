@@ -93,7 +93,16 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     console.log('[Location Bank List] Success, returning data');
-    return NextResponse.json(data);
+    
+    // 🔥 FIX: Prevent browser caching of API responses
+    // This ensures Production Hub always gets fresh data
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
 
   } catch (error: any) {
     console.error('Location bank list API error:', error);

@@ -179,7 +179,8 @@ export function useLocations(screenplayId: string, context: 'creation' | 'produc
       return locations;
     },
     enabled: enabled && !!screenplayId,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Always consider data stale to ensure fresh data on Production Hub
+    refetchOnMount: 'always', // Always refetch when component mounts to ensure fresh data
   });
 }
 

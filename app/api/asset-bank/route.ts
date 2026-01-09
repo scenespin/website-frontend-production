@@ -69,11 +69,20 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('[Asset Bank Proxy] ✅ Success - asset created');
-    return NextResponse.json(data);
+    console.log('[Asset Bank Proxy] ✅ Success - assets fetched');
+    
+    // 🔥 FIX: Prevent browser caching of API responses
+    // This ensures Production Hub always gets fresh data
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
 
   } catch (error: any) {
-    console.error('[Asset Bank Proxy] ❌ POST API error:', error);
+    console.error('[Asset Bank Proxy] ❌ GET API error:', error);
     console.error('[Asset Bank Proxy] Error stack:', error.stack);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
