@@ -18,6 +18,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssets } from '@/hooks/useAssetBank';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { AssetCard } from './AssetCard';
 
 interface AssetBankPanelProps {
@@ -142,6 +143,39 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
     }
   }
 
+  // 🔥 FIX: Use Media Library as source of truth (matches AssetDetailModal pattern)
+  // Query Media Library for all asset files
+  const { data: allAssetMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    !!screenplayId,
+    true, // includeAllFolders
+    'asset', // entityType
+    undefined // No entityId - get all asset files
+  );
+  
+  // Get presigned URLs for all asset media files
+  const assetS3Keys = allAssetMediaFiles
+    .filter(f => f.s3Key && !f.s3Key.startsWith('thumbnails/'))
+    .map(f => f.s3Key!);
+  
+  const { data: presignedUrls = new Map() } = useBulkPresignedUrls(
+    assetS3Keys,
+    !!screenplayId && assetS3Keys.length > 0
+  );
+  
+  // Create a map of asset ID -> media files for quick lookup
+  const mediaFilesByAssetId = new Map<string, typeof allAssetMediaFiles>();
+  allAssetMediaFiles.forEach((file: any) => {
+    const entityId = file.entityId || file.metadata?.entityId;
+    if (entityId) {
+      if (!mediaFilesByAssetId.has(entityId)) {
+        mediaFilesByAssetId.set(entityId, []);
+      }
+      mediaFilesByAssetId.get(entityId)!.push(file);
+    }
+  });
+
   const filteredAssets = selectedCategory === 'all'
     ? assets
     : assets.filter(a => a.category === selectedCategory);
@@ -239,11 +273,29 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
                   // Only add images that are NOT angle-generated
                   const isAngleGenerated = img.metadata?.source === 'angle-generation' || 
                                             img.metadata?.source === 'image-generation';
+                  
+                  // 🔥 DEBUG: Log image data to see why it's not showing
+                  if (!isAngleGenerated) {
+                    console.log(`[AssetBankPanel] Processing image ${idx} for ${asset.name}:`, {
+                      hasUrl: !!img.url,
+                      url: img.url?.substring(0, 50),
+                      hasS3Key: !!img.s3Key,
+                      s3Key: img.s3Key?.substring(0, 50),
+                      source: img.metadata?.source,
+                      createdIn: img.metadata?.createdIn
+                    });
+                  }
+                  
                   if (!isAngleGenerated && img.url) {
                     allReferences.push({
                       id: img.s3Key || `img-${asset.id}-${idx}`,
                       imageUrl: img.url,
                       label: `${asset.name} - Image ${idx + 1}`
+                    });
+                  } else if (!isAngleGenerated && !img.url) {
+                    console.warn(`[AssetBankPanel] ⚠️ Image ${idx} for ${asset.name} has no URL:`, {
+                      s3Key: img.s3Key,
+                      metadata: img.metadata
                     });
                   }
                 });
@@ -270,19 +322,19 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
               } else if (angleImages.length > 0) {
                 angleImages.forEach((img, idx) => {
                   if (img.url) {
-                    allReferences.push({
-                      id: img.s3Key || `angle-img-${asset.id}-${idx}`,
-                      imageUrl: img.url,
-                      label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
-                    });
+                  allReferences.push({
+                    id: img.s3Key || `angle-img-${asset.id}-${idx}`,
+                    imageUrl: img.url,
+                    label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
+                  });
                   }
                 });
               }
-              
+
               const mainImage = allReferences.length > 0 ? allReferences[0] : null;
               const referenceImages = allReferences.slice(1);
               const imageCount = allReferences.length;
-              
+
               return (
                 <AssetCard
                   key={asset.id}
