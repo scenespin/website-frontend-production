@@ -263,74 +263,46 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
             {filteredAssets.map((asset) => {
-              // 🔥 FIX: Process images inline (matches Locations pattern)
-              // This ensures fresh data on every render and proper React Query cache updates
+              // 🔥 FIX: Use Media Library as source of truth (matches AssetDetailModal pattern)
               const allReferences: Array<{ id: string; imageUrl: string; label: string }> = [];
               
-              // Add base images (user-uploaded, from Creation section)
-              if (asset.images && asset.images.length > 0) {
-                asset.images.forEach((img, idx) => {
-                  // Only add images that are NOT angle-generated
-                  const isAngleGenerated = img.metadata?.source === 'angle-generation' || 
-                                            img.metadata?.source === 'image-generation';
-                  
-                  // 🔥 DEBUG: Log image data to see why it's not showing
-                  if (!isAngleGenerated) {
-                    console.log(`[AssetBankPanel] Processing image ${idx} for ${asset.name}:`, {
-                      hasUrl: !!img.url,
-                      url: img.url?.substring(0, 50),
-                      hasS3Key: !!img.s3Key,
-                      s3Key: img.s3Key?.substring(0, 50),
-                      source: img.metadata?.source,
-                      createdIn: img.metadata?.createdIn
-                    });
-                  }
-                  
-                  if (!isAngleGenerated && img.url) {
-                    allReferences.push({
-                      id: img.s3Key || `img-${asset.id}-${idx}`,
-                      imageUrl: img.url,
-                      label: `${asset.name} - Image ${idx + 1}`
-                    });
-                  } else if (!isAngleGenerated && !img.url) {
-                    console.warn(`[AssetBankPanel] ⚠️ Image ${idx} for ${asset.name} has no URL:`, {
-                      s3Key: img.s3Key,
-                      metadata: img.metadata
-                    });
-                  }
-                });
-              }
+              // Get Media Library files for this asset
+              const assetMediaFiles = mediaFilesByAssetId.get(asset.id) || [];
               
-              // Add angle references (Production Hub images)
-              const angleRefs = asset.angleReferences || [];
-              const angleImages = asset.images?.filter((img: any) => 
-                img.metadata?.source === 'angle-generation' || 
-                img.metadata?.source === 'image-generation'
-              ) || [];
+              // Process Media Library files (primary source)
+              assetMediaFiles.forEach((file: any) => {
+                if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
+                
+                // Get presigned URL from Media Library
+                const imageUrl = presignedUrls.get(file.s3Key) || '';
+                if (!imageUrl) return; // Skip if no URL yet
+                
+                // Determine image type from Media Library metadata
+                const isAngleReference = file.metadata?.source === 'angle-generation' ||
+                                        file.metadata?.uploadMethod === 'angle-generation';
+                const isCreationImage = !isAngleReference;
+                
+                // Get label from Media Library or DynamoDB metadata
+                const label = file.fileName?.replace(/\.[^/.]+$/, '') ||
+                             `${asset.name} - ${isAngleReference ? (file.metadata?.angle || 'angle') + ' view' : 'Image'}`;
+                
+                allReferences.push({
+                  id: file.s3Key || file.id || `img-${asset.id}-${allReferences.length}`,
+                  imageUrl,
+                  label
+                });
+              });
               
-              // Prefer angleReferences if it exists, otherwise use angleImages from images array
-              if (angleRefs.length > 0) {
-                angleRefs.forEach((ref, idx) => {
-                  if (ref && ref.imageUrl) {
-                    allReferences.push({
-                      id: ref.s3Key || `angle-${asset.id}-${idx}`,
-                      imageUrl: ref.imageUrl,
-                      label: `${asset.name} - ${ref.angle || 'angle'} view`
-                    });
-                  }
-                });
-              } else if (angleImages.length > 0) {
-                angleImages.forEach((img, idx) => {
-                  if (img.url) {
-                  allReferences.push({
-                    id: img.s3Key || `angle-img-${asset.id}-${idx}`,
-                    imageUrl: img.url,
-                    label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
-                  });
-                  }
-                });
-              }
-
+              // Sort: creation images first, then angle references
+              allReferences.sort((a, b) => {
+                const aIsAngle = a.label.includes('angle') || a.label.includes('view');
+                const bIsAngle = b.label.includes('angle') || b.label.includes('view');
+                if (aIsAngle !== bIsAngle) {
+                  return aIsAngle ? 1 : -1; // Creation images first
+                }
+                return 0;
+              });
+              
               const mainImage = allReferences.length > 0 ? allReferences[0] : null;
               const referenceImages = allReferences.slice(1);
               const imageCount = allReferences.length;
