@@ -17,8 +17,7 @@ import { motion } from 'framer-motion';
 export default function WrydaTabFAB({
   onWrydaTabClick,
   isDrawerOpen,
-  isMobile,
-  hasDirector = false // Whether Director button is visible (affects stack height)
+  isMobile
 }) {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   
@@ -82,10 +81,10 @@ export default function WrydaTabFAB({
   const buttonHeight = 48; // h-12 = 48px (reduced from 56px)
   const gapSize = 6; // gap-1.5 = 6px (reduced from 8px)
   
-  // Calculate number of buttons above Screenwriter dynamically
-  // Always: Rewrite, Dialogue (2 buttons)
-  // Conditionally: Director (1 button if shown)
-  const numberOfButtonsAboveScreenwriter = hasDirector ? 3 : 2;
+  // Calculate number of buttons above Screenwriter
+  // Stack order (bottom to top): Rewrite, Dialogue, Director, Screenwriter
+  // Always 3 buttons above Screenwriter (Director is always visible)
+  const numberOfButtonsAboveScreenwriter = 3;
   const screenwriterBottomOffset = baseBottomOffset + (numberOfButtonsAboveScreenwriter * buttonHeight) + (numberOfButtonsAboveScreenwriter * gapSize);
   
   // When keyboard is open, position FAB above the keyboard (same logic as AgentFABGroup)

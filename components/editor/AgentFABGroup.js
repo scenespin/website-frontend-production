@@ -179,41 +179,39 @@ export default function AgentFABGroup({
           <span className="text-2xl relative z-10">💬</span>
         </motion.button>
 
-        {/* Director FAB */}
-        {onLaunchDirector && (
-          <motion.button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onLaunchDirector();
-            }}
-            className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-lg border-2 border-white/30 ${
-              isMobile ? 'shadow-2xl' : 'shadow-lg'
-            }`}
-            style={{
-              // Glassmorphic effect: gradient background with glass overlay
-              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.85) 0%, rgba(234, 88, 12, 0.85) 100%)',
-            }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ 
-              delay: hasSelection ? 0.05 : 0.15, 
-              type: 'spring', 
-              stiffness: 260, 
-              damping: 20 
-            }}
-            whileTap={{ scale: 0.9 }}
-            whileHover={!isMobile ? { scale: 1.05 } : {}}
-            title="Launch Director Agent: Generate complete scenes with scene headings"
-            aria-label="Launch Director Agent"
-          >
-            {/* Glass overlay with shine effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/10 to-transparent pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-            <div className="absolute top-0 left-1/4 w-1/2 h-1/3 bg-white/20 rounded-full blur-xl pointer-events-none" />
-            <span className="text-2xl relative z-10">🎬</span>
-          </motion.button>
-        )}
+        {/* Director FAB - Always visible */}
+        <motion.button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onLaunchDirector();
+          }}
+          className={`${buttonSize} rounded-full flex items-center justify-center text-white relative overflow-hidden backdrop-blur-lg border-2 border-white/30 ${
+            isMobile ? 'shadow-2xl' : 'shadow-lg'
+          }`}
+          style={{
+            // Glassmorphic effect: gradient background with glass overlay
+            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.85) 0%, rgba(234, 88, 12, 0.85) 100%)',
+          }}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ 
+            delay: hasSelection ? 0.05 : 0.15, 
+            type: 'spring', 
+            stiffness: 260, 
+            damping: 20 
+          }}
+          whileTap={{ scale: 0.9 }}
+          whileHover={!isMobile ? { scale: 1.05 } : {}}
+          title="Launch Director Agent: Generate complete scenes with scene headings"
+          aria-label="Launch Director Agent"
+        >
+          {/* Glass overlay with shine effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/10 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-1/4 w-1/2 h-1/3 bg-white/20 rounded-full blur-xl pointer-events-none" />
+          <span className="text-2xl relative z-10">🎬</span>
+        </motion.button>
 
         {/* Screenwriter FAB */}
         <motion.button
