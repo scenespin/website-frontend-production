@@ -89,8 +89,11 @@ export function ProductionHub({}: ProductionHubProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // 🔥 FIX: Get screenplayId from context only - no fallbacks, no props
-  const screenplayId = screenplay.screenplayId;
+  // 🔥 FIX: Get screenplayId from URL first (for new projects), then context, then Clerk metadata
+  // This matches Navigation.js pattern: URL > Context > Clerk metadata
+  const urlScreenplayId = searchParams?.get('project');
+  const contextScreenplayId = screenplay.screenplayId;
+  const screenplayId = urlScreenplayId || contextScreenplayId;
   
   // State - sync with URL params (ALL HOOKS MUST BE CALLED BEFORE EARLY RETURN)
   // 🔥 FIX: Initialize with default, then sync from URL in useEffect to prevent React error #300

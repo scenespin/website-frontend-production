@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { useSearchParams } from 'next/navigation';
 import { Package, Car, Armchair, Box, Film, X, Loader2 } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import AssetUploadModal from './AssetUploadModal';
@@ -31,8 +32,14 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
   const { getToken } = useAuth();
   const editorContext = useEditorContext();
   const screenplay = useScreenplay();
-  const screenplayId = screenplay.screenplayId;
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  
+  // 🔥 FIX: Get screenplayId from URL first (for new projects), then context
+  // This matches ProductionHub pattern: URL > Context
+  const urlScreenplayId = searchParams?.get('project');
+  const contextScreenplayId = screenplay.screenplayId;
+  const screenplayId = urlScreenplayId || contextScreenplayId;
 
   // React Query for fetching assets
   const { data: assets = [], isLoading: queryLoading } = useAssets(

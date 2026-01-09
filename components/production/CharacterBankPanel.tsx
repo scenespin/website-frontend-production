@@ -13,6 +13,7 @@ import { User, Loader2, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import { useAuth } from '@clerk/nextjs';
+import { useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
@@ -45,9 +46,15 @@ export function CharacterBankPanel({
   onEntityOpened
 }: CharacterBankPanelProps) {
   const screenplay = useScreenplay();
-  const screenplayId = screenplay.screenplayId;
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  
+  // 🔥 FIX: Get screenplayId from URL first (for new projects), then context
+  // This matches ProductionHub pattern: URL > Context
+  const urlScreenplayId = searchParams?.get('project');
+  const contextScreenplayId = screenplay.screenplayId;
+  const screenplayId = urlScreenplayId || contextScreenplayId;
 
   // React Query for fetching characters - Production Hub context
   const { data: characters = propsCharacters, isLoading: queryLoading } = useCharacters(

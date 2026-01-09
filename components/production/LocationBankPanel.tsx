@@ -11,6 +11,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
@@ -38,9 +39,15 @@ export function LocationBankPanel({
   onEntityOpened
 }: LocationBankPanelProps) {
   const screenplay = useScreenplay();
-  const screenplayId = screenplay.screenplayId;
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  
+  // 🔥 FIX: Get screenplayId from URL first (for new projects), then context
+  // This matches ProductionHub pattern: URL > Context
+  const urlScreenplayId = searchParams?.get('project');
+  const contextScreenplayId = screenplay.screenplayId;
+  const screenplayId = urlScreenplayId || contextScreenplayId;
 
   // React Query for fetching locations - Production Hub context
   const { data: locations = propsLocations, isLoading: queryLoading } = useLocations(
