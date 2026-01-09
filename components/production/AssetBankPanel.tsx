@@ -16,9 +16,9 @@ import AssetDetailModal from './AssetDetailModal';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { toast } from 'sonner';
-import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssets } from '@/hooks/useAssetBank';
+import { AssetCard } from './AssetCard';
 
 interface AssetBankPanelProps {
   className?: string;
@@ -217,94 +217,16 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
-            {filteredAssets.map((asset) => {
-              const allReferences: CinemaCardImage[] = [];
-              
-              // 🔥 DEBUG: Log asset images for ALL assets to track updates
-              console.log(`[AssetBankPanel] Rendering card for ${asset.name}:`, {
-                id: asset.id,
-                imagesCount: asset.images?.length || 0,
-                images: asset.images?.map((img: any) => ({
-                  url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
-                  s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
-                  source: img.metadata?.source || 'unknown'
-                }))
-              });
-              
-              // Add base images (user-uploaded, from Creation section)
-              if (asset.images && asset.images.length > 0) {
-                asset.images.forEach((img, idx) => {
-                  // Only add images that are NOT angle-generated (those go in angleReferences section)
-                  const isAngleGenerated = img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation';
-                  if (!isAngleGenerated) {
-                    allReferences.push({
-                      id: img.s3Key || `img-${asset.id}-${idx}`,
-                      imageUrl: img.url,
-                      label: `${asset.name} - Image ${idx + 1}`
-                    });
-                  }
-                });
-              }
-              
-              // Add angle references (like locations add angleVariations)
-              // 🔥 FIX: Use EITHER angleReferences OR angleImages from images array, but NOT both (prevents double-counting)
-              const angleRefs = asset.angleReferences || [];
-              const angleImages = asset.images?.filter((img: any) => 
-                img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation'
-              ) || [];
-              
-              // Prefer angleReferences if it exists and has items, otherwise use angleImages from images array
-              if (angleRefs.length > 0) {
-                console.log(`[AssetBankPanel] Found ${angleRefs.length} angle references for ${asset.name}:`, angleRefs);
-                // Add angleReferences from dedicated field
-                angleRefs.forEach((ref, idx) => {
-                  if (ref && ref.imageUrl) {
-                    allReferences.push({
-                      id: ref.s3Key || `angle-${asset.id}-${idx}`,
-                      imageUrl: ref.imageUrl,
-                      label: `${asset.name} - ${ref.angle || 'angle'} view`
-                    });
-                  } else if (ref && !ref.imageUrl) {
-                    console.warn(`[AssetBankPanel] Angle reference missing imageUrl for ${asset.name}:`, ref);
-                  }
-                });
-              } else if (angleImages.length > 0) {
-                console.log(`[AssetBankPanel] Found ${angleImages.length} angle images in images array for ${asset.name}:`, angleImages);
-                // Add angle images from images array (backend merges them here)
-                angleImages.forEach((img, idx) => {
-                  allReferences.push({
-                    id: img.s3Key || `angle-img-${asset.id}-${idx}`,
-                    imageUrl: img.url,
-                    label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
-                  });
-                });
-              } else if (asset.name === 'coffee cup') {
-                console.warn(`[AssetBankPanel] ⚠️ No angleReferences or angle images found for ${asset.name}`);
-                console.log(`[AssetBankPanel] Full images array:`, asset.images);
-              }
-
-              const metadata = `${allReferences.length} images`;
-
-              return (
-                <CinemaCard
-                  key={asset.id}
-                  id={asset.id}
-                  name={asset.name}
-                  type={asset.category}
-                  typeLabel={ASSET_CATEGORY_METADATA[asset.category].label}
-                  mainImage={allReferences.length > 0 ? allReferences[0] : null}
-                  referenceImages={allReferences.slice(1)}
-                  referenceCount={allReferences.length}
-                  metadata={metadata}
-                  description={asset.description}
-                  cardType="asset"
-                  onClick={() => {
-                    setSelectedAssetId(asset.id);
-                    setShowDetailModal(true);
-                  }}
-                />
-              );
-            })}
+            {filteredAssets.map((asset) => (
+              <AssetCard
+                key={asset.id}
+                asset={asset}
+                onClick={() => {
+                  setSelectedAssetId(asset.id);
+                  setShowDetailModal(true);
+                }}
+              />
+            ))}
           </div>
         )}
       </div>

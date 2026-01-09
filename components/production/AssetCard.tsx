@@ -1,0 +1,220 @@
+'use client';
+
+/**
+ * AssetCard - Dedicated, optimized card component for Assets
+ * 
+ * Benefits over CinemaCard:
+ * 1. Direct asset prop - reacts to asset changes automatically
+ * 2. Memoized with proper comparison - only re-renders when asset actually changes
+ * 3. Self-contained image processing - no parent-side transformation needed
+ * 4. Better performance - useMemo for expensive operations
+ * 5. Type-safe - directly uses Asset type
+ */
+
+import React, { useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import { Box } from 'lucide-react';
+import { Asset, ASSET_CATEGORY_METADATA } from '@/types/asset';
+
+export interface AssetCardProps {
+  asset: Asset;
+  onClick?: () => void;
+  isSelected?: boolean;
+  className?: string;
+}
+
+export const AssetCard = React.memo<AssetCardProps>(({ 
+  asset, 
+  onClick, 
+  isSelected = false,
+  className 
+}) => {
+  // 🔥 OPTIMIZATION: Memoize image processing to avoid recalculation on every render
+  const { mainImage, referenceImages, imageCount } = useMemo(() => {
+    const allReferences: Array<{ id: string; imageUrl: string; label: string }> = [];
+    
+    // Add base images (user-uploaded, from Creation section)
+    if (asset.images && asset.images.length > 0) {
+      asset.images.forEach((img, idx) => {
+        // Only add images that are NOT angle-generated
+        const isAngleGenerated = img.metadata?.source === 'angle-generation' || 
+                                  img.metadata?.source === 'image-generation';
+        if (!isAngleGenerated && img.url) {
+          allReferences.push({
+            id: img.s3Key || `img-${asset.id}-${idx}`,
+            imageUrl: img.url,
+            label: `${asset.name} - Image ${idx + 1}`
+          });
+        }
+      });
+    }
+    
+    // Add angle references (Production Hub images)
+    const angleRefs = asset.angleReferences || [];
+    const angleImages = asset.images?.filter((img: any) => 
+      img.metadata?.source === 'angle-generation' || 
+      img.metadata?.source === 'image-generation'
+    ) || [];
+    
+    // Prefer angleReferences if it exists, otherwise use angleImages from images array
+    if (angleRefs.length > 0) {
+      angleRefs.forEach((ref, idx) => {
+        if (ref && ref.imageUrl) {
+          allReferences.push({
+            id: ref.s3Key || `angle-${asset.id}-${idx}`,
+            imageUrl: ref.imageUrl,
+            label: `${asset.name} - ${ref.angle || 'angle'} view`
+          });
+        }
+      });
+    } else if (angleImages.length > 0) {
+      angleImages.forEach((img, idx) => {
+        if (img.url) {
+          allReferences.push({
+            id: img.s3Key || `angle-img-${asset.id}-${idx}`,
+            imageUrl: img.url,
+            label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
+          });
+        }
+      });
+    }
+    
+    return {
+      mainImage: allReferences.length > 0 ? allReferences[0] : null,
+      referenceImages: allReferences.slice(1),
+      imageCount: allReferences.length
+    };
+  }, [
+    asset.id,
+    asset.name,
+    // 🔥 CRITICAL: Deep comparison of images array - use JSON.stringify for now
+    // In production, consider using a more efficient deep comparison library
+    JSON.stringify(asset.images?.map(img => ({ url: img.url, s3Key: img.s3Key, source: img.metadata?.source }))),
+    JSON.stringify(asset.angleReferences?.map(ref => ({ s3Key: ref.s3Key, imageUrl: ref.imageUrl })))
+  ]);
+
+  const categoryMetadata = ASSET_CATEGORY_METADATA[asset.category];
+  const metadata = `${imageCount} image${imageCount !== 1 ? 's' : ''}`;
+
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        'bg-[#141414] border rounded-lg overflow-hidden transition-all duration-200 cursor-pointer group',
+        isSelected
+          ? 'border-[#DC143C] bg-[#DC143C]/10 shadow-lg shadow-[#DC143C]/20'
+          : 'border-[#3F3F46] hover:border-[#DC143C]/50 hover:shadow-lg hover:shadow-[#DC143C]/20 hover:scale-[1.02]',
+        className
+      )}
+    >
+      {/* Main Image Hero */}
+      <div className="relative aspect-[4/3] bg-[#1F1F1F] overflow-hidden">
+        {mainImage?.imageUrl ? (
+          <img
+            src={mainImage.imageUrl}
+            alt={mainImage.label || asset.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="scale-75">
+              <Box className="w-16 h-16 text-[#808080]" />
+            </div>
+          </div>
+        )}
+        
+        {/* Overlay gradient on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      </div>
+      
+      {/* Card Content */}
+      <div className="p-2.5">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          {/* Name and Type */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-xs text-[#FFFFFF] truncate mb-1">
+              {asset.name}
+            </h3>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full inline-block bg-[#808080]/20 text-[#808080]">
+              {categoryMetadata.label}
+            </span>
+          </div>
+          
+          {/* Reference Images Sidebar */}
+          {referenceImages.length > 0 && (
+            <div className="flex flex-col gap-0.5 flex-shrink-0">
+              {referenceImages.slice(0, 3).map(ref => (
+                <img
+                  key={ref.id}
+                  src={ref.imageUrl}
+                  alt={ref.label || 'Reference'}
+                  className="w-6 h-6 rounded object-cover border border-[#3F3F46] group-hover:border-[#DC143C]/50 transition-colors"
+                  loading="lazy"
+                />
+              ))}
+              {referenceImages.length > 3 && (
+                <div className="w-6 h-6 rounded bg-[#1F1F1F] border border-[#3F3F46] flex items-center justify-center text-[10px] text-[#808080] group-hover:border-[#DC143C]/50 transition-colors">
+                  +{referenceImages.length - 3}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Description */}
+        {asset.description && (
+          <p className="text-xs text-[#808080] line-clamp-1 mb-2">
+            {asset.description}
+          </p>
+        )}
+        
+        {/* Metadata */}
+        {metadata && (
+          <div className="text-xs text-[#808080]">
+            {metadata}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // 🔥 CRITICAL: Custom comparison function for React.memo
+  // Only re-render if asset actually changed
+  if (prevProps.asset.id !== nextProps.asset.id) return false;
+  if (prevProps.asset.name !== nextProps.asset.name) return false;
+  if (prevProps.isSelected !== nextProps.isSelected) return false;
+  if (prevProps.onClick !== nextProps.onClick) return false;
+  
+  // Deep compare images array
+  const prevImages = prevProps.asset.images || [];
+  const nextImages = nextProps.asset.images || [];
+  if (prevImages.length !== nextImages.length) return false;
+  
+  // Compare each image by s3Key and url
+  for (let i = 0; i < prevImages.length; i++) {
+    const prevImg = prevImages[i];
+    const nextImg = nextImages[i];
+    if (prevImg.s3Key !== nextImg.s3Key || prevImg.url !== nextImg.url) {
+      return false;
+    }
+  }
+  
+  // Deep compare angleReferences
+  const prevAngleRefs = prevProps.asset.angleReferences || [];
+  const nextAngleRefs = nextProps.asset.angleReferences || [];
+  if (prevAngleRefs.length !== nextAngleRefs.length) return false;
+  
+  for (let i = 0; i < prevAngleRefs.length; i++) {
+    const prevRef = prevAngleRefs[i];
+    const nextRef = nextAngleRefs[i];
+    if (prevRef.s3Key !== nextRef.s3Key || prevRef.imageUrl !== nextRef.imageUrl) {
+      return false;
+    }
+  }
+  
+  // If all checks pass, props are equal - don't re-render
+  return true;
+});
+
+AssetCard.displayName = 'AssetCard';
