@@ -97,7 +97,7 @@ export default function LowCreditBanner() {
                 </div>
                 <div className="text-sm text-emerald-600 dark:text-emerald-500 mt-2 space-y-1">
                   <div><strong>Best way to use them:</strong></div>
-                  <div>→ Start in the editor with Story Advisor - explore different story directions and get AI feedback (very affordable!)</div>
+                  <div>→ Start in the editor with Story Advisor and our other AI writing agents - explore different story directions and get AI feedback (very affordable!)</div>
                   <div>→ Or generate 1-2 images to bring your scenes to life</div>
                 </div>
                 <div className="flex items-center gap-3 mt-3">
@@ -182,7 +182,7 @@ export default function LowCreditBanner() {
     if (messageType === 'low') {
       return {
         title: `${credits?.toLocaleString() || '0'} credits remaining`,
-        message: `You can still use the Story Advisor in the editor! 💡`,
+        message: `You can still use Story Advisor and all our AI writing agents in the editor! 💡`,
         icon: CheckCircle,
         color: 'emerald'
       };
@@ -190,7 +190,7 @@ export default function LowCreditBanner() {
     if (messageType === 'medium') {
       return {
         title: `${credits?.toLocaleString() || '0'} credits left`,
-        message: `Perfect for one more Story Advisor session or an image generation! ✨`,
+        message: `Perfect for one more session with Story Advisor and our AI writing agents, or an image generation! ✨`,
         icon: CheckCircle,
         color: 'emerald'
       };
@@ -198,7 +198,7 @@ export default function LowCreditBanner() {
     if (messageType === 'moderate') {
       return {
         title: `You have ${credits?.toLocaleString() || '0'} credits remaining`,
-        message: `Still enough to explore the editor with Story Advisor or generate an image! 🎨`,
+        message: `Still enough to explore the editor with Story Advisor and our AI writing agents, or generate an image! 🎨`,
         icon: Sparkles,
         color: 'emerald'
       };

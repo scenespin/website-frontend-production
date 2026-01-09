@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(url, {
       method: 'GET',
       headers,
+      cache: 'no-store', // 🔥 FIX: Prevent Node.js/Next.js fetch caching
     });
 
     console.log('[Location Bank List] Backend response:', { 

@@ -8,6 +8,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
+// Ensure this route is dynamic and not cached
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
 export async function GET(request: NextRequest) {
@@ -57,6 +61,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(url, {
       method: 'GET',
       headers,
+      cache: 'no-store', // 🔥 FIX: Prevent Node.js/Next.js fetch caching
     });
 
     if (!response.ok) {

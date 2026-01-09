@@ -528,6 +528,7 @@ export function useWrydaTabNavigation(
      */
     const handleTab = useCallback((e: KeyboardEvent<HTMLTextAreaElement>): boolean => {
         console.log('[WrydaTab] handleTab called');
+        console.log('[NAV-DIAG] useWrydaTabNavigation: Preventing Tab default to avoid focus navigation');
         e.preventDefault(); // Always prevent default to avoid focus navigation
         
         // Detect mobile (screen width < 768px)

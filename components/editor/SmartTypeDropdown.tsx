@@ -63,10 +63,13 @@ export default function SmartTypeDropdown({
             // Check if the dropdown element exists in the DOM
             if (!listRef.current) return;
 
+            console.log('[NAV-DIAG] SmartTypeDropdown: Key pressed:', e.key, 'preventDefault:', e.defaultPrevented);
+
             switch (e.key) {
                 case 'ArrowDown':
                     e.preventDefault();
                     e.stopPropagation(); // Prevent bubbling to textarea
+                    console.log('[NAV-DIAG] SmartTypeDropdown: ArrowDown prevented');
                     setSelectedIndex(prev =>
                         prev < filteredItems.length - 1 ? prev + 1 : 0
                     );
@@ -74,6 +77,7 @@ export default function SmartTypeDropdown({
                 case 'ArrowUp':
                     e.preventDefault();
                     e.stopPropagation(); // Prevent bubbling to textarea
+                    console.log('[NAV-DIAG] SmartTypeDropdown: ArrowUp prevented');
                     setSelectedIndex(prev =>
                         prev > 0 ? prev - 1 : filteredItems.length - 1
                     );
@@ -83,6 +87,7 @@ export default function SmartTypeDropdown({
                     // Tab and Enter both accept selection (like Final Draft)
                     e.preventDefault();
                     e.stopPropagation(); // Prevent bubbling to textarea
+                    console.log('[NAV-DIAG] SmartTypeDropdown: Tab/Enter prevented, selecting item');
                     if (filteredItems[selectedIndex]) {
                         onSelect(filteredItems[selectedIndex]);
                     }
@@ -90,13 +95,18 @@ export default function SmartTypeDropdown({
                 case 'Escape':
                     e.preventDefault();
                     e.stopPropagation(); // Prevent bubbling to textarea
+                    console.log('[NAV-DIAG] SmartTypeDropdown: Escape prevented, closing');
                     onClose();
                     break;
             }
         };
 
+        console.log('[NAV-DIAG] SmartTypeDropdown: Adding keydown listener (capture phase)');
         window.addEventListener('keydown', handleKeyDown, true); // Use capture phase
-        return () => window.removeEventListener('keydown', handleKeyDown, true);
+        return () => {
+            console.log('[NAV-DIAG] SmartTypeDropdown: Removing keydown listener');
+            window.removeEventListener('keydown', handleKeyDown, true);
+        };
     }, [filteredItems, selectedIndex, onSelect, onClose]);
 
     // Scroll selected item into view

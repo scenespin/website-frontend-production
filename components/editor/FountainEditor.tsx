@@ -672,8 +672,12 @@ export default function FountainEditor({
                         if (WRYDA_TAB_ENABLED && wrydaTab.isSmartTypeOpen) {
                             // Dropdown is open - let it handle navigation keys
                             if (e.key === 'Tab' || e.key === 'Enter' || e.key === 'Escape' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                                // Don't prevent default - let dropdown handle it
-                                return; // Let dropdown handle these keys
+                                console.log('[NAV-DIAG] FountainEditor: SmartType dropdown open, preventing default for:', e.key);
+                                // Prevent default to stop focus navigation, but let dropdown handle the key
+                                e.preventDefault();
+                                e.stopPropagation();
+                                // Dropdown's event listener will handle the key
+                                return;
                             }
                         }
                         

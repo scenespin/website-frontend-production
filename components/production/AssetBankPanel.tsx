@@ -110,8 +110,26 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
       }
 
       toast.success('Asset updated successfully');
-      // Invalidate React Query cache
+      
+      // 🔥 FIX: Use same aggressive pattern as AssetDetailModal (works!)
+      // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+      // This ensures disabled queries don't block invalidation (see GitHub issue #947)
+      queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['media', 'files', screenplayId],
+        exact: false
+      });
+      setTimeout(() => {
+        queryClient.refetchQueries({ 
+          queryKey: ['assets', screenplayId, 'production-hub'],
+          type: 'active' // Only refetch active (enabled) queries
+        });
+        queryClient.refetchQueries({ 
+          queryKey: ['media', 'files', screenplayId],
+          exact: false
+        });
+      }, 2000);
     } catch (error: any) {
       console.error('[AssetBank] Failed to update asset:', error);
       toast.error(`Failed to update asset: ${error.message}`);
@@ -322,16 +340,47 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
               setSelectedAssetId(null);
             }}
             asset={selectedAsset}
-            onUpdate={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
+            onUpdate={() => {
+              // 🔥 FIX: Use same aggressive pattern as AssetDetailModal
+              queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+              queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+              setTimeout(() => {
+                queryClient.refetchQueries({ 
+                  queryKey: ['assets', screenplayId, 'production-hub'],
+                  type: 'active'
+                });
+              }, 2000);
+            }}
             onDelete={async () => {
+              // 🔥 FIX: Use same aggressive pattern as AssetDetailModal
+              queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+              queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'creation'] });
               queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
               queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'creation'] });
-              await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-              await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'creation'] });
+              setTimeout(() => {
+                queryClient.refetchQueries({ 
+                  queryKey: ['assets', screenplayId, 'production-hub'],
+                  type: 'active'
+                });
+                queryClient.refetchQueries({ 
+                  queryKey: ['assets', screenplayId, 'creation'],
+                  type: 'active'
+                });
+              }, 2000);
               setShowDetailModal(false);
               setSelectedAssetId(null);
             }}
-            onAssetUpdate={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
+            onAssetUpdate={() => {
+              // 🔥 FIX: Use same aggressive pattern as AssetDetailModal
+              queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+              queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+              setTimeout(() => {
+                queryClient.refetchQueries({ 
+                  queryKey: ['assets', screenplayId, 'production-hub'],
+                  type: 'active'
+                });
+              }, 2000);
+            }}
           />
         ) : null;
       })()}

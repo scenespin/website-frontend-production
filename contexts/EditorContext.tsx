@@ -1200,6 +1200,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             
             // Check if there are unsaved changes
             if (currentState.isDirty && currentState.content.trim().length > 0 && activeId) {
+                console.log('[NAV-DIAG] EditorContext: beforeunload triggered - UNSAVED CHANGES detected, blocking navigation');
                 // Save to localStorage immediately (synchronous, guaranteed)
                 saveToLocalStorage(activeId, currentState.content, currentState.title, currentState.author);
                 
@@ -1257,12 +1258,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         // This prevents the "Leave site?" dialog from appearing on public pages (pricing, sign-up, etc.)
         const activeId = projectId || screenplayIdRef.current;
         if (activeId) {
+            console.log('[NAV-DIAG] EditorContext: Adding beforeunload and visibilitychange listeners');
             window.addEventListener('beforeunload', handleBeforeUnload);
             document.addEventListener('visibilitychange', handleVisibilityChange);
+        } else {
+            console.log('[NAV-DIAG] EditorContext: No activeId, skipping beforeunload listener');
         }
 
         return () => {
             console.log('[EditorContext] 🧹 useEffect cleanup running - removing event listeners');
+            console.log('[NAV-DIAG] EditorContext: Removing beforeunload and visibilitychange listeners');
             // Only remove listeners if they were attached
             const activeId = projectId || screenplayIdRef.current;
             if (activeId) {

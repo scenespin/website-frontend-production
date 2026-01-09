@@ -394,6 +394,30 @@ export default function EditorWorkspace() {
         toast.success('Text rewritten successfully');
     };
     
+    // Track navigation attempts for diagnostics
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const link = target.closest('a[href]');
+            if (link) {
+                const href = link.getAttribute('href');
+                console.log('[NAV-DIAG] EditorWorkspace: Navigation link clicked:', href, 'at', performance.now());
+            }
+        };
+        
+        const handlePopState = () => {
+            console.log('[NAV-DIAG] EditorWorkspace: Browser back/forward button pressed');
+        };
+        
+        document.addEventListener('click', handleClick, true);
+        window.addEventListener('popstate', handlePopState);
+        
+        return () => {
+            document.removeEventListener('click', handleClick, true);
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

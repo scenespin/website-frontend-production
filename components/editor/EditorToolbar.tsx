@@ -327,6 +327,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
 
     // Insert scene type and trigger smart tab navigation
     const insertSceneTypeAndTab = (sceneType: { id: string; label: string }) => {
+        console.log('[NAV-DIAG] EditorToolbar: Closing scene type dropdown, inserting:', sceneType.label);
         setShowSceneTypeDropdown(false);
         setSceneTypeDropdownPosition(null);
         
@@ -354,6 +355,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 textarea.selectionEnd = newPos;
                 setCursorPosition(newPos);
                 // Trigger Tab key event
+                console.log('[NAV-DIAG] EditorToolbar: Dispatching synthetic Tab event');
                 const tabEvent = new KeyboardEvent('keydown', {
                     key: 'Tab',
                     code: 'Tab',
@@ -492,6 +494,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             // Not a scene heading, calculate position and show dropdown
             const position = getCursorDropdownPosition();
             if (position) {
+                console.log('[NAV-DIAG] EditorToolbar: Opening scene type dropdown');
                 setSceneTypeDropdownPosition(position);
                 setShowSceneTypeDropdown(true);
             }
@@ -582,6 +585,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 position={sceneTypeDropdownPosition}
                                 onSelect={insertSceneTypeAndTab}
                                 onClose={() => {
+                                    console.log('[NAV-DIAG] EditorToolbar: SceneTypeDropdown onClose called (desktop)');
                                     setShowSceneTypeDropdown(false);
                                     setSceneTypeDropdownPosition(null);
                                     savedCursorPositionRef.current = null;
@@ -924,6 +928,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 position={sceneTypeDropdownPosition}
                                 onSelect={insertSceneTypeAndTab}
                                 onClose={() => {
+                                    console.log('[NAV-DIAG] EditorToolbar: SceneTypeDropdown onClose called (mobile)');
                                     setShowSceneTypeDropdown(false);
                                     setSceneTypeDropdownPosition(null);
                                     savedCursorPositionRef.current = null;

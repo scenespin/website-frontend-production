@@ -237,10 +237,25 @@ export function CharacterBankPanel({
         poseRefsCount: cacheBeforeRefetch?.find(c => c.id === characterId)?.poseReferences?.length
       });
       
-      // Invalidate React Query cache and refetch immediately - Production Hub context only
-      // 🔥 FIX: Use refetchQueries to ensure immediate UI update
-      console.log('[CharacterBankPanel] 🔄 Refetching characters after update');
-      await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+      // 🔥 FIX: Use same aggressive pattern as CharacterDetailModal (works!)
+      // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+      // This ensures disabled queries don't block invalidation (see GitHub issue #947)
+      queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['media', 'files', screenplayId],
+        exact: false
+      });
+      setTimeout(() => {
+        queryClient.refetchQueries({ 
+          queryKey: ['characters', screenplayId, 'production-hub'],
+          type: 'active' // Only refetch active (enabled) queries
+        });
+        queryClient.refetchQueries({ 
+          queryKey: ['media', 'files', screenplayId],
+          exact: false
+        });
+      }, 2000);
       
       // Check cache after refetch
       const cacheAfterRefetch = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
@@ -432,9 +447,14 @@ export function CharacterBankPanel({
             });
             setShowPoseModal(false);
             setPoseCharacter(null);
-            // Job started - refresh characters after delay - Production Hub context only
+            // 🔥 FIX: Use same aggressive pattern as CharacterDetailModal
+            queryClient.removeQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+            queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
             setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+              queryClient.refetchQueries({ 
+                queryKey: ['characters', screenplayId, 'production-hub'],
+                type: 'active'
+              });
               if (onCharactersUpdate) onCharactersUpdate();
             }, 5000);
           }}
