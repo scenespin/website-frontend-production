@@ -490,7 +490,9 @@ export function SceneReviewStep({
               <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-3 space-y-2">
                 <div className="text-sm font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#808080]">Reference Shot:</span>
+                  <span className="text-xs text-[#808080]">
+                    {selectedShots.length} Reference Shot{selectedShots.length !== 1 ? 's' : ''}:
+                  </span>
                   <span className="text-sm font-medium text-[#FFFFFF]">
                     {pricing.totalFirstFramePrice} credits
                   </span>

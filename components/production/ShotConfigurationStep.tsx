@@ -323,6 +323,18 @@ export function ShotConfigurationStep({
   const finalDialogueWorkflowPrompt = state.dialogueWorkflowPrompts[shotSlot];
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
   
+  // 🔥 FIX: Initialize default video type when shot is first accessed (for action/establishing shots)
+  useEffect(() => {
+    // Only initialize for action/establishing shots that need video type selection
+    if ((shot.type === 'action' || shot.type === 'establishing') && onVideoTypeChange) {
+      const currentVideoType = selectedVideoTypes[shotSlot];
+      // If no video type is set, default to 'cinematic-visuals'
+      if (!currentVideoType) {
+        onVideoTypeChange(shotSlot, 'cinematic-visuals');
+      }
+    }
+  }, [shot.slot, shot.type, selectedVideoTypes, onVideoTypeChange]);
+  
   // 🔥 NEW: Fetch presigned URLs for prop images (for references section)
   // Collect all prop image S3 keys for this shot
   const propImageS3Keys = useMemo(() => {
@@ -684,7 +696,15 @@ export function ShotConfigurationStep({
       }
     }
     
-    // 3. Validate ALL pronouns are mapped (singular and plural)
+    // 3. Validate video type selection (required for action/establishing shots)
+    if ((shot.type === 'action' || shot.type === 'establishing') && onVideoTypeChange) {
+      const currentVideoType = selectedVideoTypes[shotSlot];
+      if (!currentVideoType) {
+        validationErrors.push('Video model selection required. Please select "Cinematic Visuals" or "Natural Motion" in the Video Generation section.');
+      }
+    }
+    
+    // 4. Validate ALL pronouns are mapped (singular and plural)
     // Each pronoun must either be:
     //   a) Mapped to a character (valid character ID or array of IDs)
     //   b) Skipped with a description (__ignore__ + description in pronounExtrasPrompts)

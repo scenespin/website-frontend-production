@@ -2993,9 +2993,42 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           totalCreditsUsed: 0,
           finalOutputs: []
         });
-        // Move to a "generating" view - hide wizard, show progress
-        setCurrentStep(2); // Stay on Step 2 (wizard flow)
-        // Toast removed - progress indicator shows generation status
+        
+        // 🔥 NEW: Show animation for a few seconds, then redirect to jobs drawer and reset scene builder
+        setIsGenerating(true);
+        
+        // Show success toast with animation
+        toast.success('🎬 Video generation started!', {
+          description: 'Your videos are being generated. Check the Jobs panel for progress.',
+          duration: 3000
+        });
+        
+        // Wait 2-3 seconds for animation, then redirect
+        setTimeout(() => {
+          // Open jobs drawer to show job progress
+          setIsJobsDrawerOpen(true);
+          
+          // Reset scene builder to initial state (fresh start)
+          setCurrentStep(1);
+          setWizardStep('analysis');
+          setSceneAnalysisResult(null);
+          setSelectedSceneId(null);
+          setHasConfirmedSceneSelection(false);
+          setCurrentShotIndex(0);
+          setIsGenerating(false);
+          setWorkflowExecutionId(null);
+          setWorkflowStatus(null);
+          
+          // Clear context state for fresh start
+          setEnabledShots([]);
+          contextActions.setSelectedCharacterReferences({});
+          contextActions.setSelectedLocationReferences({});
+          contextActions.setSelectedVideoTypes({});
+          contextActions.setSelectedVideoQualities({});
+          
+          // Scroll to top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 2500); // 2.5 second animation
       
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);

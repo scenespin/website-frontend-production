@@ -2,7 +2,7 @@
  * Video Generation Selector Component
  * 
  * Allows users to select video generation type and quality for non-dialogue shots.
- * Options: Cinematic Visuals (Runway Gen-4), Natural Motion (Luma Ray Flash 2)
+ * Options: Cinematic Visuals, Natural Motion
  * Quality: HD (1080p), 4K
  */
 
@@ -78,14 +78,12 @@ export function VideoGenerationSelector({
       {
         id: 'cinematic-visuals' as const,
         name: 'Cinematic Visuals',
-        model: 'Runway Gen-4',
         description: 'Dramatic lighting, high contrast, visual effects, stylized looks',
         bestFor: 'Establishing shots, VFX, fantasy scenes'
       },
       {
         id: 'natural-motion' as const,
         name: 'Natural Motion',
-        model: 'Luma Ray Flash 2',
         description: 'Physics-accurate movement, realistic motion, natural actions',
         bestFor: 'Action sequences, character movement, realistic scenes'
       }
@@ -201,14 +199,12 @@ export function VideoGenerationSelector({
     {
       id: 'cinematic-visuals' as const,
       name: 'Cinematic Visuals',
-      model: 'Runway Gen-4',
       description: 'Dramatic lighting, high contrast, visual effects, stylized looks',
       bestFor: 'Establishing shots, VFX, fantasy scenes'
     },
     {
       id: 'natural-motion' as const,
       name: 'Natural Motion',
-      model: 'Luma Ray Flash 2',
       description: 'Physics-accurate movement, realistic motion, natural actions',
       bestFor: 'Action sequences, character movement, realistic scenes'
     }
