@@ -910,7 +910,7 @@ export function LocationDetailModal({
                       </div>
                     )}
                     <h2 className={`font-bold text-[#FFFFFF] truncate ${isMobile ? 'text-base' : 'text-xl'}`}>
-                      {location.name}
+                      {latestLocation.name}
                     </h2>
                   </div>
                   {isMobile ? (
