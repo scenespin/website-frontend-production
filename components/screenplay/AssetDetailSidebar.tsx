@@ -551,17 +551,22 @@ export default function AssetDetailSidebar({
             images: updatedImages
           });
           
-          // 🔥 FIX: After API call succeeds, invalidate queries to sync with server (TanStack Query pattern)
-          // This ensures Production Hub gets fresh data from DynamoDB after eventual consistency delay
+          // 🔥 FIX: Match Locations pattern exactly - aggressive cache invalidation
           if (screenplayId) {
-            // Invalidate Media Library cache so new images appear
+            // Invalidate Media Library cache so new image appears
             queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-            // Invalidate Production Hub cache and refetch after delay (DynamoDB eventual consistency)
+            
+            // 🔥 MATCH LOCATIONS PATTERN: Aggressively clear and refetch asset bank query cache
+            // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
+            // First, remove the query from cache completely to force a fresh fetch
+            queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            // Then invalidate to mark as stale (in case query is recreated before refetch)
             queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            // Force refetch after delay to ensure fresh data from DynamoDB
             setTimeout(() => {
               queryClient.refetchQueries({ 
                 queryKey: ['assets', screenplayId, 'production-hub'],
-                type: 'active' // Only refetch if Production Hub is open
+                type: 'active' // Only refetch active queries
               });
             }, 2000); // 2 second delay for DynamoDB eventual consistency
           }
@@ -829,17 +834,23 @@ export default function AssetDetailSidebar({
       // Update via API
       await updateAsset(asset.id, updateData);
       
-      // 🔥 FIX: After API call succeeds, invalidate queries to sync with server (TanStack Query pattern)
+      // 🔥 FIX: Match Locations pattern exactly - aggressive cache invalidation
       // This ensures Production Hub gets fresh data from DynamoDB after eventual consistency delay
       if (screenplayId) {
         // Invalidate Media Library cache so deleted image disappears
         queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-        // Invalidate Production Hub cache and refetch after delay (DynamoDB eventual consistency)
+        
+        // 🔥 MATCH LOCATIONS PATTERN: Aggressively clear and refetch asset bank query cache
+        // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
+        // First, remove the query from cache completely to force a fresh fetch
+        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        // Then invalidate to mark as stale (in case query is recreated before refetch)
         queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        // Force refetch after delay to ensure fresh data from DynamoDB
         setTimeout(() => {
           queryClient.refetchQueries({ 
             queryKey: ['assets', screenplayId, 'production-hub'],
-            type: 'active' // Only refetch if Production Hub is open
+            type: 'active' // Only refetch active queries
           });
         }, 2000); // 2 second delay for DynamoDB eventual consistency
       }
