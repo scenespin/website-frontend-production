@@ -41,12 +41,30 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
   const contextScreenplayId = screenplay.screenplayId;
   const screenplayId = urlScreenplayId || contextScreenplayId;
 
+  // 🔥 DEBUG: Log panel render and screenplayId
+  console.log('[AssetBankPanel] 🔍 RENDER:', { 
+    urlScreenplayId, 
+    contextScreenplayId, 
+    screenplayId,
+    hasUrlId: !!urlScreenplayId,
+    hasContextId: !!contextScreenplayId,
+    finalId: screenplayId || 'NULL'
+  });
+
   // React Query for fetching assets
   const { data: assets = [], isLoading: queryLoading } = useAssets(
     screenplayId || '',
     'production-hub',
     !!screenplayId
   );
+
+  // 🔥 DEBUG: Log query result
+  console.log('[AssetBankPanel] 📊 QUERY RESULT:', { 
+    assetsCount: assets.length, 
+    isLoading: queryLoading,
+    enabled: !!screenplayId,
+    assetNames: assets.map(a => a.name)
+  });
 
   const isLoading = queryLoading;
 

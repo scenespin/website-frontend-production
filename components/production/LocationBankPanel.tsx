@@ -49,12 +49,30 @@ export function LocationBankPanel({
   const contextScreenplayId = screenplay.screenplayId;
   const screenplayId = urlScreenplayId || contextScreenplayId;
 
+  // 🔥 DEBUG: Log panel render and screenplayId
+  console.log('[LocationBankPanel] 🔍 RENDER:', { 
+    urlScreenplayId, 
+    contextScreenplayId, 
+    screenplayId,
+    hasUrlId: !!urlScreenplayId,
+    hasContextId: !!contextScreenplayId,
+    finalId: screenplayId || 'NULL'
+  });
+
   // React Query for fetching locations - Production Hub context
   const { data: locations = propsLocations, isLoading: queryLoading } = useLocations(
     screenplayId || '',
     'production-hub', // 🔥 FIX: Use production-hub context to separate from Creation section
     !!screenplayId
   );
+
+  // 🔥 DEBUG: Log query result
+  console.log('[LocationBankPanel] 📊 QUERY RESULT:', { 
+    locationsCount: locations.length, 
+    isLoading: queryLoading,
+    enabled: !!screenplayId,
+    locationNames: locations.map(l => l.name)
+  });
 
   // 🔥 FIX: Fetch all location media files to count backgrounds from Media Library (source of truth)
   const { data: allLocationMediaFiles = [] } = useMediaFiles(

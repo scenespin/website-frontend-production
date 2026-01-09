@@ -56,12 +56,30 @@ export function CharacterBankPanel({
   const contextScreenplayId = screenplay.screenplayId;
   const screenplayId = urlScreenplayId || contextScreenplayId;
 
+  // 🔥 DEBUG: Log panel render and screenplayId
+  console.log('[CharacterBankPanel] 🔍 RENDER:', { 
+    urlScreenplayId, 
+    contextScreenplayId, 
+    screenplayId,
+    hasUrlId: !!urlScreenplayId,
+    hasContextId: !!contextScreenplayId,
+    finalId: screenplayId || 'NULL'
+  });
+
   // React Query for fetching characters - Production Hub context
   const { data: characters = propsCharacters, isLoading: queryLoading } = useCharacters(
     screenplayId || '',
     'production-hub', // 🔥 FIX: Use production-hub context to separate from Creation section
     !!screenplayId
   );
+
+  // 🔥 DEBUG: Log query result
+  console.log('[CharacterBankPanel] 📊 QUERY RESULT:', { 
+    charactersCount: characters.length, 
+    isLoading: queryLoading,
+    enabled: !!screenplayId,
+    characterNames: characters.map(c => c.name)
+  });
 
   const isLoading = queryLoading || propsIsLoading;
 
