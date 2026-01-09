@@ -55,7 +55,14 @@ function GitHubSaveButton() {
 
         try {
             setSaving(true);
-            const config = JSON.parse(githubConfigStr);
+            const rawConfig = JSON.parse(githubConfigStr);
+            
+            // Normalize config - OAuth handler saves as 'accessToken', github.ts expects 'token'
+            const config = {
+                token: rawConfig.accessToken || rawConfig.token,
+                owner: rawConfig.owner,
+                repo: rawConfig.repo
+            };
             
             // Use the user's message or a default
             const message = commitMessage.trim() || `Backup: ${state.title || 'Untitled Screenplay'}`;
