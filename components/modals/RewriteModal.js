@@ -853,6 +853,7 @@ export default function RewriteModal({
                           disabled={isLoading}
                           placeholder="e.g., make this more suspenseful, add internal monologue, improve pacing..."
                           className="textarea textarea-bordered w-full h-24 resize-none"
+                          style={{ fontSize: '16px' }}
                           autoFocus
                         />
                       </div>

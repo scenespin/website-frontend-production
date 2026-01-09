@@ -695,7 +695,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                         className="textarea textarea-bordered w-full h-24 resize-none"
                         autoFocus
                       />
-                      <label className="label">
+                      <label className="label pt-1">
                         <span className="label-text-alt text-base-content/60">
                           Tip: Optionally select text before cursor for context
                         </span>

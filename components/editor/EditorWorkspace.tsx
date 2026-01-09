@@ -10,6 +10,7 @@ import FountainEditor from './FountainEditor';
 import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
 import EditorToolbar from './EditorToolbar';
+import { useDrawer } from '@/contexts/DrawerContext';
 import EditorLockBanner from './EditorLockBanner';
 import SceneNavigator from './SceneNavigator';
 import AgentFABGroup from './AgentFABGroup';
@@ -784,7 +785,12 @@ export default function EditorWorkspace() {
                     />
                     
                     {/* Editor */}
-                    <div className="flex-1 overflow-hidden">
+                    <div 
+                        className="flex-1 overflow-hidden"
+                        style={{
+                            paddingBottom: isMobile && isDrawerOpen ? '60px' : '0px'
+                        }}
+                    >
                         <FountainEditor
                             className="h-full w-full"
                             readonly={isEditorLocked} // Feature 0187: Make editor read-only when locked
