@@ -1135,6 +1135,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     backgrounds: locationBackgrounds,
     locationThumbnailS3KeyMap,
     locationThumbnailUrlsMap,
+    locationFullImageUrlsMap, // 🔥 NEW: Full image URLs for files without thumbnails
     loading: loadingLocation
   } = useLocationReferences({
     projectId,
@@ -4306,7 +4307,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   locationReferenceFullImageUrlsMap={locationReferenceFullImageUrlsMap} // 🔥 NEW: Pass location URL map for references section
                   locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps for LocationAngleSelector
                   locationThumbnailUrlsMap={locationThumbnailUrlsMap}
-                  locationFullImageUrlsMap={locationReferenceFullImageUrlsMap} // Use same map for full images
+                  locationFullImageUrlsMap={locationFullImageUrlsMap} // 🔥 FIX: Use full image URLs from useLocationReferences hook
                   onCharacterReferenceChange={(shotSlot, characterId, reference) => {
                     setSelectedCharacterReferences(prev => {
                       const shotRefs = prev[shotSlot] || {};

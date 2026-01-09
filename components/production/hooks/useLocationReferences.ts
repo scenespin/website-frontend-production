@@ -45,6 +45,7 @@ interface UseLocationReferencesReturn {
   backgrounds: LocationBackground[];
   locationThumbnailS3KeyMap: Map<string, string>;
   locationThumbnailUrlsMap: Map<string, string>;
+  locationFullImageUrlsMap: Map<string, string>; // 🔥 NEW: Full image URLs for files without thumbnails
   loading: boolean;
 }
 
@@ -102,7 +103,49 @@ export function useLocationReferences({
     let anglesWithoutThumbnails = 0;
     let backgroundsWithoutThumbnails = 0;
     
+    // 🔥 DEBUG: Log sample files to see their structure
+    const sampleAngleFiles = locationMediaFiles.filter((file: any) => {
+      const hasAngleMetadata = file.metadata?.angle !== undefined;
+      const isBackground = !hasAngleMetadata && (
+        isBackgroundFile(file) ||
+        file.metadata?.source === 'background-generation' ||
+        file.metadata?.backgroundType !== undefined
+      );
+      return !isBackground && !file.s3Key?.startsWith('thumbnails/');
+    }).slice(0, 3);
+    
+    const sampleBackgroundFiles = locationMediaFiles.filter((file: any) => {
+      const hasAngleMetadata = file.metadata?.angle !== undefined;
+      const isBackground = !hasAngleMetadata && (
+        isBackgroundFile(file) ||
+        file.metadata?.source === 'background-generation' ||
+        file.metadata?.backgroundType !== undefined
+      );
+      return isBackground && !file.s3Key?.startsWith('thumbnails/');
+    }).slice(0, 3);
+    
+    console.log('[useLocationReferences] 🔍 Sample angle files (first 3):', sampleAngleFiles.map((f: any) => ({
+      s3Key: f.s3Key?.substring(0, 60),
+      thumbnailS3Key: f.thumbnailS3Key ? f.thumbnailS3Key.substring(0, 60) : 'MISSING',
+      hasThumbnailS3Key: !!f.thumbnailS3Key,
+      angle: f.metadata?.angle,
+      sourceType: f.metadata?.sourceType,
+      backgroundType: f.metadata?.backgroundType
+    })));
+    
+    console.log('[useLocationReferences] 🔍 Sample background files (first 3):', sampleBackgroundFiles.map((f: any) => ({
+      s3Key: f.s3Key?.substring(0, 60),
+      thumbnailS3Key: f.thumbnailS3Key ? f.thumbnailS3Key.substring(0, 60) : 'MISSING',
+      hasThumbnailS3Key: !!f.thumbnailS3Key,
+      angle: f.metadata?.angle,
+      sourceType: f.metadata?.sourceType,
+      backgroundType: f.metadata?.backgroundType
+    })));
+    
     locationMediaFiles.forEach((file: any) => {
+      // Skip thumbnail files themselves (they're not the source files)
+      if (file.s3Key?.startsWith('thumbnails/')) return;
+      
       if (file.s3Key && file.thumbnailS3Key) {
         map.set(file.s3Key, file.thumbnailS3Key);
         // Count for debugging
@@ -139,7 +182,12 @@ export function useLocationReferences({
       anglesWithoutThumbnails,
       backgroundsWithThumbnails,
       backgroundsWithoutThumbnails,
-      totalFiles: locationMediaFiles.length
+      totalFiles: locationMediaFiles.length,
+      // 🔥 DEBUG: Show sample map entries
+      sampleMapEntries: Array.from(map.entries()).slice(0, 3).map(([s3Key, thumbKey]) => ({
+        s3Key: s3Key.substring(0, 50),
+        thumbKey: thumbKey.substring(0, 50)
+      }))
     });
     
     return map;
@@ -245,14 +293,23 @@ export function useLocationReferences({
       locationId,
       angleCount: angleVariations.length,
       backgroundCount: backgrounds.length,
-      angles: angleVariations.map(a => ({ angle: a.angle, s3Key: a.s3Key?.substring(0, 50) })),
-      backgrounds: backgrounds.map(b => ({ backgroundType: b.backgroundType, s3Key: b.s3Key?.substring(0, 50) }))
+      angles: angleVariations.map(a => ({ 
+        angle: a.angle, 
+        s3Key: a.s3Key?.substring(0, 50),
+        hasThumbnailInMap: locationThumbnailS3KeyMap.has(a.s3Key)
+      })),
+      backgrounds: backgrounds.map(b => ({ 
+        backgroundType: b.backgroundType, 
+        s3Key: b.s3Key?.substring(0, 50),
+        hasThumbnailInMap: locationThumbnailS3KeyMap.has(b.s3Key)
+      }))
     });
 
     return { angleVariations, backgrounds };
   }, [locationId, locationMediaFiles]);
 
   // Collect all location thumbnail S3 keys
+  // 🔥 FIX: Also collect s3Keys for files without thumbnails (to fetch full images)
   const locationThumbnailS3Keys = useMemo(() => {
     const keys: string[] = [];
     
@@ -262,6 +319,37 @@ export function useLocationReferences({
         if (thumbnailS3Key) {
           keys.push(thumbnailS3Key);
         }
+      }
+    });
+    
+    // 🔥 DEBUG: Log which items have thumbnails vs which don't
+    const itemsWithThumbnails = [...angleVariations, ...backgrounds].filter(item => 
+      item.s3Key && locationThumbnailS3KeyMap.has(item.s3Key)
+    ).length;
+    const itemsWithoutThumbnails = [...angleVariations, ...backgrounds].filter(item => 
+      item.s3Key && !locationThumbnailS3KeyMap.has(item.s3Key)
+    ).length;
+    
+    console.log('[useLocationReferences] Thumbnail S3 keys collection:', {
+      thumbnailKeysCount: keys.length,
+      itemsWithThumbnails,
+      itemsWithoutThumbnails,
+      totalItems: angleVariations.length + backgrounds.length,
+      angleVariationsCount: angleVariations.length,
+      backgroundsCount: backgrounds.length
+    });
+    
+    return keys;
+  }, [angleVariations, backgrounds, locationThumbnailS3KeyMap]);
+  
+  // 🔥 NEW: Collect s3Keys for files without thumbnails (to fetch full images as fallback)
+  const locationFullImageS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    
+    [...angleVariations, ...backgrounds].forEach(item => {
+      // Only add if it doesn't have a thumbnail (we'll use full image as fallback)
+      if (item.s3Key && !locationThumbnailS3KeyMap.has(item.s3Key)) {
+        keys.push(item.s3Key);
       }
     });
     
@@ -276,9 +364,21 @@ export function useLocationReferences({
     locationThumbnailS3Keys.length > 0
   );
 
-  // 🔥 PERFORMANCE FIX: Don't fetch full images upfront - they're only needed for selected references
-  // Full images will be fetched on-demand in LocationAngleSelector when references are selected
-  // This prevents loading hundreds of full-size images that may never be used
+  // 🔥 FIX: Fetch full images for files without thumbnails (as fallback for display)
+  // This ensures angle files without thumbnails can still display
+  const { data: locationFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
+    locationFullImageS3Keys,
+    locationFullImageS3Keys.length > 0
+  );
+  
+  // 🔥 DEBUG: Log URL map sizes
+  console.log('[useLocationReferences] URL maps populated:', {
+    thumbnailUrlsMapSize: locationThumbnailUrlsMap.size,
+    fullImageUrlsMapSize: locationFullImageUrlsMap.size,
+    thumbnailS3KeysCount: locationThumbnailS3Keys.length,
+    fullImageS3KeysCount: locationFullImageS3Keys.length
+  });
+
   // Note: angleVariations and backgrounds keep their original imageUrl (from Media Library s3Url)
   // which can be used as fallback, but thumbnails are preferred for display
   const enrichedAngleVariations = angleVariations;
@@ -289,6 +389,7 @@ export function useLocationReferences({
     backgrounds: enrichedBackgrounds,
     locationThumbnailS3KeyMap,
     locationThumbnailUrlsMap,
+    locationFullImageUrlsMap, // 🔥 NEW: Return full image URLs map
     loading: isLoadingFiles
   };
 }
