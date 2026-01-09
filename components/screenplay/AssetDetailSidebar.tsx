@@ -12,6 +12,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AssetDetailSidebarProps {
   asset?: Asset | null
@@ -42,6 +43,7 @@ export default function AssetDetailSidebar({
   }, [assets]);
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
+  const queryClient = useQueryClient()
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -224,6 +226,10 @@ export default function AssetDetailSidebar({
       setPendingImages([])
     } else {
       onUpdate(formData)
+      // Invalidate Production Hub cache so cards update
+      if (screenplayId) {
+        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+      }
     }
     
     // Close the sidebar after successful save
@@ -433,6 +439,11 @@ export default function AssetDetailSidebar({
           await updateAsset(asset.id, {
             images: updatedImages
           });
+          
+          // Invalidate Production Hub cache so cards update
+          if (screenplayId) {
+            queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+          }
           
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
           // Use ref to get latest assets after update
