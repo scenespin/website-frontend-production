@@ -3466,9 +3466,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           >
             {/* Scene Selection */}
             {currentStep === 1 && !hasConfirmedSceneSelection && (
-              <div className={`grid ${isMobile ? 'grid-cols-1 space-y-4' : 'grid-cols-2 gap-4'}`}>
+              <div className="flex flex-col space-y-4 md:grid md:grid-cols-2 md:gap-4">
                 {/* Left: Scene Navigator with Title/Description (1/2 width) */}
-                <div className={isMobile ? 'w-full' : 'col-span-1'}>
+                <div className="w-full md:col-span-1 order-1 md:order-none">
               <Card className="bg-[#141414] border-[#3F3F46]">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm text-[#FFFFFF] flex items-center gap-2">
@@ -3527,7 +3527,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                     .filter(Boolean);
                   
                   return (
-                    <div className={isMobile ? 'w-full' : 'col-span-1'}>
+                    <div className="w-full md:col-span-1 order-2 md:order-none">
                       <Card className="bg-[#0A0A0A] border-[#3F3F46]">
                         <CardHeader className="pb-2">
                           <div className="flex items-start justify-between">
@@ -3646,9 +3646,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                     </CardContent>
                   </Card>
                 ) : sceneAnalysisResult ? (
-                  <div className={`grid ${isMobile ? 'grid-cols-1 space-y-4' : 'grid-cols-2 gap-4'}`}>
+                  <div className="flex flex-col space-y-4 md:grid md:grid-cols-2 md:gap-4">
                     {/* Left: Scene Analysis Step (1/2 width) */}
-                    <div className={isMobile ? 'w-full' : 'col-span-1'}>
+                    <div className="w-full md:col-span-1 order-1 md:order-none">
                       <SceneAnalysisStep
                         sceneAnalysisResult={enrichedSceneAnalysisResult || sceneAnalysisResult}
                         enabledShots={enabledShots}
@@ -3685,7 +3685,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                         .filter(Boolean);
                       
                       return (
-                        <div className={isMobile ? 'w-full' : 'col-span-1'}>
+                        <div className="w-full md:col-span-1 order-2 md:order-none">
                           <Card className="bg-[#0A0A0A] border-[#3F3F46]">
                             <CardHeader className="pb-2">
                               <div className="flex items-start justify-between">
