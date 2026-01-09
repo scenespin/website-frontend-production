@@ -73,12 +73,23 @@ export default function WrydaTabFAB({
   const buttonSize = 'h-14 w-14'; // Mobile only, so always 56px
   const iconSize = 'w-6 h-6';
   
-  // Calculate bottom offset: base offset + keyboard height + extra padding
-  // When keyboard is open, position FAB above the keyboard
-  const baseBottomOffset = 80;
+  // Calculate bottom offset to align with Screenwriter FAB (top button in the stack)
+  // Screenwriter is the last button in the flex-col stack
+  // Stack order (bottom to top): Rewrite, Dialogue, Director (conditional), Screenwriter
+  // Button height: 56px (h-14), Gap: 8px (gap-2)
+  // Screenwriter position = baseBottomOffset + (3 buttons * 56px) + (3 gaps * 8px) = 80 + 168 + 24 = 272px
+  // But Director might not be shown, so we'll use a more flexible calculation
+  // For now, align with Screenwriter assuming Director is shown (worst case)
+  const baseBottomOffset = 80; // Same as AgentFABGroup
+  const buttonHeight = 56; // h-14 = 56px
+  const gapSize = 8; // gap-2 = 8px
+  const numberOfButtonsAboveScreenwriter = 3; // Rewrite, Dialogue, Director
+  const screenwriterBottomOffset = baseBottomOffset + (numberOfButtonsAboveScreenwriter * buttonHeight) + (numberOfButtonsAboveScreenwriter * gapSize);
+  
+  // When keyboard is open, position FAB above the keyboard (same logic as AgentFABGroup)
   const keyboardAwareBottom = keyboardHeight > 0 
-    ? keyboardHeight + 20 // Position 20px above keyboard
-    : baseBottomOffset;
+    ? keyboardHeight + 20 + (numberOfButtonsAboveScreenwriter * buttonHeight) + (numberOfButtonsAboveScreenwriter * gapSize) // Position 20px above keyboard, then add stack height
+    : screenwriterBottomOffset;
   const bottomOffset = `${keyboardAwareBottom}px`;
   const leftOffset = '16px'; // Mirror the right-side FABs
   
