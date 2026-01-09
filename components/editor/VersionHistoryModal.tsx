@@ -33,6 +33,11 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const [branch, setBranch] = useState<string>('main');
     const [showHelp, setShowHelp] = useState(false);
     
+    // Restore confirmation modal state
+    const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+    const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
+    const [confirmText, setConfirmText] = useState('');
+    
     // Load GitHub config on mount
     useEffect(() => {
         if (isOpen) {
@@ -79,28 +84,28 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         }
     };
     
-    const handleRestore = async (commit: Commit) => {
-        if (!githubConfig) return;
+    // Show the restore confirmation modal
+    const handleRestoreClick = (commit: Commit) => {
+        setCommitToRestore(commit);
+        setConfirmText('');
+        setShowRestoreConfirm(true);
+    };
+    
+    // Actually perform the restore after confirmation
+    const handleConfirmedRestore = async () => {
+        if (!githubConfig || !commitToRestore) return;
         
-        // Check for unsaved changes
-        if (state.isDirty) {
-            const confirmed = confirm(
-                `You have unsaved changes in your current screenplay.\n\n` +
-                `Restoring this backup will replace your current work with the saved version "${commit.message.split('\n')[0]}".\n\n` +
-                `Don't worry — you can press Ctrl+Z (or Cmd+Z on Mac) to undo the restore if you change your mind!\n\n` +
-                `Continue with restore?`
-            );
-            if (!confirmed) return;
-        }
+        setRestoring(commitToRestore.sha);
+        setShowRestoreConfirm(false);
         
-        setRestoring(commit.sha);
         try {
-            const content = await getFileFromCommit(githubConfig, 'screenplay.fountain', commit.sha);
+            const content = await getFileFromCommit(githubConfig, 'screenplay.fountain', commitToRestore.sha);
             setContent(content, true);
             toast.success(
-                `Restored! Your screenplay is now at: "${commit.message.split('\n')[0]}"\n\nPress Ctrl+Z to undo if needed.`,
+                `Restored! Your screenplay is now at: "${commitToRestore.message.split('\n')[0]}"\n\nPress Ctrl+Z to undo if needed.`,
                 { duration: 6000 }
             );
+            setCommitToRestore(null);
             onClose();
         } catch (error: any) {
             console.error('[VersionHistory] Failed to restore:', error);
@@ -108,6 +113,13 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         } finally {
             setRestoring(null);
         }
+    };
+    
+    // Cancel the restore
+    const handleCancelRestore = () => {
+        setShowRestoreConfirm(false);
+        setCommitToRestore(null);
+        setConfirmText('');
     };
     
     const formatDate = (dateString: string): string => {
@@ -411,7 +423,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                                             )}
                                                             <div className="tooltip tooltip-left" data-tip="Replace your current screenplay with this version (you can undo with Ctrl+Z)">
                                                                 <button
-                                                                    onClick={() => handleRestore(commit)}
+                                                                    onClick={() => handleRestoreClick(commit)}
                                                                     disabled={restoring === commit.sha}
                                                                     className="btn btn-primary btn-sm gap-1"
                                                                 >
@@ -446,6 +458,93 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                         </Transition.Child>
                     </div>
                 </div>
+                
+                {/* Restore Confirmation Modal */}
+                {showRestoreConfirm && commitToRestore && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/60" onClick={handleCancelRestore} />
+                        <div className="relative bg-base-100 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+                            {/* Warning Icon */}
+                            <div className="flex justify-center mb-4">
+                                <div className="w-16 h-16 rounded-full bg-warning/20 flex items-center justify-center">
+                                    <RotateCcw className="h-8 w-8 text-warning" />
+                                </div>
+                            </div>
+                            
+                            {/* Title */}
+                            <h3 className="text-xl font-bold text-center mb-2">
+                                Are you sure you want to restore?
+                            </h3>
+                            
+                            {/* Explanation */}
+                            <div className="space-y-3 text-sm text-base-content/80 mb-4">
+                                <p className="text-center">
+                                    This will replace your <strong>current screenplay</strong> with the backup:
+                                </p>
+                                
+                                <div className="bg-base-200 rounded-lg p-3 text-center">
+                                    <p className="font-semibold text-base-content">
+                                        "{commitToRestore.message.split('\n')[0]}"
+                                    </p>
+                                    <p className="text-xs text-base-content/60 mt-1">
+                                        Saved {formatDate(commitToRestore.date)}
+                                    </p>
+                                </div>
+                                
+                                <div className="bg-success/10 border border-success/30 rounded-lg p-3">
+                                    <p className="flex items-start gap-2 text-sm">
+                                        <Undo2 className="h-4 w-4 mt-0.5 text-success shrink-0" />
+                                        <span>
+                                            <strong>Don't worry!</strong> You can undo this restore by pressing{' '}
+                                            <kbd className="kbd kbd-xs">Ctrl+Z</kbd> (or <kbd className="kbd kbd-xs">Cmd+Z</kbd> on Mac) 
+                                            as long as you don't close or refresh the page.
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            {/* Type to Confirm */}
+                            <div className="mb-4">
+                                <label className="label">
+                                    <span className="label-text font-medium">
+                                        Type <span className="font-mono bg-base-200 px-2 py-0.5 rounded text-warning">RESTORE</span> to confirm:
+                                    </span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Type RESTORE here..."
+                                    value={confirmText}
+                                    onChange={(e) => setConfirmText(e.target.value)}
+                                    className="input input-bordered w-full font-mono"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && confirmText.toUpperCase() === 'RESTORE') {
+                                            handleConfirmedRestore();
+                                        }
+                                    }}
+                                />
+                            </div>
+                            
+                            {/* Buttons */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleConfirmedRestore}
+                                    disabled={confirmText.toUpperCase() !== 'RESTORE'}
+                                    className="btn btn-warning flex-1 gap-2"
+                                >
+                                    <RotateCcw className="h-4 w-4" />
+                                    Restore This Version
+                                </button>
+                                <button
+                                    onClick={handleCancelRestore}
+                                    className="btn btn-ghost"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </Dialog>
         </Transition>
     );
