@@ -165,6 +165,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [isSaving, setIsSaving] = useState(false);
     const [showSceneTypePicker, setShowSceneTypePicker] = useState(false);
     const [sceneTypePickerPosition, setSceneTypePickerPosition] = useState<{ top: number; left: number } | null>(null);
+    const savedCursorPositionRef = useRef<number | null>(null);
     const sceneTypeButtonRef = useRef<HTMLButtonElement>(null);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
@@ -340,6 +341,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         
         // If not a scene heading, show type picker dropdown
         if (elementType !== 'scene_heading') {
+            // Save cursor position BEFORE showing dropdown (before textarea loses focus)
+            savedCursorPositionRef.current = cursorPos;
+            
             // Get button position for dropdown
             const button = e.currentTarget;
             const rect = button.getBoundingClientRect();
@@ -368,7 +372,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         setShowSceneTypePicker(false);
         setSceneTypePickerPosition(null);
 
-        const cursorPos = textarea.selectionStart;
+        // Use saved cursor position (from when button was clicked) instead of current position
+        const cursorPos = savedCursorPositionRef.current ?? textarea.selectionStart;
+        savedCursorPositionRef.current = null; // Clear after use
+        
         const textBeforeCursor = state.content.substring(0, cursorPos);
         const textAfterCursor = state.content.substring(cursorPos);
         
