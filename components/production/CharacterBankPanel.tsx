@@ -13,7 +13,6 @@ import { User, Loader2, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import { useAuth } from '@clerk/nextjs';
-import { useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
@@ -46,40 +45,16 @@ export function CharacterBankPanel({
   onEntityOpened
 }: CharacterBankPanelProps) {
   const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId; // 🔥 MATCH MODALS: Use context directly (same as CharacterDetailModal)
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
-  const searchParams = useSearchParams();
-  
-  // 🔥 FIX: Get screenplayId from URL first (for new projects), then context
-  // This matches ProductionHub pattern: URL > Context
-  const urlScreenplayId = searchParams?.get('project');
-  const contextScreenplayId = screenplay.screenplayId;
-  const screenplayId = urlScreenplayId || contextScreenplayId;
 
-  // 🔥 DEBUG: Log panel render and screenplayId
-  console.log('[CharacterBankPanel] 🔍 RENDER:', { 
-    urlScreenplayId, 
-    contextScreenplayId, 
-    screenplayId,
-    hasUrlId: !!urlScreenplayId,
-    hasContextId: !!contextScreenplayId,
-    finalId: screenplayId || 'NULL'
-  });
-
-  // React Query for fetching characters - Production Hub context
+  // 🔥 MATCH MODALS: Use React Query hook directly (same pattern as CharacterDetailModal)
   const { data: characters = propsCharacters, isLoading: queryLoading } = useCharacters(
     screenplayId || '',
-    'production-hub', // 🔥 FIX: Use production-hub context to separate from Creation section
+    'production-hub',
     !!screenplayId
   );
-
-  // 🔥 DEBUG: Log query result
-  console.log('[CharacterBankPanel] 📊 QUERY RESULT:', { 
-    charactersCount: characters.length, 
-    isLoading: queryLoading,
-    enabled: !!screenplayId,
-    characterNames: characters.map(c => c.name)
-  });
 
   const isLoading = queryLoading || propsIsLoading;
 

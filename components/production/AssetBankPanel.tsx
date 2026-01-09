@@ -9,7 +9,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { useSearchParams } from 'next/navigation';
 import { Package, Car, Armchair, Box, Film, X, Loader2 } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import AssetUploadModal from './AssetUploadModal';
@@ -29,42 +28,17 @@ interface AssetBankPanelProps {
 }
 
 export default function AssetBankPanel({ className = '', isMobile = false, entityToOpen, onEntityOpened }: AssetBankPanelProps) {
-  const { getToken } = useAuth();
-  const editorContext = useEditorContext();
   const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId; // 🔥 MATCH MODALS: Use context directly (same as AssetDetailModal)
+  const { getToken } = useAuth();
   const queryClient = useQueryClient();
-  const searchParams = useSearchParams();
-  
-  // 🔥 FIX: Get screenplayId from URL first (for new projects), then context
-  // This matches ProductionHub pattern: URL > Context
-  const urlScreenplayId = searchParams?.get('project');
-  const contextScreenplayId = screenplay.screenplayId;
-  const screenplayId = urlScreenplayId || contextScreenplayId;
 
-  // 🔥 DEBUG: Log panel render and screenplayId
-  console.log('[AssetBankPanel] 🔍 RENDER:', { 
-    urlScreenplayId, 
-    contextScreenplayId, 
-    screenplayId,
-    hasUrlId: !!urlScreenplayId,
-    hasContextId: !!contextScreenplayId,
-    finalId: screenplayId || 'NULL'
-  });
-
-  // React Query for fetching assets
+  // 🔥 MATCH MODALS: Use React Query hook directly (same pattern as AssetDetailModal)
   const { data: assets = [], isLoading: queryLoading } = useAssets(
     screenplayId || '',
     'production-hub',
     !!screenplayId
   );
-
-  // 🔥 DEBUG: Log query result
-  console.log('[AssetBankPanel] 📊 QUERY RESULT:', { 
-    assetsCount: assets.length, 
-    isLoading: queryLoading,
-    enabled: !!screenplayId,
-    assetNames: assets.map(a => a.name)
-  });
 
   const isLoading = queryLoading;
 

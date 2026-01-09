@@ -202,20 +202,8 @@ export function ProductionHub({}: ProductionHubProps) {
     return () => clearInterval(interval);
   }, [screenplayId, getToken, isJobsDrawerOpen]);
   
-  // 🔥 DEBUG: Log ProductionHub render state
-  console.log('[ProductionHub] 🔍 RENDER:', {
-    screenplayId: screenplayId || 'NULL',
-    urlScreenplayId,
-    contextScreenplayId,
-    activeTab,
-    isMobile,
-    isLoaded,
-    isSignedIn
-  });
-
   // 🔥 CRITICAL: Early return AFTER all hooks are called
   if (!screenplayId) {
-    console.log('[ProductionHub] ⚠️ EARLY RETURN: No screenplayId');
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">
@@ -369,9 +357,6 @@ export function ProductionHub({}: ProductionHubProps) {
   // ============================================================================
   // RENDER: DESKTOP LAYOUT (Horizontal Tabs - Matching Creation Area)
   // ============================================================================
-
-  // 🔥 DEBUG: Log which tab is being rendered
-  console.log('[ProductionHub] 🎬 RENDERING TAB:', activeTab);
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
