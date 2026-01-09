@@ -427,13 +427,87 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                 // newAsset is the real asset from DynamoDB with the correct ID
                                                 if (imageEntries.length > 0) {
                                                     console.log('[AssetBoard] 📸 Registering', imageEntries.length, 'images with asset:', newAsset.id);
+                                                    
+                                                    // Transform imageEntries to AssetImage format
+                                                    const newImageObjects = imageEntries.map(img => ({
+                                                        url: img.imageUrl,
+                                                        uploadedAt: new Date().toISOString(),
+                                                        s3Key: img.s3Key
+                                                    }));
+                                                    
+                                                    const updatedImages = [
+                                                        ...(newAsset.images || []),
+                                                        ...newImageObjects
+                                                    ];
+                                                    
+                                                    // 🔥 CRITICAL: Optimistically update React Query cache BEFORE API call
+                                                    // This ensures Production Hub card shows image immediately
+                                                    if (screenplayId) {
+                                                        const queryKey = ['assets', screenplayId, 'production-hub'];
+                                                        const queryState = queryClient.getQueryState(queryKey);
+                                                        const isQueryActive = queryState?.status === 'success' || queryState?.dataUpdatedAt !== undefined;
+                                                        
+                                                        // Initialize cache if empty
+                                                        let cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
+                                                        if (!cacheBefore) {
+                                                            const allAssets = assets.map(a => ({ ...a }));
+                                                            cacheBefore = allAssets;
+                                                            queryClient.setQueryData<Asset[]>(queryKey, allAssets);
+                                                        }
+                                                        
+                                                        // Optimistically update cache
+                                                        queryClient.setQueryData<Asset[]>(queryKey, (old) => {
+                                                            if (!old || !Array.isArray(old)) {
+                                                                return [{
+                                                                    ...newAsset,
+                                                                    images: updatedImages
+                                                                }];
+                                                            }
+                                                            
+                                                            return old.map(a => {
+                                                                if (a.id === newAsset.id) {
+                                                                    return {
+                                                                        ...a,
+                                                                        images: updatedImages,
+                                                                        angleReferences: a.angleReferences ? [...(a.angleReferences || [])] : undefined
+                                                                    };
+                                                                }
+                                                                return { ...a };
+                                                            });
+                                                        });
+                                                        
+                                                        console.log('[AssetBoard] ✅ Optimistically updated React Query cache:', {
+                                                            assetId: newAsset.id,
+                                                            imageCount: updatedImages.length,
+                                                            isQueryActive
+                                                        });
+                                                        
+                                                        // If query is active, trigger immediate re-render
+                                                        if (isQueryActive) {
+                                                            queryClient.refetchQueries({
+                                                                queryKey,
+                                                                type: 'active'
+                                                            });
+                                                        }
+                                                    }
+                                                    
+                                                    // Now update via API
                                                     await updateAsset(newAsset.id, {
-                                                        images: [
-                                                            ...(newAsset.images || []), // Use images from the real asset returned by createAsset
-                                                            ...imageEntries
-                                                        ]
+                                                        images: updatedImages
                                                     });
                                                     console.log('[AssetBoard] ✅ Images registered successfully');
+                                                    
+                                                    // Invalidate and refetch after delay (but don't remove - preserves optimistic update)
+                                                    if (screenplayId) {
+                                                        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                                        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                                                        setTimeout(() => {
+                                                            queryClient.refetchQueries({
+                                                                queryKey: ['assets', screenplayId, 'production-hub'],
+                                                                type: 'active'
+                                                            });
+                                                        }, 2000);
+                                                    }
                                                     
                                                     // 🔥 FIX: Refresh asset from context after images are registered
                                                     // Wait a bit for backend processing and context update
