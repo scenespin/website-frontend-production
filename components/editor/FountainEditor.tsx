@@ -57,6 +57,18 @@ export default function FountainEditor({
     // Context hooks
     const { state, setContent, setCursorPosition, setCurrentLine, insertText, replaceSelection, markSaved, clearHighlight, otherUsersCursors, lastSyncedContent, isPreviewMode } = useEditor();
     const screenplay = useScreenplay();
+    const { isDrawerOpen } = useDrawer();
+    
+    // Mobile detection for drawer padding
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
     
     // Contextual Navigation - Update global context as user moves cursor
     const { setCurrentScene, setCursorPosition: setGlobalCursor, setProject } = useContextStore();
