@@ -12,7 +12,6 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
-import { useQueryClient } from '@tanstack/react-query'
 
 interface AssetDetailSidebarProps {
   asset?: Asset | null
@@ -43,7 +42,6 @@ export default function AssetDetailSidebar({
   }, [assets]);
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
-  const queryClient = useQueryClient() // 🔥 NEW: For invalidating Production Hub cache
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -401,8 +399,6 @@ export default function AssetDetailSidebar({
       // After all files uploaded, update asset or store pending images
       if (asset) {
         // Existing asset - register all images with asset bank API
-        // 🔥 FIX: Declare previousCache outside try block so it's accessible in catch block
-        let previousCache: Asset[] | undefined;
         try {
           // Transform to AssetImage format (url, angle?, uploadedAt, s3Key)
           // 🔥 FIX: Store s3Key so we can regenerate presigned URLs when they expire
@@ -433,142 +429,10 @@ export default function AssetDetailSidebar({
             images: updatedImages
           }));
           
-          // 🔥 CRITICAL FIX: Optimistically update React Query cache BEFORE API call
-          // Production Hub reads from React Query cache, not ScreenplayContext
-          // Based on Stack Overflow findings: setQueryData only notifies subscribers of ACTIVE queries
-          // We need to ensure proper immutability and check if query is active
-          // Also store previous cache state for error rollback (TanStack Query best practice)
-          if (screenplayId) {
-            const queryKey = ['assets', screenplayId, 'production-hub'];
-            const queryState = queryClient.getQueryState(queryKey);
-            const isQueryActive = queryState?.status === 'success' || queryState?.dataUpdatedAt !== undefined;
-            
-            let cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
-            // 🔥 FIX: Store previous cache state for rollback on error (TanStack Query pattern)
-            previousCache = cacheBefore ? [...cacheBefore.map(a => ({ ...a }))] : undefined;
-            
-            console.log('[AssetDetailSidebar] 🔍 DEBUG: Cache before optimistic update:', {
-              hasCache: !!cacheBefore,
-              cacheLength: cacheBefore?.length || 0,
-              assetInCache: cacheBefore?.find(a => a.id === asset.id),
-              assetImageCount: cacheBefore?.find(a => a.id === asset.id)?.images?.length || 0,
-              isQueryActive,
-              queryStatus: queryState?.status
-            });
-            
-            // 🔥 FIX: If cache is empty, initialize it with current assets from ScreenplayContext
-            // This allows optimistic updates even when Production Hub hasn't loaded yet
-            if (!cacheBefore) {
-              console.log('[AssetDetailSidebar] 🔄 Cache is empty, initializing with assets from context');
-              const allAssets = (assetsRef.current || []).map(a => ({ ...a })); // Deep copy to ensure new references
-              cacheBefore = allAssets;
-              previousCache = undefined; // No previous state if cache was empty
-              // Initialize cache with current assets (creates new array reference)
-              queryClient.setQueryData<Asset[]>(queryKey, allAssets);
-            }
-            
-            // 🔥 FIX: Ensure fully immutable update (Stack Overflow: all nested objects must be new references)
-            queryClient.setQueryData<Asset[]>(queryKey, (old) => {
-              if (!old || !Array.isArray(old)) {
-                // Should not happen now, but fallback: create cache with just this asset
-                console.warn('[AssetDetailSidebar] ⚠️ Cache still empty, creating with current asset');
-                const assetWithNewImages = {
-                  ...asset,
-                  images: [...(asset.images || []), ...newImageObjects.map(img => ({ ...img }))] // Ensure new image objects
-                };
-                return [assetWithNewImages];
-              }
-              
-              // 🔥 CRITICAL: Create new array and new objects for ALL assets (not just the updated one)
-              // Stack Overflow finding: React Query uses strict comparison, so we must return new references
-              const updated = old.map(a => {
-                if (a.id === asset.id) {
-                  // Merge new images with existing images
-                  const existingImages = (a.images || []).map(img => ({ ...img })); // Deep copy existing images
-                  const newImages = newImageObjects.map(img => ({ ...img })); // Ensure new image objects
-                  const mergedImages = [...existingImages, ...newImages];
-                  console.log('[AssetDetailSidebar] 🔄 Updating asset in cache:', {
-                    assetId: a.id,
-                    assetName: a.name,
-                    existingImageCount: existingImages.length,
-                    newImageCount: newImages.length,
-                    mergedImageCount: mergedImages.length
-                  });
-                  // 🔥 CRITICAL: Create new asset object with all nested properties spread
-                  return {
-                    ...a,
-                    images: mergedImages,
-                    // Ensure all other nested properties are also new references if they exist
-                    angleReferences: a.angleReferences ? [...(a.angleReferences || [])] : undefined
-                  };
-                }
-                // 🔥 CRITICAL: Even unchanged assets need new references (shallow copy at minimum)
-                return { ...a };
-              });
-              
-              // If asset not found in cache, add it
-              const assetExists = updated.some(a => a.id === asset.id);
-              if (!assetExists) {
-                console.log('[AssetDetailSidebar] 🔄 Asset not in cache, adding it');
-                updated.push({
-                  ...asset,
-                  images: [...(asset.images || []), ...newImageObjects.map(img => ({ ...img }))]
-                });
-              }
-              
-              return updated;
-            });
-            
-            const cacheAfter = queryClient.getQueryData<Asset[]>(queryKey);
-            const updatedAsset = cacheAfter?.find(a => a.id === asset.id);
-            console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache:', {
-              hasCacheAfter: !!cacheAfter,
-              cacheLength: cacheAfter?.length || 0,
-              updatedAssetImageCount: updatedAsset?.images?.length || 0,
-              updatedAssetImages: updatedAsset?.images?.map(img => ({ url: img.url?.substring(0, 50), s3Key: img.s3Key })),
-              isQueryActive
-            });
-            
-            // 🔥 CRITICAL FIX: Don't invalidate immediately - that marks it as stale and causes refetch
-            // Instead, just notify subscribers by setting the data (which we already did)
-            // If query is active, it will re-render automatically
-            // If query is not active, the optimistic update will be visible when Production Hub opens
-            if (!isQueryActive) {
-              console.log('[AssetDetailSidebar] ⚠️ Query not active - optimistic update cached, will be visible when Production Hub opens');
-            } else {
-              // Query is active - trigger re-render by refetching (but only if query is active)
-              // This ensures immediate UI update without marking as stale
-              queryClient.refetchQueries({ 
-                queryKey,
-                type: 'active' // Only refetch if Production Hub is open
-              });
-              console.log('[AssetDetailSidebar] ✅ Triggered refetch for active query (immediate UI update)');
-            }
-          }
-          
           // Register all images with the asset via ScreenplayContext (updates both API and local state)
           await updateAsset(asset.id, {
             images: updatedImages
           });
-          
-          // 🔥 FIX: Match Locations pattern EXACTLY - aggressive cache invalidation
-          // Copy LocationDetailSidebar pattern: removeQueries → invalidateQueries → refetch
-          if (screenplayId) {
-            // Invalidate Media Library cache so new image appears
-            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-            
-            // 🔥 COPY LOCATIONS PATTERN: Remove query from cache completely, then invalidate
-            queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            // Then invalidate to mark as stale (in case query is recreated before refetch)
-            queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            // Force refetch after delay to ensure fresh data from DynamoDB
-            setTimeout(() => {
-              queryClient.refetchQueries({ 
-                queryKey: ['assets', screenplayId, 'production-hub'],
-                type: 'active' // Only refetch active queries
-              });
-            }, 2000); // 2 second delay for DynamoDB eventual consistency
-          }
           
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
           // Use ref to get latest assets after update
@@ -586,18 +450,6 @@ export default function AssetDetailSidebar({
           
           toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
         } catch (error: any) {
-          // 🔥 FIX: Rollback optimistic React Query cache update on error (TanStack Query best practice)
-          if (screenplayId && previousCache !== undefined) {
-            const queryKey = ['assets', screenplayId, 'production-hub'];
-            console.log('[AssetDetailSidebar] 🔄 Rolling back optimistic cache update due to error');
-            queryClient.setQueryData<Asset[]>(queryKey, previousCache);
-          }
-          // Also rollback formData
-          const currentAsset = assetsRef.current.find(a => a.id === asset.id) || asset;
-          setFormData(prev => ({
-            ...prev,
-            images: currentAsset.images || []
-          }));
           toast.error(`Failed to register images: ${error.message}`);
         }
       } else if (isCreating) {
@@ -646,8 +498,6 @@ export default function AssetDetailSidebar({
     // Just proceed with the deletion
     deletingImageRef.current = index;
     
-    // 🔥 FIX: Declare previousCache outside try block so it's accessible in catch block
-    let previousCache: Asset[] | undefined;
     try {
       // 🔥 FIX: Use ref to get latest asset from context to avoid stale closures
       const currentAsset = assetsRef.current.find(a => a.id === asset.id) || asset;
@@ -691,168 +541,31 @@ export default function AssetDetailSidebar({
         return imgS3Key !== imageS3Key;
       });
       
-      // 🔥 FIX: Transform images to backend format (url, uploadedAt, s3Key)
-      // Backend expects { url, uploadedAt, s3Key } not { imageUrl, createdAt, metadata: { s3Key } }
-      const transformedImages = updatedImages.map((img: any) => ({
-        url: img.url || img.imageUrl || '', // Backend expects 'url' not 'imageUrl'
-        uploadedAt: img.uploadedAt || img.createdAt || new Date().toISOString(), // Backend expects 'uploadedAt' not 'createdAt'
-        s3Key: img.s3Key || img.metadata?.s3Key // Extract s3Key from metadata if needed
-      }));
-      
-      // 🔥 CRITICAL FIX: Creation section should NEVER update angleReferences
-      // angleReferences are Production Hub data and should only be updated from Production Hub
-      // If we delete a creation image that happens to match an angleReference s3Key, that's fine -
-      // the backend will handle it correctly when Production Hub fetches the asset
-      let updateData: any = { images: transformedImages };
-      
-      // 🔥 REMOVED: Don't update angleReferences from Creation section
-      // This was causing duplicates when angleReferences were accidentally included in updates
-      
-      // 🔥 FIX: Optimistic UI update - remove image immediately
-      // Don't update angleReferences in formData - that's Production Hub data
-      setFormData(prev => ({
-        ...prev,
-        images: updatedImages
-      }));
-      
-      // 🔥 CRITICAL FIX: Optimistically update React Query cache BEFORE API call
-      // Production Hub reads from React Query cache, not ScreenplayContext
-      // Based on Stack Overflow findings: setQueryData only notifies subscribers of ACTIVE queries
-      // We need to ensure proper immutability and check if query is active
-      // Also store previous cache state for error rollback (TanStack Query best practice)
-      if (screenplayId) {
-        const queryKey = ['assets', screenplayId, 'production-hub'];
-        const queryState = queryClient.getQueryState(queryKey);
-        const isQueryActive = queryState?.status === 'success' || queryState?.dataUpdatedAt !== undefined;
-        
-        let cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
-        // 🔥 FIX: Store previous cache state for rollback on error (TanStack Query pattern)
-        previousCache = cacheBefore ? [...cacheBefore.map(a => ({ ...a }))] : undefined;
-        
-        console.log('[AssetDetailSidebar] 🔍 DEBUG: Cache before optimistic delete:', {
-          hasCache: !!cacheBefore,
-          cacheLength: cacheBefore?.length || 0,
-          assetInCache: cacheBefore?.find(a => a.id === asset.id),
-          assetImageCount: cacheBefore?.find(a => a.id === asset.id)?.images?.length || 0,
-          deletingS3Key: imageS3Key,
-          isQueryActive,
-          queryStatus: queryState?.status
-        });
-        
-        // 🔥 FIX: If cache is empty, initialize it with current assets from ScreenplayContext
-        // This allows optimistic updates even when Production Hub hasn't loaded yet
-        if (!cacheBefore) {
-          console.log('[AssetDetailSidebar] 🔄 Cache is empty, initializing with assets from context');
-          const allAssets = (assetsRef.current || []).map(a => ({ ...a })); // Deep copy to ensure new references
-          cacheBefore = allAssets;
-          previousCache = undefined; // No previous state if cache was empty
-          // Initialize cache with current assets (creates new array reference)
-          queryClient.setQueryData<Asset[]>(queryKey, allAssets);
-        }
-        
-        // 🔥 FIX: Ensure fully immutable update (Stack Overflow: all nested objects must be new references)
-        queryClient.setQueryData<Asset[]>(queryKey, (old) => {
-          if (!old || !Array.isArray(old)) {
-            // Should not happen now, but fallback: create cache with just this asset (without deleted image)
-            console.warn('[AssetDetailSidebar] ⚠️ Cache still empty, creating with current asset');
-            const assetWithoutDeletedImage = {
-              ...asset,
-              images: updatedImages.map(img => ({ ...img })) // Ensure new image objects
-            };
-            return [assetWithoutDeletedImage];
-          }
-          
-          // 🔥 CRITICAL: Create new array and new objects for ALL assets (not just the updated one)
-          // Stack Overflow finding: React Query uses strict comparison, so we must return new references
-          const updated = old.map(a => {
-            if (a.id === asset.id) {
-              // Remove deleted image from cache (match by s3Key)
-              const beforeFilter = (a.images || []).length;
-              const filteredImages = (a.images || []).filter((img: any) => {
-                const imgS3Key = img.metadata?.s3Key || img.s3Key;
-                return imgS3Key !== imageS3Key;
-              }).map(img => ({ ...img })); // Ensure new image objects
-              console.log('[AssetDetailSidebar] 🔄 Removing image from cache:', {
-                assetId: a.id,
-                assetName: a.name,
-                beforeCount: beforeFilter,
-                afterCount: filteredImages.length,
-                deletedS3Key: imageS3Key
-              });
-              // 🔥 CRITICAL: Create new asset object with all nested properties spread
-              return {
-                ...a,
-                images: filteredImages,
-                // Ensure all other nested properties are also new references if they exist
-                angleReferences: a.angleReferences ? [...(a.angleReferences || [])] : undefined
-              };
-            }
-            // 🔥 CRITICAL: Even unchanged assets need new references (shallow copy at minimum)
-            return { ...a };
+      // 🔥 FIX: If deleting an angle-generated image, also remove from angleReferences
+      // This prevents the image from being added back when enrichAssetWithPresignedUrls runs
+      let updateData: any = { images: updatedImages };
+      if (isAngleGenerated && imageS3Key && currentAsset.angleReferences) {
+        const updatedAngleReferences = currentAsset.angleReferences.filter(
+          (ref: any) => ref.s3Key !== imageS3Key
+        );
+        if (updatedAngleReferences.length !== currentAsset.angleReferences.length) {
+          updateData.angleReferences = updatedAngleReferences;
+          console.log('[AssetDetailSidebar] 🗑️ Also removing from angleReferences:', {
+            removedS3Key: imageS3Key,
+            remainingAngleRefs: updatedAngleReferences.length
           });
-          
-          // If asset not found in cache, add it (without deleted image)
-          const assetExists = updated.some(a => a.id === asset.id);
-          if (!assetExists) {
-            console.log('[AssetDetailSidebar] 🔄 Asset not in cache, adding it (without deleted image)');
-            updated.push({
-              ...asset,
-              images: updatedImages.map(img => ({ ...img })) // Ensure new image objects
-            });
-          }
-          
-          return updated;
-        });
-        
-        const cacheAfter = queryClient.getQueryData<Asset[]>(queryKey);
-        const updatedAsset = cacheAfter?.find(a => a.id === asset.id);
-        console.log('[AssetDetailSidebar] ✅ Optimistically updated React Query cache (deleted image):', {
-          hasCacheAfter: !!cacheAfter,
-          cacheLength: cacheAfter?.length || 0,
-          updatedAssetImageCount: updatedAsset?.images?.length || 0,
-          isQueryActive
-        });
-        
-        // 🔥 CRITICAL FIX: Don't invalidate immediately - that marks it as stale and causes refetch
-        // Instead, just notify subscribers by setting the data (which we already did)
-        // If query is active, it will re-render automatically
-        // If query is not active, the optimistic update will be visible when Production Hub opens
-        if (!isQueryActive) {
-          console.log('[AssetDetailSidebar] ⚠️ Query not active - optimistic update cached, will be visible when Production Hub opens');
-        } else {
-          // Query is active - trigger re-render by refetching (but only if query is active)
-          // This ensures immediate UI update without marking as stale
-          queryClient.refetchQueries({ 
-            queryKey,
-            type: 'active' // Only refetch if Production Hub is open
-          });
-          console.log('[AssetDetailSidebar] ✅ Triggered refetch for active query (immediate UI update)');
         }
       }
+      
+      // 🔥 FIX: Optimistic UI update - remove image immediately
+      setFormData(prev => ({
+        ...prev,
+        images: updatedImages,
+        ...(updateData.angleReferences !== undefined && { angleReferences: updateData.angleReferences })
+      }));
       
       // Update via API
       await updateAsset(asset.id, updateData);
-      
-      // 🔥 FIX: Match Locations pattern exactly - aggressive cache invalidation
-      // This ensures Production Hub gets fresh data from DynamoDB after eventual consistency delay
-      if (screenplayId) {
-        // Invalidate Media Library cache so deleted image disappears
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-        
-        // 🔥 MATCH LOCATIONS PATTERN: Aggressively clear and refetch asset bank query cache
-        // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
-        // First, remove the query from cache completely to force a fresh fetch
-        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        // Then invalidate to mark as stale (in case query is recreated before refetch)
-        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        // Force refetch after delay to ensure fresh data from DynamoDB
-        setTimeout(() => {
-          queryClient.refetchQueries({ 
-            queryKey: ['assets', screenplayId, 'production-hub'],
-            type: 'active' // Only refetch active queries
-          });
-        }, 2000); // 2 second delay for DynamoDB eventual consistency
-      }
       
       // Sync from context after update (with delay for DynamoDB consistency)
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -870,13 +583,7 @@ export default function AssetDetailSidebar({
       // 🔥 FIX: Only show one toast notification
       toast.success('Image removed');
     } catch (error: any) {
-      // 🔥 FIX: Rollback optimistic React Query cache update on error (TanStack Query best practice)
-      if (screenplayId && previousCache !== undefined) {
-        const queryKey = ['assets', screenplayId, 'production-hub'];
-        console.log('[AssetDetailSidebar] 🔄 Rolling back optimistic cache update due to error');
-        queryClient.setQueryData<Asset[]>(queryKey, previousCache);
-      }
-      // Also rollback formData
+      // Rollback on error
       console.error('[AssetDetailSidebar] Failed to remove image:', error);
       setFormData(prev => ({
         ...prev,
