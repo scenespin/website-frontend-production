@@ -226,7 +226,7 @@ function GitHubSaveButton() {
                                 className="btn btn-ghost"
                             >
                                 Cancel
-                            </button>
+                </button>
             </div>
                     </div>
                 </div>
@@ -671,7 +671,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             <div className="hidden md:flex flex-wrap items-center gap-2 p-2">
                 
                 {/* Undo/Redo */}
-                <div className="flex space-x-1">
+                <div className="flex space-x-2">
                     <div className="tooltip tooltip-bottom" data-tip="Undo • Ctrl+Z">
                         <button
                             onClick={undo}
@@ -698,11 +698,12 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     <div className="tooltip tooltip-bottom" data-tip="Find & Replace • Ctrl+F">
                         <button
                             onClick={onOpenFindReplace}
-                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
+                            <span className="text-[9px] hidden sm:inline">FIND</span>
                         </button>
                     </div>
                 )}
@@ -711,32 +712,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 <div className="hidden sm:block h-8 w-px bg-base-300"></div>
                 
                 {/* Quick Formatting buttons */}
-                <div className="flex space-x-1">
-                    <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
-                        <button
-                            data-wryda-tab-button
-                            onClick={handleWrydaTabButton}
-                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-base font-bold text-[#DC143C]">W</span>
-                            <span className="text-[9px] hidden sm:inline">TAB</span>
-                        </button>
-                        {/* Scene Type Dropdown - positioned at cursor */}
-                        {showSceneTypeDropdown && sceneTypeDropdownPosition && (
-                            <SceneTypeDropdown
-                                items={sceneTypeItems}
-                                position={sceneTypeDropdownPosition}
-                                onSelect={insertSceneTypeAndTab}
-                                onClose={() => {
-                                    console.log('[NAV-DIAG] EditorToolbar: SceneTypeDropdown onClose called (desktop)');
-                                    setShowSceneTypeDropdown(false);
-                                    setSceneTypeDropdownPosition(null);
-                                    savedCursorPositionRef.current = null;
-                                }}
-                            />
-                        )}
-                    </div>
-                    
+                <div className="flex space-x-2">
                     <div className="tooltip tooltip-bottom" data-tip="Parenthetical/Wryly • Ex: (nervous)">
                         <button
                             onClick={() => formatCurrentLine('parenthetical')}
@@ -780,7 +756,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 }}
                             >
                                 <span className="text-base">💬</span>
-                                <span className="text-[9px] hidden sm:inline">DIALOGUE</span>
+                                <span className="text-[9px] hidden sm:inline">DIALOG</span>
                             </button>
                         </div>
                     )}
@@ -805,7 +781,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 }}
                             >
                                 <span className="text-base">🎬</span>
-                                <span className="text-[9px] hidden sm:inline">DIRECTOR</span>
+                                <span className="text-[9px] hidden sm:inline">DIRECT</span>
                             </button>
                         </div>
                     )}
@@ -828,7 +804,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
                 
                 {/* View controls */}
-                <div className="flex space-x-1">
+                <div className="flex space-x-2">
                     <div className="tooltip tooltip-bottom" data-tip="Decrease Font Size">
                         <button
                             onClick={decreaseFontSize}
@@ -935,7 +911,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <span className="text-[9px] hidden sm:inline">HISTORY</span>
+                                <span className="text-[9px] hidden sm:inline">HIST</span>
                             </button>
                         </div>
                     );
@@ -964,7 +940,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                     >
                         <span className="text-base">⛲</span>
-                        <span className="text-[9px] hidden sm:inline">FOUNTAIN</span>
+                        <span className="text-[9px] hidden sm:inline">FOUNT</span>
                     </button>
                 </div>
                 
@@ -1070,14 +1046,14 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     
                     {/* Parenthetical */}
                     <div className="tooltip tooltip-bottom" data-tip="Parenthetical/Wryly">
-                        <button
+                            <button
                             onClick={() => formatCurrentLine('parenthetical')}
                             className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
                         >
                             <span className="text-sm">( )</span>
                             <span className="text-[8px] leading-tight">Paren</span>
-                        </button>
-                    </div>
+                            </button>
+                        </div>
                     
                     {/* Dialogue Agent - Mobile */}
                     {onLaunchDialogue && (
@@ -1330,9 +1306,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     formatCurrentLine('transition');
                                     setShowMoreFormats(false);
                                 }}
-                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full"
+                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
                             >
-                                ➔ TRANSITION
+                                <span className="text-base">➔</span>
+                                <span className="text-[9px]">TRANS</span>
                             </button>
                         </div>
                         <div className="tooltip tooltip-top" data-tip="> THE END <">
@@ -1341,9 +1318,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     formatCurrentLine('centered');
                                     setShowMoreFormats(false);
                                 }}
-                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full"
+                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
                             >
-                                ≡ CENTERED
+                                <span className="text-base">≡</span>
+                                <span className="text-[9px]">CENTER</span>
                             </button>
                         </div>
                         <div className="tooltip tooltip-top" data-tip="~ Happy birthday ~">
@@ -1352,9 +1330,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     formatCurrentLine('lyrics');
                                     setShowMoreFormats(false);
                                 }}
-                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full"
+                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
                             >
-                                ♪ LYRICS
+                                <span className="text-base">♪</span>
+                                <span className="text-[9px]">LYRICS</span>
                             </button>
                         </div>
                         <div className="tooltip tooltip-top" data-tip="# Act I">
@@ -1363,9 +1342,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     formatCurrentLine('section');
                                     setShowMoreFormats(false);
                                 }}
-                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full"
+                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
                             >
-                                # SECTION
+                                <span className="text-base">#</span>
+                                <span className="text-[9px]">SECT</span>
                             </button>
                         </div>
                         <div className="tooltip tooltip-top" data-tip="= Scene summary">
@@ -1374,9 +1354,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     formatCurrentLine('synopsis');
                                     setShowMoreFormats(false);
                                 }}
-                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full"
+                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
                             >
-                                = SYNOPSIS
+                                <span className="text-base">=</span>
+                                <span className="text-[9px]">SYNO</span>
                             </button>
                         </div>
                         <div className="tooltip tooltip-top" data-tip="[[ Hidden note ]] • Not in PDF">
@@ -1385,9 +1366,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     formatCurrentLine('note');
                                     setShowMoreFormats(false);
                                 }}
-                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full"
+                                className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
                             >
-                                [[NOTE]]
+                                <span className="text-base">[[</span>
+                                <span className="text-[9px]">NOTE</span>
                             </button>
                         </div>
                     </div>

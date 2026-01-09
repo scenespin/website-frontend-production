@@ -81,7 +81,8 @@ export default function AgentFABGroup({
   
   // Calculate bottom offset: base offset + keyboard height + extra padding
   // When keyboard is open, position FABs above the keyboard
-  const baseBottomOffset = isMobile ? 80 : 24;
+  // Desktop: Moved higher (about 2 button lengths = ~80px) for better visibility
+  const baseBottomOffset = isMobile ? 80 : 104;
   const keyboardAwareBottom = isMobile && keyboardHeight > 0 
     ? keyboardHeight + 20 // Position 20px above keyboard
     : baseBottomOffset;
