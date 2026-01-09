@@ -167,6 +167,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [sceneTypePickerPosition, setSceneTypePickerPosition] = useState<{ top: number; left: number } | null>(null);
     const savedCursorPositionRef = useRef<number | null>(null);
     const sceneTypeButtonRef = useRef<HTMLButtonElement>(null);
+    const sceneTypePickerRef = useRef<HTMLDivElement>(null);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
     const [rescanCooldown, setRescanCooldown] = useState(false); // Cooldown to prevent rapid re-clicks
@@ -327,6 +328,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
 
     // Wryda Smart Tab button handler
     const handleWrydaTabButton = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation(); // Prevent event from bubbling to click outside handler
+        
         const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
         if (!textarea) return;
 
@@ -408,14 +411,26 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         if (!showSceneTypePicker) return;
         
         const handleClickOutside = (e: MouseEvent) => {
-            if (sceneTypeButtonRef.current && !sceneTypeButtonRef.current.contains(e.target as Node)) {
+            const target = e.target as Node;
+            const isClickOnButton = sceneTypeButtonRef.current?.contains(target);
+            const isClickOnPicker = sceneTypePickerRef.current?.contains(target);
+            
+            // Only close if click is outside both button and dropdown
+            if (!isClickOnButton && !isClickOnPicker) {
                 setShowSceneTypePicker(false);
                 setSceneTypePickerPosition(null);
             }
         };
         
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        // Use a small delay to avoid closing immediately when opening
+        const timeoutId = setTimeout(() => {
+            document.addEventListener('mousedown', handleClickOutside);
+        }, 100);
+        
+        return () => {
+            clearTimeout(timeoutId);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
     }, [showSceneTypePicker]);
     
     const increaseFontSize = () => {
@@ -492,11 +507,13 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             {/* Scene Type Picker Dropdown */}
                             {showSceneTypePicker && sceneTypePickerPosition && (
                                 <div
+                                    ref={sceneTypePickerRef}
                                     className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl py-1 min-w-[120px]"
                                     style={{
                                         top: `${sceneTypePickerPosition.top}px`,
                                         left: `${sceneTypePickerPosition.left}px`
                                     }}
+                                    onClick={(e) => e.stopPropagation()}
                                 >
                                     <button
                                         onClick={() => handleSceneTypeSelect('INT.')}
@@ -1007,11 +1024,13 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             {/* Scene Type Picker Dropdown */}
                             {showSceneTypePicker && sceneTypePickerPosition && (
                                 <div
+                                    ref={sceneTypePickerRef}
                                     className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl py-1 min-w-[120px]"
                                     style={{
                                         top: `${sceneTypePickerPosition.top}px`,
                                         left: `${sceneTypePickerPosition.left}px`
                                     }}
+                                    onClick={(e) => e.stopPropagation()}
                                 >
                                     <button
                                         onClick={() => handleSceneTypeSelect('INT.')}
