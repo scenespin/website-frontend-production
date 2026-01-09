@@ -120,21 +120,24 @@ export default function SmartTypeDropdown({
                     maxWidth: `calc(100vw - ${position.left}px - 20px)`
                 }}
             >
-                {/* Mobile-only close button */}
-                {isMobile && (
-                    <button
-                        onClick={onClose}
-                        className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
-                        aria-label="Close"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                )}
-                <div className="px-3 py-4 text-sm text-base-content/60 text-center">
-                    {query.trim() ? `No matches for "${query}"` : 'No options available'}
-                </div>
-                <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
-                    <kbd className="kbd kbd-sm">Esc</kbd> Close
+                {/* Wrapper with relative positioning for close button */}
+                <div className="relative">
+                    {/* Mobile-only close button */}
+                    {isMobile && (
+                        <button
+                            onClick={onClose}
+                            className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
+                            aria-label="Close"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
+                    <div className="px-3 py-4 text-sm text-base-content/60 text-center">
+                        {query.trim() ? `No matches for "${query}"` : 'No options available'}
+                    </div>
+                    <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
+                        <kbd className="kbd kbd-sm">Esc</kbd> Close
+                    </div>
                 </div>
             </div>
         );
@@ -142,7 +145,7 @@ export default function SmartTypeDropdown({
 
     return (
         <div
-            className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl w-72 max-h-64 overflow-y-auto relative"
+            className="fixed z-[10000] bg-base-100 border border-base-300 rounded-lg shadow-2xl w-72 max-h-64 overflow-y-auto"
             style={{
                 top: `${position.top}px`,
                 left: `${position.left}px`,
@@ -150,17 +153,19 @@ export default function SmartTypeDropdown({
                 maxWidth: `calc(100vw - ${position.left}px - 20px)`
             }}
         >
-            {/* Mobile-only close button - positioned in top-right corner */}
-            {isMobile && (
-                <button
-                    onClick={onClose}
-                    className="absolute top-2 right-2 z-10 p-1.5 rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
-                    aria-label="Close"
-                >
-                    <X className="w-4 h-4" />
-                </button>
-            )}
-            <div ref={listRef} className="py-1">
+            {/* Wrapper with relative positioning for close button */}
+            <div className="relative">
+                {/* Mobile-only close button - positioned in top-right corner */}
+                {isMobile && (
+                    <button
+                        onClick={onClose}
+                        className="absolute top-2 right-2 z-10 p-1.5 rounded-md hover:bg-base-200 transition-colors text-base-content/60 hover:text-base-content"
+                        aria-label="Close"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+                <div ref={listRef} className="py-1">
                 {filteredItems.map((item, index) => {
                     const isSelected = index === selectedIndex;
                     return (
@@ -182,9 +187,10 @@ export default function SmartTypeDropdown({
                         </button>
                     );
                 })}
-            </div>
-            <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
-                <kbd className="kbd kbd-sm">↑↓</kbd> Navigate • <kbd className="kbd kbd-sm">Tab</kbd> or <kbd className="kbd kbd-sm">Enter</kbd> Select • <kbd className="kbd kbd-sm">Esc</kbd> Close
+                </div>
+                <div className="px-3 py-2 text-xs text-base-content/60 border-t border-base-300">
+                    <kbd className="kbd kbd-sm">↑↓</kbd> Navigate • <kbd className="kbd kbd-sm">Tab</kbd> or <kbd className="kbd kbd-sm">Enter</kbd> Select • <kbd className="kbd kbd-sm">Esc</kbd> Close
+                </div>
             </div>
         </div>
     );
