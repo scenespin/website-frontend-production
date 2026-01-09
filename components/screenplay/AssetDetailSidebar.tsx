@@ -529,16 +529,20 @@ export default function AssetDetailSidebar({
               isQueryActive
             });
             
-            // 🔥 CRITICAL FIX: Invalidate queries immediately to notify subscribers (matches Locations pattern)
-            // This ensures AssetBankPanel re-renders with the optimistic update
-            // invalidateQueries marks query as stale and notifies subscribers, triggering re-render
-            // We'll refetch after API call completes to sync with server
-            queryClient.invalidateQueries({ queryKey });
-            
+            // 🔥 CRITICAL FIX: Don't invalidate immediately - that marks it as stale and causes refetch
+            // Instead, just notify subscribers by setting the data (which we already did)
+            // If query is active, it will re-render automatically
+            // If query is not active, the optimistic update will be visible when Production Hub opens
             if (!isQueryActive) {
               console.log('[AssetDetailSidebar] ⚠️ Query not active - optimistic update cached, will be visible when Production Hub opens');
             } else {
-              console.log('[AssetDetailSidebar] ✅ Notified subscribers of cache update (query is active)');
+              // Query is active - trigger re-render by refetching (but only if query is active)
+              // This ensures immediate UI update without marking as stale
+              queryClient.refetchQueries({ 
+                queryKey,
+                type: 'active' // Only refetch if Production Hub is open
+              });
+              console.log('[AssetDetailSidebar] ✅ Triggered refetch for active query (immediate UI update)');
             }
           }
           
@@ -805,16 +809,20 @@ export default function AssetDetailSidebar({
           isQueryActive
         });
         
-        // 🔥 CRITICAL FIX: Invalidate queries immediately to notify subscribers (matches Locations pattern)
-        // This ensures AssetBankPanel re-renders with the optimistic update
-        // invalidateQueries marks query as stale and notifies subscribers, triggering re-render
-        // We'll refetch after API call completes to sync with server
-        queryClient.invalidateQueries({ queryKey });
-        
+        // 🔥 CRITICAL FIX: Don't invalidate immediately - that marks it as stale and causes refetch
+        // Instead, just notify subscribers by setting the data (which we already did)
+        // If query is active, it will re-render automatically
+        // If query is not active, the optimistic update will be visible when Production Hub opens
         if (!isQueryActive) {
           console.log('[AssetDetailSidebar] ⚠️ Query not active - optimistic update cached, will be visible when Production Hub opens');
         } else {
-          console.log('[AssetDetailSidebar] ✅ Notified subscribers of cache update (query is active)');
+          // Query is active - trigger re-render by refetching (but only if query is active)
+          // This ensures immediate UI update without marking as stale
+          queryClient.refetchQueries({ 
+            queryKey,
+            type: 'active' // Only refetch if Production Hub is open
+          });
+          console.log('[AssetDetailSidebar] ✅ Triggered refetch for active query (immediate UI update)');
         }
       }
       
