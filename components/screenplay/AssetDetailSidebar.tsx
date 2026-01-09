@@ -226,9 +226,16 @@ export default function AssetDetailSidebar({
       setPendingImages([])
     } else {
       onUpdate(formData)
-      // Invalidate Production Hub cache so cards update
+      // Invalidate Production Hub cache so cards update (match Locations pattern)
       if (screenplayId) {
+        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
         queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        setTimeout(() => {
+          queryClient.refetchQueries({ 
+            queryKey: ['assets', screenplayId, 'production-hub'],
+            type: 'active'
+          });
+        }, 2000);
       }
     }
     
@@ -440,9 +447,16 @@ export default function AssetDetailSidebar({
             images: updatedImages
           });
           
-          // Invalidate Production Hub cache so cards update
+          // Invalidate Production Hub cache so cards update (match Locations pattern)
           if (screenplayId) {
+            queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
             queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            setTimeout(() => {
+              queryClient.refetchQueries({ 
+                queryKey: ['assets', screenplayId, 'production-hub'],
+                type: 'active'
+              });
+            }, 2000);
           }
           
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
@@ -578,9 +592,16 @@ export default function AssetDetailSidebar({
       // Update via API
       await updateAsset(asset.id, updateData);
       
-      // Invalidate Production Hub cache so cards update
+      // Invalidate Production Hub cache so cards update (match Locations pattern)
       if (screenplayId) {
+        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
         queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        setTimeout(() => {
+          queryClient.refetchQueries({ 
+            queryKey: ['assets', screenplayId, 'production-hub'],
+            type: 'active'
+          });
+        }, 2000);
       }
       
       // Sync from context after update (with delay for DynamoDB consistency)
