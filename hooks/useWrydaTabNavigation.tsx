@@ -339,14 +339,17 @@ export function useWrydaTabNavigation(
             // Build complete scene heading
             const newLine = buildSceneHeading(updatedParts);
             
+            // Fountain format: After scene heading, add blank line, then cursor on next line
             const newTextBefore = lines.slice(0, -1).concat(newLine).join('\n');
-            const newContent = newTextBefore + textAfterCursor;
+            // Add blank line after scene heading (double space)
+            const newContent = newTextBefore + '\n\n' + textAfterCursor;
             setContent(newContent);
             
-            // Move cursor to end of line
+            // Move cursor to the line after the blank line (ready for action/dialogue)
             setTimeout(() => {
                 if (textareaRef.current) {
-                    const newPos = newTextBefore.length;
+                    // Position after scene heading + blank line
+                    const newPos = newTextBefore.length + 2; // +2 for '\n\n'
                     textareaRef.current.selectionStart = newPos;
                     textareaRef.current.selectionEnd = newPos;
                     setCursorPosition(newPos);
