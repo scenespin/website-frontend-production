@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { X, Loader2, Sparkles, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
+import { X, Loader2, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { api } from '@/lib/api';
@@ -700,27 +700,90 @@ export default function RewriteModal({
             >
               <Dialog.Panel className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-base-100 shadow-xl transition-all">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-base-300 px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cinema-red to-red-800">
-                      <Sparkles className="h-5 w-5 text-white" />
+                <div className="border-b border-base-300 px-6 py-4">
+                  {/* Desktop: Horizontal layout with icon */}
+                  <div className="hidden md:flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg relative overflow-hidden backdrop-blur-lg border-2 border-white/30"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(220, 20, 60, 0.85) 0%, rgba(139, 0, 0, 0.85) 100%)',
+                        }}
+                      >
+                        {/* Glass overlay with shine effect */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/10 to-transparent pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+                        <div className="absolute top-0 left-1/4 w-1/2 h-1/3 bg-white/20 rounded-full blur-xl pointer-events-none" />
+                        <span className="text-xl relative z-10">💫</span>
+                      </div>
+                      <div className="flex-1">
+                        <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
+                          Rewrite Selected Text
+                        </Dialog.Title>
+                        <p className="text-xs text-base-content/60">
+                          Rewrite selected text with AI assistance
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
-                        Rewrite Selected Text
-                      </Dialog.Title>
-                      <p className="text-xs text-base-content/60">
-                        Rewrite selected text with AI assistance
-                      </p>
+                    <div className="flex items-center gap-2">
+                      {/* Model Selector - DaisyUI select */}
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => handleModelChange(e.target.value)}
+                        disabled={isLoading}
+                        className="select select-bordered select-sm max-w-[140px]"
+                      >
+                        {(() => {
+                          const grouped = LLM_MODELS.reduce((acc, model) => {
+                            if (!acc[model.provider]) acc[model.provider] = [];
+                            acc[model.provider].push(model);
+                            return acc;
+                          }, {});
+                          return Object.entries(grouped).map(([provider, models]) => (
+                            <optgroup key={provider} label={provider}>
+                              {models.map((model) => (
+                                <option key={model.id} value={model.id}>
+                                  {model.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ));
+                        })()}
+                      </select>
+                      <button
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className="btn btn-ghost btn-sm btn-circle"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {/* Model Selector - DaisyUI select */}
+                  
+                  {/* Mobile: Vertical layout without icon */}
+                  <div className="md:hidden flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
+                          Rewrite Selected Text
+                        </Dialog.Title>
+                        <p className="text-xs text-base-content/60">
+                          Rewrite selected text with AI assistance
+                        </p>
+                      </div>
+                      <button
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className="btn btn-ghost btn-sm btn-circle"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    {/* Model Selector - Full width on mobile */}
                     <select
                       value={selectedModel}
                       onChange={(e) => handleModelChange(e.target.value)}
                       disabled={isLoading}
-                      className="select select-bordered select-sm max-w-[140px]"
+                      className="select select-bordered select-sm w-full"
                     >
                       {(() => {
                         const grouped = LLM_MODELS.reduce((acc, model) => {
@@ -739,13 +802,6 @@ export default function RewriteModal({
                         ));
                       })()}
                     </select>
-                    <button
-                      onClick={onClose}
-                      disabled={isLoading}
-                      className="btn btn-ghost btn-sm btn-circle"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
                   </div>
                 </div>
                 
