@@ -13,7 +13,6 @@ import EditorToolbar from './EditorToolbar';
 import EditorLockBanner from './EditorLockBanner';
 import SceneNavigator from './SceneNavigator';
 import AgentFABGroup from './AgentFABGroup';
-import WrydaTabFAB from './WrydaTabFAB';
 import { ExportPDFModal } from '../screenplay/ExportPDFModal';
 import { CollaborationPanel } from '../CollaborationPanel';
 import RewriteModal from '../modals/RewriteModal';
@@ -759,6 +758,8 @@ export default function EditorWorkspace() {
                                 setIsSceneNavVisible(prev => !prev);
                             });
                         }}
+                        onLaunchDirector={handleLaunchDirector}
+                        onLaunchDialogue={handleLaunchDialogue}
                     />
                     
                     {/* Feature 0187: Editor Lock Banner */}
@@ -896,18 +897,10 @@ Tip:
             {/* FAB Group - Mobile & Desktop */}
             <AgentFABGroup
                 onLaunchScreenwriter={handleLaunchScreenwriter}
-                onLaunchDirector={handleLaunchDirector}
-                onLaunchDialogue={handleLaunchDialogue}
                 onLaunchRewrite={handleLaunchRewrite}
+                onWrydaTabClick={handleWrydaTabButton}
                 hasSelection={hasSelection}
                 selectedText={selectedText}
-                isDrawerOpen={isDrawerOpen}
-                isMobile={isMobile}
-            />
-            
-            {/* Wryda Tab FAB - Mobile only, bottom-left */}
-            <WrydaTabFAB
-                onWrydaTabClick={handleWrydaTabButton}
                 isDrawerOpen={isDrawerOpen}
                 isMobile={isMobile}
             />

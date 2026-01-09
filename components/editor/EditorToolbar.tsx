@@ -22,6 +22,8 @@ interface EditorToolbarProps {
     onToggleItalics?: () => void;
     onOpenVersionHistory?: () => void;
     onToggleSceneNav?: () => void;
+    onLaunchDirector?: () => void;
+    onLaunchDialogue?: () => void;
 }
 
 /**
@@ -43,7 +45,7 @@ function GitHubSaveButton() {
             setShowSetup(true);
             return;
         }
-        
+
         // Show the commit message modal
         setCommitMessage('');
         setShowModal(true);
@@ -215,9 +217,9 @@ function GitHubSaveButton() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
                                         Save Backup
-                                    </>
-                                )}
-                            </button>
+                        </>
+                    )}
+                </button>
                             <button
                                 onClick={() => setShowModal(false)}
                                 disabled={saving}
@@ -225,7 +227,7 @@ function GitHubSaveButton() {
                             >
                                 Cancel
                             </button>
-                        </div>
+            </div>
                     </div>
                 </div>
             )}
@@ -252,7 +254,7 @@ function GitHubSaveButton() {
                             </p>
                             <p className="text-base-content/60">
                                 Your screenplay also auto-saves locally, so GitHub is optional but recommended for extra safety.
-                            </p>
+                        </p>
                         </div>
                         
                         <div className="flex gap-2">
@@ -280,7 +282,7 @@ function GitHubSaveButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onToggleSceneNav }: EditorToolbarProps) {
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onToggleSceneNav, onLaunchDirector, onLaunchDialogue }: EditorToolbarProps) {
     const { state, setContent, setCursorPosition, toggleFocusMode, setFontSize, undo, redo, saveNow, isEditorLocked, isPreviewMode: contextPreviewMode, setIsPreviewMode } = useEditor();
     
     // Use prop if provided, otherwise use context
@@ -758,15 +760,66 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </div>
                     )}
                     
+                    {/* Dialogue Agent - Subtle gradient + hover glow */}
+                    {onLaunchDialogue && (
+                        <div className="tooltip tooltip-bottom" data-tip="Dialogue Agent • Generate dialogue">
+                            <button
+                                onClick={onLaunchDialogue}
+                                className="px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-all duration-200"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%)',
+                                    border: '1px solid rgba(147, 51, 234, 0.3)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.boxShadow = '0 0 12px rgba(147, 51, 234, 0.4)';
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(147, 51, 234, 0.25) 0%, rgba(124, 58, 237, 0.25) 100%)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.boxShadow = 'none';
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%)';
+                                }}
+                            >
+                                <span className="text-base">💬</span>
+                                <span className="text-[9px] hidden sm:inline">DIALOGUE</span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Director Agent - Subtle gradient + hover glow */}
+                    {onLaunchDirector && (
+                        <div className="tooltip tooltip-bottom" data-tip="Director Agent • Generate complete scenes">
+                            <button
+                                onClick={onLaunchDirector}
+                                className="px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-all duration-200"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.15) 100%)',
+                                    border: '1px solid rgba(249, 115, 22, 0.3)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.boxShadow = '0 0 12px rgba(249, 115, 22, 0.4)';
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(249, 115, 22, 0.25) 0%, rgba(234, 88, 12, 0.25) 100%)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.boxShadow = 'none';
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.15) 100%)';
+                                }}
+                            >
+                                <span className="text-base">🎬</span>
+                                <span className="text-[9px] hidden sm:inline">DIRECTOR</span>
+                            </button>
+                        </div>
+                    )}
+                    
                     {/* More formats toggle */}
                     <div className="tooltip tooltip-bottom" data-tip="More Formats • Notes, Transitions, Centered, etc.">
                         <button
                             onClick={() => setShowMoreFormats(!showMoreFormats)}
-                            className={`px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors ${
+                            className={`px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors ${
                                 showMoreFormats ? 'bg-primary text-primary-content' : 'bg-base-100 hover:bg-base-300'
                             }`}
                         >
                             <span className="text-base">⋯</span>
+                            <span className="text-[9px] hidden sm:inline">MORE</span>
                         </button>
                     </div>
                 </div>
@@ -989,7 +1042,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             
             {/* Mobile toolbar - 2 rows */}
             <div className="md:hidden flex flex-col gap-1.5 p-1.5">
-                {/* ROW 1: Undo, Redo, Wtab, Paren, Italic, Scenes, Full, View (8 buttons) */}
+                {/* ROW 1: Undo, Redo, Paren, Dialogue, Director, Scenes, Full, View (8 buttons) */}
                 <div className="grid grid-cols-8 gap-1">
                     {/* Undo */}
                     <div className="tooltip tooltip-bottom" data-tip="Undo • Ctrl+Z">
@@ -1015,31 +1068,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                     
-                    {/* Wryda Smart Tab */}
-                    <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
-                        <button
-                            onClick={handleWrydaTabButton}
-                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-sm font-bold text-[#DC143C]">W</span>
-                            <span className="text-[8px] leading-tight">TAB</span>
-                        </button>
-                        {/* Scene Type Dropdown - positioned at cursor */}
-                        {showSceneTypeDropdown && sceneTypeDropdownPosition && (
-                            <SceneTypeDropdown
-                                items={sceneTypeItems}
-                                position={sceneTypeDropdownPosition}
-                                onSelect={insertSceneTypeAndTab}
-                                onClose={() => {
-                                    console.log('[NAV-DIAG] EditorToolbar: SceneTypeDropdown onClose called (mobile)');
-                                    setShowSceneTypeDropdown(false);
-                                    setSceneTypeDropdownPosition(null);
-                                    savedCursorPositionRef.current = null;
-                                }}
-                            />
-                        )}
-                    </div>
-                    
                     {/* Parenthetical */}
                     <div className="tooltip tooltip-bottom" data-tip="Parenthetical/Wryly">
                         <button
@@ -1051,15 +1079,48 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                     
-                    {/* Italics */}
-                    {onToggleItalics && (
-                        <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I">
+                    {/* Dialogue Agent - Mobile */}
+                    {onLaunchDialogue && (
+                        <div className="tooltip tooltip-bottom" data-tip="Dialogue Agent">
                             <button
-                                onClick={onToggleItalics}
-                                className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                                onClick={onLaunchDialogue}
+                                className="w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-all duration-200"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%)',
+                                    border: '1px solid rgba(147, 51, 234, 0.3)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.boxShadow = '0 0 8px rgba(147, 51, 234, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
                             >
-                                <span className="text-sm italic font-semibold">I</span>
-                                <span className="text-[8px] leading-tight">Italic</span>
+                                <span className="text-sm">💬</span>
+                                <span className="text-[8px] leading-tight">Dialogue</span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Director Agent - Mobile */}
+                    {onLaunchDirector && (
+                        <div className="tooltip tooltip-bottom" data-tip="Director Agent">
+                            <button
+                                onClick={onLaunchDirector}
+                                className="w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-all duration-200"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.15) 100%)',
+                                    border: '1px solid rgba(249, 115, 22, 0.3)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.boxShadow = '0 0 8px rgba(249, 115, 22, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
+                            >
+                                <span className="text-sm">🎬</span>
+                                <span className="text-[8px] leading-tight">Director</span>
                             </button>
                         </div>
                     )}
@@ -1109,7 +1170,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     
                     {/* Preview Mode toggle - Mobile */}
                     <div className="tooltip tooltip-bottom" data-tip={effectivePreviewMode ? 'Exit Preview Mode' : 'Preview Mode'}>
-                        <button
+                            <button
                             onClick={handleTogglePreview}
                             className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors ${
                                 effectivePreviewMode
@@ -1128,13 +1189,25 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     <span className="text-[8px] leading-tight">View</span>
                                 </>
                             )}
-                        </button>
-                    </div>
+                            </button>
+                        </div>
                 </div>
                 
-                {/* ROW 2: -, +, Save, Rescan, Import, Download, More (7 buttons) - Hidden in fullscreen */}
+                {/* ROW 2: -, +, Italic, Save, Rescan, Import, Download, More (8 buttons) - Hidden in fullscreen */}
                 {!isEditorFullscreen && (
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-8 gap-1">
+                    {/* Italics */}
+                    {onToggleItalics && (
+                        <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I">
+                            <button
+                                onClick={onToggleItalics}
+                                className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-sm italic font-semibold">I</span>
+                                <span className="text-[8px] leading-tight">Italic</span>
+                            </button>
+                        </div>
+                    )}
                     {/* Decrease Font Size */}
                     <div className="tooltip tooltip-bottom" data-tip="Decrease Font Size">
                         <button
@@ -1160,7 +1233,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {/* Save */}
                     {onSave && canEditScript && (
                         <div className="tooltip tooltip-bottom" data-tip={isSaving ? 'Saving...' : 'Save to database'}>
-                            <button
+                        <button
                                 onClick={handleSave}
                                 disabled={isSaving}
                                 className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-all ${
@@ -1177,19 +1250,19 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                         <span className="text-[8px] leading-tight">Save</span>
                                     </>
                                 )}
-                            </button>
-                        </div>
+                        </button>
+                    </div>
                     )}
                     
                     {/* Rescan */}
                     {/* Feature 0187: Disable rescan button when editor is locked */}
                     {effectiveCanEditScript && (
                         <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another device' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations'}>
-                            <button
+                        <button
                                 onClick={handleRescan}
                                 disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
+                        >
                                 {isRescanning ? (
                                     <>
                                         <span className="text-sm loading loading-spinner loading-xs"></span>
@@ -1201,21 +1274,21 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                         <span className="text-[8px] leading-tight">Rescan</span>
                                     </>
                                 )}
-                            </button>
-                        </div>
+                        </button>
+                    </div>
                     )}
                     
                     {/* Import */}
                     {effectiveCanEditScript && (
                         <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
-                            <button
+                        <button
                                 onClick={handleOpenImport}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
-                            >
+                        >
                                 <span className="text-sm">📄</span>
                                 <span className="text-[8px] leading-tight">Import</span>
-                            </button>
-                        </div>
+                        </button>
+                    </div>
                     )}
                     
                     {/* Download (PDF) */}
@@ -1250,7 +1323,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             {/* Extended format menu */}
             {showMoreFormats && (
                 <div className="border-t border-white/10 p-2 bg-[#0A0A0A]">
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+                    <div className="grid grid-cols-6 gap-1">
                         <div className="tooltip tooltip-top" data-tip="CUT TO: • FADE IN: • etc.">
                             <button
                                 onClick={() => {
