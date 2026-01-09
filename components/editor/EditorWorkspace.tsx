@@ -926,20 +926,6 @@ Tip:
                 />
             )}
             
-            {/* Scene Type Dropdown */}
-            {showSceneTypeDropdown && sceneTypeDropdownPosition && (
-                <SceneTypeDropdown
-                    items={sceneTypeItems}
-                    position={sceneTypeDropdownPosition}
-                    onSelect={insertSceneTypeAndTab}
-                    onClose={() => {
-                        setShowSceneTypeDropdown(false);
-                        setSceneTypeDropdownPosition(null);
-                        savedCursorPositionRef.current = null;
-                    }}
-                />
-            )}
-            
             {/* Rewrite Modal - Only mount when open to prevent hooks from running */}
             {isRewriteModalOpen && (
                 <RewriteModal
