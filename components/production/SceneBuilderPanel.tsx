@@ -2919,6 +2919,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         // Props Integration
         propsToShots: Object.keys(propsToShots).length > 0 ? propsToShots : undefined, // Props-to-shots assignment: { propId: [shotSlot1, shotSlot2] }
         shotProps: Object.keys(shotProps).length > 0 ? shotProps : undefined, // Per-shot prop configurations: { shotSlot: { propId: { usageDescription, selectedImageId } } }
+        selectedVideoTypes: Object.keys(selectedVideoTypes).length > 0 ? selectedVideoTypes : undefined, // 🔥 NEW: Per-shot video model selection: { [shotSlot]: 'cinematic-visuals' | 'natural-motion' }
+        selectedVideoQualities: Object.keys(selectedVideoQualities).length > 0 ? selectedVideoQualities : undefined, // 🔥 NEW: Per-shot video quality selection: { [shotSlot]: 'hd' | '4k' }
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
