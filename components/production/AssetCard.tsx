@@ -29,6 +29,13 @@ export const AssetCard = React.memo<AssetCardProps>(({
   isSelected = false,
   className 
 }) => {
+  // 🔥 DEBUG: Log when component renders
+  console.log(`[AssetCard] Rendering card for ${asset.name}:`, {
+    id: asset.id,
+    imagesCount: asset.images?.length || 0,
+    angleReferencesCount: asset.angleReferences?.length || 0
+  });
+  
   // 🔥 OPTIMIZATION: Memoize image processing to avoid recalculation on every render
   const { mainImage, referenceImages, imageCount } = useMemo(() => {
     const allReferences: Array<{ id: string; imageUrl: string; label: string }> = [];
@@ -95,6 +102,13 @@ export const AssetCard = React.memo<AssetCardProps>(({
 
   const categoryMetadata = ASSET_CATEGORY_METADATA[asset.category];
   const metadata = `${imageCount} image${imageCount !== 1 ? 's' : ''}`;
+  
+  // 🔥 DEBUG: Log processed image data
+  console.log(`[AssetCard] Processed images for ${asset.name}:`, {
+    imageCount,
+    mainImage: mainImage ? 'has main image' : 'no main image',
+    referenceImagesCount: referenceImages.length
+  });
 
   return (
     <div
@@ -180,40 +194,64 @@ export const AssetCard = React.memo<AssetCardProps>(({
   );
 }, (prevProps, nextProps) => {
   // 🔥 CRITICAL: Custom comparison function for React.memo
-  // Only re-render if asset actually changed
-  if (prevProps.asset.id !== nextProps.asset.id) return false;
-  if (prevProps.asset.name !== nextProps.asset.name) return false;
-  if (prevProps.isSelected !== nextProps.isSelected) return false;
-  if (prevProps.onClick !== nextProps.onClick) return false;
+  // Return true = props are equal, don't re-render
+  // Return false = props are different, re-render
   
-  // Deep compare images array
-  const prevImages = prevProps.asset.images || [];
-  const nextImages = nextProps.asset.images || [];
-  if (prevImages.length !== nextImages.length) return false;
-  
-  // Compare each image by s3Key and url
-  for (let i = 0; i < prevImages.length; i++) {
-    const prevImg = prevImages[i];
-    const nextImg = nextImages[i];
-    if (prevImg.s3Key !== nextImg.s3Key || prevImg.url !== nextImg.url) {
-      return false;
-    }
+  // Always re-render if asset ID changes (different asset)
+  if (prevProps.asset.id !== nextProps.asset.id) {
+    console.log(`[AssetCard] Re-rendering: asset ID changed (${prevProps.asset.id} -> ${nextProps.asset.id})`);
+    return false;
   }
   
-  // Deep compare angleReferences
-  const prevAngleRefs = prevProps.asset.angleReferences || [];
-  const nextAngleRefs = nextProps.asset.angleReferences || [];
-  if (prevAngleRefs.length !== nextAngleRefs.length) return false;
+  // Always re-render if selection state changes
+  if (prevProps.isSelected !== nextProps.isSelected) {
+    console.log(`[AssetCard] Re-rendering: selection changed`);
+    return false;
+  }
   
-  for (let i = 0; i < prevAngleRefs.length; i++) {
-    const prevRef = prevAngleRefs[i];
-    const nextRef = nextAngleRefs[i];
-    if (prevRef.s3Key !== nextRef.s3Key || prevRef.imageUrl !== nextRef.imageUrl) {
-      return false;
-    }
+  // Compare images array - use JSON.stringify for deep comparison (simpler and more reliable)
+  const prevImagesStr = JSON.stringify((prevProps.asset.images || []).map(img => ({ 
+    s3Key: img.s3Key, 
+    url: img.url,
+    source: img.metadata?.source 
+  })));
+  const nextImagesStr = JSON.stringify((nextProps.asset.images || []).map(img => ({ 
+    s3Key: img.s3Key, 
+    url: img.url,
+    source: img.metadata?.source 
+  })));
+  
+  if (prevImagesStr !== nextImagesStr) {
+    console.log(`[AssetCard] Re-rendering: images changed for ${prevProps.asset.name}`, {
+      prevCount: prevProps.asset.images?.length || 0,
+      nextCount: nextProps.asset.images?.length || 0
+    });
+    return false;
+  }
+  
+  // Compare angleReferences
+  const prevAngleRefsStr = JSON.stringify((prevProps.asset.angleReferences || []).map(ref => ({ 
+    s3Key: ref.s3Key, 
+    imageUrl: ref.imageUrl 
+  })));
+  const nextAngleRefsStr = JSON.stringify((nextProps.asset.angleReferences || []).map(ref => ({ 
+    s3Key: ref.s3Key, 
+    imageUrl: ref.imageUrl 
+  })));
+  
+  if (prevAngleRefsStr !== nextAngleRefsStr) {
+    console.log(`[AssetCard] Re-rendering: angleReferences changed for ${prevProps.asset.name}`);
+    return false;
+  }
+  
+  // Compare name (in case it changed)
+  if (prevProps.asset.name !== nextProps.asset.name) {
+    console.log(`[AssetCard] Re-rendering: name changed`);
+    return false;
   }
   
   // If all checks pass, props are equal - don't re-render
+  console.log(`[AssetCard] Skipping re-render: no changes detected for ${prevProps.asset.name}`);
   return true;
 });
 
