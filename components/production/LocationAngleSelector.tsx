@@ -345,8 +345,23 @@ export function LocationAngleSelector({
   // 🔥 SIMPLIFIED: Just use the provided maps directly (same pattern as characters)
   // No need to fetch our own URLs - parent component already provides them via useLocationReferences hook
   // This matches the working character headshot pattern exactly
-  const thumbnailUrlsMap = locationThumbnailUrlsMap || new Map<string, string>();
-  const fullImageUrlsMap = locationFullImageUrlsMap || new Map<string, string>();
+  // 🔥 FIX: Create new Map reference when size changes so React detects updates
+  // This ensures images re-render when thumbnail URLs become available
+  const thumbnailUrlsMap = React.useMemo(() => {
+    if (!locationThumbnailUrlsMap || locationThumbnailUrlsMap.size === 0) {
+      return new Map<string, string>();
+    }
+    // Create new Map to ensure React detects the change
+    return new Map(locationThumbnailUrlsMap);
+  }, [locationThumbnailUrlsMap, locationThumbnailUrlsMap?.size ?? 0]);
+  
+  const fullImageUrlsMap = React.useMemo(() => {
+    if (!locationFullImageUrlsMap || locationFullImageUrlsMap.size === 0) {
+      return new Map<string, string>();
+    }
+    // Create new Map to ensure React detects the change
+    return new Map(locationFullImageUrlsMap);
+  }, [locationFullImageUrlsMap, locationFullImageUrlsMap?.size ?? 0]);
 
   const getAngleLabel = (angle: string): string => {
     const labels: Record<string, string> = {
@@ -586,6 +601,27 @@ export function LocationAngleSelector({
             title={`${photo.label}${photo.timeOfDay ? ` - ${photo.timeOfDay}` : ''}${photo.weather ? ` - ${photo.weather}` : ''}`}
           >
             {photo.imageUrl || photo.s3Key ? (() => {
+              // 🔥 DEBUG: Log URL resolution for first few photos to diagnose angle vs background difference
+              const isDebugPhoto = idx < 3;
+              if (isDebugPhoto) {
+                const hasThumbnailS3Key = photo.s3Key && locationThumbnailS3KeyMap?.has(photo.s3Key);
+                const thumbnailS3Key = hasThumbnailS3Key ? locationThumbnailS3KeyMap.get(photo.s3Key) : null;
+                const hasThumbnailUrl = thumbnailS3Key && thumbnailUrlsMap?.has(thumbnailS3Key);
+                const hasFullImageUrl = photo.s3Key && fullImageUrlsMap?.has(photo.s3Key);
+                console.log(`[LocationAngleSelector] ${photo.type} ${idx} (${photo.label}):`, {
+                  s3Key: photo.s3Key?.substring(0, 50),
+                  imageUrl: photo.imageUrl,
+                  hasThumbnailS3Key,
+                  thumbnailS3Key: thumbnailS3Key?.substring(0, 50),
+                  hasThumbnailUrl,
+                  thumbnailUrlsMapSize: thumbnailUrlsMap.size,
+                  locationThumbnailS3KeyMapSize: locationThumbnailS3KeyMap?.size || 0,
+                  locationThumbnailUrlsMapSize: locationThumbnailUrlsMap?.size || 0,
+                  hasFullImageUrl,
+                  fullImageUrlsMapSize: fullImageUrlsMap.size
+                });
+              }
+              
               // 🔥 FIX: Use standardized URL resolution utility with proper location URL maps
               // Use the provided maps if available (same as references section)
               const displayUrl = resolveImageUrl({
@@ -595,6 +631,13 @@ export function LocationAngleSelector({
                 fullImageUrlsMap: fullImageUrlsMap,
                 fallbackImageUrl: photo.imageUrl
               });
+              
+              if (isDebugPhoto) {
+                console.log(`[LocationAngleSelector] ${photo.type} ${idx} displayUrl:`, {
+                  displayUrl: displayUrl ? displayUrl.substring(0, 50) + '...' : 'NULL',
+                  resolved: !!displayUrl
+                });
+              }
               
               // 🔥 FIX: Only show loading if we have an s3Key but displayUrl is still null
               // This ensures we show loading only when we're actually waiting for URLs to load

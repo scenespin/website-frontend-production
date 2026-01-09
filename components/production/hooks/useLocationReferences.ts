@@ -97,11 +97,51 @@ export function useLocationReferences({
   // Build location thumbnailS3KeyMap from Media Library results
   const locationThumbnailS3KeyMap = useMemo(() => {
     const map = new Map<string, string>();
+    let anglesWithThumbnails = 0;
+    let backgroundsWithThumbnails = 0;
+    let anglesWithoutThumbnails = 0;
+    let backgroundsWithoutThumbnails = 0;
+    
     locationMediaFiles.forEach((file: any) => {
       if (file.s3Key && file.thumbnailS3Key) {
         map.set(file.s3Key, file.thumbnailS3Key);
+        // Count for debugging
+        const hasAngleMetadata = file.metadata?.angle !== undefined;
+        const isBackground = !hasAngleMetadata && (
+          isBackgroundFile(file) ||
+          file.metadata?.source === 'background-generation' ||
+          file.metadata?.backgroundType !== undefined
+        );
+        if (isBackground) {
+          backgroundsWithThumbnails++;
+        } else {
+          anglesWithThumbnails++;
+        }
+      } else if (file.s3Key) {
+        // Count files without thumbnails
+        const hasAngleMetadata = file.metadata?.angle !== undefined;
+        const isBackground = !hasAngleMetadata && (
+          isBackgroundFile(file) ||
+          file.metadata?.source === 'background-generation' ||
+          file.metadata?.backgroundType !== undefined
+        );
+        if (isBackground) {
+          backgroundsWithoutThumbnails++;
+        } else {
+          anglesWithoutThumbnails++;
+        }
       }
     });
+    
+    console.log('[useLocationReferences] ThumbnailS3KeyMap stats:', {
+      mapSize: map.size,
+      anglesWithThumbnails,
+      anglesWithoutThumbnails,
+      backgroundsWithThumbnails,
+      backgroundsWithoutThumbnails,
+      totalFiles: locationMediaFiles.length
+    });
+    
     return map;
   }, [locationMediaFiles]);
 
