@@ -75,9 +75,9 @@ export default function AgentFABGroup({
   // Hide FABs when drawer is open
   if (isDrawerOpen) return null;
   
-  // Size and positioning based on device
-  const buttonSize = isMobile ? 'h-14 w-14' : 'h-12 w-12';
-  const iconSize = isMobile ? 'w-6 h-6' : 'w-5 h-5';
+  // Size and positioning based on device - Smaller for less intrusion
+  const buttonSize = isMobile ? 'h-12 w-12' : 'h-10 w-10'; // Reduced from h-14/h-12 to h-12/h-10
+  const iconSize = isMobile ? 'w-5 h-5' : 'w-4 h-4'; // Reduced from w-6/w-5 to w-5/w-4
   
   // Calculate bottom offset: base offset + keyboard height + extra padding
   // When keyboard is open, position FABs above the keyboard
@@ -87,7 +87,7 @@ export default function AgentFABGroup({
     : baseBottomOffset;
   const bottomOffset = `${keyboardAwareBottom}px`;
   const rightOffset = isMobile ? '16px' : '24px';
-  const gap = isMobile ? 'gap-2' : 'gap-1.5';
+  const gap = isMobile ? 'gap-1.5' : 'gap-1'; // Reduced from gap-2/gap-1.5 to gap-1.5/gap-1
   
   return (
     <AnimatePresence>

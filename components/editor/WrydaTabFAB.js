@@ -17,7 +17,8 @@ import { motion } from 'framer-motion';
 export default function WrydaTabFAB({
   onWrydaTabClick,
   isDrawerOpen,
-  isMobile
+  isMobile,
+  hasDirector = false // Whether Director button is visible (affects stack height)
 }) {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   
@@ -69,21 +70,22 @@ export default function WrydaTabFAB({
   // Hide FAB when drawer is open or not on mobile
   if (isDrawerOpen || !isMobile) return null;
   
-  // Size and positioning based on device
-  const buttonSize = 'h-14 w-14'; // Mobile only, so always 56px
-  const iconSize = 'w-6 h-6';
+  // Size and positioning based on device - Smaller and more subtle
+  const buttonSize = 'h-12 w-12'; // Reduced from h-14 to h-12 (48px instead of 56px)
+  const iconSize = 'w-5 h-5'; // Reduced from w-6 to w-5
   
   // Calculate bottom offset to align with Screenwriter FAB (top button in the stack)
   // Screenwriter is the last button in the flex-col stack
   // Stack order (bottom to top): Rewrite, Dialogue, Director (conditional), Screenwriter
-  // Button height: 56px (h-14), Gap: 8px (gap-2)
-  // Screenwriter position = baseBottomOffset + (3 buttons * 56px) + (3 gaps * 8px) = 80 + 168 + 24 = 272px
-  // But Director might not be shown, so we'll use a more flexible calculation
-  // For now, align with Screenwriter assuming Director is shown (worst case)
+  // Updated sizes: Button height: 48px (h-12), Gap: 6px (gap-1.5)
   const baseBottomOffset = 80; // Same as AgentFABGroup
-  const buttonHeight = 56; // h-14 = 56px
-  const gapSize = 8; // gap-2 = 8px
-  const numberOfButtonsAboveScreenwriter = 3; // Rewrite, Dialogue, Director
+  const buttonHeight = 48; // h-12 = 48px (reduced from 56px)
+  const gapSize = 6; // gap-1.5 = 6px (reduced from 8px)
+  
+  // Calculate number of buttons above Screenwriter dynamically
+  // Always: Rewrite, Dialogue (2 buttons)
+  // Conditionally: Director (1 button if shown)
+  const numberOfButtonsAboveScreenwriter = hasDirector ? 3 : 2;
   const screenwriterBottomOffset = baseBottomOffset + (numberOfButtonsAboveScreenwriter * buttonHeight) + (numberOfButtonsAboveScreenwriter * gapSize);
   
   // When keyboard is open, position FAB above the keyboard (same logic as AgentFABGroup)
@@ -104,11 +106,12 @@ export default function WrydaTabFAB({
       style={{
         bottom: bottomOffset,
         left: leftOffset,
-        // Glassmorphic effect: gradient background with glass overlay
-        background: 'linear-gradient(135deg, rgba(220, 20, 60, 0.85) 0%, rgba(139, 0, 0, 0.85) 100%)',
+        // Glassmorphic effect: gradient background with glass overlay - More subtle opacity
+        background: 'linear-gradient(135deg, rgba(220, 20, 60, 0.75) 0%, rgba(139, 0, 0, 0.75) 100%)', // Reduced from 0.85 to 0.75
+        opacity: 0.9, // Additional opacity for subtlety
         // Add safe area inset for iOS devices
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        transition: 'bottom 0.3s ease-in-out'
+        transition: 'bottom 0.3s ease-in-out, opacity 0.2s ease-in-out'
       }}
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}

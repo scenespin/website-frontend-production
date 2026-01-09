@@ -910,6 +910,7 @@ Tip:
                 onWrydaTabClick={handleWrydaTabButton}
                 isDrawerOpen={isDrawerOpen}
                 isMobile={isMobile}
+                hasDirector={!!handleLaunchDirector} // Pass whether Director button is available
             />
             
             {/* Scene Type Dropdown */}
