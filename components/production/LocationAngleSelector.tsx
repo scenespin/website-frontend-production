@@ -342,6 +342,34 @@ export function LocationAngleSelector({
     return groupedPhotos[selectedGroup] || [];
   }, [groupedPhotos, selectedGroup]);
 
+  // 🔥 FIX: Memoize displayUrl calculation per photo so React detects when URLs become available
+  // This ensures images update automatically when thumbnailUrlsMap gets populated
+  // Use the actual map references (not memoized versions) so React detects when they change
+  const photoDisplayUrls = React.useMemo(() => {
+    const urls = new Map<string, string | null>();
+    allPhotos.forEach(photo => {
+      if (photo.s3Key || photo.imageUrl) {
+        const displayUrl = resolveImageUrl({
+          s3Key: photo.s3Key || null,
+          thumbnailS3KeyMap: locationThumbnailS3KeyMap,
+          thumbnailUrlsMap: locationThumbnailUrlsMap || new Map(), // Use actual map reference
+          fullImageUrlsMap: locationFullImageUrlsMap || new Map(), // Use actual map reference
+          fallbackImageUrl: photo.imageUrl
+        });
+        urls.set(photo.s3Key || photo.angleId || photo.backgroundId || '', displayUrl);
+      }
+    });
+    return urls;
+  }, [
+    allPhotos,
+    locationThumbnailS3KeyMap,
+    locationThumbnailS3KeyMap?.size ?? 0,
+    locationThumbnailUrlsMap, // Use actual map reference
+    locationThumbnailUrlsMap?.size ?? 0, // Include size to detect when map gets populated
+    locationFullImageUrlsMap, // Use actual map reference
+    locationFullImageUrlsMap?.size ?? 0 // Include size to detect when map gets populated
+  ]);
+
   // 🔥 SIMPLIFIED: Just use the provided maps directly (same pattern as characters)
   // No need to fetch our own URLs - parent component already provides them via useLocationReferences hook
   // This matches the working character headshot pattern exactly
@@ -601,6 +629,10 @@ export function LocationAngleSelector({
             title={`${photo.label}${photo.timeOfDay ? ` - ${photo.timeOfDay}` : ''}${photo.weather ? ` - ${photo.weather}` : ''}`}
           >
             {photo.imageUrl || photo.s3Key ? (() => {
+              // 🔥 FIX: Use memoized displayUrl so React detects when URLs become available
+              const photoKey = photo.s3Key || photo.angleId || photo.backgroundId || '';
+              const displayUrl = photoDisplayUrls.get(photoKey) || null;
+              
               // 🔥 DEBUG: Log URL resolution for first few photos to diagnose angle vs background difference
               const isDebugPhoto = idx < 3;
               if (isDebugPhoto) {
@@ -618,24 +650,9 @@ export function LocationAngleSelector({
                   locationThumbnailS3KeyMapSize: locationThumbnailS3KeyMap?.size || 0,
                   locationThumbnailUrlsMapSize: locationThumbnailUrlsMap?.size || 0,
                   hasFullImageUrl,
-                  fullImageUrlsMapSize: fullImageUrlsMap.size
-                });
-              }
-              
-              // 🔥 FIX: Use standardized URL resolution utility with proper location URL maps
-              // Use the provided maps if available (same as references section)
-              const displayUrl = resolveImageUrl({
-                s3Key: photo.s3Key || null,
-                thumbnailS3KeyMap: locationThumbnailS3KeyMap,
-                thumbnailUrlsMap: thumbnailUrlsMap,
-                fullImageUrlsMap: fullImageUrlsMap,
-                fallbackImageUrl: photo.imageUrl
-              });
-              
-              if (isDebugPhoto) {
-                console.log(`[LocationAngleSelector] ${photo.type} ${idx} displayUrl:`, {
+                  fullImageUrlsMapSize: fullImageUrlsMap.size,
                   displayUrl: displayUrl ? displayUrl.substring(0, 50) + '...' : 'NULL',
-                  resolved: !!displayUrl
+                  fromMemoizedMap: photoDisplayUrls.has(photoKey)
                 });
               }
               
@@ -644,11 +661,10 @@ export function LocationAngleSelector({
               // Once displayUrl resolves, it will automatically display (no need for loading state)
               const isLoading = photo.s3Key && !displayUrl;
               
-              // 🔥 SIMPLIFIED: Use displayUrl and map size in key so React re-renders when URL becomes available
-              // This ensures images update automatically when thumbnailUrlsMap gets populated
-              // Include a hash of the first part of displayUrl to force re-render when URL changes
+              // 🔥 FIX: Use displayUrl in key so React re-renders when URL becomes available
+              // Include map sizes to force re-render when maps get populated
               const displayUrlHash = displayUrl ? displayUrl.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '') : 'no-url';
-              const imageKey = `${photo.s3Key || photo.angleId || photo.backgroundId || idx}-${displayUrlHash}-${thumbnailUrlsMap.size}`;
+              const imageKey = `${photoKey}-${displayUrlHash}-${thumbnailUrlsMap.size}-${fullImageUrlsMap.size}`;
               
               // If we have a displayUrl, render the image (even if it was null before, React will re-render when it becomes available)
               if (displayUrl) {
