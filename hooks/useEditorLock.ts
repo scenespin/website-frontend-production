@@ -60,6 +60,9 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
   // Track previous user ID to detect logout/login
   const previousUserIdRef = useRef<string | null>(null);
   const previousSessionIdRef = useRef<string | null>(null);
+  const isProcessingRef = useRef(false);
+  const lastProcessedKeyRef = useRef<string | null>(null);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check lock status when screenplayId changes
   useEffect(() => {
@@ -69,6 +72,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       return;
     }
     
+    // Wait for all required values to be stable (not undefined/null)
     if (!screenplayId || !user?.id || !session?.id) {
       // No screenplay open or user not authenticated
       setLockStatus(null);
@@ -81,12 +85,30 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       return;
     }
 
-    // If user or session changed (logout/login), try to release any stale locks
+    // Create a stable key to track if we've already processed this combination
     const currentUserId = user.id;
     const currentSessionId = session.id;
+    const processKey = `${screenplayId}:${currentUserId}:${currentSessionId}`;
+    
+    // Prevent duplicate processing - if we're already processing the same key, skip
+    if (isProcessingRef.current && lastProcessedKeyRef.current === processKey) {
+      return;
+    }
+
+    // Clear any existing timeout
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
+    }
+
+    // Mark as processing
+    isProcessingRef.current = true;
+    lastProcessedKeyRef.current = processKey;
+
     const previousUserId = previousUserIdRef.current;
     const previousSessionId = previousSessionIdRef.current;
     
+    // If user or session changed (logout/login), try to release any stale locks
     if (previousUserId !== null && (previousUserId !== currentUserId || previousSessionId !== currentSessionId)) {
       // User changed or session changed - try to release stale lock for current screenplay
       if (screenplayId) {
@@ -108,7 +130,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
     previousScreenplayIdRef.current = screenplayId;
 
-    // Check lock status
+    // Check lock status with a small delay to debounce rapid changes
     const checkLock = async () => {
       try {
         const status = await getEditorLock(screenplayId);
@@ -117,10 +139,24 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
         console.error('[useEditorLock] Failed to check lock status:', error);
         // Graceful degradation: allow editing if lock check fails
         setLockStatus(null);
+      } finally {
+        // Mark as done processing after a short delay to prevent rapid re-processing
+        processingTimeoutRef.current = setTimeout(() => {
+          isProcessingRef.current = false;
+          processingTimeoutRef.current = null;
+        }, 100);
       }
     };
 
     checkLock();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+        processingTimeoutRef.current = null;
+      }
+    };
   }, [screenplayId, user?.id, session?.id]);
 
   // Acquire lock
