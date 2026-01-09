@@ -135,21 +135,9 @@ export default function AgentDrawer({ children }) {
                   e.stopPropagation();
                   openDrawer();
                 }}
-                className="w-full py-3 px-4 rounded-lg font-semibold text-sm relative overflow-hidden transition-all duration-200 active:scale-95"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(139, 0, 0, 0.9) 100%)',
-                  boxShadow: '0 4px 20px rgba(220, 20, 60, 0.4), 0 0 0 2px rgba(220, 20, 60, 0.2)',
-                  animation: 'pulse 2s ease-in-out infinite'
-                }}
+                className="text-xs font-medium text-base-content"
               >
-                {/* Glass overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/10 to-transparent pointer-events-none" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-                <span className="relative z-10 text-white flex items-center justify-center gap-2">
-                  <span className="text-lg">✨</span>
-                  <span>Story Advisor</span>
-                  <span className="text-xs opacity-80">(Best Agent)</span>
-                </span>
+                Story Advisor
               </button>
             )}
           </div>

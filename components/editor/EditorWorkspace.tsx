@@ -784,12 +784,7 @@ export default function EditorWorkspace() {
                     />
                     
                     {/* Editor */}
-                    <div 
-                        className="flex-1 overflow-hidden"
-                        style={{
-                            paddingBottom: isMobile && !isDrawerOpen ? '50px' : '0px'
-                        }}
-                    >
+                    <div className="flex-1 overflow-hidden">
                         <FountainEditor
                             className="h-full w-full"
                             readonly={isEditorLocked} // Feature 0187: Make editor read-only when locked
