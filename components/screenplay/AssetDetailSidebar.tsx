@@ -578,6 +578,11 @@ export default function AssetDetailSidebar({
       // Update via API
       await updateAsset(asset.id, updateData);
       
+      // Invalidate Production Hub cache so cards update
+      if (screenplayId) {
+        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+      }
+      
       // Sync from context after update (with delay for DynamoDB consistency)
       await new Promise(resolve => setTimeout(resolve, 500));
       // 🔥 FIX: Use ref to get latest asset after update
