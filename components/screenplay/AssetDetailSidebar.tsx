@@ -552,21 +552,22 @@ export default function AssetDetailSidebar({
           });
           
           // 🔥 FIX: Match Locations pattern exactly - aggressive cache invalidation
+          // BUT: Don't remove queries immediately - that wipes out the optimistic update!
+          // Instead, invalidate and refetch to sync with backend
           if (screenplayId) {
             // Invalidate Media Library cache so new image appears
             queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
             
-            // 🔥 MATCH LOCATIONS PATTERN: Aggressively clear and refetch asset bank query cache
-            // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
-            // First, remove the query from cache completely to force a fresh fetch
-            queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            // Then invalidate to mark as stale (in case query is recreated before refetch)
+            // 🔥 FIX: Don't remove queries - that wipes optimistic update!
+            // Just invalidate and refetch to sync with backend after DynamoDB eventual consistency
             queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            
             // Force refetch after delay to ensure fresh data from DynamoDB
+            // The optimistic update stays visible until this refetch completes
             setTimeout(() => {
               queryClient.refetchQueries({ 
                 queryKey: ['assets', screenplayId, 'production-hub'],
-                type: 'active' // Only refetch active queries
+                type: 'active' // Only refetch if Production Hub is open
               });
             }, 2000); // 2 second delay for DynamoDB eventual consistency
           }
