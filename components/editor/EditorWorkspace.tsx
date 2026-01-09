@@ -13,6 +13,7 @@ import EditorToolbar from './EditorToolbar';
 import EditorLockBanner from './EditorLockBanner';
 import SceneNavigator from './SceneNavigator';
 import AgentFABGroup from './AgentFABGroup';
+import WrydaTabFAB from './WrydaTabFAB';
 import { ExportPDFModal } from '../screenplay/ExportPDFModal';
 import { CollaborationPanel } from '../CollaborationPanel';
 import RewriteModal from '../modals/RewriteModal';
@@ -24,9 +25,11 @@ import VersionHistoryModal from './VersionHistoryModal';
 import { saveToGitHub } from '@/utils/github';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
+import { detectElementType } from '@/utils/fountain';
 import { toast } from 'sonner';
 import type { Scene } from '../../types/screenplay';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import SceneTypeDropdown from './SceneTypeDropdown';
 
 /**
  * EditorWorkspace - Complete screenplay editor with all features
@@ -35,7 +38,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
  */
 export default function EditorWorkspace() {
     const router = useRouter();
-    const { state, setContent, setCurrentLine, replaceSelection, insertText, isEditorFullscreen, setIsEditorFullscreen, isPreviewMode, setIsPreviewMode, undo, redo, isEditorLocked, isCollaboratorEditing, lockedBy } = useEditor();
+    const { state, setContent, setCurrentLine, replaceSelection, insertText, setCursorPosition, isEditorFullscreen, setIsEditorFullscreen, isPreviewMode, setIsPreviewMode, undo, redo, isEditorLocked, isCollaboratorEditing, lockedBy } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
@@ -73,6 +76,11 @@ export default function EditorWorkspace() {
     
     // Version History modal state
     const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false);
+    
+    // Wryda Tab scene type dropdown state
+    const [showSceneTypeDropdown, setShowSceneTypeDropdown] = useState(false);
+    const [sceneTypeDropdownPosition, setSceneTypeDropdownPosition] = useState<{ top: number; left: number; above?: boolean } | null>(null);
+    const savedCursorPositionRef = React.useRef<number | null>(null);
     
     // Get screenplayId and sceneId from URL params (for collaboration and scene navigation)
     // Feature 0130: Use useSearchParams() for reactive URL parameter reading
@@ -730,6 +738,48 @@ Tip:
                 isDrawerOpen={isDrawerOpen}
                 isMobile={isMobile}
             />
+            
+            {/* Wryda Tab FAB - Mobile only, bottom-left */}
+            <WrydaTabFAB
+                onWrydaTabClick={handleWrydaTabButton}
+                isDrawerOpen={isDrawerOpen}
+                isMobile={isMobile}
+            />
+            
+            {/* Scene Type Dropdown */}
+            {showSceneTypeDropdown && sceneTypeDropdownPosition && (
+                <SceneTypeDropdown
+                    items={sceneTypeItems}
+                    position={sceneTypeDropdownPosition}
+                    onSelect={insertSceneTypeAndTab}
+                    onClose={() => {
+                        setShowSceneTypeDropdown(false);
+                        setSceneTypeDropdownPosition(null);
+                        savedCursorPositionRef.current = null;
+                    }}
+                />
+            )}
+            
+            {/* Wryda Tab FAB - Mobile only, bottom-left */}
+            <WrydaTabFAB
+                onWrydaTabClick={handleWrydaTabButton}
+                isDrawerOpen={isDrawerOpen}
+                isMobile={isMobile}
+            />
+            
+            {/* Scene Type Dropdown */}
+            {showSceneTypeDropdown && sceneTypeDropdownPosition && (
+                <SceneTypeDropdown
+                    items={sceneTypeItems}
+                    position={sceneTypeDropdownPosition}
+                    onSelect={insertSceneTypeAndTab}
+                    onClose={() => {
+                        setShowSceneTypeDropdown(false);
+                        setSceneTypeDropdownPosition(null);
+                        savedCursorPositionRef.current = null;
+                    }}
+                />
+            )}
             
             {/* Rewrite Modal - Only mount when open to prevent hooks from running */}
             {isRewriteModalOpen && (
