@@ -141,19 +141,58 @@ export async function PUT(
       'Content-Type': 'application/json',
     };
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(body),
-    });
+    // 🔥 FIX: Add timeout and better error handling for 503 errors
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Backend error' }));
-      console.error('[Asset Bank] Backend error:', error);
-      return NextResponse.json(
-        error,
-        { status: response.status }
-      );
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Backend error');
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText || 'Backend error' };
+        }
+        console.error('[Asset Bank Proxy] ❌ PUT backend error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error,
+          assetId,
+          context
+        });
+        return NextResponse.json(
+          error,
+          { status: response.status }
+        );
+      }
+
+      const data = await response.json();
+      return NextResponse.json(data);
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('[Asset Bank Proxy] ❌ PUT request timeout:', { assetId, context });
+        return NextResponse.json(
+          { error: 'Request timeout - backend took too long to respond' },
+          { status: 504 } // Gateway Timeout
+        );
+      }
+      console.error('[Asset Bank Proxy] ❌ PUT fetch error:', {
+        error: fetchError.message,
+        assetId,
+        context
+      });
+      throw fetchError; // Re-throw to be caught by outer catch
     }
 
     const data = await response.json();
