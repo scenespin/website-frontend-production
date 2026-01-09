@@ -44,29 +44,42 @@ export function useAssets(screenplayId: string, context: 'creation' | 'productio
   return useQuery<Asset[], Error>({
     queryKey: ['assets', screenplayId, context],
     queryFn: async () => {
+      console.log('[useAssets] Fetching assets:', { screenplayId, context, enabled });
+      
       const token = await getAuthToken(getToken);
       if (!token) {
+        console.error('[useAssets] ❌ Not authenticated');
         throw new Error('Not authenticated');
       }
 
       const contextParam = context ? `&context=${context}` : '';
+      const url = `/api/asset-bank?screenplayId=${encodeURIComponent(screenplayId)}${contextParam}`;
+      console.log('[useAssets] Fetching from:', url);
+
       // Use relative URL to go through Next.js API proxy
-      const response = await fetch(`/api/asset-bank?screenplayId=${encodeURIComponent(screenplayId)}${contextParam}`, {
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      console.log('[useAssets] Response status:', response.status, response.ok);
+
       if (!response.ok) {
         if (response.status === 404) {
+          console.log('[useAssets] 404 - returning empty array');
           return [];
         }
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('[useAssets] ❌ Fetch failed:', response.status, response.statusText, errorText);
         throw new Error(`Failed to fetch assets: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       const assetsResponse = data.assets || data.data?.assets || [];
       const assets = Array.isArray(assetsResponse) ? assetsResponse : [];
+      
+      console.log('[useAssets] ✅ Fetched', assets.length, 'assets');
       
       // 🔥 DEBUG: Log angleReferences for troubleshooting
       assets.forEach((asset: any) => {

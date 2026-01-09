@@ -41,27 +41,39 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
   return useQuery<CharacterProfile[], Error>({
     queryKey: ['characters', screenplayId, context],
     queryFn: async () => {
+      console.log('[useCharacters] Fetching characters:', { screenplayId, context, enabled });
+      
       const token = await getAuthToken(getToken);
       if (!token) {
+        console.error('[useCharacters] ❌ Not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/character-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
+      const url = `/api/character-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`;
+      console.log('[useCharacters] Fetching from:', url);
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      console.log('[useCharacters] Response status:', response.status, response.ok);
+
       if (!response.ok) {
         if (response.status === 404) {
+          console.log('[useCharacters] 404 - returning empty array');
           return [];
         }
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('[useCharacters] ❌ Fetch failed:', response.status, response.statusText, errorText);
         throw new Error(`Failed to fetch characters: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       const characters = data.characters || data.data?.characters || [];
       
+      console.log('[useCharacters] ✅ Fetched', characters.length, 'characters');
       return characters;
     },
     enabled: enabled && !!screenplayId,
