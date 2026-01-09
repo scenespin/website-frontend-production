@@ -129,7 +129,7 @@ export default function SceneTypeDropdown({
                             key={item.id}
                             type="button"
                             className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-base-200 transition-colors ${
-                                isSelected ? 'bg-blue-500 text-white' : ''
+                                isSelected ? 'bg-primary text-primary-content' : ''
                             }`}
                             onClick={() => onSelect(item)}
                             onMouseEnter={() => setSelectedIndex(index)}
