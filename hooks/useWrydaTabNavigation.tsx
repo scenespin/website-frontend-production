@@ -289,7 +289,8 @@ export function useWrydaTabNavigation(
             const parts = parseSceneHeading(currentLineText);
             
             // Clean location - remove any trailing dashes or spaces that might cause double dashes
-            const cleanLocation = item.label.trim().replace(/[\s-]+$/, '');
+            // Convert to uppercase for screenplay format (all caps)
+            const cleanLocation = item.label.trim().replace(/[\s-]+$/, '').toUpperCase();
             
             // Update parts with new location and formatted type
             const updatedParts = updateSceneHeadingParts(parts, {
@@ -332,7 +333,7 @@ export function useWrydaTabNavigation(
             const updatedParts = updateSceneHeadingParts(parts, {
                 time: item.label,
                 type: formatSceneHeadingType(parts.type), // Ensure type is formatted
-                location: parts.location?.trim().replace(/[\s-]+$/, '') || '' // Clean location
+                location: parts.location?.trim().replace(/[\s-]+$/, '').toUpperCase() || '' // Clean location and convert to uppercase
             });
             
             // Build complete scene heading
@@ -413,8 +414,8 @@ export function useWrydaTabNavigation(
             
             if (locationText) {
                 // Location exists, move to time field
-                // Clean location and build scene heading
-                const cleanLocation = locationText.trim().replace(/[\s-]+$/, '');
+                // Clean location and build scene heading - convert to uppercase for screenplay format
+                const cleanLocation = locationText.trim().replace(/[\s-]+$/, '').toUpperCase();
                 const updatedParts = updateSceneHeadingParts(parts, {
                     type: formattedType,
                     location: cleanLocation
