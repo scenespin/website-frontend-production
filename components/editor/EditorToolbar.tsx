@@ -664,7 +664,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [showMoreFormats, setShowMoreFormats] = React.useState(false);
     
     return (
-        <div className={`bg-[#0A0A0A] border-t border-white/10 shadow-sm ${className}`}>
+        <div className={`bg-[#0A0A0A] border-t border-white/10 shadow-sm sticky top-0 z-40 md:static ${className}`}>
             {/* Desktop toolbar - flex wrap layout */}
             <div className="hidden md:flex flex-wrap items-center gap-2 p-2">
                 

@@ -82,7 +82,7 @@ export default function WriteLayout({ children }) {
   return (
     <div className="min-h-screen bg-base-100">
       {!isEditorFullscreen && <Navigation />}
-      <div className="pt-16 md:pt-0">
+      <div className={!isEditorFullscreen ? 'pt-16 md:pt-0' : ''}>
         {children}
       </div>
       <AgentDrawer>
