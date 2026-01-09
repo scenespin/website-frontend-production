@@ -572,7 +572,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             onClick={handleWrydaTabButton}
                             className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                         >
-                            <span className="text-base font-bold">AW</span>
+                            <span className="text-base font-bold text-[#DC143C]">W</span>
                             <span className="text-[9px] hidden sm:inline">TAB</span>
                         </button>
                         {/* Scene Type Dropdown - positioned at cursor */}
@@ -880,9 +880,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 </div>
             </div>
             
-            {/* Mobile toolbar - 2 rows of 8 buttons each */}
+            {/* Mobile toolbar - 2 rows */}
             <div className="md:hidden flex flex-col gap-1.5 p-1.5">
-                {/* ROW 1: Top Actions (8 buttons) */}
+                {/* ROW 1: Undo, Redo, Wtab, Paren, Italic, Scenes, Full, View (8 buttons) */}
                 <div className="grid grid-cols-8 gap-1">
                     {/* Undo */}
                     <div className="tooltip tooltip-bottom" data-tip="Undo • Ctrl+Z">
@@ -908,63 +908,50 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                     
-                    {/* Save */}
-                    {onSave && canEditScript && (
-                        <div className="tooltip tooltip-bottom" data-tip={isSaving ? 'Saving...' : 'Save to database'}>
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving}
-                                className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-all ${
-                                    isSaving
-                                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 cursor-wait'
-                                        : 'bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C]'
-                                }`}
-                            >
-                                {isSaving ? (
-                                    <span className="text-sm animate-spin">💾</span>
-                                ) : (
-                                    <>
-                                        <span className="text-sm">💾</span>
-                                        <span className="text-[8px] leading-tight">Save</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    )}
+                    {/* Wryda Smart Tab */}
+                    <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
+                        <button
+                            onClick={handleWrydaTabButton}
+                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-sm font-bold text-[#DC143C]">W</span>
+                            <span className="text-[8px] leading-tight">TAB</span>
+                        </button>
+                        {/* Scene Type Dropdown - positioned at cursor */}
+                        {showSceneTypeDropdown && sceneTypeDropdownPosition && (
+                            <SceneTypeDropdown
+                                items={sceneTypeItems}
+                                position={sceneTypeDropdownPosition}
+                                onSelect={insertSceneTypeAndTab}
+                                onClose={() => {
+                                    setShowSceneTypeDropdown(false);
+                                    setSceneTypeDropdownPosition(null);
+                                    savedCursorPositionRef.current = null;
+                                }}
+                            />
+                        )}
+                    </div>
                     
-                    {/* Rescan */}
-                    {/* Feature 0187: Disable rescan button when editor is locked */}
-                    {effectiveCanEditScript && (
-                        <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another device' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations'}>
-                            <button
-                                onClick={handleRescan}
-                                disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}
-                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                                {isRescanning ? (
-                                    <>
-                                        <span className="text-sm loading loading-spinner loading-xs"></span>
-                                        <span className="text-[8px] leading-tight">Scanning</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="text-sm">🔄</span>
-                                        <span className="text-[8px] leading-tight">Rescan</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    )}
+                    {/* Parenthetical */}
+                    <div className="tooltip tooltip-bottom" data-tip="Parenthetical/Wryly">
+                        <button
+                            onClick={() => formatCurrentLine('parenthetical')}
+                            className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-sm">( )</span>
+                            <span className="text-[8px] leading-tight">Paren</span>
+                        </button>
+                    </div>
                     
-                    {/* Import */}
-                    {effectiveCanEditScript && (
-                        <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
+                    {/* Italics */}
+                    {onToggleItalics && (
+                        <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I">
                             <button
-                                onClick={handleOpenImport}
-                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                                onClick={onToggleItalics}
+                                className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
                             >
-                                <span className="text-sm">📄</span>
-                                <span className="text-[8px] leading-tight">Import</span>
+                                <span className="text-sm italic font-semibold">I</span>
+                                <span className="text-[8px] leading-tight">Italic</span>
                             </button>
                         </div>
                     )}
@@ -1037,9 +1024,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     </div>
                 </div>
                 
-                {/* ROW 2: Formatting Controls (8 buttons) - Hidden in fullscreen */}
+                {/* ROW 2: -, +, Save, Rescan, Import, Download, More (7 buttons) - Hidden in fullscreen */}
                 {!isEditorFullscreen && (
-                <div className="grid grid-cols-8 gap-1">
+                <div className="grid grid-cols-7 gap-1">
                     {/* Decrease Font Size */}
                     <div className="tooltip tooltip-bottom" data-tip="Decrease Font Size">
                         <button
@@ -1062,55 +1049,68 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                     
-                    {/* Wryda Smart Tab */}
-                    <div className="tooltip tooltip-bottom" data-tip="Wryda Smart Tab • Tab or $ • Scene heading navigation">
-                        <button
-                            onClick={handleWrydaTabButton}
-                            className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-sm font-bold">AW</span>
-                            <span className="text-[8px] leading-tight">TAB</span>
-                        </button>
-                        {/* Scene Type Dropdown - positioned at cursor */}
-                        {showSceneTypeDropdown && sceneTypeDropdownPosition && (
-                            <SceneTypeDropdown
-                                items={sceneTypeItems}
-                                position={sceneTypeDropdownPosition}
-                                onSelect={insertSceneTypeAndTab}
-                                onClose={() => {
-                                    setShowSceneTypeDropdown(false);
-                                    setSceneTypeDropdownPosition(null);
-                                    savedCursorPositionRef.current = null;
-                                }}
-                            />
-                        )}
-                    </div>
-                    
-                    {/* Parenthetical */}
-                    <div className="tooltip tooltip-bottom" data-tip="Parenthetical/Wryly">
-                        <button
-                            onClick={() => formatCurrentLine('parenthetical')}
-                            className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
-                        >
-                            <span className="text-sm">( )</span>
-                            <span className="text-[8px] leading-tight">Paren</span>
-                        </button>
-                    </div>
-                    
-                    {/* Italics */}
-                    {onToggleItalics && (
-                        <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I">
+                    {/* Save */}
+                    {onSave && canEditScript && (
+                        <div className="tooltip tooltip-bottom" data-tip={isSaving ? 'Saving...' : 'Save to database'}>
                             <button
-                                onClick={onToggleItalics}
-                                className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-all ${
+                                    isSaving
+                                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 cursor-wait'
+                                        : 'bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C]'
+                                }`}
                             >
-                                <span className="text-sm italic font-semibold">I</span>
-                                <span className="text-[8px] leading-tight">Italic</span>
+                                {isSaving ? (
+                                    <span className="text-sm animate-spin">💾</span>
+                                ) : (
+                                    <>
+                                        <span className="text-sm">💾</span>
+                                        <span className="text-[8px] leading-tight">Save</span>
+                                    </>
+                                )}
                             </button>
                         </div>
                     )}
                     
-                    {/* Download (PDF) - Moved to bottom row */}
+                    {/* Rescan */}
+                    {/* Feature 0187: Disable rescan button when editor is locked */}
+                    {effectiveCanEditScript && (
+                        <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another device' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations'}>
+                            <button
+                                onClick={handleRescan}
+                                disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                {isRescanning ? (
+                                    <>
+                                        <span className="text-sm loading loading-spinner loading-xs"></span>
+                                        <span className="text-[8px] leading-tight">Scanning</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="text-sm">🔄</span>
+                                        <span className="text-[8px] leading-tight">Rescan</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Import */}
+                    {effectiveCanEditScript && (
+                        <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
+                            <button
+                                onClick={handleOpenImport}
+                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-sm">📄</span>
+                                <span className="text-[8px] leading-tight">Import</span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Download (PDF) */}
                     {onExportPDF && (
                         <div className="tooltip tooltip-bottom" data-tip="Export PDF • Industry-standard format">
                             <button
@@ -1135,21 +1135,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             <span className="text-[8px] leading-tight">More</span>
                         </button>
                     </div>
-                    
-                    {/* Find/Replace - Desktop only (hidden on mobile) */}
-                    {onOpenFindReplace && (
-                        <div className="tooltip tooltip-bottom hidden md:block" data-tip="Find & Replace • Ctrl+F">
-                            <button
-                                onClick={onOpenFindReplace}
-                                className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
-                            >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                <span className="text-[8px] leading-tight">Find</span>
-                            </button>
-                        </div>
-                    )}
                 </div>
                 )}
             </div>
