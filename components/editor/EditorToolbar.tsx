@@ -509,12 +509,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     >
                                         INT./EXT.
                                     </button>
-                                    <button
-                                        onClick={() => handleSceneTypeSelect('I./E.')}
-                                        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                    >
-                                        I./E.
-                                    </button>
                                 </div>
                             )}
                         </div>
@@ -1029,12 +1023,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                         className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
                                     >
                                         INT./EXT.
-                                    </button>
-                                    <button
-                                        onClick={() => handleSceneTypeSelect('I./E.')}
-                                        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors text-sm"
-                                    >
-                                        I./E.
                                     </button>
                                 </div>
                             )}
