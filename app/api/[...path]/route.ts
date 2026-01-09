@@ -158,6 +158,7 @@ async function forwardRequest(
       method,
       headers,
       body: body as any, // TypeScript workaround for FormData
+      cache: 'no-store', // 🔥 FIX: Prevent Next.js Data Cache from caching backend responses
     });
     
     // Get response data

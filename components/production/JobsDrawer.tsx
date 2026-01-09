@@ -556,10 +556,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
   };
 
+  // Use ref to track latest jobs state without causing re-renders
+  const jobsRef = useRef<WorkflowJob[]>([]);
+  useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+
   /**
    * Load jobs when drawer opens OR when screenplayId changes
    * 🔥 SCALABILITY: Only poll when there are running jobs (reduces API calls by 90%+)
    * Background polling only happens if user has active jobs
+   * 🔥 FIX: Removed jobs from dependencies to prevent infinite loop - use ref instead
    */
   useEffect(() => {
     if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
@@ -569,23 +576,27 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     
     // 🔥 SCALABILITY FIX: Only poll in background if there are running/queued jobs
     // This reduces API calls from 100% of users to ~5-10% (only those with active jobs)
-    const hasActiveJobs = jobs.some(j => j.status === 'running' || j.status === 'queued');
-    
-    if (!isOpen && hasActiveJobs) {
-      // Only poll when drawer is closed AND user has active jobs
-      // Poll every 15 seconds (less aggressive than when open) to catch completed jobs
-      const interval = setInterval(() => {
+    // Use ref to check for active jobs without causing re-renders
+    if (!isOpen) {
+      // Only poll when drawer is closed - check for active jobs inside the callback
+    const interval = setInterval(() => {
+      // Use ref to get current jobs state (always up-to-date)
+      const hasActiveJobs = jobsRef.current.some(j => j.status === 'running' || j.status === 'queued');
+      if (hasActiveJobs) {
+        console.log('[JobsDrawer] Background polling: active jobs detected, refreshing...');
         loadJobs(false); // Silent refresh when drawer is closed
-      }, 15000); // Poll every 15 seconds when closed (reduced from 10s for scalability)
+      }
+    }, 15000); // Poll every 15 seconds when closed (reduced from 10s for scalability)
       
       return () => clearInterval(interval);
     }
-  }, [screenplayId, isOpen, hasLoadedOnce, jobs]);
+  }, [screenplayId, isOpen, hasLoadedOnce]); // 🔥 FIX: Removed jobs from dependencies
 
   /**
    * Adaptive polling: poll frequently when jobs are running, less when idle
    * 🔥 SCALABILITY: Only poll when there are running jobs (reduces API calls significantly)
    * NOTE: This only runs when drawer is open - background polling is handled above
+   * 🔥 FIX: Removed visibleJobs from dependencies to prevent infinite loop - use ref instead
    */
   useEffect(() => {
     if (!isOpen) {
@@ -593,28 +604,33 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       return;
     }
     
-    const hasRunningJobs = visibleJobs.some(job => 
-      job.status === 'running' || job.status === 'queued'
-    );
-    
-    // 🔥 SCALABILITY: Don't poll at all if no running jobs
-    if (!hasRunningJobs) {
-      setIsPolling(false);
-      return;
-    }
-    
     setIsPolling(true);
-    const pollInterval = 5000; // Poll every 5 seconds when jobs are running (reduced from variable)
+    const pollInterval = 5000; // Poll every 5 seconds when drawer is open
     
     const interval = setInterval(() => {
-      loadJobs(false);
+      // Use ref to get current jobs state (always up-to-date, no stale closure)
+      const currentJobs = jobsRef.current;
+      const hasRunningJobs = currentJobs.some(job => 
+        job.status === 'running' || job.status === 'queued'
+      );
+      
+      // Only poll if there are running jobs
+      if (hasRunningJobs) {
+        console.log('[JobsDrawer] Active polling: running jobs detected, refreshing...', {
+          runningCount: currentJobs.filter(j => j.status === 'running' || j.status === 'queued').length
+        });
+        loadJobs(false);
+      } else {
+        console.log('[JobsDrawer] Active polling: no running jobs, stopping poll');
+        setIsPolling(false);
+      }
     }, pollInterval);
 
     return () => {
       clearInterval(interval);
       setIsPolling(false);
     };
-  }, [isOpen, visibleJobs]);
+  }, [isOpen, screenplayId]); // 🔥 FIX: Only depend on isOpen and screenplayId, not jobs
 
   /**
    * Watch for completed jobs and refresh related data

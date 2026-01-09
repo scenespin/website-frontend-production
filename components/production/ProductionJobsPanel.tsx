@@ -688,22 +688,47 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenplayId, statusFilter]); // loadJobs is stable, but we want to reload when filters change
 
+  // Use ref to track latest jobs state without causing re-renders
+  const jobsRef = useRef<WorkflowJob[]>([]);
+  useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+
   /**
    * Poll running jobs every 3 seconds (more aggressive for immediate updates)
-   * 🔥 FIX: Also poll when jobs array changes to catch newly created jobs
+   * 🔥 FIX: Removed jobs.length from dependencies to prevent infinite loop
+   * Use ref to check for running jobs inside the callback
    */
   useEffect(() => {
-    const hasRunningJobs = jobs.some(job => job.status === 'running' || job.status === 'queued');
+    // Only poll if we have a valid screenplayId
+    if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
+      setIsPolling(false);
+      return;
+    }
     
-    // Always poll if we have jobs (even completed ones) to catch newly created jobs
-    // This ensures new jobs appear immediately
     setIsPolling(true);
     const interval = setInterval(() => {
-      loadJobs(false); // Don't show loading spinner on polling
+      // Use ref to get current jobs state (always up-to-date, no stale closure)
+      const currentJobs = jobsRef.current;
+      const hasRunningJobs = currentJobs.some(job => job.status === 'running' || job.status === 'queued');
+      
+      // Only poll if there are running jobs, otherwise stop polling
+      if (hasRunningJobs) {
+        console.log('[ProductionJobsPanel] Polling: running jobs detected, refreshing...', {
+          runningCount: currentJobs.filter(j => j.status === 'running' || j.status === 'queued').length
+        });
+        loadJobs(false); // Don't show loading spinner on polling
+      } else {
+        console.log('[ProductionJobsPanel] Polling: no running jobs, stopping poll');
+        setIsPolling(false);
+      }
     }, 3000); // Poll every 3 seconds for faster updates
 
-    return () => clearInterval(interval);
-  }, [jobs.length]); // Re-run when jobs array length changes (new job added)
+    return () => {
+      clearInterval(interval);
+      setIsPolling(false);
+    };
+  }, [screenplayId]); // 🔥 FIX: Only depend on screenplayId, not jobs.length
   
   /**
    * Watch for completed pose generation jobs and refresh character data
