@@ -1,124 +1,53 @@
 'use client';
 
 /**
- * AssetCard - Dedicated, optimized card component for Assets
+ * AssetCard - Simple card component for Assets
  * 
- * Benefits over CinemaCard:
- * 1. Direct asset prop - reacts to asset changes automatically
- * 2. Memoized with proper comparison - only re-renders when asset actually changes
- * 3. Self-contained image processing - no parent-side transformation needed
- * 4. Better performance - useMemo for expensive operations
- * 5. Type-safe - directly uses Asset type
+ * Matches Locations pattern: receives processed image data from parent
+ * No memoization - parent processes images inline on every render
+ * This ensures fresh data and proper React Query cache updates
  */
 
-import React, { useMemo } from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Box } from 'lucide-react';
 import { Asset, ASSET_CATEGORY_METADATA } from '@/types/asset';
 
+export interface CinemaCardImage {
+  id: string;
+  imageUrl: string;
+  label: string;
+}
+
 export interface AssetCardProps {
   asset: Asset;
+  mainImage: CinemaCardImage | null;
+  referenceImages: CinemaCardImage[];
+  imageCount: number;
   onClick?: () => void;
   isSelected?: boolean;
   className?: string;
 }
 
-export const AssetCard = React.memo<AssetCardProps>(({ 
+export function AssetCard({ 
   asset, 
+  mainImage,
+  referenceImages,
+  imageCount,
   onClick, 
   isSelected = false,
   className 
-}) => {
-  // 🔥 DEBUG: Log when component renders
-  console.log(`[AssetCard] Rendering card for ${asset.name}:`, {
-    id: asset.id,
-    imagesCount: asset.images?.length || 0,
-    angleReferencesCount: asset.angleReferences?.length || 0,
-    images: asset.images?.map(img => ({
-      s3Key: img.s3Key?.substring(0, 80),
-      source: img.metadata?.source || 'unknown',
-      createdIn: img.metadata?.createdIn || 'unknown'
-    })),
-    angleReferences: asset.angleReferences?.map(ref => ({
-      s3Key: ref.s3Key?.substring(0, 80),
-      angle: ref.angle,
-      hasImageUrl: !!ref.imageUrl
-    })) || []
-  });
+}: AssetCardProps) {
+  // 🔥 FIX: Track image load errors to hide broken images (e.g., deleted images with stale URLs)
+  const [imageLoadError, setImageLoadError] = useState(false);
   
-  // 🔥 OPTIMIZATION: Memoize image processing to avoid recalculation on every render
-  const { mainImage, referenceImages, imageCount } = useMemo(() => {
-    const allReferences: Array<{ id: string; imageUrl: string; label: string }> = [];
-    
-    // Add base images (user-uploaded, from Creation section)
-    if (asset.images && asset.images.length > 0) {
-      asset.images.forEach((img, idx) => {
-        // Only add images that are NOT angle-generated
-        const isAngleGenerated = img.metadata?.source === 'angle-generation' || 
-                                  img.metadata?.source === 'image-generation';
-        if (!isAngleGenerated && img.url) {
-          allReferences.push({
-            id: img.s3Key || `img-${asset.id}-${idx}`,
-            imageUrl: img.url,
-            label: `${asset.name} - Image ${idx + 1}`
-          });
-        }
-      });
-    }
-    
-    // Add angle references (Production Hub images)
-    const angleRefs = asset.angleReferences || [];
-    const angleImages = asset.images?.filter((img: any) => 
-      img.metadata?.source === 'angle-generation' || 
-      img.metadata?.source === 'image-generation'
-    ) || [];
-    
-    // Prefer angleReferences if it exists, otherwise use angleImages from images array
-    if (angleRefs.length > 0) {
-      angleRefs.forEach((ref, idx) => {
-        if (ref && ref.imageUrl) {
-          allReferences.push({
-            id: ref.s3Key || `angle-${asset.id}-${idx}`,
-            imageUrl: ref.imageUrl,
-            label: `${asset.name} - ${ref.angle || 'angle'} view`
-          });
-        }
-      });
-    } else if (angleImages.length > 0) {
-      angleImages.forEach((img, idx) => {
-        if (img.url) {
-          allReferences.push({
-            id: img.s3Key || `angle-img-${asset.id}-${idx}`,
-            imageUrl: img.url,
-            label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
-          });
-        }
-      });
-    }
-    
-    return {
-      mainImage: allReferences.length > 0 ? allReferences[0] : null,
-      referenceImages: allReferences.slice(1),
-      imageCount: allReferences.length
-    };
-  }, [
-    asset.id,
-    asset.name,
-    // 🔥 CRITICAL: Deep comparison of images array - use JSON.stringify for now
-    // In production, consider using a more efficient deep comparison library
-    JSON.stringify(asset.images?.map(img => ({ url: img.url, s3Key: img.s3Key, source: img.metadata?.source }))),
-    JSON.stringify(asset.angleReferences?.map(ref => ({ s3Key: ref.s3Key, imageUrl: ref.imageUrl })))
-  ]);
+  // 🔥 FIX: Reset image error state when main image changes
+  React.useEffect(() => {
+    setImageLoadError(false);
+  }, [mainImage?.id]);
 
   const categoryMetadata = ASSET_CATEGORY_METADATA[asset.category];
   const metadata = `${imageCount} image${imageCount !== 1 ? 's' : ''}`;
-  
-  // 🔥 DEBUG: Log processed image data
-  console.log(`[AssetCard] Processed images for ${asset.name}:`, {
-    imageCount,
-    mainImage: mainImage ? 'has main image' : 'no main image',
-    referenceImagesCount: referenceImages.length
-  });
 
   return (
     <div
@@ -133,12 +62,18 @@ export const AssetCard = React.memo<AssetCardProps>(({
     >
       {/* Main Image Hero */}
       <div className="relative aspect-[4/3] bg-[#1F1F1F] overflow-hidden">
-        {mainImage?.imageUrl ? (
+        {mainImage?.imageUrl && !imageLoadError ? (
           <img
+            key={`${asset.id}-${mainImage.id}-${imageCount}`} // 🔥 FIX: Force remount when image count changes
             src={mainImage.imageUrl}
             alt={mainImage.label || asset.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
+            onError={() => {
+              // 🔥 FIX: Hide broken images (e.g., deleted images with stale presigned URLs)
+              console.log(`[AssetCard] Image failed to load for ${asset.name}, showing placeholder:`, mainImage.id);
+              setImageLoadError(true);
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -170,11 +105,16 @@ export const AssetCard = React.memo<AssetCardProps>(({
             <div className="flex flex-col gap-0.5 flex-shrink-0">
               {referenceImages.slice(0, 3).map(ref => (
                 <img
-                  key={ref.id}
+                  key={`${ref.id}-${imageCount}`} // 🔥 FIX: Force remount when image count changes
                   src={ref.imageUrl}
                   alt={ref.label || 'Reference'}
                   className="w-6 h-6 rounded object-cover border border-[#3F3F46] group-hover:border-[#DC143C]/50 transition-colors"
                   loading="lazy"
+                  onError={(e) => {
+                    // 🔥 FIX: Hide broken reference images
+                    const imgElement = e.target as HTMLImageElement;
+                    imgElement.style.display = 'none';
+                  }}
                 />
               ))}
               {referenceImages.length > 3 && (
@@ -202,64 +142,4 @@ export const AssetCard = React.memo<AssetCardProps>(({
       </div>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // 🔥 CRITICAL: Memo comparison that works with React Query cache updates
-  // When we do setQueryData with new object references, React Query creates new asset objects
-  // This comparison detects those changes reliably
-  
-  // Always re-render if asset object reference changed (React Query cache update or optimistic update)
-  // This is the most reliable indicator - when we update cache, we create new object references
-  if (prevProps.asset !== nextProps.asset) {
-    // Asset reference changed - this means React Query updated the cache
-    // Log for debugging but always re-render
-    const prevImagesCount = prevProps.asset.images?.length || 0;
-    const nextImagesCount = nextProps.asset.images?.length || 0;
-    const prevAngleRefsCount = prevProps.asset.angleReferences?.length || 0;
-    const nextAngleRefsCount = nextProps.asset.angleReferences?.length || 0;
-    
-    // Only log if counts actually changed (to reduce console noise)
-    if (prevImagesCount !== nextImagesCount || prevAngleRefsCount !== nextAngleRefsCount) {
-      console.log(`[AssetCard] Re-rendering: asset reference changed with different image counts for ${prevProps.asset.name}`, {
-        prevImages: prevImagesCount,
-        nextImages: nextImagesCount,
-        prevAngleRefs: prevAngleRefsCount,
-        nextAngleRefs: nextAngleRefsCount
-      });
-    }
-    return false; // Re-render - asset reference changed
-  }
-  
-  // Asset reference is the same - check if key fields changed (fallback for edge cases)
-  // This handles cases where React Query's structural sharing reuses the same reference
-  if (prevProps.asset.id !== nextProps.asset.id) {
-    return false; // Different asset
-  }
-  
-  if (prevProps.asset.name !== nextProps.asset.name) {
-    return false; // Name changed
-  }
-  
-  if (prevProps.isSelected !== nextProps.isSelected) {
-    return false; // Selection changed
-  }
-  
-  // Quick comparison of image counts (fast check)
-  const prevImagesCount = prevProps.asset.images?.length || 0;
-  const nextImagesCount = nextProps.asset.images?.length || 0;
-  const prevAngleRefsCount = prevProps.asset.angleReferences?.length || 0;
-  const nextAngleRefsCount = nextProps.asset.angleReferences?.length || 0;
-  
-  if (prevImagesCount !== nextImagesCount || prevAngleRefsCount !== nextAngleRefsCount) {
-    console.log(`[AssetCard] Re-rendering: image counts changed (same reference) for ${prevProps.asset.name}`);
-    return false; // Counts changed
-  }
-  
-  // If asset reference is the same AND all key fields are the same, skip re-render
-  // This is safe because:
-  // 1. Our optimistic updates create new object references (so reference check above catches them)
-  // 2. React Query cache updates create new object references (so reference check catches them)
-  // 3. This fallback only handles edge cases where structural sharing reuses references
-  return true; // Skip re-render - nothing changed
-});
-
-AssetCard.displayName = 'AssetCard';
+}
