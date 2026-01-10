@@ -15,11 +15,22 @@ import { useChatContext } from '@/contexts/ChatContext';
 export default function AgentDrawer({ children }) {
   const { isDrawerOpen, closeDrawer, openDrawer } = useDrawer();
   const { state } = useChatContext();
-  const [height, setHeight] = useState(350);
-  const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
+  const previousMessageCount = useRef(0);
+  const userResizedHeight = useRef(null); // Store user's manual resize preference
+  
+  // Calculate default height: 60% of screen
+  const getDefaultHeight = () => {
+    if (typeof window === 'undefined') return 400;
+    return Math.floor(window.innerHeight * 0.6);
+  };
+  
+  // Initialize height to 60% of screen
+  const [height, setHeight] = useState(() => getDefaultHeight());
+  const [isDragging, setIsDragging] = useState(false);
 
   // Detect mobile vs desktop
   useEffect(() => {
@@ -32,8 +43,74 @@ export default function AgentDrawer({ children }) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile: Calculate height (40px collapsed)
-  const mobileHeight = isDrawerOpen ? height : 40;
+  // Keyboard detection (mobile only)
+  useEffect(() => {
+    if (!isMobile || typeof window === 'undefined' || !isDrawerOpen) {
+      setKeyboardHeight(0);
+      return;
+    }
+    
+    const detectKeyboard = () => {
+      const windowHeight = window.innerHeight;
+      const visualHeight = window.visualViewport?.height || windowHeight;
+      
+      // Keyboard is likely open if visual viewport shrinks significantly
+      if (visualHeight < windowHeight - 150) {
+        const calculatedKeyboardHeight = windowHeight - visualHeight;
+        setKeyboardHeight(Math.min(calculatedKeyboardHeight, 400));
+      } else {
+        setKeyboardHeight(0);
+      }
+    };
+    
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', detectKeyboard);
+      window.visualViewport.addEventListener('scroll', detectKeyboard);
+      detectKeyboard();
+      
+      return () => {
+        window.visualViewport?.removeEventListener('resize', detectKeyboard);
+        window.visualViewport?.removeEventListener('scroll', detectKeyboard);
+      };
+    } else {
+      window.addEventListener('resize', detectKeyboard);
+      detectKeyboard();
+      return () => window.removeEventListener('resize', detectKeyboard);
+    }
+  }, [isMobile, isDrawerOpen]);
+
+  // Auto-expand on response: If height < 70%, expand to 70% when new message arrives
+  // Only auto-expand if user hasn't manually resized (respects user preference)
+  useEffect(() => {
+    if (!isMobile || !isDrawerOpen || typeof window === 'undefined') return;
+    
+    const chatMessages = state.messages.filter(m => m.mode === 'chat');
+    const currentMessageCount = chatMessages.length;
+    
+    // Check if a new assistant message arrived
+    if (currentMessageCount > previousMessageCount.current) {
+      const lastMessage = chatMessages[chatMessages.length - 1];
+      // Only auto-expand if it's an assistant message (response)
+      if (lastMessage && lastMessage.role === 'assistant') {
+        const targetHeight = Math.floor(window.innerHeight * 0.7);
+        // Only expand if:
+        // 1. Current height is less than 70%
+        // 2. User hasn't manually resized (or their resize is still < 70%)
+        if (height < targetHeight && (userResizedHeight.current === null || userResizedHeight.current < targetHeight)) {
+          setHeight(targetHeight);
+        }
+      }
+    }
+    
+    previousMessageCount.current = currentMessageCount;
+  }, [state.messages, isMobile, isDrawerOpen, height]);
+
+  // Mobile: Calculate height (40px collapsed, or adjusted for keyboard)
+  // When keyboard is open, ensure drawer doesn't get covered
+  const baseHeight = isDrawerOpen ? height : 40;
+  const mobileHeight = isDrawerOpen && keyboardHeight > 0
+    ? Math.min(baseHeight, window.innerHeight - keyboardHeight - 20) // 20px padding above keyboard
+    : baseHeight;
 
   // Desktop: Fixed width
   const desktopWidth = isDrawerOpen ? 480 : 0;
@@ -61,6 +138,8 @@ export default function AgentDrawer({ children }) {
       }
 
       setHeight(newHeight);
+      // Remember user's manual resize preference
+      userResizedHeight.current = newHeight;
     };
 
     const handleMouseMove = (e) => {
@@ -106,7 +185,10 @@ export default function AgentDrawer({ children }) {
         {/* Mobile Drawer - Slides up from bottom */}
         <div
           className="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
-          style={{ height: `${mobileHeight}px` }}
+          style={{ 
+            height: `${mobileHeight}px`,
+            transition: 'height 300ms ease-out' // Smooth height transitions
+          }}
         >
           {/* Drag Handle (Mobile) - Compact like debug panel */}
           <div
