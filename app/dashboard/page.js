@@ -934,11 +934,11 @@ export default function Dashboard() {
                   </div>
                 )}
                 {entityCounts.videos > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-                    <Video className="w-4 h-4 text-accent" />
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-cinema-red/10 rounded-lg border border-cinema-red/30 min-h-[44px] w-full md:w-auto md:flex-shrink-0">
+                    <span className="text-base">🎬</span>
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.videos}</span>
-                      <span className="text-xs text-base-content/60 leading-tight">videos</span>
+                      <span className="text-xs text-base-content/70 leading-tight">Total Videos</span>
                     </div>
                   </div>
                 )}
