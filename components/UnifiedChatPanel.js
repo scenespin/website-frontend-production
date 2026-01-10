@@ -1217,11 +1217,25 @@ function UnifiedChatPanelInner({
             setStreaming(false, '');
             
             // Check for specific error types and show user-friendly messages
-            let errorMessage = error.message || 'Failed to get AI response';
+            const errorString = error.message || error.toString() || '';
+            const errorResponse = error.response?.data || error.response || {};
+            const errorStatus = error.response?.status || error.status;
+            
+            const isInsufficientCredits = errorStatus === 402 || 
+                                          errorString.includes('INSUFFICIENT_CREDITS') ||
+                                          errorString.toLowerCase().includes('insufficient credits') ||
+                                          errorString.toLowerCase().includes('payment required');
+            
+            let errorMessage = errorResponse?.message || error.message || 'Failed to get AI response';
             let userMessage = '❌ Sorry, I encountered an error. Please try again.';
             let shouldFallbackModel = false;
             
-            if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
+            if (isInsufficientCredits) {
+              // Friendly, encouraging message with CTA
+              errorMessage = 'You\'re out of credits! Add more to continue chatting.';
+              userMessage = '💡 **You\'re all out of credits!**\n\nNo worries — you can easily add more credits to keep getting help with your screenplay. [Add Credits →](/dashboard)\n\nOnce you\'ve topped up, just send your message again and I\'ll be ready to help! ✨';
+              toast.error(errorMessage, { duration: 6000 });
+            } else if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
               errorMessage = 'The AI service is temporarily overloaded. Please try again in a moment.';
               userMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
             } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
@@ -1243,7 +1257,9 @@ function UnifiedChatPanelInner({
               }
             }
             
-            toast.error(errorMessage);
+            if (!isInsufficientCredits) {
+              toast.error(errorMessage);
+            }
             
             addMessage({
               role: 'assistant',
@@ -1258,11 +1274,25 @@ function UnifiedChatPanelInner({
         setStreaming(false, '');
         
         // Check for specific error types and show user-friendly messages
-        let errorMessage = error.response?.data?.message || error.message || 'Failed to get AI response';
+        const errorString = error.message || error.toString() || '';
+        const errorResponse = error.response?.data || error.response || {};
+        const errorStatus = error.response?.status || error.status;
+        
+        const isInsufficientCredits = errorStatus === 402 || 
+                                      errorString.includes('INSUFFICIENT_CREDITS') ||
+                                      errorString.toLowerCase().includes('insufficient credits') ||
+                                      errorString.toLowerCase().includes('payment required');
+        
+        let errorMessage = errorResponse?.message || error.message || 'Failed to get AI response';
         let userMessage = '❌ Sorry, I encountered an error. Please try again.';
         let shouldFallbackModel = false;
         
-        if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
+        if (isInsufficientCredits) {
+          // Friendly, encouraging message with CTA
+          errorMessage = 'You\'re out of credits! Add more to continue chatting.';
+          userMessage = '💡 **You\'re all out of credits!**\n\nNo worries — you can easily add more credits to keep getting help with your screenplay. [Add Credits →](/dashboard)\n\nOnce you\'ve topped up, just send your message again and I\'ll be ready to help! ✨';
+          toast.error(errorMessage, { duration: 6000 });
+        } else if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
           errorMessage = 'The AI service is temporarily overloaded. Please try again in a moment.';
           userMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
         } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
@@ -1284,7 +1314,9 @@ function UnifiedChatPanelInner({
           }
         }
         
-        toast.error(errorMessage);
+        if (!isInsufficientCredits) {
+          toast.error(errorMessage);
+        }
         
         addMessage({
           role: 'assistant',

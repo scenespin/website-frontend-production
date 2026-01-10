@@ -370,6 +370,13 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       
       // 🔥 PHASE 4: Better error handling for API overload/rate limits
       const errorString = error.message || error.toString() || '';
+      const errorResponse = error.response?.data || error.response || {};
+      const errorStatus = error.response?.status || error.status;
+      
+      const isInsufficientCredits = errorStatus === 402 || 
+                                    errorString.includes('INSUFFICIENT_CREDITS') ||
+                                    errorString.toLowerCase().includes('insufficient credits') ||
+                                    errorString.toLowerCase().includes('payment required');
       const isOverloaded = errorString.includes('overloaded') || 
                            errorString.includes('overloaded_error') ||
                            (error.error && error.error.type === 'overloaded_error');
@@ -380,10 +387,15 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
                                errorString.includes('max_completion_tokens') ||
                                errorString.includes('Unsupported parameter');
       
-      let errorMessage = error.response?.data?.message || error.message || 'Failed to get AI response';
+      let errorMessage = errorResponse?.message || error.message || 'Failed to get AI response';
       let userFriendlyMessage = '❌ Sorry, I encountered an error. Please try again.';
       
-      if (isOverloaded || isRateLimit) {
+      if (isInsufficientCredits) {
+        // Friendly, encouraging message with CTA
+        errorMessage = 'You\'re out of credits! Add more to continue chatting.';
+        userFriendlyMessage = '💡 **You\'re all out of credits!**\n\nNo worries — you can easily add more credits to keep getting help with your screenplay. [Add Credits →](/dashboard)\n\nOnce you\'ve topped up, just send your message again and I\'ll be ready to help! ✨';
+        toast.error(errorMessage, { duration: 6000 });
+      } else if (isOverloaded || isRateLimit) {
         errorMessage = 'AI service is temporarily overloaded. Please try again in a moment.';
         userFriendlyMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
         toast.error(errorMessage, { duration: 5000 });
