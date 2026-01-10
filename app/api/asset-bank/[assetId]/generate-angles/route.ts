@@ -46,18 +46,26 @@ export async function POST(
 
     // Get request body
     const body = await request.json();
-    const { packageId, quality, providerId, additionalPrompt } = body; // 🔥 FIX: Include providerId and additionalPrompt
+    const { packageId, selectedAngle, quality, providerId, additionalPrompt } = body; // 🔥 Feature 0190: Include selectedAngle
 
     if (!packageId) {
       return NextResponse.json(
-        { error: 'packageId is required (basic, standard, or premium)' },
+        { error: 'packageId is required (single, basic, standard, or premium)' },
         { status: 400 }
       );
     }
 
-    if (!['basic', 'standard', 'premium'].includes(packageId)) {
+    if (!['single', 'basic', 'standard', 'premium'].includes(packageId)) {
       return NextResponse.json(
-        { error: 'packageId must be one of: basic, standard, premium' },
+        { error: 'packageId must be one of: single, basic, standard, premium' },
+        { status: 400 }
+      );
+    }
+    
+    // 🔥 Feature 0190: Validate selectedAngle for single mode
+    if (packageId === 'single' && !selectedAngle) {
+      return NextResponse.json(
+        { error: 'selectedAngle is required when packageId is "single"' },
         { status: 400 }
       );
     }
@@ -73,6 +81,7 @@ export async function POST(
       url, 
       assetId,
       packageId,
+      selectedAngle, // 🔥 Feature 0190: Log selectedAngle
       quality,
       providerId // 🔥 FIX: Log providerId
     });
@@ -82,15 +91,22 @@ export async function POST(
       'Content-Type': 'application/json',
     };
 
+    // 🔥 Feature 0190: Build request body with selectedAngle for single mode
+    const requestBody: any = {
+      packageId,
+      quality: quality || 'standard',
+      providerId, // 🔥 FIX: Forward providerId to backend
+      additionalPrompt // 🔥 FIX: Forward additionalPrompt to backend
+    };
+    
+    if (packageId === 'single' && selectedAngle) {
+      requestBody.selectedAngle = selectedAngle;
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        packageId,
-        quality: quality || 'standard',
-        providerId, // 🔥 FIX: Forward providerId to backend
-        additionalPrompt // 🔥 FIX: Forward additionalPrompt to backend
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
