@@ -137,6 +137,9 @@ export default function LocationAnglePackageSelector({
   }, [creditsPerImage]);
   
   // 🔥 Feature 0190: Auto-select first angle when single package is selected
+  // 🔥 FIX: Normalize selectedAngle to always be a string (never undefined)
+  const normalizedSelectedAngle = selectedAngle || 'front';
+  
   // 🔥 FIX: Only auto-select if selectedAngle is explicitly undefined/null/empty
   useEffect(() => {
     if (selectedPackageId === 'single' && (!selectedAngle || selectedAngle === '') && onSelectedAngleChange) {
@@ -243,10 +246,11 @@ export default function LocationAnglePackageSelector({
               Select Angle:
             </label>
             <select
-              value={selectedAngle || 'front'}
+              key={`single-angle-select-${selectedPackageId}`}
+              value={normalizedSelectedAngle}
               onChange={(e) => {
                 const newAngle = e.target.value;
-                console.log('[LocationAnglePackageSelector] Compact dropdown changed:', { from: selectedAngle, to: newAngle });
+                console.log('[LocationAnglePackageSelector] Compact dropdown changed:', { from: normalizedSelectedAngle, to: newAngle });
                 if (onSelectedAngleChange) {
                   onSelectedAngleChange(newAngle);
                 }
@@ -398,10 +402,11 @@ export default function LocationAnglePackageSelector({
             Select Angle:
           </label>
           <select
-            value={selectedAngle || 'front'}
+            key={`single-angle-select-${selectedPackageId}`}
+            value={normalizedSelectedAngle}
             onChange={(e) => {
               const newAngle = e.target.value;
-              console.log('[LocationAnglePackageSelector] Dropdown changed:', { from: selectedAngle, to: newAngle });
+              console.log('[LocationAnglePackageSelector] Dropdown changed:', { from: normalizedSelectedAngle, to: newAngle });
               if (onSelectedAngleChange) {
                 onSelectedAngleChange(newAngle);
               }

@@ -133,6 +133,9 @@ export default function LocationBackgroundPackageSelector({
     })));
   }, [creditsPerImage]);
   
+  // 🔥 FIX: Normalize selectedBackgroundType to always be a string (never undefined)
+  const normalizedSelectedBackgroundType = selectedBackgroundType || 'window';
+  
   // 🔥 Feature 0190: Auto-select first background type when single package is selected
   useEffect(() => {
     if (selectedPackageId === 'single' && !selectedBackgroundType && onSelectedBackgroundTypeChange) {
@@ -244,7 +247,8 @@ export default function LocationBackgroundPackageSelector({
               Select Background Type:
             </label>
             <select
-              value={selectedBackgroundType || 'window'}
+              key={`single-background-select-${selectedPackageId}`}
+              value={normalizedSelectedBackgroundType}
               onChange={(e) => {
                 console.log('[LocationBackgroundPackageSelector] Compact dropdown changed:', e.target.value);
                 if (onSelectedBackgroundTypeChange) {
@@ -406,7 +410,8 @@ export default function LocationBackgroundPackageSelector({
             Select Background Type:
           </label>
           <select
-            value={selectedBackgroundType || 'window'}
+            key={`single-background-select-${selectedPackageId}`}
+            value={normalizedSelectedBackgroundType}
             onChange={(e) => {
               console.log('[LocationBackgroundPackageSelector] Dropdown changed:', e.target.value);
               if (onSelectedBackgroundTypeChange) {

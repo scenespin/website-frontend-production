@@ -225,6 +225,9 @@ export default function PosePackageSelector({
     })));
   }, [creditsPerImage]);
   
+  // 🔥 FIX: Normalize selectedPoseId to always be a string (never undefined)
+  const normalizedSelectedPoseId = selectedPoseId || 'front-facing';
+  
   // 🔥 Feature 0190: Auto-select first pose when single package is selected
   useEffect(() => {
     if (selectedPackageId === 'single' && !selectedPoseId && onSelectedPoseIdChange) {
@@ -330,7 +333,8 @@ export default function PosePackageSelector({
               Select Pose:
             </label>
             <select
-              value={selectedPoseId || 'front-facing'}
+              key={`single-pose-select-${selectedPackageId}`}
+              value={normalizedSelectedPoseId}
               onChange={(e) => {
                 console.log('[PosePackageSelector] Compact dropdown changed:', e.target.value);
                 if (onSelectedPoseIdChange) {
@@ -500,7 +504,8 @@ export default function PosePackageSelector({
             Select Pose:
           </label>
           <select
-            value={selectedPoseId || 'front-facing'}
+            key={`single-pose-select-${selectedPackageId}`}
+            value={normalizedSelectedPoseId}
             onChange={(e) => {
               console.log('[PosePackageSelector] Full layout dropdown changed:', e.target.value);
               if (onSelectedPoseIdChange) {

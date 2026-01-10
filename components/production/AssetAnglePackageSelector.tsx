@@ -141,6 +141,9 @@ export default function AssetAnglePackageSelector({
     })));
   }, [creditsPerImage]);
   
+  // 🔥 FIX: Normalize selectedAngle to always be a string (never undefined)
+  const normalizedSelectedAngle = selectedAngle || 'front';
+  
   // 🔥 Feature 0190: Auto-select first angle when single package is selected
   useEffect(() => {
     if (selectedPackageId === 'single' && !selectedAngle && onSelectedAngleChange) {
@@ -271,7 +274,8 @@ export default function AssetAnglePackageSelector({
             Select Angle:
           </label>
           <select
-            value={selectedAngle || 'front'}
+            key={`single-angle-select-${selectedPackageId}`}
+            value={normalizedSelectedAngle}
             onChange={(e) => {
               if (onSelectedAngleChange) {
                 onSelectedAngleChange(e.target.value);
