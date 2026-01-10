@@ -55,6 +55,12 @@ export function GenerateLocationTab({
   const [selectedAnglePackageId, setSelectedAnglePackageId] = useState<string>('standard');
   const [selectedBackgroundPackageId, setSelectedBackgroundPackageId] = useState<string>('standard');
   
+  // 🔥 Feature 0190: Single angle selection for angle packages
+  const [selectedAngle, setSelectedAngle] = useState<string>('front');
+  
+  // 🔥 Feature 0190: Single background type selection for background packages
+  const [selectedBackgroundType, setSelectedBackgroundType] = useState<string>('window');
+  
   // Step 2b: Background Source Selection (only for backgrounds)
   const [sourceType, setSourceType] = useState<'reference-images' | 'angle-variations'>('reference-images');
   const [selectedAngleId, setSelectedAngleId] = useState<string>(''); // For backward compatibility (single select)
@@ -792,6 +798,9 @@ export function GenerateLocationTab({
             selectedPackageId={selectedAnglePackageId}
             creditsPerImage={creditsPerImage}
             compact={true}
+            // 🔥 Feature 0190: Single angle selection
+            selectedAngle={selectedAngle}
+            onSelectedAngleChange={setSelectedAngle}
           />
         ) : (
           <LocationBackgroundPackageSelector
@@ -800,6 +809,9 @@ export function GenerateLocationTab({
             selectedPackageId={selectedBackgroundPackageId}
             creditsPerImage={creditsPerImage}
             compact={true}
+            // 🔥 Feature 0190: Single background type selection
+            selectedBackgroundType={selectedBackgroundType}
+            onSelectedBackgroundTypeChange={setSelectedBackgroundType}
           />
         )}
       </div>
