@@ -187,7 +187,7 @@ export default function CreditWidget() {
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-1.5 px-4 py-2 bg-base-200 hover:bg-base-300 rounded-lg border border-base-300/50 transition-colors text-sm font-medium text-base-content min-h-[40px]"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <span className="text-base">💰</span>
             <span>Top Up</span>
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
           </button>
