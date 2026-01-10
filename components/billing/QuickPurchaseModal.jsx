@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { X, Zap, Sparkles } from 'lucide-react';
+import { X, Zap, Calendar } from 'lucide-react';
 import { createCreditCheckoutSession, createCheckoutSession } from '@/lib/stripe-client';
 import config from '@/config';
 
@@ -166,7 +166,7 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              <Sparkles className="w-4 h-4" />
+              <Calendar className="w-4 h-4" />
               Monthly Plans
               <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">Best Value</span>
             </button>

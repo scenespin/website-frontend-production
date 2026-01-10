@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, Zap, Check, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Zap, Check, Clock } from 'lucide-react';
 import { createCreditCheckoutSession, createCheckoutSession } from '@/lib/stripe-client';
 import { api } from '@/lib/api';
 import config from '@/config';
@@ -241,7 +241,7 @@ export default function BuyCreditsPage() {
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              <Sparkles className="w-4 h-4" />
+              <Calendar className="w-4 h-4" />
               Monthly Subscriptions
               <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">Best Value</span>
             </button>

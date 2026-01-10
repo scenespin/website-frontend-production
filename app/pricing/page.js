@@ -142,12 +142,20 @@ export default function PricingPage() {
                     <span>All features unlocked</span>
                   </li>
                 </ul>
-                <Link
-                  href="/sign-up?plan=pro"
-                  className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
-                >
-                  Get Pro
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/sign-up?plan=pro"
+                    className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
+                  >
+                    Get Pro
+                  </Link>
+                  <Link
+                    href="/pricing/pro"
+                    className="block w-full text-center px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Learn more →
+                  </Link>
+                </div>
               </div>
 
               <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6 md:p-8 relative">
@@ -178,12 +186,20 @@ export default function PricingPage() {
                     <span>All features unlocked</span>
                   </li>
                 </ul>
-                <Link
-                  href="/sign-up?plan=ultra"
-                  className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
-                >
-                  Get Ultra
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/sign-up?plan=ultra"
+                    className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
+                  >
+                    Get Ultra
+                  </Link>
+                  <Link
+                    href="/pricing/ultra"
+                    className="block w-full text-center px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Learn more →
+                  </Link>
+                </div>
               </div>
 
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8">
@@ -211,12 +227,20 @@ export default function PricingPage() {
                     <span>All features unlocked</span>
                   </li>
                 </ul>
-                <Link
-                  href="/sign-up?plan=studio"
-                  className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
-                >
-                  Get Studio
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/sign-up?plan=studio"
+                    className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
+                  >
+                    Get Studio
+                  </Link>
+                  <Link
+                    href="/pricing/studio"
+                    className="block w-full text-center px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Learn more →
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -347,7 +371,7 @@ export default function PricingPage() {
                 How Credits Work
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                1 credit = $0.01 USD. Pay only for AI generation. Everything else is free.
+                Pay only for AI generation. Everything else is free. Volume discounts available on subscriptions.
               </p>
             </div>
 
@@ -368,7 +392,7 @@ export default function PricingPage() {
                   <li>
                     <div className="font-semibold text-white mb-1">Dialogue Scenes</div>
                     <div className="text-gray-400">~150-400 credits per scene</div>
-                    <div className="text-xs text-gray-500 mt-1">Includes lip sync & audio</div>
+                    <div className="text-xs text-gray-500 mt-1">Includes lip sync audio</div>
                   </li>
                 </ul>
               </div>
@@ -382,7 +406,7 @@ export default function PricingPage() {
                     <div className="text-xs text-gray-500 mt-1">3-10 angles per package</div>
                   </li>
                   <li>
-                    <div className="font-semibold text-white mb-1">Location Angle Packages</div>
+                    <div className="font-semibold text-white mb-1">Location Background Packages</div>
                     <div className="text-gray-400">60-200 credits</div>
                     <div className="text-xs text-gray-500 mt-1">3-10 angles per package</div>
                   </li>
