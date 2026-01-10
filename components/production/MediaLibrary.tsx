@@ -192,9 +192,9 @@ interface MediaLibraryProps {
   className?: string;
 }
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
+  // ============================================================================
+  // MAIN COMPONENT
+  // ============================================================================
 
 export default function MediaLibrary({
   projectId,
@@ -242,6 +242,17 @@ export default function MediaLibrary({
   // Sync state
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
+  
+  // Mobile long-press menu state
+  const [longPressMenuFile, setLongPressMenuFile] = useState<MediaFile | null>(null);
+  const [longPressMenuPosition, setLongPressMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Long-press refs for each file (stored by file ID)
+  const longPressRefs = useRef<Map<string, {
+    timeout: NodeJS.Timeout | null;
+    startPos: { x: number; y: number } | null;
+    isLongPress: boolean;
+  }>>(new Map());
 
   // ============================================================================
   // REACT QUERY HOOKS (Phase 2B: React Query Integration)
@@ -1351,6 +1362,23 @@ export default function MediaLibrary({
     }
   };
 
+  // Long-press handler for mobile
+  const handleLongPress = (file: MediaFile, event: React.TouchEvent) => {
+    // Prevent default context menu
+    event.preventDefault();
+    
+    // Get touch position for menu placement
+    const touch = event.touches[0];
+    setLongPressMenuPosition({ x: touch.clientX, y: touch.clientY });
+    setLongPressMenuFile(file);
+  };
+
+  // Close long-press menu
+  const closeLongPressMenu = () => {
+    setLongPressMenuFile(null);
+    setLongPressMenuPosition(null);
+  };
+
   /**
    * 🔥 NEW: Sync single file to cloud storage
    */
@@ -1729,16 +1757,16 @@ export default function MediaLibrary({
   return (
     <div className={`bg-[#0A0A0A] rounded-lg shadow-lg flex flex-col h-full ${className}`}>
       {/* Header */}
-      <div className="p-4 md:p-5 border-b border-[#3F3F46] flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg md:text-xl font-bold text-[#FFFFFF]">
+      <div className="p-3 md:p-4 lg:p-5 border-b border-[#3F3F46] flex-shrink-0">
+        <div className="flex items-center justify-between mb-3 md:mb-4">
+          <h2 className="text-base md:text-lg lg:text-xl font-bold text-[#FFFFFF]">
             Archive
           </h2>
           {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" terminology */}
 
-          {/* Storage Quota */}
+          {/* Storage Quota - Hidden on mobile, shown on tablet+ */}
           {storageQuota && (
-            <div className="text-sm text-[#808080]">
+            <div className="hidden sm:block text-sm text-[#808080]">
               <span className="font-medium">{formatFileSize((storageQuota as { used: number; total: number }).used)}</span>
               {' / '}
               <span>{formatFileSize((storageQuota as { used: number; total: number }).total)}</span>
@@ -1746,23 +1774,25 @@ export default function MediaLibrary({
           )}
         </div>
 
-        {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Upload Button */}
+        {/* Actions Bar - Simplified on mobile */}
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
+          {/* Upload Button - Full width on mobile */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base"
           >
             {isUploading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Uploading {uploadProgress}%
+                <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                <span className="hidden sm:inline">Uploading {uploadProgress}%</span>
+                <span className="sm:hidden">{uploadProgress}%</span>
               </>
             ) : (
               <>
-                <Upload className="w-5 h-5" />
-                Upload Files
+                <Upload className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Upload Files</span>
+                <span className="sm:hidden">Upload</span>
               </>
             )}
           </button>
@@ -1781,8 +1811,8 @@ export default function MediaLibrary({
             className="hidden"
           />
 
-          {/* Cloud Storage Section - Feature 0144: Improved UI */}
-          <div className="flex gap-2">
+          {/* Cloud Storage Section - Hidden on mobile, shown on tablet+ */}
+          <div className="hidden sm:flex gap-2">
             {/* Google Drive Connection */}
             <button
               onClick={() => handleConnectDrive('google-drive')}
@@ -1900,20 +1930,49 @@ export default function MediaLibrary({
           </div>
         )}
 
-        {/* Search & Filter */}
-        <div className="flex gap-3 mt-4">
+        {/* Search & Filter - Simplified on mobile */}
+        <div className="flex gap-2 md:gap-3 mt-3 md:mt-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#808080]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-[#808080]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search files..."
-              className="w-full pl-10 pr-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+              className="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 text-sm md:text-base border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
             />
           </div>
 
-          {/* Select Multiple Button */}
+          {/* Filter Button - Icon only on mobile */}
+          <button
+            onClick={() => {
+              // Toggle filter dropdown or show filter modal on mobile
+              const filterSelect = document.getElementById('filter-select-mobile');
+              if (filterSelect) {
+                (filterSelect as HTMLSelectElement).focus();
+                (filterSelect as HTMLSelectElement).click();
+              }
+            }}
+            className="md:hidden p-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C] transition-colors"
+            title="Filter files"
+          >
+            <Filter className="w-5 h-5" />
+          </button>
+
+          {/* Filter Select - Hidden on mobile, shown on tablet+ */}
+          <select
+            id="filter-select-mobile"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="hidden md:block select select-bordered w-[140px] bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+          >
+            <option value="all" className="bg-[#1A1A1A] text-[#FFFFFF]">All Types</option>
+            <option value="video" className="bg-[#1A1A1A] text-[#FFFFFF]">Videos</option>
+            <option value="image" className="bg-[#1A1A1A] text-[#FFFFFF]">Images</option>
+            <option value="audio" className="bg-[#1A1A1A] text-[#FFFFFF]">Audio</option>
+          </select>
+
+          {/* Select Multiple Button - Hidden on mobile, shown on tablet+ */}
           <button
             onClick={() => {
               setSelectionMode(!selectionMode);
@@ -1922,7 +1981,7 @@ export default function MediaLibrary({
                 setSelectedFolders(new Set()); // Clear folder selection too
               }
             }}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               selectionMode
                 ? 'bg-[#DC143C] text-white'
                 : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF] border border-[#3F3F46]'
@@ -1932,19 +1991,8 @@ export default function MediaLibrary({
             {selectionMode ? 'Selection Mode' : 'Select Multiple'}
           </button>
 
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="select select-bordered w-[140px] bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
-          >
-            <option value="all" className="bg-[#1A1A1A] text-[#FFFFFF]">All Types</option>
-            <option value="video" className="bg-[#1A1A1A] text-[#FFFFFF]">Videos</option>
-            <option value="image" className="bg-[#1A1A1A] text-[#FFFFFF]">Images</option>
-            <option value="audio" className="bg-[#1A1A1A] text-[#FFFFFF]">Audio</option>
-          </select>
-
-          {/* View Mode Toggle */}
-          <div className="flex gap-1 bg-[#141414] p-1 rounded-lg">
+          {/* View Mode Toggle - Hidden on mobile (always grid), shown on tablet+ */}
+          <div className="hidden md:flex gap-1 bg-[#141414] p-1 rounded-lg">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded ${
@@ -2007,8 +2055,8 @@ export default function MediaLibrary({
           
           {/* File Grid Content */}
           <div className="flex-1 overflow-y-auto">
-            {/* Files Grid/List */}
-            <div className="p-6">
+            {/* Files Grid/List - Reduced padding on mobile */}
+            <div className="p-3 md:p-4 lg:p-6">
               {displayLoading || folderTreeLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
@@ -2029,7 +2077,7 @@ export default function MediaLibrary({
                 <div
                   className={
                     viewMode === 'grid'
-                      ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'
+                      ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4'
                       : 'space-y-2'
                   }
                 >
@@ -2063,7 +2111,7 @@ export default function MediaLibrary({
                             : selectedFolderId === folder.id
                               ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
                               : 'border-[#3F3F46] hover:border-[#8B5CF6]/50 hover:bg-[#1F1F1F]'
-                        } ${viewMode === 'grid' ? 'p-3' : 'p-4 flex items-center gap-4'}`}
+                        } ${viewMode === 'grid' ? 'p-2 md:p-3' : 'p-4 flex items-center gap-4'}`}
                       >
                         {/* Phase 2: Checkbox overlay in selection mode */}
                         {selectionMode && (
@@ -2093,10 +2141,10 @@ export default function MediaLibrary({
                             </button>
                           </div>
                         )}
-                        {/* Folder Icon */}
-                        <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
-                          <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center`}>
-                            <Folder className="w-12 h-12 text-[#8B5CF6]" />
+                        {/* Folder Icon - Larger on mobile */}
+                        <div className={`${viewMode === 'grid' ? 'mb-2 md:mb-3' : ''} flex-shrink-0 relative`}>
+                          <div className={`${viewMode === 'grid' ? 'w-full aspect-square md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center`}>
+                            <Folder className="w-12 h-12 md:w-12 md:h-12 text-[#8B5CF6]" />
                           </div>
                           {/* Cloud storage indicator */}
                           {storageType === 'cloud' && (
@@ -2106,13 +2154,13 @@ export default function MediaLibrary({
                           )}
                         </div>
                         
-                        {/* Folder Name */}
-                        <div className={`${viewMode === 'grid' ? 'text-center' : 'flex-1'}`}>
-                          <p className="text-sm font-medium text-white truncate">
+                        {/* Folder Name - Simplified on mobile */}
+                        <div className={`${viewMode === 'grid' ? 'text-center mt-2' : 'flex-1'}`}>
+                          <p className="text-sm md:text-base font-medium text-white truncate">
                             {folder.name}
                           </p>
                           {folder.fileCount !== undefined && (
-                            <p className="text-xs text-[#6B7280] mt-1">
+                            <p className="hidden md:block text-xs text-[#6B7280] mt-1">
                               {folder.fileCount} {folder.fileCount === 1 ? 'file' : 'files'}
                             </p>
                           )}
@@ -2174,10 +2222,66 @@ export default function MediaLibrary({
                   })}
                   
                   {/* Files */}
-                  {filteredFiles.map((file) => (
+                  {filteredFiles.map((file) => {
+                    // Get or create long-press state for this file
+                    if (!longPressRefs.current.has(file.id)) {
+                      longPressRefs.current.set(file.id, {
+                        timeout: null,
+                        startPos: null,
+                        isLongPress: false,
+                      });
+                    }
+                    const longPressState = longPressRefs.current.get(file.id)!;
+
+                    const handleTouchStart = (e: React.TouchEvent) => {
+                      longPressState.isLongPress = false;
+                      const touch = e.touches[0];
+                      longPressState.startPos = { x: touch.clientX, y: touch.clientY };
+                      
+                      longPressState.timeout = setTimeout(() => {
+                        longPressState.isLongPress = true;
+                        handleLongPress(file, e);
+                      }, 500);
+                    };
+
+                    const handleTouchEnd = (e: React.TouchEvent) => {
+                      if (longPressState.timeout) {
+                        clearTimeout(longPressState.timeout);
+                        longPressState.timeout = null;
+                      }
+
+                      // Check if user moved too much (scrolling) or if it was a long press
+                      if (longPressState.startPos && !longPressState.isLongPress) {
+                        const touch = e.changedTouches[0];
+                        const deltaX = Math.abs(touch.clientX - longPressState.startPos.x);
+                        const deltaY = Math.abs(touch.clientY - longPressState.startPos.y);
+                        const movedTooMuch = deltaX > 10 || deltaY > 10;
+
+                        if (!movedTooMuch) {
+                          // Regular tap - handle click
+                          handleFileClick(file);
+                        }
+                      }
+
+                      longPressState.startPos = null;
+                    };
+
+                    const handleTouchCancel = () => {
+                      if (longPressState.timeout) {
+                        clearTimeout(longPressState.timeout);
+                        longPressState.timeout = null;
+                      }
+                      longPressState.startPos = null;
+                    };
+
+                    return (
                     <div
                       key={file.id}
-                      // TEMPORARILY DISABLED: Testing if parent onClick is interfering with dropdown menu items
+                      // Touch handlers for mobile long-press
+                      onTouchStart={handleTouchStart}
+                      onTouchEnd={handleTouchEnd}
+                      onTouchCancel={handleTouchCancel}
+                      // Click handler for desktop
                       onClick={(e) => {
                         // Don't trigger file click if clicking on dropdown menu area or menu items
                         const target = e.target as HTMLElement;
@@ -2203,7 +2307,7 @@ export default function MediaLibrary({
                           : selectedFiles.has(file.id)
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      } ${viewMode === 'grid' ? 'p-3' : 'p-4 flex items-center gap-4'}`}
+                      } ${viewMode === 'grid' ? 'p-2 md:p-3' : 'p-4 flex items-center gap-4'}`}
                     >
                       {/* Phase 2: Checkbox overlay in selection mode */}
                       {selectionMode && (
@@ -2240,8 +2344,8 @@ export default function MediaLibrary({
                         </div>
                       )}
 
-                      {/* Thumbnail */}
-                      <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
+                      {/* Thumbnail - Larger on mobile */}
+                      <div className={`${viewMode === 'grid' ? 'mb-2 md:mb-3' : ''} flex-shrink-0 relative`}>
                         {(() => {
                           // 🔥 OPTIMIZATION: Use thumbnails in grid view, full images in list view
                           const useThumbnail = viewMode === 'grid';
@@ -2252,7 +2356,7 @@ export default function MediaLibrary({
                             <img
                               src={fileUrl}
                               alt={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                              className={`${viewMode === 'grid' ? 'w-full aspect-square object-cover md:h-32' : 'w-16 h-16'} rounded bg-[#1F1F1F]`}
                               onLoad={(e) => {
                                 // 🔥 FIX: Hide fallback icon when image loads successfully
                                 const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
@@ -2269,13 +2373,13 @@ export default function MediaLibrary({
                             <VideoThumbnail 
                               videoUrl={fileUrl} 
                               fileName={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'}`}
+                              className={`${viewMode === 'grid' ? 'w-full aspect-square object-cover md:h-32' : 'w-16 h-16'}`}
                             />
                           ) : file.thumbnailUrl ? (
                             <img
                               src={file.thumbnailUrl}
                               alt={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                              className={`${viewMode === 'grid' ? 'w-full aspect-square object-cover md:h-32' : 'w-16 h-16'} rounded bg-[#1F1F1F]`}
                               onLoad={(e) => {
                                 // 🔥 FIX: Hide fallback icon when image loads successfully
                                 const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
@@ -2291,7 +2395,7 @@ export default function MediaLibrary({
                           ) : null;
                         })()}
                         {/* Fallback icon - hidden by default if we have a valid URL */}
-                        <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(() => {
+                        <div className={`${viewMode === 'grid' ? 'w-full aspect-square md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(() => {
                           const useThumbnail = viewMode === 'grid';
                           const fileUrl = getFileUrl(file, useThumbnail);
                           const hasValidUrl = fileUrl && (file.fileType === 'image' || file.fileType === 'video' || file.thumbnailUrl);
@@ -2301,33 +2405,34 @@ export default function MediaLibrary({
                         </div>
                       </div>
 
-                      {/* File Info */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-[#FFFFFF] truncate text-sm">
+                      {/* File Info - Simplified on mobile */}
+                      <div className={`flex-1 min-w-0 ${viewMode === 'grid' ? 'mt-2' : ''}`}>
+                        <h4 className="font-medium text-[#FFFFFF] truncate text-sm md:text-base">
                           {file.fileName}
                         </h4>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-[#808080]">
+                        {/* Metadata - Hidden on mobile, shown on tablet+ */}
+                        <div className="hidden md:flex items-center gap-2 mt-1 text-xs text-[#808080]">
                           {getStorageIcon(file.storageType)}
                           <span>{formatFileSize(file.fileSize)}</span>
                         </div>
                         {file.uploadedAt && (
-                          <div className="flex items-center gap-1 mt-1 text-xs text-[#6B7280]">
+                          <div className="hidden md:flex items-center gap-1 mt-1 text-xs text-[#6B7280]">
                             <Clock className="w-3 h-3" />
                             <span>{formatDate(file.uploadedAt)}</span>
                           </div>
                         )}
                         {file.expiresAt && (
-                          <div className="flex items-center gap-1 mt-1 text-xs text-orange-600 dark:text-orange-400">
+                          <div className="hidden md:flex items-center gap-1 mt-1 text-xs text-orange-600 dark:text-orange-400">
                             <Clock className="w-3 h-3" />
                             <span>{formatTimeRemaining(file.expiresAt)}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Actions Menu - only show when not in selection mode */}
+                      {/* Actions Menu - Hidden on mobile (use long-press instead), shown on tablet+ */}
                       {!selectionMode && (
                       <div 
-                        className="absolute top-2 right-2 z-50" 
+                        className="hidden md:block absolute top-2 right-2 z-50" 
                         onClick={(e) => e.stopPropagation()}
                       >
                         <DropdownMenu>
@@ -2397,7 +2502,8 @@ export default function MediaLibrary({
                       </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -2468,6 +2574,86 @@ export default function MediaLibrary({
         );
       })()}
       
+      {/* Mobile Long-Press Action Menu */}
+      {longPressMenuFile && longPressMenuPosition && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-[100] md:hidden"
+          onClick={closeLongPressMenu}
+          onTouchStart={closeLongPressMenu}
+        >
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#3F3F46] rounded-t-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
+            <div className="p-4">
+              <div className="w-12 h-1 bg-[#3F3F46] rounded-full mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-[#FFFFFF] mb-4 truncate px-2">
+                {longPressMenuFile.fileName}
+              </h3>
+              <div className="space-y-2">
+                <button
+                  onClick={async () => {
+                    if (longPressMenuFile) {
+                      await handleViewFile(longPressMenuFile);
+                      closeLongPressMenu();
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 p-4 bg-[#141414] hover:bg-[#1F1F1F] rounded-lg text-[#FFFFFF] transition-colors"
+                >
+                  <Eye className="w-5 h-5 text-[#808080]" />
+                  <span>View</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    if (longPressMenuFile) {
+                      await handleDownloadFile(longPressMenuFile);
+                      closeLongPressMenu();
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 p-4 bg-[#141414] hover:bg-[#1F1F1F] rounded-lg text-[#FFFFFF] transition-colors"
+                >
+                  <Download className="w-5 h-5 text-[#808080]" />
+                  <span>Download</span>
+                </button>
+                {(longPressMenuFile.storageType === 'local' || longPressMenuFile.storageType === 'wryda-temp') && longPressMenuFile.s3Key && hasConnectedProviders && (
+                  <button
+                    onClick={async () => {
+                      if (longPressMenuFile) {
+                        await handleSyncFileToCloud(longPressMenuFile.id);
+                        closeLongPressMenu();
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 p-4 bg-[#141414] hover:bg-[#1F1F1F] rounded-lg text-[#8B5CF6] transition-colors"
+                  >
+                    <Cloud className="w-5 h-5" />
+                    <span>Sync to Cloud</span>
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    if (longPressMenuFile && confirm('Are you sure you want to delete this file?')) {
+                      await deleteFile(longPressMenuFile.id);
+                      closeLongPressMenu();
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 p-4 bg-[#141414] hover:bg-[#DC143C]/20 rounded-lg text-[#DC143C] transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  <span>Delete</span>
+                </button>
+              </div>
+              <button
+                onClick={closeLongPressMenu}
+                className="w-full mt-4 p-4 bg-[#1F1F1F] hover:bg-[#2A2A2A] rounded-lg text-[#FFFFFF] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Preview Modal - For videos, audio, and other file types */}
       {previewFile && (
         <div 
