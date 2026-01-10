@@ -8,7 +8,7 @@
  * 🔥 Feature 0190: Added 'single' package option for single image generation
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Zap, Star, Image, ImageIcon } from 'lucide-react';
 
@@ -136,10 +136,19 @@ export default function LocationBackgroundPackageSelector({
   // 🔥 FIX: Normalize selectedBackgroundType to always be a string (never undefined)
   const normalizedSelectedBackgroundType = selectedBackgroundType || 'window';
   
+  // 🔥 FIX: Only auto-select when package FIRST becomes 'single', not on every render
+  const hasInitializedRef = useRef<string>('');
+  
   // 🔥 Feature 0190: Auto-select first background type when single package is selected
   useEffect(() => {
-    if (selectedPackageId === 'single' && !selectedBackgroundType && onSelectedBackgroundTypeChange) {
+    if (selectedPackageId === 'single' && 
+        hasInitializedRef.current !== selectedPackageId && 
+        !selectedBackgroundType && 
+        onSelectedBackgroundTypeChange) {
       onSelectedBackgroundTypeChange('window'); // Default to window
+      hasInitializedRef.current = selectedPackageId;
+    } else if (selectedPackageId !== 'single') {
+      hasInitializedRef.current = '';
     }
   }, [selectedPackageId, selectedBackgroundType, onSelectedBackgroundTypeChange]);
   

@@ -8,7 +8,7 @@
  * 🔥 Feature 0190: Added 'single' package option for single image generation
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Zap, Star, Crown, MessageCircle, ImageIcon } from 'lucide-react';
 
@@ -228,10 +228,19 @@ export default function PosePackageSelector({
   // 🔥 FIX: Normalize selectedPoseId to always be a string (never undefined)
   const normalizedSelectedPoseId = selectedPoseId || 'front-facing';
   
+  // 🔥 FIX: Only auto-select when package FIRST becomes 'single', not on every render
+  const hasInitializedRef = useRef<string>('');
+  
   // 🔥 Feature 0190: Auto-select first pose when single package is selected
   useEffect(() => {
-    if (selectedPackageId === 'single' && !selectedPoseId && onSelectedPoseIdChange) {
+    if (selectedPackageId === 'single' && 
+        hasInitializedRef.current !== selectedPackageId && 
+        !selectedPoseId && 
+        onSelectedPoseIdChange) {
       onSelectedPoseIdChange('front-facing'); // Default to front facing
+      hasInitializedRef.current = selectedPackageId;
+    } else if (selectedPackageId !== 'single') {
+      hasInitializedRef.current = '';
     }
   }, [selectedPackageId, selectedPoseId, onSelectedPoseIdChange]);
   

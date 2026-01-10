@@ -8,7 +8,7 @@
  * 🔥 Feature 0190: Added 'single' package option for single image generation
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Zap, Star, MapPin, ImageIcon } from 'lucide-react';
 
@@ -140,13 +140,27 @@ export default function LocationAnglePackageSelector({
   // 🔥 FIX: Normalize selectedAngle to always be a string (never undefined)
   const normalizedSelectedAngle = selectedAngle || 'front';
   
-  // 🔥 FIX: Only auto-select if selectedAngle is explicitly undefined/null/empty
+  // 🔥 FIX: Only auto-select when package FIRST becomes 'single', not on every render
+  // Use a ref to track if we've already initialized for the current package
+  const hasInitializedRef = useRef<string>('');
+  
   useEffect(() => {
-    if (selectedPackageId === 'single' && (!selectedAngle || selectedAngle === '') && onSelectedAngleChange) {
+    // Only auto-select if:
+    // 1. Package is 'single'
+    // 2. We haven't already initialized for this package
+    // 3. selectedAngle is empty/undefined
+    if (selectedPackageId === 'single' && 
+        hasInitializedRef.current !== selectedPackageId && 
+        (!selectedAngle || selectedAngle === '') && 
+        onSelectedAngleChange) {
       console.log('[LocationAnglePackageSelector] Auto-selecting front angle (was:', selectedAngle, ')');
       onSelectedAngleChange('front'); // Default to front view
+      hasInitializedRef.current = selectedPackageId; // Mark as initialized
+    } else if (selectedPackageId !== 'single') {
+      // Reset the ref when package changes away from 'single'
+      hasInitializedRef.current = '';
     }
-  }, [selectedPackageId]); // 🔥 FIX: Only depend on packageId, not selectedAngle (prevents reset loop)
+  }, [selectedPackageId, selectedAngle, onSelectedAngleChange]);
   
   if (compact) {
     // Compact horizontal layout
@@ -246,13 +260,21 @@ export default function LocationAnglePackageSelector({
               Select Angle:
             </label>
             <select
-              key={`single-angle-select-${selectedPackageId}`}
+              key={`single-angle-select-${selectedPackageId}-${normalizedSelectedAngle}`}
               value={normalizedSelectedAngle}
               onChange={(e) => {
                 const newAngle = e.target.value;
-                console.log('[LocationAnglePackageSelector] Compact dropdown changed:', { from: normalizedSelectedAngle, to: newAngle });
+                console.log('[LocationAnglePackageSelector] Compact dropdown changed:', { 
+                  from: normalizedSelectedAngle, 
+                  to: newAngle,
+                  selectedAngleProp: selectedAngle,
+                  normalized: normalizedSelectedAngle
+                });
                 if (onSelectedAngleChange) {
+                  console.log('[LocationAnglePackageSelector] Calling onSelectedAngleChange with:', newAngle);
                   onSelectedAngleChange(newAngle);
+                } else {
+                  console.warn('[LocationAnglePackageSelector] onSelectedAngleChange not provided');
                 }
               }}
               disabled={disabled}
@@ -402,13 +424,21 @@ export default function LocationAnglePackageSelector({
             Select Angle:
           </label>
           <select
-            key={`single-angle-select-${selectedPackageId}`}
+            key={`single-angle-select-${selectedPackageId}-${normalizedSelectedAngle}`}
             value={normalizedSelectedAngle}
             onChange={(e) => {
               const newAngle = e.target.value;
-              console.log('[LocationAnglePackageSelector] Dropdown changed:', { from: normalizedSelectedAngle, to: newAngle });
+              console.log('[LocationAnglePackageSelector] Dropdown changed:', { 
+                from: normalizedSelectedAngle, 
+                to: newAngle,
+                selectedAngleProp: selectedAngle,
+                normalized: normalizedSelectedAngle
+              });
               if (onSelectedAngleChange) {
+                console.log('[LocationAnglePackageSelector] Calling onSelectedAngleChange with:', newAngle);
                 onSelectedAngleChange(newAngle);
+              } else {
+                console.warn('[LocationAnglePackageSelector] onSelectedAngleChange not provided');
               }
             }}
             disabled={disabled}
