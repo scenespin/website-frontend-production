@@ -42,7 +42,6 @@ export default function AgentDrawer({ children }) {
   }, []);
 
   // Auto-expand on response: If height < 70%, expand to 70% when new message arrives
-  // Only auto-expand if user hasn't manually resized (respects user preference)
   useEffect(() => {
     if (!isMobile || !isDrawerOpen || typeof window === 'undefined') return;
     
@@ -55,10 +54,8 @@ export default function AgentDrawer({ children }) {
       // Only auto-expand if it's an assistant message (response)
       if (lastMessage && lastMessage.role === 'assistant') {
         const targetHeight = Math.floor(window.innerHeight * 0.7);
-        // Only expand if:
-        // 1. Current height is less than 70%
-        // 2. User hasn't manually resized (or their resize is still < 70%)
-        if (height < targetHeight && (userResizedHeight.current === null || userResizedHeight.current < targetHeight)) {
+        // Only expand if current height is less than 70%
+        if (height < targetHeight) {
           setHeight(targetHeight);
         }
       }
