@@ -246,8 +246,11 @@ export default function LocationBackgroundPackageSelector({
             <select
               value={selectedBackgroundType || 'window'}
               onChange={(e) => {
+                console.log('[LocationBackgroundPackageSelector] Compact dropdown changed:', e.target.value);
                 if (onSelectedBackgroundTypeChange) {
                   onSelectedBackgroundTypeChange(e.target.value);
+                } else {
+                  console.warn('[LocationBackgroundPackageSelector] onSelectedBackgroundTypeChange callback not provided');
                 }
               }}
               disabled={disabled}
@@ -405,8 +408,11 @@ export default function LocationBackgroundPackageSelector({
           <select
             value={selectedBackgroundType || 'window'}
             onChange={(e) => {
+              console.log('[LocationBackgroundPackageSelector] Dropdown changed:', e.target.value);
               if (onSelectedBackgroundTypeChange) {
                 onSelectedBackgroundTypeChange(e.target.value);
+              } else {
+                console.warn('[LocationBackgroundPackageSelector] onSelectedBackgroundTypeChange callback not provided');
               }
             }}
             disabled={disabled}

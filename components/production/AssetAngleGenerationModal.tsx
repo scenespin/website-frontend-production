@@ -144,10 +144,13 @@ export default function AssetAngleGenerationModal({
       
       console.log('[AssetAngleGeneration] Calling API:', apiUrl);
       console.log('[AssetAngleGeneration] Request body:', {
+        packageId: selectedPackageId,
+        selectedAngle: selectedPackageId === 'single' ? selectedAngle : undefined,
         quality,
         providerId: providerId,
         hasProviderId: !!providerId
       });
+      console.log('[AssetAngleGeneration] Full requestBody:', JSON.stringify(requestBody, null, 2));
       
       const response = await fetch(apiUrl, {
         method: 'POST',
