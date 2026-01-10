@@ -227,6 +227,36 @@ export default function Navigation() {
         }
       }
 
+  // Fetch current screenplay name
+  useEffect(() => {
+    if (currentScreenplayId && user) {
+      setLoadingScreenplay(true);
+      fetch(`/api/screenplays/list?status=active&limit=100`)
+        .then(async r => {
+          if (!r.ok) return;
+          const data = await r.json();
+          const screenplays = data?.data?.screenplays || data?.screenplays || [];
+          const screenplay = screenplays.find(s => 
+            (s.screenplay_id || s.id) === currentScreenplayId
+          );
+          if (screenplay) {
+            setCurrentScreenplayName(screenplay.title || screenplay.name || 'Untitled');
+          } else {
+            setCurrentScreenplayName(null);
+          }
+        })
+        .catch(error => {
+          console.error('[Navigation] Failed to fetch screenplay name:', error);
+          setCurrentScreenplayName(null);
+        })
+        .finally(() => {
+          setLoadingScreenplay(false);
+        });
+    } else {
+      setCurrentScreenplayName(null);
+    }
+  }, [currentScreenplayId, user]);
+
   // Navigation structure - Desktop: flat links, Mobile: hierarchical accordions
   // VERIFIED ROUTES - All pages exist in /app directory
   // Helper function to build href with screenplay ID
