@@ -172,7 +172,7 @@ export default function CreditWidget() {
       <div className="relative" ref={dropdownRef}>
         <div className="flex items-center gap-2">
           {/* Credit Balance */}
-          <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50">
+          <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
             <Zap className="w-4 h-4 text-cinema-red" />
             <span className="text-sm font-semibold text-base-content">
               {credits?.toLocaleString() || '0'}
@@ -183,7 +183,7 @@ export default function CreditWidget() {
           {/* Add Credits Button */}
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-base-200 hover:bg-base-300 rounded-lg border border-base-300/50 transition-colors text-sm font-medium text-base-content"
+            className="flex items-center gap-1.5 px-4 py-2 bg-base-200 hover:bg-base-300 rounded-lg border border-base-300/50 transition-colors text-sm font-medium text-base-content min-h-[40px]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Credits</span>
@@ -197,7 +197,7 @@ export default function CreditWidget() {
                 setShowAutoRecharge(true);
                 setShowDropdown(false);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 hover:bg-green-500/20 rounded-lg border border-green-500/30 transition-colors text-sm font-medium text-green-600 dark:text-green-400"
+              className="flex items-center gap-1.5 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 rounded-lg border border-green-500/30 transition-colors text-sm font-medium text-green-600 dark:text-green-400 min-h-[40px]"
               title={`Auto-recharge: ${packageName} at ${autoRecharge.threshold} credits`}
             >
               <Settings className="w-3.5 h-3.5" />

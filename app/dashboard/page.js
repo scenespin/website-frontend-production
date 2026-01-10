@@ -830,13 +830,13 @@ export default function Dashboard() {
           {/* Compact Stats Bar */}
           <div className="flex items-center gap-4">
             <CreditWidget />
-            <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50">
+            <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
               <FileText className="w-4 h-4 text-primary" />
               <span className="text-sm font-semibold text-base-content">{projects.length}</span>
               <span className="text-xs text-base-content/60">projects</span>
             </div>
             {recentVideos.length > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50">
+              <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
                 <Video className="w-4 h-4 text-accent" />
                 <span className="text-sm font-semibold text-base-content">{recentVideos.length}</span>
                 <span className="text-xs text-base-content/60">videos</span>
@@ -854,7 +854,7 @@ export default function Dashboard() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm shadow-sm hover:shadow-md min-h-[40px]"
             >
               <Plus className="w-4 h-4" />
               New Project
@@ -1109,7 +1109,7 @@ export default function Dashboard() {
               </p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cinema-red to-cinema-red/90 text-base-content rounded-lg hover:shadow-lg transition-all duration-300 font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm shadow-sm hover:shadow-md min-h-[40px]"
               >
                 <Plus className="w-5 h-5" />
                 Create Your First Project
