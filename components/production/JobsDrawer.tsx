@@ -272,8 +272,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile: Calculate height (50px collapsed to match debug panel, variable when open) - EXACT same as AgentDrawer
-  const currentMobileHeight = isOpen ? mobileHeight : 50;
+  // Mobile: Calculate height (30px collapsed - reduced to minimize editor overlap)
+  const currentMobileHeight = isOpen ? mobileHeight : 30;
 
   // Handle drag gestures (MOBILE ONLY) - EXACT same as AgentDrawer
   const handleDragStart = (clientY: number) => {
@@ -1378,7 +1378,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         >
           {/* Drag Handle (Mobile) - Compact like debug panel */}
           <div
-            className="w-full py-2 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
+            className="w-full py-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
             onMouseDown={(e) => handleDragStart(e.clientY)}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           >

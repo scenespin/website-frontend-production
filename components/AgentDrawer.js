@@ -110,7 +110,12 @@ export default function AgentDrawer({ children }) {
         >
           {/* Drag Handle (Mobile) - Compact like debug panel */}
           <div
-            className="w-full py-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing bg-base-300 border-b border-cinema-red/20 relative"
+            className="w-full py-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing border-b border-cinema-red/20 relative transition-all duration-200"
+            style={{
+              background: !isDrawerOpen 
+                ? 'linear-gradient(135deg, rgba(220, 20, 60, 0.15) 0%, rgba(220, 20, 60, 0.15) 100%)'
+                : 'var(--color-bg-tertiary)' // bg-base-300 equivalent
+            }}
             onMouseDown={(e) => handleDragStart(e.clientY)}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           >
