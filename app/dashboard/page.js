@@ -758,7 +758,7 @@ export default function Dashboard() {
                 </p>
                 <ul className="text-sm text-base-content/60 space-y-1 mb-4 ml-4 list-disc">
                   <li>All screenplay content and scenes</li>
-                  <li>All images and assets</li>
+                  <li>All images and props</li>
                   <li>All characters and locations</li>
                   <li>All video generations</li>
                   <li>All project data</li>
