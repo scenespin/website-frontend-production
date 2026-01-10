@@ -93,11 +93,18 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
     previousStreamingStateRef.current = isStreaming;
   }, [state.isStreaming, scrollToBottom]);
   
-  // Scroll during streaming as text updates (throttled)
+  // Scroll during streaming as text updates (more aggressive during streaming)
   useEffect(() => {
     if (state.isStreaming && state.streamingText && state.streamingText.length > 0) {
-      // While streaming, scroll to bottom as text updates (throttled to prevent vibrating)
-      scrollToBottom(false);
+      // While streaming, scroll to bottom as text updates
+      // Use requestAnimationFrame for smooth, frequent scrolling during streaming
+      const rafId = requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      });
+      
+      return () => {
+        cancelAnimationFrame(rafId);
+      };
     }
     
     return () => {
@@ -105,7 +112,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [state.streamingText, state.isStreaming, scrollToBottom]);
+  }, [state.streamingText, state.isStreaming]);
   
   // Story Advisor: No auto-send for selected text (consultation only)
   
