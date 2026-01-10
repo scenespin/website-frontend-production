@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Sparkles, CheckCircle, X, Plus, Settings, ArrowRight } from 'lucide-react';
+import { X, Plus, Settings, ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import QuickPurchaseModal from './QuickPurchaseModal';
 import AutoRechargeModal from './AutoRechargeModal';
@@ -61,6 +61,14 @@ export default function LowCreditBanner() {
     setShowAutoRecharge(false);
   };
 
+  // Get status dot color and border color based on credit level
+  const getStatusColor = (creditBalance) => {
+    if (creditBalance >= 50) return { dot: 'bg-emerald-500', border: 'border-emerald-500' };
+    if (creditBalance >= 30) return { dot: 'bg-yellow-500', border: 'border-yellow-500' };
+    if (creditBalance >= 15) return { dot: 'bg-orange-500', border: 'border-orange-500' };
+    return { dot: 'bg-red-500', border: 'border-red-500' };
+  };
+
   // Determine if this is a new user (account < 48 hours old with 50 credits)
   const isNewUser = user?.createdAt && credits === 50 && (() => {
     const accountAgeMs = Date.now() - new Date(user.createdAt).getTime();
@@ -85,39 +93,38 @@ export default function LowCreditBanner() {
 
   // Render welcome message for new users
   if (messageType === 'welcome') {
+    const statusColor = getStatusColor(credits);
     return (
       <>
-        <div className="bg-emerald-500/10 border-l-4 border-emerald-500 p-4 mb-6 rounded-r-lg">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3 flex-1">
-              <Sparkles className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+        <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t border-r border-emerald-500/20 rounded-lg px-4 py-3 mb-6`} style={{ borderTopColor: 'rgba(220, 20, 60, 0.4)' }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className={`w-3 h-3 rounded-full ${statusColor.dot} flex-shrink-0`} />
               <div className="flex-1">
-                <div className="font-semibold text-emerald-700 dark:text-emerald-400">
-                  ✨ Welcome to Wryda.ai! You have 50 credits to get started.
+                <div className="font-semibold text-emerald-400 text-base">
+                  {credits?.toLocaleString() || '50'} Credits Ready
                 </div>
-                <div className="text-sm text-emerald-600 dark:text-emerald-500 mt-2 space-y-1">
-                  <div><strong>Best way to use them:</strong></div>
-                  <div>→ Start in the editor with Story Advisor and our other AI writing agents - explore different story directions and get AI feedback (very affordable!)</div>
-                  <div>→ Or generate 1-2 images to bring your scenes to life</div>
-                </div>
-                <div className="flex items-center gap-3 mt-3">
-                  <button
-                    onClick={() => setShowQuickPurchase(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                    Start Creating
-                  </button>
+                <div className="text-sm text-base-content/70 mt-0.5">
+                  Start creating with Story Advisor & AI writing agents
                 </div>
               </div>
             </div>
-            <button
-              onClick={handleDismiss}
-              className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
-              aria-label="Dismiss"
-            >
-              <X className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowQuickPurchase(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <ArrowRight className="w-4 h-4" />
+                Start Creating
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4 text-base-content/60" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -133,37 +140,38 @@ export default function LowCreditBanner() {
 
   // Render very low credits message (emphasizing free screenwriting tools)
   if (messageType === 'veryLow') {
+    const statusColor = getStatusColor(credits);
     return (
       <>
-        <div className="bg-blue-500/10 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3 flex-1">
-              <CheckCircle className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+        <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t border-r border-emerald-500/20 rounded-lg px-4 py-3 mb-6`} style={{ borderTopColor: 'rgba(220, 20, 60, 0.4)' }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className={`w-3 h-3 rounded-full ${statusColor.dot} flex-shrink-0`} />
               <div className="flex-1">
-                <div className="font-semibold text-blue-700 dark:text-blue-400">
+                <div className="font-semibold text-emerald-400 text-base">
                   Great news! Your screenwriting tools are completely free
                 </div>
-                <div className="text-sm text-blue-600 dark:text-blue-500 mt-1">
-                  Write, edit, format, and organize your scripts with no credits needed. To generate AI images, videos, or get AI writing assistance, you'll need credits. Add more to unlock those features! 🚀
-                </div>
-                <div className="flex items-center gap-3 mt-3">
-                  <button
-                    onClick={() => setShowQuickPurchase(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Credits
-                  </button>
+                <div className="text-sm text-base-content/70 mt-0.5">
+                  Write, edit, and format scripts with no credits. Add credits to unlock AI generation features.
                 </div>
               </div>
             </div>
-            <button
-              onClick={handleDismiss}
-              className="p-1 hover:bg-blue-500/20 rounded transition-colors flex-shrink-0"
-              aria-label="Dismiss"
-            >
-              <X className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowQuickPurchase(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Credits
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4 text-base-content/60" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -182,25 +190,19 @@ export default function LowCreditBanner() {
     if (messageType === 'low') {
       return {
         title: `${credits?.toLocaleString() || '0'} credits remaining`,
-        message: `You can still use Story Advisor and all our AI writing agents in the editor! 💡`,
-        icon: CheckCircle,
-        color: 'emerald'
+        message: `You can still use Story Advisor and all our AI writing agents in the editor!`
       };
     }
     if (messageType === 'medium') {
       return {
         title: `${credits?.toLocaleString() || '0'} credits left`,
-        message: `Perfect for one more session with Story Advisor and our AI writing agents, or an image generation! ✨`,
-        icon: CheckCircle,
-        color: 'emerald'
+        message: `Perfect for one more session with Story Advisor and our AI writing agents, or an image generation!`
       };
     }
     if (messageType === 'moderate') {
       return {
-        title: `You have ${credits?.toLocaleString() || '0'} credits remaining`,
-        message: `Still enough to explore the editor with Story Advisor and our AI writing agents, or generate an image! 🎨`,
-        icon: Sparkles,
-        color: 'emerald'
+        title: `${credits?.toLocaleString() || '0'} credits remaining`,
+        message: `Still enough to explore the editor with Story Advisor and our AI writing agents, or generate an image!`
       };
     }
     return null;
@@ -209,57 +211,46 @@ export default function LowCreditBanner() {
   const progressiveMsg = getProgressiveMessage();
   if (!progressiveMsg) return null;
 
-  const IconComponent = progressiveMsg.icon;
-  const colorClasses = {
-    emerald: {
-      bg: 'bg-emerald-500/10',
-      border: 'border-emerald-500',
-      text: 'text-emerald-700 dark:text-emerald-400',
-      textLight: 'text-emerald-600 dark:text-emerald-500',
-      hover: 'hover:bg-emerald-500/20',
-      icon: 'text-emerald-500'
-    }
-  };
-  const colors = colorClasses[progressiveMsg.color] || colorClasses.emerald;
+  const statusColor = getStatusColor(credits);
 
   return (
     <>
-      <div className={`${colors.bg} border-l-4 ${colors.border} p-4 mb-6 rounded-r-lg`}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 flex-1">
-            <IconComponent className={`w-5 h-5 ${colors.icon} mt-0.5 flex-shrink-0`} />
+      <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t border-r border-emerald-500/20 rounded-lg px-4 py-3 mb-6`} style={{ borderTopColor: 'rgba(220, 20, 60, 0.4)' }}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <div className={`w-3 h-3 rounded-full ${statusColor.dot} flex-shrink-0`} />
             <div className="flex-1">
-              <div className={`font-semibold ${colors.text}`}>
+              <div className="font-semibold text-emerald-400 text-base">
                 {progressiveMsg.title}
               </div>
-              <div className={`text-sm ${colors.textLight} mt-1`}>
+              <div className="text-sm text-base-content/70 mt-0.5">
                 {progressiveMsg.message}
-              </div>
-              <div className="flex items-center gap-3 mt-3">
-                <button
-                  onClick={() => setShowQuickPurchase(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add More Credits
-                </button>
-                <button
-                  onClick={() => setShowAutoRecharge(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-base-200 hover:bg-base-300 text-base-content rounded-lg text-sm font-medium transition-colors border border-base-300"
-                >
-                  <Settings className="w-4 h-4" />
-                  Set Up Auto-Recharge
-                </button>
               </div>
             </div>
           </div>
-          <button
-            onClick={handleDismiss}
-            className={`p-1 ${colors.hover} rounded transition-colors flex-shrink-0`}
-            aria-label="Dismiss"
-          >
-            <X className={`w-4 h-4 ${colors.textLight}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowQuickPurchase(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add More Credits
+            </button>
+            <button
+              onClick={() => setShowAutoRecharge(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-base-200 hover:bg-base-300 text-base-content rounded-lg text-sm font-medium transition-colors border border-base-300"
+            >
+              <Settings className="w-4 h-4" />
+              Set Up Auto-Recharge
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4 text-base-content/60" />
+            </button>
+          </div>
         </div>
       </div>
 
