@@ -282,6 +282,7 @@ function LLMModelSelector() {
   // REVERT: To revert, remove createPortal wrapper and change className from "fixed" back to "absolute bottom-full right-0"
   const dropdownContent = isOpen ? (
     <ul 
+      ref={dropdownRef}
       tabIndex={0} 
       className="fixed menu p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] max-h-96 overflow-y-auto pointer-events-auto"
       style={{ 
