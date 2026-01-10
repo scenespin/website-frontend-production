@@ -220,6 +220,8 @@ function LLMModelSelector() {
   const { state, setModel } = chatContext;
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   
   // Use context state, fallback to default if not set
   const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
@@ -231,10 +233,23 @@ function LLMModelSelector() {
     setIsOpen(false);
   };
   
+  // Calculate dropdown position when opening (for portal positioning)
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      // Position above the button, aligned to right edge
+      setDropdownPosition({
+        top: buttonRect.top - 8, // 8px gap (mb-1 = 4px, plus some spacing)
+        right: window.innerWidth - buttonRect.right
+      });
+    }
+  }, [isOpen]);
+  
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+          buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -255,9 +270,60 @@ function LLMModelSelector() {
     return Math.max(...LLM_MODELS.map(m => m.name.length));
   }, []);
   
+  // 🔥 PORTAL IMPLEMENTATION: Render dropdown outside drawer DOM to prevent clipping
+  // REVERT: To revert, remove createPortal wrapper and change className from "fixed" back to "absolute bottom-full right-0"
+  const dropdownContent = isOpen ? (
+    <ul 
+      tabIndex={0} 
+      className="fixed menu p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] max-h-96 overflow-y-auto pointer-events-auto"
+      style={{ 
+        top: `${dropdownPosition.top}px`,
+        right: `${dropdownPosition.right}px`,
+        minWidth: `${Math.max(180, maxModelNameLength * 8 + 40)}px`,
+        maxWidth: '220px',
+        transform: 'translateY(-100%)' // Position above the calculated top position
+      }}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {providers.map(provider => {
+        const providerModels = LLM_MODELS.filter(m => m.provider === provider);
+        return (
+          <li key={provider} className="menu-title">
+            <span className="text-xs font-bold text-base-content/60">{provider}</span>
+            <ul className="ml-0">
+              {providerModels.map(model => {
+                const isActive = selectedModel === model.id;
+                return (
+                  <li key={model.id}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleModelChange(model.id);
+                      }}
+                      className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-xs">{model.name}</span>
+                        {model.recommended && <span className="text-yellow-400 text-xs">⭐</span>}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        );
+      })}
+    </ul>
+  ) : null;
+  
   return (
-    <div ref={dropdownRef} className="relative">
+    <div className="relative">
       <label 
+        ref={buttonRef}
         tabIndex={0} 
         className="btn btn-sm btn-ghost gap-1 text-xs cursor-pointer whitespace-nowrap"
         onClick={(e) => {
@@ -270,50 +336,9 @@ function LLMModelSelector() {
         {currentModel.recommended && <span className="text-yellow-400">⭐</span>}
         <ChevronDown className={cn("w-3.5 h-3.5 transition-transform flex-shrink-0", isOpen && "rotate-180")} />
       </label>
-      {isOpen && (
-        <ul 
-          tabIndex={0} 
-          className="absolute bottom-full right-0 mb-1 menu p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] max-h-96 overflow-y-auto pointer-events-auto"
-          style={{ 
-            minWidth: `${Math.max(180, maxModelNameLength * 8 + 40)}px`,
-            maxWidth: '220px'
-          }}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          {providers.map(provider => {
-            const providerModels = LLM_MODELS.filter(m => m.provider === provider);
-            return (
-              <li key={provider} className="menu-title">
-                <span className="text-xs font-bold text-base-content/60">{provider}</span>
-                <ul className="ml-0">
-                  {providerModels.map(model => {
-                    const isActive = selectedModel === model.id;
-                    return (
-                      <li key={model.id}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleModelChange(model.id);
-                          }}
-                          className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <span className="text-xs">{model.name}</span>
-                            {model.recommended && <span className="text-yellow-400 text-xs">⭐</span>}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {/* 🔥 PORTAL: Render dropdown in document.body to escape drawer overflow clipping */}
+      {/* REVERT: Change this to: {isOpen && (dropdownContent)} and remove createPortal */}
+      {typeof window !== 'undefined' && createPortal(dropdownContent, document.body)}
     </div>
   );
 }
