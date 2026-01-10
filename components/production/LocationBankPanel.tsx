@@ -7,7 +7,7 @@
  * Reduced from ~358 lines to ~200 lines using React Query
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -17,6 +17,7 @@ import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import { useLocations, type LocationProfile } from '@/hooks/useLocationBank';
+import { useMediaFiles } from '@/hooks/useMediaLibrary';
 
 interface LocationBankPanelProps {
   className?: string;
@@ -46,6 +47,33 @@ export function LocationBankPanel({
     'production-hub', // 🔥 FIX: Use production-hub context to separate from Creation section
     !!screenplayId
   );
+
+  // 🔥 FIX: Query Media Library for all location files to get accurate backgrounds count
+  // This fixes the stale backgrounds count issue where Location Bank API returns old data
+  const { data: allLocationMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined, // no folder filter
+    !!screenplayId, // enabled
+    true, // includeAllFolders
+    'location' // entityType - get all location files
+  );
+
+  // 🔥 FIX: Calculate backgrounds count per location from Media Library (source of truth)
+  const backgroundsCountByLocation = useMemo(() => {
+    const counts: Record<string, number> = {};
+    
+    allLocationMediaFiles.forEach((file: any) => {
+      // Check if this is a background image
+      const isBackground = file.metadata?.isBackground === true || 
+                          file.metadata?.source === 'background-generation';
+      
+      if (isBackground && file.entityId) {
+        counts[file.entityId] = (counts[file.entityId] || 0) + 1;
+      }
+    });
+    
+    return counts;
+  }, [allLocationMediaFiles]);
 
   const isLoading = queryLoading || propsIsLoading;
 
@@ -196,7 +224,8 @@ export function LocationBankPanel({
 
                 // Build metadata string with angles and backgrounds count
                 const angleCount = location.angleVariations?.length || 0;
-                const backgroundCount = location.backgrounds?.length || 0;
+                // 🔥 FIX: Use Media Library count (source of truth) instead of stale location.backgrounds
+                const backgroundCount = backgroundsCountByLocation[location.locationId] || 0;
                 let metadata: string | undefined;
                 if (angleCount > 0 && backgroundCount > 0) {
                   metadata = `${angleCount} angle${angleCount !== 1 ? 's' : ''}, ${backgroundCount} background${backgroundCount !== 1 ? 's' : ''}`;
