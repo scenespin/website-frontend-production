@@ -32,8 +32,8 @@ export default function AgentDrawer({ children }) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile: Calculate height (50px collapsed to match debug panel, variable when open)
-  const mobileHeight = isDrawerOpen ? height : 50;
+  // Mobile: Calculate height (30px collapsed - reduced to minimize editor overlap)
+  const mobileHeight = isDrawerOpen ? height : 30;
 
   // Desktop: Fixed width
   const desktopWidth = isDrawerOpen ? 480 : 0;
@@ -110,7 +110,7 @@ export default function AgentDrawer({ children }) {
         >
           {/* Drag Handle (Mobile) - Compact like debug panel */}
           <div
-            className="w-full py-2 flex items-center justify-center cursor-grab active:cursor-grabbing bg-base-300 border-b border-cinema-red/20 relative"
+            className="w-full py-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing bg-base-300 border-b border-cinema-red/20 relative"
             onMouseDown={(e) => handleDragStart(e.clientY)}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           >
