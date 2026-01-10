@@ -557,7 +557,7 @@ export default function Page() {
 
             <div className="text-center px-4">
               <Link
-                href="/pricing"
+                href="/pricing#subscriptions"
                 className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
               >
                 See Full Pricing Details

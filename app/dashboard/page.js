@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import CreditWidget from '@/components/billing/CreditWidget';
 import LowCreditBanner from '@/components/billing/LowCreditBanner';
+import { createCheckoutSession } from '@/lib/stripe-client';
+import config from '@/config';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,7 +127,60 @@ export default function Dashboard() {
       newUrl.searchParams.delete('credits');
       router.replace(newUrl.pathname + newUrl.search, { scroll: false });
     }
-  }, [searchParams, router]);
+    
+    // Handle subscription success
+    if (searchParams?.get('subscription') === 'success') {
+      console.log('[Dashboard] Subscription success detected, refreshing credits...');
+      
+      // Force refresh credits immediately
+      if (typeof window !== 'undefined' && window.refreshCredits) {
+        window.refreshCredits();
+      }
+      
+      // Show success toast
+      toast.success('Subscription activated! Your credits have been added.');
+      
+      // Remove query param from URL (clean up)
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('subscription');
+      newUrl.searchParams.delete('plan');
+      router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+    }
+    
+    // Handle post-signup subscription checkout flow
+    // When user signs up with a plan selected, redirect them to Stripe checkout
+    const planParam = searchParams?.get('plan');
+    if (planParam && user && !searchParams?.get('subscription')) {
+      const planMap = {
+        'pro': { priceId: config?.stripe?.plans?.[1]?.priceId, name: 'Pro' },
+        'ultra': { priceId: config?.stripe?.plans?.[2]?.priceId, name: 'Ultra' },
+        'studio': { priceId: config?.stripe?.plans?.[3]?.priceId, name: 'Studio' },
+      };
+      
+      const selectedPlan = planMap[planParam.toLowerCase()];
+      if (selectedPlan?.priceId) {
+        console.log('[Dashboard] Post-signup plan detected:', planParam);
+        toast.info(`Redirecting to checkout for ${selectedPlan.name} plan...`);
+        
+        // Remove plan param to prevent re-triggering on refresh
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('plan');
+        router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+        
+        // Trigger Stripe checkout
+        createCheckoutSession(
+          selectedPlan.priceId,
+          `${window.location.origin}/dashboard?subscription=success&plan=${planParam}`,
+          `${window.location.origin}/dashboard`
+        ).then(checkoutUrl => {
+          window.location.href = checkoutUrl;
+        }).catch(error => {
+          console.error('[Dashboard] Failed to create checkout session:', error);
+          toast.error('Failed to start checkout. Please try again from the pricing page.');
+        });
+      }
+    }
+  }, [searchParams, router, user]);
 
   // Refresh dashboard when user navigates back to it (e.g., from editor)
   // This ensures newly created screenplays appear even if they weren't in the list when user left

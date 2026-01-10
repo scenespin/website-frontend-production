@@ -102,7 +102,7 @@ export default function PricingPage() {
         </section>
 
         {/* Subscriptions */}
-        <section className="py-20 bg-[#141414]">
+        <section id="subscriptions" className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16 px-4">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">

@@ -277,6 +277,8 @@ export default function SignUpPage() {
           <div className="order-1 md:order-2 flex flex-col items-center md:items-start">
             <div className="w-full max-w-md bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8">
               <SignUp 
+                fallbackRedirectUrl={isPaidPlan ? `/dashboard?plan=${planParam}` : '/dashboard'}
+                forceRedirectUrl={isPaidPlan ? `/dashboard?plan=${planParam}` : undefined}
                 appearance={{
                   baseTheme: undefined,
                 variables: {
