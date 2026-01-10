@@ -137,11 +137,13 @@ export default function LocationAnglePackageSelector({
   }, [creditsPerImage]);
   
   // 🔥 Feature 0190: Auto-select first angle when single package is selected
+  // 🔥 FIX: Only auto-select if selectedAngle is explicitly undefined/null/empty
   useEffect(() => {
-    if (selectedPackageId === 'single' && !selectedAngle && onSelectedAngleChange) {
+    if (selectedPackageId === 'single' && (!selectedAngle || selectedAngle === '') && onSelectedAngleChange) {
+      console.log('[LocationAnglePackageSelector] Auto-selecting front angle (was:', selectedAngle, ')');
       onSelectedAngleChange('front'); // Default to front view
     }
-  }, [selectedPackageId, selectedAngle, onSelectedAngleChange]);
+  }, [selectedPackageId]); // 🔥 FIX: Only depend on packageId, not selectedAngle (prevents reset loop)
   
   if (compact) {
     // Compact horizontal layout
@@ -242,7 +244,11 @@ export default function LocationAnglePackageSelector({
             </label>
             <select
               value={selectedAngle || 'front'}
-              onChange={(e) => onSelectedAngleChange?.(e.target.value)}
+              onChange={(e) => {
+                const newAngle = e.target.value;
+                console.log('[LocationAnglePackageSelector] Compact dropdown changed:', { from: selectedAngle, to: newAngle });
+                onSelectedAngleChange?.(newAngle);
+              }}
               disabled={disabled}
               className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
             >
@@ -391,7 +397,11 @@ export default function LocationAnglePackageSelector({
           </label>
           <select
             value={selectedAngle || 'front'}
-            onChange={(e) => onSelectedAngleChange?.(e.target.value)}
+            onChange={(e) => {
+              const newAngle = e.target.value;
+              console.log('[LocationAnglePackageSelector] Dropdown changed:', { from: selectedAngle, to: newAngle });
+              onSelectedAngleChange?.(newAngle);
+            }}
             disabled={disabled}
             className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >

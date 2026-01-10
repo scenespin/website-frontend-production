@@ -196,7 +196,10 @@ export default function LocationAngleGenerationModal({
       console.log('[LocationAngleGeneration] Request body:', {
         quality,
         providerId: providerId,
-        hasProviderId: !!providerId
+        hasProviderId: !!providerId,
+        selectedPackageId,
+        selectedAngle: selectedAngle, // 🔥 DEBUG: Log selected angle
+        requestBodyAngle: selectedPackageId === 'single' ? selectedAngle : 'N/A (package mode)'
       });
       
       console.log('[LocationAngleGeneration] Calling API:', apiUrl);
