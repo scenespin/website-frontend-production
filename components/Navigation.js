@@ -569,7 +569,9 @@ export default function Navigation() {
                       window.dispatchEvent(new CustomEvent('saveBeforeLogout'));
                       // Wait a moment for save to complete, then logout
                       setTimeout(() => {
-                        window.Clerk?.signOut({ redirectUrl: '/' });
+                        window.Clerk?.signOut().then(() => {
+                          window.location.href = '/';
+                        });
                       }, 1500);
                     } else {
                       // User cancelled - don't logout
@@ -577,7 +579,9 @@ export default function Navigation() {
                     }
                   } else {
                     // No unsaved changes, proceed with logout
-                    window.Clerk?.signOut({ redirectUrl: '/' });
+                    window.Clerk?.signOut().then(() => {
+                      window.location.href = '/';
+                    });
                   }
                 }}
                 className="btn btn-block gap-2 btn-ghost justify-start text-left text-error hover:bg-error/10"
