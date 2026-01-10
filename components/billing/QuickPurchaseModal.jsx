@@ -91,7 +91,7 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
       return;
     }
 
-    if (!plan.priceId) {
+    if (!plan.name) {
       alert('This plan is not yet available. Please contact support.');
       return;
     }
@@ -100,7 +100,7 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
 
     try {
       const checkoutUrl = await createCheckoutSession(
-        plan.priceId,
+        plan.name, // Backend expects planName (e.g., "Pro", "Ultra", "Studio")
         `${window.location.origin}/dashboard?subscription=success&plan=${plan.id}`,
         `${window.location.origin}/dashboard`
       );

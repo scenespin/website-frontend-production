@@ -152,13 +152,13 @@ export default function Dashboard() {
     const planParam = searchParams?.get('plan');
     if (planParam && user && !searchParams?.get('subscription')) {
       const planMap = {
-        'pro': { priceId: config?.stripe?.plans?.[1]?.priceId, name: 'Pro' },
-        'ultra': { priceId: config?.stripe?.plans?.[2]?.priceId, name: 'Ultra' },
-        'studio': { priceId: config?.stripe?.plans?.[3]?.priceId, name: 'Studio' },
+        'pro': { name: 'Pro' },
+        'ultra': { name: 'Ultra' },
+        'studio': { name: 'Studio' },
       };
       
       const selectedPlan = planMap[planParam.toLowerCase()];
-      if (selectedPlan?.priceId) {
+      if (selectedPlan?.name) {
         console.log('[Dashboard] Post-signup plan detected:', planParam);
         toast.info(`Redirecting to checkout for ${selectedPlan.name} plan...`);
         
@@ -169,7 +169,7 @@ export default function Dashboard() {
         
         // Trigger Stripe checkout
         createCheckoutSession(
-          selectedPlan.priceId,
+          selectedPlan.name, // Backend expects planName (e.g., "Pro", "Ultra", "Studio")
           `${window.location.origin}/dashboard?subscription=success&plan=${planParam}`,
           `${window.location.origin}/dashboard`
         ).then(checkoutUrl => {

@@ -58,14 +58,14 @@ export interface AutoRechargeSettings {
  * Create a Stripe checkout session for subscription
  */
 export async function createCheckoutSession(
-    priceId: string,
+    planName: string,
     successUrl: string = `${window.location.origin}/app/billing/success`,
     cancelUrl: string = `${window.location.origin}/app/billing`
 ): Promise<string> {
     const response = await secureFetch('/api/billing/checkout', {
         method: 'POST',
         body: JSON.stringify({
-            priceId,
+            planName,
             successUrl,
             cancelUrl,
         }),
