@@ -665,7 +665,10 @@ export default function EditorWorkspace() {
                         <div className="h-full flex flex-col">
                             <div className="p-3 border-b border-white/10 bg-[#0A0A0A]">
                                 <h2 className="text-sm font-semibold text-base-content flex items-center justify-between">
-                                    <span>Scenes</span>
+                                    <span className="flex items-center gap-2">
+                                        <span>🗺️</span>
+                                        <span>Scenes</span>
+                                    </span>
                                     <button
                                         onClick={() => {
                                             startTransition(() => {

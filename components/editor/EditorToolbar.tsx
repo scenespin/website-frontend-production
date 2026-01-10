@@ -1108,7 +1108,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 onClick={onToggleSceneNav}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
                             >
-                                <span className="text-sm">🎬</span>
+                                <span className="text-sm">🗺️</span>
                                 <span className="text-[8px] leading-tight">Scenes</span>
                             </button>
                         </div>
