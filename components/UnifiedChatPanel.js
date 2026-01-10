@@ -149,8 +149,11 @@ function ModeSelector() {
       {isOpen && (
         <ul 
           tabIndex={0} 
-          className="absolute bottom-full left-0 mb-1 menu p-2 shadow-lg bg-base-200 rounded-box w-52 border border-base-300 z-[9999] max-h-96 overflow-y-auto pointer-events-auto"
-          style={{ position: 'absolute' }}
+          className="absolute bottom-full left-0 mb-1 menu p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] max-h-96 overflow-y-auto pointer-events-auto"
+          style={{ 
+            minWidth: '180px',
+            maxWidth: '220px'
+          }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -171,10 +174,12 @@ function ModeSelector() {
                         e.stopPropagation();
                         handleModeChange(mode);
                       }}
-                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
+                      className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
                     >
-                      {Icon && <Icon className="w-4 h-4" />}
-                      <span>{MODE_CONFIG[mode]?.label || mode}</span>
+                      <span className="flex items-center gap-1.5">
+                        {Icon && <Icon className="w-4 h-4" />}
+                        <span className="text-xs text-white">{MODE_CONFIG[mode]?.label || mode}</span>
+                      </span>
                     </button>
                   </li>
                 );
@@ -194,11 +199,18 @@ function ModeSelector() {
                 return (
                   <li key={mode}>
                     <button
-                      onClick={() => handleModeChange(mode)}
-                      className={`flex items-center gap-2 ${isActive ? 'active bg-cinema-red/20' : ''}`}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleModeChange(mode);
+                      }}
+                      className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
                     >
-                      {Icon && <Icon className="w-4 h-4" />}
-                      <span>{MODE_CONFIG[mode]?.label || mode}</span>
+                      <span className="flex items-center gap-1.5">
+                        {Icon && <Icon className="w-4 h-4" />}
+                        <span className="text-xs text-white">{MODE_CONFIG[mode]?.label || mode}</span>
+                      </span>
                     </button>
                   </li>
                 );
@@ -315,7 +327,7 @@ function LLMModelSelector() {
                       className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
                     >
                       <span className="flex items-center gap-1.5">
-                        <span className="text-xs">{model.name}</span>
+                        <span className="text-xs text-white">{model.name}</span>
                         {model.recommended && <span className="text-yellow-400 text-xs">⭐</span>}
                       </span>
                     </button>
