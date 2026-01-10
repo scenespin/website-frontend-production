@@ -122,6 +122,57 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // Fetch entity counts for current screenplay
+  useEffect(() => {
+    if (!currentScreenplayId || !getToken) {
+      setEntityCounts({ characters: 0, locations: 0, assets: 0, videos: 0, loading: false });
+      return;
+    }
+
+    setEntityCounts(prev => ({ ...prev, loading: true }));
+
+    const fetchEntityCounts = async () => {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+
+        // Fetch all entity counts in parallel
+        const [charactersRes, locationsRes, assetsRes, videosRes] = await Promise.allSettled([
+          fetch(`/api/character-bank/list?screenplayId=${currentScreenplayId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }).then(r => r.ok ? r.json() : null),
+          fetch(`/api/location-bank/list?screenplayId=${currentScreenplayId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }).then(r => r.ok ? r.json() : null),
+          fetch(`/api/asset-bank?screenplayId=${currentScreenplayId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }).then(r => r.ok ? r.json() : null),
+          api.video.getJobs().then(res => res.data?.data || [])
+        ]);
+
+        const characters = charactersRes.status === 'fulfilled' && charactersRes.value?.data?.characters 
+          ? charactersRes.value.data.characters.length 
+          : 0;
+        const locations = locationsRes.status === 'fulfilled' && locationsRes.value?.data?.locations 
+          ? locationsRes.value.data.locations.length 
+          : 0;
+        const assets = assetsRes.status === 'fulfilled' && assetsRes.value?.assets 
+          ? assetsRes.value.assets.length 
+          : 0;
+        const videos = videosRes.status === 'fulfilled' && Array.isArray(videosRes.value)
+          ? videosRes.value.filter(v => v.screenplay_id === currentScreenplayId && v.status === 'completed').length
+          : 0;
+
+        setEntityCounts({ characters, locations, assets, videos, loading: false });
+      } catch (error) {
+        console.error('[Dashboard] Failed to fetch entity counts:', error);
+        setEntityCounts({ characters: 0, locations: 0, assets: 0, videos: 0, loading: false });
+      }
+    };
+
+    fetchEntityCounts();
+  }, [currentScreenplayId, getToken]);
+
   // 🔥 FIX: Check for purchase success query param and refresh credits
   useEffect(() => {
     if (searchParams?.get('purchase') === 'success') {
