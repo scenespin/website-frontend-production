@@ -63,6 +63,8 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
   const isProcessingRef = useRef(false);
   const lastProcessedKeyRef = useRef<string | null>(null);
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const errorCountRef = useRef(0); // Track consecutive errors to prevent loops
+  const lastErrorTimeRef = useRef<number>(0);
 
   // Check lock status when screenplayId changes
   useEffect(() => {
@@ -73,7 +75,8 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     }
     
     // Wait for all required values to be stable (not undefined/null)
-    if (!screenplayId || !user?.id || !session?.id) {
+    // On mobile, session?.id might be unstable, so we allow it to be optional
+    if (!screenplayId || !user?.id) {
       // No screenplay open or user not authenticated
       setLockStatus(null);
       return;
@@ -85,13 +88,22 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       return;
     }
 
-    // Create a stable key to track if we've already processed this combination
+    // Use session ID if available, otherwise use a fallback based on user ID
+    // This handles cases where session?.id is unstable on mobile
     const currentUserId = user.id;
-    const currentSessionId = session.id;
+    const currentSessionId = session?.id || `fallback-${currentUserId}`;
     const processKey = `${screenplayId}:${currentUserId}:${currentSessionId}`;
     
     // Prevent duplicate processing - if we're already processing the same key, skip
     if (isProcessingRef.current && lastProcessedKeyRef.current === processKey) {
+      console.debug('[useEditorLock] Skipping duplicate processing for key:', processKey);
+      return;
+    }
+
+    // Rate limiting: if we've had too many errors recently, skip processing
+    const now = Date.now();
+    if (errorCountRef.current >= 3 && (now - lastErrorTimeRef.current) < 5000) {
+      console.warn('[useEditorLock] Too many errors, skipping processing to prevent loop');
       return;
     }
 
@@ -130,31 +142,49 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
     previousScreenplayIdRef.current = screenplayId;
 
-    // Check lock status with a small delay to debounce rapid changes
+    // Check lock status with a debounce to handle rapid changes (especially on mobile)
     const checkLock = async () => {
       try {
         const status = await getEditorLock(screenplayId);
         setLockStatus(status);
-      } catch (error) {
+        // Reset error count on success
+        errorCountRef.current = 0;
+      } catch (error: any) {
         console.error('[useEditorLock] Failed to check lock status:', error);
+        // Increment error count and track time
+        errorCountRef.current += 1;
+        lastErrorTimeRef.current = Date.now();
+        
+        // If it's a 400 error, it might be a session ID issue - don't retry immediately
+        if (error.message?.includes('400') || error.message?.includes('Bad Request')) {
+          console.warn('[useEditorLock] 400 error detected - likely session ID issue, skipping retry');
+          errorCountRef.current = 3; // Set to max to prevent immediate retry
+        }
+        
         // Graceful degradation: allow editing if lock check fails
         setLockStatus(null);
       } finally {
-        // Mark as done processing after a short delay to prevent rapid re-processing
+        // Mark as done processing after a delay to prevent rapid re-processing
         processingTimeoutRef.current = setTimeout(() => {
           isProcessingRef.current = false;
           processingTimeoutRef.current = null;
-        }, 100);
+        }, 200); // Increased debounce time for mobile stability
       }
     };
 
-    checkLock();
+    // Debounce the check to handle rapid session ID changes on mobile
+    const debounceTimeout = setTimeout(() => {
+      checkLock();
+    }, 150); // 150ms debounce
 
-    // Cleanup timeout on unmount
+    // Cleanup timeout on unmount or re-run
     return () => {
       if (processingTimeoutRef.current) {
         clearTimeout(processingTimeoutRef.current);
         processingTimeoutRef.current = null;
+      }
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
       }
     };
   }, [screenplayId, user?.id, session?.id]);
@@ -166,7 +196,13 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       return;
     }
     
-    if (!screenplayId || !user?.id || !session?.id) {
+    if (!screenplayId || !user?.id) {
+      return;
+    }
+
+    // Don't acquire if we've had too many errors recently
+    if (errorCountRef.current >= 3) {
+      console.warn('[useEditorLock] Too many errors, skipping lock acquisition');
       return;
     }
 
@@ -175,8 +211,20 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       // Refresh lock status after acquiring
       const status = await getEditorLock(screenplayId);
       setLockStatus(status);
+      // Reset error count on success
+      errorCountRef.current = 0;
     } catch (error: any) {
       console.error('[useEditorLock] Failed to acquire lock:', error);
+      // Increment error count
+      errorCountRef.current += 1;
+      lastErrorTimeRef.current = Date.now();
+      
+      // If it's a 400 error, it might be a session ID issue
+      if (error.message?.includes('400') || error.message?.includes('Bad Request')) {
+        console.warn('[useEditorLock] 400 error on lock acquisition - likely session ID issue');
+        errorCountRef.current = 3; // Set to max to prevent immediate retry
+      }
+      
       // If it's a conflict error, update status to show locked
       if (error.message.includes('locked by another session')) {
         const status = await getEditorLock(screenplayId);
@@ -184,7 +232,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       }
       throw error;
     }
-  }, [screenplayId, user?.id, session?.id]);
+  }, [screenplayId, user?.id]);
 
   // Release lock
   const releaseLock = useCallback(async () => {
