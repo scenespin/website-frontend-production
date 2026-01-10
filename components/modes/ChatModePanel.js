@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -36,20 +36,68 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
     [state.messages]
   );
   
-  // Auto-scroll to bottom ONLY while streaming (so user can see new content)
-  // Once streaming stops, don't auto-scroll (allows copy/paste without chat jumping)
-  // Use throttling to prevent "vibrating" effect during rapid text updates
+  // Auto-scroll behavior (standard chat UX like ChatGPT/Claude):
+  // 1. Scroll immediately when user sends message
+  // 2. Scroll immediately when streaming starts
+  // 3. Scroll during streaming as text updates (throttled)
+  // 4. Scroll when streaming completes
   const scrollTimeoutRef = useRef(null);
-  useEffect(() => {
-    if (state.isStreaming) {
-      // Clear any pending scroll
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      // Throttle scroll to every 200ms to prevent vibrating
+  const messagesContainerRef = useRef(null);
+  const previousMessageCountRef = useRef(0);
+  const previousStreamingStateRef = useRef(false);
+  
+  // Helper to scroll to bottom
+  const scrollToBottom = useCallback((immediate = false) => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    if (immediate) {
+      // Immediate scroll (no animation) for instant feedback
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+    } else {
+      // Throttle smooth scrolls to prevent vibrating during rapid updates
       scrollTimeoutRef.current = setTimeout(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 200);
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 150);
+    }
+  }, []);
+  
+  // Scroll when user sends a message (immediate)
+  useEffect(() => {
+    const currentCount = chatMessages.length;
+    const previousCount = previousMessageCountRef.current;
+    
+    if (currentCount > previousCount) {
+      const lastMessage = chatMessages[chatMessages.length - 1];
+      // New message added - if it's a user message, scroll immediately
+      if (lastMessage && lastMessage.role === 'user') {
+        scrollToBottom(true);
+      }
+    }
+    
+    previousMessageCountRef.current = currentCount;
+  }, [chatMessages, scrollToBottom]);
+  
+  // Scroll when streaming starts (immediate)
+  useEffect(() => {
+    const wasStreaming = previousStreamingStateRef.current;
+    const isStreaming = state.isStreaming;
+    
+    // Streaming just started (was false, now true)
+    if (!wasStreaming && isStreaming) {
+      // Scroll immediately to show the response starting
+      scrollToBottom(true);
+    }
+    
+    previousStreamingStateRef.current = isStreaming;
+  }, [state.isStreaming, scrollToBottom]);
+  
+  // Scroll during streaming as text updates (throttled)
+  useEffect(() => {
+    if (state.isStreaming && state.streamingText && state.streamingText.length > 0) {
+      // While streaming, scroll to bottom as text updates (throttled to prevent vibrating)
+      scrollToBottom(false);
     }
     
     return () => {
@@ -57,7 +105,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [state.isStreaming]); // Only trigger when streaming state changes, not on every text update
+  }, [state.streamingText, state.isStreaming, scrollToBottom]);
   
   // Story Advisor: No auto-send for selected text (consultation only)
   
@@ -475,7 +523,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       )}
       
       {/* Chat Messages Area - ChatGPT/Claude Style */}
-      <div className="flex-1 chat-scroll-container">
+      <div ref={messagesContainerRef} className="flex-1 chat-scroll-container overflow-y-auto">
         {chatMessages.map((message, index) => {
             const isUser = message.role === 'user';
             const isLastAssistantMessage = 
