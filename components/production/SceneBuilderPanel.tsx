@@ -1640,6 +1640,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const [isGenerating, setIsGenerating] = useState(false);
   const [workflowExecutionId, setWorkflowExecutionId] = useState<string | null>(null);
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus | null>(null);
+  
+  // 🔥 FIX: Track when we've intentionally cleared state to prevent immediate recovery
+  const hasIntentionallyClearedRef = useRef(false);
   const [showDecisionModal, setShowDecisionModal] = useState(false);
   const [showPartialDeliveryModal, setShowPartialDeliveryModal] = useState(false);
   const [partialDeliveryData, setPartialDeliveryData] = useState<any>(null);
@@ -1828,6 +1831,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     async function recoverWorkflowExecution() {
       // Only recover if we don't already have a workflowExecutionId
       if (workflowExecutionId || isGenerating) return;
+      
+      // 🔥 FIX: Don't recover if we've intentionally cleared the state (user started fresh)
+      // Recovery should only happen if user was in the middle of something and navigated away
+      if (hasIntentionallyClearedRef.current) {
+        hasIntentionallyClearedRef.current = false; // Reset flag after checking
+        return;
+      }
       
       try {
         // Check localStorage for saved workflowExecutionId
@@ -3013,6 +3023,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           // Open jobs drawer to show job progress
           setIsJobsDrawerOpen(true);
           
+          // 🔥 FIX: Set flag to prevent immediate recovery
+          hasIntentionallyClearedRef.current = true;
+          
           // Reset scene builder to initial state (fresh start)
           setCurrentStep(1);
           setWizardStep('analysis');
@@ -3023,6 +3036,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           setIsGenerating(false);
           setWorkflowExecutionId(null);
           setWorkflowStatus(null);
+          
+          // 🔥 FIX: Keep executionId in localStorage for recovery, but don't auto-recover immediately
+          // The Jobs panel will show the job status, and user can start a new workflow
+          // localStorage is only used for recovery if user navigates away and comes back
           
           // Clear context state for fresh start
           setEnabledShots([]);
