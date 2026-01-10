@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useMemo, useCallback, memo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback, memo, createPortal } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { useChatContext } from '@/contexts/ChatContext';
