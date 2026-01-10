@@ -247,10 +247,12 @@ export default function LocationAnglePackageSelector({
               onChange={(e) => {
                 const newAngle = e.target.value;
                 console.log('[LocationAnglePackageSelector] Compact dropdown changed:', { from: selectedAngle, to: newAngle });
-                onSelectedAngleChange?.(newAngle);
+                if (onSelectedAngleChange) {
+                  onSelectedAngleChange(newAngle);
+                }
               }}
               disabled={disabled}
-              className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+              className="select select-bordered w-full"
             >
               {ALL_ANGLES.map((angle) => (
                 <option key={angle.id} value={angle.id}>
@@ -400,10 +402,12 @@ export default function LocationAnglePackageSelector({
             onChange={(e) => {
               const newAngle = e.target.value;
               console.log('[LocationAnglePackageSelector] Dropdown changed:', { from: selectedAngle, to: newAngle });
-              onSelectedAngleChange?.(newAngle);
+              if (onSelectedAngleChange) {
+                onSelectedAngleChange(newAngle);
+              }
             }}
             disabled={disabled}
-            className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="select select-bordered w-full"
           >
             {ALL_ANGLES.map((angle) => (
               <option key={angle.id} value={angle.id}>
