@@ -32,8 +32,8 @@ export default function AgentDrawer({ children }) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile: Calculate height (30px collapsed - reduced to minimize editor overlap)
-  const mobileHeight = isDrawerOpen ? height : 30;
+  // Mobile: Calculate height (40px collapsed)
+  const mobileHeight = isDrawerOpen ? height : 40;
 
   // Desktop: Fixed width
   const desktopWidth = isDrawerOpen ? 480 : 0;
