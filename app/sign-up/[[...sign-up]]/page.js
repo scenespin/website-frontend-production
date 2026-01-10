@@ -154,7 +154,6 @@ export default function SignUpPage() {
                     </div>
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
                       <li>• Scene Builder (Beta)</li>
-                      <li>• Timeline editor</li>
                       <li>• Export 1080p & 4K videos</li>
                     </ul>
                   </div>
@@ -218,7 +217,6 @@ export default function SignUpPage() {
                     <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-white">All features unlocked</strong>
-                      <p className="text-sm text-gray-400">58 AI workflows, timeline editor, screenplay tools, Hollywood transitions</p>
                     </div>
                   </li>
                 </ul>
