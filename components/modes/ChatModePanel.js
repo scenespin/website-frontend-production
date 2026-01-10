@@ -393,7 +393,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       if (isInsufficientCredits) {
         // Friendly, encouraging message with CTA
         errorMessage = 'You\'re out of credits! Add more to continue chatting.';
-        userFriendlyMessage = '💡 **You\'re all out of credits!**\n\nNo worries — you can easily add more credits to keep getting help with your screenplay. [Add Credits →](/dashboard)\n\nOnce you\'ve topped up, just send your message again and I\'ll be ready to help! ✨';
+        userFriendlyMessage = '💡 **You\'re all out of credits!**\n\nNo worries — you can easily add more credits to keep getting help with your screenplay. [Add Credits →](/dashboard)\n\nOnce you\'ve topped up, just send your message again and I\'ll be ready to help!';
         toast.error(errorMessage, { duration: 6000 });
       } else if (isOverloaded || isRateLimit) {
         errorMessage = 'AI service is temporarily overloaded. Please try again in a moment.';
