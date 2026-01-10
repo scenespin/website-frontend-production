@@ -228,8 +228,19 @@ const ChatContext = createContext(undefined);
 
 export function ChatProvider({ children, initialContext = null }) {
   const { user, isSignedIn } = useUser();
+  
+  // Load saved model selection from localStorage on initialization
+  const getInitialModel = () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('story-advisor-selected-model');
+      if (saved) return saved;
+    }
+    return initialState.selectedModel;
+  };
+  
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
+    selectedModel: getInitialModel(),
     sceneContext: initialContext || null
   });
   const hasLoadedFromStorage = useRef(false);
@@ -346,6 +357,10 @@ export function ChatProvider({ children, initialContext = null }) {
   
   const setModel = useCallback((model) => {
     dispatch({ type: 'SET_MODEL', payload: model });
+    // Save model selection to localStorage
+    if (typeof window !== 'undefined' && model) {
+      localStorage.setItem('story-advisor-selected-model', model);
+    }
   }, []);
   
   // Input actions
