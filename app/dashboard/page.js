@@ -23,7 +23,10 @@ import {
   TrendingUp,
   Trash2,
   Settings,
-  MoreVertical
+  MoreVertical,
+  Users,
+  MapPin,
+  Package
 } from 'lucide-react';
 import CreditWidget from '@/components/billing/CreditWidget';
 import LowCreditBanner from '@/components/billing/LowCreditBanner';
@@ -51,6 +54,14 @@ export default function Dashboard() {
   const [recentVideos, setRecentVideos] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [currentScreenplayId, setCurrentScreenplayId] = useState(null);
+  // Entity counts for current screenplay
+  const [entityCounts, setEntityCounts] = useState({
+    characters: 0,
+    locations: 0,
+    assets: 0,
+    videos: 0,
+    loading: false
+  });
   // Feature 0130: Use screenplayId (not projectId) for consistency
   const [deletingScreenplayId, setDeletingScreenplayId] = useState(null);
   const [editingScreenplayId, setEditingScreenplayId] = useState(null);
@@ -837,14 +848,46 @@ export default function Dashboard() {
                 <span className="text-xs text-base-content/60 leading-tight">projects</span>
               </div>
             </div>
-            {recentVideos.length > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-                <Video className="w-4 h-4 text-accent" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-base-content leading-tight">{recentVideos.length}</span>
-                  <span className="text-xs text-base-content/60 leading-tight">videos</span>
-                </div>
-              </div>
+            {/* Entity counts - only show when current screenplay exists */}
+            {currentScreenplayId && (
+              <>
+                {entityCounts.characters > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                    <Users className="w-4 h-4 text-primary" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.characters}</span>
+                      <span className="text-xs text-base-content/60 leading-tight">characters</span>
+                    </div>
+                  </div>
+                )}
+                {entityCounts.locations > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                    <MapPin className="w-4 h-4 text-accent" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.locations}</span>
+                      <span className="text-xs text-base-content/60 leading-tight">locations</span>
+                    </div>
+                  </div>
+                )}
+                {entityCounts.assets > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                    <Package className="w-4 h-4 text-primary" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.assets}</span>
+                      <span className="text-xs text-base-content/60 leading-tight">assets</span>
+                    </div>
+                  </div>
+                )}
+                {entityCounts.videos > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                    <Video className="w-4 h-4 text-accent" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.videos}</span>
+                      <span className="text-xs text-base-content/60 leading-tight">videos</span>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
