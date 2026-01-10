@@ -64,8 +64,8 @@ export default function AgentDrawer({ children }) {
     previousMessageCount.current = currentMessageCount;
   }, [state.messages, isMobile, isDrawerOpen, height]);
 
-  // Mobile: Calculate height (40px collapsed)
-  const mobileHeight = isDrawerOpen ? height : 40;
+  // Mobile: Calculate height (50px collapsed)
+  const mobileHeight = isDrawerOpen ? height : 50;
 
   // Desktop: Fixed width
   const desktopWidth = isDrawerOpen ? 480 : 0;

@@ -272,8 +272,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile: Calculate height (40px collapsed)
-  const currentMobileHeight = isOpen ? mobileHeight : 40;
+  // Mobile: Calculate height (50px collapsed)
+  const currentMobileHeight = isOpen ? mobileHeight : 50;
 
   // Handle drag gestures (MOBILE ONLY) - EXACT same as AgentDrawer
   const handleDragStart = (clientY: number) => {

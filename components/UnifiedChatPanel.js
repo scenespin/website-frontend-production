@@ -246,21 +246,28 @@ function LLMModelSelector() {
     }
   }, [isOpen]);
   
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (works with portal)
   useEffect(() => {
+    if (!isOpen) return;
+    
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-          buttonRef.current && !buttonRef.current.contains(event.target)) {
+      // Check if click is outside both the dropdown and the button
+      const clickedDropdown = dropdownRef.current && dropdownRef.current.contains(event.target);
+      const clickedButton = buttonRef.current && buttonRef.current.contains(event.target);
+      
+      if (!clickedDropdown && !clickedButton) {
         setIsOpen(false);
       }
     };
     
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
+    // Use capture phase to catch events before they bubble
+    document.addEventListener('mousedown', handleClickOutside, true);
+    document.addEventListener('touchstart', handleClickOutside, true);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      document.removeEventListener('touchstart', handleClickOutside, true);
+    };
   }, [isOpen]);
   
   // Memoize providers array to prevent new array reference on every render
