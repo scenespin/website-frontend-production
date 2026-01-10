@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { X, Plus, Settings, ArrowRight } from 'lucide-react';
+import { X } from 'lucide-react';
 import { api } from '@/lib/api';
-import QuickPurchaseModal from './QuickPurchaseModal';
-import AutoRechargeModal from './AutoRechargeModal';
 
 const LOW_CREDIT_THRESHOLD = 500;
 const NEW_USER_THRESHOLD_HOURS = 48; // Show welcome message for accounts < 48 hours old
@@ -14,8 +12,6 @@ export default function LowCreditBanner() {
   const { user } = useUser();
   const [credits, setCredits] = useState(null);
   const [dismissed, setDismissed] = useState(false);
-  const [showQuickPurchase, setShowQuickPurchase] = useState(false);
-  const [showAutoRecharge, setShowAutoRecharge] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,22 +47,13 @@ export default function LowCreditBanner() {
     }
   };
 
-  const handlePurchaseSuccess = () => {
-    fetchCredits();
-    setShowQuickPurchase(false);
-  };
-
-  const handleAutoRechargeSuccess = () => {
-    fetchCredits();
-    setShowAutoRecharge(false);
-  };
 
   // Get status dot color and border color based on credit level
   const getStatusColor = (creditBalance) => {
-    if (creditBalance >= 50) return { dot: 'bg-emerald-500', border: 'border-emerald-500' };
-    if (creditBalance >= 30) return { dot: 'bg-yellow-500', border: 'border-yellow-500' };
-    if (creditBalance >= 15) return { dot: 'bg-orange-500', border: 'border-orange-500' };
-    return { dot: 'bg-red-500', border: 'border-red-500' };
+    if (creditBalance >= 50) return { dot: 'bg-emerald-500', border: 'border-emerald-500', topBorder: 'border-emerald-500/30' };
+    if (creditBalance >= 30) return { dot: 'bg-yellow-500', border: 'border-yellow-500', topBorder: 'border-yellow-500/30' };
+    if (creditBalance >= 15) return { dot: 'bg-orange-500', border: 'border-orange-500', topBorder: 'border-orange-500/30' };
+    return { dot: 'bg-red-500', border: 'border-red-500', topBorder: 'border-red-500/30' };
   };
 
   // Determine if this is a new user (account < 48 hours old with 50 credits)
@@ -96,44 +83,28 @@ export default function LowCreditBanner() {
     const statusColor = getStatusColor(credits);
     return (
       <>
-        <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t border-r border-emerald-500/20 rounded-lg px-4 py-3 mb-6`} style={{ borderTopColor: 'rgba(220, 20, 60, 0.4)' }}>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1">
+        <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t ${statusColor.topBorder} border-r border-emerald-500/20 rounded-lg px-3 py-2 mb-6`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 flex-1">
               <div className={`w-3 h-3 rounded-full ${statusColor.dot} flex-shrink-0`} />
               <div className="flex-1">
-                <div className="font-semibold text-emerald-400 text-base">
+                <div className="font-semibold text-emerald-400 text-sm">
                   {credits?.toLocaleString() || '50'} Credits Ready
                 </div>
-                <div className="text-sm text-base-content/70 mt-0.5">
+                <div className="text-xs text-base-content/70 mt-0.5">
                   Start creating with Story Advisor & AI writing agents
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowQuickPurchase(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                <ArrowRight className="w-4 h-4" />
-                Start Creating
-              </button>
-              <button
-                onClick={handleDismiss}
-                className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
-                aria-label="Dismiss"
-              >
-                <X className="w-4 h-4 text-base-content/60" />
-              </button>
-            </div>
+            <button
+              onClick={handleDismiss}
+              className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4 text-base-content/60" />
+            </button>
           </div>
         </div>
-
-        <QuickPurchaseModal
-          isOpen={showQuickPurchase}
-          onClose={() => setShowQuickPurchase(false)}
-          onSuccess={handlePurchaseSuccess}
-          currentCredits={credits}
-        />
       </>
     );
   }
@@ -143,44 +114,28 @@ export default function LowCreditBanner() {
     const statusColor = getStatusColor(credits);
     return (
       <>
-        <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t border-r border-emerald-500/20 rounded-lg px-4 py-3 mb-6`} style={{ borderTopColor: 'rgba(220, 20, 60, 0.4)' }}>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1">
+        <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t ${statusColor.topBorder} border-r border-emerald-500/20 rounded-lg px-3 py-2 mb-6`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 flex-1">
               <div className={`w-3 h-3 rounded-full ${statusColor.dot} flex-shrink-0`} />
               <div className="flex-1">
-                <div className="font-semibold text-emerald-400 text-base">
+                <div className="font-semibold text-emerald-400 text-sm">
                   Great news! Your screenwriting tools are completely free
                 </div>
-                <div className="text-sm text-base-content/70 mt-0.5">
+                <div className="text-xs text-base-content/70 mt-0.5">
                   Write, edit, and format scripts with no credits. Add credits to unlock AI generation features.
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowQuickPurchase(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add Credits
-              </button>
-              <button
-                onClick={handleDismiss}
-                className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
-                aria-label="Dismiss"
-              >
-                <X className="w-4 h-4 text-base-content/60" />
-              </button>
-            </div>
+            <button
+              onClick={handleDismiss}
+              className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4 text-base-content/60" />
+            </button>
           </div>
         </div>
-
-        <QuickPurchaseModal
-          isOpen={showQuickPurchase}
-          onClose={() => setShowQuickPurchase(false)}
-          onSuccess={handlePurchaseSuccess}
-          currentCredits={credits}
-        />
       </>
     );
   }
@@ -215,59 +170,28 @@ export default function LowCreditBanner() {
 
   return (
     <>
-      <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t border-r border-emerald-500/20 rounded-lg px-4 py-3 mb-6`} style={{ borderTopColor: 'rgba(220, 20, 60, 0.4)' }}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1">
+      <div className={`bg-emerald-500/10 border-l-4 ${statusColor.border} border-t ${statusColor.topBorder} border-r border-emerald-500/20 rounded-lg px-3 py-2 mb-6`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 flex-1">
             <div className={`w-3 h-3 rounded-full ${statusColor.dot} flex-shrink-0`} />
             <div className="flex-1">
-              <div className="font-semibold text-emerald-400 text-base">
+              <div className="font-semibold text-emerald-400 text-sm">
                 {progressiveMsg.title}
               </div>
-              <div className="text-sm text-base-content/70 mt-0.5">
+              <div className="text-xs text-base-content/70 mt-0.5">
                 {progressiveMsg.message}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowQuickPurchase(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add More Credits
-            </button>
-            <button
-              onClick={() => setShowAutoRecharge(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-base-200 hover:bg-base-300 text-base-content rounded-lg text-sm font-medium transition-colors border border-base-300"
-            >
-              <Settings className="w-4 h-4" />
-              Set Up Auto-Recharge
-            </button>
-            <button
-              onClick={handleDismiss}
-              className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
-              aria-label="Dismiss"
-            >
-              <X className="w-4 h-4 text-base-content/60" />
-            </button>
-          </div>
+          <button
+            onClick={handleDismiss}
+            className="p-1 hover:bg-emerald-500/20 rounded transition-colors flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4 text-base-content/60" />
+          </button>
         </div>
       </div>
-
-      {/* Modals */}
-      <QuickPurchaseModal
-        isOpen={showQuickPurchase}
-        onClose={() => setShowQuickPurchase(false)}
-        onSuccess={handlePurchaseSuccess}
-        currentCredits={credits}
-      />
-
-      <AutoRechargeModal
-        isOpen={showAutoRecharge}
-        onClose={() => setShowAutoRecharge(false)}
-        onSuccess={handleAutoRechargeSuccess}
-        currentSettings={null}
-      />
     </>
   );
 }
