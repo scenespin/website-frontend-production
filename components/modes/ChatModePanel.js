@@ -39,27 +39,33 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
   // Auto-scroll behavior (standard chat UX like ChatGPT/Claude):
   // 1. Scroll immediately when user sends message
   // 2. Scroll immediately when streaming starts
-  // 3. Scroll during streaming as text updates (throttled)
+  // 3. Scroll continuously during streaming (throttled via RAF loop)
   // 4. Scroll when streaming completes
   const scrollTimeoutRef = useRef(null);
-  const messagesContainerRef = useRef(null);
+  const animationFrameRef = useRef(null);
   const previousMessageCountRef = useRef(0);
   const previousStreamingStateRef = useRef(false);
+  const lastScrollTimeRef = useRef(0);
   
-  // Helper to scroll to bottom
+  // Helper to scroll to bottom (unified scroll function)
   const scrollToBottom = useCallback((immediate = false) => {
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
+    if (!messagesEndRef.current) return;
     
     if (immediate) {
       // Immediate scroll (no animation) for instant feedback
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+      lastScrollTimeRef.current = Date.now();
     } else {
-      // Throttle smooth scrolls to prevent vibrating during rapid updates
+      // Throttle smooth scrolls to prevent excessive calls
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
       scrollTimeoutRef.current = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 150);
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          lastScrollTimeRef.current = Date.now();
+        }
+      }, 100);
     }
   }, []);
   
@@ -94,42 +100,45 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
   }, [state.isStreaming, scrollToBottom]);
   
   // Continuous scroll during streaming (follows text as it streams)
+  // Uses requestAnimationFrame for smooth, performant scrolling
   useEffect(() => {
     if (!state.isStreaming) {
+      // Clean up animation frame when streaming stops
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
       return;
     }
     
     // Set up continuous scrolling while streaming
-    let animationFrameId = null;
-    let lastScrollTime = 0;
-    const scrollInterval = 50; // Scroll every 50ms during streaming
+    // Throttle to ~100ms intervals to balance smoothness and performance
+    const SCROLL_INTERVAL_MS = 100;
     
     const scrollLoop = () => {
       const now = Date.now();
-      if (now - lastScrollTime >= scrollInterval) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        lastScrollTime = now;
+      // Only scroll if enough time has passed (throttle)
+      if (now - lastScrollTimeRef.current >= SCROLL_INTERVAL_MS) {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          lastScrollTimeRef.current = now;
+        }
       }
-      animationFrameId = requestAnimationFrame(scrollLoop);
+      // Continue the loop while streaming
+      animationFrameRef.current = requestAnimationFrame(scrollLoop);
     };
     
     // Start the scroll loop
-    animationFrameId = requestAnimationFrame(scrollLoop);
+    animationFrameRef.current = requestAnimationFrame(scrollLoop);
     
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
+      // Cleanup: cancel animation frame on unmount or when streaming stops
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
   }, [state.isStreaming]);
-  
-  // Also scroll immediately when streaming text changes (for instant updates)
-  useEffect(() => {
-    if (state.isStreaming && state.streamingText && state.streamingText.length > 0) {
-      // Immediate scroll on text update (in addition to continuous scroll)
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, [state.streamingText, state.isStreaming]);
   
   // Story Advisor: No auto-send for selected text (consultation only)
   
