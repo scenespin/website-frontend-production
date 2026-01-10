@@ -658,7 +658,7 @@ export default function FountainEditor({
                         width: '100%',
                         margin: 0,
                         padding: 'var(--space-6)',
-                        paddingBottom: isMobile && !isDrawerOpen ? 'calc(var(--space-6) + 50px)' : 'var(--space-6)',
+                        paddingBottom: isMobile && !isDrawerOpen ? 'calc(var(--space-6) + 80px)' : 'var(--space-6)',
                         fontSize: `${state.fontSize}px`,
                         fontFamily: 'var(--font-mono)',
                         lineHeight: '1.625',
