@@ -174,10 +174,12 @@ export default function CreditWidget() {
           {/* Credit Balance */}
           <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
             <Zap className="w-4 h-4 text-cinema-red" />
-            <span className="text-sm font-semibold text-base-content">
-              {credits?.toLocaleString() || '0'}
-            </span>
-            <span className="text-xs text-base-content/60">credits</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-base-content leading-tight">
+                {credits?.toLocaleString() || '0'}
+              </span>
+              <span className="text-xs text-base-content/60 leading-tight">credits</span>
+            </div>
           </div>
 
           {/* Add Credits Button */}
