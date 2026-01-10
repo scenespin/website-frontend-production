@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { X, Loader2, Sparkles, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
+import { X, Loader2, Wand2, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { api } from '@/lib/api';
@@ -870,7 +870,7 @@ export default function RewriteModal({
                             </>
                           ) : (
                             <>
-                              <Sparkles className="h-4 w-4" />
+                              <Wand2 className="h-4 w-4" />
                               <span>Rewrite</span>
                             </>
                           )}
