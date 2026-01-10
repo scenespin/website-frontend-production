@@ -65,18 +65,15 @@ export function GenerateWardrobeTab({
   // Step 3: Clothing Images (Virtual Try-On)
   const [clothingImages, setClothingImages] = useState<Array<{ file: File; preview: string; s3Key?: string; presignedUrl?: string }>>([]);
 
-  // Step 3.5: Pose Package Selection
-  const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
-  
-  // 🔥 Feature 0190: Single pose selection for pose packages
-  const [selectedPoseId, setSelectedPoseId] = useState<string>('front-facing');
-  
   // Step 4: Style Template + Custom Prompt
   const [selectedStyleTemplate, setSelectedStyleTemplate] = useState<string>('');
   const [customPrompt, setCustomPrompt] = useState<string>('');
 
   // Step 5: Pose Package
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
+  
+  // 🔥 Feature 0190: Single pose selection for pose packages
+  const [selectedPoseId, setSelectedPoseId] = useState<string>('front-facing');
   const [isUploadingClothing, setIsUploadingClothing] = useState(false);
   const clothingFileInputRef = useRef<HTMLInputElement>(null);
   
