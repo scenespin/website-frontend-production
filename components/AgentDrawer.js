@@ -140,7 +140,7 @@ export default function AgentDrawer({ children }) {
                   e.stopPropagation();
                   openDrawer();
                 }}
-                className="text-xs font-medium text-base-content"
+                className="w-full h-full text-xs font-medium text-base-content"
               >
                 Story Advisor
               </button>
