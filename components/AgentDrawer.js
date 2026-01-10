@@ -16,11 +16,9 @@ export default function AgentDrawer({ children }) {
   const { isDrawerOpen, closeDrawer, openDrawer } = useDrawer();
   const { state } = useChatContext();
   const [isMobile, setIsMobile] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
   const previousMessageCount = useRef(0);
-  const userResizedHeight = useRef(null); // Store user's manual resize preference
   
   // Calculate default height: 60% of screen
   const getDefaultHeight = () => {
@@ -42,42 +40,6 @@ export default function AgentDrawer({ children }) {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Keyboard detection (mobile only)
-  useEffect(() => {
-    if (!isMobile || typeof window === 'undefined' || !isDrawerOpen) {
-      setKeyboardHeight(0);
-      return;
-    }
-    
-    const detectKeyboard = () => {
-      const windowHeight = window.innerHeight;
-      const visualHeight = window.visualViewport?.height || windowHeight;
-      
-      // Keyboard is likely open if visual viewport shrinks significantly
-      if (visualHeight < windowHeight - 150) {
-        const calculatedKeyboardHeight = windowHeight - visualHeight;
-        setKeyboardHeight(Math.min(calculatedKeyboardHeight, 400));
-      } else {
-        setKeyboardHeight(0);
-      }
-    };
-    
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', detectKeyboard);
-      window.visualViewport.addEventListener('scroll', detectKeyboard);
-      detectKeyboard();
-      
-      return () => {
-        window.visualViewport?.removeEventListener('resize', detectKeyboard);
-        window.visualViewport?.removeEventListener('scroll', detectKeyboard);
-      };
-    } else {
-      window.addEventListener('resize', detectKeyboard);
-      detectKeyboard();
-      return () => window.removeEventListener('resize', detectKeyboard);
-    }
-  }, [isMobile, isDrawerOpen]);
 
   // Auto-expand on response: If height < 70%, expand to 70% when new message arrives
   // Only auto-expand if user hasn't manually resized (respects user preference)
@@ -105,12 +67,8 @@ export default function AgentDrawer({ children }) {
     previousMessageCount.current = currentMessageCount;
   }, [state.messages, isMobile, isDrawerOpen, height]);
 
-  // Mobile: Calculate height (40px collapsed, or adjusted for keyboard)
-  // When keyboard is open, ensure drawer doesn't get covered
-  const baseHeight = isDrawerOpen ? height : 40;
-  const mobileHeight = isDrawerOpen && keyboardHeight > 0
-    ? Math.min(baseHeight, window.innerHeight - keyboardHeight - 20) // 20px padding above keyboard
-    : baseHeight;
+  // Mobile: Calculate height (40px collapsed)
+  const mobileHeight = isDrawerOpen ? height : 40;
 
   // Desktop: Fixed width
   const desktopWidth = isDrawerOpen ? 480 : 0;
@@ -138,8 +96,6 @@ export default function AgentDrawer({ children }) {
       }
 
       setHeight(newHeight);
-      // Remember user's manual resize preference
-      userResizedHeight.current = newHeight;
     };
 
     const handleMouseMove = (e) => {
