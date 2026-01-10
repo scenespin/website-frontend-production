@@ -522,7 +522,7 @@ export default function Navigation() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-3 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors min-h-[44px]"
                 >
-                  <FolderOpen className="w-4 h-4 text-cinema-red flex-shrink-0" />
+                  <span className="text-lg flex-shrink-0">📌</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-base-content/60 mb-0.5">Current</div>
                     <div className="text-sm font-semibold text-base-content truncate">
@@ -542,7 +542,7 @@ export default function Navigation() {
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-cinema-red hover:bg-cinema-red/90 rounded-lg border border-cinema-red/30 transition-colors min-h-[44px]"
                 >
-                  <FolderOpen className="w-4 h-4 text-base-content flex-shrink-0" />
+                  <span className="text-lg flex-shrink-0">📌</span>
                   <div className="flex-1 text-left">
                     <div className="text-xs text-base-content/80 mb-0.5">No active screenplay</div>
                     <div className="text-sm font-semibold text-base-content">Create one now</div>

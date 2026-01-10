@@ -890,18 +890,22 @@ export default function Dashboard() {
           </div>
           
           {/* Compact Stats Bar */}
-          <div className="flex items-center gap-4">
-            <CreditWidget />
-            <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-              <FileText className="w-4 h-4 text-primary" />
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-base-content leading-tight">{projects.length}</span>
-                <span className="text-xs text-base-content/60 leading-tight">projects</span>
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+            {/* Main Stats Row - Credits, Top Up, Projects */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <CreditWidget />
+              <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                <FileText className="w-4 h-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-base-content leading-tight">{projects.length}</span>
+                  <span className="text-xs text-base-content/60 leading-tight">projects</span>
+                </div>
               </div>
             </div>
-            {/* Entity counts - only show when current screenplay exists */}
+            
+            {/* Entity counts - only show when current screenplay exists, stack vertically on mobile */}
             {currentScreenplayId && (
-              <>
+              <div className="flex flex-wrap items-center gap-2 md:gap-4">
                 {entityCounts.characters > 0 && (
                   <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
                     <Users className="w-4 h-4 text-primary" />
@@ -938,7 +942,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>
