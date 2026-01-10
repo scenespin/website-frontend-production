@@ -556,7 +556,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       )}
       
       {/* Chat Messages Area - ChatGPT/Claude Style */}
-      <div ref={messagesContainerRef} className="flex-1 chat-scroll-container overflow-y-auto">
+      <div className="flex-1 chat-scroll-container overflow-y-auto">
         {chatMessages.map((message, index) => {
             const isUser = message.role === 'user';
             const isLastAssistantMessage = 
