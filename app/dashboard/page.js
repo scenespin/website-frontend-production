@@ -857,7 +857,7 @@ export default function Dashboard() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm shadow-sm hover:shadow-md min-h-[40px]"
             >
               <Plus className="w-4 h-4" />
-              New Project
+              Create
             </button>
           </div>
           
