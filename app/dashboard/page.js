@@ -929,7 +929,7 @@ export default function Dashboard() {
                     <Package className="w-4 h-4 text-primary" />
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.assets}</span>
-                      <span className="text-xs text-base-content/60 leading-tight">assets</span>
+                      <span className="text-xs text-base-content/60 leading-tight">props</span>
                     </div>
                   </div>
                 )}
