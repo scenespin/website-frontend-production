@@ -53,6 +53,10 @@ export default function Navigation() {
   const [credits, setCredits] = useState(null);
   const [loadingCredits, setLoadingCredits] = useState(true);
   
+  // Current screenplay state
+  const [currentScreenplayName, setCurrentScreenplayName] = useState(null);
+  const [loadingScreenplay, setLoadingScreenplay] = useState(false);
+  
   // Get current screenplay ID from URL, context, or Clerk metadata/localStorage
   // Priority: URL > Context > Clerk metadata > localStorage
   const urlScreenplayId = searchParams?.get('project');
@@ -480,24 +484,42 @@ export default function Navigation() {
               </div>
             ))}
             
-            {/* Mobile Credit Balance (Clickable) */}
+            {/* Mobile Current Screenplay Banner */}
             <div className="pt-2 border-t border-base-300 space-y-2">
-              {/* Credit Balance - Clickable (goes to dashboard) */}
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors min-h-[44px]"
-              >
-                <Coins className="w-4 h-4 text-cinema-gold" />
-                <span className="text-sm font-semibold">
-                  {loadingCredits ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  ) : (
-                    <span className="tabular-nums">{credits?.toLocaleString() || '0'}</span>
-                  )}
-                </span>
-                <span className="text-xs text-base-content/60">credits</span>
-              </Link>
+              {currentScreenplayId && currentScreenplayName ? (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 bg-base-100 rounded-lg border border-base-300 hover:bg-base-200 transition-colors min-h-[44px]"
+                >
+                  <FileText className="w-4 h-4 text-cinema-red flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-base-content/60 mb-0.5">Current</div>
+                    <div className="text-sm font-semibold text-base-content truncate">
+                      {loadingScreenplay ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        currentScreenplayName
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowCreateModal(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-cinema-red hover:bg-cinema-red/90 rounded-lg border border-cinema-red/30 transition-colors min-h-[44px]"
+                >
+                  <FileText className="w-4 h-4 text-base-content flex-shrink-0" />
+                  <div className="flex-1 text-left">
+                    <div className="text-xs text-base-content/80 mb-0.5">No active screenplay</div>
+                    <div className="text-sm font-semibold text-base-content">Create one now</div>
+                  </div>
+                  <Plus className="w-4 h-4 text-base-content flex-shrink-0" />
+                </button>
+              )}
             </div>
 
             {/* NEW: Mobile Account Section */}
