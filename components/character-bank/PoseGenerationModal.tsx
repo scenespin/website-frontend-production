@@ -41,6 +41,7 @@ export default function PoseGenerationModal({
   
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
+  const [selectedPoseId, setSelectedPoseId] = useState<string>('front-facing'); // 🔥 Feature 0190: Single pose selection
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard'); // 🔥 NEW: Quality tier
   const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
   const [typicalClothing, setTypicalClothing] = useState<string | undefined>(undefined);
@@ -426,7 +427,8 @@ export default function PoseGenerationModal({
       // 🔥 FIX: Ensure providerId is set - if empty string, use undefined to trigger quality-based fallback
       const finalProviderId = providerId && providerId.trim() !== '' ? providerId : undefined;
       
-      const requestBody = {
+      // 🔥 Feature 0190: Handle single pose mode
+      const requestBody: any = {
         characterName,
         packageId: packageId,
         quality: quality, // 🔥 NEW: Quality tier
@@ -439,6 +441,11 @@ export default function PoseGenerationModal({
         clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined, // 🔥 NEW: Clothing references
         additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
       };
+      
+      // Add selectedPoseId for single mode
+      if (packageId === 'single') {
+        requestBody.selectedPoseId = selectedPoseId;
+      }
       
       console.log('[PoseGeneration] 🔥 Calling API:', apiUrl);
       console.log('[PoseGeneration] Request body:', {
@@ -532,6 +539,7 @@ export default function PoseGenerationModal({
   const handleReset = () => {
     setStep('package');
     setSelectedPackageId('standard');
+    setSelectedPoseId('front-facing'); // 🔥 Feature 0190: Reset single pose selection
     setTypicalClothing(undefined);
     setHeadshotFile(null);
     setHeadshotPreview('');
@@ -764,6 +772,9 @@ export default function PoseGenerationModal({
                       }}
                       selectedPackageId={selectedPackageId}
                       creditsPerImage={selectedModel?.credits || 20} // 🔥 NEW: Pass selected model's credits
+                      // 🔥 Feature 0190: Single pose selection
+                      selectedPoseId={selectedPoseId}
+                      onSelectedPoseIdChange={setSelectedPoseId}
                     />
                   </div>
                   
@@ -771,11 +782,11 @@ export default function PoseGenerationModal({
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={handleGenerate}
-                      disabled={isGenerating || !selectedPackageId || !canGenerateAssets}
+                      disabled={isGenerating || !selectedPackageId || !canGenerateAssets || (selectedPackageId === 'single' && !selectedPoseId)}
                       className="px-6 py-3 bg-primary text-primary-content rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title={!canGenerateAssets ? 'Only Directors and Producers can generate poses. Writers can upload reference images in the Creation section.' : undefined}
                     >
-                      {isGenerating ? 'Generating...' : 'Generate Pose Package'}
+                      {isGenerating ? 'Generating...' : selectedPackageId === 'single' ? 'Generate Single Pose' : 'Generate Pose Package'}
                     </button>
                     {!canGenerateAssets && (
                       <p className="text-xs text-center mt-2" style={{ color: '#9CA3AF' }}>

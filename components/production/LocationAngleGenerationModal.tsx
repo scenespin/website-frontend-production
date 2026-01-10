@@ -39,6 +39,7 @@ export default function LocationAngleGenerationModal({
   
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
+  const [selectedAngle, setSelectedAngle] = useState<string>('front'); // 🔥 Feature 0190: Single angle selection
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard'); // 🔥 NEW: Quality tier
   const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>(''); // 🔥 NEW: Time of day
@@ -169,19 +170,28 @@ export default function LocationAngleGenerationModal({
         ? (weather.trim() as 'sunny' | 'cloudy' | 'rainy' | 'snowy')
         : 'sunny'; // Default to sunny (clear)
 
-      const requestBody = {
+      // 🔥 Feature 0190: Handle single angle mode
+      const requestBody: any = {
         locationProfile: locationProfile,
         packageId: selectedPackageId,
         quality: quality,
         providerId: providerId, // Required - no fallback
         additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
+        timeOfDay: defaultTimeOfDay,
+        weather: defaultWeather
+      };
+      
+      // Add selectedAngle for single mode, or angles array for package mode
+      if (selectedPackageId === 'single') {
+        requestBody.selectedAngle = selectedAngle;
+      } else {
         // Apply timeOfDay and weather to all angles in the package (with defaults)
-        angles: packageToAngles[selectedPackageId].map(angle => ({
+        requestBody.angles = packageToAngles[selectedPackageId].map(angle => ({
           angle: angle.angle,
           timeOfDay: defaultTimeOfDay,
           weather: defaultWeather
-        }))
-      };
+        }));
+      }
       
       console.log('[LocationAngleGeneration] Request body:', {
         quality,
@@ -254,6 +264,7 @@ export default function LocationAngleGenerationModal({
   const handleReset = () => {
     setStep('package');
     setSelectedPackageId('standard');
+    setSelectedAngle('front'); // 🔥 Feature 0190: Reset single angle selection
     setQuality('standard'); // Reset quality
     setTimeOfDay(''); // Reset timeOfDay
     setWeather(''); // Reset weather
@@ -398,6 +409,9 @@ export default function LocationAngleGenerationModal({
                       }}
                       selectedPackageId={selectedPackageId}
                       creditsPerImage={models.find(m => m.id === providerId)?.credits || 20} // 🔥 NEW: Pass selected model's credits
+                      // 🔥 Feature 0190: Single angle selection
+                      selectedAngle={selectedAngle}
+                      onSelectedAngleChange={setSelectedAngle}
                     />
                   </div>
                   
@@ -463,10 +477,10 @@ export default function LocationAngleGenerationModal({
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={handleGenerate}
-                      disabled={isGenerating || !selectedPackageId || !providerId}
+                      disabled={isGenerating || !selectedPackageId || !providerId || (selectedPackageId === 'single' && !selectedAngle)}
                       className="px-6 py-3 bg-primary text-primary-content rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isGenerating ? 'Generating...' : 'Generate Angle Package'}
+                      {isGenerating ? 'Generating...' : selectedPackageId === 'single' ? 'Generate Single Angle' : 'Generate Angle Package'}
                     </button>
                   </div>
                 </div>
@@ -477,10 +491,13 @@ export default function LocationAngleGenerationModal({
                 <div className="text-center py-12">
                   <Loader2 className="w-16 h-16 text-blue-500 mx-auto mb-4 animate-spin" />
                   <h3 className="text-xl font-bold text-gray-100 mb-2">
-                    Generating Angle Variations...
+                    {selectedPackageId === 'single' ? 'Generating Single Angle...' : 'Generating Angle Variations...'}
                   </h3>
                   <p className="text-base-content/60">
-                    Creating {packageToAngles[selectedPackageId]?.length || 0} angle variations for {locationName}
+                    {selectedPackageId === 'single' 
+                      ? `Creating ${selectedAngle} angle for ${locationName}`
+                      : `Creating ${packageToAngles[selectedPackageId]?.length || 0} angle variations for ${locationName}`
+                    }
                   </p>
                   {jobId && (
                     <p className="text-sm text-base-content/50 mt-4">

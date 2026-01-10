@@ -4,11 +4,13 @@
  * 
  * UI for selecting location background packages
  * Backgrounds are close-up views of specific areas within a location
+ * 
+ * 🔥 Feature 0190: Added 'single' package option for single image generation
  */
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Zap, Star, Image } from 'lucide-react';
+import { Check, Sparkles, Zap, Star, Image, ImageIcon } from 'lucide-react';
 
 interface LocationBackgroundPackage {
   id: string;
@@ -21,6 +23,18 @@ interface LocationBackgroundPackage {
   discount: number;
 }
 
+// All available background types for single selection
+const ALL_BACKGROUND_TYPES = [
+  { id: 'window', name: 'Window', description: 'View through or near a window' },
+  { id: 'wall', name: 'Wall', description: 'Plain or decorated wall surface' },
+  { id: 'doorway', name: 'Doorway', description: 'Door or entrance frame' },
+  { id: 'texture', name: 'Texture', description: 'Detailed surface texture close-up' },
+  { id: 'corner-detail', name: 'Corner Detail', description: 'Architectural corner elements' },
+  { id: 'furniture', name: 'Furniture', description: 'Furniture or fixture background' },
+  { id: 'architectural-feature', name: 'Architectural Feature', description: 'Unique architectural elements' },
+  { id: 'custom', name: 'Custom', description: 'Custom background with description prompt' }
+];
+
 interface LocationBackgroundPackageSelectorProps {
   locationName: string;
   onSelectPackage: (packageId: string) => void;
@@ -28,15 +42,20 @@ interface LocationBackgroundPackageSelectorProps {
   disabled?: boolean;
   creditsPerImage?: number; // Credits per image from selected model
   compact?: boolean; // 🔥 NEW: Compact mode for smaller display
+  // 🔥 Feature 0190: Single background type selection
+  selectedBackgroundType?: string;
+  onSelectedBackgroundTypeChange?: (backgroundTypeId: string) => void;
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
+  single: ImageIcon,
   basic: Zap,
   standard: Check,
   premium: Star
 };
 
 const PACKAGE_COLORS: Record<string, string> = {
+  single: 'from-emerald-500 to-emerald-600',
   basic: 'from-base-content/50 to-base-content/40',
   standard: 'from-blue-500 to-blue-600',
   premium: 'from-purple-500 to-purple-600'
@@ -48,7 +67,10 @@ export default function LocationBackgroundPackageSelector({
   selectedPackageId,
   disabled = false,
   creditsPerImage = 20, // Default to 20 credits if not provided
-  compact = false // 🔥 NEW: Compact mode
+  compact = false, // 🔥 NEW: Compact mode
+  // 🔥 Feature 0190: Single background type selection
+  selectedBackgroundType,
+  onSelectedBackgroundTypeChange
 }: LocationBackgroundPackageSelectorProps) {
   
   // Calculate credits dynamically based on selected model
@@ -57,6 +79,17 @@ export default function LocationBackgroundPackageSelector({
   };
   
   const [packages, setPackages] = useState<LocationBackgroundPackage[]>([
+    // 🔥 Feature 0190: Single package option
+    {
+      id: 'single',
+      name: 'Single Background',
+      backgroundTypes: [], // Dynamic - user selects one
+      credits: creditsPerImage, // 1 × creditsPerImage
+      consistencyRating: 50,
+      description: 'Generate one specific background',
+      bestFor: ['Quick test', 'Specific need'],
+      discount: 0
+    },
     {
       id: 'basic',
       name: 'Basic Package',
@@ -96,9 +129,16 @@ export default function LocationBackgroundPackageSelector({
     };
     setPackages(prev => prev.map(pkg => ({
       ...pkg,
-      credits: calculateCredits(pkg.backgroundTypes.length)
+      credits: pkg.id === 'single' ? creditsPerImage : calculateCredits(pkg.backgroundTypes.length)
     })));
   }, [creditsPerImage]);
+  
+  // 🔥 Feature 0190: Auto-select first background type when single package is selected
+  useEffect(() => {
+    if (selectedPackageId === 'single' && !selectedBackgroundType && onSelectedBackgroundTypeChange) {
+      onSelectedBackgroundTypeChange('window'); // Default to window
+    }
+  }, [selectedPackageId, selectedBackgroundType, onSelectedBackgroundTypeChange]);
   
   if (compact) {
     // Compact horizontal layout
@@ -196,6 +236,27 @@ export default function LocationBackgroundPackageSelector({
             );
           })}
         </div>
+        
+        {/* 🔥 Feature 0190: Single background type dropdown */}
+        {selectedPackageId === 'single' && (
+          <div className="mt-4 p-4 bg-[#1A1A1A] border border-[#3F3F46] rounded-lg">
+            <label className="block text-xs font-medium text-white mb-2">
+              Select Background Type:
+            </label>
+            <select
+              value={selectedBackgroundType || 'window'}
+              onChange={(e) => onSelectedBackgroundTypeChange?.(e.target.value)}
+              disabled={disabled}
+              className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+            >
+              {ALL_BACKGROUND_TYPES.map((bgType) => (
+                <option key={bgType.id} value={bgType.id}>
+                  {bgType.name} - {bgType.description}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     );
   }
@@ -330,6 +391,30 @@ export default function LocationBackgroundPackageSelector({
           );
         })}
       </div>
+      
+      {/* 🔥 Feature 0190: Single background type dropdown */}
+      {selectedPackageId === 'single' && (
+        <div className="p-4 bg-base-300/50 border border-base-content/20 rounded-lg">
+          <label className="block text-sm font-medium text-base-content mb-2">
+            Select Background Type:
+          </label>
+          <select
+            value={selectedBackgroundType || 'window'}
+            onChange={(e) => onSelectedBackgroundTypeChange?.(e.target.value)}
+            disabled={disabled}
+            className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {ALL_BACKGROUND_TYPES.map((bgType) => (
+              <option key={bgType.id} value={bgType.id}>
+                {bgType.name} - {bgType.description}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-base-content/50">
+            Generate a single background image. Great for trying out a specific type before committing to a full package.
+          </p>
+        </div>
+      )}
       
       {/* Info Box */}
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">

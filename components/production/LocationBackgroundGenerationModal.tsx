@@ -63,6 +63,7 @@ export default function LocationBackgroundGenerationModal({
   
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
+  const [selectedBackgroundType, setSelectedBackgroundType] = useState<string>('window'); // 🔥 Feature 0190: Single background type selection
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard');
   const [providerId, setProviderId] = useState<string>('');
   const [sourceType, setSourceType] = useState<'reference-images' | 'angle-variations'>('reference-images');
@@ -136,6 +137,7 @@ export default function LocationBackgroundGenerationModal({
   
   // Calculate total credits
   const backgroundCounts: Record<string, number> = {
+    single: 1, // 🔥 Feature 0190: Single background
     basic: 3,
     standard: 6,
     premium: 9
@@ -172,7 +174,8 @@ export default function LocationBackgroundGenerationModal({
 
       const apiUrl = `/api/location-bank/${locationId}/generate-backgrounds`;
       
-      const requestBody = {
+      // 🔥 Feature 0190: Handle single background type mode
+      const requestBody: any = {
         packageId: selectedPackageId,
         quality: quality,
         providerId: providerId,
@@ -184,6 +187,11 @@ export default function LocationBackgroundGenerationModal({
         projectId: projectId,
         screenplayId: projectId
       };
+      
+      // Add selectedBackgroundType for single mode
+      if (selectedPackageId === 'single') {
+        requestBody.selectedBackgroundType = selectedBackgroundType;
+      }
       
       console.log('[LocationBackgroundGeneration] Request body:', requestBody);
       
@@ -248,6 +256,7 @@ export default function LocationBackgroundGenerationModal({
   const handleReset = () => {
     setStep('package');
     setSelectedPackageId('standard');
+    setSelectedBackgroundType('window'); // 🔥 Feature 0190: Reset single background type selection
     setQuality('standard');
     setSourceType('reference-images');
     setSelectedAngleId('');
@@ -466,6 +475,9 @@ export default function LocationBackgroundGenerationModal({
                       }}
                       selectedPackageId={selectedPackageId}
                       creditsPerImage={creditsPerImage}
+                      // 🔥 Feature 0190: Single background type selection
+                      selectedBackgroundType={selectedBackgroundType}
+                      onSelectedBackgroundTypeChange={setSelectedBackgroundType}
                     />
                   </div>
                   
@@ -540,7 +552,7 @@ export default function LocationBackgroundGenerationModal({
                   {/* Generate Button */}
                   <button
                     onClick={handleGenerate}
-                    disabled={isGenerating || !providerId || !selectedPackageId}
+                    disabled={isGenerating || !providerId || !selectedPackageId || (selectedPackageId === 'single' && !selectedBackgroundType)}
                     className="w-full py-3 bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:bg-base-content/20 disabled:text-base-content/40 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
                     {isGenerating ? (
@@ -548,6 +560,8 @@ export default function LocationBackgroundGenerationModal({
                         <Loader2 className="w-5 h-5 animate-spin" />
                         Generating...
                       </>
+                    ) : selectedPackageId === 'single' ? (
+                      'Generate Single Background'
                     ) : (
                       'Generate Backgrounds'
                     )}

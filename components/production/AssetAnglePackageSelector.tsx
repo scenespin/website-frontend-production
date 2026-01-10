@@ -4,11 +4,13 @@
  * 
  * UI for selecting asset angle packages
  * Similar to LocationAnglePackageSelector but for assets
+ * 
+ * 🔥 Feature 0190: Added 'single' package option for single image generation
  */
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Zap, Star, Package } from 'lucide-react';
+import { Check, Sparkles, Zap, Star, Package, ImageIcon } from 'lucide-react';
 
 interface AssetAnglePackage {
   id: string;
@@ -22,6 +24,20 @@ interface AssetAnglePackage {
   discount: number;
 }
 
+// All available asset angle types for single selection
+const ALL_ANGLES = [
+  { id: 'front', name: 'Front View', description: 'Direct front-facing view of the asset' },
+  { id: 'side', name: 'Side View', description: 'Profile view from the side' },
+  { id: 'top', name: 'Top View', description: 'Bird\'s eye view from above' },
+  { id: 'back', name: 'Back View', description: 'View from behind the asset' },
+  { id: 'detail', name: 'Detail', description: 'Close-up of specific features' },
+  { id: 'context', name: 'Context', description: 'Asset in typical usage context' },
+  { id: 'close-up', name: 'Close-up', description: 'Extreme close-up shot' },
+  { id: 'lighting-variation', name: 'Lighting Variation', description: 'Same angle with different lighting' },
+  { id: 'context-variation', name: 'Context Variation', description: 'Different usage context' },
+  { id: 'aerial', name: 'Aerial', description: 'Elevated angle from above' }
+];
+
 interface AssetAnglePackageSelectorProps {
   assetName: string;
   onSelectPackage: (packageId: string) => void;
@@ -29,15 +45,20 @@ interface AssetAnglePackageSelectorProps {
   disabled?: boolean;
   quality?: 'standard' | 'high-quality'; // Quality tier affects pricing
   creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
+  // 🔥 Feature 0190: Single angle selection
+  selectedAngle?: string;
+  onSelectedAngleChange?: (angleId: string) => void;
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
+  single: ImageIcon,
   basic: Zap,
   standard: Check,
   premium: Star
 };
 
 const PACKAGE_COLORS: Record<string, string> = {
+  single: 'from-emerald-500 to-emerald-600',
   basic: 'from-base-content/50 to-base-content/40',
   standard: 'from-blue-500 to-blue-600',
   premium: 'from-purple-500 to-purple-600'
@@ -49,7 +70,10 @@ export default function AssetAnglePackageSelector({
   selectedPackageId,
   disabled = false,
   quality = 'standard',
-  creditsPerImage = 20 // 🔥 NEW: Default to 20 credits if not provided
+  creditsPerImage = 20, // 🔥 NEW: Default to 20 credits if not provided
+  // 🔥 Feature 0190: Single angle selection
+  selectedAngle,
+  onSelectedAngleChange
 }: AssetAnglePackageSelectorProps) {
   
   // 🔥 NEW: Calculate credits dynamically based on selected model
@@ -58,6 +82,18 @@ export default function AssetAnglePackageSelector({
   };
   
   const [packages, setPackages] = useState<AssetAnglePackage[]>([
+    // 🔥 Feature 0190: Single package option
+    {
+      id: 'single',
+      name: 'Single Angle',
+      angles: [], // Dynamic - user selects one
+      credits: creditsPerImage, // 1 × creditsPerImage
+      credits4K: creditsPerImage,
+      consistencyRating: 50,
+      description: 'Generate one specific angle',
+      bestFor: ['Quick test', 'Specific need'],
+      discount: 0
+    },
     {
       id: 'basic',
       name: 'Basic Package',
@@ -100,10 +136,17 @@ export default function AssetAnglePackageSelector({
     };
     setPackages(prev => prev.map(pkg => ({
       ...pkg,
-      credits: calculateCredits(pkg.angles.length),
-      credits4K: calculateCredits(pkg.angles.length) // Same calculation for both tiers now
+      credits: pkg.id === 'single' ? creditsPerImage : calculateCredits(pkg.angles.length),
+      credits4K: pkg.id === 'single' ? creditsPerImage : calculateCredits(pkg.angles.length)
     })));
   }, [creditsPerImage]);
+  
+  // 🔥 Feature 0190: Auto-select first angle when single package is selected
+  useEffect(() => {
+    if (selectedPackageId === 'single' && !selectedAngle && onSelectedAngleChange) {
+      onSelectedAngleChange('front'); // Default to front view
+    }
+  }, [selectedPackageId, selectedAngle, onSelectedAngleChange]);
   
   return (
     <div className="space-y-6">
@@ -220,6 +263,30 @@ export default function AssetAnglePackageSelector({
           );
         })}
       </div>
+      
+      {/* 🔥 Feature 0190: Single angle dropdown */}
+      {selectedPackageId === 'single' && (
+        <div className="p-4 bg-base-300/50 border border-base-content/20 rounded-lg">
+          <label className="block text-sm font-medium text-base-content mb-2">
+            Select Angle:
+          </label>
+          <select
+            value={selectedAngle || 'front'}
+            onChange={(e) => onSelectedAngleChange?.(e.target.value)}
+            disabled={disabled}
+            className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {ALL_ANGLES.map((angle) => (
+              <option key={angle.id} value={angle.id}>
+                {angle.name} - {angle.description}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-base-content/50">
+            Generate a single angle image. Great for trying out a specific view before committing to a full package.
+          </p>
+        </div>
+      )}
       
       {/* Info Box */}
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">

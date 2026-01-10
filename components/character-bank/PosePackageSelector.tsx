@@ -4,11 +4,13 @@
  * 
  * UI for selecting and generating character pose packages
  * Part of Feature 0098: Complete Character & Location Consistency System
+ * 
+ * 🔥 Feature 0190: Added 'single' package option for single image generation
  */
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Zap, Star, Crown, MessageCircle } from 'lucide-react';
+import { Check, Sparkles, Zap, Star, Crown, MessageCircle, ImageIcon } from 'lucide-react';
 
 interface PosePackage {
   id: string;
@@ -21,6 +23,41 @@ interface PosePackage {
   discount: number;
 }
 
+// All available pose types for single selection
+const ALL_POSES = [
+  // Basic Angles
+  { id: 'front-facing', name: 'Front Facing', category: 'angle', description: 'Direct front view, symmetrical' },
+  { id: 'three-quarter-left', name: 'Three-Quarter Left', category: 'angle', description: '3/4 view from left side' },
+  { id: 'three-quarter-right', name: 'Three-Quarter Right', category: 'angle', description: '3/4 view from right side' },
+  { id: 'side-profile-left', name: 'Side Profile Left', category: 'angle', description: 'Full side profile, left' },
+  { id: 'side-profile-right', name: 'Side Profile Right', category: 'angle', description: 'Full side profile, right' },
+  { id: 'back-view', name: 'Back View', category: 'angle', description: 'View from behind' },
+  // Full Body
+  { id: 'full-body-front', name: 'Full Body Front', category: 'angle', description: 'Full body, front facing' },
+  { id: 'full-body-three-quarter', name: 'Full Body 3/4', category: 'angle', description: 'Full body, 3/4 angle' },
+  { id: 'full-body-side', name: 'Full Body Side', category: 'angle', description: 'Full body, side view' },
+  // Actions
+  { id: 'walking-forward', name: 'Walking Forward', category: 'action', description: 'Mid-walk, moving forward' },
+  { id: 'running', name: 'Running', category: 'action', description: 'Running pose, dynamic' },
+  { id: 'sitting', name: 'Sitting', category: 'action', description: 'Sitting position' },
+  { id: 'standing-casual', name: 'Standing Casual', category: 'action', description: 'Casual standing pose' },
+  { id: 'standing-confident', name: 'Standing Confident', category: 'action', description: 'Confident stance' },
+  // Emotions
+  { id: 'neutral-expression', name: 'Neutral Expression', category: 'emotion', description: 'Neutral, calm face' },
+  { id: 'smiling', name: 'Smiling', category: 'emotion', description: 'Genuine smile' },
+  { id: 'serious', name: 'Serious', category: 'emotion', description: 'Serious expression' },
+  { id: 'determined', name: 'Determined', category: 'emotion', description: 'Determined look' },
+  // Camera Angles
+  { id: 'high-angle', name: 'High Angle', category: 'camera', description: 'Shot from above' },
+  { id: 'low-angle', name: 'Low Angle', category: 'camera', description: 'Shot from below' },
+  { id: 'close-up', name: 'Close-Up', category: 'camera', description: 'Face and shoulders' },
+  { id: 'extreme-close-up', name: 'Extreme Close-Up', category: 'camera', description: 'Face only, tight framing' },
+  // Dialogue
+  { id: 'close-up-three-quarter', name: 'Close-Up 3/4', category: 'camera', description: 'Face and shoulders, 3/4 angle' },
+  { id: 'close-up-profile', name: 'Close-Up Profile', category: 'camera', description: 'Face and shoulders, side profile' },
+  { id: 'close-up-front-facing', name: 'Close-Up Front Facing', category: 'camera', description: 'Best for dialogue/lip sync' }
+];
+
 interface PosePackageSelectorProps {
   characterName: string;
   onSelectPackage: (packageId: string) => void;
@@ -28,9 +65,13 @@ interface PosePackageSelectorProps {
   disabled?: boolean;
   creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
   compact?: boolean; // 🔥 NEW: Compact mode for smaller display
+  // 🔥 Feature 0190: Single pose selection
+  selectedPoseId?: string;
+  onSelectedPoseIdChange?: (poseId: string) => void;
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
+  single: ImageIcon,
   basic: Zap,
   standard: Check,
   premium: Star,
@@ -39,6 +80,7 @@ const PACKAGE_ICONS: Record<string, any> = {
 };
 
 const PACKAGE_COLORS: Record<string, string> = {
+  single: 'from-emerald-500 to-emerald-600',
   basic: 'from-base-content/50 to-base-content/40',
   standard: 'from-blue-500 to-blue-600',
   premium: 'from-purple-500 to-purple-600',
@@ -94,7 +136,10 @@ export default function PosePackageSelector({
   selectedPackageId,
   disabled = false,
   creditsPerImage = 20, // 🔥 NEW: Default to 20 credits if not provided
-  compact = false // 🔥 NEW: Compact mode
+  compact = false, // 🔥 NEW: Compact mode
+  // 🔥 Feature 0190: Single pose selection
+  selectedPoseId,
+  onSelectedPoseIdChange
 }: PosePackageSelectorProps) {
   
   // 🔥 NEW: Calculate credits dynamically based on selected model
@@ -103,6 +148,17 @@ export default function PosePackageSelector({
   };
   
   const [packages, setPackages] = useState<PosePackage[]>([
+    // 🔥 Feature 0190: Single package option
+    {
+      id: 'single',
+      name: 'Single Pose',
+      poses: [], // Dynamic - user selects one
+      credits: creditsPerImage, // 1 × creditsPerImage
+      consistencyRating: 50,
+      description: 'Generate one specific pose',
+      bestFor: ['Quick test', 'Specific need'],
+      discount: 0
+    },
     {
       id: 'basic',
       name: 'Basic Package',
@@ -165,9 +221,16 @@ export default function PosePackageSelector({
     };
     setPackages(prev => prev.map(pkg => ({
       ...pkg,
-      credits: calculateCredits(pkg.poses.length)
+      credits: pkg.id === 'single' ? creditsPerImage : calculateCredits(pkg.poses.length)
     })));
   }, [creditsPerImage]);
+  
+  // 🔥 Feature 0190: Auto-select first pose when single package is selected
+  useEffect(() => {
+    if (selectedPackageId === 'single' && !selectedPoseId && onSelectedPoseIdChange) {
+      onSelectedPoseIdChange('front-facing'); // Default to front facing
+    }
+  }, [selectedPackageId, selectedPoseId, onSelectedPoseIdChange]);
   
   if (compact) {
     // Compact horizontal layout
@@ -401,6 +464,30 @@ export default function PosePackageSelector({
           );
         })}
       </div>
+      
+      {/* 🔥 Feature 0190: Single pose dropdown */}
+      {selectedPackageId === 'single' && (
+        <div className="p-4 bg-base-300/50 border border-base-content/20 rounded-lg">
+          <label className="block text-sm font-medium text-base-content mb-2">
+            Select Pose:
+          </label>
+          <select
+            value={selectedPoseId || 'front-facing'}
+            onChange={(e) => onSelectedPoseIdChange?.(e.target.value)}
+            disabled={disabled}
+            className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {ALL_POSES.map((pose) => (
+              <option key={pose.id} value={pose.id}>
+                {pose.name} - {pose.description}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-base-content/50">
+            Generate a single pose image. Great for trying out a specific view before committing to a full package.
+          </p>
+        </div>
+      )}
       
       {/* Info Box */}
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">

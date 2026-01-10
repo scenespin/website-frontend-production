@@ -4,11 +4,13 @@
  * 
  * UI for selecting location angle packages
  * Part of Feature 0098: Complete Character & Location Consistency System
+ * 
+ * 🔥 Feature 0190: Added 'single' package option for single image generation
  */
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Zap, Star, MapPin } from 'lucide-react';
+import { Check, Sparkles, Zap, Star, MapPin, ImageIcon } from 'lucide-react';
 
 interface LocationAnglePackage {
   id: string;
@@ -21,6 +23,21 @@ interface LocationAnglePackage {
   discount: number;
 }
 
+// All available angle types for single selection
+const ALL_ANGLES = [
+  { id: 'front', name: 'Front View', description: 'Direct front-facing view of the location' },
+  { id: 'corner', name: 'Corner View', description: '45° corner view showing depth and two sides' },
+  { id: 'wide', name: 'Wide Shot', description: 'Wide-angle establishing shot from distance' },
+  { id: 'low-angle', name: 'Low Angle', description: 'Dramatic low angle shot looking up' },
+  { id: 'entrance', name: 'Entrance', description: 'View from doorway or entry point' },
+  { id: 'foreground-framing', name: 'Foreground Framing', description: 'Location framed by foreground elements' },
+  { id: 'aerial', name: 'Aerial', description: 'Bird\'s eye view from above' },
+  { id: 'pov', name: 'POV', description: 'First-person point of view at eye level' },
+  { id: 'detail', name: 'Detail', description: 'Close-up of architectural features' },
+  { id: 'atmospheric', name: 'Atmospheric', description: 'Moody shot with fog, mist, or haze' },
+  { id: 'golden-hour', name: 'Golden Hour', description: 'Warm golden lighting at sunrise/sunset' }
+];
+
 interface LocationAnglePackageSelectorProps {
   locationName: string;
   onSelectPackage: (packageId: string) => void;
@@ -28,15 +45,20 @@ interface LocationAnglePackageSelectorProps {
   disabled?: boolean;
   creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
   compact?: boolean; // 🔥 NEW: Compact mode for smaller display
+  // 🔥 Feature 0190: Single angle selection
+  selectedAngle?: string;
+  onSelectedAngleChange?: (angleId: string) => void;
 }
 
 const PACKAGE_ICONS: Record<string, any> = {
+  single: ImageIcon,
   basic: Zap,
   standard: Check,
   premium: Star
 };
 
 const PACKAGE_COLORS: Record<string, string> = {
+  single: 'from-emerald-500 to-emerald-600',
   basic: 'from-base-content/50 to-base-content/40',
   standard: 'from-blue-500 to-blue-600',
   premium: 'from-purple-500 to-purple-600'
@@ -48,7 +70,10 @@ export default function LocationAnglePackageSelector({
   selectedPackageId,
   disabled = false,
   creditsPerImage = 20, // 🔥 NEW: Default to 20 credits if not provided
-  compact = false // 🔥 NEW: Compact mode
+  compact = false, // 🔥 NEW: Compact mode
+  // 🔥 Feature 0190: Single angle selection
+  selectedAngle,
+  onSelectedAngleChange
 }: LocationAnglePackageSelectorProps) {
   
   // 🔥 NEW: Calculate credits dynamically based on selected model
@@ -57,6 +82,17 @@ export default function LocationAnglePackageSelector({
   };
   
   const [packages, setPackages] = useState<LocationAnglePackage[]>([
+    // 🔥 Feature 0190: Single package option
+    {
+      id: 'single',
+      name: 'Single Angle',
+      angles: [], // Dynamic - user selects one
+      credits: creditsPerImage, // 1 × creditsPerImage
+      consistencyRating: 50,
+      description: 'Generate one specific angle',
+      bestFor: ['Quick test', 'Specific need'],
+      discount: 0
+    },
     {
       id: 'basic',
       name: 'Basic Package',
@@ -96,9 +132,16 @@ export default function LocationAnglePackageSelector({
     };
     setPackages(prev => prev.map(pkg => ({
       ...pkg,
-      credits: calculateCredits(pkg.angles.length)
+      credits: pkg.id === 'single' ? creditsPerImage : calculateCredits(pkg.angles.length)
     })));
   }, [creditsPerImage]);
+  
+  // 🔥 Feature 0190: Auto-select first angle when single package is selected
+  useEffect(() => {
+    if (selectedPackageId === 'single' && !selectedAngle && onSelectedAngleChange) {
+      onSelectedAngleChange('front'); // Default to front view
+    }
+  }, [selectedPackageId, selectedAngle, onSelectedAngleChange]);
   
   if (compact) {
     // Compact horizontal layout
@@ -190,6 +233,27 @@ export default function LocationAnglePackageSelector({
             );
           })}
         </div>
+        
+        {/* 🔥 Feature 0190: Single angle dropdown */}
+        {selectedPackageId === 'single' && (
+          <div className="mt-4 p-4 bg-[#1A1A1A] border border-[#3F3F46] rounded-lg">
+            <label className="block text-xs font-medium text-white mb-2">
+              Select Angle:
+            </label>
+            <select
+              value={selectedAngle || 'front'}
+              onChange={(e) => onSelectedAngleChange?.(e.target.value)}
+              disabled={disabled}
+              className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+            >
+              {ALL_ANGLES.map((angle) => (
+                <option key={angle.id} value={angle.id}>
+                  {angle.name} - {angle.description}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     );
   }
@@ -318,6 +382,30 @@ export default function LocationAnglePackageSelector({
           );
         })}
       </div>
+      
+      {/* 🔥 Feature 0190: Single angle dropdown */}
+      {selectedPackageId === 'single' && (
+        <div className="p-4 bg-base-300/50 border border-base-content/20 rounded-lg">
+          <label className="block text-sm font-medium text-base-content mb-2">
+            Select Angle:
+          </label>
+          <select
+            value={selectedAngle || 'front'}
+            onChange={(e) => onSelectedAngleChange?.(e.target.value)}
+            disabled={disabled}
+            className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {ALL_ANGLES.map((angle) => (
+              <option key={angle.id} value={angle.id}>
+                {angle.name} - {angle.description}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-base-content/50">
+            Generate a single angle image. Great for trying out a specific view before committing to a full package.
+          </p>
+        </div>
+      )}
       
       {/* Info Box */}
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">

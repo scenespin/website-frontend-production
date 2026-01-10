@@ -39,6 +39,7 @@ export default function AssetAngleGenerationModal({
   
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
+  const [selectedAngle, setSelectedAngle] = useState<string>('front'); // 🔥 Feature 0190: Single angle selection
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard');
   const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
   const [additionalPrompt, setAdditionalPrompt] = useState<string>(''); // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
@@ -128,12 +129,18 @@ export default function AssetAngleGenerationModal({
         throw new Error('Please select a model before generating angles.');
       }
       
-      const requestBody = {
+      // 🔥 Feature 0190: Handle single angle mode
+      const requestBody: any = {
         packageId: selectedPackageId,
         quality: quality,
         providerId: providerId, // Required - no fallback
         additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
       };
+      
+      // Add selectedAngle for single mode
+      if (selectedPackageId === 'single') {
+        requestBody.selectedAngle = selectedAngle;
+      }
       
       console.log('[AssetAngleGeneration] Calling API:', apiUrl);
       console.log('[AssetAngleGeneration] Request body:', {
@@ -195,6 +202,7 @@ export default function AssetAngleGenerationModal({
   const handleReset = () => {
     setStep('package');
     setSelectedPackageId('standard');
+    setSelectedAngle('front'); // 🔥 Feature 0190: Reset single angle selection
     setQuality('standard');
     setAdditionalPrompt(''); // 🔥 NEW: Reset additional prompt
     setGenerationResult(null);
@@ -214,6 +222,7 @@ export default function AssetAngleGenerationModal({
   
   // Calculate angle count for selected package
   const packageAngleCounts: Record<string, number> = {
+    single: 1, // 🔥 Feature 0190: Single angle
     basic: 3,
     standard: 6,
     premium: 10
@@ -354,6 +363,9 @@ export default function AssetAngleGenerationModal({
                       selectedPackageId={selectedPackageId}
                       quality={quality}
                       creditsPerImage={models.find(m => m.id === providerId)?.credits || 20} // 🔥 NEW: Pass selected model's credits
+                      // 🔥 Feature 0190: Single angle selection
+                      selectedAngle={selectedAngle}
+                      onSelectedAngleChange={setSelectedAngle}
                     />
                   </div>
                   
@@ -391,10 +403,10 @@ export default function AssetAngleGenerationModal({
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={handleGenerate}
-                      disabled={isGenerating || !selectedPackageId || !providerId}
+                      disabled={isGenerating || !selectedPackageId || !providerId || (selectedPackageId === 'single' && !selectedAngle)}
                       className="px-6 py-3 bg-primary text-primary-content rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isGenerating ? 'Generating...' : 'Generate Angle Package'}
+                      {isGenerating ? 'Generating...' : selectedPackageId === 'single' ? 'Generate Single Angle' : 'Generate Angle Package'}
                     </button>
                   </div>
                 </div>
@@ -405,10 +417,13 @@ export default function AssetAngleGenerationModal({
                 <div className="text-center py-12">
                   <Loader2 className="w-16 h-16 text-blue-500 mx-auto mb-4 animate-spin" />
                   <h3 className="text-xl font-bold text-gray-100 mb-2">
-                    Generating Angle Variations...
+                    {selectedPackageId === 'single' ? 'Generating Single Angle...' : 'Generating Angle Variations...'}
                   </h3>
                   <p className="text-base-content/60">
-                    Creating {angleCount} angle variations for {assetName}
+                    {selectedPackageId === 'single' 
+                      ? `Creating ${selectedAngle} angle for ${assetName}`
+                      : `Creating ${angleCount} angle variations for ${assetName}`
+                    }
                   </p>
                   {jobId && (
                     <p className="text-sm text-base-content/50 mt-4">
