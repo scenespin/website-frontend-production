@@ -361,12 +361,16 @@ export function GenerateLocationTab({
           packageId: selectedAnglePackageId,
           quality: quality,
           providerId: providerId,
+          // 🔥 Feature 0190: Single angle selection
+          selectedAngle: selectedAnglePackageId === 'single' ? selectedAngle : undefined,
           additionalPrompt: additionalPrompt.trim() || undefined,
-          angles: packageToAngles[selectedAnglePackageId].map(angle => ({
-            angle: angle.angle,
-            timeOfDay: defaultTimeOfDay,
-            weather: defaultWeather
-          }))
+          angles: selectedAnglePackageId === 'single' 
+            ? [{ angle: selectedAngle, timeOfDay: defaultTimeOfDay, weather: defaultWeather }]
+            : packageToAngles[selectedAnglePackageId].map(angle => ({
+                angle: angle.angle,
+                timeOfDay: defaultTimeOfDay,
+                weather: defaultWeather
+              }))
         };
         
         const response = await fetch(apiUrl, {
@@ -416,6 +420,8 @@ export function GenerateLocationTab({
           sourceType: sourceType,
           selectedAngleId: sourceType === 'angle-variations' && selectedAngleId ? selectedAngleId : undefined, // Backward compatibility
           selectedAngleIds: sourceType === 'angle-variations' && selectedAngleIds.length > 0 ? selectedAngleIds : undefined, // NEW: Multi-select
+          // 🔥 Feature 0190: Single background type selection
+          selectedBackgroundType: selectedBackgroundPackageId === 'single' ? selectedBackgroundType : undefined,
           additionalPrompt: additionalPrompt.trim() || undefined,
           timeOfDay: defaultTimeOfDay,
           weather: defaultWeather,
