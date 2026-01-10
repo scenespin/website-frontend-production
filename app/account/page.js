@@ -73,8 +73,7 @@ export default function AccountPage() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    router.push('/');
+    await signOut({ redirectUrl: '/' });
   };
 
   if (!isLoaded) {

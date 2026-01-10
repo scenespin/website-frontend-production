@@ -81,7 +81,7 @@ export async function getCurrentUserInfo() {
 export async function signOut() {
     try {
         if (window.Clerk) {
-            await window.Clerk.signOut();
+            await window.Clerk.signOut({ redirectUrl: '/' });
         }
     } catch (error) {
         console.error('[API] Sign out failed:', error);

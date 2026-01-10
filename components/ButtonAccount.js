@@ -20,8 +20,7 @@ const ButtonAccount = () => {
 	const [isLoading, setIsLoading] = useState(false);
 
 	const handleSignOut = async () => {
-		await signOut();
-		router.push("/");
+		await signOut({ redirectUrl: '/' });
 	};
 
 	const handleBilling = async () => {
