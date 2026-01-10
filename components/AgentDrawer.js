@@ -112,9 +112,7 @@ export default function AgentDrawer({ children }) {
           <div
             className="w-full py-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing border-b border-cinema-red/20 relative transition-all duration-200"
             style={{
-              background: !isDrawerOpen 
-                ? 'linear-gradient(135deg, rgba(220, 20, 60, 0.15) 0%, rgba(220, 20, 60, 0.15) 100%)'
-                : 'var(--color-bg-tertiary)' // bg-base-300 equivalent
+              background: 'linear-gradient(135deg, rgba(220, 20, 60, 0.15) 0%, rgba(220, 20, 60, 0.15) 100%)'
             }}
             onMouseDown={(e) => handleDragStart(e.clientY)}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
