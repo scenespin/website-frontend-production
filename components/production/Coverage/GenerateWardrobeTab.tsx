@@ -295,7 +295,7 @@ export function GenerateWardrobeTab({
       }
 
       const apiUrl = `/api/projects/${screenplayId}/characters/${characterId}/generate-poses`;
-      const requestBody = {
+      const requestBody: any = {
         characterName, // Match original modal exactly (even if backend doesn't use it)
         packageId: selectedPackageId,
         quality: quality,
@@ -307,6 +307,11 @@ export function GenerateWardrobeTab({
         // Note: headshotUrl, screenplayContent, manualDescription are auto-handled by backend
         // (removed from UI per user request - backend populates automatically)
       };
+      
+      // 🔥 Feature 0190: Add selectedPoseId for single mode
+      if (selectedPackageId === 'single') {
+        requestBody.selectedPoseId = selectedPoseId;
+      }
 
       const response = await fetch(apiUrl, {
         method: 'POST',
