@@ -282,7 +282,7 @@ export default function AssetAnglePackageSelector({
               }
             }}
             disabled={disabled}
-            className="select select-bordered w-full"
+            className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {ALL_ANGLES.map((angle) => (
               <option key={angle.id} value={angle.id}>

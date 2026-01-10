@@ -258,7 +258,7 @@ export default function LocationBackgroundPackageSelector({
                 }
               }}
               disabled={disabled}
-              className="select select-bordered w-full"
+              className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
             >
               {ALL_BACKGROUND_TYPES.map((bgType) => (
                 <option key={bgType.id} value={bgType.id}>
@@ -421,7 +421,7 @@ export default function LocationBackgroundPackageSelector({
               }
             }}
             disabled={disabled}
-            className="select select-bordered w-full"
+            className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {ALL_BACKGROUND_TYPES.map((bgType) => (
               <option key={bgType.id} value={bgType.id}>
