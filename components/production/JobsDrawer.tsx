@@ -333,6 +333,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   
+  // 🔥 NEW: Smooth progress animation - CSS transitions handle the animation automatically
+  // The transition-all duration-[2000ms] on the progress bar creates a smooth 0% -> 50% transition
+  
   // Track which jobs we've already processed for credit refresh (avoid duplicates)
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
   // Track previous jobs state to prevent infinite loops
@@ -981,7 +984,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                     </div>
                     <div className="h-1 bg-[#1F1F1F] rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#DC143C] transition-all duration-500"
+                        className="h-full bg-[#DC143C] transition-all duration-[2000ms] ease-out"
                         style={{ width: `${job.progress}%` }}
                       />
                     </div>

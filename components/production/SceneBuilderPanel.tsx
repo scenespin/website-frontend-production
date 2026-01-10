@@ -934,6 +934,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // This prevents re-syncing the same data and breaking the loop
     if (enrichedPropsSignature === lastEnrichedPropsRef.current) {
       console.log('[SceneBuilderPanel] ⚠️ Skipping props sync - signature unchanged:', enrichedPropsSignature.substring(0, 100));
+      // Update lastDeps even when skipping to prevent false loop detection
+      runInfo.lastDeps = [enrichedPropsFromHook.length, baseProps.length, enrichedPropsIdsString, basePropsIdsString];
       return;
     }
     
@@ -969,10 +971,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // 🔥 FIX: Always use enriched props - they're the source of truth from Media Library
       contextActions.setSceneProps(enrichedPropsFromHook);
     });
-    // 🔥 FIX: Use stable dependency comparison - include enrichedPropsIdsString to detect when props change
+    // 🔥 FIX: Use stable dependency comparison - only use string signatures to prevent infinite loops
     // This prevents re-running when object references change but data is the same
     // Note: We use enrichedPropsIdsString instead of enrichedPropsFromHook to avoid infinite loops
-  }, [enrichedPropsFromHook.length, enrichedPropsIdsString, basePropsIdsString, contextActions]);
+    // Only re-run when IDs actually change, not when array references change
+  }, [enrichedPropsIdsString, basePropsIdsString, contextActions]);
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
@@ -2996,16 +2999,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           finalOutputs: []
         });
         
-        // 🔥 NEW: Show animation for a few seconds, then redirect to jobs drawer and reset scene builder
+        // 🔥 NEW: Show simple animation, then redirect to jobs drawer and reset scene builder
         setIsGenerating(true);
         
-        // Show success toast with animation
+        // Show success toast
         toast.success('🎬 Video generation started!', {
           description: 'Your videos are being generated. Check the Jobs panel for progress.',
-          duration: 3000
+          duration: 2000
         });
         
-        // Wait 2-3 seconds for animation, then redirect
+        // Wait 1.5 seconds for simple animation, then redirect
         setTimeout(() => {
           // Open jobs drawer to show job progress
           setIsJobsDrawerOpen(true);
@@ -3030,7 +3033,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           
           // Scroll to top
           window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 2500); // 2.5 second animation
+        }, 1500); // 1.5 second simple animation
       
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
@@ -3459,6 +3462,25 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       <div className="p-3 md:p-4 space-y-3 pb-20">
         {/* Content */}
         <div className="space-y-3">
+        {/* Simple animation when generating (before jobs drawer opens) */}
+        {isGenerating && !workflowStatus && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="flex flex-col items-center justify-center py-12"
+          >
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl">🎬</span>
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-[#FFFFFF] font-medium">Starting video generation...</p>
+            <p className="mt-1 text-xs text-[#808080]">Opening Jobs panel...</p>
+          </motion.div>
+        )}
+        
         {/* Scene Builder Form - Wizard Flow */}
         {!isGenerating && !workflowStatus && (
           <motion.div
@@ -4582,54 +4604,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         )}
         
         {/* Jobs Panel Integration - Replace legacy progress bar */}
-        {((isGenerating || workflowStatus) && workflowStatus) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-6"
-          >
-            <Card className="bg-[#141414] border-[#3F3F46]">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {workflowStatus.status === 'running' && (
-                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                    )}
-                    {workflowStatus.status === 'completed' && (
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    )}
-                    {workflowStatus.status === 'failed' && (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
-                    )}
-                    <div>
-                      <div className="font-semibold text-sm">
-                        {workflowStatus.status === 'running' && 'Generation in progress...'}
-                        {workflowStatus.status === 'completed' && 'Generation completed!'}
-                        {workflowStatus.status === 'failed' && 'Generation failed'}
-                        {workflowStatus.status === 'awaiting_user_decision' && 'Awaiting your decision'}
-                      </div>
-                      <div className="text-xs text-[#808080]">
-                        Step {workflowStatus.currentStep} of {workflowStatus.totalSteps} • {workflowStatus.totalCreditsUsed || 0} credits used
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setIsJobsDrawerOpen(true);
-                      // Auto-open jobs drawer to show job details
-                    }}
-                    className="border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1A1A1A]"
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    View in Jobs
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+        {/* 🔥 REMOVED: Loading screen - jobs panel handles progress display now */}
         
         {/* Generation History */}
         {!isGenerating && !workflowStatus && history.length > 0 && (
