@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Headphones, CheckCircle2, AlertCircle, Download, Play, Pause, Volume2, Clock, ExternalLink, Map } from 'lucide-react';
+import { X, Loader2, Headphones, CheckCircle2, AlertCircle, Download, Play, Pause, Volume2, Clock, ExternalLink } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useRouter } from 'next/navigation';
