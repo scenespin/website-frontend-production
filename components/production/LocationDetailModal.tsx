@@ -2002,7 +2002,7 @@ export function LocationDetailModal({
                     s3Key: av.s3Key,
                     imageUrl: av.imageUrl,
                     metadata: {
-                      viewName: av.metadata?.viewName || av.angle || 'default'
+                      viewName: (av.metadata as any)?.viewName || av.angle || 'default'
                     }
                   }))}
                   onComplete={async (result) => {
