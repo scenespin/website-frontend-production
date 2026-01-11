@@ -21,6 +21,12 @@ interface DirectTabBarProps {
 
 const DIRECT_TABS = [
   {
+    id: 'style-profiles' as DirectTab,
+    label: 'Style Profiles',
+    icon: Palette,
+    description: 'Analyze video styles for consistent generation',
+  },
+  {
     id: 'scene-builder' as DirectTab,
     label: 'Scene Builder',
     icon: Clapperboard,
@@ -31,12 +37,6 @@ const DIRECT_TABS = [
     label: 'Storyboard',
     icon: Film,
     description: 'Stitched scene videos & storyboard',
-  },
-  {
-    id: 'style-profiles' as DirectTab,
-    label: 'Style Profiles',
-    icon: Palette,
-    description: 'Analyze video styles for consistent generation',
   },
 ] as const;
 

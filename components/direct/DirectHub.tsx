@@ -27,16 +27,16 @@ export function DirectHub() {
   const screenplayId = screenplay.screenplayId;
   
   // State - sync with URL params
-  const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
+  const [activeTab, setActiveTab] = useState<DirectTab>('style-profiles');
   
   // Sync activeTab with URL params
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as DirectTab | null;
     
-    if (tabFromUrl && ['scene-builder', 'storyboard', 'style-profiles'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['style-profiles', 'scene-builder', 'storyboard'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     } else {
-      setActiveTab('scene-builder');
+      setActiveTab('style-profiles');
     }
   }, [searchParams]);
 
@@ -44,7 +44,7 @@ export function DirectHub() {
   const handleTabChange = (tab: DirectTab) => {
     setActiveTab(tab);
     const newUrl = new URL(window.location.href);
-    if (tab === 'scene-builder') {
+    if (tab === 'style-profiles') {
       newUrl.searchParams.delete('tab');
     } else {
       newUrl.searchParams.set('tab', tab);
