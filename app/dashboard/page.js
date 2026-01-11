@@ -889,23 +889,23 @@ export default function Dashboard() {
             </p>
           </div>
           
-          {/* Compact Stats Bar */}
-          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
-            {/* Main Stats Row - Credits, Top Up, Projects */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <CreditWidget />
-              <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-sm font-semibold text-base-content leading-tight">{projects.length}</span>
-                </div>
-                <span className="text-xs text-base-content/60 leading-tight text-center mt-0.5">projects</span>
+          {/* Compact Stats Bar - All cards in responsive flex container */}
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            {/* Credits Widget */}
+            <CreditWidget />
+            
+            {/* Projects */}
+            <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-sm font-semibold text-base-content leading-tight">{projects.length}</span>
               </div>
+              <span className="text-xs text-base-content/60 leading-tight text-center mt-0.5">projects</span>
             </div>
             
-            {/* Entity counts - only show when current screenplay exists, stack vertically on mobile */}
+            {/* Entity counts - only show when current screenplay exists */}
             {currentScreenplayId && (
-              <div className="flex flex-wrap items-center gap-2 md:gap-4">
+              <>
                 {entityCounts.characters > 0 && (
                   <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
                     <div className="flex items-center gap-2">
@@ -934,7 +934,7 @@ export default function Dashboard() {
                   </div>
                 )}
                 {entityCounts.videos > 0 && (
-                  <div className="flex flex-col px-4 py-2.5 bg-cinema-red/10 rounded-lg border border-cinema-red/30 min-h-[44px] w-full md:w-auto md:flex-shrink-0">
+                  <div className="flex flex-col px-4 py-2.5 bg-cinema-red/10 rounded-lg border border-cinema-red/30 min-h-[44px]">
                     <div className="flex items-center gap-2">
                       <span className="text-base flex-shrink-0">🎬</span>
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.videos}</span>
@@ -942,7 +942,7 @@ export default function Dashboard() {
                     <span className="text-xs text-base-content/70 leading-tight text-center mt-0.5">Total Videos</span>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </div>
