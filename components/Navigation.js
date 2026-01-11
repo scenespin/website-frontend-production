@@ -433,7 +433,7 @@ export default function Navigation() {
 
       {/* Mobile Navigation */}
       <div className="md:hidden bg-[#0A0A0A] border-b border-white/10">
-        <div className="flex items-center justify-between h-16 px-4">
+        <div className="flex items-center justify-between h-16 px-4 gap-1">
           {/* Logo */}
           <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
             <Image

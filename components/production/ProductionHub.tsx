@@ -265,8 +265,8 @@ export function ProductionHub({}: ProductionHubProps) {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen bg-[#0A0A0A]">
-        {/* Active Jobs Banner */}
-        {activeJobs > 0 && showJobsBanner && (
+        {/* Active Jobs Banner - Hidden on mobile */}
+        {false && activeJobs > 0 && showJobsBanner && (
           <div className="bg-blue-950 border-b border-blue-800 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Loader2 className="w-4 h-4 text-blue-400 animate-spin flex-shrink-0" />

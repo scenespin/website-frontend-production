@@ -210,7 +210,7 @@ export default function CreditWidget() {
 
         {/* Dropdown Menu */}
         {showDropdown && (
-          <div className="absolute right-0 top-full mt-2 w-64 bg-base-100 rounded-lg border border-base-300 shadow-xl z-50 overflow-hidden">
+          <div className="absolute right-0 md:right-0 left-auto md:left-auto top-full mt-2 w-64 bg-base-100 rounded-lg border border-base-300 shadow-xl z-50 overflow-hidden md:mr-0 mr-4">
             <div className="p-2">
               {/* Quick Purchase Options */}
               <button
