@@ -22,6 +22,7 @@ import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { GenerateAssetTab } from './Coverage/GenerateAssetTab';
+import { UploadAssetImagesTab } from './Coverage/UploadAssetImagesTab';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,6 +100,8 @@ export default function AssetDetailModal({
     return asset;
   }, [queryAssets, asset.id, asset]);
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'generate'>('references');
+  // 🔥 Feature 0192: Coverage tab for upload/generate
+  const [coverageTab, setCoverageTab] = useState<'upload' | 'generate' | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
@@ -812,20 +815,39 @@ export default function AssetDetailModal({
                       )}
                     </DropdownMenuItem>
                     <div className="border-t border-[#3F3F46] my-1"></div>
+                    {/* Upload Images */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setCoverageTab('upload');
+                        setActiveTab('references');
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        coverageTab === 'upload'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-white hover:bg-[#2A2A2A]'
+                      }`}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Images</span>
+                      {coverageTab === 'upload' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
                     {/* Generate Packages */}
                     <DropdownMenuItem
                       onClick={() => {
-                        handleGeneratePackages();
+                        setCoverageTab('generate');
+                        setActiveTab('references');
                       }}
                       className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        activeTab === 'generate'
+                        coverageTab === 'generate'
                           ? 'bg-[#DC143C]/20 text-white'
                           : 'text-white hover:bg-[#2A2A2A]'
                       }`}
                     >
                       <span className="text-base">🤖</span>
                       <span>Generate Packages</span>
-                      {activeTab === 'generate' && (
+                      {coverageTab === 'generate' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>
@@ -875,12 +897,29 @@ export default function AssetDetailModal({
                     References ({allImages.length})
                   </button>
                   
-                  {/* Generate Packages Button - Always visible */}
-                  <div className="ml-auto">
+                  {/* Right side: Coverage buttons */}
+                  <div className="ml-auto flex items-center gap-2">
                     <button
-                      onClick={handleGeneratePackages}
+                      onClick={() => {
+                        setCoverageTab('upload');
+                        setActiveTab('references');
+                      }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        coverageTab === 'upload'
+                          ? 'bg-[#DC143C] text-white'
+                          : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                      }`}
+                    >
+                      <Upload className="w-4 h-4 inline mr-2" />
+                      Upload Images
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCoverageTab('generate');
+                        setActiveTab('references');
+                      }}
                       className={`px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 text-sm font-medium ${
-                        activeTab === 'generate'
+                        coverageTab === 'generate'
                           ? 'bg-[#DC143C] text-white'
                           : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
                       }`}
@@ -1393,8 +1432,46 @@ export default function AssetDetailModal({
                 </div>
               )}
 
-              {/* Generate Tab */}
-              {activeTab === 'generate' && (
+              {/* Coverage Tabs (Upload or Generate) */}
+              {coverageTab === 'upload' && (
+                <UploadAssetImagesTab
+                  assetId={latestAsset.id}
+                  assetName={latestAsset.name}
+                  screenplayId={screenplayId || ''}
+                  existingImages={latestAsset.images || []}
+                  onComplete={async (result) => {
+                    queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                    await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                    toast.success(`Successfully added ${result.images.length} image(s) to ${result.angleName}`);
+                    setCoverageTab(null);
+                  }}
+                />
+              )}
+
+              {coverageTab === 'generate' && (
+                <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
+                  <GenerateAssetTab
+                    assetId={latestAsset.id}
+                    assetName={latestAsset.name}
+                    screenplayId={screenplayId || ''}
+                    asset={latestAsset}
+                    onClose={() => setCoverageTab(null)}
+                    onComplete={async (result) => {
+                      if (result?.jobId) {
+                        toast.success('Angle generation started!', {
+                          description: 'View in Jobs tab to track progress.',
+                          duration: 5000
+                        });
+                      }
+                      setCoverageTab(null);
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Standard Tabs (only show if no coverage tab active) */}
+              {!coverageTab && activeTab === 'generate' && (
                 <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
                   <GenerateAssetTab
                     assetId={latestAsset.id}
@@ -1403,9 +1480,6 @@ export default function AssetDetailModal({
                     asset={latestAsset}
                     onClose={onClose}
                     onComplete={async (result) => {
-                      // Job started - tab will remain open, job runs in background
-                      // User can track progress in Jobs tab
-                      // Asset data will refresh automatically when job completes
                       if (result?.jobId) {
                         toast.success('Angle generation started!', {
                           description: 'View in Jobs tab to track progress.',

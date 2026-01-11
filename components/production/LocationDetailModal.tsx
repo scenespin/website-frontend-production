@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import { GenerateLocationTab } from './Coverage/GenerateLocationTab';
+import { UploadLocationImagesTab } from './Coverage/UploadLocationImagesTab';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { useLocations } from '@/hooks/useLocationBank';
@@ -171,6 +172,8 @@ export function LocationDetailModal({
     return location;
   }, [queryLocations, location.locationId]);
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'generate'>('references');
+  // 🔥 Feature 0192: Coverage tab for upload/generate
+  const [coverageTab, setCoverageTab] = useState<'upload' | 'generate' | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
@@ -991,21 +994,40 @@ export function LocationDetailModal({
                       )}
                     </DropdownMenuItem>
                     <div className="border-t border-[#3F3F46] my-1"></div>
+                    {/* Upload Images */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setCoverageTab('upload');
+                        setActiveTab('references');
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        coverageTab === 'upload'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-white hover:bg-[#2A2A2A]'
+                      }`}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Images</span>
+                      {coverageTab === 'upload' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
                     {/* Generate Packages */}
                     <DropdownMenuItem
                       onClick={() => {
-                        handleGeneratePackages();
+                        setCoverageTab('generate');
+                        setActiveTab('references');
                       }}
                       disabled={isGeneratingAngles}
                       className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                        activeTab === 'generate'
+                        coverageTab === 'generate'
                           ? 'bg-[#DC143C]/20 text-white'
                           : 'text-white hover:bg-[#2A2A2A]'
                       }`}
                     >
                       <span className="text-base">🤖</span>
                       <span>{isGeneratingAngles ? 'Generating...' : 'Generate Packages'}</span>
-                      {activeTab === 'generate' && (
+                      {coverageTab === 'generate' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>
@@ -1055,13 +1077,30 @@ export function LocationDetailModal({
                     References ({allImages.length})
                   </button>
                   
-                  {/* Generate Packages Button - Always visible */}
-                  <div className="ml-auto">
+                  {/* Right side: Coverage buttons */}
+                  <div className="ml-auto flex items-center gap-2">
                     <button
-                      onClick={handleGeneratePackages}
+                      onClick={() => {
+                        setCoverageTab('upload');
+                        setActiveTab('references');
+                      }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        coverageTab === 'upload'
+                          ? 'bg-[#DC143C] text-white'
+                          : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                      }`}
+                    >
+                      <Upload className="w-4 h-4 inline mr-2" />
+                      Upload Images
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCoverageTab('generate');
+                        setActiveTab('references');
+                      }}
                       disabled={isGeneratingAngles}
                       className={`px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium ${
-                        activeTab === 'generate'
+                        coverageTab === 'generate'
                           ? 'bg-[#DC143C] text-white'
                           : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
                       }`}
@@ -1952,8 +1991,57 @@ export function LocationDetailModal({
                 </div>
               )}
 
-              {/* Generate Tab */}
-              {activeTab === 'generate' && (
+              {/* Coverage Tabs (Upload or Generate) */}
+              {coverageTab === 'upload' && (
+                <UploadLocationImagesTab
+                  locationId={location.locationId}
+                  locationName={location.name}
+                  screenplayId={screenplayId || ''}
+                  existingReferences={(latestLocation.angleVariations || []).map(av => ({
+                    id: av.id,
+                    s3Key: av.s3Key,
+                    imageUrl: av.imageUrl,
+                    metadata: {
+                      viewName: av.metadata?.viewName || av.angle || 'default'
+                    }
+                  }))}
+                  onComplete={async (result) => {
+                    queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                    await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                    toast.success(`Successfully added ${result.images.length} image(s) to ${result.viewName}`);
+                    setCoverageTab(null);
+                  }}
+                />
+              )}
+
+              {coverageTab === 'generate' && (
+                <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
+                  <GenerateLocationTab
+                    locationId={location.locationId}
+                    locationName={location.name}
+                    screenplayId={screenplayId || ''}
+                    locationProfile={location}
+                    location={location}
+                    onClose={() => setCoverageTab(null)}
+                    onComplete={async (result) => {
+                      // Job started - tab will close, job runs in background
+                      // User can track progress in Jobs tab
+                      // Location data will refresh automatically when job completes
+                      if (result?.jobId) {
+                        toast.success(`${result.type === 'angles' ? 'Angle' : 'Background'} generation started!`, {
+                          description: 'View in Jobs tab to track progress.',
+                          duration: 5000
+                        });
+                      }
+                      setCoverageTab(null);
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Standard Tabs (only show if no coverage tab active) */}
+              {!coverageTab && activeTab === 'generate' && (
                 <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
                   <GenerateLocationTab
                     locationId={location.locationId}
@@ -1963,9 +2051,6 @@ export function LocationDetailModal({
                     location={location}
                     onClose={onClose}
                     onComplete={async (result) => {
-                      // Job started - tab will close, job runs in background
-                      // User can track progress in Jobs tab
-                      // Location data will refresh automatically when job completes
                       if (result?.jobId) {
                         toast.success(`${result.type === 'angles' ? 'Angle' : 'Background'} generation started!`, {
                           description: 'View in Jobs tab to track progress.',
