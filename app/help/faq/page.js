@@ -49,6 +49,10 @@ export default function FAQHelp() {
                   <strong>What's FREE (no credits required):</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 mb-3 ml-4">
+                  <li>GitHub revision system</li>
+                  <li>Upload character outfits & references</li>
+                  <li>Upload location shots & backgrounds</li>
+                  <li>Upload props (cars, objects, etc.)</li>
                   <li>Professional screenplay editor (Fountain format)</li>
                   <li>5 AI writing agents</li>
                   <li>Character, location, and prop banks</li>

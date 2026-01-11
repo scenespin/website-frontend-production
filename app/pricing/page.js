@@ -428,6 +428,22 @@ export default function PricingPage() {
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
+                    <span>GitHub revision system</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span>Upload character outfits & references</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span>Upload location shots & backgrounds</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span>Upload props (cars, objects, etc.)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
                     <span>Match style from existing footage</span>
                   </li>
                   <li className="flex items-start gap-2">

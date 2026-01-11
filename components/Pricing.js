@@ -183,11 +183,13 @@ const Pricing = () => {
             <div>
               <h4 className="font-semibold mb-2">✨ What&apos;s FREE</h4>
               <ul className="space-y-1 opacity-80">
+                <li>• GitHub revision system</li>
+                <li>• Upload character outfits & references</li>
+                <li>• Upload location shots & backgrounds</li>
+                <li>• Upload props (cars, objects, etc.)</li>
                 <li>• Match style from existing footage</li>
-                <li>• 65 compositions, 30 transitions</li>
-                <li>• Screenplay + Timeline editor</li>
+                <li>• Screenplay editor</li>
                 <li>• Cloud Storage (Drive/Dropbox)</li>
-                <li>• HDR Upgrade available (pay per use)</li>
               </ul>
             </div>
           </div>
