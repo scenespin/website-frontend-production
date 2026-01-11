@@ -54,7 +54,6 @@ export default function FAQHelp() {
                   <li>Upload location shots & backgrounds</li>
                   <li>Upload props (cars, objects, etc.)</li>
                   <li>Professional screenplay editor (Fountain format)</li>
-                  <li>5 AI writing agents</li>
                   <li>Character, location, and prop banks</li>
                   <li>Cloud backup (Google Drive & Dropbox)</li>
                   <li>All planning tools</li>
