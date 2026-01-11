@@ -81,6 +81,19 @@ export function GenerateWardrobeTab({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>('');
   const [showPosePackageDetails, setShowPosePackageDetails] = useState(false);
+  
+  // Calculate total credits (matching GenerateLocationTab and GenerateAssetTab)
+  const packagePoseCounts: Record<string, number> = {
+    single: 1,
+    basic: 3,
+    standard: 7,
+    premium: 11,
+    cinematic: 12,
+    dialogue: 6
+  };
+  
+  const poseCount = selectedPackageId === 'single' ? 1 : (packagePoseCounts[selectedPackageId] || 7);
+  const totalCredits = poseCount * (selectedModel?.credits || 20);
 
   // Auto-generate outfit name helper
   const generateOutfitName = () => {
@@ -601,27 +614,40 @@ export function GenerateWardrobeTab({
         />
       </div>
 
-      {/* Generate Button - Stack vertically on mobile */}
-      <div className={`flex ${isMobile ? 'flex-col-reverse gap-2' : 'justify-end gap-2'}`}>
+      {/* Credits Summary */}
+      <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-[#808080]`}>Total Cost</div>
+            <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-white`}>{totalCredits} credits</div>
+            <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-[#808080] mt-1`}>
+              {poseCount} pose{poseCount !== 1 ? 's' : ''} × {selectedModel?.credits || 20} credits
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Generate Button - Full width matching locations */}
+      <div className="flex gap-3">
         <button
           onClick={onClose}
-          className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#1F1F1F] hover:bg-[#2A2A2A] text-white rounded font-medium transition-colors`}
+          className="flex-1 px-4 py-3 bg-[#1F1F1F] border border-[#3F3F46] hover:bg-[#2A2A2A] text-white rounded-lg transition-colors font-medium"
           disabled={isGenerating}
         >
           Cancel
         </button>
         <button
           onClick={handleGenerate}
-          disabled={isGenerating || !finalOutfitName}
-          className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-medium transition-colors flex items-center justify-center gap-2`}
+          disabled={isGenerating || !finalOutfitName || isLoadingModels || !providerId || !selectedPackageId || (selectedPackageId === 'single' && !selectedPoseId)}
+          className="flex-1 px-4 py-3 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
         >
           {isGenerating ? (
             <>
-              <Loader2 className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} animate-spin />
+              <Loader2 className="w-5 h-5 animate-spin" />
               Generating...
             </>
           ) : (
-            'Generate'
+            `Generate ${selectedPackageId === 'single' ? 'Single Pose' : 'Pose Package'}`
           )}
         </button>
       </div>

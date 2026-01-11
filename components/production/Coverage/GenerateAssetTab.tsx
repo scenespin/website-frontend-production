@@ -204,7 +204,8 @@ export function GenerateAssetTab({
     premium: 10
   };
   
-  const angleCount = packageAngleCounts[selectedPackageId] || 6;
+  // 🔥 FIX: Ensure single package always calculates as 1 angle
+  const angleCount = selectedPackageId === 'single' ? 1 : (packageAngleCounts[selectedPackageId] || 6);
   const totalCredits = angleCount * creditsPerImage;
   
   return (
