@@ -115,7 +115,7 @@ export function StyleProfilesPanel({
   const uploadMediaMutation = useUploadMedia(projectId);
 
   // Fetch style profiles
-  const { data: styleProfiles = [], isLoading: isLoadingProfiles, refetch: refetchProfiles } = useQuery<{ profiles: StyleProfile[] }>({
+  const { data: styleProfiles = { profiles: [] }, isLoading: isLoadingProfiles, refetch: refetchProfiles } = useQuery<{ profiles: StyleProfile[] }>({
     queryKey: ['style-profiles', projectId],
     queryFn: async () => {
       const token = await getToken({ template: 'wryda-backend' });
