@@ -952,7 +952,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">
                       <h4 className="text-xs font-semibold text-[#E5E7EB] truncate">
-                        {job.workflowName}
+                        {job.jobType === 'screenplay-reading' && job.metadata?.inputs?.screenplayTitle
+                          ? `Screenplay Reading - ${job.metadata.inputs.screenplayTitle}`
+                          : job.workflowName}
                       </h4>
                       {getStatusBadge(job.status)}
                     </div>

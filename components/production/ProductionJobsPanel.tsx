@@ -1167,7 +1167,9 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-semibold text-slate-200">
-                      {job.workflowName}
+                      {job.jobType === 'screenplay-reading' && job.metadata?.inputs?.screenplayTitle
+                        ? `Screenplay Reading - ${job.metadata.inputs.screenplayTitle}`
+                        : job.workflowName}
                     </h4>
                     {getStatusBadge(job.status)}
                   </div>

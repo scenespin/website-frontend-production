@@ -140,9 +140,20 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
              (f.fileType === 'other' && f.fileName.endsWith('.srt'))
       );
 
-      // Get title from combined audio or use default
-      const title = combinedAudio?.fileName || 
+      // Get title from combined audio fileName, extracting screenplay title if available
+      // File name format: "Screenplay Reading - {title} - Complete.mp3"
+      let title = combinedAudio?.fileName || 
         `Screenplay Reading - ${new Date(files[0]?.uploadedAt || Date.now()).toLocaleDateString()}`;
+      
+      // Extract screenplay title from fileName if it follows the pattern
+      // Format: "Screenplay Reading - {title} - Complete.mp3"
+      const titleMatch = title.match(/Screenplay Reading - (.+?) - Complete\.mp3/);
+      if (titleMatch && titleMatch[1]) {
+        title = titleMatch[1]; // Use just the screenplay title
+      } else {
+        // Fallback: remove file extension and "Screenplay Reading - " prefix if present
+        title = title.replace(/Screenplay Reading - /, '').replace(/\.(mp3|srt)$/, '');
+      }
 
       sessions.push({
         id: groupId,
