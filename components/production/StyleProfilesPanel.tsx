@@ -337,23 +337,21 @@ export function StyleProfilesPanel({
     <div className={`flex flex-col h-full bg-[#0A0A0A] ${className}`}>
       {/* Header */}
       <div className="p-4 md:p-5 border-b border-[#3F3F46] flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#FFFFFF] flex items-center gap-3">
-              <Palette className="w-8 h-8 text-[#DC143C]" />
-              Style Profiles
-            </h1>
-            <p className="text-sm text-[#808080] mt-1">
-              Analyze video styles for consistent generation
-            </p>
-          </div>
-          <button
-            onClick={() => setShowHelp(!showHelp)}
-            className="p-2 rounded-lg bg-[#141414] hover:bg-[#1F1F1F] text-[#808080] hover:text-[#FFFFFF] transition-colors"
-            title="How it works"
-          >
-            <HelpCircle className="w-5 h-5" />
-          </button>
+        <div className="mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-[#FFFFFF] flex items-center gap-3">
+            <Palette className="w-8 h-8 text-[#DC143C]" />
+            Style Profiles
+            <button
+              onClick={() => setShowHelp(!showHelp)}
+              className="p-1.5 rounded-lg hover:bg-[#1F1F1F] text-[#808080] hover:text-[#FFFFFF] transition-colors"
+              title="How it works"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+          </h1>
+          <p className="text-sm text-[#808080] mt-1">
+            Analyze video styles for consistent generation
+          </p>
         </div>
 
         {/* How It Works Section */}

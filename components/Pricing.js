@@ -187,7 +187,6 @@ const Pricing = () => {
                 <li>• Upload character outfits & references</li>
                 <li>• Upload location shots & backgrounds</li>
                 <li>• Upload props (cars, objects, etc.)</li>
-                <li>• Match style from existing footage</li>
                 <li>• Screenplay editor</li>
                 <li>• Cloud Storage (Drive/Dropbox)</li>
               </ul>

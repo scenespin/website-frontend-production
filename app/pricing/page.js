@@ -444,10 +444,6 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Match style from existing footage</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
                     <span>Screenplay editor</span>
                   </li>
                   <li className="flex items-start gap-2">

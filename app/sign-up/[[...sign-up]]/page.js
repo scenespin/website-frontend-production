@@ -132,7 +132,6 @@ export default function SignUpPage() {
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
                       <li>• Generate AI characters/locations</li>
                       <li>• Create angle packages</li>
-                      <li>• Match style from existing footage</li>
                     </ul>
                   </div>
                 </div>
