@@ -110,6 +110,69 @@ export function PoseGuidanceSection({
         ))}
       </div>
 
+      {/* Background Guidance Section */}
+      <div className="mt-4 pt-4 border-t border-[#3F3F46]">
+        <div className="flex items-start gap-2 mb-2">
+          <Info className="w-4 h-4 text-[#DC143C] flex-shrink-0 mt-0.5" />
+          <h5 className="text-xs font-semibold text-white">Background Guidance</h5>
+        </div>
+        <p className="text-xs text-[#808080] mb-2">
+          For best results, use images with simple, solid-color backgrounds. This helps the AI focus on the character and improves consistency across different poses and outfits.
+        </p>
+        
+        <div className="space-y-2">
+          <div>
+            <p className="text-xs font-medium text-white mb-1">✓ What works best:</p>
+            <ul className="space-y-1 ml-4">
+              <li className="text-xs text-[#808080] flex items-start gap-2">
+                <span className="text-[#DC143C] mt-1">•</span>
+                <span>Solid color backgrounds (green, white, gray, blue, etc.)</span>
+              </li>
+              <li className="text-xs text-[#808080] flex items-start gap-2">
+                <span className="text-[#DC143C] mt-1">•</span>
+                <span>Photography backdrops (fabric or paper backdrops commonly used in portrait photography)</span>
+              </li>
+              <li className="text-xs text-[#808080] flex items-start gap-2">
+                <span className="text-[#DC143C] mt-1">•</span>
+                <span>Green screen backgrounds (if you have access to a green screen setup)</span>
+              </li>
+              <li className="text-xs text-[#808080] flex items-start gap-2">
+                <span className="text-[#DC143C] mt-1">•</span>
+                <span>Any uniform background that contrasts clearly with the character</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div>
+            <p className="text-xs font-medium text-white mb-1">✗ What to avoid:</p>
+            <ul className="space-y-1 ml-4">
+              <li className="text-xs text-[#808080] flex items-start gap-2">
+                <span className="text-[#DC143C] mt-1">•</span>
+                <span>Complex backgrounds with scenery, furniture, or other objects</span>
+              </li>
+              <li className="text-xs text-[#808080] flex items-start gap-2">
+                <span className="text-[#DC143C] mt-1">•</span>
+                <span>Busy patterns or cluttered environments</span>
+              </li>
+              <li className="text-xs text-[#808080] flex items-start gap-2">
+                <span className="text-[#DC143C] mt-1">•</span>
+                <span>Multiple people or distracting elements in the frame</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div className="bg-[#1F1F1F]/50 border border-[#3F3F46] rounded p-2 mt-2">
+            <p className="text-xs font-medium text-white mb-1">💡 Not sure where to start?</p>
+            <p className="text-xs text-[#808080]">
+              If you don't have a simple background, consider researching "photography backdrops" or "portrait backdrops" — these are affordable fabric or paper backgrounds designed specifically for clean, professional photos. Many photographers use them to create the clean, isolated look that works best for AI processing.
+            </p>
+            <p className="text-xs text-[#808080] mt-1.5">
+              <strong className="text-white">Pro tip:</strong> Even a plain wall or a large sheet hung behind the subject can work well if it's a solid color and evenly lit.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {outfitName && outfitName !== 'default' && (
         <div className="mt-4 pt-4 border-t border-[#3F3F46]">
           <p className="text-xs text-[#808080]">
