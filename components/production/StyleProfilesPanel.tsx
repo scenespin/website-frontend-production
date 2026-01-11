@@ -412,7 +412,6 @@ export function StyleProfilesPanel({
             onClick={() => setShowAnalyzer(true)}
             className="mt-4 w-full md:w-auto px-6 py-3 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
           >
-            <Sparkles className="w-5 h-5" />
             Analyze New Video
           </button>
         )}
