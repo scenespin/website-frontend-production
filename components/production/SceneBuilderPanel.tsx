@@ -41,7 +41,9 @@ import {
   MapPin,
   Users,
   Edit,
-  Package
+  Package,
+  Info,
+  HelpCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -460,6 +462,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const contextStore = useContextStore();
   
   // Form state
+  const [showSceneBuilderInfo, setShowSceneBuilderInfo] = useState(false);
   const [sceneDescription, setSceneDescription] = useState('');
   const [referenceImages, setReferenceImages] = useState<(File | null)[]>([null, null, null]);
   const [qualityTier, setQualityTier] = useState<'professional' | 'premium'>('professional');
@@ -3487,9 +3490,18 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                         <Film className="w-4 h-4" />
                         Scene Selection
                       </CardTitle>
-                  <CardDescription className="text-[10px] text-[#808080]">
-                        Choose a scene from your screenplay
-                  </CardDescription>
+                  <div className="flex items-start justify-between gap-2 mt-1">
+                    <CardDescription className="text-xs text-[#E5E7EB] flex-1">
+                      Transform your screenplay scenes into complete video packages with AI. Select a scene and we'll generate all the shots, angles, and coverage you need—perfectly consistent characters, locations, and props.
+                    </CardDescription>
+                    <button
+                      onClick={() => setShowSceneBuilderInfo(true)}
+                      className="flex-shrink-0 p-1.5 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+                      title="Learn more about Scene Builder"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                    </button>
+                  </div>
                 </CardHeader>
                     <CardContent>
                   <SceneSelector

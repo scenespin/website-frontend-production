@@ -27,7 +27,7 @@ export function DirectHub() {
   const screenplayId = screenplay.screenplayId;
   
   // State - sync with URL params
-  const [activeTab, setActiveTab] = useState<DirectTab>('style-profiles');
+  const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
   
   // Sync activeTab with URL params
   useEffect(() => {
@@ -36,7 +36,7 @@ export function DirectHub() {
     if (tabFromUrl && ['style-profiles', 'scene-builder', 'storyboard'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     } else {
-      setActiveTab('style-profiles');
+      setActiveTab('scene-builder');
     }
   }, [searchParams]);
 
