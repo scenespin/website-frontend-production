@@ -2036,13 +2036,15 @@ export default function MediaLibrary({
 
       {/* Main Content with Folder Sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Folder Tree Sidebar */}
+        {/* Folder Tree Sidebar - Hidden on mobile */}
         {showFolderSidebar && (
-          <FolderTreeSidebar
-            screenplayId={projectId}
-            onFolderSelect={handleFolderSelect}
-            selectedFolderId={selectedFolderId && selectedStorageType === 's3' ? selectedFolderId : null}
-          />
+          <div className="hidden md:block">
+            <FolderTreeSidebar
+              screenplayId={projectId}
+              onFolderSelect={handleFolderSelect}
+              selectedFolderId={selectedFolderId && selectedStorageType === 's3' ? selectedFolderId : null}
+            />
+          </div>
         )}
         
         {/* File Grid Area */}
@@ -2081,7 +2083,7 @@ export default function MediaLibrary({
                       : 'space-y-2'
                   }
                 >
-                  {/* 🔥 NEW: Display folders first (like a traditional file browser) */}
+                  {/* 🔥 NEW: Display folders first (like a traditional file browser) - Hidden on mobile */}
                   {filteredFolders.map((folder) => {
                     // Determine storage type from folder (S3 or cloud)
                     const storageType = folder.storageType || (folder.id.includes('-cloud') ? 'cloud' : 's3');
@@ -2111,7 +2113,7 @@ export default function MediaLibrary({
                             : selectedFolderId === folder.id
                               ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
                               : 'border-[#3F3F46] hover:border-[#8B5CF6]/50 hover:bg-[#1F1F1F]'
-                        } ${viewMode === 'grid' ? 'p-2 md:p-3' : 'p-4 flex items-center gap-4'}`}
+                        } ${viewMode === 'grid' ? 'p-3 md:p-3' : 'p-4 flex items-center gap-4'}`}
                       >
                         {/* Phase 2: Checkbox overlay in selection mode */}
                         {selectionMode && (
@@ -2141,10 +2143,10 @@ export default function MediaLibrary({
                             </button>
                           </div>
                         )}
-                        {/* Folder Icon - Larger on mobile */}
+                        {/* Folder Icon - Compact on mobile */}
                         <div className={`${viewMode === 'grid' ? 'mb-2 md:mb-3' : ''} flex-shrink-0 relative`}>
-                          <div className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center`}>
-                            <Folder className="w-16 h-16 md:w-12 md:h-12 text-[#8B5CF6]" />
+                          <div className={`${viewMode === 'grid' ? 'w-full h-32 md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center`}>
+                            <Folder className="w-10 h-10 md:w-12 md:h-12 text-[#8B5CF6]" />
                           </div>
                           {/* Cloud storage indicator */}
                           {storageType === 'cloud' && (
@@ -2155,8 +2157,8 @@ export default function MediaLibrary({
                         </div>
                         
                         {/* Folder Name - Simplified on mobile */}
-                        <div className={`${viewMode === 'grid' ? 'text-center mt-2' : 'flex-1'}`}>
-                          <p className="text-sm md:text-base font-medium text-white truncate">
+                        <div className={`${viewMode === 'grid' ? 'text-center mt-1.5' : 'flex-1'}`}>
+                          <p className="text-xs md:text-sm font-medium text-white truncate px-1">
                             {folder.name}
                           </p>
                           {folder.fileCount !== undefined && (
@@ -2307,7 +2309,7 @@ export default function MediaLibrary({
                           : selectedFiles.has(file.id)
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      } ${viewMode === 'grid' ? 'p-2 md:p-3' : 'p-4 flex items-center gap-4'}`}
+                      } ${viewMode === 'grid' ? 'p-3 md:p-3' : 'p-4 flex items-center gap-4'}`}
                     >
                       {/* Phase 2: Checkbox overlay in selection mode */}
                       {selectionMode && (
@@ -2344,7 +2346,7 @@ export default function MediaLibrary({
                         </div>
                       )}
 
-                      {/* Thumbnail - Larger on mobile */}
+                      {/* Thumbnail - Compact on mobile */}
                       <div className={`${viewMode === 'grid' ? 'mb-2 md:mb-3' : ''} flex-shrink-0 relative`}>
                         {(() => {
                           // 🔥 OPTIMIZATION: Use thumbnails in grid view, full images in list view
@@ -2356,7 +2358,7 @@ export default function MediaLibrary({
                             <img
                               src={fileUrl}
                               alt={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                              className={`${viewMode === 'grid' ? 'w-full h-32 md:h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
                               onLoad={(e) => {
                                 // 🔥 FIX: Hide fallback icon when image loads successfully
                                 const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
@@ -2373,13 +2375,13 @@ export default function MediaLibrary({
                             <VideoThumbnail 
                               videoUrl={fileUrl} 
                               fileName={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'}`}
+                              className={`${viewMode === 'grid' ? 'w-full h-32 md:h-32' : 'w-16 h-16'}`}
                             />
                           ) : file.thumbnailUrl ? (
                             <img
                               src={file.thumbnailUrl}
                               alt={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                              className={`${viewMode === 'grid' ? 'w-full h-32 md:h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
                               onLoad={(e) => {
                                 // 🔥 FIX: Hide fallback icon when image loads successfully
                                 const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
@@ -2395,7 +2397,7 @@ export default function MediaLibrary({
                           ) : null;
                         })()}
                         {/* Fallback icon - hidden by default if we have a valid URL */}
-                        <div className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(() => {
+                        <div className={`${viewMode === 'grid' ? 'w-full h-32 md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(() => {
                           const useThumbnail = viewMode === 'grid';
                           const fileUrl = getFileUrl(file, useThumbnail);
                           const hasValidUrl = fileUrl && (file.fileType === 'image' || file.fileType === 'video' || file.thumbnailUrl);
@@ -2406,8 +2408,8 @@ export default function MediaLibrary({
                       </div>
 
                       {/* File Info - Simplified on mobile */}
-                      <div className={`flex-1 min-w-0 ${viewMode === 'grid' ? 'mt-2' : ''}`}>
-                        <h4 className="font-medium text-[#FFFFFF] truncate text-sm md:text-base">
+                      <div className={`flex-1 min-w-0 ${viewMode === 'grid' ? 'mt-1.5' : ''}`}>
+                        <h4 className="font-medium text-[#FFFFFF] truncate text-xs md:text-sm px-1">
                           {file.fileName}
                         </h4>
                         {/* Metadata - Hidden on mobile, shown on tablet+ */}
