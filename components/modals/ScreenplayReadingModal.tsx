@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Headphones, CheckCircle2, AlertCircle, Download, Play, Pause, Volume2, Clock, ExternalLink } from 'lucide-react';
+import { X, Loader2, Headphones, CheckCircle2, AlertCircle, Download, Play, Pause, Volume2, Clock, ExternalLink, Map } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useRouter } from 'next/navigation';
@@ -532,11 +532,11 @@ export default function ScreenplayReadingModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="relative w-full max-w-4xl transform overflow-hidden rounded-2xl bg-base-100 shadow-xl transition-all max-h-[90vh] flex flex-col">
+              <Dialog.Panel className="relative w-full max-w-4xl transform overflow-hidden rounded-2xl bg-[#0A0A0A] shadow-xl transition-all max-h-[90vh] flex flex-col border border-base-300/50">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-base-300">
+                <div className="flex items-center justify-between p-6 border-b border-base-300/50">
                   <div className="flex items-center gap-3">
-                    <Headphones className="w-6 h-6 text-primary" />
+                    <Headphones className="w-6 h-6 text-cinema-red" />
                     <div>
                       <Dialog.Title className="text-xl font-bold">
                         Read Screenplay
@@ -549,7 +549,7 @@ export default function ScreenplayReadingModal({
                   <button
                     onClick={onClose}
                     disabled={isGenerating}
-                    className="p-2 hover:bg-base-200 rounded-lg transition-colors disabled:opacity-50"
+                    className="p-2 hover:bg-base-300/20 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -568,7 +568,7 @@ export default function ScreenplayReadingModal({
 
                       {/* Audio Player */}
                       {result.audioUrl && (
-                        <div className="bg-base-200 rounded-lg p-4 space-y-3">
+                        <div className="bg-[#0A0A0A] border border-base-300/30 rounded-lg p-4 space-y-3">
                           <div className="flex items-center gap-2">
                             <Volume2 className="w-5 h-5 text-primary" />
                             <h3 className="font-semibold">Combined Audio Player</h3>
@@ -733,13 +733,13 @@ export default function ScreenplayReadingModal({
                           <div className="flex gap-2">
                             <button
                               onClick={handleSelectAll}
-                              className="text-sm px-3 py-1 bg-base-200 hover:bg-base-300 rounded transition-colors"
+                              className="text-sm px-3 py-1 bg-base-300/20 hover:bg-base-300/30 rounded transition-colors border border-base-300/30"
                             >
                               Select All
                             </button>
                             <button
                               onClick={handleDeselectAll}
-                              className="text-sm px-3 py-1 bg-base-200 hover:bg-base-300 rounded transition-colors"
+                              className="text-sm px-3 py-1 bg-base-300/20 hover:bg-base-300/30 rounded transition-colors border border-base-300/30"
                             >
                               Deselect All
                             </button>
@@ -755,7 +755,7 @@ export default function ScreenplayReadingModal({
                             <div className={`mb-3 p-3 rounded-lg border ${
                               isLargeSelection 
                                 ? 'bg-yellow-900/20 border-yellow-700/50' 
-                                : 'bg-base-200 border-base-300'
+                                : 'bg-[#0A0A0A] border-base-300/30'
                             }`}>
                               <div className="flex items-center justify-between text-sm">
                                 <div className="flex items-center gap-4">
@@ -787,11 +787,11 @@ export default function ScreenplayReadingModal({
                             No scenes found
                           </div>
                         ) : (
-                          <div className="max-h-64 overflow-y-auto space-y-2 border border-base-300 rounded-lg p-3">
+                          <div className="max-h-64 overflow-y-auto space-y-2 border border-base-300/30 rounded-lg p-3 bg-[#0A0A0A]">
                             {scenes.map((scene) => (
                               <label
                                 key={scene.id}
-                                className="flex items-start gap-3 p-3 hover:bg-base-200 rounded cursor-pointer transition-colors"
+                                className="flex items-start gap-3 p-3 hover:bg-base-300/20 rounded cursor-pointer transition-colors"
                               >
                                 <input
                                   type="checkbox"
@@ -824,11 +824,11 @@ export default function ScreenplayReadingModal({
                         <h3 className="font-semibold mb-3 flex items-center gap-2">
                           🎙️ Narrator Voice
                         </h3>
-                        <div className="bg-base-200 rounded-lg p-4 space-y-3">
+                        <div className="bg-[#0A0A0A] border border-base-300/30 rounded-lg p-4 space-y-3">
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-medium">
-                                {narratorVoiceName || 'Rachel (default)'}
+                                {narratorVoiceName || 'Drew (default)'}
                               </p>
                               <p className="text-xs text-base-content/60">
                                 Voice for action lines and narration
@@ -836,7 +836,7 @@ export default function ScreenplayReadingModal({
                             </div>
                             <button
                               onClick={() => setShowVoiceBrowser(true)}
-                              className="px-3 py-1.5 bg-primary text-primary-content rounded hover:bg-primary-focus transition-colors text-sm flex items-center gap-2"
+                              className="px-3 py-1.5 bg-cinema-red text-white rounded hover:bg-cinema-red/90 transition-colors text-sm flex items-center gap-2"
                             >
                               <Volume2 className="w-4 h-4" />
                               {narratorVoiceId ? 'Change Voice' : 'Select Voice'}
@@ -850,7 +850,7 @@ export default function ScreenplayReadingModal({
                               }}
                               className="text-xs text-base-content/60 hover:text-base-content underline"
                             >
-                              Reset to default (Rachel)
+                              Reset to default (Drew)
                             </button>
                           )}
                         </div>
@@ -858,7 +858,7 @@ export default function ScreenplayReadingModal({
 
                       {/* Recent Completed Jobs */}
                       {completedJobs.length > 0 && (
-                        <div className="bg-base-200 rounded-lg p-4 space-y-3">
+                        <div className="bg-[#0A0A0A] border border-base-300/30 rounded-lg p-4 space-y-3">
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold flex items-center gap-2">
                               <Clock className="w-4 h-4" />
@@ -1022,18 +1022,18 @@ export default function ScreenplayReadingModal({
 
                 {/* Footer */}
                 {!result && (
-                  <div className="border-t border-base-300 p-6 flex items-center justify-end gap-3">
+                  <div className="border-t border-base-300/50 p-6 flex items-center justify-end gap-3">
                     <button
                       onClick={onClose}
                       disabled={isGenerating}
-                      className="px-4 py-2 bg-base-200 hover:bg-base-300 rounded-lg transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-base-300/20 hover:bg-base-300/30 rounded-lg transition-colors disabled:opacity-50 border border-base-300/30"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleGenerate}
                       disabled={isGenerating || selectedSceneIds.length === 0 || isLoadingScenes}
-                      className="px-6 py-2 bg-primary text-primary-content rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-6 py-2 bg-cinema-red text-white rounded-lg hover:bg-cinema-red/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isGenerating ? (
                         <>
@@ -1051,7 +1051,7 @@ export default function ScreenplayReadingModal({
                 )}
 
                 {result && (
-                  <div className="border-t border-base-300 p-6 flex items-center justify-end gap-3">
+                  <div className="border-t border-base-300/50 p-6 flex items-center justify-end gap-3">
                     <button
                       onClick={() => {
                         setResult(null);
@@ -1066,13 +1066,13 @@ export default function ScreenplayReadingModal({
                           setDuration(0);
                         }
                       }}
-                      className="px-4 py-2 bg-base-200 hover:bg-base-300 rounded-lg transition-colors"
+                      className="px-4 py-2 bg-base-300/20 hover:bg-base-300/30 rounded-lg transition-colors border border-base-300/30"
                     >
                       Generate Another
                     </button>
                     <button
                       onClick={onClose}
-                      className="px-6 py-2 bg-primary text-primary-content rounded-lg hover:bg-primary-focus transition-colors"
+                      className="px-6 py-2 bg-cinema-red text-white rounded-lg hover:bg-cinema-red/90 transition-colors"
                     >
                       Close
                     </button>
@@ -1171,7 +1171,7 @@ export default function ScreenplayReadingModal({
                               
                               return (
                                 <div className="space-y-3">
-                                  <div className="bg-base-200 rounded-lg p-4 space-y-2">
+                                  <div className="bg-[#0A0A0A] border border-base-300/30 rounded-lg p-4 space-y-2">
                                     <div className="flex justify-between text-sm">
                                       <span className="text-base-content/60">Estimated Credits:</span>
                                       <span className="font-semibold">{estimatedCredits.toLocaleString()}</span>
@@ -1207,13 +1207,13 @@ export default function ScreenplayReadingModal({
                       <div className="flex gap-3 mt-6">
                         <button
                           onClick={handleCancelConfirm}
-                          className="flex-1 px-4 py-2 bg-base-200 hover:bg-base-300 rounded-lg transition-colors"
+                          className="flex-1 px-4 py-2 bg-base-300/20 hover:bg-base-300/30 rounded-lg transition-colors border border-base-300/30"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={pendingAction === 'selectAll' ? handleConfirmSelectAll : handleConfirmGenerate}
-                          className="flex-1 px-4 py-2 bg-primary text-primary-content rounded-lg hover:bg-primary-focus transition-colors"
+                          className="flex-1 px-4 py-2 bg-cinema-red text-white rounded-lg hover:bg-cinema-red/90 transition-colors"
                         >
                           {pendingAction === 'selectAll' ? 'Select All' : 'Confirm & Generate'}
                         </button>
