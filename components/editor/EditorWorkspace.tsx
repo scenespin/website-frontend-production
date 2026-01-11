@@ -457,8 +457,8 @@ export default function EditorWorkspace() {
         let top = showAbove 
             ? baseTop - dropdownHeight - 2  // Show above with 2px gap
             : lineTop + 2;                    // Show below, aligned with line start (2px below line)
-        // Align left with text area padding (where text starts), not cursor position
-        let left = textareaRect.left + paddingLeft;
+        // On mobile, align with cursor position; on desktop, align with text start
+        let left = isMobileCheck ? cursorLeft : textareaRect.left + paddingLeft;
         
         // Ensure dropdown stays within viewport bounds
         const viewportWidth = window.innerWidth;
