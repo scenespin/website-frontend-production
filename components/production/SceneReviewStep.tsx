@@ -140,6 +140,10 @@ interface SceneReviewStepProps {
   onGenerate: () => void;
   isGenerating?: boolean;
   allCharacters?: any[];
+  // Style Profiles
+  styleProfiles?: Array<{ profileId: string; videoUrl: string; createdAt: string; confidence: number }>;
+  selectedStyleProfile?: string | null;
+  onStyleProfileChange?: (profileId: string | null) => void;
 }
 
 export function SceneReviewStep({
@@ -168,7 +172,10 @@ export function SceneReviewStep({
   onBack,
   onGenerate,
   isGenerating = false,
-  allCharacters = []
+  allCharacters = [],
+  styleProfiles = [],
+  selectedStyleProfile = null,
+  onStyleProfileChange
 }: SceneReviewStepProps) {
   const { getToken } = useAuth();
   const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
@@ -534,6 +541,36 @@ export function SceneReviewStep({
               </div>
             )}
           </div>
+
+          {/* Style Profile Selection */}
+          {styleProfiles && styleProfiles.length > 0 && (
+            <div className="space-y-2 pt-3 border-t border-[#3F3F46]">
+              <label className="text-xs font-medium text-[#FFFFFF] flex items-center gap-2">
+                <span>Style Profile</span>
+                <span className="text-[10px] text-[#808080] font-normal">(Optional)</span>
+              </label>
+              <select
+                value={selectedStyleProfile || ''}
+                onChange={(e) => onStyleProfileChange?.(e.target.value || null)}
+                className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-md text-sm text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+              >
+                <option value="">None (Use default style)</option>
+                {styleProfiles.map((profile) => (
+                  <option key={profile.profileId} value={profile.profileId}>
+                    {profile.videoUrl.split('/').pop() || 'Style Profile'} ({Math.round(profile.confidence)}% confidence)
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-[#808080]">
+                Apply a pre-analyzed video style to match the visual aesthetic of your reference video.
+              </p>
+              {!selectedStyleProfile && styleProfiles.length > 0 && (
+                <p className="text-[10px] text-[#808080] italic">
+                  💡 Tip: Create style profiles in <strong>Direct → Style Profiles</strong> to match specific visual styles.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-3 pb-20 border-t border-[#3F3F46]">

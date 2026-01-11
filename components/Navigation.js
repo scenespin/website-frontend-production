@@ -28,7 +28,8 @@ import {
   Clapperboard,
   Archive,
   Package,
-  BookOpen as BookOpenIcon
+  BookOpen as BookOpenIcon,
+  Palette
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -300,6 +301,7 @@ export default function Navigation() {
       subItems: [
         { name: 'Scene Builder', href: '/direct?tab=scene-builder', icon: Clapperboard, description: 'Script-based scene generation' },
         { name: 'Storyboard', href: '/direct?tab=storyboard', icon: Film, description: 'Stitched scene videos & storyboard' },
+        { name: 'Style Profiles', href: '/direct?tab=style-profiles', icon: Palette, description: 'Analyze video styles for consistent generation' },
       ]
     },
     {

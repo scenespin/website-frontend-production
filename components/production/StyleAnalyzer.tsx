@@ -115,6 +115,32 @@ export default function StyleAnalyzer({
       return;
     }
 
+    // Check credits before starting (15 credits required)
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const creditCheckResponse = await fetch('/api/credits/check', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount: 15 }),
+      });
+
+      if (creditCheckResponse.ok) {
+        const creditData = await creditCheckResponse.json();
+        if (!creditData.sufficient) {
+          setError(`Insufficient credits. You need 15 credits to analyze a video. You have ${creditData.currentBalance || 0} credits.`);
+          return;
+        }
+      }
+    } catch (creditError: any) {
+      console.warn('[StyleAnalyzer] Credit check failed:', creditError);
+      // Continue anyway - backend will handle credit check
+    }
+
     setIsAnalyzing(true);
     setError(null);
     setAnalysisProgress(0);

@@ -934,6 +934,33 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const [showStyleSelector, setShowStyleSelector] = useState(false);
   const [styleProfiles, setStyleProfiles] = useState<any[]>([]);
   
+  // Fetch style profiles
+  useEffect(() => {
+    const fetchStyleProfiles = async () => {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+
+        const response = await fetch(`/api/style/project/${projectId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setStyleProfiles(data.profiles || []);
+        }
+      } catch (error) {
+        console.error('[SceneBuilderPanel] Failed to fetch style profiles:', error);
+      }
+    };
+
+    if (projectId) {
+      fetchStyleProfiles();
+    }
+  }, [projectId, getToken]);
+  
   // Media uploads state (Feature 0070)
   const [mediaUploads, setMediaUploads] = useState<(File | null)[]>([null, null, null]);
   const [uploadingMedia, setUploadingMedia] = useState<boolean[]>([false, false, false]);
@@ -2915,14 +2942,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // Note: Outfit selection is now handled per-character in the scene analysis phase
       // Character references are already filtered by outfit when fetched from the backend
       
-      // Feature 0109: Style matching support (if backend supports it)
+      // Feature 0109: Style matching support
       if (selectedProfile) {
-        // Note: Backend may not support styleProfile yet - check if it causes errors
-        // workflowRequest.styleProfile = {
-        //   profileId: selectedProfile.profileId,
-        //   stylePromptAdditions: selectedProfile.stylePromptAdditions,
-        //   confidence: selectedProfile.confidence
-        // };
+        workflowRequest.styleProfile = {
+          profileId: selectedProfile.profileId,
+          suggestedPromptAdditions: selectedProfile.suggestedPromptAdditions || [],
+          confidence: selectedProfile.confidence
+        };
       }
       
       // Feature 0105/Phase 6: Add visual annotations if available
@@ -4557,6 +4583,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 onGenerate={handleGenerate}
                 isGenerating={isGenerating}
                 allCharacters={allCharacters}
+                styleProfiles={styleProfiles}
+                selectedStyleProfile={selectedStyleProfile}
+                onStyleProfileChange={setSelectedStyleProfile}
               />
             )}
 

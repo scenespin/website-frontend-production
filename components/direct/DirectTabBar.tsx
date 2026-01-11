@@ -9,10 +9,10 @@
  */
 
 import React from 'react';
-import { Clapperboard, Film } from 'lucide-react';
+import { Clapperboard, Film, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type DirectTab = 'scene-builder' | 'storyboard';
+export type DirectTab = 'scene-builder' | 'storyboard' | 'style-profiles';
 
 interface DirectTabBarProps {
   activeTab: DirectTab;
@@ -31,6 +31,12 @@ const DIRECT_TABS = [
     label: 'Storyboard',
     icon: Film,
     description: 'Stitched scene videos & storyboard',
+  },
+  {
+    id: 'style-profiles' as DirectTab,
+    label: 'Style Profiles',
+    icon: Palette,
+    description: 'Analyze video styles for consistent generation',
   },
 ] as const;
 

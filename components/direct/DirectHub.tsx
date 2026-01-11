@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
 import { ScenesPanel } from '@/components/production/ScenesPanel';
+import { StyleProfilesPanel } from '@/components/production/StyleProfilesPanel';
 import { ProductionErrorBoundary } from '@/components/production/ProductionErrorBoundary';
 import { DirectTabBar, DirectTab } from './DirectTabBar';
 
@@ -32,7 +33,7 @@ export function DirectHub() {
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as DirectTab | null;
     
-    if (tabFromUrl && ['scene-builder', 'storyboard'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['scene-builder', 'storyboard', 'style-profiles'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     } else {
       setActiveTab('scene-builder');
@@ -88,6 +89,15 @@ export function DirectHub() {
         {activeTab === 'storyboard' && (
           <div className="h-full overflow-y-auto">
             <ScenesPanel
+              className="h-full"
+            />
+          </div>
+        )}
+
+        {activeTab === 'style-profiles' && (
+          <div className="h-full overflow-y-auto">
+            <StyleProfilesPanel
+              projectId={screenplayId}
               className="h-full"
             />
           </div>
