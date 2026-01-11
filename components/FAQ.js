@@ -77,9 +77,8 @@ const faqList = [
         <ul className="list-disc pl-5 space-y-1">
           <li>✅ All features unlocked (no feature gating)</li>
           <li>✅ All quality tiers (1080p, Premium 4K, Ultra Native 4K)</li>
-          <li>✅ All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)</li>
+          <li>✅ All aspect ratios (16:9, 9:16, 1:1, 4:3)</li>
           <li>✅ Upload unlimited footage</li>
-          <li>✅ 65 compositions + 30 transitions</li>
           <li>✅ No watermarks, no vendor lock-in</li>
         </ul>
         <p><strong>The difference? Just how many credits you get per dollar:</strong></p>
