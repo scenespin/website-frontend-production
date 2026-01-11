@@ -172,14 +172,14 @@ export default function CreditWidget() {
       <div className="relative" ref={dropdownRef}>
         <div className="flex items-center gap-2">
           {/* Credit Balance */}
-          <div className="flex items-start gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-            <Zap className="w-4 h-4 text-cinema-red mt-0.5 flex-shrink-0" />
-            <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-cinema-red flex-shrink-0" />
               <span className="text-sm font-semibold text-base-content leading-tight">
                 {credits?.toLocaleString() || '0'}
               </span>
-              <span className="text-xs text-base-content/60 leading-tight text-center">credits</span>
             </div>
+            <span className="text-xs text-base-content/60 leading-tight text-center mt-0.5">credits</span>
           </div>
 
           {/* Add Credits Button */}
