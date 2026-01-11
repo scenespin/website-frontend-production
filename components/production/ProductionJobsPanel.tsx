@@ -12,12 +12,13 @@ import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
-  Sparkles, AlertCircle, Image, Save, Upload
+  Sparkles, AlertCircle, Image, Save, Upload, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1612,63 +1613,18 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                             </audio>
                           </div>
                           
-                          {/* Download Buttons */}
+                          {/* View in Readings Button */}
                           <div className="flex flex-wrap gap-2">
                             <button
-                              onClick={async () => {
-                                try {
-                                  const filename = `Screenplay Reading - Complete.mp3`;
-                                  await downloadAudioAsBlob(reading.audioUrl, filename, reading.s3Key);
-                                } catch (error) {
-                                  // Error already handled in downloadAudioAsBlob
-                                }
+                              onClick={() => {
+                                router.push('/produce?tab=readings');
                               }}
                               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
                                        bg-[#DC143C] text-white text-xs font-medium
                                        hover:bg-[#B91238] transition-colors"
                             >
-                              <Download className="w-3 h-3" />
-                              Download Audio
-                            </button>
-                            {reading.subtitleUrl && (
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    const filename = `Screenplay Reading - Subtitles.srt`;
-                                    await downloadAudioAsBlob(reading.subtitleUrl!, filename, reading.subtitleS3Key);
-                                  } catch (error) {
-                                    // Error already handled in downloadAudioAsBlob
-                                  }
-                                }}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
-                                         bg-slate-700 text-white text-xs font-medium
-                                         hover:bg-slate-600 transition-colors"
-                              >
-                                <Download className="w-3 h-3" />
-                                Download Subtitles
-                              </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                setSelectedAsset({
-                                  url: reading.audioUrl,
-                                  s3Key: reading.s3Key,
-                                  name: 'Screenplay Reading - Complete',
-                                  type: 'audio',
-                                  metadata: {
-                                    screenplayId: job.metadata?.inputs?.screenplayId,
-                                    scenesProcessed: reading.scenesProcessed,
-                                    sceneAudios: reading.sceneAudios
-                                  }
-                                });
-                                setShowStorageModal(true);
-                              }}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
-                                       bg-[#8B5CF6] text-white text-xs font-medium
-                                       hover:bg-[#7C4DCC] transition-colors"
-                            >
-                              <Save className="w-3 h-3" />
-                              Save to Media Library
+                              <ChevronRight className="w-3 h-3" />
+                              View in Readings
                             </button>
                           </div>
                           

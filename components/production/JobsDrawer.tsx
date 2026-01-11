@@ -28,6 +28,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
+import { useRouter } from 'next/navigation';
 import { Z_INDEX } from '@/config/z-index';
 import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import {
@@ -248,6 +249,7 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
 }
 
 export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0, onNavigateToEntity }: JobsDrawerProps) {
+  const router = useRouter();
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   const { getToken, userId, isSignedIn } = useAuth();
@@ -1303,54 +1305,18 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                         </>
                       )}
 
-                      {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (() => {
-                        const reading = job.results!.screenplayReading!;
-                        return (
-                          <>
-                            <button
-                              onClick={async () => {
-                                const filename = 'Screenplay Reading.mp3';
-                                await downloadAudioAsBlob(reading.audioUrl, filename, reading.s3Key);
-                              }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-                            >
-                              <Download className="w-2.5 h-2.5" />
-                              Download
-                            </button>
-                            {reading.subtitleS3Key && (
-                              <button
-                                onClick={async () => {
-                                  toast.info('Subtitle download coming soon');
-                                }}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-                              >
-                                <Download className="w-2.5 h-2.5" />
-                                Subtitles
-                              </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                setSelectedAsset({
-                                  url: reading.audioUrl,
-                                  s3Key: reading.s3Key,
-                                  name: 'Screenplay Reading - Complete',
-                                  type: 'audio',
-                                  metadata: {
-                                    screenplayId: job.metadata?.inputs?.screenplayId,
-                                    scenesProcessed: reading.scenesProcessed,
-                                    sceneAudios: reading.sceneAudios
-                                  }
-                                });
-                                setShowStorageModal(true);
-                              }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#8B5CF6] text-white hover:bg-[#7C4DCC] transition-colors"
-                            >
-                              <Save className="w-2.5 h-2.5" />
-                              Save
-                            </button>
-                          </>
-                        );
-                      })()}
+                      {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (
+                        <button
+                          onClick={() => {
+                            router.push('/produce?tab=readings');
+                            onClose(); // Close drawer when navigating
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                        >
+                          <ChevronRight className="w-2.5 h-2.5" />
+                          View in Readings
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
