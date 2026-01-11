@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import AssetAngleGenerationModal from './AssetAngleGenerationModal';
+import { GenerateAssetTab } from './Coverage/GenerateAssetTab';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,11 +98,9 @@ export default function AssetDetailModal({
     // Fallback to prop if not in cache yet
     return asset;
   }, [queryAssets, asset.id, asset]);
-  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('references');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'generate'>('references');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [showAngleModal, setShowAngleModal] = useState(false);
-  const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
   // Phase 2: Multiple Delete Checkbox
   const [selectionMode, setSelectionMode] = useState(false);
@@ -569,6 +567,11 @@ export default function AssetDetailModal({
     }
   }, [isOpen, latestAsset.id, latestAsset.name, mediaFiles.length, imagesFromMediaLibrary.length, enrichedMediaLibraryImages.length, fallbackImages.length, allImages.length, userImages.length, angleImageObjects.length, canGenerateAngles]);
 
+  const handleGeneratePackages = () => {
+    // Switch to Generate tab
+    setActiveTab('generate');
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -775,6 +778,11 @@ export default function AssetDetailModal({
                             <Box className="w-4 h-4" />
                             <span>References ({allImages.length})</span>
                           </>
+                        ) : activeTab === 'generate' ? (
+                          <>
+                            <span className="text-base">🤖</span>
+                            <span>Generate Packages</span>
+                          </>
                         ) : (
                           <>
                             <FileText className="w-4 h-4" />
@@ -800,6 +808,24 @@ export default function AssetDetailModal({
                       <Box className="w-4 h-4" />
                       <span>References ({allImages.length})</span>
                       {activeTab === 'references' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    <div className="border-t border-[#3F3F46] my-1"></div>
+                    {/* Generate Packages */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        handleGeneratePackages();
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'generate'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-white hover:bg-[#2A2A2A]'
+                      }`}
+                    >
+                      <span className="text-base">🤖</span>
+                      <span>Generate Packages</span>
+                      {activeTab === 'generate' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>
@@ -849,22 +875,19 @@ export default function AssetDetailModal({
                     References ({allImages.length})
                   </button>
                   
-                  {/* Generate Angle Package Button - Always visible */}
+                  {/* Generate Packages Button - Always visible */}
                   <div className="ml-auto">
-                    {canGenerateAngles ? (
-                      <button
-                        onClick={() => setShowAngleModal(true)}
-                        disabled={isGeneratingAngles}
-                        className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                      >
-                        <span className="text-base">🤖</span>
-                        {isGeneratingAngles ? 'Generating...' : 'Generate Angle Package'}
-                      </button>
-                    ) : (
-                      <div className="px-4 py-2 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg text-sm text-[#808080]">
-                        ⚠️ Upload at least 1 image to generate angle package
-                      </div>
-                    )}
+                    <button
+                      onClick={handleGeneratePackages}
+                      className={`px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 text-sm font-medium ${
+                        activeTab === 'generate'
+                          ? 'bg-[#DC143C] text-white'
+                          : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                      }`}
+                    >
+                      <span className="text-base">🤖</span>
+                      Generate Packages
+                    </button>
                   </div>
                 </div>
               )}
@@ -1369,37 +1392,35 @@ export default function AssetDetailModal({
                   )}
                 </div>
               )}
+
+              {/* Generate Tab */}
+              {activeTab === 'generate' && (
+                <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
+                  <GenerateAssetTab
+                    assetId={latestAsset.id}
+                    assetName={latestAsset.name}
+                    screenplayId={screenplayId || ''}
+                    asset={latestAsset}
+                    onClose={onClose}
+                    onComplete={async (result) => {
+                      // Job started - tab will remain open, job runs in background
+                      // User can track progress in Jobs tab
+                      // Asset data will refresh automatically when job completes
+                      if (result?.jobId) {
+                        toast.success('Angle generation started!', {
+                          description: 'View in Jobs tab to track progress.',
+                          duration: 5000
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </motion.div>
         </>
       )}
     </AnimatePresence>
-    
-    {/* Asset Angle Generation Modal */}
-    {showAngleModal && (
-      <AssetAngleGenerationModal
-        isOpen={showAngleModal}
-        onClose={() => {
-          setShowAngleModal(false);
-        }}
-        assetId={latestAsset.id}
-        assetName={latestAsset.name}
-        projectId={screenplayId || latestAsset.projectId || ''}
-        asset={latestAsset}
-        onComplete={async (result) => {
-          toast.success(`Angle generation started for ${latestAsset.name}!`, {
-            description: 'Check the Jobs tab to track progress.'
-          });
-          setShowAngleModal(false);
-          setIsGeneratingAngles(false);
-          
-          // Refresh asset data after delay to catch completed angles
-          setTimeout(() => {
-            onUpdate();
-          }, 5000);
-        }}
-      />
-    )}
     
     {/* 🔥 NEW: Regenerate Confirmation Modal */}
     <RegenerateConfirmModal
