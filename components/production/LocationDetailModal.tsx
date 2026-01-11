@@ -1026,7 +1026,7 @@ export function LocationDetailModal({
                       }`}
                     >
                       <span className="text-base">🤖</span>
-                      <span>{isGeneratingAngles ? 'Generating...' : 'Generate Packages'}</span>
+                      <span>{isGeneratingAngles ? 'Generating...' : 'Generate Images'}</span>
                       {coverageTab === 'generate' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}

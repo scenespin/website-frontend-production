@@ -1365,7 +1365,7 @@ export function CharacterDetailModal({
                         }`}
                       >
                         <span className="text-base">🤖</span>
-                        <span>Generate Wardrobe</span>
+                        <span>Generate Images</span>
                         {coverageTab === 'generate' && (
                           <span className="ml-auto text-[#DC143C]">●</span>
                         )}
@@ -1383,7 +1383,7 @@ export function CharacterDetailModal({
                       }`}
                     >
                       <Upload className="w-4 h-4" />
-                      <span>Upload Wardrobe</span>
+                      <span>Upload Images</span>
                       {coverageTab === 'upload' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}

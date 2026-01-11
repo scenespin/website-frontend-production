@@ -784,7 +784,7 @@ export default function AssetDetailModal({
                         ) : activeTab === 'generate' ? (
                           <>
                             <span className="text-base">🤖</span>
-                            <span>Generate Packages</span>
+                            <span>Generate Images</span>
                           </>
                         ) : (
                           <>
