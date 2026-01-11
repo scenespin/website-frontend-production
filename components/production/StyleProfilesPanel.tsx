@@ -339,7 +339,7 @@ export function StyleProfilesPanel({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-[#FFFFFF] flex items-center gap-3">
-              <Palette className="w-8 h-8 text-[#8B5CF6]" />
+              <Palette className="w-8 h-8 text-[#DC143C]" />
               Style Profiles
             </h1>
             <p className="text-sm text-[#808080] mt-1">
@@ -361,7 +361,7 @@ export function StyleProfilesPanel({
             <h3 className="text-lg font-semibold text-[#FFFFFF] mb-3">How Style Profiles Work</h3>
             <div className="space-y-3 text-sm text-[#B3B3B3]">
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#8B5CF6] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-6 h-6 rounded-full bg-[#DC143C] flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-bold text-white">1</span>
                 </div>
                 <div>
@@ -370,7 +370,7 @@ export function StyleProfilesPanel({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#8B5CF6] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-6 h-6 rounded-full bg-[#DC143C] flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-bold text-white">2</span>
                 </div>
                 <div>
@@ -379,7 +379,7 @@ export function StyleProfilesPanel({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#8B5CF6] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-6 h-6 rounded-full bg-[#DC143C] flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-bold text-white">3</span>
                 </div>
                 <div>
@@ -388,7 +388,7 @@ export function StyleProfilesPanel({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#8B5CF6] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-6 h-6 rounded-full bg-[#DC143C] flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-bold text-white">4</span>
                 </div>
                 <div>
@@ -409,7 +409,7 @@ export function StyleProfilesPanel({
         {!showAnalyzer && (
           <button
             onClick={() => setShowAnalyzer(true)}
-            className="mt-4 w-full md:w-auto px-6 py-3 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
+            className="mt-4 w-full md:w-auto px-6 py-3 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
           >
             <Sparkles className="w-5 h-5" />
             Analyze New Video
@@ -442,7 +442,7 @@ export function StyleProfilesPanel({
                 onClick={() => setAnalyzerMode('url')}
                 className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-[2px] ${
                   analyzerMode === 'url'
-                    ? 'border-[#8B5CF6] text-[#FFFFFF]'
+                    ? 'border-[#DC143C] text-[#FFFFFF]'
                     : 'border-transparent text-[#808080] hover:text-[#FFFFFF]'
                 }`}
               >
@@ -453,7 +453,7 @@ export function StyleProfilesPanel({
                 onClick={() => setAnalyzerMode('upload')}
                 className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-[2px] ${
                   analyzerMode === 'upload'
-                    ? 'border-[#8B5CF6] text-[#FFFFFF]'
+                    ? 'border-[#DC143C] text-[#FFFFFF]'
                     : 'border-transparent text-[#808080] hover:text-[#FFFFFF]'
                 }`}
               >
@@ -474,7 +474,7 @@ export function StyleProfilesPanel({
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
                     placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
-                    className="w-full px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#0A0A0A] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                    className="w-full px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#0A0A0A] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
                   />
                   <p className="text-xs text-[#808080] mt-1">
                     Paste any video URL (YouTube, Vimeo, or direct video link)
@@ -497,7 +497,7 @@ export function StyleProfilesPanel({
                   <div className="border-2 border-dashed border-[#3F3F46] rounded-lg p-6 text-center">
                     {isUploading ? (
                       <div className="space-y-3">
-                        <Loader2 className="w-8 h-8 animate-spin text-[#8B5CF6] mx-auto" />
+                        <Loader2 className="w-8 h-8 animate-spin text-[#DC143C] mx-auto" />
                         <p className="text-sm text-[#FFFFFF]">Uploading... {uploadProgress}%</p>
                       </div>
                     ) : (
@@ -506,7 +506,7 @@ export function StyleProfilesPanel({
                         <div>
                           <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="px-4 py-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-lg transition-colors text-sm font-medium"
+                            className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors text-sm font-medium"
                           >
                             Choose File
                           </button>
@@ -585,7 +585,7 @@ export function StyleProfilesPanel({
               {styleProfiles.profiles.map((profile) => (
                 <div
                   key={profile.profileId}
-                  className="bg-[#141414] border border-[#3F3F46] rounded-lg p-4 hover:border-[#8B5CF6]/50 transition-colors"
+                  className="bg-[#141414] border border-[#3F3F46] rounded-lg p-4 hover:border-[#DC143C]/50 transition-colors"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
@@ -628,7 +628,7 @@ export function StyleProfilesPanel({
                     <div className="pt-2 border-t border-[#3F3F46]">
                       <div className="flex items-center justify-between">
                         <span className="text-[#808080]">Confidence</span>
-                        <span className="text-[#8B5CF6] font-medium">
+                        <span className="text-[#DC143C] font-medium">
                           {Math.round(profile.confidence)}%
                         </span>
                       </div>
