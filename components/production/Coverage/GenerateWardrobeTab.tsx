@@ -81,19 +81,6 @@ export function GenerateWardrobeTab({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>('');
   const [showPosePackageDetails, setShowPosePackageDetails] = useState(false);
-  
-  // Calculate total credits (matching GenerateLocationTab and GenerateAssetTab)
-  const packagePoseCounts: Record<string, number> = {
-    single: 1,
-    basic: 3,
-    standard: 7,
-    premium: 11,
-    cinematic: 12,
-    dialogue: 6
-  };
-  
-  const poseCount = selectedPackageId === 'single' ? 1 : (packagePoseCounts[selectedPackageId] || 7);
-  const totalCredits = poseCount * (selectedModel?.credits || 20);
 
   // Auto-generate outfit name helper
   const generateOutfitName = () => {
@@ -132,6 +119,19 @@ export function GenerateWardrobeTab({
   const selectedModel = useMemo(() => {
     return models.find(m => m.id === providerId);
   }, [models, providerId]);
+  
+  // Calculate total credits (matching GenerateLocationTab and GenerateAssetTab)
+  const packagePoseCounts: Record<string, number> = {
+    single: 1,
+    basic: 3,
+    standard: 7,
+    premium: 11,
+    cinematic: 12,
+    dialogue: 6
+  };
+  
+  const poseCount = selectedPackageId === 'single' ? 1 : (packagePoseCounts[selectedPackageId] || 7);
+  const totalCredits = poseCount * (selectedModel?.credits || 20);
   
   // Calculate supportsClothing - ensure it updates when model changes
   // Also check providerId directly to ensure reactivity
