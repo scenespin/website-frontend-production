@@ -894,11 +894,11 @@ export default function Dashboard() {
             {/* Main Stats Row - Credits, Top Up, Projects */}
             <div className="flex items-center gap-4 flex-wrap">
               <CreditWidget />
-              <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-                <FileText className="w-4 h-4 text-primary" />
-                <div className="flex flex-col">
+              <div className="flex items-start gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                <FileText className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                <div className="flex flex-col flex-1 min-w-0">
                   <span className="text-sm font-semibold text-base-content leading-tight">{projects.length}</span>
-                  <span className="text-xs text-base-content/60 leading-tight">projects</span>
+                  <span className="text-xs text-base-content/60 leading-tight text-center">projects</span>
                 </div>
               </div>
             </div>
@@ -907,38 +907,38 @@ export default function Dashboard() {
             {currentScreenplayId && (
               <div className="flex flex-wrap items-center gap-2 md:gap-4">
                 {entityCounts.characters > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-                    <Users className="w-4 h-4 text-primary" />
-                    <div className="flex flex-col">
+                  <div className="flex items-start gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                    <Users className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex flex-col flex-1 min-w-0">
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.characters}</span>
-                      <span className="text-xs text-base-content/60 leading-tight">characters</span>
+                      <span className="text-xs text-base-content/60 leading-tight text-center">characters</span>
                     </div>
                   </div>
                 )}
                 {entityCounts.locations > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-                    <MapPin className="w-4 h-4 text-accent" />
-                    <div className="flex flex-col">
+                  <div className="flex items-start gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                    <MapPin className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                    <div className="flex flex-col flex-1 min-w-0">
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.locations}</span>
-                      <span className="text-xs text-base-content/60 leading-tight">locations</span>
+                      <span className="text-xs text-base-content/60 leading-tight text-center">locations</span>
                     </div>
                   </div>
                 )}
                 {entityCounts.assets > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
-                    <Package className="w-4 h-4 text-primary" />
-                    <div className="flex flex-col">
+                  <div className="flex items-start gap-2 px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
+                    <Package className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex flex-col flex-1 min-w-0">
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.assets}</span>
-                      <span className="text-xs text-base-content/60 leading-tight">props</span>
+                      <span className="text-xs text-base-content/60 leading-tight text-center">props</span>
                     </div>
                   </div>
                 )}
                 {entityCounts.videos > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-cinema-red/10 rounded-lg border border-cinema-red/30 min-h-[44px] w-full md:w-auto md:flex-shrink-0">
-                    <span className="text-base">🎬</span>
-                    <div className="flex flex-col">
+                  <div className="flex items-start gap-2 px-4 py-2.5 bg-cinema-red/10 rounded-lg border border-cinema-red/30 min-h-[44px] w-full md:w-auto md:flex-shrink-0">
+                    <span className="text-base mt-0.5 flex-shrink-0">🎬</span>
+                    <div className="flex flex-col flex-1 min-w-0">
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.videos}</span>
-                      <span className="text-xs text-base-content/70 leading-tight">Total Videos</span>
+                      <span className="text-xs text-base-content/70 leading-tight text-center">Total Videos</span>
                     </div>
                   </div>
                 )}
