@@ -657,11 +657,31 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         }
     };
     
+    // Mobile detection for font size minimum
+    const [isMobile, setIsMobile] = React.useState(() => {
+        if (typeof window === 'undefined') return false;
+        return window.innerWidth < 768;
+    });
+    
+    React.useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    
     const decreaseFontSize = () => {
-        if (state.fontSize > 12) {
+        // On mobile, minimum is 16px to prevent auto-zoom; on desktop, minimum is 12px
+        const minFontSize = isMobile ? 16 : 12;
+        if (state.fontSize > minFontSize) {
             setFontSize(state.fontSize - 2);
         }
     };
+    
+    // Check if decrease button should be disabled (at minimum)
+    const minFontSize = isMobile ? 16 : 12;
+    const canDecreaseFontSize = state.fontSize > minFontSize;
     
     const [showMoreFormats, setShowMoreFormats] = React.useState(false);
     
@@ -808,7 +828,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     <div className="tooltip tooltip-bottom" data-tip="Decrease Font Size">
                         <button
                             onClick={decreaseFontSize}
-                            className="px-2 py-2 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                            disabled={!canDecreaseFontSize}
+                            className="px-2 py-2 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             <span className="text-base">−</span>
                         </button>
@@ -1188,7 +1209,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     <div className="tooltip tooltip-bottom" data-tip="Decrease Font Size">
                         <button
                             onClick={decreaseFontSize}
-                            className="w-full px-1 py-1.5 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
+                            disabled={!canDecreaseFontSize}
+                            className="w-full px-1 py-1.5 bg-[#0A0A0A] hover:bg-[#1A1A1A] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             <span className="text-sm">−</span>
                             <span className="text-[8px] leading-tight">-</span>
