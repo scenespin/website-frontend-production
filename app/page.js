@@ -3,6 +3,7 @@ import Image from "next/image";
 import config from "@/config";
 import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
+import { ShowcaseGallery } from "@/components/showcase/ShowcaseGallery";
 
 export default function Page() {
   return (
@@ -105,6 +106,25 @@ export default function Page() {
                     <h3 className="text-xl font-bold mb-2">Demo Video Coming Soon</h3>
                     <p className="text-gray-400 text-sm">See how Wryda.ai turns your screenplay into video</p>
                   </div>
+                </div>
+              </div>
+
+              {/* Showcase Gallery - AI Generated Examples */}
+              <div className="mt-16 max-w-6xl mx-auto">
+                <ShowcaseGallery 
+                  contentType="all" 
+                  limit={4}
+                  columns={4}
+                  title="See What Wryda Creates"
+                  showSeeMore={false}
+                />
+                <div className="text-center mt-8">
+                  <Link
+                    href="/examples"
+                    className="text-[#DC143C] hover:text-white text-sm font-medium transition-colors"
+                  >
+                    See all examples →
+                  </Link>
                 </div>
               </div>
 
