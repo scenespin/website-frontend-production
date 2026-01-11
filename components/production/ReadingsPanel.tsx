@@ -515,7 +515,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
           className="inline-flex items-center gap-2 px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91C1C] transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Generate New Reading
+          Generate Reading
         </button>
       </div>
 
