@@ -105,7 +105,7 @@ export default function ScreenplayReadingModal({
   
   // Constants for estimates
   const ESTIMATED_CREDITS_PER_SCENE = 50; // Rough estimate
-  const ESTIMATED_MINUTES_PER_SCENE = 2; // Rough estimate
+  const ESTIMATED_MINUTES_PER_SCENE = 0.5; // ~30 seconds per scene (actual: 18-36 seconds, using 30s for conservative estimate)
   const LARGE_SELECTION_WARNING_THRESHOLD = 20; // Show warning if selecting more than this
 
   // Fetch scenes when modal opens
@@ -337,7 +337,8 @@ export default function ScreenplayReadingModal({
   // Calculate estimated credits and time
   const calculateEstimates = (sceneCount: number) => {
     const estimatedCredits = sceneCount * ESTIMATED_CREDITS_PER_SCENE;
-    const estimatedMinutes = sceneCount * ESTIMATED_MINUTES_PER_SCENE;
+    // Round up to nearest 0.5 minutes for display (e.g., 8 scenes = 4 min, 9 scenes = 5 min)
+    const estimatedMinutes = Math.ceil((sceneCount * ESTIMATED_MINUTES_PER_SCENE) * 2) / 2;
     return { estimatedCredits, estimatedMinutes };
   };
   

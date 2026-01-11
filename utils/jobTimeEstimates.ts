@@ -29,7 +29,7 @@ export function getEstimatedDuration(jobType?: JobType): string {
     case 'complete-scene':
       return '5-10 minutes';
     case 'screenplay-reading':
-      return '2-3 minutes';
+      return '5-10 minutes'; // Actual: ~30 seconds per scene, so 10-20 scenes = 5-10 min
     case 'workflow-execution':
       return '3-7 minutes';
     default:
