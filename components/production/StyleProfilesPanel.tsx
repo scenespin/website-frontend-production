@@ -410,7 +410,7 @@ export function StyleProfilesPanel({
         {!showAnalyzer && (
           <button
             onClick={() => setShowAnalyzer(true)}
-            className="mt-4 w-full md:w-auto px-6 py-3 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
+            className="mt-4 w-full md:w-auto px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-semibold text-base md:text-lg min-h-[44px]"
           >
             Analyze New Video
           </button>
