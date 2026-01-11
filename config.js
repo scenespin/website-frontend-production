@@ -26,7 +26,7 @@ const config = {
         features: [
           { name: "50 signup + 10 credits/month" },
           { name: "All quality tiers & aspect ratios" },
-          { name: "Upload your own footage" },
+          { name: "Match style from existing footage" },
           { name: "68 compositions, 30 transitions" },
         ],
         isFeatured: false,

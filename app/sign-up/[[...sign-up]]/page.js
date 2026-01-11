@@ -132,7 +132,7 @@ export default function SignUpPage() {
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
                       <li>• Generate AI characters/locations</li>
                       <li>• Create angle packages</li>
-                      <li>• Upload your own footage</li>
+                      <li>• Match style from existing footage</li>
                     </ul>
                   </div>
                 </div>
@@ -195,8 +195,8 @@ export default function SignUpPage() {
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-white">Upload your own footage</strong>
-                      <p className="text-sm text-gray-400">Combine your camera footage with AI-generated shots - completely free</p>
+                      <strong className="text-white">Match style from existing footage</strong>
+                      <p className="text-sm text-gray-400">Analyze and match the visual style of your footage in AI-generated shots - completely free</p>
                     </div>
                   </li>
                 </ul>
