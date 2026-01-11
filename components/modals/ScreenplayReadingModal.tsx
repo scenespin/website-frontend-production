@@ -601,8 +601,8 @@ export default function ScreenplayReadingModal({
                       )}
 
                       {/* Summary */}
-                      <div className="bg-base-200 rounded-lg p-4 space-y-2">
-                        <h3 className="font-semibold mb-3">Summary</h3>
+                      <div className="bg-[#0A0A0A] border border-base-300/30 rounded-lg p-4 space-y-2">
+                        <h3 className="font-semibold mb-3 text-white">Summary</h3>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-base-content/60">Scenes processed:</span>
@@ -637,15 +637,15 @@ export default function ScreenplayReadingModal({
                           <h3 className="font-semibold">Individual Scene Files (for QA)</h3>
                           <div className="space-y-2">
                             {result.sceneAudios.map((sceneAudio) => (
-                              <div key={sceneAudio.sceneId} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                              <div key={sceneAudio.sceneId} className="flex items-center justify-between p-3 bg-[#0A0A0A] border border-base-300/30 rounded-lg">
                                 <div>
-                                  <p className="font-medium">{sceneAudio.heading || `Scene ${sceneAudio.sceneId}`}</p>
+                                  <p className="font-medium text-white">{sceneAudio.heading || `Scene ${sceneAudio.sceneId}`}</p>
                                   <p className="text-sm text-base-content/60">{sceneAudio.creditsUsed} credits</p>
                                 </div>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => handleDownload(sceneAudio.audioUrl, `${sceneAudio.heading || sceneAudio.sceneId}.mp3`)}
-                                    className="px-3 py-1.5 bg-primary text-primary-content rounded hover:bg-primary-focus transition-colors text-sm flex items-center gap-2"
+                                    className="px-3 py-1.5 bg-cinema-red text-white rounded hover:bg-cinema-red/90 transition-colors text-sm flex items-center gap-2"
                                   >
                                     <Download className="w-4 h-4" />
                                     MP3
@@ -656,7 +656,7 @@ export default function ScreenplayReadingModal({
                                         // TODO: Implement individual scene subtitle download
                                         toast.info('Individual scene subtitle download coming soon');
                                       }}
-                                      className="px-3 py-1.5 bg-base-300 hover:bg-base-400 rounded transition-colors text-sm flex items-center gap-2"
+                                      className="px-3 py-1.5 bg-base-300/20 hover:bg-base-300/30 border border-base-300/30 rounded transition-colors text-sm flex items-center gap-2 text-white"
                                     >
                                       <Download className="w-4 h-4" />
                                       SRT
@@ -692,7 +692,7 @@ export default function ScreenplayReadingModal({
                         <div className="flex gap-3">
                           <button
                             onClick={() => handleDownload(result.audioUrl, `${screenplayTitle || 'screenplay'}.mp3`)}
-                            className="px-4 py-2 bg-primary text-primary-content rounded-lg hover:bg-primary-focus transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-cinema-red text-white rounded-lg hover:bg-cinema-red/90 transition-colors flex items-center gap-2"
                           >
                             <Download className="w-5 h-5" />
                             Download Combined MP3
@@ -975,7 +975,7 @@ export default function ScreenplayReadingModal({
                             No characters found
                           </div>
                         ) : (
-                          <div className="space-y-2 bg-base-200 rounded-lg p-4">
+                          <div className="space-y-2 bg-[#0A0A0A] border border-base-300/30 rounded-lg p-4">
                             {characterVoices.map((voice) => (
                               <div key={voice.characterId} className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -985,7 +985,7 @@ export default function ScreenplayReadingModal({
                                     <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
                                   )}
                                   <div className="flex-1 min-w-0">
-                                    <span className="font-medium block truncate">{voice.characterName}</span>
+                                    <span className="font-medium block truncate text-white">{voice.characterName}</span>
                                     <div className="text-xs text-base-content/60">
                                       {voice.hasVoice ? (
                                         <span>
@@ -1005,7 +1005,7 @@ export default function ScreenplayReadingModal({
                                 </div>
                                 <button
                                   onClick={() => setCharacterVoiceBrowserOpen(voice.characterId)}
-                                  className="px-3 py-1.5 bg-primary text-primary-content rounded hover:bg-primary-focus transition-colors text-sm flex items-center gap-1.5 flex-shrink-0"
+                                  className="px-3 py-1.5 bg-cinema-red text-white rounded hover:bg-cinema-red/90 transition-colors text-sm flex items-center gap-1.5 flex-shrink-0"
                                   title={voice.hasVoice ? 'Change voice' : 'Assign voice'}
                                 >
                                   <Volume2 className="w-3.5 h-3.5" />

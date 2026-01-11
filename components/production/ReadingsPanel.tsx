@@ -366,7 +366,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     }
   };
 
-  // Handle download combined audio (stitched scenes)
+  // Handle download combined audio (master)
   const handleDownloadCombined = async (reading: ReadingSession) => {
     if (!reading.combinedAudio) {
       toast.error('Combined audio not found');
@@ -905,10 +905,10 @@ function ReadingCard({
             <button
               onClick={onDownloadCombined}
               className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
-              title="Download stitched scenes (all scenes combined)"
+              title="Download master audio (all scenes combined)"
             >
               <Download className="w-3 h-3" />
-              Stitched Scenes
+              Master
             </button>
           )}
 
