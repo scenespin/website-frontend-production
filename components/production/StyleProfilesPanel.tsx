@@ -16,6 +16,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import Link from 'next/link';
 import { 
   Upload, 
   Loader2, 
@@ -482,7 +483,14 @@ export function StyleProfilesPanel({
                 </div>
                 <div className="flex items-center gap-2 text-sm text-[#808080]">
                   <AlertCircle className="w-4 h-4" />
-                  <span>Cost: 15 credits ($0.15) per analysis</span>
+                  <span>Cost: 15 credits per analysis</span>
+                  <Link 
+                    href="/buy-credits" 
+                    className="text-[#DC143C] hover:text-[#B91238] underline text-xs"
+                    target="_blank"
+                  >
+                    View pricing →
+                  </Link>
                 </div>
               </div>
             )}
@@ -527,7 +535,14 @@ export function StyleProfilesPanel({
                 </div>
                 <div className="flex items-center gap-2 text-sm text-[#808080]">
                   <AlertCircle className="w-4 h-4" />
-                  <span>Cost: 15 credits ($0.15) per analysis</span>
+                  <span>Cost: 15 credits per analysis</span>
+                  <Link 
+                    href="/buy-credits" 
+                    className="text-[#DC143C] hover:text-[#B91238] underline text-xs"
+                    target="_blank"
+                  >
+                    View pricing →
+                  </Link>
                 </div>
               </div>
             )}
