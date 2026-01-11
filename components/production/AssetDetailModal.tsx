@@ -925,7 +925,7 @@ export default function AssetDetailModal({
                       }`}
                     >
                       <span className="text-base">🤖</span>
-                      Generate Packages
+                      Generate Images
                     </button>
                   </div>
                 </div>

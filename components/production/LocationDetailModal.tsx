@@ -963,7 +963,7 @@ export function LocationDetailModal({
                         ) : activeTab === 'generate' ? (
                           <>
                             <span className="text-base">🤖</span>
-                            <span>Generate Packages</span>
+                            <span>Generate Images</span>
                           </>
                         ) : (
                           <>
@@ -1106,7 +1106,7 @@ export function LocationDetailModal({
                       }`}
                     >
                       <span className="text-base">🤖</span>
-                      {isGeneratingAngles ? 'Generating...' : 'Generate Packages'}
+                      {isGeneratingAngles ? 'Generating...' : 'Generate Images'}
                     </button>
                   </div>
                 </div>

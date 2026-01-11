@@ -1308,12 +1308,12 @@ export function CharacterDetailModal({
                         ) : coverageTab === 'generate' ? (
                           <>
                             <span className="text-base">🤖</span>
-                            <span>Generate Wardrobe</span>
+                            <span>Generate Images</span>
                           </>
                         ) : coverageTab === 'upload' ? (
                           <>
                             <Upload className="w-4 h-4" />
-                            <span>Upload Wardrobe</span>
+                            <span>Upload Images</span>
                           </>
                         ) : activeTab === 'voice' ? (
                           <>
@@ -1501,7 +1501,7 @@ export function CharacterDetailModal({
                   }`}
                 >
                   <Upload className="w-4 h-4 inline mr-2" />
-                  Upload Wardrobe
+                  Upload Images
                 </button>
                 {onGeneratePosePackage && (
                   <button
@@ -1516,7 +1516,7 @@ export function CharacterDetailModal({
                     }`}
                     >
                       <span className="text-base mr-2">🤖</span>
-                      Generate Wardrobe
+                      Generate Images
                     </button>
                 )}
               </div>
@@ -1672,7 +1672,7 @@ export function CharacterDetailModal({
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
                       <p className="text-[#808080] mb-4">No images yet</p>
-                      <p className="text-sm text-[#6B7280]">Use "Upload Wardrobe" or "Generate Wardrobe" to add images</p>
+                      <p className="text-sm text-[#6B7280]">Use "Upload Images" or "Generate Images" to add images</p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
