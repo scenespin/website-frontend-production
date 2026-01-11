@@ -332,8 +332,6 @@ export function StyleProfilesPanel({
     }
   };
 
-  const [mutationError, setMutationError] = useState<string | null>(null);
-
   return (
     <div className={`flex flex-col h-full bg-[#0A0A0A] ${className}`}>
       {/* Header */}
