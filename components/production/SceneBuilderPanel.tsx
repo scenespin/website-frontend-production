@@ -4784,6 +4784,74 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           console.log(`[SceneBuilderPanel] Navigate to ${type}: ${id}`);
         }}
       />
+
+      {/* Scene Builder Info Modal */}
+      {showSceneBuilderInfo && (
+        <div 
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSceneBuilderInfo(false)}
+        >
+          <div 
+            className="bg-[#141414] border border-[#3F3F46] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-[#141414] border-b border-[#3F3F46] p-4 md:p-6 flex items-center justify-between z-10">
+              <div className="flex items-center gap-2">
+                <Film className="w-5 h-5 text-[#DC143C]" />
+                <h2 className="text-lg md:text-xl font-bold text-[#FFFFFF]">About Scene Builder</h2>
+              </div>
+              <button
+                onClick={() => setShowSceneBuilderInfo(false)}
+                className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-4 md:p-6 space-y-4 text-sm text-[#E5E7EB]">
+              <div>
+                <h3 className="text-base font-semibold text-[#FFFFFF] mb-2">What is Scene Builder?</h3>
+                <p className="mb-3">
+                  Scene Builder transforms your screenplay scenes into complete, production-ready video packages. Simply select a scene from your screenplay, and our AI will generate all the shots, angles, and coverage you need—with perfectly consistent characters, locations, and props throughout.
+                </p>
+                <p className="mb-3">
+                  Think of it as your AI director and cinematographer working together to bring your script to life. Every shot is designed to match your scene's tone, maintain visual consistency, and tell your story effectively.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-base font-semibold text-[#FFFFFF] mb-2">What You Get</h3>
+                <ul className="space-y-2 ml-4 list-disc text-[#E5E7EB]">
+                  <li><strong className="text-[#FFFFFF]">Complete shot coverage:</strong> Master shots, close-ups, over-shoulders, and reaction shots</li>
+                  <li><strong className="text-[#FFFFFF]">Perfect consistency:</strong> Characters, locations, and props stay consistent across all shots</li>
+                  <li><strong className="text-[#FFFFFF]">Smart dialogue handling:</strong> Automatic lip-sync and voice generation for dialogue scenes</li>
+                  <li><strong className="text-[#FFFFFF]">Professional quality:</strong> Choose from Professional 1080p or Premium 4K quality</li>
+                  <li><strong className="text-[#FFFFFF]">Ready to edit:</strong> All shots are organized and ready for your timeline</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-base font-semibold text-[#FFFFFF] mb-2">How It Works</h3>
+                <ol className="space-y-2 ml-4 list-decimal text-[#E5E7EB]">
+                  <li><strong className="text-[#FFFFFF]">Select a scene</strong> from your screenplay</li>
+                  <li><strong className="text-[#FFFFFF]">AI analyzes</strong> the scene to understand characters, locations, dialogue, and action</li>
+                  <li><strong className="text-[#FFFFFF]">Configure shots</strong> (optional) or let AI create the perfect shot list</li>
+                  <li><strong className="text-[#FFFFFF]">Review & generate</strong> your complete scene package</li>
+                  <li><strong className="text-[#FFFFFF]">Export to timeline</strong> and start editing</li>
+                </ol>
+              </div>
+
+              <div className="pt-4 border-t border-[#3F3F46]">
+                <p className="text-xs text-[#808080] italic">
+                  💡 <strong className="text-[#FFFFFF]">Tip:</strong> Best results come from well-written scenes with clear action lines and dialogue. The AI uses your scene's context to create shots that match your story's tone and pacing.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
