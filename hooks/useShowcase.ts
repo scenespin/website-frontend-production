@@ -4,6 +4,8 @@
  * 
  * React Query hooks for fetching public demo content for marketing/landing pages.
  * No authentication required - fetches from demo account.
+ * 
+ * Security: Only receives safe, user-entered data. Proprietary info is filtered server-side.
  */
 
 'use client';
@@ -14,38 +16,82 @@ import { useQuery } from '@tanstack/react-query';
 // TYPES
 // ============================================================================
 
+/** Character pose with generation metadata */
+export interface ShowcasePose {
+  label: string;
+  category?: string;
+  imageUrl: string | null;
+  // Safe metadata only
+  userPrompt?: string;
+  modelName?: string;
+}
+
 export interface ShowcaseCharacter {
   name: string;
   description: string;
   type: string;
-  thumbnailUrl: string | null;
+  // Creation/reference image (what the user uploaded)
+  referenceImageUrl: string | null;
   referenceImages: string[];
-  poses: Array<{
-    label: string;
-    imageUrl: string | null;
-  }>;
+  // Generated poses
+  poses: ShowcasePose[];
+}
+
+/** Location angle with generation metadata and dropdown selections */
+export interface ShowcaseAngle {
+  imageUrl: string | null;
+  // Dropdown selections
+  angle: string;
+  timeOfDay?: string;
+  weather?: string;
+  // Safe metadata only
+  userPrompt?: string;
+  modelName?: string;
+}
+
+/** Location background with generation metadata and dropdown selections */
+export interface ShowcaseBackground {
+  imageUrl: string | null;
+  // Dropdown selections
+  backgroundType: string;
+  description?: string;
+  timeOfDay?: string;
+  weather?: string;
+  // Safe metadata only
+  userPrompt?: string;
+  modelName?: string;
 }
 
 export interface ShowcaseLocation {
   name: string;
   description: string;
-  thumbnailUrl: string | null;
+  type?: string; // INT, EXT, INT/EXT
+  // Creation/reference image (what the user uploaded)
+  referenceImageUrl: string | null;
   referenceImages: string[];
-  backgrounds: Array<{
-    label: string;
-    imageUrl: string | null;
-  }>;
-  angles: Array<{
-    label: string;
-    imageUrl: string | null;
-  }>;
+  // Generated angles
+  angles: ShowcaseAngle[];
+  // Generated backgrounds
+  backgrounds: ShowcaseBackground[];
+}
+
+/** Prop angle with generation metadata */
+export interface ShowcasePropAngle {
+  imageUrl: string | null;
+  angle: string;
+  userPrompt?: string;
+  modelName?: string;
 }
 
 export interface ShowcaseProp {
   name: string;
   description: string;
-  thumbnailUrl: string | null;
-  images: string[];
+  category?: string;
+  // Creation/reference image (what the user uploaded)
+  referenceImageUrl: string | null;
+  referenceImages: string[];
+  // Generated angles
+  angles: ShowcasePropAngle[];
 }
 
 export interface ShowcaseReading {
@@ -63,7 +109,7 @@ export interface ShowcaseVideo {
   thumbnailUrl: string;
   videoUrl: string;
   duration: number;
-  workflow: string;
+  // Note: No model info exposed for videos (proprietary)
 }
 
 export interface ShowcaseAllContent {

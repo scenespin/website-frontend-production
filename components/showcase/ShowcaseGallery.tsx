@@ -3,7 +3,7 @@
  * Feature 0193: Demo Account Showcase System
  * 
  * Displays demo content from the showcase account on marketing/landing pages.
- * Supports different content types (characters, locations, props, videos).
+ * Shows reference → generated images with dropdown selections and safe metadata.
  */
 
 'use client';
@@ -14,12 +14,29 @@ import {
   useShowcaseCharacters, 
   useShowcaseLocations, 
   useShowcaseProps,
-  useShowcaseAll,
   type ShowcaseCharacter,
   type ShowcaseLocation,
-  type ShowcaseProp
+  type ShowcaseProp,
+  type ShowcasePose,
+  type ShowcaseAngle,
+  type ShowcaseBackground,
+  type ShowcasePropAngle,
 } from '@/hooks/useShowcase';
-import { Loader2, User, MapPin, Box, ChevronLeft, ChevronRight, Play, Sparkles } from 'lucide-react';
+import { 
+  Loader2, 
+  User, 
+  MapPin, 
+  Box, 
+  ChevronLeft, 
+  ChevronRight, 
+  Sparkles,
+  ArrowRight,
+  Sun,
+  Cloud,
+  Moon,
+  Cpu,
+  MessageSquare,
+} from 'lucide-react';
 
 // ============================================================================
 // TYPES
@@ -46,27 +63,357 @@ interface ShowcaseGalleryProps {
   showSeeMore?: boolean;
   /** Callback when "See More" is clicked */
   onSeeMore?: () => void;
+  /** Show detailed view with prompts/settings (for /examples page) */
+  showDetails?: boolean;
+}
+
+// ============================================================================
+// HELPER COMPONENTS
+// ============================================================================
+
+/** Display time of day with icon */
+function TimeOfDayBadge({ timeOfDay }: { timeOfDay?: string }) {
+  if (!timeOfDay) return null;
+  
+  const icons: Record<string, React.ReactNode> = {
+    morning: <Sun className="w-3 h-3" />,
+    afternoon: <Sun className="w-3 h-3" />,
+    evening: <Moon className="w-3 h-3" />,
+    night: <Moon className="w-3 h-3" />,
+  };
+  
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs">
+      {icons[timeOfDay] || <Sun className="w-3 h-3" />}
+      {timeOfDay}
+    </span>
+  );
+}
+
+/** Display weather with icon */
+function WeatherBadge({ weather }: { weather?: string }) {
+  if (!weather) return null;
+  
+  const icons: Record<string, React.ReactNode> = {
+    sunny: <Sun className="w-3 h-3" />,
+    cloudy: <Cloud className="w-3 h-3" />,
+    rainy: <Cloud className="w-3 h-3" />,
+    snowy: <Cloud className="w-3 h-3" />,
+  };
+  
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-xs">
+      {icons[weather] || <Cloud className="w-3 h-3" />}
+      {weather}
+    </span>
+  );
+}
+
+/** Display model name */
+function ModelBadge({ modelName }: { modelName?: string }) {
+  if (!modelName) return null;
+  
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-xs">
+      <Cpu className="w-3 h-3" />
+      {modelName}
+    </span>
+  );
+}
+
+/** Display user prompt */
+function UserPromptDisplay({ userPrompt }: { userPrompt?: string }) {
+  if (!userPrompt) return null;
+  
+  return (
+    <div className="mt-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
+      <div className="flex items-start gap-2">
+        <MessageSquare className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+        <p className="text-sm text-slate-300 italic">"{userPrompt}"</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// DETAILED ITEM COMPONENTS (for /examples page)
+// ============================================================================
+
+/** Detailed pose card showing before/after and metadata */
+function PoseDetailCard({ pose, referenceImageUrl }: { pose: ShowcasePose; referenceImageUrl: string | null }) {
+  const [refError, setRefError] = useState(false);
+  const [poseError, setPoseError] = useState(false);
+  
+  return (
+    <div className="bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+      {/* Before → After */}
+      <div className="flex items-center gap-4 mb-3">
+        {/* Reference (Before) */}
+        <div className="w-20 h-20 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0">
+          {referenceImageUrl && !refError ? (
+            <Image
+              src={referenceImageUrl}
+              alt="Reference"
+              width={80}
+              height={80}
+              className="object-cover w-full h-full"
+              onError={() => setRefError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <User className="w-8 h-8 text-slate-600" />
+            </div>
+          )}
+        </div>
+        
+        <ArrowRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
+        
+        {/* Generated (After) */}
+        <div className="w-28 h-28 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0">
+          {pose.imageUrl && !poseError ? (
+            <Image
+              src={pose.imageUrl}
+              alt={pose.label}
+              width={112}
+              height={112}
+              className="object-cover w-full h-full"
+              onError={() => setPoseError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <User className="w-10 h-10 text-slate-600" />
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Metadata */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-white">{pose.label}</p>
+        {pose.category && (
+          <span className="inline-block px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-xs">
+            {pose.category}
+          </span>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <ModelBadge modelName={pose.modelName} />
+        </div>
+        <UserPromptDisplay userPrompt={pose.userPrompt} />
+      </div>
+    </div>
+  );
+}
+
+/** Detailed angle card showing before/after with dropdown selections */
+function AngleDetailCard({ angle, referenceImageUrl }: { angle: ShowcaseAngle; referenceImageUrl: string | null }) {
+  const [refError, setRefError] = useState(false);
+  const [angleError, setAngleError] = useState(false);
+  
+  return (
+    <div className="bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+      {/* Before → After */}
+      <div className="flex items-center gap-4 mb-3">
+        {/* Reference (Before) */}
+        <div className="w-24 h-16 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0">
+          {referenceImageUrl && !refError ? (
+            <Image
+              src={referenceImageUrl}
+              alt="Reference"
+              width={96}
+              height={64}
+              className="object-cover w-full h-full"
+              onError={() => setRefError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <MapPin className="w-6 h-6 text-slate-600" />
+            </div>
+          )}
+        </div>
+        
+        <ArrowRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
+        
+        {/* Generated (After) */}
+        <div className="w-32 h-20 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0">
+          {angle.imageUrl && !angleError ? (
+            <Image
+              src={angle.imageUrl}
+              alt={angle.angle}
+              width={128}
+              height={80}
+              className="object-cover w-full h-full"
+              onError={() => setAngleError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <MapPin className="w-8 h-8 text-slate-600" />
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Settings & Metadata */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-white capitalize">{angle.angle} View</p>
+        <div className="flex flex-wrap gap-2">
+          <TimeOfDayBadge timeOfDay={angle.timeOfDay} />
+          <WeatherBadge weather={angle.weather} />
+          <ModelBadge modelName={angle.modelName} />
+        </div>
+        <UserPromptDisplay userPrompt={angle.userPrompt} />
+      </div>
+    </div>
+  );
+}
+
+/** Detailed background card showing before/after with dropdown selections */
+function BackgroundDetailCard({ background, referenceImageUrl }: { background: ShowcaseBackground; referenceImageUrl: string | null }) {
+  const [refError, setRefError] = useState(false);
+  const [bgError, setBgError] = useState(false);
+  
+  return (
+    <div className="bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+      {/* Before → After */}
+      <div className="flex items-center gap-4 mb-3">
+        {/* Reference (Before) */}
+        <div className="w-24 h-16 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0">
+          {referenceImageUrl && !refError ? (
+            <Image
+              src={referenceImageUrl}
+              alt="Reference"
+              width={96}
+              height={64}
+              className="object-cover w-full h-full"
+              onError={() => setRefError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <MapPin className="w-6 h-6 text-slate-600" />
+            </div>
+          )}
+        </div>
+        
+        <ArrowRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
+        
+        {/* Generated (After) */}
+        <div className="w-32 h-20 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0">
+          {background.imageUrl && !bgError ? (
+            <Image
+              src={background.imageUrl}
+              alt={background.backgroundType}
+              width={128}
+              height={80}
+              className="object-cover w-full h-full"
+              onError={() => setBgError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <MapPin className="w-8 h-8 text-slate-600" />
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Settings & Metadata */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-white capitalize">{background.backgroundType}</p>
+        {background.description && (
+          <p className="text-xs text-slate-400">{background.description}</p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <TimeOfDayBadge timeOfDay={background.timeOfDay} />
+          <WeatherBadge weather={background.weather} />
+          <ModelBadge modelName={background.modelName} />
+        </div>
+        <UserPromptDisplay userPrompt={background.userPrompt} />
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
 // CARD COMPONENTS
 // ============================================================================
 
-function CharacterCard({ character }: { character: ShowcaseCharacter }) {
+function CharacterCard({ character, showDetails = false }: { character: ShowcaseCharacter; showDetails?: boolean }) {
   const [imageError, setImageError] = useState(false);
   
+  // Use referenceImageUrl (new) or fall back to thumbnailUrl pattern
+  const thumbnailUrl = character.referenceImageUrl || (character.referenceImages?.[0] || null);
+  
+  if (showDetails) {
+    return (
+      <div className="bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50">
+        {/* Header with main image */}
+        <div className="aspect-video relative overflow-hidden">
+          {thumbnailUrl && !imageError ? (
+            <Image
+              src={thumbnailUrl}
+              alt={character.name}
+              fill
+              className="object-cover"
+              onError={() => setImageError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-purple-900/30 to-slate-800 flex items-center justify-center">
+              <User className="w-16 h-16 text-slate-600" />
+            </div>
+          )}
+        </div>
+        
+        {/* Info */}
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-lg font-semibold text-white">{character.name}</h3>
+            {character.type && (
+              <span className="px-2 py-0.5 rounded-full bg-purple-500/80 text-white text-xs">
+                {character.type}
+              </span>
+            )}
+          </div>
+          {character.description && (
+            <p className="text-sm text-slate-400 mb-4">{character.description}</p>
+          )}
+          
+          {/* Poses grid */}
+          {character.poses && character.poses.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-slate-300 mb-3">Generated Poses</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {character.poses.map((pose, idx) => (
+                  <PoseDetailCard 
+                    key={idx} 
+                    pose={pose} 
+                    referenceImageUrl={thumbnailUrl}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // Simple card view
   return (
     <div className="group relative bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
-      {/* Image */}
       <div className="aspect-[3/4] relative overflow-hidden">
-        {character.thumbnailUrl && !imageError ? (
+        {thumbnailUrl && !imageError ? (
           <Image
-            src={character.thumbnailUrl}
+            src={thumbnailUrl}
             alt={character.name}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             onError={() => setImageError(true)}
-            unoptimized // Presigned URLs can't be optimized
+            unoptimized
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-purple-900/30 to-slate-800 flex items-center justify-center">
@@ -74,17 +421,14 @@ function CharacterCard({ character }: { character: ShowcaseCharacter }) {
           </div>
         )}
         
-        {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        {/* Type badge */}
         {character.type && (
           <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-purple-500/80 text-white text-xs font-medium backdrop-blur-sm">
             {character.type}
           </div>
         )}
         
-        {/* Poses count */}
         {character.poses && character.poses.length > 0 && (
           <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-300 text-xs font-medium backdrop-blur-sm">
             {character.poses.length} poses
@@ -92,7 +436,6 @@ function CharacterCard({ character }: { character: ShowcaseCharacter }) {
         )}
       </div>
       
-      {/* Content */}
       <div className="p-4">
         <h3 className="text-lg font-semibold text-white truncate">{character.name}</h3>
         {character.description && (
@@ -103,16 +446,90 @@ function CharacterCard({ character }: { character: ShowcaseCharacter }) {
   );
 }
 
-function LocationCard({ location }: { location: ShowcaseLocation }) {
+function LocationCard({ location, showDetails = false }: { location: ShowcaseLocation; showDetails?: boolean }) {
   const [imageError, setImageError] = useState(false);
   
+  // Use referenceImageUrl (new) or fall back
+  const thumbnailUrl = location.referenceImageUrl || (location.referenceImages?.[0] || null);
+  
+  if (showDetails) {
+    return (
+      <div className="bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50">
+        {/* Header with main image */}
+        <div className="aspect-video relative overflow-hidden">
+          {thumbnailUrl && !imageError ? (
+            <Image
+              src={thumbnailUrl}
+              alt={location.name}
+              fill
+              className="object-cover"
+              onError={() => setImageError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-cyan-900/30 to-slate-800 flex items-center justify-center">
+              <MapPin className="w-16 h-16 text-slate-600" />
+            </div>
+          )}
+        </div>
+        
+        {/* Info */}
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-lg font-semibold text-white">{location.name}</h3>
+            {location.type && (
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/80 text-white text-xs">
+                {location.type}
+              </span>
+            )}
+          </div>
+          {location.description && (
+            <p className="text-sm text-slate-400 mb-4">{location.description}</p>
+          )}
+          
+          {/* Angles section */}
+          {location.angles && location.angles.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-slate-300 mb-3">Generated Angles</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {location.angles.map((angle, idx) => (
+                  <AngleDetailCard 
+                    key={idx} 
+                    angle={angle} 
+                    referenceImageUrl={thumbnailUrl}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Backgrounds section */}
+          {location.backgrounds && location.backgrounds.length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-slate-300 mb-3">Generated Backgrounds</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {location.backgrounds.map((bg, idx) => (
+                  <BackgroundDetailCard 
+                    key={idx} 
+                    background={bg} 
+                    referenceImageUrl={thumbnailUrl}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // Simple card view
   return (
     <div className="group relative bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/10">
-      {/* Image */}
       <div className="aspect-video relative overflow-hidden">
-        {location.thumbnailUrl && !imageError ? (
+        {thumbnailUrl && !imageError ? (
           <Image
-            src={location.thumbnailUrl}
+            src={thumbnailUrl}
             alt={location.name}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -125,10 +542,8 @@ function LocationCard({ location }: { location: ShowcaseLocation }) {
           </div>
         )}
         
-        {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        {/* Stats badges */}
         <div className="absolute top-3 right-3 flex gap-2">
           {location.angles && location.angles.length > 0 && (
             <div className="px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-300 text-xs font-medium backdrop-blur-sm">
@@ -143,7 +558,6 @@ function LocationCard({ location }: { location: ShowcaseLocation }) {
         </div>
       </div>
       
-      {/* Content */}
       <div className="p-4">
         <h3 className="text-lg font-semibold text-white truncate">{location.name}</h3>
         {location.description && (
@@ -154,16 +568,83 @@ function LocationCard({ location }: { location: ShowcaseLocation }) {
   );
 }
 
-function PropCard({ prop }: { prop: ShowcaseProp }) {
+function PropCard({ prop, showDetails = false }: { prop: ShowcaseProp; showDetails?: boolean }) {
   const [imageError, setImageError] = useState(false);
   
+  // Use referenceImageUrl (new) or fall back
+  const thumbnailUrl = prop.referenceImageUrl || (prop.referenceImages?.[0] || null);
+  
+  if (showDetails) {
+    return (
+      <div className="bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50">
+        {/* Header with main image */}
+        <div className="aspect-square relative overflow-hidden">
+          {thumbnailUrl && !imageError ? (
+            <Image
+              src={thumbnailUrl}
+              alt={prop.name}
+              fill
+              className="object-cover"
+              onError={() => setImageError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-amber-900/30 to-slate-800 flex items-center justify-center">
+              <Box className="w-16 h-16 text-slate-600" />
+            </div>
+          )}
+        </div>
+        
+        {/* Info */}
+        <div className="p-4">
+          <h3 className="text-lg font-semibold text-white">{prop.name}</h3>
+          {prop.description && (
+            <p className="text-sm text-slate-400 mb-4">{prop.description}</p>
+          )}
+          
+          {/* Angles grid */}
+          {prop.angles && prop.angles.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-slate-300 mb-3">Generated Angles</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {prop.angles.map((angle, idx) => (
+                  <div key={idx} className="bg-slate-800/50 rounded-lg p-2">
+                    <div className="aspect-square relative rounded overflow-hidden mb-2">
+                      {angle.imageUrl ? (
+                        <Image
+                          src={angle.imageUrl}
+                          alt={angle.angle}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+                          <Box className="w-6 h-6 text-slate-500" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-300 capitalize">{angle.angle}</p>
+                    {angle.modelName && (
+                      <p className="text-xs text-purple-400">{angle.modelName}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // Simple card view
   return (
     <div className="group relative bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50 hover:border-amber-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10">
-      {/* Image */}
       <div className="aspect-square relative overflow-hidden">
-        {prop.thumbnailUrl && !imageError ? (
+        {thumbnailUrl && !imageError ? (
           <Image
-            src={prop.thumbnailUrl}
+            src={thumbnailUrl}
             alt={prop.name}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -176,18 +657,15 @@ function PropCard({ prop }: { prop: ShowcaseProp }) {
           </div>
         )}
         
-        {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        {/* Images count */}
-        {prop.images && prop.images.length > 1 && (
+        {prop.angles && prop.angles.length > 0 && (
           <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-amber-500/80 text-white text-xs font-medium backdrop-blur-sm">
-            {prop.images.length} images
+            {prop.angles.length} angles
           </div>
         )}
       </div>
       
-      {/* Content */}
       <div className="p-4">
         <h3 className="text-lg font-semibold text-white truncate">{prop.name}</h3>
         {prop.description && (
@@ -228,40 +706,6 @@ function EmptyState({ contentType }: { contentType: ContentType }) {
 }
 
 // ============================================================================
-// CAROUSEL COMPONENT
-// ============================================================================
-
-function Carousel({ children, className }: { children: React.ReactNode; className?: string }) {
-  const [scrollPosition, setScrollPosition] = useState(0);
-  
-  return (
-    <div className={`relative group ${className || ''}`}>
-      {/* Scroll container */}
-      <div 
-        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4"
-        style={{ scrollBehavior: 'smooth' }}
-      >
-        {children}
-      </div>
-      
-      {/* Navigation arrows - hidden on mobile */}
-      <button 
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 rounded-full bg-slate-800/90 border border-slate-700 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex hover:bg-slate-700"
-        onClick={() => {/* scroll left */}}
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
-      <button 
-        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 rounded-full bg-slate-800/90 border border-slate-700 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex hover:bg-slate-700"
-        onClick={() => {/* scroll right */}}
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
-    </div>
-  );
-}
-
-// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -274,7 +718,8 @@ export function ShowcaseGallery({
   columns = 3,
   className,
   showSeeMore = false,
-  onSeeMore
+  onSeeMore,
+  showDetails = false,
 }: ShowcaseGalleryProps) {
   
   // Fetch based on content type
@@ -306,6 +751,9 @@ export function ShowcaseGallery({
     4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
   };
   
+  // Use single column for detailed view
+  const detailGridClass = showDetails ? 'grid-cols-1 lg:grid-cols-2' : gridClasses[columns];
+  
   if (isLoading) {
     return <LoadingState />;
   }
@@ -335,25 +783,25 @@ export function ShowcaseGallery({
       
       {/* Content based on type */}
       {contentType === 'characters' && (
-        <div className={`grid ${gridClasses[columns]} gap-6`}>
+        <div className={`grid ${detailGridClass} gap-6`}>
           {characters.map((character, index) => (
-            <CharacterCard key={index} character={character} />
+            <CharacterCard key={index} character={character} showDetails={showDetails} />
           ))}
         </div>
       )}
       
       {contentType === 'locations' && (
-        <div className={`grid ${gridClasses[columns]} gap-6`}>
+        <div className={`grid ${detailGridClass} gap-6`}>
           {locations.map((location, index) => (
-            <LocationCard key={index} location={location} />
+            <LocationCard key={index} location={location} showDetails={showDetails} />
           ))}
         </div>
       )}
       
       {contentType === 'props' && (
-        <div className={`grid ${gridClasses[columns]} gap-6`}>
+        <div className={`grid ${detailGridClass} gap-6`}>
           {props.map((prop, index) => (
-            <PropCard key={index} prop={prop} />
+            <PropCard key={index} prop={prop} showDetails={showDetails} />
           ))}
         </div>
       )}
@@ -367,9 +815,9 @@ export function ShowcaseGallery({
                 <User className="w-5 h-5 text-purple-400" />
                 Characters
               </h3>
-              <div className={`grid ${gridClasses[columns]} gap-6`}>
+              <div className={`grid ${detailGridClass} gap-6`}>
                 {characters.map((character, index) => (
-                  <CharacterCard key={index} character={character} />
+                  <CharacterCard key={index} character={character} showDetails={showDetails} />
                 ))}
               </div>
             </div>
@@ -382,9 +830,9 @@ export function ShowcaseGallery({
                 <MapPin className="w-5 h-5 text-cyan-400" />
                 Locations
               </h3>
-              <div className={`grid ${gridClasses[columns]} gap-6`}>
+              <div className={`grid ${detailGridClass} gap-6`}>
                 {locations.map((location, index) => (
-                  <LocationCard key={index} location={location} />
+                  <LocationCard key={index} location={location} showDetails={showDetails} />
                 ))}
               </div>
             </div>
@@ -397,9 +845,9 @@ export function ShowcaseGallery({
                 <Box className="w-5 h-5 text-amber-400" />
                 Props
               </h3>
-              <div className={`grid ${gridClasses[columns]} gap-6`}>
+              <div className={`grid ${detailGridClass} gap-6`}>
                 {props.map((prop, index) => (
-                  <PropCard key={index} prop={prop} />
+                  <PropCard key={index} prop={prop} showDetails={showDetails} />
                 ))}
               </div>
             </div>
