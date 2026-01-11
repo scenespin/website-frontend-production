@@ -846,7 +846,7 @@ export default function AssetDetailModal({
                       }`}
                     >
                       <span className="text-base">🤖</span>
-                      <span>Generate Packages</span>
+                      <span>Generate Images</span>
                       {coverageTab === 'generate' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
