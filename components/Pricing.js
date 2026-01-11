@@ -16,8 +16,7 @@ const Pricing = () => {
       description: "All features unlocked. Try everything.",
       features: [
         "✅ All quality tiers (Professional/Premium/Ultra)",
-        "✅ All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)",
-        "✅ 65 compositions, 30 transitions",
+        "✅ All aspect ratios (16:9, 9:16, 1:1, 4:3)",
         "✅ Screenplay Editor + Timeline (8 tracks)",
         "✅ Cloud Storage (Drive/Dropbox)",
         "✅ No watermarks, no vendor lock-in"
