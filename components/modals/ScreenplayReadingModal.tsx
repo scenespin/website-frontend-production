@@ -606,24 +606,24 @@ export default function ScreenplayReadingModal({
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-base-content/60">Scenes processed:</span>
-                            <span className="ml-2 font-semibold">{result.scenesProcessed.length} of {selectedSceneIds.length || scenes.length}</span>
+                            <span className="ml-2 font-semibold text-white">{result.scenesProcessed.length} of {selectedSceneIds.length || scenes.length}</span>
                           </div>
                           {result.totalDuration && (
                             <div>
                               <span className="text-base-content/60">Duration:</span>
-                              <span className="ml-2 font-semibold">{formatTime(result.totalDuration)}</span>
+                              <span className="ml-2 font-semibold text-white">{formatTime(result.totalDuration)}</span>
                             </div>
                           )}
                           <div>
                             <span className="text-base-content/60">Credits used:</span>
-                            <span className="ml-2 font-semibold">{result.creditsUsed.toLocaleString()}</span>
+                            <span className="ml-2 font-semibold text-white">{result.creditsUsed.toLocaleString()}</span>
                           </div>
                           <div>
                             <span className="text-base-content/60">Characters:</span>
-                            <span className="ml-2 font-semibold">{Object.keys(result.characterVoiceMapping).length}</span>
+                            <span className="ml-2 font-semibold text-white">{Object.keys(result.characterVoiceMapping).length}</span>
                           </div>
                         </div>
-                        <div className="mt-3 pt-3 border-t border-base-300">
+                        <div className="mt-3 pt-3 border-t border-base-300/50">
                           <div className="flex items-center gap-2 text-green-600">
                             <CheckCircle2 className="w-4 h-4" />
                             <span className="text-sm">Saved to Media Library</span>
