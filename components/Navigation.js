@@ -311,10 +311,33 @@ export default function Navigation() {
   ];
 
   const isActive = (href) => {
+    if (!href) return false;
+    
+    // Get current URL with search params
+    const currentUrl = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
     const currentPath = pathname?.split('?')[0];
     const linkPath = href?.split('?')[0];
+    const linkParams = href?.includes('?') ? href.split('?')[1] : null;
     
-    // Simple path matching - each route is independent
+    // If href has query params, match full URL including params
+    if (linkParams) {
+      // Parse both URLs to compare query params
+      const currentParams = new URLSearchParams(searchParams?.toString() || '');
+      const linkParamsObj = new URLSearchParams(linkParams);
+      
+      // Check if path matches and all query params from link are present in current
+      if (currentPath !== linkPath) return false;
+      
+      // Check if all query params in the link are present and match in current URL
+      for (const [key, value] of linkParamsObj.entries()) {
+        if (currentParams.get(key) !== value) {
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    // For hrefs without query params, just match path
     return currentPath === linkPath || pathname === href;
   };
 
