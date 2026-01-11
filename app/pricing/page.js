@@ -454,14 +454,6 @@ export default function PricingPage() {
                     <span className="text-[#DC143C]">✓</span>
                     <span>Cloud Storage (Drive/Dropbox)</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>All AI writing agents</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>All quality tiers & aspect ratios</span>
-                  </li>
                 </ul>
               </div>
             </div>
