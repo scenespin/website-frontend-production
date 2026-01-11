@@ -2143,8 +2143,8 @@ export default function MediaLibrary({
                         )}
                         {/* Folder Icon - Larger on mobile */}
                         <div className={`${viewMode === 'grid' ? 'mb-2 md:mb-3' : ''} flex-shrink-0 relative`}>
-                          <div className={`${viewMode === 'grid' ? 'w-full aspect-square md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center`}>
-                            <Folder className="w-12 h-12 md:w-12 md:h-12 text-[#8B5CF6]" />
+                          <div className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center`}>
+                            <Folder className="w-16 h-16 md:w-12 md:h-12 text-[#8B5CF6]" />
                           </div>
                           {/* Cloud storage indicator */}
                           {storageType === 'cloud' && (
@@ -2356,7 +2356,7 @@ export default function MediaLibrary({
                             <img
                               src={fileUrl}
                               alt={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full aspect-square object-cover md:h-32' : 'w-16 h-16'} rounded bg-[#1F1F1F]`}
+                              className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
                               onLoad={(e) => {
                                 // 🔥 FIX: Hide fallback icon when image loads successfully
                                 const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
@@ -2373,13 +2373,13 @@ export default function MediaLibrary({
                             <VideoThumbnail 
                               videoUrl={fileUrl} 
                               fileName={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full aspect-square object-cover md:h-32' : 'w-16 h-16'}`}
+                              className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'}`}
                             />
                           ) : file.thumbnailUrl ? (
                             <img
                               src={file.thumbnailUrl}
                               alt={file.fileName}
-                              className={`${viewMode === 'grid' ? 'w-full aspect-square object-cover md:h-32' : 'w-16 h-16'} rounded bg-[#1F1F1F]`}
+                              className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
                               onLoad={(e) => {
                                 // 🔥 FIX: Hide fallback icon when image loads successfully
                                 const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
@@ -2395,7 +2395,7 @@ export default function MediaLibrary({
                           ) : null;
                         })()}
                         {/* Fallback icon - hidden by default if we have a valid URL */}
-                        <div className={`${viewMode === 'grid' ? 'w-full aspect-square md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(() => {
+                        <div className={`${viewMode === 'grid' ? 'w-full h-48 md:h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(() => {
                           const useThumbnail = viewMode === 'grid';
                           const fileUrl = getFileUrl(file, useThumbnail);
                           const hasValidUrl = fileUrl && (file.fileType === 'image' || file.fileType === 'video' || file.thumbnailUrl);
