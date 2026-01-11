@@ -450,10 +450,8 @@ export default function Navigation() {
                     <button
                       onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
                       className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors w-full min-h-[44px] ${
-                        isParentActive(item) && item.name === 'Direct'
-                          ? 'bg-cinema-red/20 text-cinema-red'
-                          : isParentActive(item)
-                          ? 'bg-cinema-red text-base-content'
+                        isParentActive(item)
+                          ? 'bg-cinema-red/20 text-cinema-red border-l-[3px] border-cinema-red'
                           : 'text-base-content hover:bg-base-300'
                       }`}
                     >
@@ -468,10 +466,7 @@ export default function Navigation() {
                     {openDropdown === item.name && (
                       <div className="ml-4 space-y-1 border-l-2 border-base-300 pl-3">
                         {item.subItems.map((subItem) => {
-                          // For Produce menu, use black styling instead of red
-                          const isProduceMenu = item.name === 'Produce';
-                          // For Direct menu, remove active state - only show hover
-                          const isDirectMenu = item.name === 'Direct';
+                          const isItemActive = isActive(subItem.href);
                           
                           return (
                             <Link
@@ -479,12 +474,8 @@ export default function Navigation() {
                               href={subItem.href}
                               onClick={() => setMobileMenuOpen(false)}
                               className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px] ${
-                                isProduceMenu
-                                  ? 'text-base-content hover:bg-base-300'
-                                  : isDirectMenu
-                                  ? 'text-base-content hover:bg-base-300'
-                                  : isActive(subItem.href)
-                                  ? 'bg-cinema-red/20 text-cinema-red'
+                                isItemActive
+                                  ? 'bg-cinema-red/20 text-cinema-red border-l-[3px] border-cinema-red'
                                   : 'text-base-content hover:bg-base-300'
                               }`}
                             >
@@ -508,7 +499,7 @@ export default function Navigation() {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors min-h-[44px] ${
                       isActive(item.href)
-                        ? 'bg-cinema-red text-base-content'
+                        ? 'bg-cinema-red/20 text-cinema-red border-l-[3px] border-cinema-red'
                         : 'text-base-content hover:bg-base-300'
                     }`}
                   >
