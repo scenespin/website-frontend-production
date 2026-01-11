@@ -285,6 +285,7 @@ export function GenerateAssetTab({
           selectedPackageId={selectedPackageId}
           quality={quality}
           creditsPerImage={creditsPerImage}
+          compact={true}
           selectedAngle={selectedAngle}
           onSelectedAngleChange={setSelectedAngle}
         />

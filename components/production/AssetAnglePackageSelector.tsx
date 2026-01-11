@@ -45,6 +45,7 @@ interface AssetAnglePackageSelectorProps {
   disabled?: boolean;
   quality?: 'standard' | 'high-quality'; // Quality tier affects pricing
   creditsPerImage?: number; // 🔥 NEW: Credits per image from selected model
+  compact?: boolean; // 🔥 NEW: Compact mode for smaller display
   // 🔥 Feature 0190: Single angle selection
   selectedAngle?: string;
   onSelectedAngleChange?: (angleId: string) => void;
@@ -71,6 +72,7 @@ export default function AssetAnglePackageSelector({
   disabled = false,
   quality = 'standard',
   creditsPerImage = 20, // 🔥 NEW: Default to 20 credits if not provided
+  compact = false, // 🔥 NEW: Compact mode
   // 🔥 Feature 0190: Single angle selection
   selectedAngle,
   onSelectedAngleChange
@@ -160,6 +162,127 @@ export default function AssetAnglePackageSelector({
     }
   }, [selectedPackageId, selectedAngle, onSelectedAngleChange]);
   
+  if (compact) {
+    // Compact horizontal layout
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-xs text-[#808080] mb-2">
+          <span>More angles = better prop consistency</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        {packages.map((pkg) => {
+          const Icon = PACKAGE_ICONS[pkg.id];
+          const isSelected = selectedPackageId === pkg.id;
+          const isRecommended = pkg.id === 'standard';
+          
+          // Compact card design
+          return (
+              <motion.div
+                key={pkg.id}
+                whileHover={!disabled ? { scale: 1.05 } : {}}
+                whileTap={!disabled ? { scale: 0.95 } : {}}
+                className={`
+                  relative rounded-lg border-2 p-3 cursor-pointer transition-all
+                  ${isSelected 
+                    ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                    : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
+                  }
+                  ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+                onClick={() => !disabled && onSelectPackage(pkg.id)}
+              >
+                {/* Recommended Badge */}
+                {isRecommended && (
+                  <div className="absolute -top-1.5 -right-1.5">
+                    <div className="bg-[#DC143C] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                      REC
+                    </div>
+                  </div>
+                )}
+                
+                {/* Package Icon & Name */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`p-1.5 rounded bg-gradient-to-br ${PACKAGE_COLORS[pkg.id]}`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <h3 className="text-xs font-semibold text-white truncate">
+                    {pkg.name.replace(' Package', '')}
+                  </h3>
+                </div>
+                
+                {/* Credits */}
+                <div className="text-sm font-bold text-white mb-1.5">
+                  {pkg.credits} <span className="text-[10px] font-normal text-[#808080]">credits</span>
+                </div>
+                
+                {/* Consistency & Angles */}
+                <div className="space-y-1 mb-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-[#808080]">Consistency</span>
+                    <span className="text-white font-semibold">{pkg.consistencyRating}%</span>
+                  </div>
+                  <div className="w-full bg-[#3F3F46] rounded-full h-1">
+                    <div 
+                      className={`h-1 rounded-full bg-gradient-to-r ${PACKAGE_COLORS[pkg.id]}`}
+                      style={{ width: `${pkg.consistencyRating}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-[#808080]">
+                    {pkg.angles.length} angles
+                  </div>
+                  {/* Angle Preview - Show all angles */}
+                  <div className="text-[9px] text-[#808080] mt-1">
+                    <div className="flex flex-wrap gap-1">
+                      {pkg.angles.map((angle, idx) => (
+                        <span key={idx} className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">
+                          {angle.charAt(0).toUpperCase() + angle.slice(1).replace(/-/g, ' ')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Selected Indicator */}
+                {isSelected && (
+                  <div className="mt-2 py-1 bg-[#DC143C] text-white text-center rounded text-[10px] font-semibold">
+                    ✓ Selected
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+        
+        {/* 🔥 Feature 0190: Single angle dropdown */}
+        {selectedPackageId === 'single' && (
+          <div className="mt-4 p-4 bg-[#1A1A1A] border border-[#3F3F46] rounded-lg">
+            <label className="block text-xs font-medium text-white mb-2">
+              Select Angle:
+            </label>
+            <select
+              key={`single-angle-select-${selectedPackageId}-${normalizedSelectedAngle}`}
+              value={normalizedSelectedAngle}
+              onChange={(e) => {
+                if (onSelectedAngleChange) {
+                  onSelectedAngleChange(e.target.value);
+                }
+              }}
+              disabled={disabled}
+              className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+            >
+              {ALL_ANGLES.map((angle) => (
+                <option key={angle.id} value={angle.id}>
+                  {angle.name} - {angle.description}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  // Full layout (original)
   return (
     <div className="space-y-6">
       <div className="text-center">
