@@ -470,6 +470,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   // ✅ FIX: Get screenplayId from context instead of props
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
+  const router = useRouter();
   
   const { getToken, userId } = useAuth();
   const queryClient = useQueryClient();
