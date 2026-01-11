@@ -100,7 +100,6 @@ export function ProductionHub({}: ProductionHubProps) {
   const [activeTab, setActiveTab] = useState<ProductionTab>('characters');
   const [isMobile, setIsMobile] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
-  const [showJobsBanner, setShowJobsBanner] = useState(true);
   const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false);
   
   // Navigation state for opening entity modals from JobsDrawer
@@ -265,38 +264,6 @@ export function ProductionHub({}: ProductionHubProps) {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen bg-[#0A0A0A]">
-        {/* Active Jobs Banner - Hidden on mobile */}
-        {false && activeJobs > 0 && showJobsBanner && (
-          <div className="bg-blue-950 border-b border-blue-800 px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-4 h-4 text-blue-400 animate-spin flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-blue-100">
-                  {activeJobs} {activeJobs === 1 ? 'job' : 'jobs'} running
-                </p>
-                <p className="text-xs text-blue-300">
-                  Generating videos in background
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsJobsDrawerOpen(true)}
-                className="text-xs px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded-md transition-colors flex items-center gap-1"
-              >
-                View
-                <ChevronRight className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => setShowJobsBanner(false)}
-                className="p-1 hover:bg-blue-800 rounded text-blue-300 hover:text-blue-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Mobile Tab Navigation - Hidden on mobile, shown on desktop */}
         <div className="hidden md:block">
           <ProductionTabBar
