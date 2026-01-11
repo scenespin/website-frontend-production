@@ -892,9 +892,9 @@ export default function Dashboard() {
           {/* Compact Stats Bar */}
           <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
             {/* Main Stats Row - Credits, Top Up, Projects */}
-            <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+            <div className="flex items-center gap-4 flex-wrap">
               <CreditWidget />
-              <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px] flex-1 min-w-[100px] md:flex-initial">
+              <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                   <span className="text-sm font-semibold text-base-content leading-tight">{projects.length}</span>
@@ -907,7 +907,7 @@ export default function Dashboard() {
             {currentScreenplayId && (
               <div className="flex flex-wrap items-center gap-2 md:gap-4">
                 {entityCounts.characters > 0 && (
-                  <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px] flex-1 min-w-[100px] md:flex-initial">
+                  <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-primary flex-shrink-0" />
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.characters}</span>
@@ -916,7 +916,7 @@ export default function Dashboard() {
                   </div>
                 )}
                 {entityCounts.locations > 0 && (
-                  <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px] flex-1 min-w-[100px] md:flex-initial">
+                  <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-accent flex-shrink-0" />
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.locations}</span>
@@ -925,7 +925,7 @@ export default function Dashboard() {
                   </div>
                 )}
                 {entityCounts.assets > 0 && (
-                  <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px] flex-1 min-w-[100px] md:flex-initial">
+                  <div className="flex flex-col px-4 py-2 bg-base-200 rounded-lg border border-base-300/50 min-h-[40px]">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-primary flex-shrink-0" />
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.assets}</span>
@@ -934,7 +934,7 @@ export default function Dashboard() {
                   </div>
                 )}
                 {entityCounts.videos > 0 && (
-                  <div className="flex flex-col px-4 py-2.5 bg-cinema-red/10 rounded-lg border border-cinema-red/30 min-h-[44px] flex-1 min-w-[100px] md:flex-initial md:w-auto">
+                  <div className="flex flex-col px-4 py-2.5 bg-cinema-red/10 rounded-lg border border-cinema-red/30 min-h-[44px] w-full md:w-auto md:flex-shrink-0">
                     <div className="flex items-center gap-2">
                       <span className="text-base flex-shrink-0">🎬</span>
                       <span className="text-sm font-semibold text-base-content leading-tight">{entityCounts.videos}</span>
