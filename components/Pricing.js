@@ -17,7 +17,7 @@ const Pricing = () => {
       features: [
         "✅ All quality tiers (Professional/Premium/Ultra)",
         "✅ All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)",
-        "✅ Upload your own footage",
+        "✅ Match style from existing footage",
         "✅ 65 compositions, 30 transitions",
         "✅ Screenplay Editor + Timeline (8 tracks)",
         "✅ Cloud Storage (Drive/Dropbox)",
@@ -183,7 +183,7 @@ const Pricing = () => {
             <div>
               <h4 className="font-semibold mb-2">✨ What&apos;s FREE</h4>
               <ul className="space-y-1 opacity-80">
-                <li>• Upload your own footage (unlimited)</li>
+                <li>• Match style from existing footage</li>
                 <li>• 65 compositions, 30 transitions</li>
                 <li>• Screenplay + Timeline editor</li>
                 <li>• Cloud Storage (Drive/Dropbox)</li>

@@ -193,7 +193,7 @@ export default function WorkflowCategories() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Style Transfer (Uploaded Footage)"
-                description="Upload your own footage and transform it into any artistic style: anime, watercolor, oil painting, cyberpunk, etc. Turn live-action into stylized art instantly."
+                description="Match style from existing footage and transform it into any artistic style: anime, watercolor, oil painting, cyberpunk, etc. Turn live-action into stylized art instantly."
                 stars={5}
               />
               <WorkflowCard

@@ -428,7 +428,7 @@ export default function PricingPage() {
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Upload your own footage (unlimited)</span>
+                    <span>Match style from existing footage</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
