@@ -17,7 +17,6 @@ const Pricing = () => {
       features: [
         "✅ All quality tiers (Professional/Premium/Ultra)",
         "✅ All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)",
-        "✅ Match style from existing footage",
         "✅ 65 compositions, 30 transitions",
         "✅ Screenplay Editor + Timeline (8 tracks)",
         "✅ Cloud Storage (Drive/Dropbox)",
