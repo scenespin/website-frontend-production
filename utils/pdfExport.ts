@@ -350,11 +350,11 @@ async function addWatermarkWithPdfLib(
         const pageCenterY = pageHeight / 2;
         
         // Calculate position (centered) - pdf-lib uses bottom-left origin
-        // Adjustments for visual centering:
-        // - Move up slightly (increase Y by 20 points) to account for visual perception
-        // - Move left slightly (decrease X by 15 points) to account for rotation visual offset
-        const x = pageCenterX - imgWidth / 2 - 15; // Shift left 15 points
-        const y = pageCenterY - imgHeight / 2 + 20; // Shift up 20 points (Y increases upward)
+        // Fine-tuned adjustments for visual centering on rotated watermark:
+        // - Move up slightly (increase Y by 10 points) for visual balance
+        // - Move left slightly (decrease X by 10 points) to account for rotation visual offset
+        const x = pageCenterX - imgWidth / 2 - 10; // Shift left 10 points
+        const y = pageCenterY - imgHeight / 2 + 10; // Shift up 10 points (Y increases upward)
 
         // pdf-lib's drawImage supports opacity and rotate directly!
         // The x,y coordinates specify the bottom-left corner of the image
@@ -459,10 +459,43 @@ export async function exportScreenplayToPDF(
   // Bookmarks storage
   const bookmarks: Array<{ title: string; page: number }> = [];
   
+  // Track current scene for CONTINUED markers
+  let currentScene: string | null = null;
+  let sceneContinuing = false; // Track if we're continuing a scene on new page
+  
+  /**
+   * Add "(CONTINUED)" at bottom right of current page
+   */
+  function addContinuedBottom() {
+    if (!currentScene) return; // Only if we're in a scene
+    
+    const continuedY = maxY + 12; // Just below bottom margin
+    const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
+    doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
+    doc.text('(CONTINUED)', continuedX, continuedY, { align: 'right', baseline: 'top' });
+  }
+  
+  /**
+   * Add "CONTINUED:" at top right of new page
+   */
+  function addContinuedTop() {
+    if (!currentScene) return; // Only if we're continuing a scene
+    
+    const continuedY = inchesToPoints(SCREENPLAY_FORMAT.marginTop) - 12; // Just above top margin
+    const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
+    doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
+    doc.text('CONTINUED:', continuedX, continuedY, { align: 'right', baseline: 'top' });
+  }
+  
   /**
    * Add a new page
    */
   function addNewPage() {
+    // Add "(CONTINUED)" at bottom of current page if scene is continuing
+    if (currentScene && sceneContinuing) {
+      addContinuedBottom();
+    }
+    
     doc.addPage();
     pageNumber++;
     currentY = inchesToPoints(SCREENPLAY_FORMAT.marginTop);
@@ -472,6 +505,12 @@ export async function exportScreenplayToPDF(
     const pageNumY = inchesToPoints(SCREENPLAY_FORMAT.pageNumberTop);
     doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
     doc.text(`${pageNumber}.`, pageNumX, pageNumY, { align: 'right', baseline: 'top' });
+    
+    // Add "CONTINUED:" at top if scene is continuing
+    if (currentScene && sceneContinuing) {
+      addContinuedTop();
+      sceneContinuing = false; // Reset after adding
+    }
     
     // Add text watermark if specified (image watermarks handled by pdf-lib post-processing)
     if (watermark && watermark.text && !watermark.image) {
@@ -487,6 +526,10 @@ export async function exportScreenplayToPDF(
     const requiredSpace = requiredLines * lineHeightPt;
     
     if (currentY + requiredSpace > maxY) {
+      // Mark that scene is continuing if we're in a scene
+      if (currentScene) {
+        sceneContinuing = true;
+      }
       addNewPage();
       return true;
     }
@@ -558,6 +601,10 @@ export async function exportScreenplayToPDF(
       case 'scene':
         // Scene headings should not be orphaned
         checkPageBreak(2);
+        
+        // Update current scene tracking
+        currentScene = element.text;
+        sceneContinuing = false; // New scene, not continuing
         
         // Add bookmark
         if (includeBookmarks && element.bookmark) {
