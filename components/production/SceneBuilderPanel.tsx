@@ -400,15 +400,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
   }, [contextState.selectedVideoTypes, contextActions]);
   
-  const setSelectedVideoQualities = useCallback((updater: Record<number, 'hd' | '4k'> | ((prev: Record<number, 'hd' | '4k'>) => Record<number, 'hd' | '4k'>)) => {
-    if (typeof updater === 'function') {
-      const newValue = updater(contextState.selectedVideoQualities);
-      contextActions.setSelectedVideoQualities(newValue);
-    } else {
-      contextActions.setSelectedVideoQualities(updater);
-    }
-  }, [contextState.selectedVideoQualities, contextActions]);
-  
   const setSelectedDialogueQualities = useCallback((updater: Record<number, 'premium' | 'reliable'> | ((prev: Record<number, 'premium' | 'reliable'>) => Record<number, 'premium' | 'reliable'>)) => {
     if (typeof updater === 'function') {
       const newValue = updater(contextState.selectedDialogueQualities);
@@ -558,7 +549,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const shotDurations = contextState.shotDurations;
   const selectedReferenceShotModels = contextState.selectedReferenceShotModels;
   const selectedVideoTypes = contextState.selectedVideoTypes;
-  const selectedVideoQualities = contextState.selectedVideoQualities;
   
   // UI State: Collapsible sections (local, not in context)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -2908,7 +2898,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         propsToShots: Object.keys(propsToShots).length > 0 ? propsToShots : undefined, // Props-to-shots assignment: { propId: [shotSlot1, shotSlot2] }
         shotProps: Object.keys(shotProps).length > 0 ? shotProps : undefined, // Per-shot prop configurations: { shotSlot: { propId: { usageDescription, selectedImageId } } }
         selectedVideoTypes: Object.keys(selectedVideoTypes).length > 0 ? selectedVideoTypes : undefined, // 🔥 NEW: Per-shot video model selection: { [shotSlot]: 'cinematic-visuals' | 'natural-motion' }
-        selectedVideoQualities: Object.keys(selectedVideoQualities).length > 0 ? selectedVideoQualities : undefined, // 🔥 NEW: Per-shot video quality selection: { [shotSlot]: 'hd' | '4k' }
+        // Note: Video quality (1080p/4K) is set globally in Review Step via globalResolution, not per-shot
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
@@ -4519,12 +4509,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                     setSelectedReferenceShotModels(prev => ({ ...prev, [shotSlot]: model }));
                   }}
                   selectedVideoType={selectedVideoTypes}
-                  selectedVideoQuality={selectedVideoQualities}
                   onVideoTypeChange={(shotSlot, videoType) => {
                     setSelectedVideoTypes(prev => ({ ...prev, [shotSlot]: videoType }));
-                  }}
-                  onVideoQualityChange={(shotSlot, quality) => {
-                    setSelectedVideoQualities(prev => ({ ...prev, [shotSlot]: quality }));
                   }}
                   onPrevious={() => {
                     if (currentShotIndex > 0) {

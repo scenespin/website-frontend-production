@@ -1,9 +1,9 @@
 /**
  * Video Generation Selector Component
  * 
- * Allows users to select video generation type and quality for non-dialogue shots.
+ * Allows users to select video generation type for non-dialogue shots.
  * Options: Cinematic Visuals, Natural Motion
- * Quality: HD (1080p), 4K
+ * Note: Quality (1080p/4K) is set globally in the Review Step, not per-shot.
  */
 
 'use client';
@@ -14,63 +14,34 @@ interface VideoGenerationSelectorProps {
   shotSlot: number;
   shotType: 'dialogue' | 'action' | 'establishing';
   selectedVideoType: 'cinematic-visuals' | 'natural-motion' | undefined;
-  selectedQuality: 'hd' | '4k' | undefined;
   onVideoTypeChange: (shotSlot: number, videoType: 'cinematic-visuals' | 'natural-motion') => void;
-  onQualityChange: (shotSlot: number, quality: 'hd' | '4k') => void;
   // Camera Angle and Shot Duration (moved from ShotConfigurationPanel)
   shotCameraAngle?: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto';
   onCameraAngleChange?: (shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => void;
   shotDuration?: 'quick-cut' | 'extended-take';
   onDurationChange?: (shotSlot: number, duration: 'quick-cut' | 'extended-take' | undefined) => void;
-  isLipSyncWorkflow?: boolean; // 🔥 NEW: If true, only show quality (hide camera angle, video type, duration)
+  isLipSyncWorkflow?: boolean; // If true, hide this component (no per-shot options for lip-sync)
 }
 
 export function VideoGenerationSelector({
   shotSlot,
   shotType,
   selectedVideoType,
-  selectedQuality,
   onVideoTypeChange,
-  onQualityChange,
   shotCameraAngle,
   onCameraAngleChange,
   shotDuration,
   onDurationChange,
-  isLipSyncWorkflow = false // 🔥 NEW: Flag to hide camera angle for lip-sync workflows
+  isLipSyncWorkflow = false // If true, hide this component (no per-shot options for lip-sync)
 }: VideoGenerationSelectorProps) {
-  // 🔥 NEW: For dialogue lip-sync shots, show only Quality (no Camera Angle, Video Type, or Duration)
+  // For dialogue lip-sync shots, hide this component (quality is set globally in Review Step)
   if (shotType === 'dialogue' && isLipSyncWorkflow) {
-    const selectQuality = selectedQuality ?? 'hd';
-    
-    return (
-      <div className="pt-3 pb-3 border-t border-b border-[#3F3F46]">
-        <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Generation</div>
-        <div className="space-y-3">
-          {/* Quality Selection - Only option for lip-sync workflows */}
-          {onQualityChange && (
-            <div>
-              <label className="text-[10px] text-[#808080] mb-1.5 block">Quality</label>
-              <select
-                value={selectQuality}
-                onChange={(e) => {
-                  onQualityChange(shotSlot, e.target.value as 'hd' | '4k');
-                }}
-                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
-              >
-                <option value="4k" className="bg-[#1A1A1A] text-[#FFFFFF]">4K - Highest quality</option>
-                <option value="hd" className="bg-[#1A1A1A] text-[#FFFFFF]">HD - 1080p, standard</option>
-              </select>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    return null;
   }
   
-  // 🔥 NEW: For dialogue non-lip-sync shots, show Quality, Camera Angle, Shot Duration, and Video Style
+  // For dialogue non-lip-sync shots, show Camera Angle, Shot Duration, and Video Style
   if (shotType === 'dialogue' && !isLipSyncWorkflow) {
     const selectCameraAngle = shotCameraAngle ?? 'auto';
-    const selectQuality = selectedQuality ?? 'hd';
     const selectVideoType = selectedVideoType ?? 'cinematic-visuals';
     const selectDuration = shotDuration ?? 'quick-cut';
     
@@ -93,23 +64,6 @@ export function VideoGenerationSelector({
       <div className="pt-3 pb-3 border-t border-b border-[#3F3F46]">
         <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Generation</div>
         <div className="space-y-3">
-          {/* Quality Selection */}
-          {onQualityChange && (
-            <div>
-              <label className="text-[10px] text-[#808080] mb-1.5 block">Quality</label>
-              <select
-                value={selectQuality}
-                onChange={(e) => {
-                  onQualityChange(shotSlot, e.target.value as 'hd' | '4k');
-                }}
-                className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
-              >
-                <option value="4k" className="bg-[#1A1A1A] text-[#FFFFFF]">4K - Highest quality</option>
-                <option value="hd" className="bg-[#1A1A1A] text-[#FFFFFF]">HD - 1080p, standard</option>
-              </select>
-            </div>
-          )}
-
           {/* Camera Angle */}
           {onCameraAngleChange && (
             <div>
@@ -214,7 +168,6 @@ export function VideoGenerationSelector({
   // Ensure all Select values are always strings (never undefined) to prevent React error #185
   const selectCameraAngle = shotCameraAngle ?? 'auto';
   const selectVideoType = selectedVideoType ?? 'cinematic-visuals';
-  const selectQuality = selectedQuality ?? '4k';
   const selectDuration = shotDuration ?? 'quick-cut';
 
   return (
@@ -275,21 +228,6 @@ export function VideoGenerationSelector({
                 {videoType.name} - {videoType.description} (Best for: {videoType.bestFor})
               </option>
             ))}
-          </select>
-        </div>
-
-        {/* Quality Selection */}
-        <div>
-          <label className="text-[10px] text-[#808080] mb-1.5 block">Quality</label>
-          <select
-            value={selectQuality}
-            onChange={(e) => {
-              onQualityChange(shotSlot, e.target.value as 'hd' | '4k');
-            }}
-            className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
-          >
-            <option value="4k" className="bg-[#1A1A1A] text-[#FFFFFF]">4K - Highest quality</option>
-            <option value="hd" className="bg-[#1A1A1A] text-[#FFFFFF]">HD - 1080p, standard</option>
           </select>
         </div>
 

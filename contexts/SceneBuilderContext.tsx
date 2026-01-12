@@ -65,7 +65,6 @@ export type Resolution = '1080p' | '4k';
 export type AspectRatio = '16:9' | '9:16' | '1:1';
 export type ReferenceShotModel = 'nano-banana-pro' | 'flux2-max-4k-16:9';
 export type VideoType = 'cinematic-visuals' | 'natural-motion';
-export type VideoQuality = 'hd' | '4k';
 export type DialogueQuality = 'premium' | 'reliable';
 export type WizardStep = 'analysis' | 'shot-config' | 'review';
 
@@ -112,7 +111,6 @@ export interface SceneBuilderState {
   shotAspectRatios: Record<number, AspectRatio>;
   selectedReferenceShotModels: Record<number, ReferenceShotModel>;
   selectedVideoTypes: Record<number, VideoType>;
-  selectedVideoQualities: Record<number, VideoQuality>;
   
   // Global Settings
   globalResolution: Resolution;
@@ -192,8 +190,6 @@ export interface SceneBuilderActions {
   updateReferenceShotModel: (shotSlot: number, model: ReferenceShotModel) => void;
   setSelectedVideoTypes: (types: Record<number, VideoType>) => void;
   updateVideoType: (shotSlot: number, videoType: VideoType) => void;
-  setSelectedVideoQualities: (qualities: Record<number, VideoQuality>) => void;
-  updateVideoQuality: (shotSlot: number, quality: VideoQuality) => void;
   
   // Global Settings Actions
   setGlobalResolution: (resolution: Resolution) => void;
@@ -286,7 +282,6 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     shotAspectRatios: {},
     selectedReferenceShotModels: {},
     selectedVideoTypes: {},
-    selectedVideoQualities: {},
     
     // Global Settings
     globalResolution: '4k',
@@ -867,20 +862,6 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         selectedVideoTypes: {
           ...prev.selectedVideoTypes,
           [shotSlot]: videoType
-        }
-      }));
-    }, []),
-    
-    setSelectedVideoQualities: useCallback((qualities) => {
-      setState(prev => ({ ...prev, selectedVideoQualities: qualities }));
-    }, []),
-    
-    updateVideoQuality: useCallback((shotSlot, quality) => {
-      setState(prev => ({
-        ...prev,
-        selectedVideoQualities: {
-          ...prev.selectedVideoQualities,
-          [shotSlot]: quality
         }
       }));
     }, []),

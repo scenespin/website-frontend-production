@@ -198,9 +198,7 @@ interface ShotConfigurationStepProps {
   onReferenceShotModelChange?: (shotSlot: number, model: 'nano-banana-pro' | 'flux2-max-4k-16:9') => void;
   // Video Generation Selection
   selectedVideoType?: Record<number, 'cinematic-visuals' | 'natural-motion'>;
-  selectedVideoQuality?: Record<number, 'hd' | '4k'>;
   onVideoTypeChange?: (shotSlot: number, videoType: 'cinematic-visuals' | 'natural-motion') => void;
-  onVideoQualityChange?: (shotSlot: number, quality: 'hd' | '4k') => void;
   // Aspect Ratio (per-shot)
   shotAspectRatio?: '16:9' | '9:16' | '1:1';
   onAspectRatioChange?: (shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1') => void;
@@ -279,9 +277,7 @@ export function ShotConfigurationStep({
   selectedReferenceShotModel = {},
   onReferenceShotModelChange,
   selectedVideoType = {},
-  selectedVideoQuality = {},
   onVideoTypeChange,
-  onVideoQualityChange,
   shotAspectRatio,
   onAspectRatioChange,
   onPrevious,
@@ -301,7 +297,6 @@ export function ShotConfigurationStep({
   const shotSlot = shot.slot;
   const selectedReferenceShotModels = state.selectedReferenceShotModels;
   const selectedVideoTypes = state.selectedVideoTypes;
-  const selectedVideoQualities = state.selectedVideoQualities;
   
   // Use context values (context is source of truth, props are for backward compatibility)
   // Override props with context values
@@ -521,10 +516,6 @@ export function ShotConfigurationStep({
     actions.updateVideoType(shotSlot, videoType);
   }, [actions]);
   
-  const finalOnVideoQualityChange = useCallback((shotSlot: number, quality: 'hd' | '4k') => {
-    actions.updateVideoQuality(shotSlot, quality);
-  }, [actions]);
-  
   const finalOnAspectRatioChange = useCallback((shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1') => {
     actions.updateShotAspectRatio(shotSlot, aspectRatio);
   }, [actions]);
@@ -613,7 +604,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModels, selectedVideoTypes, selectedVideoQualities, getToken, shot.slot]);
+  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModels, selectedVideoTypes, getToken, shot.slot]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -1238,28 +1229,20 @@ export function ShotConfigurationStep({
           )}
 
           {/* Video Generation Selection */}
-          {/* Show for action shots OR dialogue lip-sync shots (basic tab) - ONLY if it's actually a lip-sync workflow */}
-          {(() => {
-            // 🔥 FIX: Default to 'first-frame-lipsync' if no workflow is selected (basic tab defaults to lip-sync)
-            const effectiveWorkflow = finalSelectedDialogueWorkflow || (shot.type === 'dialogue' && activeTab === 'basic' ? 'first-frame-lipsync' : undefined);
-            const isLipSyncWorkflow = shot.type === 'dialogue' && (effectiveWorkflow === 'first-frame-lipsync' || effectiveWorkflow === 'extreme-closeup' || effectiveWorkflow === 'extreme-closeup-mouth');
-            const shouldShowForDialogue = shot.type === 'dialogue' && isDialogueShot && activeTab === 'basic' && onVideoQualityChange && isLipSyncWorkflow;
-            return (onVideoTypeChange && onVideoQualityChange) || shouldShowForDialogue;
-          })() && (
+          {/* Show for action shots OR dialogue non-lip-sync shots */}
+          {onVideoTypeChange && (
             <>
               <VideoGenerationSelector
                 shotSlot={shot.slot}
                 shotType={shot.type}
                 selectedVideoType={selectedVideoTypes[shot.slot]}
-                selectedQuality={selectedVideoQualities[shot.slot]}
                 onVideoTypeChange={finalOnVideoTypeChange}
-                onQualityChange={finalOnVideoQualityChange}
                 shotCameraAngle={shotCameraAngle}
                 onCameraAngleChange={finalOnCameraAngleChange}
                 shotDuration={shotDuration}
                 onDurationChange={finalOnDurationChange}
                 isLipSyncWorkflow={(() => {
-                  // 🔥 FIX: Default to 'first-frame-lipsync' if no workflow is selected (basic tab defaults to lip-sync)
+                  // Default to 'first-frame-lipsync' if no workflow is selected (basic tab defaults to lip-sync)
                   const effectiveWorkflow = finalSelectedDialogueWorkflow || (shot.type === 'dialogue' && activeTab === 'basic' ? 'first-frame-lipsync' : undefined);
                   return shot.type === 'dialogue' && (effectiveWorkflow === 'first-frame-lipsync' || effectiveWorkflow === 'extreme-closeup' || effectiveWorkflow === 'extreme-closeup-mouth');
                 })()}
@@ -1294,13 +1277,13 @@ export function ShotConfigurationStep({
                 <div className="pt-2 border-t border-[#3F3F46]">
                   <div className="flex items-center justify-between text-xs font-medium">
                     <span className="text-[#FFFFFF]">HD Total:</span>
-                    <span className={selectedVideoQuality[shot.slot] === 'hd' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}>
+                    <span className="text-[#FFFFFF]">
                       {pricing.firstFramePrice + pricing.hdPrice} credits
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs font-medium mt-1">
                     <span className="text-[#FFFFFF]">4K Total:</span>
-                    <span className={selectedVideoQuality[shot.slot] === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}>
+                    <span className="text-[#FFFFFF]">
                       {pricing.firstFramePrice + pricing.k4Price} credits
                     </span>
                   </div>
