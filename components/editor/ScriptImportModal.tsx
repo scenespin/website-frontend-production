@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X, File } from 'lucide-react';
 import type { Character, Location, Scene, StoryBeat } from '@/types/screenplay';
 import { extractTextFromPDF, isPDFFile } from '@/utils/pdfTextExtractor';
+import { extractTextFromWord, isWordFile } from '@/utils/wordTextExtractor';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface ScriptImportModalProps {
     isOpen: boolean;
@@ -32,7 +34,9 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [showWarning, setShowWarning] = useState(false); // 🔥 NEW: Warning dialog state
     const [normalizationProgress, setNormalizationProgress] = useState<number | null>(null); // Feature 0177: Progress for large files
     const [isExtractingPDF, setIsExtractingPDF] = useState(false); // 🔥 NEW: PDF extraction state
+    const [isExtractingWord, setIsExtractingWord] = useState(false); // 🔥 NEW: Word extraction state
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null); // 🔥 NEW: Track uploaded file name
+    const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload'); // 🔥 NEW: Tab state
     
     // Parse content whenever it changes (debounced)
     // Feature 0177: Normalize content before parsing
@@ -74,57 +78,91 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         return () => clearTimeout(timer);
     }, [content]);
     
-    // 🔥 NEW: Handle PDF file upload
-    const handlePDFUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    // 🔥 NEW: Handle file upload (PDF or Word)
+    const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (!files || files.length === 0) return;
         
         const file = files[0];
         
-        if (!isPDFFile(file)) {
-            toast.error('Please select a PDF file');
-            return;
-        }
-        
         // Check file size (50MB limit)
         if (file.size > 50 * 1024 * 1024) {
-            toast.error('PDF file is too large. Maximum size is 50MB.');
+            toast.error('File is too large. Maximum size is 50MB.');
             return;
         }
         
-        setIsExtractingPDF(true);
-        setUploadedFileName(file.name);
-        
-        try {
-            toast.info('Extracting text from PDF...', { duration: 2000 });
+        // Determine file type and extract
+        if (isPDFFile(file)) {
+            setIsExtractingPDF(true);
+            setUploadedFileName(file.name);
             
-            const result = await extractTextFromPDF(file);
-            
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to extract text from PDF');
+            try {
+                toast.info('Extracting text from PDF...', { duration: 2000 });
+                
+                const result = await extractTextFromPDF(file);
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to extract text from PDF');
+                }
+                
+                if (!result.text.trim()) {
+                    throw new Error('PDF appears to be empty or contains no extractable text');
+                }
+                
+                // Set extracted text as content (will trigger parsing via useEffect)
+                setContentLocal(result.text);
+                
+                toast.success(`✅ PDF extracted successfully (${result.pageCount} pages)`, {
+                    description: 'Review the preview below and click Import when ready'
+                });
+                
+            } catch (error) {
+                console.error('[ScriptImportModal] PDF extraction error:', error);
+                toast.error('Failed to extract text from PDF', {
+                    description: error instanceof Error ? error.message : 'Please try another PDF file'
+                });
+                setUploadedFileName(null);
+            } finally {
+                setIsExtractingPDF(false);
+                event.target.value = '';
             }
+        } else if (isWordFile(file)) {
+            setIsExtractingWord(true);
+            setUploadedFileName(file.name);
             
-            if (!result.text.trim()) {
-                throw new Error('PDF appears to be empty or contains no extractable text');
+            try {
+                toast.info('Extracting text from Word document...', { duration: 2000 });
+                
+                const result = await extractTextFromWord(file);
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to extract text from Word document');
+                }
+                
+                if (!result.text.trim()) {
+                    throw new Error('Word document appears to be empty or contains no extractable text');
+                }
+                
+                // Set extracted text as content (will trigger parsing via useEffect)
+                setContentLocal(result.text);
+                
+                toast.success('✅ Word document extracted successfully', {
+                    description: 'Review the preview below and click Import when ready'
+                });
+                
+            } catch (error) {
+                console.error('[ScriptImportModal] Word extraction error:', error);
+                toast.error('Failed to extract text from Word document', {
+                    description: error instanceof Error ? error.message : 'Please try another Word file'
+                });
+                setUploadedFileName(null);
+            } finally {
+                setIsExtractingWord(false);
+                event.target.value = '';
             }
-            
-            // Set extracted text as content (will trigger parsing via useEffect)
-            setContentLocal(result.text);
-            
-            toast.success(`✅ PDF extracted successfully (${result.pageCount} pages)`, {
-                description: 'Review the preview below and click Import when ready'
-            });
-            
-        } catch (error) {
-            console.error('[ScriptImportModal] PDF extraction error:', error);
-            toast.error('Failed to extract text from PDF', {
-                description: error instanceof Error ? error.message : 'Please try another PDF file'
-            });
-            setUploadedFileName(null);
-        } finally {
-            setIsExtractingPDF(false);
-            // Reset file input so same file can be selected again
-            event.target.value = '';
+        } else {
+            toast.error('Please select a PDF or Word (.docx) file');
+            return;
         }
     }, []);
     
@@ -424,75 +462,112 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         {/* Instructions */}
                         <div className="alert alert-info">
                             <Upload className="w-5 h-5" />
-                            <span>Paste your screenplay in Fountain format below, or upload a PDF file. We'll automatically detect characters, locations, and scenes.</span>
+                            <span>Upload a PDF or Word document, or paste your screenplay in Fountain format. We'll automatically detect characters, locations, and scenes.</span>
                         </div>
                         
-                        {/* 🔥 NEW: PDF Upload Section */}
-                        <div>
-                            <label className="label">
-                                <span className="label-text font-medium">Upload PDF Screenplay</span>
-                            </label>
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="file"
-                                    accept=".pdf,application/pdf"
-                                    onChange={handlePDFUpload}
-                                    disabled={isImporting || isExtractingPDF}
-                                    className="file-input file-input-bordered file-input-primary w-full max-w-xs"
-                                />
-                                {isExtractingPDF && (
-                                    <div className="flex items-center gap-2 text-sm text-base-content/70">
-                                        <span className="loading loading-spinner loading-sm"></span>
-                                        <span>Extracting text from PDF...</span>
+                        {/* 🔥 NEW: Tabs for Upload vs Paste */}
+                        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'upload' | 'paste')} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 bg-[#1F1F1F] border border-[#3F3F46]">
+                                <TabsTrigger 
+                                    value="upload" 
+                                    className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white data-[state=inactive]:text-[#808080]"
+                                >
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Upload File
+                                </TabsTrigger>
+                                <TabsTrigger 
+                                    value="paste" 
+                                    className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white data-[state=inactive]:text-[#808080]"
+                                >
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Paste Text
+                                </TabsTrigger>
+                            </TabsList>
+                            
+                            {/* Upload Tab */}
+                            <TabsContent value="upload" className="mt-4 space-y-4">
+                                <div>
+                                    <label className="label">
+                                        <span className="label-text font-medium">Upload PDF or Word Document</span>
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="file"
+                                            accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                            onChange={handleFileUpload}
+                                            disabled={isImporting || isExtractingPDF || isExtractingWord}
+                                            className="file-input file-input-bordered file-input-primary w-full max-w-xs"
+                                        />
+                                        {(isExtractingPDF || isExtractingWord) && (
+                                            <div className="flex items-center gap-2 text-sm text-base-content/70">
+                                                <span className="loading loading-spinner loading-sm"></span>
+                                                <span>
+                                                    {isExtractingPDF && 'Extracting text from PDF...'}
+                                                    {isExtractingWord && 'Extracting text from Word document...'}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {uploadedFileName && !isExtractingPDF && !isExtractingWord && (
+                                            <div className="flex items-center gap-2 text-sm text-success">
+                                                <CheckCircle className="w-4 h-4" />
+                                                <span>{uploadedFileName}</span>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                                {uploadedFileName && !isExtractingPDF && (
-                                    <div className="flex items-center gap-2 text-sm text-success">
-                                        <CheckCircle className="w-4 h-4" />
-                                        <span>{uploadedFileName}</span>
+                                    <div className="label">
+                                        <span className="label-text-alt text-base-content/60">
+                                            Supports PDF and Word (.docx) files. Files will be automatically converted to Fountain format.
+                                        </span>
                                     </div>
-                                )}
-                            </div>
-                            <div className="label">
-                                <span className="label-text-alt text-base-content/60">
-                                    PDF files will be automatically converted to Fountain format
-                                </span>
-                            </div>
-                        </div>
-                        
-                        {/* Divider */}
-                        <div className="divider">OR</div>
-                        
-                        {/* Textarea */}
-                        <div>
-                            <label className="label">
-                                <span className="label-text font-medium">Paste Screenplay Content</span>
-                            </label>
-                            <textarea
-                                className="textarea textarea-bordered w-full h-64 font-mono text-sm"
-                                placeholder="Paste your screenplay here in Fountain format..."
-                                value={content}
-                                onChange={(e) => {
-                                    setContentLocal(e.target.value);
-                                    setUploadedFileName(null); // Clear PDF file name when manually editing
-                                }}
-                                disabled={isImporting || isExtractingPDF}
-                            />
-                            {/* Feature 0177: Progress indicator for large file normalization */}
-                            {normalizationProgress !== null && (
-                                <div className="mt-2">
-                                    <div className="flex items-center justify-between text-sm text-base-content/70 mb-1">
-                                        <span>Normalizing screenplay...</span>
-                                        <span>{Math.round(normalizationProgress * 100)}%</span>
-                                    </div>
-                                    <progress 
-                                        className="progress progress-primary w-full" 
-                                        value={normalizationProgress} 
-                                        max={1}
-                                    />
                                 </div>
-                            )}
-                        </div>
+                                
+                                {content && (
+                                    <div className="mt-4 p-4 bg-base-200 rounded-lg">
+                                        <div className="text-sm text-base-content/70 mb-2">
+                                            Extracted content preview ({content.length} characters):
+                                        </div>
+                                        <textarea
+                                            className="textarea textarea-bordered w-full h-32 font-mono text-xs"
+                                            value={content}
+                                            readOnly
+                                        />
+                                    </div>
+                                )}
+                            </TabsContent>
+                            
+                            {/* Paste Tab */}
+                            <TabsContent value="paste" className="mt-4">
+                                <div>
+                                    <label className="label">
+                                        <span className="label-text font-medium">Paste Screenplay Content</span>
+                                    </label>
+                                    <textarea
+                                        className="textarea textarea-bordered w-full h-64 font-mono text-sm"
+                                        placeholder="Paste your screenplay here in Fountain format..."
+                                        value={content}
+                                        onChange={(e) => {
+                                            setContentLocal(e.target.value);
+                                            setUploadedFileName(null); // Clear file name when manually editing
+                                        }}
+                                                disabled={isImporting || isExtractingPDF || isExtractingWord}
+                                    />
+                                    {/* Feature 0177: Progress indicator for large file normalization */}
+                                    {normalizationProgress !== null && (
+                                        <div className="mt-2">
+                                            <div className="flex items-center justify-between text-sm text-base-content/70 mb-1">
+                                                <span>Normalizing screenplay...</span>
+                                                <span>{Math.round(normalizationProgress * 100)}%</span>
+                                            </div>
+                                            <progress 
+                                                className="progress progress-primary w-full" 
+                                                value={normalizationProgress} 
+                                                max={1}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </TabsContent>
+                        </Tabs>
                         
                         {/* Preview Panel */}
                         {hasData && (
