@@ -8,16 +8,15 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configure worker for pdfjs-dist
-// Use CDN worker in browser environment
+// Use reliable CDN worker in browser environment
 if (typeof window !== 'undefined') {
-  // Try to use local worker first, fallback to CDN
-  try {
-    // For Next.js, we can use the worker from node_modules
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-  } catch (error) {
-    console.warn('[PDFExtractor] Failed to configure worker, using CDN fallback');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-  }
+  // Use unpkg CDN which is more reliable than cdnjs
+  // Fallback to jsdelivr if unpkg fails
+  const version = pdfjsLib.version || '4.0.379'; // Fallback version if not available
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+  
+  // Alternative: Use jsdelivr as backup (commented out, but can be used if unpkg fails)
+  // pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
 }
 
 export interface PDFExtractionResult {

@@ -432,25 +432,25 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         <>
             {/* Backdrop */}
             <div 
-                className="fixed inset-0 bg-black/50 z-50"
+                className="fixed inset-0 bg-[#0A0A0A]/95 backdrop-blur-sm z-50"
                 onClick={onClose}
             />
             
             {/* Modal */}
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
                 <div 
-                    className="bg-base-100 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col pointer-events-auto"
+                    className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col pointer-events-auto"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-base-300">
+                    <div className="flex items-center justify-between p-6 border-b border-[#3F3F46] bg-[#141414]">
                         <div className="flex items-center gap-3">
-                            <FileText className="w-6 h-6 text-cinema-red" />
-                            <h2 className="text-2xl font-bold">Import Screenplay</h2>
+                            <FileText className="w-6 h-6 text-[#DC143C]" />
+                            <h2 className="text-2xl font-bold text-[#FFFFFF]">Import Screenplay</h2>
                         </div>
                         <button
                             onClick={onClose}
-                            className="btn btn-ghost btn-sm btn-circle"
+                            className="text-[#808080] hover:text-[#FFFFFF] transition-colors p-2 hover:bg-[#1F1F1F] rounded-lg"
                             disabled={isImporting}
                         >
                             <X className="w-5 h-5" />
@@ -458,11 +458,13 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     </div>
                     
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#0A0A0A]">
                         {/* Instructions */}
-                        <div className="alert alert-info">
-                            <Upload className="w-5 h-5" />
-                            <span>Upload a PDF or Word document, or paste your screenplay in Fountain format. We'll automatically detect characters, locations, and scenes.</span>
+                        <div className="p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
+                            <div className="flex items-start gap-3">
+                                <Upload className="w-5 h-5 text-[#DC143C] mt-0.5" />
+                                <span className="text-[#FFFFFF] text-sm">Upload a PDF or Word document, or paste your screenplay in Fountain format. We'll automatically detect characters, locations, and scenes.</span>
+                            </div>
                         </div>
                         
                         {/* 🔥 NEW: Tabs for Upload vs Paste */}
@@ -487,8 +489,8 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                             {/* Upload Tab */}
                             <TabsContent value="upload" className="mt-4 space-y-4">
                                 <div>
-                                    <label className="label">
-                                        <span className="label-text font-medium">Upload PDF or Word Document</span>
+                                    <label className="block mb-2">
+                                        <span className="text-sm font-medium text-[#FFFFFF]">Upload PDF or Word Document</span>
                                     </label>
                                     <div className="flex items-center gap-3">
                                         <input
@@ -496,10 +498,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                             accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                             onChange={handleFileUpload}
                                             disabled={isImporting || isExtractingPDF || isExtractingWord}
-                                            className="file-input file-input-bordered file-input-primary w-full max-w-xs"
+                                            className="file-input w-full max-w-xs bg-[#1F1F1F] border-[#3F3F46] text-[#FFFFFF] file:bg-[#DC143C] file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer hover:file:bg-[#DC143C]/90"
                                         />
                                         {(isExtractingPDF || isExtractingWord) && (
-                                            <div className="flex items-center gap-2 text-sm text-base-content/70">
+                                            <div className="flex items-center gap-2 text-sm text-[#808080]">
                                                 <span className="loading loading-spinner loading-sm"></span>
                                                 <span>
                                                     {isExtractingPDF && 'Extracting text from PDF...'}
@@ -508,26 +510,26 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                             </div>
                                         )}
                                         {uploadedFileName && !isExtractingPDF && !isExtractingWord && (
-                                            <div className="flex items-center gap-2 text-sm text-success">
+                                            <div className="flex items-center gap-2 text-sm text-[#DC143C]">
                                                 <CheckCircle className="w-4 h-4" />
-                                                <span>{uploadedFileName}</span>
+                                                <span className="text-[#FFFFFF]">{uploadedFileName}</span>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="label">
-                                        <span className="label-text-alt text-base-content/60">
+                                    <div className="mt-2">
+                                        <span className="text-xs text-[#808080]">
                                             Supports PDF and Word (.docx) files. Files will be automatically converted to Fountain format.
                                         </span>
                                     </div>
                                 </div>
                                 
                                 {content && (
-                                    <div className="mt-4 p-4 bg-base-200 rounded-lg">
-                                        <div className="text-sm text-base-content/70 mb-2">
+                                    <div className="mt-4 p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
+                                        <div className="text-sm text-[#808080] mb-2">
                                             Extracted content preview ({content.length} characters):
                                         </div>
                                         <textarea
-                                            className="textarea textarea-bordered w-full h-32 font-mono text-xs"
+                                            className="textarea w-full h-32 font-mono text-xs bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF]"
                                             value={content}
                                             readOnly
                                         />
@@ -538,28 +540,28 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                             {/* Paste Tab */}
                             <TabsContent value="paste" className="mt-4">
                                 <div>
-                                    <label className="label">
-                                        <span className="label-text font-medium">Paste Screenplay Content</span>
+                                    <label className="block mb-2">
+                                        <span className="text-sm font-medium text-[#FFFFFF]">Paste Screenplay Content</span>
                                     </label>
                                     <textarea
-                                        className="textarea textarea-bordered w-full h-64 font-mono text-sm"
+                                        className="textarea w-full h-64 font-mono text-sm bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] placeholder:text-[#808080]"
                                         placeholder="Paste your screenplay here in Fountain format..."
                                         value={content}
                                         onChange={(e) => {
                                             setContentLocal(e.target.value);
                                             setUploadedFileName(null); // Clear file name when manually editing
                                         }}
-                                                disabled={isImporting || isExtractingPDF || isExtractingWord}
+                                        disabled={isImporting || isExtractingPDF || isExtractingWord}
                                     />
                                     {/* Feature 0177: Progress indicator for large file normalization */}
                                     {normalizationProgress !== null && (
                                         <div className="mt-2">
-                                            <div className="flex items-center justify-between text-sm text-base-content/70 mb-1">
+                                            <div className="flex items-center justify-between text-sm text-[#808080] mb-1">
                                                 <span>Normalizing screenplay...</span>
                                                 <span>{Math.round(normalizationProgress * 100)}%</span>
                                             </div>
                                             <progress 
-                                                className="progress progress-primary w-full" 
+                                                className="progress w-full bg-[#1F1F1F] progress-[#DC143C]" 
                                                 value={normalizationProgress} 
                                                 max={1}
                                             />
@@ -571,36 +573,36 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         
                         {/* Preview Panel */}
                         {hasData && (
-                            <div className="card bg-base-200">
-                                <div className="card-body">
-                                    <h3 className="card-title text-lg">Preview</h3>
-                                    
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="stat bg-base-100 rounded-lg">
-                                            <div className="stat-title">Characters</div>
-                                            <div className="stat-value text-cinema-red">{parseResult.characters.size}</div>
-                                        </div>
-                                        
-                                        <div className="stat bg-base-100 rounded-lg">
-                                            <div className="stat-title">Locations</div>
-                                            <div className="stat-value text-cinema-red">{parseResult.locations.size}</div>
-                                        </div>
-                                        
-                                        <div className="stat bg-base-100 rounded-lg">
-                                            <div className="stat-title">Scenes</div>
-                                            <div className="stat-value text-cinema-red">{parseResult.scenes.length}</div>
-                                        </div>
+                            <div className="p-6 bg-[#141414] border border-[#3F3F46] rounded-lg">
+                                <h3 className="text-lg font-semibold text-[#FFFFFF] mb-4">Preview</h3>
+                                
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="p-4 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
+                                        <div className="text-xs text-[#808080] mb-1">Characters</div>
+                                        <div className="text-2xl font-bold text-[#DC143C]">{parseResult.characters.size}</div>
                                     </div>
                                     
-                                    {/* 🔥 NEW: Warning about destructive import */}
-                                    {showWarning && (
-                                        <div className="alert alert-error mt-4">
-                                            <AlertTriangle className="w-6 h-6" />
+                                    <div className="p-4 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
+                                        <div className="text-xs text-[#808080] mb-1">Locations</div>
+                                        <div className="text-2xl font-bold text-[#DC143C]">{parseResult.locations.size}</div>
+                                    </div>
+                                    
+                                    <div className="p-4 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
+                                        <div className="text-xs text-[#808080] mb-1">Scenes</div>
+                                        <div className="text-2xl font-bold text-[#DC143C]">{parseResult.scenes.length}</div>
+                                    </div>
+                                </div>
+                                
+                                {/* 🔥 NEW: Warning about destructive import */}
+                                {showWarning && (
+                                    <div className="mt-4 p-4 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
+                                        <div className="flex items-start gap-3">
+                                            <AlertTriangle className="w-6 h-6 text-[#DC143C] mt-0.5" />
                                             <div className="flex-1">
-                                                <h3 className="font-bold text-lg">⚠️ Warning: This will replace ALL existing data</h3>
-                                                <div className="text-sm mt-1">
+                                                <h3 className="font-bold text-lg text-[#FFFFFF]">⚠️ Warning: This will replace ALL existing data</h3>
+                                                <div className="text-sm mt-1 text-[#808080]">
                                                     You currently have:
-                                                    <ul className="list-disc list-inside mt-1">
+                                                    <ul className="list-disc list-inside mt-1 text-[#FFFFFF]">
                                                         {screenplay.characters.length > 0 && (
                                                             <li><strong>{screenplay.characters.length} characters</strong></li>
                                                         )}
@@ -614,21 +616,21 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                                             <li><strong>Screenplay content in editor</strong></li>
                                                         )}
                                                     </ul>
-                                                    <p className="mt-2">
+                                                    <p className="mt-2 text-[#FFFFFF]">
                                                         Importing this screenplay will <strong>DELETE ALL</strong> of your existing data and replace it with the new screenplay.
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2 mt-3">
                                                     <button 
                                                         onClick={() => setShowWarning(false)} 
-                                                        className="btn btn-sm btn-ghost"
+                                                        className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
                                                         disabled={isImporting}
                                                     >
                                                         Cancel
                                                     </button>
                                                     <button 
                                                         onClick={handleImport} 
-                                                        className="btn btn-sm btn-error"
+                                                        className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/90 text-white rounded-lg text-sm font-medium transition-colors"
                                                         disabled={isImporting}
                                                     >
                                                         {isImporting ? (
@@ -643,45 +645,49 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
-                                    
-                                    {/* Warnings */}
-                                    {hasWarnings && (
-                                        <div className="alert alert-warning mt-4">
-                                            <AlertTriangle className="w-5 h-5" />
+                                    </div>
+                                )}
+                                
+                                {/* Warnings */}
+                                {hasWarnings && (
+                                    <div className="mt-4 p-4 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
+                                        <div className="flex items-start gap-3">
+                                            <AlertTriangle className="w-5 h-5 text-[#DC143C] mt-0.5" />
                                             <div>
-                                                <div className="font-medium">{parseResult.questionableItems.length} formatting issues detected</div>
-                                                <div className="text-sm">These items will still be imported, but you may want to review them.</div>
+                                                <div className="font-medium text-[#FFFFFF]">{parseResult.questionableItems.length} formatting issues detected</div>
+                                                <div className="text-sm text-[#808080]">These items will still be imported, but you may want to review them.</div>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                         
                         {/* No data warning */}
                         {content.trim() && !hasData && !parseResult && (
-                            <div className="alert">
-                                <span>Parsing screenplay...</span>
+                            <div className="p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
+                                <span className="text-[#FFFFFF]">Parsing screenplay...</span>
                             </div>
                         )}
                         
                         {content.trim() && parseResult && !hasData && (
-                            <div className="alert alert-warning">
-                                <AlertTriangle className="w-5 h-5" />
-                                <div>
-                                    <div className="font-medium">No entities detected</div>
-                                    <div className="text-sm">Make sure character names are in ALL CAPS and scene headings start with INT./EXT.</div>
+                            <div className="p-4 bg-[#141414] border border-[#DC143C]/30 rounded-lg">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-[#DC143C] mt-0.5" />
+                                    <div>
+                                        <div className="font-medium text-[#FFFFFF]">No entities detected</div>
+                                        <div className="text-sm text-[#808080]">Make sure character names are in ALL CAPS and scene headings start with INT./EXT.</div>
+                                    </div>
                                 </div>
                             </div>
                         )}
                     </div>
                     
                     {/* Footer */}
-                    <div className="flex items-center justify-end gap-3 p-6 border-t border-base-300">
+                    <div className="flex items-center justify-end gap-3 p-6 border-t border-[#3F3F46] bg-[#141414]">
                         <button
                             onClick={onClose}
-                            className="btn btn-ghost"
+                            className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
                             disabled={isImporting}
                         >
                             Cancel
@@ -689,7 +695,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         
                         <button
                             onClick={handleImport}
-                            className="btn btn-primary"
+                            className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/90 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isImporting || !hasData}
                         >
                             {isImporting ? (
