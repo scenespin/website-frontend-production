@@ -239,7 +239,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setSelectedCharacterReferences(updater);
     }
-  }, [contextState.selectedCharacterReferences, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.selectedCharacterReferences]);
   
   const setCharacterOutfits = useCallback((updater: Record<number, Record<string, string>> | ((prev: Record<number, Record<string, string>>) => Record<number, Record<string, string>>)) => {
     if (typeof updater === 'function') {
@@ -248,7 +249,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setCharacterOutfits(updater);
     }
-  }, [contextState.characterOutfits, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.characterOutfits]);
   
   const setSelectedCharactersForShots = useCallback((updater: Record<number, string[]> | ((prev: Record<number, string[]>) => Record<number, string[]>)) => {
     if (typeof updater === 'function') {
@@ -257,7 +259,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setSelectedCharactersForShots(updater);
     }
-  }, [contextState.selectedCharactersForShots, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.selectedCharactersForShots]);
   
   const setPronounMappingsForShots = useCallback((updater: Record<number, Record<string, string | string[]>> | ((prev: Record<number, Record<string, string | string[]>>) => Record<number, Record<string, string | string[]>>)) => {
     if (typeof updater === 'function') {
@@ -266,7 +269,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setPronounMappingsForShots(updater);
     }
-  }, [contextState.pronounMappingsForShots, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.pronounMappingsForShots]);
   
   const setPronounExtrasPrompts = useCallback((updater: Record<number, Record<string, string>> | ((prev: Record<number, Record<string, string>>) => Record<number, Record<string, string>>)) => {
     if (typeof updater === 'function') {
@@ -275,7 +279,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setPronounExtrasPrompts(updater);
     }
-  }, [contextState.pronounExtrasPrompts, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.pronounExtrasPrompts]);
   
   const setSelectedLocationReferences = useCallback((updater: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }> | ((prev: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>) => Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }>)) => {
     if (typeof updater === 'function') {
@@ -284,7 +289,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setSelectedLocationReferences(updater);
     }
-  }, [contextState.selectedLocationReferences, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.selectedLocationReferences]);
   
   const setLocationOptOuts = useCallback((updater: Record<number, boolean> | ((prev: Record<number, boolean>) => Record<number, boolean>)) => {
     if (typeof updater === 'function') {
@@ -293,7 +299,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setLocationOptOuts(updater);
     }
-  }, [contextState.locationOptOuts, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.locationOptOuts]);
   
   const setLocationDescriptions = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
     if (typeof updater === 'function') {
@@ -302,7 +309,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setLocationDescriptions(updater);
     }
-  }, [contextState.locationDescriptions, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.locationDescriptions]);
   
   const setSceneProps = useCallback((updater: any[] | ((prev: any[]) => any[])) => {
     if (typeof updater === 'function') {
@@ -311,7 +319,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setSceneProps(updater);
     }
-  }, [contextState.sceneProps, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.sceneProps]);
   
   const setPropsToShots = useCallback((updater: Record<string, number[]> | ((prev: Record<string, number[]>) => Record<string, number[]>)) => {
     if (typeof updater === 'function') {
@@ -320,7 +329,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setPropsToShots(updater);
     }
-  }, [contextState.propsToShots, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.propsToShots]);
   
   const setShotProps = useCallback((updater: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>> | ((prev: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>) => Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>)) => {
     if (typeof updater === 'function') {
@@ -329,31 +339,38 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setShotProps(updater);
     }
-  }, [contextState.shotProps, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.shotProps]);
   
   const setWizardStep = useCallback((step: 'analysis' | 'shot-config' | 'review') => {
     contextActions.setWizardStep(step);
-  }, [contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, []);
   
   const setCurrentShotIndex = useCallback((index: number) => {
     contextActions.setCurrentShotIndex(index);
-  }, [contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, []);
   
   const setCurrentStep = useCallback((step: 1 | 2) => {
     contextActions.setCurrentStep(step);
-  }, [contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, []);
   
   const setEnabledShots = useCallback((shots: number[]) => {
     contextActions.setEnabledShots(shots);
-  }, [contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, []);
   
   const setSceneAnalysisResult = useCallback((result: SceneAnalysisResult | null) => {
     contextActions.setSceneAnalysisResult(result);
-  }, [contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, []);
   
   const setGlobalResolution = useCallback((resolution: '1080p' | '4k') => {
     contextActions.setGlobalResolution(resolution);
-  }, [contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, []);
   
   const setShotAspectRatios = useCallback((updater: Record<number, '16:9' | '9:16' | '1:1'> | ((prev: Record<number, '16:9' | '9:16' | '1:1'>) => Record<number, '16:9' | '9:16' | '1:1'>)) => {
     if (typeof updater === 'function') {
@@ -362,7 +379,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setShotAspectRatios(updater);
     }
-  }, [contextState.shotAspectRatios, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.shotAspectRatios]);
   
   const setShotCameraAngles = useCallback((updater: Record<number, any> | ((prev: Record<number, any>) => Record<number, any>)) => {
     if (typeof updater === 'function') {
@@ -371,7 +389,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setShotCameraAngles(updater);
     }
-  }, [contextState.shotCameraAngles, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.shotCameraAngles]);
   
   const setShotDurations = useCallback((updater: Record<number, 'quick-cut' | 'extended-take'> | ((prev: Record<number, 'quick-cut' | 'extended-take'>) => Record<number, 'quick-cut' | 'extended-take'>)) => {
     if (typeof updater === 'function') {
@@ -380,7 +399,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setShotDurations(updater);
     }
-  }, [contextState.shotDurations, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.shotDurations]);
   
   const setSelectedReferenceShotModels = useCallback((updater: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'> | ((prev: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>) => Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>)) => {
     if (typeof updater === 'function') {
@@ -389,7 +409,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setSelectedReferenceShotModels(updater);
     }
-  }, [contextState.selectedReferenceShotModels, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.selectedReferenceShotModels]);
   
   const setSelectedVideoTypes = useCallback((updater: Record<number, 'cinematic-visuals' | 'natural-motion'> | ((prev: Record<number, 'cinematic-visuals' | 'natural-motion'>) => Record<number, 'cinematic-visuals' | 'natural-motion'>)) => {
     if (typeof updater === 'function') {
@@ -398,7 +419,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setSelectedVideoTypes(updater);
     }
-  }, [contextState.selectedVideoTypes, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.selectedVideoTypes]);
   
   const setSelectedDialogueQualities = useCallback((updater: Record<number, 'premium' | 'reliable'> | ((prev: Record<number, 'premium' | 'reliable'>) => Record<number, 'premium' | 'reliable'>)) => {
     if (typeof updater === 'function') {
@@ -407,7 +429,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setSelectedDialogueQualities(updater);
     }
-  }, [contextState.selectedDialogueQualities, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.selectedDialogueQualities]);
   
   const setSelectedDialogueWorkflows = useCallback((updater: Record<number, DialogueWorkflowType> | ((prev: Record<number, DialogueWorkflowType>) => Record<number, DialogueWorkflowType>)) => {
     if (typeof updater === 'function') {
@@ -416,7 +439,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setSelectedDialogueWorkflows(updater);
     }
-  }, [contextState.selectedDialogueWorkflows, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.selectedDialogueWorkflows]);
   
   const setVoiceoverBaseWorkflows = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
     if (typeof updater === 'function') {
@@ -425,7 +449,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setVoiceoverBaseWorkflows(updater);
     }
-  }, [contextState.voiceoverBaseWorkflows, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.voiceoverBaseWorkflows]);
   
   const setDialogueWorkflowPrompts = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
     if (typeof updater === 'function') {
@@ -434,7 +459,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setDialogueWorkflowPrompts(updater);
     }
-  }, [contextState.dialogueWorkflowPrompts, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.dialogueWorkflowPrompts]);
   
   const setShotWorkflowOverrides = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
     if (typeof updater === 'function') {
@@ -443,7 +469,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     } else {
       contextActions.setShotWorkflowOverrides(updater);
     }
-  }, [contextState.shotWorkflowOverrides, contextActions]);
+    // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
+  }, [contextState.shotWorkflowOverrides]);
   
   // Get screenplay context (for scene data from database)
   const screenplay = useScreenplay();
@@ -913,7 +940,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // 🔥 FIX: Depend on baseProps (when we fetch new props) and enrichedPropsFromHook.length
     // Using length instead of the full array prevents re-runs when only references change
     // The signature check inside ensures we only sync when data actually changes
-  }, [baseProps, enrichedPropsFromHook.length, contextActions]);
+    // 🔥 CRITICAL: Don't include contextActions in deps - it's recreated every render even though functions are stable
+    // The setSceneProps function is stable (useCallback with empty deps), so we don't need it in deps
+  }, [baseProps, enrichedPropsFromHook.length]);
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
