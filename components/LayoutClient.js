@@ -269,6 +269,7 @@ const ClientLayout = ({ children }) => {
               duration: 3000,
             }}
             theme="dark"
+            closeButton
           />
 
           {/* Show tooltips if any JSX elements has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content="" */}

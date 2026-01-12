@@ -365,16 +365,26 @@ progress::-webkit-progress-value {
   color: #F97316 !important;
 }
 
-/* Close button styling */
+/* Close button styling - Always visible, subtle, matches dark theme */
 [data-sonner-toast] [data-close-button] {
-  color: #808080 !important;
+  color: rgba(255, 255, 255, 0.35) !important; /* 35% opacity - subtle but visible */
   background: transparent !important;
   border: none !important;
+  opacity: 1 !important; /* Always visible */
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s ease, color 0.2s ease !important;
 }
 
 [data-sonner-toast] [data-close-button]:hover {
-  color: #FFFFFF !important;
-  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 1) !important; /* 100% opacity on hover */
+  background: transparent !important;
+  opacity: 1 !important;
 }
 
 /* Toast action buttons */
