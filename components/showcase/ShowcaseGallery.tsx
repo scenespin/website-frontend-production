@@ -758,8 +758,9 @@ export function ShowcaseGallery({
     return <LoadingState />;
   }
   
+  // Return null if no content - don't show empty state on homepage
   if (!hasContent) {
-    return <EmptyState contentType={contentType} />;
+    return null;
   }
   
   return (
