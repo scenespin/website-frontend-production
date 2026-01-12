@@ -139,6 +139,13 @@ export function normalizeWhitespace(text: string): string {
 /**
  * Enforce proper Fountain format spacing
  * Adds blank lines between different element types according to Fountain spec
+ * 
+ * Fountain spacing rules:
+ * - Scene heading: blank line AFTER (before action)
+ * - Character name: blank line BEFORE (if previous was action), NO blank line AFTER
+ * - Dialogue: NO blank line before (follows character/parenthetical), blank line AFTER (before action/character/scene)
+ * - Parenthetical: NO blank line before/after (flows directly)
+ * - Action: blank line BEFORE character (if next is character)
  */
 export function enforceFountainSpacing(text: string): string {
   const lines = text.split('\n');
@@ -154,18 +161,16 @@ export function enforceFountainSpacing(text: string): string {
       continue;
     }
     
-    // Get previous non-blank line
+    // Get previous non-blank line from output (already processed)
     let prevNonBlank = '';
-    let prevNonBlankIndex = -1;
     for (let j = outputLines.length - 1; j >= 0; j--) {
       if (outputLines[j].trim()) {
         prevNonBlank = outputLines[j].trim();
-        prevNonBlankIndex = j;
         break;
       }
     }
     
-    // Get next non-blank line
+    // Get next non-blank line from input (not yet processed)
     let nextNonBlank = '';
     for (let j = i + 1; j < lines.length; j++) {
       if (lines[j].trim()) {
@@ -174,46 +179,60 @@ export function enforceFountainSpacing(text: string): string {
       }
     }
     
-    // Detect element types
+    // Detect current element type
     const isSceneHeading = /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(trimmed);
+    const isTransition = trimmed.endsWith('TO:') && trimmed === trimmed.toUpperCase();
+    const isParenthetical = trimmed.startsWith('(') && trimmed.endsWith(')');
+    
+    // Character name: all caps, 1-4 words, not scene heading, has dialogue following
     const isCharacterName = trimmed === trimmed.toUpperCase() 
       && /^[A-Z][A-Z\s\.']+(\s*\([^\)]*\))?$/.test(trimmed)
       && trimmed.split(/\s+/).length <= 4
       && !isSceneHeading
+      && !isTransition
       && nextNonBlank && nextNonBlank.length > 0; // Has content following (dialogue)
-    const isTransition = trimmed.endsWith('TO:') && trimmed === trimmed.toUpperCase();
-    const isParenthetical = trimmed.startsWith('(') && trimmed.endsWith(')');
+    
+    // Action: anything that's not scene heading, character, transition, or parenthetical
+    const isAction = !isSceneHeading && !isCharacterName && !isTransition && !isParenthetical;
     
     // Detect previous element type
     const prevIsSceneHeading = prevNonBlank && /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(prevNonBlank);
+    const prevIsTransition = prevNonBlank && prevNonBlank.endsWith('TO:') && prevNonBlank === prevNonBlank.toUpperCase();
+    const prevIsParenthetical = prevNonBlank && prevNonBlank.startsWith('(') && prevNonBlank.endsWith(')');
     const prevIsCharacterName = prevNonBlank && prevNonBlank === prevNonBlank.toUpperCase() 
       && /^[A-Z][A-Z\s\.']+(\s*\([^\)]*\))?$/.test(prevNonBlank)
       && prevNonBlank.split(/\s+/).length <= 4
-      && !prevIsSceneHeading;
-    const prevIsTransition = prevNonBlank && prevNonBlank.endsWith('TO:') && prevNonBlank === prevNonBlank.toUpperCase();
-    const prevIsParenthetical = prevNonBlank && prevNonBlank.startsWith('(') && prevNonBlank.endsWith(')');
+      && !prevIsSceneHeading
+      && !prevIsTransition;
     const prevIsDialogue = prevNonBlank && !prevIsSceneHeading && !prevIsCharacterName && !prevIsTransition && !prevIsParenthetical;
+    const prevIsAction = prevNonBlank && !prevIsSceneHeading && !prevIsCharacterName && !prevIsTransition && !prevIsParenthetical;
     
-    // Check if we need to add a blank line before current line
+    // Check if we need to add a blank line BEFORE current line
     let needsBlankBefore = false;
     
-    // Blank line before scene headings (except first one, and not if previous was also scene heading)
+    // Rule 1: Blank line BEFORE scene headings (except first one, and not if previous was also scene heading)
     if (isSceneHeading && prevNonBlank && !prevIsSceneHeading) {
       needsBlankBefore = true;
     }
     
-    // Blank line before character names (if previous was not character name, dialogue, or parenthetical)
-    if (isCharacterName && prevNonBlank && !prevIsCharacterName && !prevIsDialogue && !prevIsParenthetical) {
+    // Rule 2: Blank line BEFORE character names (if previous was action or scene heading)
+    if (isCharacterName && (prevIsAction || prevIsSceneHeading)) {
       needsBlankBefore = true;
     }
     
-    // Blank line after dialogue (before action/scene/character)
-    // If previous was dialogue and current is not dialogue/parenthetical/character/scene, add blank
-    if (prevIsDialogue && !isParenthetical && !isCharacterName && !isSceneHeading && !isTransition) {
+    // Rule 3: Blank line AFTER dialogue (before action/scene/character)
+    // If previous was dialogue and current is action/scene/character, add blank
+    if (prevIsDialogue && (isAction || isSceneHeading || isCharacterName)) {
       needsBlankBefore = true;
     }
     
-    // Blank line after transitions (before scene heading)
+    // Rule 4: Blank line AFTER scene heading (before action)
+    // If previous was scene heading and current is action, add blank
+    if (prevIsSceneHeading && isAction) {
+      needsBlankBefore = true;
+    }
+    
+    // Rule 5: Blank line AFTER transitions (before scene heading)
     if (prevIsTransition && isSceneHeading) {
       needsBlankBefore = true;
     }
@@ -225,6 +244,23 @@ export function enforceFountainSpacing(text: string): string {
     
     // Add the current line
     outputLines.push(line);
+    
+    // Rule 6: Blank line AFTER scene heading (if next is action)
+    // Check if we need to add blank line AFTER current line
+    if (isSceneHeading && nextNonBlank) {
+      const nextIsSceneHeading = /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(nextNonBlank);
+      const nextIsTransition = nextNonBlank.endsWith('TO:') && nextNonBlank === nextNonBlank.toUpperCase();
+      const nextIsParenthetical = nextNonBlank.startsWith('(') && nextNonBlank.endsWith(')');
+      const nextIsCharacterName = nextNonBlank === nextNonBlank.toUpperCase() 
+        && /^[A-Z][A-Z\s\.']+(\s*\([^\)]*\))?$/.test(nextNonBlank)
+        && nextNonBlank.split(/\s+/).length <= 4
+        && !nextIsSceneHeading;
+      const nextIsAction = !nextIsSceneHeading && !nextIsCharacterName && !nextIsTransition && !nextIsParenthetical;
+      
+      if (nextIsAction) {
+        outputLines.push('');
+      }
+    }
   }
   
   // Normalize multiple blank lines to max 2
