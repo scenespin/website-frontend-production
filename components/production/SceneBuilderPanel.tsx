@@ -3010,7 +3010,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           contextActions.setSelectedCharacterReferences({});
           contextActions.setSelectedLocationReferences({});
           contextActions.setSelectedVideoTypes({});
-          contextActions.setSelectedVideoQualities({});
           
           // Scroll to top
           window.scrollTo({ top: 0, behavior: 'smooth' });
