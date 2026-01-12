@@ -207,12 +207,14 @@ export function enforceFountainSpacing(text: string): string {
     const prevIsDialogue = prevNonBlank && !prevIsSceneHeading && !prevIsCharacterName && !prevIsTransition && !prevIsParenthetical;
     const prevIsAction = prevNonBlank && !prevIsSceneHeading && !prevIsCharacterName && !prevIsTransition && !prevIsParenthetical;
     
-    // Check if we need to add a blank line BEFORE current line
+    // Check if we need to add blank lines BEFORE current line
     let needsBlankBefore = false;
+    let needsDoubleBlank = false; // For scene separation
     
-    // Rule 1: Blank line BEFORE scene headings (except first one, and not if previous was also scene heading)
+    // Rule 1: DOUBLE blank line BEFORE scene headings (except first one, and not if previous was also scene heading)
+    // Scenes should be separated by two blank lines in Fountain format
     if (isSceneHeading && prevNonBlank && !prevIsSceneHeading) {
-      needsBlankBefore = true;
+      needsDoubleBlank = true; // Two blank lines between scenes
     }
     
     // Rule 2: Blank line BEFORE character names (if previous was action or scene heading)
@@ -237,8 +239,13 @@ export function enforceFountainSpacing(text: string): string {
       needsBlankBefore = true;
     }
     
-    // Add blank line if needed and not already blank
-    if (needsBlankBefore && outputLines.length > 0 && outputLines[outputLines.length - 1].trim()) {
+    // Add blank line(s) if needed and not already blank
+    if (needsDoubleBlank && outputLines.length > 0 && outputLines[outputLines.length - 1].trim()) {
+      // Add two blank lines for scene separation
+      outputLines.push('');
+      outputLines.push('');
+    } else if (needsBlankBefore && outputLines.length > 0 && outputLines[outputLines.length - 1].trim()) {
+      // Add single blank line for other spacing
       outputLines.push('');
     }
     
@@ -263,8 +270,13 @@ export function enforceFountainSpacing(text: string): string {
     }
   }
   
-  // Normalize multiple blank lines to max 2
-  return outputLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  // Normalize excessive blank lines (keep double blank lines for scene separation)
+  // Replace 4+ consecutive blank lines with 2 (double blank line)
+  // This preserves scene separation while removing excessive spacing
+  let result = outputLines.join('\n');
+  result = result.replace(/\n{4,}/g, '\n\n\n'); // 4+ becomes 3 (which is 2 blank lines)
+  result = result.replace(/\n{3,}/g, '\n\n'); // 3+ becomes 2 (double blank line)
+  return result.trim();
 }
 
 /**
