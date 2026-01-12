@@ -277,38 +277,67 @@ export function ShotConfigurationPanel({
   const workflowReasoning = sceneAnalysisResult.dialogue?.workflowTypeReasoning;
   
   // 🔥 NEW: Collect all prop image thumbnail S3 keys from Media Library map
+  // Priority: angleReferences first, then baseReference as fallback
   const propThumbnailS3Keys = React.useMemo(() => {
-    if (!propThumbnailS3KeyMap) return [];
     const keys: string[] = [];
     const assignedProps = sceneProps.filter(prop => propsToShots[prop.id]?.includes(shot.slot));
     assignedProps.forEach(prop => {
       const fullProp = prop as typeof prop & {
         angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
         images?: Array<{ url: string; s3Key?: string }>;
+        baseReference?: { s3Key?: string; imageUrl?: string };
       };
       
-      // Add angleReferences thumbnail s3Keys from Media Library map
-      if (fullProp.angleReferences) {
+      // 🔥 PRIORITY 1: Add angleReferences thumbnail s3Keys from Media Library map (Production Hub images)
+      // These are prioritized and should always be included if they exist
+      if (fullProp.angleReferences && fullProp.angleReferences.length > 0) {
         fullProp.angleReferences.forEach(ref => {
-          if (ref.s3Key && propThumbnailS3KeyMap.has(ref.s3Key)) {
-            const thumbnailS3Key = propThumbnailS3KeyMap.get(ref.s3Key);
-            if (thumbnailS3Key) {
-              keys.push(thumbnailS3Key);
+          if (ref.s3Key) {
+            // If we have a thumbnail map and it contains this s3Key, use the thumbnail
+            if (propThumbnailS3KeyMap?.has(ref.s3Key)) {
+              const thumbnailS3Key = propThumbnailS3KeyMap.get(ref.s3Key);
+              if (thumbnailS3Key) {
+                keys.push(thumbnailS3Key);
+              }
+            } else {
+              // If no thumbnail map or s3Key not in map, use the s3Key directly
+              // This handles cases where thumbnails haven't been generated yet
+              keys.push(ref.s3Key);
             }
           }
         });
       }
       
-      // Add images[] thumbnail s3Keys from Media Library map
-      if (fullProp.images) {
+      // 🔥 PRIORITY 2: Add images[] thumbnail s3Keys from Media Library map (Creation images)
+      // Only if no angleReferences exist
+      if (fullProp.angleReferences?.length === 0 && fullProp.images) {
         fullProp.images.forEach(img => {
-          if (img.s3Key && propThumbnailS3KeyMap.has(img.s3Key)) {
-            const thumbnailS3Key = propThumbnailS3KeyMap.get(img.s3Key);
-            if (thumbnailS3Key) {
-              keys.push(thumbnailS3Key);
+          if (img.s3Key) {
+            if (propThumbnailS3KeyMap?.has(img.s3Key)) {
+              const thumbnailS3Key = propThumbnailS3KeyMap.get(img.s3Key);
+              if (thumbnailS3Key) {
+                keys.push(thumbnailS3Key);
+              }
+            } else {
+              keys.push(img.s3Key);
             }
           }
         });
+      }
+      
+      // 🔥 PRIORITY 3: Add baseReference thumbnail s3Key as FALLBACK
+      // ALWAYS include baseReference as fallback, even when angleReferences exist
+      // The display logic (getAvailablePropImages) will prioritize angleReferences first,
+      // but we need baseReference URLs fetched so they're available as fallback
+      if (fullProp.baseReference?.s3Key) {
+        if (propThumbnailS3KeyMap?.has(fullProp.baseReference.s3Key)) {
+          const thumbnailS3Key = propThumbnailS3KeyMap.get(fullProp.baseReference.s3Key);
+          if (thumbnailS3Key) {
+            keys.push(thumbnailS3Key);
+          }
+        } else {
+          keys.push(fullProp.baseReference.s3Key);
+        }
       }
     });
     return keys;
