@@ -6,15 +6,15 @@
  * Feature 0192: Location/Asset Upload Tab
  * 
  * Features:
- * - Create new view OR select existing view
+ * - Choose destination: Angles OR Backgrounds
+ * - Create new view/background OR select existing
  * - Upload new images OR browse Archive
  * - Location guidance system
- * - Drag & drop upload
  * - Progress tracking
  */
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Upload, FolderOpen, Loader2, X, Check, AlertCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Upload, FolderOpen, Check, AlertCircle, ChevronDown, ChevronUp, Info, Camera, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import type { MediaFile } from '@/types/media';
@@ -32,12 +32,20 @@ interface LocationReference {
   };
 }
 
+interface LocationBackground {
+  id?: string;
+  s3Key?: string;
+  imageUrl?: string;
+  backgroundType?: string;
+}
+
 interface UploadLocationImagesTabProps {
   locationId: string;
   locationName: string;
   screenplayId: string;
   existingReferences?: LocationReference[];
-  onComplete: (result: { viewName: string; images: string[] }) => void;
+  existingBackgrounds?: LocationBackground[];
+  onComplete: (result: { viewName: string; images: string[]; category: 'angles' | 'backgrounds' }) => void;
 }
 
 interface UploadingImage {
@@ -52,56 +60,81 @@ export function UploadLocationImagesTab({
   locationName,
   screenplayId,
   existingReferences = [],
+  existingBackgrounds = [],
   onComplete
 }: UploadLocationImagesTabProps) {
   const { getToken } = useAuth();
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<'create' | 'existing'>('create');
-  const [newViewName, setNewViewName] = useState<string>('');
-  const [selectedExistingView, setSelectedExistingView] = useState<string>('');
+  
+  // Step 1: Category selection
+  const [category, setCategory] = useState<'angles' | 'backgrounds'>('angles');
+  
+  // Step 2: Create or select name
+  const [nameMode, setNameMode] = useState<'create' | 'existing'>('create');
+  const [newName, setNewName] = useState<string>('');
+  const [selectedExisting, setSelectedExisting] = useState<string>('');
+  
+  // Upload state
   const [uploadingImages, setUploadingImages] = useState<UploadingImage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showGuidance, setShowGuidance] = useState(false);
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Extract existing view names
-  const existingViews = useMemo(() => {
-    const views = new Set<string>();
-    existingReferences.forEach(ref => {
-      const view = ref.metadata?.viewName || 'default';
-      if (view !== 'default') {
-        views.add(view);
-      }
-    });
-    return Array.from(views).sort();
-  }, [existingReferences]);
+  // Extract existing names based on category
+  const existingNames = useMemo(() => {
+    const names = new Set<string>();
+    if (category === 'angles') {
+      existingReferences.forEach(ref => {
+        const name = ref.metadata?.viewName || 'default';
+        if (name !== 'default') {
+          names.add(name);
+        }
+      });
+    } else {
+      existingBackgrounds.forEach(bg => {
+        const name = bg.backgroundType || 'default';
+        if (name !== 'default') {
+          names.add(name);
+        }
+      });
+    }
+    return Array.from(names).sort();
+  }, [category, existingReferences, existingBackgrounds]);
 
-  // Get final view name
-  const finalViewName = useMemo(() => {
-    if (viewMode === 'create') {
-      return newViewName.trim() || null;
+  // Get final name
+  const finalName = useMemo(() => {
+    if (nameMode === 'create') {
+      return newName.trim() || null;
     } else {
-      return selectedExistingView || null;
+      return selectedExisting || null;
     }
-  }, [viewMode, newViewName, selectedExistingView]);
+  }, [nameMode, newName, selectedExisting]);
   
-  // Check if view name is valid
-  const isViewNameValid = useMemo(() => {
-    if (viewMode === 'create') {
-      return newViewName.trim().length > 0;
+  // Check if name is valid
+  const isNameValid = useMemo(() => {
+    if (nameMode === 'create') {
+      return newName.trim().length > 0;
     } else {
-      return selectedExistingView.length > 0;
+      return selectedExisting.length > 0;
     }
-  }, [viewMode, newViewName, selectedExistingView]);
+  }, [nameMode, newName, selectedExisting]);
+
+  // Reset name when category changes
+  const handleCategoryChange = (newCategory: 'angles' | 'backgrounds') => {
+    setCategory(newCategory);
+    setNewName('');
+    setSelectedExisting('');
+    setNameMode('create');
+  };
 
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
     
-    if (!isViewNameValid) {
-      toast.error('Please create or select a view name first (Step 1)');
+    if (!isNameValid) {
+      toast.error(`Please create or select a ${category === 'angles' ? 'view' : 'background'} name first (Step 2)`);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -124,14 +157,14 @@ export function UploadLocationImagesTab({
 
   // Handle direct upload
   const handleImageUpload = async (files: File[]) => {
-    if (!isViewNameValid || !finalViewName) {
-      toast.error('Please create or select a view name first (Step 1)');
+    if (!isNameValid || !finalName) {
+      toast.error(`Please create or select a ${category === 'angles' ? 'view' : 'background'} name first (Step 2)`);
       return;
     }
     
     setIsProcessing(true);
     const uploadedS3Keys: string[] = [];
-    const viewNameToUse = finalViewName;
+    const nameToUse = finalName;
 
     try {
       for (const file of files) {
@@ -190,11 +223,13 @@ export function UploadLocationImagesTab({
               },
               body: JSON.stringify({
                 s3Key: s3Key,
-                viewName: viewNameToUse,
+                viewName: nameToUse,
                 source: 'user-upload',
                 label: file.name,
+                category: category, // angles or backgrounds
                 metadata: {
-                  viewName: viewNameToUse,
+                  viewName: nameToUse,
+                  category: category,
                   fileName: file.name,
                   fileSize: file.size
                 }
@@ -227,8 +262,9 @@ export function UploadLocationImagesTab({
       }
 
       if (uploadedS3Keys.length > 0) {
-        toast.success(`Successfully uploaded ${uploadedS3Keys.length} image(s) to ${viewNameToUse}`);
-        onComplete({ viewName: viewNameToUse, images: uploadedS3Keys });
+        const categoryLabel = category === 'angles' ? 'Location Angles' : 'Location Backgrounds';
+        toast.success(`Successfully uploaded ${uploadedS3Keys.length} image(s) to ${categoryLabel}: ${nameToUse}`);
+        onComplete({ viewName: nameToUse, images: uploadedS3Keys, category });
       }
 
     } catch (error: any) {
@@ -244,13 +280,13 @@ export function UploadLocationImagesTab({
 
   // Handle Media Library selection
   const handleSelectFromMediaLibrary = async (images: MediaFile[]) => {
-    if (!isViewNameValid || !finalViewName) {
-      toast.error('Please create or select a view name first (Step 1)');
+    if (!isNameValid || !finalName) {
+      toast.error(`Please create or select a ${category === 'angles' ? 'view' : 'background'} name first (Step 2)`);
       return;
     }
     
     setIsProcessing(true);
-    const viewNameToUse = finalViewName;
+    const nameToUse = finalName;
 
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -270,11 +306,13 @@ export function UploadLocationImagesTab({
               },
               body: JSON.stringify({
                 s3Key: file.s3Key,
-                viewName: viewNameToUse,
+                viewName: nameToUse,
                 source: 'user-upload',
                 label: file.fileName,
+                category: category,
                 metadata: {
-                  viewName: viewNameToUse,
+                  viewName: nameToUse,
+                  category: category,
                   fileName: file.fileName,
                   fileSize: file.fileSize,
                   fromMediaLibrary: true,
@@ -302,8 +340,9 @@ export function UploadLocationImagesTab({
       }
 
       if (uploadedS3Keys.length > 0) {
-        toast.success(`Added ${uploadedS3Keys.length} image(s) from Archive to ${viewNameToUse}`);
-        onComplete({ viewName: viewNameToUse, images: uploadedS3Keys });
+        const categoryLabel = category === 'angles' ? 'Location Angles' : 'Location Backgrounds';
+        toast.success(`Added ${uploadedS3Keys.length} image(s) from Archive to ${categoryLabel}: ${nameToUse}`);
+        onComplete({ viewName: nameToUse, images: uploadedS3Keys, category });
       }
 
     } catch (error: any) {
@@ -314,11 +353,86 @@ export function UploadLocationImagesTab({
     }
   };
 
+  // Dynamic labels based on category
+  const categoryLabels = {
+    angles: {
+      name: 'View',
+      placeholder: 'Enter view name (e.g., Wide Shot, Entrance, Detail)',
+      examples: 'Wide Shot, Entrance, Window View, Corner',
+    },
+    backgrounds: {
+      name: 'Background',
+      placeholder: 'Enter background name (e.g., Wall Texture, Floor, Ceiling)',
+      examples: 'Wall Texture, Floor Detail, Ceiling, Window',
+    }
+  };
+
+  const labels = categoryLabels[category];
+
   return (
     <div className={`${isMobile ? 'p-3' : 'p-6'} space-y-4`}>
-      {/* Step 1: Create or Select View */}
+      {/* Step 1: Choose Destination */}
       <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
-        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 1: Create or Select View</h3>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 1: Choose Destination</h3>
+        
+        <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-4'}`}>
+          <label 
+            className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-colors ${
+              category === 'angles' 
+                ? 'bg-[#DC143C]/10 border-[#DC143C]' 
+                : 'bg-[#0A0A0A] border-[#3F3F46] hover:border-[#808080]'
+            }`}
+          >
+            <input
+              type="radio"
+              name="category"
+              checked={category === 'angles'}
+              onChange={() => handleCategoryChange('angles')}
+              className="sr-only"
+            />
+            <Camera className={`w-5 h-5 ${category === 'angles' ? 'text-[#DC143C]' : 'text-[#808080]'}`} />
+            <div>
+              <span className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium ${category === 'angles' ? 'text-white' : 'text-[#808080]'}`}>
+                Location Angles
+              </span>
+              <p className="text-xs text-[#808080]">Camera perspectives of the location</p>
+            </div>
+            {category === 'angles' && (
+              <span className="ml-auto text-[#DC143C]">●</span>
+            )}
+          </label>
+          
+          <label 
+            className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-colors ${
+              category === 'backgrounds' 
+                ? 'bg-[#DC143C]/10 border-[#DC143C]' 
+                : 'bg-[#0A0A0A] border-[#3F3F46] hover:border-[#808080]'
+            }`}
+          >
+            <input
+              type="radio"
+              name="category"
+              checked={category === 'backgrounds'}
+              onChange={() => handleCategoryChange('backgrounds')}
+              className="sr-only"
+            />
+            <Layers className={`w-5 h-5 ${category === 'backgrounds' ? 'text-[#DC143C]' : 'text-[#808080]'}`} />
+            <div>
+              <span className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium ${category === 'backgrounds' ? 'text-white' : 'text-[#808080]'}`}>
+                Location Backgrounds
+              </span>
+              <p className="text-xs text-[#808080]">Close-up areas, surfaces, details</p>
+            </div>
+            {category === 'backgrounds' && (
+              <span className="ml-auto text-[#DC143C]">●</span>
+            )}
+          </label>
+        </div>
+      </div>
+
+      {/* Step 2: Create or Select Name */}
+      <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 2: Create or Select {labels.name}</h3>
         
         <div className="space-y-3">
           {/* Mode Selection */}
@@ -326,44 +440,44 @@ export function UploadLocationImagesTab({
             <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
               <input
                 type="radio"
-                name="viewMode"
-                checked={viewMode === 'create'}
-                onChange={() => setViewMode('create')}
+                name="nameMode"
+                checked={nameMode === 'create'}
+                onChange={() => setNameMode('create')}
                 className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
               />
-              <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Create New View</span>
+              <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Create New {labels.name}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
               <input
                 type="radio"
-                name="viewMode"
-                checked={viewMode === 'existing'}
-                onChange={() => setViewMode('existing')}
+                name="nameMode"
+                checked={nameMode === 'existing'}
+                onChange={() => setNameMode('existing')}
                 className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
               />
-              <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Add to Existing View</span>
+              <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Add to Existing {labels.name}</span>
             </label>
           </div>
 
-          {/* Create New View */}
-          {viewMode === 'create' && (
+          {/* Create New */}
+          {nameMode === 'create' && (
             <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
               <input
                 type="text"
-                value={newViewName}
-                onChange={(e) => setNewViewName(e.target.value)}
-                placeholder="Enter view name (e.g., Wide Shot, Entrance, Detail)"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder={labels.placeholder}
                 className={`flex-1 ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
               />
               <button
                 onClick={() => {
-                  if (!newViewName.trim()) {
-                    toast.error('Please enter a view name');
+                  if (!newName.trim()) {
+                    toast.error(`Please enter a ${labels.name.toLowerCase()} name`);
                     return;
                   }
-                  toast.success(`View "${newViewName.trim()}" is ready for images`);
+                  toast.success(`${labels.name} "${newName.trim()}" is ready for images`);
                 }}
-                disabled={!newViewName.trim()}
+                disabled={!newName.trim()}
                 className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-3 py-1.5 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors font-medium`}
               >
                 Create
@@ -371,45 +485,50 @@ export function UploadLocationImagesTab({
             </div>
           )}
 
-          {/* Select Existing View */}
-          {viewMode === 'existing' && (
+          {/* Select Existing */}
+          {nameMode === 'existing' && (
             <div>
-              {existingViews.length > 0 ? (
+              {existingNames.length > 0 ? (
                 <select
-                  value={selectedExistingView || '__select__'}
-                  onChange={(e) => setSelectedExistingView(e.target.value === '__select__' ? '' : e.target.value)}
+                  value={selectedExisting || '__select__'}
+                  onChange={(e) => setSelectedExisting(e.target.value === '__select__' ? '' : e.target.value)}
                   className={`select select-bordered w-full ${isMobile ? 'h-12 text-base' : 'h-9 text-sm'} bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]`}
                 >
-                  <option value="__select__" className="bg-[#1A1A1A] text-[#FFFFFF]">Select a view...</option>
-                  {existingViews.map(view => (
-                    <option key={view} value={view} className="bg-[#1A1A1A] text-[#FFFFFF]">{view}</option>
+                  <option value="__select__" className="bg-[#1A1A1A] text-[#FFFFFF]">Select a {labels.name.toLowerCase()}...</option>
+                  {existingNames.map(name => (
+                    <option key={name} value={name} className="bg-[#1A1A1A] text-[#FFFFFF]">{name}</option>
                   ))}
                 </select>
               ) : (
                 <div className={`${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080]`}>
-                  No existing views. Create a new one instead.
+                  No existing {labels.name.toLowerCase()}s. Create a new one instead.
                 </div>
               )}
             </div>
           )}
+
+          {/* Examples hint */}
+          <p className="text-xs text-[#808080]">
+            Examples: {labels.examples}
+          </p>
         </div>
       </div>
 
-      {/* Step 2: Add Images */}
+      {/* Step 3: Add Images */}
       <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
-        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 2: Add Images</h3>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 3: Add Images</h3>
         
         {/* Action Buttons */}
         <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'} mb-3`}>
           <button
             onClick={() => {
-              if (!isViewNameValid) {
-                toast.error('Please create or select a view name first (Step 1)');
+              if (!isNameValid) {
+                toast.error(`Please create or select a ${labels.name.toLowerCase()} name first (Step 2)`);
                 return;
               }
               fileInputRef.current?.click();
             }}
-            disabled={isProcessing || !isViewNameValid}
+            disabled={isProcessing || !isNameValid}
             className={`flex-1 ${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-medium transition-colors flex items-center justify-center gap-2`}
           >
             <Upload className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
@@ -425,13 +544,13 @@ export function UploadLocationImagesTab({
           />
           <button
             onClick={() => {
-              if (!isViewNameValid) {
-                toast.error('Please create or select a view name first (Step 1)');
+              if (!isNameValid) {
+                toast.error(`Please create or select a ${labels.name.toLowerCase()} name first (Step 2)`);
                 return;
               }
               setShowMediaLibrary(!showMediaLibrary);
             }}
-            disabled={isProcessing || !isViewNameValid}
+            disabled={isProcessing || !isNameValid}
             className={`flex-1 ${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-white border border-[#3F3F46] rounded font-medium transition-colors flex items-center justify-center gap-2`}
           >
             <FolderOpen className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
@@ -446,7 +565,7 @@ export function UploadLocationImagesTab({
         >
           <div className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080]`}>
             <Info className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
-            <span>Location Guidance (Click to expand)</span>
+            <span>{category === 'angles' ? 'Location' : 'Background'} Guidance (Click to expand)</span>
           </div>
           {showGuidance ? (
             <ChevronUp className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#808080]`} />
@@ -458,8 +577,8 @@ export function UploadLocationImagesTab({
         {showGuidance && (
           <div className="mt-2">
             <LocationGuidanceSection
-              existingCount={existingReferences.length}
-              viewName={finalViewName || undefined}
+              existingCount={category === 'angles' ? existingReferences.length : existingBackgrounds.length}
+              viewName={finalName || undefined}
             />
           </div>
         )}

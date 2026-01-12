@@ -1146,7 +1146,7 @@ export function LocationDetailModal({
                 </div>
               )}
 
-              {activeTab === 'info' && (
+              {!coverageTab && activeTab === 'info' && (
                 <div className="p-6 space-y-6">
                   {/* Location Info */}
                   <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
@@ -1183,7 +1183,7 @@ export function LocationDetailModal({
                 </div>
               )}
 
-              {activeTab === 'references' && (
+              {!coverageTab && activeTab === 'references' && (
                 <div className="p-6 space-y-6">
                   {/* Phase 2: Selection Mode Toggle & Bulk Actions - Desktop only */}
                   {(angleVariations.length > 0 || backgrounds.length > 0) && !isMobile && (
@@ -2004,11 +2004,18 @@ export function LocationDetailModal({
                       viewName: (av.metadata as any)?.viewName || av.angle || 'default'
                     }
                   }))}
+                  existingBackgrounds={(latestLocation.backgrounds || []).map(bg => ({
+                    id: bg.id,
+                    s3Key: bg.s3Key,
+                    imageUrl: bg.imageUrl,
+                    backgroundType: bg.backgroundType || 'default'
+                  }))}
                   onComplete={async (result) => {
                     queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                     await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                    toast.success(`Successfully added ${result.images.length} image(s) to ${result.viewName}`);
+                    const categoryLabel = result.category === 'angles' ? 'Location Angles' : 'Location Backgrounds';
+                    toast.success(`Successfully added ${result.images.length} image(s) to ${categoryLabel}: ${result.viewName}`);
                     setCoverageTab(null);
                   }}
                 />
@@ -2039,27 +2046,6 @@ export function LocationDetailModal({
                 </div>
               )}
 
-              {/* Standard Tabs (only show if no coverage tab active) */}
-              {!coverageTab && activeTab === 'generate' && (
-                <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
-                  <GenerateLocationTab
-                    locationId={location.locationId}
-                    locationName={location.name}
-                    screenplayId={screenplayId || ''}
-                    locationProfile={location}
-                    location={location}
-                    onClose={onClose}
-                    onComplete={async (result) => {
-                      if (result?.jobId) {
-                        toast.success(`${result.type === 'angles' ? 'Angle' : 'Background'} generation started!`, {
-                          description: 'View in Jobs tab to track progress.',
-                          duration: 5000
-                        });
-                      }
-                    }}
-                  />
-                </div>
-              )}
             </div>
           </motion.div>
         </>

@@ -963,7 +963,7 @@ export default function AssetDetailModal({
                 </div>
               )}
 
-              {activeTab === 'info' && (
+              {!coverageTab && activeTab === 'info' && (
                 <div className="p-6 space-y-6">
                   {/* Asset Info */}
                   <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
@@ -1022,7 +1022,7 @@ export default function AssetDetailModal({
                 </div>
               )}
 
-              {activeTab === 'references' && (
+              {!coverageTab && activeTab === 'references' && (
                 <div className="p-6 space-y-6">
                   {/* Phase 2: Selection Mode Toggle & Bulk Actions - Desktop only */}
                   {angleImageObjects.length > 0 && !isMobile && (
@@ -1469,26 +1469,6 @@ export default function AssetDetailModal({
                 </div>
               )}
 
-              {/* Standard Tabs (only show if no coverage tab active) */}
-              {!coverageTab && activeTab === 'generate' && (
-                <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
-                  <GenerateAssetTab
-                    assetId={latestAsset.id}
-                    assetName={latestAsset.name}
-                    screenplayId={screenplayId || ''}
-                    asset={latestAsset}
-                    onClose={onClose}
-                    onComplete={async (result) => {
-                      if (result?.jobId) {
-                        toast.success('Angle generation started!', {
-                          description: 'View in Jobs tab to track progress.',
-                          duration: 5000
-                        });
-                      }
-                    }}
-                  />
-                </div>
-              )}
             </div>
           </motion.div>
         </>
