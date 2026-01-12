@@ -653,9 +653,45 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                     <div className="mt-4 p-4 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
                                         <div className="flex items-start gap-3">
                                             <AlertTriangle className="w-5 h-5 text-[#DC143C] mt-0.5" />
-                                            <div>
-                                                <div className="font-medium text-[#FFFFFF]">{parseResult.questionableItems.length} formatting issues detected</div>
-                                                <div className="text-sm text-[#808080]">These items will still be imported, but you may want to review them.</div>
+                                            <div className="flex-1">
+                                                <div className="font-medium text-[#FFFFFF] mb-1">
+                                                    {parseResult.questionableItems.length} formatting issue{parseResult.questionableItems.length !== 1 ? 's' : ''} detected
+                                                </div>
+                                                <div className="text-sm text-[#808080] mb-3">
+                                                    These items will still be imported, but you may want to review them.
+                                                </div>
+                                                
+                                                {/* List of issues */}
+                                                <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+                                                    {parseResult.questionableItems.map((item: any, index: number) => (
+                                                        <div 
+                                                            key={index} 
+                                                            className="p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm"
+                                                        >
+                                                            <div className="flex items-start justify-between gap-2 mb-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="px-2 py-0.5 bg-[#DC143C]/20 text-[#DC143C] rounded text-xs font-medium uppercase">
+                                                                        {item.type}
+                                                                    </span>
+                                                                    <span className="text-[#808080] text-xs">
+                                                                        Line {item.lineNumber}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-[#FFFFFF] font-mono text-xs mb-1 break-words">
+                                                                "{item.text}"
+                                                            </div>
+                                                            <div className="text-[#808080] text-xs">
+                                                                {item.reason}
+                                                            </div>
+                                                            {item.suggestion && (
+                                                                <div className="mt-1 text-[#DC143C] text-xs">
+                                                                    Suggestion: {item.suggestion}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
