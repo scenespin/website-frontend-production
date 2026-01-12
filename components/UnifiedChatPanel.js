@@ -17,7 +17,7 @@ import { SceneVisualizerModePanel } from './modes/SceneVisualizerModePanel';
 import { TryOnModePanel } from './modes/TryOnModePanel';
 import { AudioModePanel } from './modes/AudioModePanel';
 import { CloudSavePrompt } from './CloudSavePrompt';
-import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Paperclip, User, Building2, Info, Sparkles } from 'lucide-react';
+import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, User, Building2, Info, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
@@ -864,84 +864,89 @@ function UnifiedChatPanelInner({
   
   /**
    * Handle file attachment
+   * TODO: Re-enable when backend supports image/file analysis in Story Advisor
+   * Currently disabled - attachments are uploaded but not processed by AI
    */
-  const handleAttachment = () => {
-    fileInputRef.current?.click();
-  };
+  // const handleAttachment = () => {
+  //   fileInputRef.current?.click();
+  // };
   
   /**
    * Handle file selection
+   * TODO: Re-enable when backend supports image/file analysis in Story Advisor
+   * Currently disabled - attachments are uploaded but not processed by AI
    */
-  const handleFileSelect = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    
-    setIsUploading(true);
-    setShowAttachmentMenu(false);
-    
-    try {
-      toast.loading(`Uploading ${files.length} file(s)...`);
-      
-      // Set auth token for API calls
-      const { setAuthTokenGetter } = await import('@/lib/api');
-      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
-      
-      // Upload files
-      const uploaded = await Promise.all(
-        files.map(async (file) => {
-          const formData = new FormData();
-          formData.append('file', file);
-          const response = await api.upload.file(formData);
-          return {
-            name: file.name,
-            type: file.type,
-            url: response.data.url,
-            s3Key: response.data.s3Key
-          };
-        })
-      );
-      
-      setAttachedFiles(prev => [...prev, ...uploaded]);
-      toast.dismiss();
-      toast.success(`${files.length} file(s) attached!`);
-      
-      // PROMPT TO SAVE TO CLOUD STORAGE
-      if (uploaded.length > 0) {
-        // Show prompt for first file (can be enhanced to handle multiple)
-        const firstFile = uploaded[0];
-        setCloudSavePrompt({
-          isOpen: true,
-          fileUrl: firstFile.url,
-          fileType: 'attachment',
-          fileName: firstFile.name,
-          metadata: {
-            originalName: firstFile.name,
-            uploadedAt: new Date().toISOString(),
-            mode: state.activeMode
-          }
-        });
-      }
-      
-    } catch (error) {
-      console.error('Error uploading files:', error);
-      toast.dismiss();
-      toast.error('Failed to upload files');
-    } finally {
-      setIsUploading(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
+  // const handleFileSelect = async (e) => {
+  //   const files = Array.from(e.target.files || []);
+  //   if (files.length === 0) return;
+  //   
+  //   setIsUploading(true);
+  //   setShowAttachmentMenu(false);
+  //   
+  //   try {
+  //     toast.loading(`Uploading ${files.length} file(s)...`);
+  //     
+  //     // Set auth token for API calls
+  //     const { setAuthTokenGetter } = await import('@/lib/api');
+  //     setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+  //     
+  //     // Upload files
+  //     const uploaded = await Promise.all(
+  //       files.map(async (file) => {
+  //         const formData = new FormData();
+  //         formData.append('file', file);
+  //         const response = await api.upload.file(formData);
+  //         return {
+  //           name: file.name,
+  //           type: file.type,
+  //           url: response.data.url,
+  //           s3Key: response.data.s3Key
+  //         };
+  //       })
+  //     );
+  //     
+  //     setAttachedFiles(prev => [...prev, ...uploaded]);
+  //     toast.dismiss();
+  //     toast.success(`${files.length} file(s) attached!`);
+  //     
+  //     // PROMPT TO SAVE TO CLOUD STORAGE
+  //     if (uploaded.length > 0) {
+  //       // Show prompt for first file (can be enhanced to handle multiple)
+  //       const firstFile = uploaded[0];
+  //       setCloudSavePrompt({
+  //         isOpen: true,
+  //         fileUrl: firstFile.url,
+  //         fileType: 'attachment',
+  //         fileName: firstFile.name,
+  //         metadata: {
+  //           originalName: firstFile.name,
+  //           uploadedAt: new Date().toISOString(),
+  //           mode: state.activeMode
+  //         }
+  //       });
+  //     }
+  //     
+  //   } catch (error) {
+  //     console.error('Error uploading files:', error);
+  //     toast.dismiss();
+  //     toast.error('Failed to upload files');
+  //   } finally {
+  //     setIsUploading(false);
+  //     // Reset file input
+  //     if (fileInputRef.current) {
+  //       fileInputRef.current.value = '';
+  //     }
+  //   }
+  // };
   
   /**
    * Remove attached file
+   * TODO: Re-enable when backend supports image/file analysis in Story Advisor
    */
-  const removeAttachedFile = (index) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
-    toast.success('File removed');
-  };
+  // const removeAttachedFile = (index) => {
+  //   setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  //   toast.success('File removed');
+  // };
 
   /**
    * Handle sending a message
@@ -962,13 +967,13 @@ function UnifiedChatPanelInner({
     addMessage({
       role: 'user',
       content: message,
-      mode: state.activeMode,
-      attachments: attachedFiles.length > 0 ? attachedFiles : undefined
+      mode: state.activeMode
+      // attachments: attachedFiles.length > 0 ? attachedFiles : undefined // TODO: Re-enable when backend supports attachments
     });
 
     // Clear input and attachments
     setInput('');
-    setAttachedFiles([]);
+    // setAttachedFiles([]); // TODO: Re-enable when backend supports attachments
 
     // Set auth token for API calls
     try {
@@ -1214,8 +1219,8 @@ function UnifiedChatPanelInner({
             systemPrompt: systemPrompt,
             desiredModelId: state.selectedModel || 'claude-sonnet-4-5-20250929',
             conversationHistory,
-            sceneContext: apiSceneContext,
-            attachments: attachedFiles.length > 0 ? attachedFiles : undefined
+            sceneContext: apiSceneContext
+            // attachments: attachedFiles.length > 0 ? attachedFiles : undefined // TODO: Re-enable when backend supports attachments
           },
           // onChunk - update streaming text
           (chunk) => {
@@ -1485,24 +1490,6 @@ function UnifiedChatPanelInner({
       {/* Chat Input - Modern AI Chat Style */}
       {/* Always show input - Character/Location panels use this input but handle sending themselves */}
       <div className="flex-shrink-0 border-t border-[#3F3F46] bg-[#0A0A0A]">
-          {/* Attached Files Display */}
-          {attachedFiles.length > 0 && (
-            <div className="max-w-3xl mx-auto px-4 md:px-6 pt-3 flex flex-wrap gap-2">
-              {attachedFiles.map((file, index) => (
-                <div key={index} className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1F1F1F] rounded-lg text-sm">
-                  <Paperclip className="w-3 h-3 text-[#9CA3AF]" />
-                  <span className="text-xs font-medium text-[#E5E7EB]">{file.name}</span>
-                  <button
-                    onClick={() => removeAttachedFile(index)}
-                    className="hover:text-error transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          
           {/* Main Input Area - Compact ChatGPT/Claude Style */}
           <div className="w-full px-2 sm:px-3 md:px-4 py-2">
             <div className="relative bg-[#1F1F1F] rounded-lg sm:rounded-xl border border-[#3F3F46] focus-within:border-[#DC143C]/50 focus-within:ring-1 focus-within:ring-[#DC143C]/20 transition-all">
@@ -1528,18 +1515,7 @@ function UnifiedChatPanelInner({
               />
               {/* Action Buttons - Compact, vertically centered */}
               <div className="absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5">
-                <button
-                  onClick={handleAttachment}
-                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#2A2A2A] text-[#9CA3AF] hover:text-[#E5E7EB] transition-all duration-200 ${isUploading ? 'opacity-50' : ''}`}
-                  disabled={state.isStreaming || isUploading}
-                  title="Attach files"
-                >
-                  {isUploading ? (
-                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                  ) : (
-                    <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
-                  )}
-                </button>
+                {/* Attachment button removed - feature not yet implemented in backend */}
                 {/* Hide microphone on mobile - phones already have built-in voice input */}
                 <button
                   onClick={handleVoiceInput}
@@ -1573,15 +1549,15 @@ function UnifiedChatPanelInner({
         {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
       </div>
         
-        {/* Hidden file input */}
-        <input
+        {/* Hidden file input - TODO: Re-enable when backend supports image/file analysis */}
+        {/* <input
           ref={fileInputRef}
           type="file"
           accept="image/*,.pdf,.txt,.doc,.docx"
           multiple
           onChange={handleFileSelect}
           className="hidden"
-        />
+        /> */}
         
         {/* Cloud Save Prompt */}
         <CloudSavePrompt
