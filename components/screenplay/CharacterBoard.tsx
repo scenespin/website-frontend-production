@@ -201,10 +201,59 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
             {/* Character Board Content */}
             {!isLoading && (
                 <>
-                    {/* Header - Simplified, matches LocationBoard */}
+                    {/* Header - Mobile: button aligns with text, Desktop: button with dropdown */}
                     {showHeader && (
                         <div className="mb-6">
-                            <div className="flex items-center justify-between">
+                            {/* Mobile: Button aligned with text */}
+                            <div className="flex flex-col sm:hidden gap-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
+                                            Character Board
+                                        </h2>
+                                        <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
+                                            Track character arcs throughout your screenplay
+                                        </p>
+                                    </div>
+                                    {canEditScript ? (
+                                        <button
+                                            onClick={() => setIsCreating(true)}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
+                                            style={{
+                                                backgroundColor: '#DC143C',
+                                                color: 'white',
+                                            }}
+                                        >
+                                            <Plus size={18} />
+                                            <span>Add</span>
+                                        </button>
+                                    ) : (
+                                        <span className="text-sm text-base-content/50">
+                                            Read-only access
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Sort Selector - Below on mobile */}
+                                <div className="flex items-center gap-2">
+                                    <ArrowUpDown size={16} style={{ color: '#9CA3AF' }} />
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => {
+                                            const newSort = e.target.value as CharacterSortOption;
+                                            setSortBy(newSort);
+                                            setCharacterSortPreference(newSort);
+                                        }}
+                                        className="bg-[#0A0A0A] border border-[#27272A] rounded px-2 py-1 text-sm"
+                                        style={{ color: '#E5E7EB' }}
+                                    >
+                                        <option value="alphabetical">Alphabetical</option>
+                                        <option value="appearance">Order of Appearance</option>
+                                        <option value="sceneCount">Scene Count</option>
+                                    </select>
+                                </div>
+                            </div>
+                            {/* Desktop: Original layout with dropdown and button together */}
+                            <div className="hidden sm:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div>
                                     <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
                                         Character Board
@@ -213,42 +262,44 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                         Track character arcs throughout your screenplay
                                     </p>
                                 </div>
-                                {canEditScript ? (
-                                    <button
-                                        onClick={() => setIsCreating(true)}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
-                                        style={{
-                                            backgroundColor: '#DC143C',
-                                            color: 'white',
-                                        }}
-                                    >
-                                        <Plus size={18} />
-                                        <span className="hidden sm:inline">Add Character</span>
-                                        <span className="sm:hidden">Add</span>
-                                    </button>
-                                ) : (
-                                    <span className="text-sm text-base-content/50">
-                                        Read-only access
-                                    </span>
-                                )}
-                            </div>
-                            {/* Sort Selector - Below title, separate from button */}
-                            <div className="flex items-center gap-2 mt-4">
-                                <ArrowUpDown size={16} style={{ color: '#9CA3AF' }} />
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => {
-                                        const newSort = e.target.value as CharacterSortOption;
-                                        setSortBy(newSort);
-                                        setCharacterSortPreference(newSort);
-                                    }}
-                                    className="bg-[#0A0A0A] border border-[#27272A] rounded px-2 py-1 text-sm"
-                                    style={{ color: '#E5E7EB' }}
-                                >
-                                    <option value="alphabetical">Alphabetical</option>
-                                    <option value="appearance">Order of Appearance</option>
-                                    <option value="sceneCount">Scene Count</option>
-                                </select>
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                    {/* Sort Selector */}
+                                    <div className="flex items-center gap-2">
+                                        <ArrowUpDown size={16} style={{ color: '#9CA3AF' }} />
+                                        <select
+                                            value={sortBy}
+                                            onChange={(e) => {
+                                                const newSort = e.target.value as CharacterSortOption;
+                                                setSortBy(newSort);
+                                                setCharacterSortPreference(newSort);
+                                            }}
+                                            className="bg-[#0A0A0A] border border-[#27272A] rounded px-2 py-1 text-sm"
+                                            style={{ color: '#E5E7EB' }}
+                                        >
+                                            <option value="alphabetical">Alphabetical</option>
+                                            <option value="appearance">Order of Appearance</option>
+                                            <option value="sceneCount">Scene Count</option>
+                                        </select>
+                                    </div>
+                                    {canEditScript && (
+                                        <button
+                                            onClick={() => setIsCreating(true)}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+                                            style={{
+                                                backgroundColor: '#DC143C',
+                                                color: 'white',
+                                            }}
+                                        >
+                                            <Plus size={18} />
+                                            Add Character
+                                        </button>
+                                    )}
+                                    {!canEditScript && (
+                                        <span className="text-sm text-base-content/50">
+                                            Read-only access
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
