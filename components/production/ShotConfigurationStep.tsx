@@ -933,6 +933,7 @@ export function ShotConfigurationStep({
                   shotWorkflowOverride={shotWorkflowOverride}
                   onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
+                  propThumbnailUrlsMap={propThumbnailUrlsMap}
                 />
               </TabsContent>
 
@@ -993,6 +994,7 @@ export function ShotConfigurationStep({
                   shotWorkflowOverride={shotWorkflowOverride}
                   onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
+                  propThumbnailUrlsMap={propThumbnailUrlsMap}
                 />
               </TabsContent>
             </Tabs>
