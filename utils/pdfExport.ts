@@ -288,11 +288,6 @@ async function addWatermarkWithPdfLib(
   } = options;
 
   const pages = pdfDoc.getPages();
-  const pageWidth = inchesToPoints(SCREENPLAY_FORMAT.pageWidth);
-  const pageHeight = inchesToPoints(SCREENPLAY_FORMAT.pageHeight);
-  
-  const centerX = pageWidth / 2;
-  const centerY = pageHeight / 2;
 
   // Process each page
   for (const page of pages) {
@@ -348,18 +343,19 @@ async function addWatermarkWithPdfLib(
         // Clamp opacity between 0 and 1
         const opacityValue = Math.max(0, Math.min(1, opacity));
 
-        // Calculate position (centered)
-        const x = centerX - imgWidth / 2;
-        const y = centerY - imgHeight / 2;
+        // Get page dimensions (pdf-lib uses bottom-left origin)
+        const { width: pageWidth, height: pageHeight } = page.getSize();
+        const pageCenterX = pageWidth / 2;
+        const pageCenterY = pageHeight / 2;
+        
+        // Calculate position (centered) - pdf-lib uses bottom-left origin
+        // y coordinate is from bottom, so center is at pageHeight/2
+        const x = pageCenterX - imgWidth / 2;
+        const y = pageCenterY - imgHeight / 2;
 
         // pdf-lib's drawImage supports opacity and rotate directly!
         // This is the simplest and most reliable approach
         if (angle !== 0) {
-          // Rotate around center
-          const { width, height } = page.getSize();
-          const pageCenterX = width / 2;
-          const pageCenterY = height / 2;
-          
           // Draw image with opacity and rotation
           // pdf-lib handles rotation around the image's center point
           page.drawImage(pdfImage, {
@@ -392,14 +388,16 @@ async function addWatermarkWithPdfLib(
         // Fallback to text watermark if image fails
         if (text) {
           console.log('[PDF Watermark] Falling back to text watermark');
-          addTextWatermarkWithPdfLib(page, text, centerX, centerY, opacity, angle, fontSize);
+          const { width, height } = page.getSize();
+          addTextWatermarkWithPdfLib(page, text, width / 2, height / 2, opacity, angle, fontSize);
         } else {
           throw new Error(`Failed to add image watermark: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
     } else if (text) {
       // Text watermark
-      addTextWatermarkWithPdfLib(page, text, centerX, centerY, opacity, angle, fontSize);
+      const { width, height } = page.getSize();
+      addTextWatermarkWithPdfLib(page, text, width / 2, height / 2, opacity, angle, fontSize);
     }
   }
 }

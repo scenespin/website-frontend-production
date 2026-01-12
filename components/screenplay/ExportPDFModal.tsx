@@ -287,18 +287,18 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
   };
   
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
-      <div className="bg-base-100 border border-base-300 rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0A0A0A]/95 backdrop-blur-sm">
+      <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-base-300">
+        <div className="flex items-center justify-between p-6 border-b border-[#3F3F46] bg-[#141414]">
           <div className="flex items-center gap-3">
-            <FileDown className="w-5 h-5 text-cinema-red" />
-            <h2 className="text-xl font-semibold text-base-content">Export to PDF</h2>
+            <FileDown className="w-5 h-5 text-[#DC143C]" />
+            <h2 className="text-xl font-semibold text-[#FFFFFF]">Export to PDF</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-base-content/60 hover:text-base-content transition-colors"
+            className="text-[#808080] hover:text-[#FFFFFF] transition-colors p-2 hover:bg-[#1F1F1F] rounded-lg"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -306,11 +306,11 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
         </div>
         
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#0A0A0A]">
           
           {/* Title */}
           <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium text-base-content">
+            <label htmlFor="title" className="text-sm font-medium text-[#FFFFFF]">
               Title
             </label>
             <input
@@ -319,14 +319,14 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter screenplay title"
-              className="input input-bordered w-full bg-base-200 text-base-content"
+              className="w-full px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
             />
           </div>
           
           {/* Author */}
           <div className="space-y-2">
-            <label htmlFor="author" className="text-sm font-medium text-base-content">
-              Written by <span className="text-base-content/60">(optional)</span>
+            <label htmlFor="author" className="text-sm font-medium text-[#FFFFFF]">
+              Written by <span className="text-[#808080]">(optional)</span>
             </label>
             <input
               id="author"
@@ -334,14 +334,14 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
               placeholder="Author name"
-              className="input input-bordered w-full bg-base-200 text-base-content"
+              className="w-full px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
             />
           </div>
           
           {/* Contact */}
           <div className="space-y-2">
-            <label htmlFor="contact" className="text-sm font-medium text-base-content">
-              Contact Information <span className="text-base-content/60">(optional)</span>
+            <label htmlFor="contact" className="text-sm font-medium text-[#FFFFFF]">
+              Contact Information <span className="text-[#808080]">(optional)</span>
             </label>
             <textarea
               id="contact"
@@ -349,18 +349,18 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
               onChange={(e) => setContact(e.target.value)}
               placeholder="Email, phone, address"
               rows={3}
-              className="textarea textarea-bordered w-full bg-base-200 text-base-content"
+              className="w-full px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent resize-none"
             />
           </div>
           
           {/* Watermark Section - FREE FOR ALL! */}
-          <div className="space-y-4 pt-4 border-t border-base-300">
+          <div className="space-y-4 pt-4 border-t border-[#3F3F46]">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <label htmlFor="watermark" className="text-sm font-medium text-base-content">
+                <label htmlFor="watermark" className="text-sm font-medium text-[#FFFFFF]">
                   Add Watermark
                 </label>
-                <p className="text-sm text-base-content/60">
+                <p className="text-sm text-[#808080]">
                   🎨 FREE feature - protect your screenplay!
                 </p>
               </div>
@@ -374,25 +374,29 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
             </div>
             
             {includeWatermark && (
-              <div className="space-y-4 pl-4 border-l-2 border-primary/30">
+              <div className="space-y-4 pl-4 border-l-2 border-[#DC143C]/30">
                 {/* Watermark Type Selector */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-base-content">
+                  <label className="text-sm font-medium text-[#FFFFFF]">
                     Watermark Type
                   </label>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setWatermarkType('text')}
-                      className={`btn btn-sm flex-1 ${
-                        watermarkType === 'text' ? 'btn-primary' : 'btn-outline'
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        watermarkType === 'text' 
+                          ? 'bg-[#DC143C] text-white' 
+                          : 'bg-[#141414] border border-[#3F3F46] text-[#E5E7EB] hover:bg-[#1F1F1F]'
                       }`}
                     >
                       Text
                     </button>
                     <button
                       onClick={() => setWatermarkType('image')}
-                      className={`btn btn-sm flex-1 ${
-                        watermarkType === 'image' ? 'btn-primary' : 'btn-outline'
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        watermarkType === 'image' 
+                          ? 'bg-[#DC143C] text-white' 
+                          : 'bg-[#141414] border border-[#3F3F46] text-[#E5E7EB] hover:bg-[#1F1F1F]'
                       }`}
                     >
                       Image/Logo
@@ -403,7 +407,7 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                 {/* Text Watermark */}
                 {watermarkType === 'text' && (
                   <div className="space-y-2">
-                    <label htmlFor="watermark-text" className="text-sm font-medium text-base-content">
+                    <label htmlFor="watermark-text" className="text-sm font-medium text-[#FFFFFF]">
                       Watermark Text
                     </label>
                     <input
@@ -413,9 +417,9 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                       onChange={(e) => setWatermarkText(e.target.value)}
                       placeholder="DRAFT"
                       maxLength={30}
-                      className="input input-bordered w-full bg-base-200 text-base-content"
+                      className="w-full px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
                     />
-                    <p className="text-xs text-base-content/60">
+                    <p className="text-xs text-[#808080]">
                       Max 30 characters (e.g., "DRAFT", "CONFIDENTIAL")
                     </p>
                   </div>
@@ -424,7 +428,7 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                 {/* Image Watermark */}
                 {watermarkType === 'image' && (
                   <div className="space-y-2">
-                    <label htmlFor="watermark-image" className="text-sm font-medium text-base-content">
+                    <label htmlFor="watermark-image" className="text-sm font-medium text-[#FFFFFF]">
                       Upload Logo/Image
                     </label>
                     
@@ -432,7 +436,7 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                     <div className="flex gap-2">
                       <label 
                         htmlFor="watermark-image" 
-                        className="btn btn-outline flex-1 cursor-pointer"
+                        className="flex-1 px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#E5E7EB] hover:bg-[#1F1F1F] cursor-pointer flex items-center justify-center gap-2 transition-colors"
                         onClick={(e) => {
                           // Prevent label from triggering if clicking on button text
                           if (e.target !== e.currentTarget) {
@@ -440,14 +444,14 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                           }
                         }}
                       >
-                        <Upload className="w-4 h-4 mr-2" />
+                        <Upload className="w-4 h-4" />
                         {watermarkImage ? 'Change Image' : 'Choose Image'}
                       </label>
                       {watermarkImage && (
                         <button
                           type="button"
                           onClick={handleRemoveImage}
-                          className="btn btn-ghost btn-sm"
+                          className="px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#808080] hover:text-[#FFFFFF] hover:bg-[#1F1F1F] transition-colors"
                           title="Remove image"
                         >
                           <X className="w-4 h-4" />
@@ -466,13 +470,13 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                     
                     {/* Image Preview */}
                     {imagePreview && (
-                      <div className="relative border border-base-300 rounded-lg p-2 bg-base-200">
+                      <div className="relative border border-[#3F3F46] rounded-lg p-2 bg-[#141414]">
                         <img
                           src={imagePreview}
                           alt="Watermark preview"
                           className="max-h-32 mx-auto object-contain rounded"
                         />
-                        <p className="text-xs text-success mt-2 text-center">
+                        <p className="text-xs text-green-400 mt-2 text-center">
                           ✓ Image uploaded successfully
                         </p>
                       </div>
@@ -480,15 +484,15 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                     
                     {/* Error Message */}
                     {imageUploadError && (
-                      <div className="alert alert-error py-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <div className="bg-red-900/20 border border-red-500/50 rounded-lg py-2 px-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-red-400 shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-xs">{imageUploadError}</span>
+                        <span className="text-xs text-red-400">{imageUploadError}</span>
                       </div>
                     )}
                     
-                    <p className="text-xs text-base-content/60">
+                    <p className="text-xs text-[#808080]">
                       PNG, JPG, GIF, or WebP. Max 5MB. Transparent backgrounds work best.
                     </p>
                   </div>
@@ -497,7 +501,7 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                 {/* Image Size (for image watermarks) */}
                 {watermarkType === 'image' && watermarkImage && (
                   <div className="space-y-2">
-                    <label htmlFor="image-size" className="text-sm font-medium text-base-content">
+                    <label htmlFor="image-size" className="text-sm font-medium text-[#FFFFFF]">
                       Image Size: {watermarkImageSize}" × {watermarkImageSize}"
                     </label>
                     <input
@@ -508,9 +512,9 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                       step="0.5"
                       value={watermarkImageSize}
                       onChange={(e) => setWatermarkImageSize(parseFloat(e.target.value))}
-                      className="range range-primary range-sm"
+                      className="w-full h-2 bg-[#141414] rounded-lg appearance-none cursor-pointer accent-[#DC143C]"
                     />
-                    <div className="flex justify-between text-xs text-base-content/60">
+                    <div className="flex justify-between text-xs text-[#808080]">
                       <span>1"</span>
                       <span>3"</span>
                       <span>5"</span>
@@ -520,7 +524,7 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                 
                 {/* Opacity Slider */}
                 <div className="space-y-2">
-                  <label htmlFor="opacity" className="text-sm font-medium text-base-content">
+                  <label htmlFor="opacity" className="text-sm font-medium text-[#FFFFFF]">
                     Opacity: {Math.round(watermarkOpacity * 100)}%
                   </label>
                   <input
@@ -531,9 +535,9 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
                     step="0.01"
                     value={watermarkOpacity}
                     onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
-                    className="range range-primary range-sm"
+                    className="w-full h-2 bg-[#141414] rounded-lg appearance-none cursor-pointer accent-[#DC143C]"
                   />
-                  <div className="flex justify-between text-xs text-base-content/60">
+                  <div className="flex justify-between text-xs text-[#808080]">
                     <span>5%</span>
                     <span>15%</span>
                     <span>30%</span>
@@ -544,43 +548,43 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
           </div>
           
           {/* Info Alert */}
-          <div className="alert alert-info">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+          <div className="bg-blue-900/20 border border-blue-500/50 rounded-lg p-4 flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-blue-400 shrink-0 w-5 h-5 mt-0.5">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <div className="text-sm">
-              <strong>Industry-Standard Format:</strong> Courier 12pt, proper margins, scene bookmarks, professional page numbering.
+            <div className="text-sm text-[#E5E7EB]">
+              <strong className="text-[#FFFFFF]">Industry-Standard Format:</strong> Courier 12pt, proper margins, scene bookmarks, professional page numbering.
             </div>
           </div>
         </div>
         
         {/* Footer */}
-        <div className="p-6 border-t border-base-300 flex gap-3">
+        <div className="p-6 border-t border-[#3F3F46] flex gap-3 bg-[#141414]">
           <button
             onClick={onClose}
-            className="btn btn-ghost flex-1"
+            className="flex-1 px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#E5E7EB] hover:bg-[#1F1F1F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isExporting}
           >
             Cancel
           </button>
           <button
             onClick={handleExport}
-            className="btn btn-primary flex-1"
+            className="flex-1 px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             disabled={isExporting || !title.trim()}
           >
             {isExporting ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Exporting...
               </>
             ) : exported ? (
               <>
-                <Check className="w-4 h-4 mr-2" />
+                <Check className="w-4 h-4" />
                 Exported!
               </>
             ) : (
               <>
-                <FileDown className="w-4 h-4 mr-2" />
+                <FileDown className="w-4 h-4" />
                 Export PDF
               </>
             )}
