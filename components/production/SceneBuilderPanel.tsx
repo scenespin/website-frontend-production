@@ -830,7 +830,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     useEffectRunCountsRef.current[effectName] = runInfo;
     
     scrollToTop();
-  }, [currentShotIndex, wizardStep, currentStep, scrollToTop]);
+    // 🔥 PERFORMANCE: scrollToTop is a stable useCallback with empty deps, so it doesn't need to be in deps
+  }, [currentShotIndex, wizardStep, currentStep]);
 
   // Use context state
   const sceneProps = contextState.sceneProps;
@@ -854,20 +855,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Use custom hook for prop references
   // Pass baseProps instead of sceneProps to break the circular dependency
   // The hook will only recalculate when baseProps changes (when fetching new props), not when sceneProps changes
-  console.log('[PropImageDebug] SceneBuilderPanel: Calling usePropReferences with', {
-    projectId,
-    propIdsCount: propIds.length,
-    propIds: propIds,
-    basePropsCount: baseProps.length,
-    baseProps: baseProps.map(p => ({ 
-      id: p.id, 
-      name: p.name,
-      imageUrl: p.imageUrl,
-      angleReferences: p.angleReferences?.length || 0,
-      images: p.images?.length || 0,
-      baseReference: p.baseReference
-    }))
-  });
+  // 🔥 PERFORMANCE: Removed expensive console.log statements that run on every render
   const {
     enrichedProps: enrichedPropsFromHook,
     propThumbnailS3KeyMap,
@@ -881,21 +869,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     },
     baseProps
   );
-  console.log('[PropImageDebug] SceneBuilderPanel: usePropReferences returned', {
-    enrichedPropsCount: enrichedPropsFromHook.length,
-    propThumbnailS3KeyMapSize: propThumbnailS3KeyMap?.size || 0,
-    loading: loadingProps,
-    enrichedProps: enrichedPropsFromHook.map(p => ({
-      id: p.id,
-      name: p.name,
-      angleReferencesCount: p.angleReferences?.length || 0,
-      angleReferences: p.angleReferences,
-      imagesCount: p.images?.length || 0,
-      images: p.images,
-      baseReference: p.baseReference,
-      fullProp: p
-    }))
-  });
   
   // Sync enriched props to state (for backward compatibility during refactor)
   // 🔥 FIX: Only sync when enriched props actually change, and prevent circular updates
