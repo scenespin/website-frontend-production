@@ -5376,6 +5376,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             await updateRelationships();
             console.log('[ScreenplayContext] ✅ Rebuilt relationships after rescan');
             
+            // 🔥 FIX: Dispatch refreshScenes event so Scene Builder refreshes its scene list
+            window.dispatchEvent(new CustomEvent('refreshScenes'));
+            console.log('[ScreenplayContext] ✅ Dispatched refreshScenes event');
+            
             console.log('[ScreenplayContext] ✅ Re-scan complete:', {
                 newCharacters: newCharacterNames.length,
                 newLocations: newLocationNames.length,
