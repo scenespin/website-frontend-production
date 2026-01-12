@@ -213,8 +213,26 @@ export function enforceFountainSpacing(text: string): string {
     
     // Rule 1: DOUBLE blank line BEFORE scene headings (except first one, and not if previous was also scene heading)
     // Scenes should be separated by two blank lines in Fountain format
+    // Check how many blank lines we currently have before this scene heading
     if (isSceneHeading && prevNonBlank && !prevIsSceneHeading) {
-      needsDoubleBlank = true; // Two blank lines between scenes
+      // Count existing blank lines before this scene heading
+      let blankLineCount = 0;
+      for (let j = outputLines.length - 1; j >= 0; j--) {
+        if (outputLines[j].trim() === '') {
+          blankLineCount++;
+        } else {
+          break;
+        }
+      }
+      
+      // We need 2 blank lines total before scene headings
+      // If we have 0, add 2. If we have 1, add 1 more. If we have 2+, we're good.
+      if (blankLineCount === 0) {
+        needsDoubleBlank = true; // Add two blank lines
+      } else if (blankLineCount === 1) {
+        needsBlankBefore = true; // Add one more to make it two
+      }
+      // If blankLineCount >= 2, we're already good
     }
     
     // Rule 2: Blank line BEFORE character names (if previous was action or scene heading)
@@ -222,9 +240,10 @@ export function enforceFountainSpacing(text: string): string {
       needsBlankBefore = true;
     }
     
-    // Rule 3: Blank line AFTER dialogue (before action/scene/character)
-    // If previous was dialogue and current is action/scene/character, add blank
-    if (prevIsDialogue && (isAction || isSceneHeading || isCharacterName)) {
+    // Rule 3: Blank line AFTER dialogue (before action/character)
+    // If previous was dialogue and current is action/character, add blank
+    // NOTE: If current is scene heading, we handle it in Rule 1 (double blank), so skip here
+    if (prevIsDialogue && (isAction || isCharacterName) && !isSceneHeading) {
       needsBlankBefore = true;
     }
     
@@ -239,14 +258,18 @@ export function enforceFountainSpacing(text: string): string {
       needsBlankBefore = true;
     }
     
-    // Add blank line(s) if needed and not already blank
-    if (needsDoubleBlank && outputLines.length > 0 && outputLines[outputLines.length - 1].trim()) {
+    // Add blank line(s) if needed
+    if (needsDoubleBlank) {
       // Add two blank lines for scene separation
       outputLines.push('');
       outputLines.push('');
-    } else if (needsBlankBefore && outputLines.length > 0 && outputLines[outputLines.length - 1].trim()) {
-      // Add single blank line for other spacing
-      outputLines.push('');
+    } else if (needsBlankBefore) {
+      // Check if we already have a blank line (don't duplicate)
+      const lastLine = outputLines.length > 0 ? outputLines[outputLines.length - 1] : '';
+      if (lastLine.trim() !== '') {
+        // Add single blank line for other spacing
+        outputLines.push('');
+      }
     }
     
     // Add the current line
@@ -270,12 +293,18 @@ export function enforceFountainSpacing(text: string): string {
     }
   }
   
-  // Normalize excessive blank lines (keep double blank lines for scene separation)
-  // Replace 4+ consecutive blank lines with 2 (double blank line)
-  // This preserves scene separation while removing excessive spacing
+  // Normalize excessive blank lines (preserve double blank lines for scene separation)
+  // In Fountain format: \n\n\n = 2 blank lines (newline, blank, newline, blank, newline)
+  // We want to preserve exactly 2 blank lines between scenes, but remove excessive spacing
   let result = outputLines.join('\n');
-  result = result.replace(/\n{4,}/g, '\n\n\n'); // 4+ becomes 3 (which is 2 blank lines)
-  result = result.replace(/\n{3,}/g, '\n\n'); // 3+ becomes 2 (double blank line)
+  
+  // Replace 4+ consecutive newlines with exactly 3 newlines (2 blank lines)
+  // This preserves scene separation (2 blank lines) while removing excessive spacing
+  result = result.replace(/\n{4,}/g, '\n\n\n');
+  
+  // Don't collapse 3 newlines (which is 2 blank lines) - this is correct for scene separation
+  // The pattern \n\n\n means: content\n blank\n blank\n content = 2 blank lines between scenes
+  
   return result.trim();
 }
 
