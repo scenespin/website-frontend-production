@@ -1420,7 +1420,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         const screenplayData = await getScreenplay(projectId, getToken);
         if (screenplayData?.content) {
           const fountainLines = screenplayData.content.split('\n');
-          const rawContent = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine);
+          // 🔥 FIX: endLine is inclusive (0-based), but slice() is exclusive, so add 1
+          // This matches the backend's extractSceneContent logic and ScreenplayContext's scene extraction
+          const rawContent = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine + 1);
           // Filter out sections (#) and synopses (=) per Fountain spec
           const filteredContent = rawContent.filter(line => {
             const trimmed = line.trim();
