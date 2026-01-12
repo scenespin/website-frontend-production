@@ -349,33 +349,23 @@ async function addWatermarkWithPdfLib(
         const pageCenterY = pageHeight / 2;
         
         // Calculate position (centered) - pdf-lib uses bottom-left origin
-        // y coordinate is from bottom, so center is at pageHeight/2
+        // For centering: x = center - half width, y = center - half height
+        // Since y=0 is at bottom, pageCenterY is the vertical center from bottom
         const x = pageCenterX - imgWidth / 2;
         const y = pageCenterY - imgHeight / 2;
 
         // pdf-lib's drawImage supports opacity and rotate directly!
-        // This is the simplest and most reliable approach
-        if (angle !== 0) {
-          // Draw image with opacity and rotation
-          // pdf-lib handles rotation around the image's center point
-          page.drawImage(pdfImage, {
-            x: pageCenterX - imgWidth / 2,
-            y: pageCenterY - imgHeight / 2,
-            width: imgWidth,
-            height: imgHeight,
-            opacity: opacityValue,
-            rotate: degrees(angle),
-          });
-        } else {
-          // No rotation - simple placement with opacity
-          page.drawImage(pdfImage, {
-            x,
-            y,
-            width: imgWidth,
-            height: imgHeight,
-            opacity: opacityValue,
-          });
-        }
+        // The x,y coordinates specify the bottom-left corner of the image
+        // So to center: x = centerX - width/2, y = centerY - height/2
+        // pdf-lib rotates around the center of the image when rotate is specified
+        page.drawImage(pdfImage, {
+          x: pageCenterX - imgWidth / 2,
+          y: pageCenterY - imgHeight / 2,
+          width: imgWidth,
+          height: imgHeight,
+          opacity: opacityValue,
+          rotate: angle !== 0 ? degrees(angle) : undefined,
+        });
 
         console.log('[PDF Watermark] Image watermark added successfully with pdf-lib');
       } catch (error) {
