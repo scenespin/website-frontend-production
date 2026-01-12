@@ -33,16 +33,16 @@ const DIRECT_TABS = [
     description: 'Script-based scene generation',
   },
   {
-    id: 'soundscape' as DirectTab,
-    label: 'Soundscape',
-    icon: Music,
-    description: 'AI-generated sound effects and music for videos',
-  },
-  {
     id: 'storyboard' as DirectTab,
     label: 'Storyboard',
     icon: Film,
     description: 'Stitched scene videos & storyboard',
+  },
+  {
+    id: 'soundscape' as DirectTab,
+    label: 'Soundscape',
+    icon: Music,
+    description: 'AI-generated sound effects and music for videos',
   },
 ] as const;
 
