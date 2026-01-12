@@ -108,9 +108,12 @@ export default function Footer() {
         <div className="mt-8 pt-8 border-t border-[#3F3F46]">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-xs text-gray-500">
-              © {currentYear} {config.appName}. All rights reserved.
+              © {currentYear} Garden State Concentrate LLC (DBA Wryda.ai). All rights reserved.
               <br />
-              <span className="text-gray-600">Wryda.ai is a product of Garden State Concentrate LLC</span>
+              <span className="text-gray-400">
+                <strong className="text-gray-300">Patent Pending:</strong> Character Consistency System™, Scene Builder™ Orchestration, 
+                and related proprietary technologies. Protected by copyright and pending patents.
+              </span>
             </p>
             <div className="flex items-center gap-4">
               {/* Social links can be added here later */}

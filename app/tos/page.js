@@ -276,10 +276,25 @@ Fees do not include applicable taxes, which are your responsibility. We will col
 
 8. INTELLECTUAL PROPERTY PROTECTION
 
-8.1 Copyright Policy
+8.1 Platform Proprietary Technology
+The Platform incorporates proprietary algorithms, systems, and technologies that are protected by copyright, trademark, and pending patent applications, including but not limited to:
+
+- Character Consistency System™ (Patent Pending): Our proprietary character pose package system that generates 3-25 character poses and intelligently selects optimal poses for scene consistency, achieving 95%+ character consistency across entire films.
+
+- Scene Builder™ Orchestration (Patent Pending): Our proprietary multi-shot scene package generation system with master reference propagation that automatically maintains consistency across multiple shots, reducing costs by 50-70% and time by 80%.
+
+- Intelligent Multi-Provider Routing (Trade Secret): Our proprietary content-aware provider selection system with safety prediction, cost optimization, and rate limit arbitrage that ensures 99.9% uptime.
+
+- Location Consistency System™ (Patent Pending): Our proprietary location angle package system that maintains 95%+ location consistency across scenes.
+
+- Post-Processing Pipeline (Trade Secret): Our proprietary LUT library and color grading algorithms.
+
+These technologies represent years of research and development and are exclusive to Wryda.ai. Unauthorized use, reproduction, reverse engineering, or extraction of these proprietary technologies is strictly prohibited and may result in legal action, including but not limited to claims for patent infringement, copyright infringement, trade secret misappropriation, and unfair competition.
+
+8.2 Copyright Policy
 We respect the intellectual property rights of others and expect users to do the same. We will respond to valid notices of copyright infringement in accordance with the Digital Millennium Copyright Act (DMCA) and other applicable laws.
 
-8.2 DMCA Notices
+8.3 DMCA Notices
 If you believe content on our Platform infringes your copyright, please provide our designated Copyright Agent with the following information:
 - Identification of the copyrighted work claimed to be infringed
 - Identification of the allegedly infringing material and its location
@@ -288,7 +303,7 @@ If you believe content on our Platform infringes your copyright, please provide 
 - A statement under penalty of perjury that the information is accurate and you are authorized to act on behalf of the copyright owner
 - Your physical or electronic signature
 
-8.2.1 DMCA Copyright Agent
+8.3.1 DMCA Copyright Agent
 To submit a DMCA notice, please contact our designated Copyright Agent:
 
 Garden State Concentrate LLC
@@ -300,13 +315,13 @@ Subject Line: "DMCA Notice"
 
 Our DMCA agent is registered with the United States Copyright Office pursuant to 17 U.S.C. § 512(c).
 
-8.3 Counter-Notices
+8.4 Counter-Notices
 If you believe content you posted was wrongly removed, you may submit a counter-notice with specific information as required by law.
 
-8.4 Repeat Infringer Policy
+8.5 Repeat Infringer Policy
 We will terminate the accounts of users who are repeat infringers of intellectual property rights.
 
-8.5 Trademark Policy
+8.6 Trademark Policy
 You may not use our trademarks, logos, or brand elements without our express written permission. Use of third-party trademarks must comply with applicable law and the trademark owner's guidelines.
 
 ═════════════════════════════════════════════════════════

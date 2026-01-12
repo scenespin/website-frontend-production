@@ -93,7 +93,10 @@ export default function Features() {
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-8 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-4xl mb-4">👤</div>
-                <h3 className="text-xl font-bold mb-3">Character Consistency</h3>
+                <h3 className="text-xl font-bold mb-3">
+                  Character Consistency
+                  <span className="ml-2 text-xs font-normal text-[#DC143C]">(Patent Pending)</span>
+                </h3>
                 <p className="text-gray-300 mb-4">
                   Same character, same voice, same outfit across every scene. Virtual try-ons for wardrobe changes.
                 </p>
@@ -327,11 +330,14 @@ export default function Features() {
                 title="Prop Images"
                 description="Multiple angles per prop. Consistent appearance across scenes."
               />
-              <FeatureCard
-                icon="🎥"
-                title="Motion Picture Technology"
-                description="Generate complete scenes from your script. Professional video generation."
-              />
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
+                <div className="text-3xl mb-3">🎥</div>
+                <h3 className="text-lg font-bold mb-2">
+                  Motion Picture Technology
+                  <span className="ml-2 text-xs font-normal text-[#DC143C]">(Patent Pending)</span>
+                </h3>
+                <p className="text-sm text-gray-300">Generate complete scenes from your script. Professional video generation.</p>
+              </div>
               <FeatureCard
                 icon="📖"
                 title="Screenplay Readings"
