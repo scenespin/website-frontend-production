@@ -30,6 +30,7 @@ export interface AutoImportResult {
         endLine: number;
         group_label?: string; // 🔥 NEW: Section from Fountain (# Section)
         synopsis?: string; // 🔥 NEW: Synopsis from Fountain (= Synopsis)
+        cameraDirections?: string[]; // 🔥 NEW: Camera directions extracted from scene (for Scene Builder prompting)
     }>;
     
     // Items that don't match spec - show in review modal
@@ -54,6 +55,14 @@ export function parseContentForImport(content: string): AutoImportResult {
     let previousType: FountainElementType | undefined;
     let currentSection: string | null = null; // Track current section (# Section)
     let pendingSynopsis: string | null = null; // Track synopsis before next scene (= Synopsis)
+    
+    // Helper function to detect camera directions
+    const isCameraDirection = (text: string): boolean => {
+        const trimmed = text.trim().toUpperCase();
+        // Check for camera direction patterns
+        return /^(CLOSE ON|WIDE ON|PUSH IN|PULL OUT|ZOOM IN|ZOOM OUT|PAN TO|TILT UP|TILT DOWN|TRACK|DOLLY|CRANE|STEADICAM|HANDHELD|CAMERA|CU|WS|MS|LS|ECU|EWS|POV|OVER|UNDER|ANGLE ON|SHOT OF|VIEW OF|WE SEE|WE HEAR|INSERT|SUPER|TITLE|CREDITS|MONTAGE|SERIES OF|ESTABLISHING|ESTABLISH|EXTREME|TIGHT|LOOSE|FULL|MEDIUM|WIDE|EXTREME WIDE|EXTREME CLOSE|TWO SHOT|THREE SHOT|GROUP SHOT|REACTION SHOT|INSERT SHOT|ESTABLISHING SHOT)/i.test(trimmed) ||
+               /^(CLOSE|WIDE|PUSH|PULL|ZOOM|PAN|TILT|TRACK|DOLLY|CRANE|STEADICAM|HANDHELD|CAMERA|CU|WS|MS|LS|ECU|EWS|POV|OVER|UNDER|ANGLE|SHOT|VIEW|INSERT|SUPER|TITLE|CREDITS|MONTAGE|ESTABLISHING|ESTABLISH|EXTREME|TIGHT|LOOSE|FULL|MEDIUM|REACTION|INSERT|ESTABLISHING)\s+(ON|OF|TO|OVER|UNDER|INTO|FROM|AT|THE|A|AN)/i.test(trimmed);
+    };
     
     console.log('[AutoImport] Parsing', lines.length, 'lines...');
     
@@ -166,20 +175,66 @@ export function parseContentForImport(content: string): AutoImportResult {
                     startLine: lineIndex,
                     endLine: lineIndex,
                     group_label: currentSection || undefined, // 🔥 NEW: Apply current section to scene
-                    synopsis: pendingSynopsis || undefined // 🔥 NEW: Apply pending synopsis to scene
+                    synopsis: pendingSynopsis || undefined, // 🔥 NEW: Apply pending synopsis to scene
+                    cameraDirections: [] // 🔥 NEW: Initialize camera directions array
                 };
                 
                 // Clear pending synopsis after applying to scene (synopsis applies to next scene)
                 pendingSynopsis = null;
             } else {
-                // Missing time of day - questionable
-                questionableItems.push({
-                    type: 'scene_heading',
-                    text: trimmed,
-                    lineNumber: lineIndex + 1,
-                    reason: 'Scene heading missing time of day (DAY/NIGHT)',
-                    suggestion: trimmed + ' - DAY'
-                });
+                // Missing time of day - flag for user to select (don't auto-correct)
+                // Extract location without time of day
+                const locationMatch = trimmed.match(/^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]+(.+)$/i);
+                if (locationMatch) {
+                    const typePrefix = locationMatch[1].trim().toUpperCase();
+                    const location = locationMatch[2].trim();
+                    
+                    // Normalize type to standard values
+                    let locationType: 'INT' | 'EXT' | 'INT/EXT';
+                    if (typePrefix === 'INT' || typePrefix === 'INT.') {
+                        locationType = 'INT';
+                    } else if (typePrefix === 'EXT' || typePrefix === 'EXT.') {
+                        locationType = 'EXT';
+                    } else if (typePrefix === 'INT/EXT' || typePrefix === 'INT./EXT' || typePrefix === 'I/E') {
+                        locationType = 'INT/EXT';
+                    } else {
+                        locationType = 'INT'; // Default fallback
+                    }
+                    
+                    locations.add(location);
+                    locationTypes.set(location, locationType);
+                    
+                    // Create scene with original heading (user will select time of day)
+                    currentScene = {
+                        heading: trimmed, // Keep original - user will fix
+                        location: location,
+                        locationType: locationType,
+                        characters: [],
+                        startLine: lineIndex,
+                        endLine: lineIndex,
+                        group_label: currentSection || undefined,
+                        synopsis: pendingSynopsis || undefined,
+                        cameraDirections: []
+                    };
+                    
+                    // Add to questionable items so user can select time of day
+                    questionableItems.push({
+                        type: 'scene_heading',
+                        text: trimmed,
+                        lineNumber: lineIndex + 1,
+                        reason: 'Scene heading missing time of day',
+                        suggestion: undefined // Will be set by user via dropdown
+                    });
+                } else {
+                    // If we can't parse it, just flag it
+                    questionableItems.push({
+                        type: 'scene_heading',
+                        text: trimmed,
+                        lineNumber: lineIndex + 1,
+                        reason: 'Scene heading missing time of day (DAY/NIGHT)',
+                        suggestion: trimmed + ' - DAY'
+                    });
+                }
             }
             previousType = elementType;
             continue;
@@ -191,6 +246,20 @@ export function parseContentForImport(content: string): AutoImportResult {
             if (/^(FADE OUT|FADE IN|FADE TO BLACK|CUT TO|DISSOLVE TO|THE END|END|BLACK|MORE|CONT'D|CONTINUED)\.?$/i.test(trimmed)) {
                 previousType = elementType;
                 continue;
+            }
+            
+            // Extract camera directions instead of excluding them
+            // Store them in scene metadata for Scene Builder prompting
+            if (isCameraDirection(trimmed) && currentScene) {
+                // Initialize cameraDirections array if it doesn't exist
+                if (!currentScene.cameraDirections) {
+                    currentScene.cameraDirections = [];
+                }
+                // Store the camera direction (keep original text for context)
+                currentScene.cameraDirections.push(trimmed);
+                console.log('[AutoImport] 📹 Camera direction:', trimmed);
+                previousType = elementType;
+                continue; // Don't treat as character
             }
             
             // Exclude narrative section headings (like "The blog post goes live:")
@@ -227,6 +296,19 @@ export function parseContentForImport(content: string): AutoImportResult {
             // Must be reasonable length (1-4 words)
             const wordCount = trimmed.split(/\s+/).length;
             if (wordCount > 4) {
+                // Before flagging as questionable, check if it's a camera direction
+                if (isCameraDirection(trimmed) && currentScene) {
+                    // Initialize cameraDirections array if it doesn't exist
+                    if (!currentScene.cameraDirections) {
+                        currentScene.cameraDirections = [];
+                    }
+                    // Store the camera direction
+                    currentScene.cameraDirections.push(trimmed);
+                    console.log('[AutoImport] 📹 Camera direction:', trimmed);
+                    previousType = elementType;
+                    continue; // Don't treat as character
+                }
+                
                 questionableItems.push({
                     type: 'character',
                     text: trimmed,

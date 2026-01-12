@@ -37,6 +37,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [isExtractingWord, setIsExtractingWord] = useState(false); // 🔥 NEW: Word extraction state
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null); // 🔥 NEW: Track uploaded file name
     const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload'); // 🔥 NEW: Tab state
+    const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<Record<number, string>>({}); // 🔥 NEW: Track selected time of day for each scene heading issue
     
     // Parse content whenever it changes (debounced)
     // Feature 0177: Normalize content before parsing
@@ -233,23 +234,72 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 throw new Error('clearContentOnly() returned empty array - this should never happen!');
             }
             
-            // Step 2: Normalize and set content in editor
+            // Step 2: Apply time of day corrections and remove camera directions
+            let correctedContent = content;
+            
+            // Apply selected time of day to scene headings
+            if (parseResult.questionableItems && Object.keys(selectedTimeOfDay).length > 0) {
+                const lines = correctedContent.split('\n');
+                parseResult.questionableItems.forEach((item: any, index: number) => {
+                    if (item.type === 'scene_heading' && item.reason.includes('time of day')) {
+                        const timeOfDay = selectedTimeOfDay[index] || 'DAY';
+                        const lineIndex = item.lineNumber - 1; // Convert to 0-based index
+                        if (lineIndex >= 0 && lineIndex < lines.length) {
+                            // Update the line with time of day
+                            lines[lineIndex] = item.text + ' - ' + timeOfDay;
+                        }
+                    }
+                });
+                correctedContent = lines.join('\n');
+            }
+            
+            // Remove camera directions from content (they're stored in scene metadata)
+            // Camera directions are already excluded from being treated as characters,
+            // but we should remove them from the script text to keep it clean
+            if (parseResult.scenes) {
+                const lines = correctedContent.split('\n');
+                const cameraDirectionsToRemove = new Set<string>();
+                
+                // Collect all camera directions from all scenes
+                parseResult.scenes.forEach((scene: any) => {
+                    if (scene.cameraDirections && scene.cameraDirections.length > 0) {
+                        scene.cameraDirections.forEach((cameraDir: string) => {
+                            cameraDirectionsToRemove.add(cameraDir.trim().toUpperCase());
+                        });
+                    }
+                });
+                
+                // Remove camera direction lines (case-insensitive match)
+                if (cameraDirectionsToRemove.size > 0) {
+                    for (let i = 0; i < lines.length; i++) {
+                        const lineTrimmed = lines[i].trim().toUpperCase();
+                        if (cameraDirectionsToRemove.has(lineTrimmed)) {
+                            // Remove the camera direction line (replace with empty line to preserve structure)
+                            lines[i] = '';
+                        }
+                    }
+                }
+                
+                correctedContent = lines.join('\n');
+            }
+            
+            // Step 3: Normalize and set content in editor
             // Feature 0177: Normalize content before setting in editor
-            const isLargeFile = content.length > 1024 * 1024; // >1MB
+            const isLargeFile = correctedContent.length > 1024 * 1024; // >1MB
             let normalizedContent: string;
             
             if (isLargeFile) {
                 // Large file: use chunked processing with progress
                 setNormalizationProgress(0);
                 normalizedContent = await processChunkedImport(
-                    content,
+                    correctedContent,
                     (chunk) => normalizeScreenplayText(chunk),
                     (progress) => setNormalizationProgress(progress)
                 );
                 setNormalizationProgress(null);
             } else {
                 // Small file: normalize in one pass
-                normalizedContent = normalizeScreenplayText(content);
+                normalizedContent = normalizeScreenplayText(correctedContent);
             }
             
             setContent(normalizedContent);
@@ -303,12 +353,22 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     );
                     
                     // Create full Scene object
+                    // 🔥 NEW: Include camera directions in synopsis for Scene Builder access
+                    // Format: Original synopsis + camera directions (if any)
+                    let sceneSynopsis = scene.synopsis || `Imported from script`;
+                    if (scene.cameraDirections && scene.cameraDirections.length > 0) {
+                        const cameraDirText = scene.cameraDirections.join('; ');
+                        sceneSynopsis = sceneSynopsis 
+                            ? `${sceneSynopsis}\n\nCamera Directions: ${cameraDirText}`
+                            : `Camera Directions: ${cameraDirText}`;
+                    }
+                    
                     return {
                         id: `scene-${Date.now()}-${globalIndex}-${Math.random().toString(36).substr(2, 9)}`,
                         // Feature 0117: beatId removed - scenes use global order
                         number: globalIndex + 1,
                         heading: scene.heading,
-                        synopsis: scene.synopsis || `Imported from script`, // 🔥 NEW: Use extracted synopsis from Fountain
+                        synopsis: sceneSynopsis, // 🔥 NEW: Includes camera directions for Scene Builder
                         status: 'draft' as const,
                         order: 0, // Will be set to global order (1, 2, 3...)
                         group_label: scene.group_label, // 🔥 NEW: Use extracted section from Fountain
@@ -317,7 +377,9 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                             endLine: scene.endLine,
                             tags: {
                                 characters: characterIds,
-                                location: location?.id
+                                location: location?.id,
+                                // 🔥 NEW: Store camera directions in tags for easy access
+                                cameraDirections: scene.cameraDirections || []
                             }
                         },
                         createdAt: now,
@@ -681,10 +743,42 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                                             <div className="text-[#FFFFFF] font-mono text-xs mb-1 break-words">
                                                                 "{item.text}"
                                                             </div>
-                                                            <div className="text-[#808080] text-xs">
+                                                            <div className="text-[#808080] text-xs mb-2">
                                                                 {item.reason}
                                                             </div>
-                                                            {item.suggestion && (
+                                                            
+                                                            {/* Time of day dropdown for scene headings */}
+                                                            {item.type === 'scene_heading' && item.reason.includes('time of day') && (
+                                                                <div className="mt-2">
+                                                                    <label className="text-xs text-[#808080] mb-1 block">Select time of day:</label>
+                                                                    <select
+                                                                        value={selectedTimeOfDay[index] || 'DAY'}
+                                                                        onChange={(e) => {
+                                                                            setSelectedTimeOfDay(prev => ({
+                                                                                ...prev,
+                                                                                [index]: e.target.value
+                                                                            }));
+                                                                        }}
+                                                                        className="w-full px-3 py-1.5 bg-[#141414] border border-[#3F3F46] rounded text-[#FFFFFF] text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                                                                    >
+                                                                        <option value="DAY">DAY</option>
+                                                                        <option value="NIGHT">NIGHT</option>
+                                                                        <option value="DAWN">DAWN</option>
+                                                                        <option value="DUSK">DUSK</option>
+                                                                        <option value="MORNING">MORNING</option>
+                                                                        <option value="AFTERNOON">AFTERNOON</option>
+                                                                        <option value="EVENING">EVENING</option>
+                                                                        <option value="LATER">LATER</option>
+                                                                        <option value="CONTINUOUS">CONTINUOUS</option>
+                                                                        <option value="SAME">SAME</option>
+                                                                    </select>
+                                                                    <div className="mt-1 text-xs text-[#808080]">
+                                                                        Will update to: {item.text} - {selectedTimeOfDay[index] || 'DAY'}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {item.suggestion && item.type !== 'scene_heading' && (
                                                                 <div className="mt-1 text-[#DC143C] text-xs">
                                                                     Suggestion: {item.suggestion}
                                                                 </div>
