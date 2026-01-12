@@ -208,7 +208,8 @@ export function enforceFountainSpacing(text: string): string {
     }
     
     // Blank line after dialogue (before action/scene/character)
-    if (prevIsDialogue && !isDialogue && !isParenthetical && !isCharacterName && !isSceneHeading) {
+    // If previous was dialogue and current is not dialogue/parenthetical/character/scene, add blank
+    if (prevIsDialogue && !isParenthetical && !isCharacterName && !isSceneHeading && !isTransition) {
       needsBlankBefore = true;
     }
     
