@@ -314,10 +314,19 @@ export function ShotConfigurationPanel({
     return keys;
   }, [sceneProps, propsToShots, shot.slot, propThumbnailS3KeyMap]);
   
-  // 🔥 FIX: Use passed-in propThumbnailUrlsMap directly - no duplicate fetching
-  // Parent (SceneBuilderPanel) already fetches this via usePropReferences
-  // If not provided, that's a bug to fix upstream, not a fallback to add here
-  const propThumbnailUrlsMap = propThumbnailUrlsMapFromParent || new Map();
+  // Use passed-in propThumbnailUrlsMap if available, otherwise fetch it as fallback
+  // The parent should provide this, but we fetch as fallback if:
+  // 1. Parent map is not provided, OR
+  // 2. Parent map is empty but we have thumbnail keys to fetch
+  const { data: propThumbnailUrlsMapFromHook = new Map() } = useBulkPresignedUrls(
+    propThumbnailS3Keys,
+    propThumbnailS3Keys.length > 0 && (!propThumbnailUrlsMapFromParent || propThumbnailUrlsMapFromParent.size === 0)
+  );
+  
+  // Use parent's map if it has data, otherwise use the one we fetched
+  const propThumbnailUrlsMap = (propThumbnailUrlsMapFromParent && propThumbnailUrlsMapFromParent.size > 0) 
+    ? propThumbnailUrlsMapFromParent 
+    : propThumbnailUrlsMapFromHook;
   
   // 🔥 FIX: Fetch full images for visible prop images when thumbnails aren't available yet
   // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)

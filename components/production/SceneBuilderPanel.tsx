@@ -914,13 +914,32 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // Use contextActions.setSceneProps directly to avoid circular dependency
       // The wrapper setSceneProps depends on contextState.sceneProps, which causes infinite loops
       // 🔥 FIX: Always use enriched props - they're the source of truth from Media Library
+      console.log('[SceneBuilderPanel] 🔥 CALLING setSceneProps with enriched props:', {
+        count: enrichedPropsFromHook.length,
+        props: enrichedPropsFromHook.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          angleReferencesCount: (p.angleReferences || []).length,
+          imagesCount: (p.images || []).length,
+          angleReferences: p.angleReferences,
+          images: p.images,
+          hasBaseReference: !!p.baseReference
+        }))
+      });
       contextActions.setSceneProps(enrichedPropsFromHook);
     });
     
     // Log for debugging (only when actually syncing)
     console.log('[SceneBuilderPanel] ✅ Syncing enriched props with Media Library data:', {
       count: enrichedPropsFromHook.length,
-      signature: enrichedPropsSignature.substring(0, 100)
+      signature: enrichedPropsSignature.substring(0, 100),
+      enrichedProps: enrichedPropsFromHook.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        angleReferencesCount: (p.angleReferences || []).length,
+        imagesCount: (p.images || []).length,
+        hasBaseReference: !!p.baseReference
+      }))
     });
     // 🔥 FIX: Depend on baseProps (when we fetch new props) and enrichedPropsFromHook.length
     // Using length instead of the full array prevents re-runs when only references change

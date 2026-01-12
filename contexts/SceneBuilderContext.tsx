@@ -627,7 +627,30 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     
     // Props Actions
     setSceneProps: useCallback((props) => {
-      setState(prev => ({ ...prev, sceneProps: props }));
+      console.log('[SceneBuilderContext] setSceneProps called with:', {
+        count: props.length,
+        props: props.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          angleReferencesCount: (p.angleReferences || []).length,
+          imagesCount: (p.images || []).length,
+          hasBaseReference: !!p.baseReference
+        }))
+      });
+      setState(prev => {
+        const newState = { ...prev, sceneProps: props };
+        console.log('[SceneBuilderContext] setSceneProps state update:', {
+          prevCount: prev.sceneProps.length,
+          newCount: newState.sceneProps.length,
+          newProps: newState.sceneProps.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            angleReferencesCount: (p.angleReferences || []).length,
+            imagesCount: (p.images || []).length
+          }))
+        });
+        return newState;
+      });
     }, []),
     
     setPropsToShots: useCallback((propsToShots) => {
