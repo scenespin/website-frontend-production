@@ -344,23 +344,24 @@ async function addWatermarkWithPdfLib(
         const opacityValue = Math.max(0, Math.min(1, opacity));
 
         // Get page dimensions (pdf-lib uses bottom-left origin)
+        // Letter size: 8.5" x 11" = 612 x 792 points
         const { width: pageWidth, height: pageHeight } = page.getSize();
         const pageCenterX = pageWidth / 2;
         const pageCenterY = pageHeight / 2;
         
         // Calculate position (centered) - pdf-lib uses bottom-left origin
-        // For centering: x = center - half width, y = center - half height
-        // Since y=0 is at bottom, pageCenterY is the vertical center from bottom
-        const x = pageCenterX - imgWidth / 2;
-        const y = pageCenterY - imgHeight / 2;
+        // Adjustments for visual centering:
+        // - Move up slightly (increase Y by 20 points) to account for visual perception
+        // - Move left slightly (decrease X by 15 points) to account for rotation visual offset
+        const x = pageCenterX - imgWidth / 2 - 15; // Shift left 15 points
+        const y = pageCenterY - imgHeight / 2 + 20; // Shift up 20 points (Y increases upward)
 
         // pdf-lib's drawImage supports opacity and rotate directly!
         // The x,y coordinates specify the bottom-left corner of the image
-        // So to center: x = centerX - width/2, y = centerY - height/2
         // pdf-lib rotates around the center of the image when rotate is specified
         page.drawImage(pdfImage, {
-          x: pageCenterX - imgWidth / 2,
-          y: pageCenterY - imgHeight / 2,
+          x,
+          y,
           width: imgWidth,
           height: imgHeight,
           opacity: opacityValue,
