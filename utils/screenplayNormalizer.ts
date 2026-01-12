@@ -137,6 +137,100 @@ export function normalizeWhitespace(text: string): string {
 }
 
 /**
+ * Enforce proper Fountain format spacing
+ * Adds blank lines between different element types according to Fountain spec
+ */
+export function enforceFountainSpacing(text: string): string {
+  const lines = text.split('\n');
+  const outputLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Preserve existing blank lines
+    if (!trimmed) {
+      outputLines.push('');
+      continue;
+    }
+    
+    // Get previous non-blank line
+    let prevNonBlank = '';
+    let prevNonBlankIndex = -1;
+    for (let j = outputLines.length - 1; j >= 0; j--) {
+      if (outputLines[j].trim()) {
+        prevNonBlank = outputLines[j].trim();
+        prevNonBlankIndex = j;
+        break;
+      }
+    }
+    
+    // Get next non-blank line
+    let nextNonBlank = '';
+    for (let j = i + 1; j < lines.length; j++) {
+      if (lines[j].trim()) {
+        nextNonBlank = lines[j].trim();
+        break;
+      }
+    }
+    
+    // Detect element types
+    const isSceneHeading = /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(trimmed);
+    const isCharacterName = trimmed === trimmed.toUpperCase() 
+      && /^[A-Z][A-Z\s\.']+(\s*\([^\)]*\))?$/.test(trimmed)
+      && trimmed.split(/\s+/).length <= 4
+      && !isSceneHeading
+      && nextNonBlank && nextNonBlank.length > 0; // Has content following (dialogue)
+    const isTransition = trimmed.endsWith('TO:') && trimmed === trimmed.toUpperCase();
+    const isParenthetical = trimmed.startsWith('(') && trimmed.endsWith(')');
+    
+    // Detect previous element type
+    const prevIsSceneHeading = prevNonBlank && /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(prevNonBlank);
+    const prevIsCharacterName = prevNonBlank && prevNonBlank === prevNonBlank.toUpperCase() 
+      && /^[A-Z][A-Z\s\.']+(\s*\([^\)]*\))?$/.test(prevNonBlank)
+      && prevNonBlank.split(/\s+/).length <= 4
+      && !prevIsSceneHeading;
+    const prevIsTransition = prevNonBlank && prevNonBlank.endsWith('TO:') && prevNonBlank === prevNonBlank.toUpperCase();
+    const prevIsParenthetical = prevNonBlank && prevNonBlank.startsWith('(') && prevNonBlank.endsWith(')');
+    const prevIsDialogue = prevNonBlank && !prevIsSceneHeading && !prevIsCharacterName && !prevIsTransition && !prevIsParenthetical;
+    
+    // Check if we need to add a blank line before current line
+    let needsBlankBefore = false;
+    
+    // Blank line before scene headings (except first one, and not if previous was also scene heading)
+    if (isSceneHeading && prevNonBlank && !prevIsSceneHeading) {
+      needsBlankBefore = true;
+    }
+    
+    // Blank line before character names (if previous was not character name, dialogue, or parenthetical)
+    if (isCharacterName && prevNonBlank && !prevIsCharacterName && !prevIsDialogue && !prevIsParenthetical) {
+      needsBlankBefore = true;
+    }
+    
+    // Blank line after dialogue (before action/scene/character)
+    if (prevIsDialogue && !isDialogue && !isParenthetical && !isCharacterName && !isSceneHeading) {
+      needsBlankBefore = true;
+    }
+    
+    // Blank line after transitions (before scene heading)
+    if (prevIsTransition && isSceneHeading) {
+      needsBlankBefore = true;
+    }
+    
+    // Add blank line if needed and not already blank
+    if (needsBlankBefore && outputLines.length > 0 && outputLines[outputLines.length - 1].trim()) {
+      outputLines.push('');
+    }
+    
+    // Add the current line
+    outputLines.push(line);
+  }
+  
+  // Normalize multiple blank lines to max 2
+  return outputLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
  * Main normalization function
  * Applies all normalization steps in correct order
  */
@@ -155,6 +249,9 @@ export function normalizeScreenplayText(content: string): string {
   
   // Step 2: Normalize whitespace (preserves line breaks)
   normalized = normalizeWhitespace(normalized);
+  
+  // Step 3: Enforce proper Fountain spacing (add blank lines between elements)
+  normalized = enforceFountainSpacing(normalized);
   
   console.log('[ScreenplayNormalizer] Normalization complete', {
     originalLength: content.length,
