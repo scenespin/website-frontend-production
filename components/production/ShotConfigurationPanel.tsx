@@ -263,7 +263,7 @@ export function ShotConfigurationPanel({
   shotWorkflowOverride,
   onShotWorkflowOverrideChange,
   propThumbnailS3KeyMap,
-  propThumbnailUrlsMap: propThumbnailUrlsMapFromParent,
+  propThumbnailUrlsMap: propThumbnailUrlsMapFromParent, // Not used - we fetch directly
   activeTab = 'basic',
   isDialogueShot = false
 }: ShotConfigurationPanelProps) {
@@ -314,19 +314,8 @@ export function ShotConfigurationPanel({
     return keys;
   }, [sceneProps, propsToShots, shot.slot, propThumbnailS3KeyMap]);
   
-  // Use passed-in propThumbnailUrlsMap if available, otherwise fetch it as fallback
-  // The parent should provide this, but we fetch as fallback if:
-  // 1. Parent map is not provided, OR
-  // 2. Parent map is empty but we have thumbnail keys to fetch
-  const { data: propThumbnailUrlsMapFromHook = new Map() } = useBulkPresignedUrls(
-    propThumbnailS3Keys,
-    propThumbnailS3Keys.length > 0 && (!propThumbnailUrlsMapFromParent || propThumbnailUrlsMapFromParent.size === 0)
-  );
-  
-  // Use parent's map if it has data, otherwise use the one we fetched
-  const propThumbnailUrlsMap = (propThumbnailUrlsMapFromParent && propThumbnailUrlsMapFromParent.size > 0) 
-    ? propThumbnailUrlsMapFromParent 
-    : propThumbnailUrlsMapFromHook;
+  // 🔥 NEW: Fetch thumbnail URLs for all prop images
+  const { data: propThumbnailUrlsMap } = useBulkPresignedUrls(propThumbnailS3Keys, propThumbnailS3Keys.length > 0);
   
   // 🔥 FIX: Fetch full images for visible prop images when thumbnails aren't available yet
   // This prevents empty/flickering images while maintaining performance (thumbnails are still prioritized)
@@ -364,11 +353,11 @@ export function ShotConfigurationPanel({
     return keys;
   }, [sceneProps, propsToShots, shot.slot]);
   
-  // 🔥 FIX: Fetch full images for visible props only when thumbnails aren't available
-  // Since thumbnails are always provided from parent, this is mainly for fallback cases
+  // Fetch full images for visible props only if thumbnails aren't loaded yet (prevents empty/flickering images)
+  // This maintains performance (thumbnails are still prioritized) while ensuring images display
   const { data: visiblePropFullImageUrlsMap = new Map() } = useBulkPresignedUrls(
     visiblePropImageS3Keys,
-    visiblePropImageS3Keys.length > 0 && (!propThumbnailUrlsMap || propThumbnailUrlsMap.size === 0) // Only fetch if no thumbnails at all
+    visiblePropImageS3Keys.length > 0 && (!propThumbnailUrlsMap || propThumbnailUrlsMap.size === 0 || propThumbnailUrlsMap.size < visiblePropImageS3Keys.length * 0.3) // Fetch if no thumbnails or less than 30% loaded
   );
   
   // 🔥 PERFORMANCE FIX: Also fetch full images for selected prop images (for generation)
