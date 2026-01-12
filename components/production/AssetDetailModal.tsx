@@ -837,34 +837,36 @@ export default function AssetDetailModal({
                     {/* References - Third */}
                     <DropdownMenuItem
                       onClick={() => {
+                        setCoverageTab(null);
                         setActiveTab('references');
                       }}
                       className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        activeTab === 'references'
+                        !coverageTab && activeTab === 'references'
                           ? 'bg-[#DC143C]/20 text-white'
                           : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
                       }`}
                     >
                       <Box className="w-4 h-4" />
                       <span>References ({allImages.length})</span>
-                      {activeTab === 'references' && (
+                      {!coverageTab && activeTab === 'references' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>
                     {/* Info - Fourth */}
                     <DropdownMenuItem
                       onClick={() => {
+                        setCoverageTab(null);
                         setActiveTab('info');
                       }}
                       className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        activeTab === 'info'
+                        !coverageTab && activeTab === 'info'
                           ? 'bg-[#DC143C]/20 text-white'
                           : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
                       }`}
                     >
                       <FileText className="w-4 h-4" />
                       <span>Info</span>
-                      {activeTab === 'info' && (
+                      {!coverageTab && activeTab === 'info' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>
@@ -874,9 +876,12 @@ export default function AssetDetailModal({
                 // Desktop: Horizontal button tabs
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setActiveTab('info')}
+                    onClick={() => {
+                      setCoverageTab(null);
+                      setActiveTab('info');
+                    }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === 'info'
+                      !coverageTab && activeTab === 'info'
                         ? 'bg-[#DC143C] text-white'
                         : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
                     }`}
@@ -885,9 +890,12 @@ export default function AssetDetailModal({
                     Info
                   </button>
                   <button
-                    onClick={() => setActiveTab('references')}
+                    onClick={() => {
+                      setCoverageTab(null);
+                      setActiveTab('references');
+                    }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === 'references'
+                      !coverageTab && activeTab === 'references'
                         ? 'bg-[#DC143C] text-white'
                         : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
                     }`}
