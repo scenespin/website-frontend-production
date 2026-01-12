@@ -8,15 +8,11 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configure worker for pdfjs-dist
-// Use reliable CDN worker in browser environment
+// Use jsdelivr CDN with correct version (better CORS support than unpkg)
 if (typeof window !== 'undefined') {
-  // Use unpkg CDN which is more reliable than cdnjs
-  // Fallback to jsdelivr if unpkg fails
-  const version = pdfjsLib.version || '4.0.379'; // Fallback version if not available
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`;
-  
-  // Alternative: Use jsdelivr as backup (commented out, but can be used if unpkg fails)
-  // pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+  // jsdelivr has proper CORS headers for cross-origin requests
+  // Using exact version from package.json (5.4.530)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.530/build/pdf.worker.min.mjs';
 }
 
 export interface PDFExtractionResult {
