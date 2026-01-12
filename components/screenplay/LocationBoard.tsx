@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, MapPin, Film, MoreVertical, Copy } from 'lucide-react';
+import { Plus, MapPin, Film, MoreVertical, Copy, ArrowUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { useEditor } from '@/contexts/EditorContext';
@@ -11,6 +11,12 @@ import LocationDetailSidebar from './LocationDetailSidebar';
 import { DeleteLocationDialog } from '../structure/DeleteConfirmDialog';
 import { getLocationDependencies, generateLocationReport } from '@/utils/dependencyChecker';
 import { toast } from 'sonner';
+import { 
+  getLocationSortPreference, 
+  setLocationSortPreference, 
+  sortLocations,
+  type LocationSortOption 
+} from '@/utils/locationSorting';
 
 interface LocationColumn {
     id: string;
@@ -52,6 +58,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedColumnType, setSelectedColumnType] = useState<LocationType | null>(null); // 🔥 NEW: Track which column type was selected
+    const [sortBy, setSortBy] = useState<LocationSortOption>(() => getLocationSortPreference());
     const [formData, setFormData] = useState({
         name: '',
         type: 'INT' as 'INT' | 'EXT' | 'INT/EXT',
@@ -76,6 +83,11 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         });
         return map;
     }, [locations, scriptContent, isEntityInScript]);
+    
+    // Save sort preference when it changes
+    useEffect(() => {
+        setLocationSortPreference(sortBy);
+    }, [sortBy]);
     
     // 🔥 FIX: Sync selectedLocation with latest location from context (for immediate UI updates)
     // This ensures changes from Production Hub Location Bank sync to Writing Section
@@ -109,32 +121,37 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         const exteriors = locations.filter(l => l.type === 'EXT');
         const both = locations.filter(l => l.type === 'INT/EXT');
 
+        // Sort each column independently
+        const sortedInteriors = sortLocations(interiors, sortBy, relationships, scenes);
+        const sortedExteriors = sortLocations(exteriors, sortBy, relationships, scenes);
+        const sortedBoth = sortLocations(both, sortBy, relationships, scenes);
+
         const newColumns: LocationColumn[] = [
             {
                 id: 'col-int',
                 title: 'Interior',
                 locationType: 'INT',
-                locations: interiors,
+                locations: sortedInteriors,
                 color: '#8B5CF6' // Purple
             },
             {
                 id: 'col-ext',
                 title: 'Exterior',
                 locationType: 'EXT',
-                locations: exteriors,
+                locations: sortedExteriors,
                 color: '#10B981' // Green
             },
             {
                 id: 'col-both',
                 title: 'INT/EXT',
                 locationType: 'INT/EXT',
-                locations: both,
+                locations: sortedBoth,
                 color: '#F59E0B' // Orange
             }
         ];
 
         setColumns(newColumns);
-    }, [locations, isLoading, hasInitializedFromDynamoDB]);
+    }, [locations, isLoading, hasInitializedFromDynamoDB, sortBy, relationships, scenes]);
 
     const handleDelete = async (locationId: string, locationName: string) => {
         const location = locations.find(l => l.id === locationId);
@@ -201,7 +218,8 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                     {/* Header - Optional */}
                     {showHeader && (
                         <div className="mb-6">
-                            <div className="flex items-center justify-between">
+                            {/* Mobile: Stacked layout */}
+                            <div className="flex flex-col sm:hidden gap-4">
                                 <div>
                                     <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
                                         Location Board
@@ -210,27 +228,97 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                         View and manage all locations from your screenplay
                                     </p>
                                 </div>
-                    {canEditScript ? (
-                        <button
-                            onClick={() => {
-                                setSelectedColumnType(null); // No specific column selected
-                                setIsCreating(true);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
-                            style={{
-                                backgroundColor: '#DC143C',
-                                color: 'white'
-                            }}
-                        >
-                            <Plus size={18} />
-                            <span className="hidden sm:inline">Add Location</span>
-                                <span className="sm:hidden">Add</span>
-                            </button>
-                        ) : (
-                            <span className="text-sm text-base-content/50">
-                                Read-only access
-                            </span>
-                        )}
+                                <div className="flex items-center justify-between">
+                                    {canEditScript ? (
+                                        <button
+                                            onClick={() => {
+                                                setSelectedColumnType(null);
+                                                setIsCreating(true);
+                                            }}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
+                                            style={{
+                                                backgroundColor: '#DC143C',
+                                                color: 'white'
+                                            }}
+                                        >
+                                            <Plus size={18} />
+                                            <span>Add Location</span>
+                                        </button>
+                                    ) : (
+                                        <span className="text-sm text-base-content/50">
+                                            Read-only access
+                                        </span>
+                                    )}
+                                    {/* Sort Selector - Below on mobile */}
+                                    <div className="flex items-center gap-2">
+                                        <ArrowUpDown size={16} style={{ color: '#9CA3AF' }} />
+                                        <select
+                                            value={sortBy}
+                                            onChange={(e) => {
+                                                const newSort = e.target.value as LocationSortOption;
+                                                setSortBy(newSort);
+                                                setLocationSortPreference(newSort);
+                                            }}
+                                            className="bg-[#0A0A0A] border border-[#27272A] rounded px-2 py-1 text-sm"
+                                            style={{ color: '#E5E7EB' }}
+                                        >
+                                            <option value="alphabetical">Alphabetical</option>
+                                            <option value="appearance">Order of Appearance</option>
+                                            <option value="sceneCount">Scene Count</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Desktop: Original layout with dropdown and button together */}
+                            <div className="hidden sm:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div>
+                                    <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
+                                        Location Board
+                                    </h2>
+                                    <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
+                                        View and manage all locations from your screenplay
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {/* Sort Selector */}
+                                    <div className="flex items-center gap-2">
+                                        <ArrowUpDown size={16} style={{ color: '#9CA3AF' }} />
+                                        <select
+                                            value={sortBy}
+                                            onChange={(e) => {
+                                                const newSort = e.target.value as LocationSortOption;
+                                                setSortBy(newSort);
+                                                setLocationSortPreference(newSort);
+                                            }}
+                                            className="bg-[#0A0A0A] border border-[#27272A] rounded px-2 py-1 text-sm"
+                                            style={{ color: '#E5E7EB' }}
+                                        >
+                                            <option value="alphabetical">Alphabetical</option>
+                                            <option value="appearance">Order of Appearance</option>
+                                            <option value="sceneCount">Scene Count</option>
+                                        </select>
+                                    </div>
+                                    {canEditScript ? (
+                                        <button
+                                            onClick={() => {
+                                                setSelectedColumnType(null);
+                                                setIsCreating(true);
+                                            }}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
+                                            style={{
+                                                backgroundColor: '#DC143C',
+                                                color: 'white'
+                                            }}
+                                        >
+                                            <Plus size={18} />
+                                            <span>Add Location</span>
+                                        </button>
+                                    ) : (
+                                        <span className="text-sm text-base-content/50">
+                                            Read-only access
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
