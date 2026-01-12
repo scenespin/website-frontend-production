@@ -109,19 +109,21 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-xs text-gray-500">
               © {currentYear} Garden State Concentrate LLC (DBA Wryda.ai). All rights reserved.
-              <br />
-              <span className="text-gray-400">
-                <strong className="text-gray-300">Patent Pending:</strong> Character Consistency System™, Scene Builder™ Orchestration, 
-                and related proprietary technologies. Protected by copyright and pending patents.
-              </span>
             </p>
-            <div className="flex items-center gap-4">
-              {/* Social links can be added here later */}
-              <p className="text-xs text-gray-500">
-                The First Integrated Screenwriting Environment
-              </p>
-            </div>
+            <p className="text-xs text-gray-500">
+              The First Integrated Screenwriting Environment
+            </p>
           </div>
+        </div>
+
+        {/* Patent Pending Notice */}
+        <div className="mt-6 pt-4 border-t border-[#3F3F46]/50">
+          <p className="text-xs text-gray-500 text-center">
+            <span className="text-[#DC143C] font-medium">Patent Pending:</span>{' '}
+            <span className="text-gray-400">
+              Character Consistency System™, Scene Builder™ Orchestration, and related proprietary technologies.
+            </span>
+          </p>
         </div>
       </div>
     </footer>
