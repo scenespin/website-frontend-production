@@ -56,12 +56,23 @@ export function parseContentForImport(content: string): AutoImportResult {
     let currentSection: string | null = null; // Track current section (# Section)
     let pendingSynopsis: string | null = null; // Track synopsis before next scene (= Synopsis)
     
-    // Helper function to detect camera directions
+    // Helper function to detect camera directions and transitions
     const isCameraDirection = (text: string): boolean => {
         const trimmed = text.trim().toUpperCase();
         // Check for camera direction patterns
         return /^(CLOSE ON|WIDE ON|PUSH IN|PULL OUT|ZOOM IN|ZOOM OUT|PAN TO|TILT UP|TILT DOWN|TRACK|DOLLY|CRANE|STEADICAM|HANDHELD|CAMERA|CU|WS|MS|LS|ECU|EWS|POV|OVER|UNDER|ANGLE ON|SHOT OF|VIEW OF|WE SEE|WE HEAR|INSERT|SUPER|TITLE|CREDITS|MONTAGE|SERIES OF|ESTABLISHING|ESTABLISH|EXTREME|TIGHT|LOOSE|FULL|MEDIUM|WIDE|EXTREME WIDE|EXTREME CLOSE|TWO SHOT|THREE SHOT|GROUP SHOT|REACTION SHOT|INSERT SHOT|ESTABLISHING SHOT)/i.test(trimmed) ||
-               /^(CLOSE|WIDE|PUSH|PULL|ZOOM|PAN|TILT|TRACK|DOLLY|CRANE|STEADICAM|HANDHELD|CAMERA|CU|WS|MS|LS|ECU|EWS|POV|OVER|UNDER|ANGLE|SHOT|VIEW|INSERT|SUPER|TITLE|CREDITS|MONTAGE|ESTABLISHING|ESTABLISH|EXTREME|TIGHT|LOOSE|FULL|MEDIUM|REACTION|INSERT|ESTABLISHING)\s+(ON|OF|TO|OVER|UNDER|INTO|FROM|AT|THE|A|AN)/i.test(trimmed);
+               /^(CLOSE|WIDE|PUSH|PULL|ZOOM|PAN|TILT|TRACK|DOLLY|CRANE|STEADICAM|HANDHELD|CAMERA|CU|WS|MS|LS|ECU|EWS|POV|OVER|UNDER|ANGLE|SHOT|VIEW|INSERT|SUPER|TITLE|CREDITS|MONTAGE|ESTABLISHING|ESTABLISH|EXTREME|TIGHT|LOOSE|FULL|MEDIUM|REACTION|INSERT|ESTABLISHING)\s+(ON|OF|TO|OVER|UNDER|INTO|FROM|AT|THE|A|AN)/i.test(trimmed) ||
+               // Additional patterns: "ON X", "BACK TO X", "SHOTS OF X"
+               /^ON\s+/i.test(trimmed) ||
+               /^BACK\s+TO\s+/i.test(trimmed) ||
+               /^SHOTS?\s+OF\s+/i.test(trimmed);
+    };
+    
+    // Helper function to detect transitions
+    const isTransition = (text: string): boolean => {
+        const trimmed = text.trim().toUpperCase();
+        return trimmed.endsWith('TO:') || 
+               /^(BACK TO|CUT TO|DISSOLVE TO|FADE TO|SMASH TO|MATCH CUT TO|WIPE TO)/i.test(trimmed);
     };
     
     console.log('[AutoImport] Parsing', lines.length, 'lines...');
@@ -296,7 +307,7 @@ export function parseContentForImport(content: string): AutoImportResult {
             // Must be reasonable length (1-4 words)
             const wordCount = trimmed.split(/\s+/).length;
             if (wordCount > 4) {
-                // Before flagging as questionable, check if it's a camera direction
+                // Before flagging as questionable, check if it's a camera direction or transition
                 if (isCameraDirection(trimmed) && currentScene) {
                     // Initialize cameraDirections array if it doesn't exist
                     if (!currentScene.cameraDirections) {
@@ -309,13 +320,15 @@ export function parseContentForImport(content: string): AutoImportResult {
                     continue; // Don't treat as character
                 }
                 
-                questionableItems.push({
-                    type: 'character',
-                    text: trimmed,
-                    lineNumber: lineIndex + 1,
-                    reason: 'Too long to be a character name (5+ words)',
-                    suggestion: undefined
-                });
+                // Check if it's a transition
+                if (isTransition(trimmed)) {
+                    previousType = elementType;
+                    continue; // Don't treat as character
+                }
+                
+                // If it's 5+ words and all caps, it's likely an action line in all caps, not a character
+                // Don't flag it as questionable - just skip it silently
+                // Action lines can be in all caps for emphasis (e.g., "FUCKIN ROD TIDWELL YOU RULE YOU")
                 previousType = elementType;
                 continue;
             }
