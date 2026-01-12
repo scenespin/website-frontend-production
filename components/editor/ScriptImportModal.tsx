@@ -256,6 +256,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // Remove camera directions from content (they're stored in scene metadata)
             // Camera directions are already excluded from being treated as characters,
             // but we should remove them from the script text to keep it clean
+            // IMPORTANT: Replace with blank line to preserve Fountain spacing structure
             if (parseResult.scenes) {
                 const lines = correctedContent.split('\n');
                 const cameraDirectionsToRemove = new Set<string>();
@@ -270,11 +271,12 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 });
                 
                 // Remove camera direction lines (case-insensitive match)
+                // Replace with blank line to preserve spacing structure
                 if (cameraDirectionsToRemove.size > 0) {
                     for (let i = 0; i < lines.length; i++) {
                         const lineTrimmed = lines[i].trim().toUpperCase();
                         if (cameraDirectionsToRemove.has(lineTrimmed)) {
-                            // Remove the camera direction line (replace with empty line to preserve structure)
+                            // Replace with blank line to preserve Fountain spacing structure
                             lines[i] = '';
                         }
                     }

@@ -167,24 +167,30 @@ function cleanPDFTextForFountain(text: string): string {
     
     // Remove page numbers (standalone numbers, optionally with period)
     // Pattern: "2." or "2" on its own line
+    // Replace with blank line to preserve spacing structure
     if (/^\d+\.?\s*$/.test(trimmed)) {
-      continue; // Skip page number lines
+      cleanedLines.push(''); // Preserve blank line for spacing
+      continue;
     }
     
     // Remove CONTINUED markers (we add our own during export)
+    // Replace with blank line to preserve spacing structure
     if (
       /^\(?CONTINUED\)?:?\s*$/i.test(trimmed) ||
       /^CONT'D\.?\s*$/i.test(trimmed)
     ) {
-      continue; // Skip CONTINUED markers
+      cleanedLines.push(''); // Preserve blank line for spacing
+      continue;
     }
     
     // Remove common PDF headers/footers (but keep if they're part of actual content)
     // Only remove if they're on their own line
+    // Replace with blank line to preserve spacing structure
     if (
       /^(THE FUGITIVE|FADE IN|FADE OUT)\s*$/i.test(trimmed) &&
       !foundFirstScene // Only remove before screenplay starts
     ) {
+      cleanedLines.push(''); // Preserve blank line for spacing
       continue;
     }
     

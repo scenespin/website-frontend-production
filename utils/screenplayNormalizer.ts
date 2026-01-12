@@ -86,8 +86,15 @@ export function normalizeWhitespace(text: string): string {
     const line = lines[i];
     const nextLine = lines[i + 1];
     
+    // Preserve blank lines (critical for Fountain format spacing)
+    const trimmed = line.trim();
+    if (trimmed.length === 0) {
+      normalizedLines.push(''); // Preserve blank line
+      continue;
+    }
+    
     // Strip leading/trailing spaces and collapse multiple spaces
-    const trimmed = line.trim().replace(/\s{2,}/g, ' ');
+    const normalizedTrimmed = trimmed.replace(/\s{2,}/g, ' ');
     
     // Handle wrapped lines
     // A line is likely wrapped if:
@@ -97,12 +104,13 @@ export function normalizeWhitespace(text: string): string {
     // 4. Current line is NOT a character name (all caps, short) followed by parenthetical
     // 5. Next line is NOT a parenthetical (starts with "(" and ends with ")")
     const nextLineTrimmed = nextLine ? nextLine.trim() : '';
-    const isCharacterName = /^[A-Z][A-Z\s\.']+$/.test(trimmed) && trimmed.split(/\s+/).length <= 4;
+    const isCharacterName = /^[A-Z][A-Z\s\.']+$/.test(normalizedTrimmed) && normalizedTrimmed.split(/\s+/).length <= 4;
     const isParenthetical = nextLineTrimmed.startsWith('(') && nextLineTrimmed.endsWith(')');
     
-    const isWrapped = trimmed.length > 0 
+    const isWrapped = normalizedTrimmed.length > 0 
       && nextLine 
-      && !/[.!?:;]$/.test(trimmed) // Doesn't end with sentence punctuation
+      && nextLineTrimmed.length > 0 // Next line has content
+      && !/[.!?:;]$/.test(normalizedTrimmed) // Doesn't end with sentence punctuation
       && !/^[A-Z]/.test(nextLineTrimmed) // Next line doesn't start with uppercase (not scene heading/character)
       && !/^(INT\.|EXT\.|INT\/EXT)/i.test(nextLineTrimmed) // Next line is not a scene heading
       && !(isCharacterName && isParenthetical); // Don't join character names with parentheticals
@@ -110,16 +118,16 @@ export function normalizeWhitespace(text: string): string {
     if (isWrapped) {
       // Join with current line (will be added when we process next line)
       // For now, add current line with a space at the end to indicate continuation
-      normalizedLines.push(trimmed + ' ');
+      normalizedLines.push(normalizedTrimmed + ' ');
     } else {
       // Check if previous line ended with space (was wrapped)
       if (normalizedLines.length > 0 && normalizedLines[normalizedLines.length - 1].endsWith(' ')) {
         // Join with previous line
         const previous = normalizedLines.pop()!;
-        normalizedLines.push((previous + trimmed).trim());
+        normalizedLines.push((previous + normalizedTrimmed).trim());
       } else {
         // Normal line - add as-is
-        normalizedLines.push(trimmed);
+        normalizedLines.push(normalizedTrimmed);
       }
     }
   }
