@@ -23,7 +23,8 @@ function isPublicRoute(pathname: string): boolean {
       pathname.startsWith('/api/waitlist') ||
       pathname.startsWith('/api/affiliates') ||
       pathname.startsWith('/api/analytics') ||
-      pathname.startsWith('/api/auth')) {
+      pathname.startsWith('/api/auth') ||
+      pathname.startsWith('/app/affiliates/apply')) {
     return true
   }
   

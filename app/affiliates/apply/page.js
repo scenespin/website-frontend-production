@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,8 @@ import { CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function AffiliateApplyPage() {
   const router = useRouter();
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
+  const { user } = useUser();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -36,6 +37,15 @@ export default function AffiliateApplyPage() {
     setError('');
 
     try {
+      // Check if user is signed in
+      if (!isSignedIn || !user) {
+        // Redirect to sign-in with return URL
+        const currentUrl = window.location.href;
+        const signInUrl = `/sign-in?redirect_url=${encodeURIComponent(currentUrl)}`;
+        router.push(signInUrl);
+        return;
+      }
+
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         setError('Authentication required. Please log in.');
