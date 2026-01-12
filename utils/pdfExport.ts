@@ -260,6 +260,7 @@ function addWatermark(
     doc.setFontSize(fontSize);
     doc.text(text, centerX, centerY, {
       align: 'center',
+      baseline: 'middle', // Center watermark vertically
       angle,
     });
     doc.restoreGraphicsState();
@@ -481,7 +482,7 @@ export async function exportScreenplayToPDF(
     const pageNumX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
     const pageNumY = inchesToPoints(SCREENPLAY_FORMAT.pageNumberTop);
     doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
-    doc.text(`${pageNumber}.`, pageNumX, pageNumY, { align: 'right' });
+    doc.text(`${pageNumber}.`, pageNumX, pageNumY, { align: 'right', baseline: 'top' });
     
     // Add text watermark if specified (image watermarks handled by pdf-lib post-processing)
     if (watermark && watermark.text && !watermark.image) {
@@ -515,15 +516,18 @@ export async function exportScreenplayToPDF(
     // Title (centered, middle of page)
     doc.text(title.toUpperCase(), centerX, centerY, {
       align: 'center',
+      baseline: 'top',
     });
     
     // Author (if provided)
     if (author) {
       doc.text(`by`, centerX, centerY + 48, {
         align: 'center',
+        baseline: 'top',
       });
       doc.text(author, centerX, centerY + 72, {
         align: 'center',
+        baseline: 'top',
       });
     }
     
@@ -532,7 +536,7 @@ export async function exportScreenplayToPDF(
       const contactY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight - 1.5);
       const contactLines = contact.split('\n');
       contactLines.forEach((line, idx) => {
-        doc.text(line, leftMargin, contactY + (idx * SCREENPLAY_FORMAT.lineHeight));
+        doc.text(line, leftMargin, contactY + (idx * SCREENPLAY_FORMAT.lineHeight), { baseline: 'top' });
       });
     }
     
@@ -578,7 +582,8 @@ export async function exportScreenplayToPDF(
         doc.text(
           element.text,
           leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.sceneHeading),
-          currentY
+          currentY,
+          { baseline: 'top' }
         );
         doc.setFont(SCREENPLAY_FORMAT.fontFamily, 'normal');
         
@@ -592,7 +597,7 @@ export async function exportScreenplayToPDF(
         checkPageBreak(actionLines.length);
         
         actionLines.forEach((line: string) => {
-          doc.text(line, actionX, currentY);
+          doc.text(line, actionX, currentY, { baseline: 'top' });
           currentY += lineHeightPt;
         });
         break;
@@ -609,7 +614,7 @@ export async function exportScreenplayToPDF(
         currentY += lineHeightPt; // Space before character
         
         const charX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.character);
-        doc.text(element.text, charX, currentY);
+        doc.text(element.text, charX, currentY, { baseline: 'top' });
         currentY += lineHeightPt;
         break;
         
@@ -618,7 +623,7 @@ export async function exportScreenplayToPDF(
         const parenLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.parenthetical);
         
         parenLines.forEach((line: string) => {
-          doc.text(line, parenX, currentY);
+          doc.text(line, parenX, currentY, { baseline: 'top' });
           currentY += lineHeightPt;
         });
         break;
@@ -629,7 +634,7 @@ export async function exportScreenplayToPDF(
         
         dialogueWrapped.forEach((line: string) => {
           checkPageBreak();
-          doc.text(line, dialogueX, currentY);
+          doc.text(line, dialogueX, currentY, { baseline: 'top' });
           currentY += lineHeightPt;
         });
         break;
@@ -640,7 +645,7 @@ export async function exportScreenplayToPDF(
         currentY += lineHeightPt; // Space before transition
         
         const transX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.transition);
-        doc.text(element.text, transX, currentY);
+        doc.text(element.text, transX, currentY, { baseline: 'top' });
         currentY += lineHeightPt * 2; // Extra space after transition
         break;
     }
