@@ -108,22 +108,102 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
 /**
  * Clean extracted PDF text to better match Fountain format
  * Handles common PDF extraction issues:
+ * - Title page metadata
+ * - Page numbers and headers/footers
+ * - CONTINUED markers (we add our own)
  * - Multiple spaces
  * - Line breaks in dialogue
- * - Page numbers and headers/footers
  * - Extra whitespace
  */
 function cleanPDFTextForFountain(text: string): string {
   let cleaned = text;
   
-  // Remove page numbers (standalone numbers at start/end of lines)
-  cleaned = cleaned.replace(/^\d+\s*$/gm, '');
+  // Split into lines for processing
+  const lines = cleaned.split('\n');
+  const cleanedLines: string[] = [];
+  let foundFirstScene = false; // Track if we've found the actual screenplay content
   
-  // Remove common PDF headers/footers
-  cleaned = cleaned.replace(/^(THE FUGITIVE|FADE IN|FADE OUT|CONTINUED|CONT'D)\s*$/gmi, '');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Skip empty lines (we'll normalize later)
+    if (!trimmed) {
+      cleanedLines.push('');
+      continue;
+    }
+    
+    // Detect first scene heading to mark start of actual screenplay
+    if (!foundFirstScene && /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(trimmed)) {
+      foundFirstScene = true;
+    }
+    
+    // Before first scene: Remove title page metadata
+    if (!foundFirstScene) {
+      // Skip common title page patterns
+      if (
+        /^by\s*$/i.test(trimmed) ||
+        /^written\s+by/i.test(trimmed) ||
+        /^early\s+draft/i.test(trimmed) ||
+        /^draft\s+date/i.test(trimmed) ||
+        /^for\s+educational\s+purposes\s+only/i.test(trimmed) ||
+        /^copyright/i.test(trimmed) ||
+        /^\d{4}/.test(trimmed) && trimmed.length < 50 // Likely a date line
+      ) {
+        continue; // Skip this line
+      }
+      
+      // Skip author names (all caps, 2-4 words, not a scene heading)
+      if (
+        trimmed === trimmed.toUpperCase() &&
+        !/^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(trimmed) &&
+        trimmed.split(/\s+/).length >= 2 &&
+        trimmed.split(/\s+/).length <= 4 &&
+        trimmed.length < 50
+      ) {
+        continue; // Likely author name
+      }
+    }
+    
+    // Remove page numbers (standalone numbers, optionally with period)
+    // Pattern: "2." or "2" on its own line
+    if (/^\d+\.?\s*$/.test(trimmed)) {
+      continue; // Skip page number lines
+    }
+    
+    // Remove CONTINUED markers (we add our own during export)
+    if (
+      /^\(?CONTINUED\)?:?\s*$/i.test(trimmed) ||
+      /^CONT'D\.?\s*$/i.test(trimmed)
+    ) {
+      continue; // Skip CONTINUED markers
+    }
+    
+    // Remove common PDF headers/footers (but keep if they're part of actual content)
+    // Only remove if they're on their own line
+    if (
+      /^(THE FUGITIVE|FADE IN|FADE OUT)\s*$/i.test(trimmed) &&
+      !foundFirstScene // Only remove before screenplay starts
+    ) {
+      continue;
+    }
+    
+    // Keep the line
+    cleanedLines.push(line);
+  }
   
-  // Normalize multiple spaces to single space
-  cleaned = cleaned.replace(/[ \t]+/g, ' ');
+  // Join lines back
+  cleaned = cleanedLines.join('\n');
+  
+  // Normalize multiple spaces to single space (but preserve line structure)
+  cleaned = cleaned.split('\n').map(line => {
+    // Preserve leading spaces (might be intentional indentation)
+    const leadingSpaces = line.match(/^(\s*)/)?.[1] || '';
+    const content = line.trimStart();
+    // Collapse multiple spaces in content to single space
+    const normalizedContent = content.replace(/[ \t]+/g, ' ');
+    return leadingSpaces + normalizedContent;
+  }).join('\n');
   
   // Normalize multiple blank lines to max 2 blank lines
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
