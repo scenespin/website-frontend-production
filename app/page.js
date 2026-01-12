@@ -1,11 +1,41 @@
+'use client';
+
 import Link from "next/link";
 import Image from "next/image";
 import config from "@/config";
 import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
 import { ShowcaseGallery } from "@/components/showcase/ShowcaseGallery";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import ButtonSignin from "@/components/ButtonSignin";
 
 export default function Page() {
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (isLoaded && user) {
+      router.push('/dashboard');
+    }
+  }, [isLoaded, user, router]);
+
+  // Show loading while checking auth
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render homepage if user is logged in (will redirect)
+  if (user) {
+    return null;
+  }
+
   return (
     <>
       {/* Header */}
@@ -41,13 +71,13 @@ export default function Page() {
               <Link href="/help" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Help
               </Link>
-              <Link href="/sign-in" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Login
-              </Link>
+              <div className="flex items-center">
+                <ButtonSignin text="Login" extraStyle="!bg-transparent !border-none !text-gray-300 hover:!text-white !px-0 !min-h-0 !h-auto !text-sm !shadow-none !normal-case" />
+              </div>
             </nav>
-            <Link href="/sign-in" className="md:hidden text-sm text-gray-300 hover:text-white transition-colors">
-              Login
-            </Link>
+            <div className="md:hidden">
+              <ButtonSignin text="Login" extraStyle="!bg-transparent !border-none !text-gray-300 hover:!text-white !px-0 !min-h-0 !h-auto !text-sm !shadow-none !normal-case" />
+            </div>
           </div>
         </div>
       </header>
