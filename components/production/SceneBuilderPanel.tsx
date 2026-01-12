@@ -173,63 +173,75 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     prevContextStateRef.current = contextState;
   }
   
+  // 🔥 PERFORMANCE: Only log diagnostics when there are actual issues (throttled)
+  const lastDiagnosticLogRef = useRef(0);
   useEffect(() => {
     const renderTime = performance.now() - renderStartTime;
     if (renderCountRef.current > 1) {
-      if (timeSinceLastRender < 50) {
-        console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ RAPID RE-RENDER #${renderCountRef.current} | Time since last: ${timeSinceLastRender}ms | Render time: ${renderTime.toFixed(2)}ms | Context changed: ${contextStateChanged}`);
-      }
-      if (renderTime > 100) {
-        console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ SLOW RENDER #${renderCountRef.current} | Render time: ${renderTime.toFixed(2)}ms`);
+      // Only log if there's a real performance issue (rapid re-renders or slow renders)
+      // Throttle: only log every 10th rapid re-render or if render is slow
+      const shouldLogRapid = timeSinceLastRender < 50 && (renderCountRef.current - lastDiagnosticLogRef.current) >= 10;
+      const shouldLogSlow = renderTime > 100;
+      
+      if (shouldLogRapid || shouldLogSlow) {
+        if (shouldLogRapid) {
+          console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ RAPID RE-RENDER #${renderCountRef.current} | Time since last: ${timeSinceLastRender}ms | Render time: ${renderTime.toFixed(2)}ms | Context changed: ${contextStateChanged}`);
+          lastDiagnosticLogRef.current = renderCountRef.current;
+        }
+        if (shouldLogSlow) {
+          console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ SLOW RENDER #${renderCountRef.current} | Render time: ${renderTime.toFixed(2)}ms`);
+        }
       }
     }
-  });
+  }); // Run after every render, but throttled internally
   
-  // 🔥 DIAGNOSTIC: Monitor UI thread blocking
-  useEffect(() => {
-    let frameCount = 0;
-    let lastFrameTime = performance.now();
-    const checkFPS = () => {
-      frameCount++;
-      const now = performance.now();
-      const elapsed = now - lastFrameTime;
-      if (elapsed >= 1000) {
-        const fps = (frameCount * 1000) / elapsed;
-        if (fps < 30) {
-          console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ LOW FPS: ${fps.toFixed(1)} fps (UI thread may be blocked)`);
-        }
-        frameCount = 0;
-        lastFrameTime = now;
-      }
-      requestAnimationFrame(checkFPS);
-    };
-    const rafId = requestAnimationFrame(checkFPS);
-    return () => cancelAnimationFrame(rafId);
-  }, []);
+  // 🔥 PERFORMANCE: Disable FPS monitoring in production to reduce overhead
+  // Only enable if needed for debugging
+  // useEffect(() => {
+  //   let frameCount = 0;
+  //   let lastFrameTime = performance.now();
+  //   const checkFPS = () => {
+  //     frameCount++;
+  //     const now = performance.now();
+  //     const elapsed = now - lastFrameTime;
+  //     if (elapsed >= 1000) {
+  //       const fps = (frameCount * 1000) / elapsed;
+  //       if (fps < 30) {
+  //         console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ LOW FPS: ${fps.toFixed(1)} fps (UI thread may be blocked)`);
+  //       }
+  //       frameCount = 0;
+  //       lastFrameTime = now;
+  //     }
+  //     requestAnimationFrame(checkFPS);
+  //   };
+  //   const rafId = requestAnimationFrame(checkFPS);
+  //   return () => cancelAnimationFrame(rafId);
+  // }, []);
   
-  // 🔥 DIAGNOSTIC: Track navigation link clicks to detect blocking
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest('a[href]');
-      if (link && link.getAttribute('href')?.startsWith('/')) {
-        const clickTime = performance.now();
-        console.log(`[SceneBuilderPanel-DIAGNOSTIC] 🔗 Navigation click detected: ${link.getAttribute('href')} at ${clickTime.toFixed(2)}ms`);
-        
-        // Check if navigation actually happens
-        setTimeout(() => {
-          if (window.location.pathname === new URL(link.getAttribute('href')!, window.location.origin).pathname) {
-            console.log(`[SceneBuilderPanel-DIAGNOSTIC] ✅ Navigation succeeded`);
-          } else {
-            console.error(`[SceneBuilderPanel-DIAGNOSTIC] ❌ Navigation BLOCKED - clicked ${link.getAttribute('href')} but still on ${window.location.pathname}`);
-          }
-        }, 500);
-      }
-    };
-    
-    document.addEventListener('click', handleClick, true);
-    return () => document.removeEventListener('click', handleClick, true);
-  }, []);
+  // 🔥 PERFORMANCE: Disable navigation click tracking in production to reduce overhead
+  // Only enable if needed for debugging
+  // useEffect(() => {
+  //   const handleClick = (e: MouseEvent) => {
+  //     const target = e.target as HTMLElement;
+  //     const link = target.closest('a[href]');
+  //     if (link && link.getAttribute('href')?.startsWith('/')) {
+  //       const clickTime = performance.now();
+  //       console.log(`[SceneBuilderPanel-DIAGNOSTIC] 🔗 Navigation click detected: ${link.getAttribute('href')} at ${clickTime.toFixed(2)}ms`);
+  //       
+  //       // Check if navigation actually happens
+  //       setTimeout(() => {
+  //         if (window.location.pathname === new URL(link.getAttribute('href')!, window.location.origin).pathname) {
+  //           console.log(`[SceneBuilderPanel-DIAGNOSTIC] ✅ Navigation succeeded`);
+  //         } else {
+  //           console.error(`[SceneBuilderPanel-DIAGNOSTIC] ❌ Navigation BLOCKED - clicked ${link.getAttribute('href')} but still on ${window.location.pathname}`);
+  //         }
+  //       }, 500);
+  //     }
+  //   };
+  //   
+  //   document.addEventListener('click', handleClick, true);
+  //   return () => document.removeEventListener('click', handleClick, true);
+  // }, []);
   
   // Create wrapper functions that match existing setState signatures (for backward compatibility)
   const setSelectedCharacterReferences = useCallback((updater: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>> | ((prev: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>) => Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>)) => {
@@ -1091,14 +1103,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     return allLocations.find(loc => loc.locationId === locationId) || null;
   }, [locationId, allLocations]);
   
-  // 🔥 DEBUG: Log locationId before calling hook
-  console.log('[SceneBuilderPanel] useLocationReferences hook call:', {
-    projectId,
-    locationId,
-    enabled: !!locationId,
-    locationName: sceneAnalysisResult?.location?.name
-  });
-  
   // 🔥 NEW: Use custom hook for location references
   const {
     angleVariations: locationAngleVariations,
@@ -1111,14 +1115,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     projectId,
     locationId: locationId || null,
     enabled: !!locationId
-  });
-  
-  // 🔥 DEBUG: Log hook results
-  console.log('[SceneBuilderPanel] useLocationReferences hook results:', {
-    locationId,
-    angleVariationsCount: locationAngleVariations.length,
-    backgroundsCount: locationBackgrounds.length,
-    loading: loadingLocation
   });
   
   // 🔥 NEW: Map location hook data to expected format, enriched with DynamoDB metadata
