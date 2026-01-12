@@ -892,8 +892,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       return;
     }
     
-    // 🔥 FIX: Create stable comparison using only IDs and image counts (not full objects)
-    // This prevents re-syncing when only object references change
+    // 🔥 FIX: Create signature from enriched props to detect when arrays get populated
+    // Compute signature inside effect (no need for useMemo - signature check prevents unnecessary work)
     const enrichedPropsSignature = enrichedPropsFromHook
       .map((p: any) => `${p.id}:${(p.angleReferences || []).length}:${(p.images || []).length}:${p.baseReference ? '1' : '0'}`)
       .sort()
@@ -943,12 +943,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         hasBaseReference: !!p.baseReference
       }))
     });
-    // 🔥 FIX: Depend on baseProps (when we fetch new props) and enrichedPropsFromHook.length
-    // Using length instead of the full array prevents re-runs when only references change
-    // The signature check inside ensures we only sync when data actually changes
+    // 🔥 FIX: Depend on enrichedPropsFromHook directly - it's already memoized in usePropReferences hook
+    // When Media Library loads and arrays get populated, enrichedPropsFromHook gets a new reference
+    // The signature check inside ensures we only sync when data actually changes (prevents infinite loops)
     // 🔥 CRITICAL: Don't include contextActions in deps - it's recreated every render even though functions are stable
     // The setSceneProps function is stable (useCallback with empty deps), so we don't need it in deps
-  }, [baseProps, enrichedPropsFromHook.length]);
+  }, [baseProps, enrichedPropsFromHook]);
   
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
