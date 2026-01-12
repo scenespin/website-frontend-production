@@ -1332,26 +1332,7 @@ export function CharacterDetailModal({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm bg-[#1F1F1F]/95 backdrop-blur-md border-[#3F3F46] shadow-xl">
-                    {/* References - First */}
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setActiveTab('references');
-                        setCoverageTab(null);
-                      }}
-                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        activeTab === 'references' && !coverageTab
-                          ? 'bg-[#DC143C]/20 text-white'
-                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
-                      }`}
-                    >
-                      <Box className="w-4 h-4" />
-                      <span>References ({allImages.length})</span>
-                      {activeTab === 'references' && !coverageTab && (
-                        <span className="ml-auto text-[#DC143C]">●</span>
-                      )}
-                    </DropdownMenuItem>
-                    {/* Coverage buttons - Generate first, then Upload */}
-                    <div className="border-t border-[#3F3F46] my-1"></div>
+                    {/* Generate - First (Primary CTA) */}
                     {onGeneratePosePackage && (
                       <DropdownMenuItem
                         onClick={() => {
@@ -1371,6 +1352,7 @@ export function CharacterDetailModal({
                         )}
                       </DropdownMenuItem>
                     )}
+                    {/* Upload - Second */}
                     <DropdownMenuItem
                       onClick={() => {
                         setCoverageTab('upload');
@@ -1389,7 +1371,44 @@ export function CharacterDetailModal({
                       )}
                     </DropdownMenuItem>
                     <div className="border-t border-[#3F3F46] my-1"></div>
-                    {/* Voice */}
+                    {/* References - Third */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('references');
+                        setCoverageTab(null);
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'references' && !coverageTab
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <Box className="w-4 h-4" />
+                      <span>References ({allImages.length})</span>
+                      {activeTab === 'references' && !coverageTab && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    {/* Info - Fourth */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('info');
+                        setCoverageTab(null);
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'info' && !coverageTab
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Info</span>
+                      {activeTab === 'info' && !coverageTab && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    {/* Voice - Fifth (Characters only) */}
+                    <div className="border-t border-[#3F3F46] my-1"></div>
                     <DropdownMenuItem
                       onClick={() => {
                         setActiveTab('voice');
@@ -1410,25 +1429,6 @@ export function CharacterDetailModal({
                         <span className="ml-2 text-xs text-green-400">●</span>
                       )}
                       {activeTab === 'voice' && !coverageTab && (
-                        <span className="ml-auto text-[#DC143C]">●</span>
-                      )}
-                    </DropdownMenuItem>
-                    <div className="border-t border-[#3F3F46] my-1"></div>
-                    {/* Info - Last */}
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setActiveTab('info');
-                        setCoverageTab(null);
-                      }}
-                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        activeTab === 'info' && !coverageTab
-                          ? 'bg-[#DC143C]/20 text-white'
-                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
-                      }`}
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span>Info</span>
-                      {activeTab === 'info' && !coverageTab && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>

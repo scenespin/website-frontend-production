@@ -976,43 +976,7 @@ export function LocationDetailModal({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm bg-[#1F1F1F]/95 backdrop-blur-md border-[#3F3F46] shadow-xl">
-                    {/* References - First */}
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setActiveTab('references');
-                      }}
-                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        activeTab === 'references'
-                          ? 'bg-[#DC143C]/20 text-white'
-                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
-                      }`}
-                    >
-                      <Box className="w-4 h-4" />
-                      <span>References ({allImages.length})</span>
-                      {activeTab === 'references' && (
-                        <span className="ml-auto text-[#DC143C]">●</span>
-                      )}
-                    </DropdownMenuItem>
-                    <div className="border-t border-[#3F3F46] my-1"></div>
-                    {/* Upload Images */}
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setCoverageTab('upload');
-                        setActiveTab('references');
-                      }}
-                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        coverageTab === 'upload'
-                          ? 'bg-[#DC143C]/20 text-white'
-                          : 'text-white hover:bg-[#2A2A2A]'
-                      }`}
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Upload Images</span>
-                      {coverageTab === 'upload' && (
-                        <span className="ml-auto text-[#DC143C]">●</span>
-                      )}
-                    </DropdownMenuItem>
-                    {/* Generate Packages */}
+                    {/* Generate - First (Primary CTA) */}
                     <DropdownMenuItem
                       onClick={() => {
                         setCoverageTab('generate');
@@ -1031,8 +995,43 @@ export function LocationDetailModal({
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
                     </DropdownMenuItem>
+                    {/* Upload - Second */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setCoverageTab('upload');
+                        setActiveTab('references');
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        coverageTab === 'upload'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-white hover:bg-[#2A2A2A]'
+                      }`}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Images</span>
+                      {coverageTab === 'upload' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
                     <div className="border-t border-[#3F3F46] my-1"></div>
-                    {/* Info - Last */}
+                    {/* References - Third */}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setActiveTab('references');
+                      }}
+                      className={`min-h-[44px] flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        activeTab === 'references'
+                          ? 'bg-[#DC143C]/20 text-white'
+                          : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                      }`}
+                    >
+                      <Box className="w-4 h-4" />
+                      <span>References ({allImages.length})</span>
+                      {activeTab === 'references' && (
+                        <span className="ml-auto text-[#DC143C]">●</span>
+                      )}
+                    </DropdownMenuItem>
+                    {/* Info - Fourth */}
                     <DropdownMenuItem
                       onClick={() => {
                         setActiveTab('info');
