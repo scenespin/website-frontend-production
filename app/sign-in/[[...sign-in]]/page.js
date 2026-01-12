@@ -1,8 +1,15 @@
+'use client'
+
 import { SignIn } from '@clerk/nextjs'
 import Link from 'next/link'
 import config from '@/config'
+import { useSearchParams } from 'next/navigation'
 
 export default function SignInPage() {
+  const searchParams = useSearchParams()
+  // Get redirect_url from query params
+  const redirectUrl = searchParams?.get('redirect_url') || searchParams?.get('redirectUrl') || '/'
+  
   return (
     <div className="min-h-screen bg-black">
       {/* Header */}
@@ -30,6 +37,9 @@ export default function SignInPage() {
 
           <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8 mx-auto">
             <SignIn 
+              routing="path"
+              path="/sign-in"
+              fallbackRedirectUrl={redirectUrl}
               appearance={{
                 baseTheme: undefined,
                 variables: {

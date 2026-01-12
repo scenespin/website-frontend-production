@@ -35,7 +35,15 @@ export default clerkMiddleware(async (auth, req) => {
   // Protect all routes except public ones
   const pathname = req.nextUrl.pathname
   if (!isPublicRoute(pathname)) {
-    await auth.protect()
+    // Check if user is authenticated
+    const { userId } = await auth()
+    
+    if (!userId) {
+      // Redirect to local sign-in page instead of Clerk hosted page
+      const signInUrl = new URL('/sign-in', req.url)
+      signInUrl.searchParams.set('redirect_url', req.url)
+      return Response.redirect(signInUrl)
+    }
   }
 })
 
