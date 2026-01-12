@@ -634,7 +634,11 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
           name: p.name,
           angleReferencesCount: (p.angleReferences || []).length,
           imagesCount: (p.images || []).length,
-          hasBaseReference: !!p.baseReference
+          angleReferences: p.angleReferences || [],
+          images: p.images || [],
+          baseReference: p.baseReference,
+          hasBaseReference: !!p.baseReference,
+          fullProp: p // Include full prop for inspection
         }))
       });
       setState(prev => {
@@ -646,7 +650,10 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
             id: p.id,
             name: p.name,
             angleReferencesCount: (p.angleReferences || []).length,
-            imagesCount: (p.images || []).length
+            imagesCount: (p.images || []).length,
+            angleReferences: p.angleReferences || [],
+            images: p.images || [],
+            baseReference: p.baseReference
           }))
         });
         return newState;

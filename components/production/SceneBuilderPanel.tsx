@@ -921,9 +921,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           name: p.name,
           angleReferencesCount: (p.angleReferences || []).length,
           imagesCount: (p.images || []).length,
-          angleReferences: p.angleReferences,
-          images: p.images,
-          hasBaseReference: !!p.baseReference
+          angleReferences: p.angleReferences || [],
+          images: p.images || [],
+          baseReference: p.baseReference,
+          hasBaseReference: !!p.baseReference,
+          fullProp: p // Include full prop for inspection
         }))
       });
       contextActions.setSceneProps(enrichedPropsFromHook);
