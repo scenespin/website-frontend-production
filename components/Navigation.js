@@ -300,6 +300,7 @@ export default function Navigation() {
       // Mobile-only sub-items (for accordion)
       subItems: [
         { name: 'Scene Builder', href: '/direct?tab=scene-builder', icon: Clapperboard, description: 'Script-based scene generation' },
+        { name: 'Soundscape', href: '/direct?tab=soundscape', icon: Music, description: 'AI-generated sound effects and music for videos' },
         { name: 'Storyboard', href: '/direct?tab=storyboard', icon: Film, description: 'Stitched scene videos & storyboard' },
         { name: 'Style Profiles', href: '/direct?tab=style-profiles', icon: Palette, description: 'Analyze video styles for consistent generation' },
       ]

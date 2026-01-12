@@ -9,10 +9,10 @@
  */
 
 import React from 'react';
-import { Clapperboard, Film, Palette } from 'lucide-react';
+import { Clapperboard, Film, Palette, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type DirectTab = 'scene-builder' | 'storyboard' | 'style-profiles';
+export type DirectTab = 'scene-builder' | 'storyboard' | 'style-profiles' | 'soundscape';
 
 interface DirectTabBarProps {
   activeTab: DirectTab;
@@ -31,6 +31,12 @@ const DIRECT_TABS = [
     label: 'Scene Builder',
     icon: Clapperboard,
     description: 'Script-based scene generation',
+  },
+  {
+    id: 'soundscape' as DirectTab,
+    label: 'Soundscape',
+    icon: Music,
+    description: 'AI-generated sound effects and music for videos',
   },
   {
     id: 'storyboard' as DirectTab,

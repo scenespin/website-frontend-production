@@ -15,6 +15,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
 import { ScenesPanel } from '@/components/production/ScenesPanel';
 import { StyleProfilesPanel } from '@/components/production/StyleProfilesPanel';
+import { VideoSoundscapePanel } from '@/components/production/VideoSoundscapePanel';
 import { ProductionErrorBoundary } from '@/components/production/ProductionErrorBoundary';
 import { DirectTabBar, DirectTab } from './DirectTabBar';
 
@@ -33,7 +34,7 @@ export function DirectHub() {
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as DirectTab | null;
     
-    if (tabFromUrl && ['style-profiles', 'scene-builder', 'storyboard'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['style-profiles', 'scene-builder', 'storyboard', 'soundscape'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     } else {
       setActiveTab('scene-builder');
@@ -97,6 +98,15 @@ export function DirectHub() {
         {activeTab === 'style-profiles' && (
           <div className="h-full overflow-y-auto">
             <StyleProfilesPanel
+              projectId={screenplayId}
+              className="h-full"
+            />
+          </div>
+        )}
+
+        {activeTab === 'soundscape' && (
+          <div className="h-full overflow-y-auto">
+            <VideoSoundscapePanel
               projectId={screenplayId}
               className="h-full"
             />
