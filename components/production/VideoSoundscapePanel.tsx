@@ -90,13 +90,14 @@ interface GeneratedAudio {
   };
 }
 
-type Step = 'upload' | 'estimate' | 'analyze' | 'generate' | 'merge' | 'complete';
+type Step = 'upload' | 'choose-method' | 'estimate' | 'analyze' | 'manual-prompt' | 'generate' | 'merge' | 'complete';
 
 export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePanelProps) {
   const { getToken } = useAuth();
   const [step, setStep] = useState<Step>('upload');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null); // S3 URL for merging
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [creditBreakdown, setCreditBreakdown] = useState<CreditBreakdown | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -108,6 +109,8 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
   const [generateSFX, setGenerateSFX] = useState(true);
   const [generateMusic, setGenerateMusic] = useState(true);
   const [musicStyle, setMusicStyle] = useState('cinematic');
+  const [musicPrompt, setMusicPrompt] = useState('');
+  const [sfxPrompt, setSfxPrompt] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Get video duration when file is selected
@@ -227,6 +230,7 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
 
       // Upload video to S3
       const uploadedVideoUrl = await uploadVideoToS3(videoFile);
+      setUploadedVideoUrl(uploadedVideoUrl); // Store for merge step
 
       setLoadingMessage('Analyzing video frames...');
 
@@ -259,7 +263,75 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
     }
   };
 
-  // Generate audio
+  // Generate audio directly without analysis (manual prompt path)
+  const generateAudioDirect = async () => {
+    if (!videoFile || !videoDuration) return;
+
+    setIsLoading(true);
+    setLoadingMessage('Uploading video...');
+
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      // Upload video to S3
+      const uploadedVideoUrl = await uploadVideoToS3(videoFile);
+      setUploadedVideoUrl(uploadedVideoUrl); // Store for merge step
+
+      setLoadingMessage('Generating audio...');
+
+      // Generate audio directly without analysis
+      const response = await fetch(`${BACKEND_API_URL}/api/video-soundscape/generate-direct`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          videoUrl: uploadedVideoUrl,
+          videoDuration,
+          generateSFX,
+          generateMusic,
+          musicStyle,
+          musicPrompt: musicPrompt.trim() || undefined,
+          sfxPrompt: sfxPrompt.trim() || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Generation failed');
+      }
+
+      const result = await response.json();
+      setGeneratedAudio(result);
+      
+      // Create minimal analysis for merge step compatibility
+      if (result.analysisId) {
+        setAnalysis({
+          analysisId: result.analysisId,
+          videoUrl: uploadedVideoUrl,
+          videoDuration,
+          detectedCues: [],
+          moodProfile: {
+            primaryMood: musicStyle,
+            intensity: 5,
+            tempo: 'moderate'
+          }
+        });
+      }
+      
+      setStep('merge');
+      toast.success('Audio generated successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate audio');
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage('');
+    }
+  };
+
+  // Generate audio (with analysis path)
   const generateAudio = async () => {
     if (!analysis) return;
 
@@ -418,6 +490,11 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
     setAnalysis(null);
     setGeneratedAudio(null);
     setMergedVideoUrl(null);
+    setMusicPrompt('');
+    setSfxPrompt('');
+    setGenerateSFX(true);
+    setGenerateMusic(true);
+    setMusicStyle('cinematic');
   };
 
   return (
@@ -491,7 +568,103 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         </Card>
       )}
 
-      {/* Step 2: Estimate & Confirm */}
+      {/* Step 2: Choose Method */}
+      {step === 'choose-method' && creditBreakdown && (
+        <Card className="bg-[#1A1A1A] border-white/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              Choose Generation Method
+            </CardTitle>
+            <CardDescription>
+              Let AI analyze your video or enter prompts manually
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* AI Analysis Option */}
+              <Card 
+                className="bg-white/5 border-2 border-white/10 cursor-pointer hover:border-cinema-red/50 transition-colors"
+                onClick={() => setStep('estimate')}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-cinema-red/20 rounded-lg">
+                      <Sparkles className="w-6 h-6 text-cinema-red" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold mb-2">AI Analysis</h3>
+                      <p className="text-gray-400 text-sm mb-3">
+                        Let AI detect sounds and mood from your video frames
+                      </p>
+                      <div className="space-y-1 text-xs text-gray-500">
+                        <p>✓ Detects visible actions</p>
+                        <p>✓ Analyzes mood & tempo</p>
+                        <p>✓ Suggests matching audio</p>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-white/10">
+                        <p className="text-gray-400 text-sm">
+                          Cost: <span className="text-white font-medium">{creditBreakdown.analysis} cr</span> for analysis
+                        </p>
+                        <p className="text-gray-500 text-xs mt-1">
+                          + {creditBreakdown.sfxAndMusic} cr for generation
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Manual Prompts Option */}
+              <Card 
+                className="bg-white/5 border-2 border-white/10 cursor-pointer hover:border-cinema-red/50 transition-colors"
+                onClick={() => setStep('manual-prompt')}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-blue-500/20 rounded-lg">
+                      <Zap className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold mb-2">Manual Prompts</h3>
+                      <p className="text-gray-400 text-sm mb-3">
+                        Enter your own music and sound effect descriptions
+                      </p>
+                      <div className="space-y-1 text-xs text-gray-500">
+                        <p>✓ Full creative control</p>
+                        <p>✓ Skip analysis step</p>
+                        <p>✓ Faster & cheaper</p>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-white/10">
+                        <p className="text-gray-400 text-sm">
+                          Cost: <span className="text-white font-medium">0 cr</span> for analysis
+                        </p>
+                        <p className="text-gray-500 text-xs mt-1">
+                          Only {creditBreakdown.sfxAndMusic} cr for generation
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="w-5 h-5 text-yellow-500 mt-0.5" />
+                <div>
+                  <p className="text-yellow-500 font-medium text-sm">Save {creditBreakdown.analysis} credits</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Choose "Manual Prompts" to skip analysis and save {creditBreakdown.analysis} credits. Perfect if you already know what audio you want.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2b: Estimate & Confirm (AI Analysis Path) */}
       {step === 'estimate' && creditBreakdown && (
         <Card className="bg-[#1A1A1A] border-white/10">
           <CardHeader>
@@ -623,6 +796,155 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
           <CardContent className="p-8 text-center">
             <Loader2 className="w-12 h-12 text-cinema-red animate-spin mx-auto mb-4" />
             <p className="text-white font-medium">{loadingMessage}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2c: Manual Prompt Entry */}
+      {step === 'manual-prompt' && creditBreakdown && (
+        <Card className="bg-[#1A1A1A] border-white/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Enter Audio Prompts
+            </CardTitle>
+            <CardDescription>
+              Describe the music and sound effects you want (no analysis needed)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="w-5 h-5 text-blue-500 mt-0.5" />
+                <div>
+                  <p className="text-blue-500 font-medium text-sm">Saving {creditBreakdown.analysis} credits</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    You're skipping analysis and going straight to generation. Only pay for audio generation ({creditBreakdown.sfxAndMusic} cr).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={generateSFX}
+                    onChange={(e) => setGenerateSFX(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-white">Generate Sound Effects</span>
+                </label>
+                {generateSFX && creditBreakdown && (
+                  <Badge>{creditBreakdown.sfx} cr</Badge>
+                )}
+              </div>
+
+              {generateSFX && (
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">
+                    <span className="flex items-center gap-2">
+                      Sound Effects Description
+                      <span className="text-gray-500 text-xs" title="Describe sound effects you want (e.g., 'distant siren', 'footsteps on gravel', 'door slam at 3 seconds')">
+                        <Info className="w-3 h-3" />
+                      </span>
+                    </span>
+                  </label>
+                  <textarea
+                    value={sfxPrompt}
+                    onChange={(e) => setSfxPrompt(e.target.value)}
+                    placeholder="e.g., 'distant police siren', 'ambient city traffic', 'footsteps on gravel', 'door slam at 3 seconds'..."
+                    className="w-full p-3 bg-white/5 border border-white/10 rounded text-white placeholder-gray-500 resize-none"
+                    rows={3}
+                  />
+                  <p className="text-gray-500 text-xs mt-1">
+                    Separate multiple sounds with commas. Include timestamps like "at 5 seconds" if needed.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={generateMusic}
+                    onChange={(e) => setGenerateMusic(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-white">Generate Background Music</span>
+                </label>
+                {generateMusic && creditBreakdown && (
+                  <Badge>{creditBreakdown.music} cr</Badge>
+                )}
+              </div>
+
+              {generateMusic && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Music Style</label>
+                    <select
+                      value={musicStyle}
+                      onChange={(e) => setMusicStyle(e.target.value)}
+                      className="w-full p-2 bg-white/5 border border-white/10 rounded text-white"
+                    >
+                      <option value="cinematic">Cinematic</option>
+                      <option value="upbeat">Upbeat</option>
+                      <option value="dramatic">Dramatic</option>
+                      <option value="ambient">Ambient</option>
+                      <option value="energetic">Energetic</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">
+                      <span className="flex items-center gap-2">
+                        Music Description
+                        <span className="text-gray-500 text-xs" title="Describe the music you want (e.g., 'epic orchestral theme', 'suspenseful strings', 'upbeat electronic')">
+                          <Info className="w-3 h-3" />
+                        </span>
+                      </span>
+                    </label>
+                    <textarea
+                      value={musicPrompt}
+                      onChange={(e) => setMusicPrompt(e.target.value)}
+                      placeholder="e.g., 'epic orchestral theme', 'distant police siren in background', 'suspenseful strings', 'upbeat electronic'..."
+                      className="w-full p-3 bg-white/5 border border-white/10 rounded text-white placeholder-gray-500 resize-none"
+                      rows={3}
+                    />
+                    <p className="text-gray-500 text-xs mt-1">
+                      Describe the mood, genre, or specific sounds you want in the background music.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setStep('choose-method')} 
+                className="flex-1"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={generateAudioDirect}
+                className="flex-1 bg-cinema-red hover:bg-cinema-red/90"
+                disabled={(!generateSFX && !generateMusic) || (generateSFX && !sfxPrompt.trim()) || (generateMusic && !musicPrompt.trim())}
+              >
+                Generate Audio
+                {creditBreakdown && (
+                  <span className="ml-2">
+                    ({generateSFX && generateMusic
+                      ? creditBreakdown.sfxAndMusic
+                      : generateSFX
+                      ? creditBreakdown.sfx
+                      : creditBreakdown.music}{' '}
+                    cr)
+                  </span>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
