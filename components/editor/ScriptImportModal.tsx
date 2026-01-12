@@ -10,8 +10,9 @@ import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { normalizeScreenplayText } from '@/utils/screenplayNormalizer';
 import { processChunkedImport } from '@/utils/screenplayStreamParser';
 import { toast } from 'sonner';
-import { FileText, Upload, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { FileText, Upload, AlertTriangle, CheckCircle, X, File } from 'lucide-react';
 import type { Character, Location, Scene, StoryBeat } from '@/types/screenplay';
+import { extractTextFromPDF, isPDFFile } from '@/utils/pdfTextExtractor';
 
 interface ScriptImportModalProps {
     isOpen: boolean;
@@ -30,6 +31,8 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [parseResult, setParseResult] = useState<any>(null);
     const [showWarning, setShowWarning] = useState(false); // 🔥 NEW: Warning dialog state
     const [normalizationProgress, setNormalizationProgress] = useState<number | null>(null); // Feature 0177: Progress for large files
+    const [isExtractingPDF, setIsExtractingPDF] = useState(false); // 🔥 NEW: PDF extraction state
+    const [uploadedFileName, setUploadedFileName] = useState<string | null>(null); // 🔥 NEW: Track uploaded file name
     
     // Parse content whenever it changes (debounced)
     // Feature 0177: Normalize content before parsing
@@ -70,6 +73,60 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         
         return () => clearTimeout(timer);
     }, [content]);
+    
+    // 🔥 NEW: Handle PDF file upload
+    const handlePDFUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+        
+        const file = files[0];
+        
+        if (!isPDFFile(file)) {
+            toast.error('Please select a PDF file');
+            return;
+        }
+        
+        // Check file size (50MB limit)
+        if (file.size > 50 * 1024 * 1024) {
+            toast.error('PDF file is too large. Maximum size is 50MB.');
+            return;
+        }
+        
+        setIsExtractingPDF(true);
+        setUploadedFileName(file.name);
+        
+        try {
+            toast.info('Extracting text from PDF...', { duration: 2000 });
+            
+            const result = await extractTextFromPDF(file);
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to extract text from PDF');
+            }
+            
+            if (!result.text.trim()) {
+                throw new Error('PDF appears to be empty or contains no extractable text');
+            }
+            
+            // Set extracted text as content (will trigger parsing via useEffect)
+            setContentLocal(result.text);
+            
+            toast.success(`✅ PDF extracted successfully (${result.pageCount} pages)`, {
+                description: 'Review the preview below and click Import when ready'
+            });
+            
+        } catch (error) {
+            console.error('[ScriptImportModal] PDF extraction error:', error);
+            toast.error('Failed to extract text from PDF', {
+                description: error instanceof Error ? error.message : 'Please try another PDF file'
+            });
+            setUploadedFileName(null);
+        } finally {
+            setIsExtractingPDF(false);
+            // Reset file input so same file can be selected again
+            event.target.value = '';
+        }
+    }, []);
     
     const handleImport = useCallback(async () => {
         if (!content.trim()) {
@@ -367,20 +424,59 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         {/* Instructions */}
                         <div className="alert alert-info">
                             <Upload className="w-5 h-5" />
-                            <span>Paste your screenplay in Fountain format below. We'll automatically detect characters, locations, and scenes.</span>
+                            <span>Paste your screenplay in Fountain format below, or upload a PDF file. We'll automatically detect characters, locations, and scenes.</span>
                         </div>
+                        
+                        {/* 🔥 NEW: PDF Upload Section */}
+                        <div>
+                            <label className="label">
+                                <span className="label-text font-medium">Upload PDF Screenplay</span>
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    onChange={handlePDFUpload}
+                                    disabled={isImporting || isExtractingPDF}
+                                    className="file-input file-input-bordered file-input-primary w-full max-w-xs"
+                                />
+                                {isExtractingPDF && (
+                                    <div className="flex items-center gap-2 text-sm text-base-content/70">
+                                        <span className="loading loading-spinner loading-sm"></span>
+                                        <span>Extracting text from PDF...</span>
+                                    </div>
+                                )}
+                                {uploadedFileName && !isExtractingPDF && (
+                                    <div className="flex items-center gap-2 text-sm text-success">
+                                        <CheckCircle className="w-4 h-4" />
+                                        <span>{uploadedFileName}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="label">
+                                <span className="label-text-alt text-base-content/60">
+                                    PDF files will be automatically converted to Fountain format
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {/* Divider */}
+                        <div className="divider">OR</div>
                         
                         {/* Textarea */}
                         <div>
                             <label className="label">
-                                <span className="label-text font-medium">Screenplay Content</span>
+                                <span className="label-text font-medium">Paste Screenplay Content</span>
                             </label>
                             <textarea
                                 className="textarea textarea-bordered w-full h-64 font-mono text-sm"
-                                placeholder="Paste your screenplay here..."
+                                placeholder="Paste your screenplay here in Fountain format..."
                                 value={content}
-                                onChange={(e) => setContentLocal(e.target.value)}
-                                disabled={isImporting}
+                                onChange={(e) => {
+                                    setContentLocal(e.target.value);
+                                    setUploadedFileName(null); // Clear PDF file name when manually editing
+                                }}
+                                disabled={isImporting || isExtractingPDF}
                             />
                             {/* Feature 0177: Progress indicator for large file normalization */}
                             {normalizationProgress !== null && (
