@@ -189,6 +189,7 @@ interface ShotConfigurationStepProps {
   onPropDescriptionChange?: (shotSlot: number, propId: string, description: string) => void;
   onPropImageChange?: (shotSlot: number, propId: string, imageId: string | undefined) => void;
   propThumbnailS3KeyMap?: Map<string, string>; // 🔥 NEW: Map of s3Key -> thumbnailS3Key from Media Library
+  propThumbnailUrlsMap?: Map<string, string>; // 🔥 NEW: Map of thumbnailS3Key -> presigned URL from Media Library
   // Workflow override for action shots
   shotWorkflowOverride?: string;
   onShotWorkflowOverrideChange?: (shotSlot: number, workflow: string) => void;
@@ -274,6 +275,7 @@ export function ShotConfigurationStep({
   shotWorkflowOverride,
   onShotWorkflowOverrideChange,
   propThumbnailS3KeyMap,
+  propThumbnailUrlsMap: propThumbnailUrlsMapFromParent,
   selectedReferenceShotModel = {},
   onReferenceShotModelChange,
   selectedVideoType = {},
@@ -430,10 +432,14 @@ export function ShotConfigurationStep({
     return keys;
   }, [finalSceneProps, finalPropsToShots, finalShotProps, finalPropThumbnailS3KeyMap, shot.slot]);
   
-  const { data: propThumbnailUrlsMap = new Map() } = useBulkPresignedUrls(
+  // Use passed-in propThumbnailUrlsMap if available, otherwise fetch it
+  const { data: propThumbnailUrlsMapFromHook = new Map() } = useBulkPresignedUrls(
     propThumbnailS3Keys,
-    propThumbnailS3Keys.length > 0
+    propThumbnailS3Keys.length > 0 && !propThumbnailUrlsMapFromParent // Only fetch if not passed from parent
   );
+  
+  // Use parent's map if available, otherwise use the one we fetched
+  const propThumbnailUrlsMap = propThumbnailUrlsMapFromParent || propThumbnailUrlsMapFromHook;
   
   // Create handlers that use context actions
   const finalOnLocationAngleChange = useCallback((shotSlot: number, locationId: string, angle: { angleId?: string; s3Key?: string; imageUrl?: string } | undefined) => {

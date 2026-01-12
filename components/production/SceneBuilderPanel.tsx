@@ -4445,6 +4445,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   propsToShots={propsToShots}
                   shotProps={shotProps}
                   propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+                  propThumbnailUrlsMap={propThumbnailUrlsMap}
                   onPropDescriptionChange={(shotSlot, propId, description) => {
                     setShotProps(prev => {
                       const shotConfig = prev[shotSlot] || {};
