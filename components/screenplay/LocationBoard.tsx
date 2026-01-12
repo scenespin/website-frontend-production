@@ -218,7 +218,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                             }}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
                             style={{
-                                backgroundColor: '#8B5CF6',
+                                backgroundColor: '#DC143C',
                                 color: 'white'
                             }}
                         >

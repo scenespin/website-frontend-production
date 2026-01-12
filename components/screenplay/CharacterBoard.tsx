@@ -242,7 +242,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                             }}
                                         >
                                             <Plus size={18} />
-                                            Add Character
+                                            <span className="hidden sm:inline">Add Character</span>
+                                            <span className="sm:hidden">Add</span>
                                         </button>
                                     )}
                                     {!canEditScript && (
