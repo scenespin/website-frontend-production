@@ -1457,24 +1457,22 @@ export default function AssetDetailModal({
               )}
 
               {coverageTab === 'generate' && (
-                <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
-                  <GenerateAssetTab
-                    assetId={latestAsset.id}
-                    assetName={latestAsset.name}
-                    screenplayId={screenplayId || ''}
-                    asset={latestAsset}
-                    onClose={() => setCoverageTab(null)}
-                    onComplete={async (result) => {
-                      if (result?.jobId) {
-                        toast.success('Angle generation started!', {
-                          description: 'View in Jobs tab to track progress.',
-                          duration: 5000
-                        });
-                      }
-                      setCoverageTab(null);
-                    }}
-                  />
-                </div>
+                <GenerateAssetTab
+                  assetId={latestAsset.id}
+                  assetName={latestAsset.name}
+                  screenplayId={screenplayId || ''}
+                  asset={latestAsset}
+                  onClose={() => setCoverageTab(null)}
+                  onComplete={async (result) => {
+                    if (result?.jobId) {
+                      toast.success('Angle generation started!', {
+                        description: 'View in Jobs tab to track progress.',
+                        duration: 5000
+                      });
+                    }
+                    setCoverageTab(null);
+                  }}
+                />
               )}
 
             </div>

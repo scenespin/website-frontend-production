@@ -2030,28 +2030,26 @@ export function LocationDetailModal({
               )}
 
               {coverageTab === 'generate' && (
-                <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
-                  <GenerateLocationTab
-                    locationId={location.locationId}
-                    locationName={location.name}
-                    screenplayId={screenplayId || ''}
-                    locationProfile={location}
-                    location={location}
-                    onClose={() => setCoverageTab(null)}
-                    onComplete={async (result) => {
-                      // Job started - tab will close, job runs in background
-                      // User can track progress in Jobs tab
-                      // Location data will refresh automatically when job completes
-                      if (result?.jobId) {
-                        toast.success(`${result.type === 'angles' ? 'Angle' : 'Background'} generation started!`, {
-                          description: 'View in Jobs tab to track progress.',
-                          duration: 5000
-                        });
-                      }
-                      setCoverageTab(null);
-                    }}
-                  />
-                </div>
+                <GenerateLocationTab
+                  locationId={location.locationId}
+                  locationName={location.name}
+                  screenplayId={screenplayId || ''}
+                  locationProfile={location}
+                  location={location}
+                  onClose={() => setCoverageTab(null)}
+                  onComplete={async (result) => {
+                    // Job started - tab will close, job runs in background
+                    // User can track progress in Jobs tab
+                    // Location data will refresh automatically when job completes
+                    if (result?.jobId) {
+                      toast.success(`${result.type === 'angles' ? 'Angle' : 'Background'} generation started!`, {
+                        description: 'View in Jobs tab to track progress.',
+                        duration: 5000
+                      });
+                    }
+                    setCoverageTab(null);
+                  }}
+                />
               )}
 
             </div>

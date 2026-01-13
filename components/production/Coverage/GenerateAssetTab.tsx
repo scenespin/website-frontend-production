@@ -209,7 +209,7 @@ export function GenerateAssetTab({
   const totalCredits = angleCount * creditsPerImage;
   
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-6 space-y-4">
       {/* Step 1: Quality & Model Selection */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
         <h3 className="text-sm font-semibold text-white mb-3">Step 1: Quality & Model Selection</h3>
