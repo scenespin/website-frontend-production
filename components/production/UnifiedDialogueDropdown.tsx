@@ -188,7 +188,7 @@ export function UnifiedDialogueDropdown({
           quality: 'reliable' as DialogueQuality,
           workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
           label: 'Reliable Generation (Standard)',
-          description: 'Always generates successfully. May have minor visual artifacts (upscaled from 720p).',
+          description: 'Always generates successfully. May have minor visual artifacts.',
         },
         {
           quality: 'reliable' as DialogueQuality,
