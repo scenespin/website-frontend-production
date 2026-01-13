@@ -350,9 +350,10 @@ export function LocationDetailModal({
 
       const result = await response.json();
       
-      // Refresh location data after flip
+      // Refresh location data after flip (same pattern as regenerate)
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'] }); // Invalidate thumbnail URLs
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
         queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })

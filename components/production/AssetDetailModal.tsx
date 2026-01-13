@@ -257,9 +257,14 @@ export default function AssetDetailModal({
 
       const result = await response.json();
       
-      // Refresh asset data after flip
+      // Refresh asset data after flip (same pattern as regenerate)
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'] }); // Invalidate thumbnail URLs
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]);
       onUpdate(); // Refresh asset data
       
       toast.success('Angle flipped successfully');

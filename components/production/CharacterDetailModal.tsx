@@ -307,9 +307,10 @@ export function CharacterDetailModal({
 
       const result = await response.json();
       
-      // Refresh character data after flip
+      // Refresh character data after flip (same pattern as regenerate)
       queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'] }); // Invalidate thumbnail URLs
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
         queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
