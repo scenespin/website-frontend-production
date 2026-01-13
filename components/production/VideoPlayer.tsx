@@ -55,6 +55,24 @@ export function VideoPlayer({
   const effectiveDuration = trimEnd && trimEnd > 0 ? trimEnd - trimStart : duration;
   const effectiveCurrentTime = Math.max(0, currentTime - trimStart);
 
+  // Cleanup video when src changes to prevent memory leaks
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Reset video state when src changes
+    const previousSrc = video.src;
+    
+    return () => {
+      // Cleanup: pause and reset video when src changes or component unmounts
+      if (video && video.src !== previousSrc) {
+        video.pause();
+        video.src = '';
+        video.load();
+      }
+    };
+  }, [src]);
+
   // Update video time when trim points change
   useEffect(() => {
     if (videoRef.current && trimStart > 0) {
@@ -260,6 +278,8 @@ export function VideoPlayer({
         loop={loop}
         muted={isMuted}
         playsInline
+        preload="metadata"
+        crossOrigin="anonymous"
       />
 
       {/* Controls Overlay */}

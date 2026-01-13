@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FolderTreeSidebar } from './FolderTreeSidebar';
 import { BreadcrumbNavigation } from './BreadcrumbNavigation';
+import { VideoPlayer } from './VideoPlayer';
 import { toast } from 'sonner';
 // Removed useDropdownCoordinator - using uncontrolled state
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
@@ -2735,20 +2736,16 @@ export default function MediaLibrary({
                 </div>
               )}
               {previewFile.fileType === 'video' && (
-                <div className="relative">
-                  <video 
-                    src={previewFile.fileUrl} 
-                    controls
-                    controlsList="nodownload"
-                    className="w-full h-auto rounded-lg max-h-[70vh] bg-[#0A0A0A]"
-                    preload="metadata"
-                    onError={(e) => {
-                      console.error('[MediaLibrary] Video failed to load:', previewFile.fileUrl);
+                <div className="relative max-h-[70vh] overflow-hidden rounded-lg">
+                  <VideoPlayer
+                    src={getFileUrl(previewFile, false) || previewFile.fileUrl || ''}
+                    className="w-full h-auto"
+                    autoPlay={false}
+                    onError={(error) => {
+                      console.error('[MediaLibrary] Video failed to load:', previewFile.fileUrl, error);
                       toast.error('Video failed to load. The file may be corrupted or the URL expired.');
                     }}
-                  >
-                    Your browser does not support the video tag.
-                  </video>
+                  />
                 </div>
               )}
               {previewFile.fileType === 'audio' && (
