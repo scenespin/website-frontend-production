@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square, Volume2, Crop } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square, Volume2, Crop, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
 import { toast } from 'sonner';
@@ -150,6 +150,8 @@ export function CharacterDetailModal({
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   // 🔥 NEW: Crop modal state
   const [cropPose, setCropPose] = useState<{ poseId: string; poseS3Key: string } | null>(null);
+  // 🔥 NEW: Flip image state
+  const [flippingImageId, setFlippingImageId] = useState<string | null>(null);
   // Voice Profile Management (Feature 0152)
   const [voiceProfile, setVoiceProfile] = useState<any | null>(null);
   const [isLoadingVoice, setIsLoadingVoice] = useState(false);
@@ -269,6 +271,56 @@ export function CharacterDetailModal({
       toast.error(`Failed to regenerate pose: ${error.message || 'Unknown error'}`);
       setIsRegenerating(false);
       setRegeneratingS3Key(null); // Clear on error immediately
+    }
+  };
+
+  const handleFlipImage = async (imageId: string, imageS3Key: string, isPoseReference: boolean = false) => {
+    if (!imageS3Key || !screenplayId) {
+      toast.error('Missing image information for flipping');
+      return;
+    }
+
+    setFlippingImageId(imageId);
+    
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const response = await fetch(`${BACKEND_API_URL}/api/screenplays/${screenplayId}/characters/${character.id}/flip-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageS3Key,
+          imageId,
+          isPoseReference
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to flip image: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      // Refresh character data after flip
+      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]);
+      
+      toast.success('Image flipped successfully');
+    } catch (error: any) {
+      console.error('[CharacterDetailModal] Failed to flip image:', error);
+      toast.error(`Failed to flip image: ${error.message || 'Unknown error'}`);
+    } finally {
+      setFlippingImageId(null);
     }
   };
 
@@ -2200,6 +2252,26 @@ export function CharacterDetailModal({
                                       >
                                         <Crop className="w-4 h-4 mr-2 text-[#808080]" />
                                         Crop
+                                      </DropdownMenuItem>
+                                    )}
+                                    {/* 🔥 NEW: Flip option (all images can be flipped) */}
+                                    {img.s3Key && (
+                                      <DropdownMenuItem
+                                        className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={flippingImageId === img.id}
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setTimeout(() => setOpenDropdownId(null), 100);
+                                          handleFlipImage(
+                                            img.id || img.poseId || (img as any).metadata?.poseId || '',
+                                            img.s3Key,
+                                            img.isPose || false
+                                          );
+                                        }}
+                                      >
+                                        <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />
+                                        {flippingImageId === img.id ? 'Flipping...' : 'Flip Horizontal'}
                                       </DropdownMenuItem>
                                     )}
                                     {/* 🔥 NEW: Regenerate option (only for poses with poseId) */}

@@ -16,7 +16,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
@@ -113,6 +113,7 @@ export default function AssetDetailModal({
   const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string; metadata?: any } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
+  const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
@@ -221,6 +222,52 @@ export default function AssetDetailModal({
     } finally {
       setIsRegenerating(false);
       setRegeneratingS3Key(null); // Clear regenerating state
+    }
+  };
+
+  const handleFlipAngle = async (angleId: string, angleS3Key: string) => {
+    if (!angleS3Key || !screenplayId) {
+      toast.error('Missing angle information for flipping');
+      return;
+    }
+
+    setFlippingAngleId(angleId);
+    
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const response = await fetch(`${BACKEND_API_URL}/api/asset-bank/${asset.id}/flip-angle?screenplayId=${screenplayId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          angleId,
+          angleS3Key
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to flip angle: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      // Refresh asset data after flip
+      queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      onUpdate(); // Refresh asset data
+      
+      toast.success('Angle flipped successfully');
+    } catch (error: any) {
+      console.error('[AssetDetailModal] Failed to flip angle:', error);
+      toast.error(`Failed to flip angle: ${error.message || 'Unknown error'}`);
+    } finally {
+      setFlippingAngleId(null);
     }
   };
 
@@ -1261,6 +1308,20 @@ export default function AssetDetailModal({
                                       <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                       Download
                                     </DropdownMenuItem>
+                                    {/* 🔥 NEW: Flip option (all angles can be flipped) */}
+                                    {img.s3Key && (
+                                      <DropdownMenuItem
+                                        className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={flippingAngleId === img.id}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleFlipAngle(img.id, img.s3Key);
+                                        }}
+                                      >
+                                        <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />
+                                        {flippingAngleId === img.id ? 'Flipping...' : 'Flip Horizontal'}
+                                      </DropdownMenuItem>
+                                    )}
                                     {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
                                     {img.id && img.s3Key && (img.metadata?.angle || img.angle) && (
                                       <DropdownMenuItem
