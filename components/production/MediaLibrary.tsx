@@ -2743,7 +2743,15 @@ export default function MediaLibrary({
                     autoPlay={false}
                     onError={(error) => {
                       console.error('[MediaLibrary] Video failed to load:', previewFile.fileUrl, error);
-                      toast.error('Video failed to load. The file may be corrupted or the URL expired.');
+                      // Show detailed error message from VideoPlayer
+                      const errorMessage = error.message || 'Video failed to load';
+                      toast.error(errorMessage, {
+                        description: errorMessage.includes('decoding') 
+                          ? 'The video may be corrupted or use an unsupported codec. Try downloading the file.'
+                          : errorMessage.includes('format')
+                          ? 'Your browser does not support this video format. Supported: MP4 (H.264), WebM, MOV.'
+                          : 'The file may be corrupted or the URL expired.'
+                      });
                     }}
                   />
                 </div>

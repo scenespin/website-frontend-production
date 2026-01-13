@@ -138,7 +138,8 @@ const GlobalErrorHandler = () => {
     console.error = (...args) => {
       // Check if it's a React error
       if (args[0]?.includes?.('Minified React error') || args[0]?.includes?.('React error')) {
-        console.error('🔴 [GlobalErrorHandler] React Error Detected:', {
+        // Use originalConsoleError to avoid recursion
+        originalConsoleError('🔴 [GlobalErrorHandler] React Error Detected:', {
           args: args,
           stack: new Error().stack
         });

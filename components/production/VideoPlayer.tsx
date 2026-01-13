@@ -143,22 +143,39 @@ export function VideoPlayer({
       
       // Get more detailed error information
       let errorMessage = 'Video failed to load';
+      let errorDetails = '';
       if (video.error) {
         switch (video.error.code) {
           case video.error.MEDIA_ERR_ABORTED:
             errorMessage = 'Video loading was aborted';
+            errorDetails = 'The video loading was interrupted. Please try again.';
             break;
           case video.error.MEDIA_ERR_NETWORK:
             errorMessage = 'Network error while loading video';
+            errorDetails = 'Unable to download the video. Check your internet connection.';
             break;
           case video.error.MEDIA_ERR_DECODE:
             errorMessage = 'Video decoding error';
+            errorDetails = 'The video file may be corrupted or use an unsupported codec. Try downloading the file or contact support if the issue persists.';
             break;
           case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = 'Video format not supported';
+            errorDetails = 'Your browser does not support this video format. Supported formats: MP4 (H.264), WebM, MOV.';
             break;
         }
       }
+      
+      // Log detailed error information for debugging
+      console.warn('[VideoPlayer] Video error details:', {
+        errorCode: video.error?.code,
+        errorMessage,
+        errorDetails,
+        videoSrc: src.substring(0, 100),
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState,
+        networkState: video.networkState
+      });
       
       // Only call onError if it exists, and handle it safely
       if (onError) {
