@@ -687,7 +687,11 @@ export default function Dashboard() {
       
       // Optimistically remove from UI immediately
       // Backend filters by status='active', so deleted items won't appear on next page load
-      setProjects(prev => prev.filter(p => p.id !== screenplayId && p.screenplay_id !== screenplayId));
+      // 🔥 FIX: Update all three state arrays to keep UI in sync (UI renders from ownedScreenplays/collaboratedScreenplays)
+      const filterDeleted = (arr) => arr.filter(p => p.id !== screenplayId && p.screenplay_id !== screenplayId);
+      setProjects(prev => filterDeleted(prev));
+      setOwnedScreenplays(prev => filterDeleted(prev));
+      setCollaboratedScreenplays(prev => filterDeleted(prev));
       
       setDeleteConfirmModal(null);
       setDeleteConfirmInput('');
