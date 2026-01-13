@@ -1399,7 +1399,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       if (!selectedSceneId || !projectId) return;
       
       const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
-      if (!scene || !scene.fountain?.startLine || !scene.fountain?.endLine) {
+      // 🔥 FIX: Check for undefined instead of falsy - 0 is a valid line number (first line)
+      if (!scene || scene.fountain?.startLine === undefined || scene.fountain?.endLine === undefined) {
         // Fallback to heading + synopsis
         let fallback = '';
         if (scene?.heading) fallback = scene.heading;

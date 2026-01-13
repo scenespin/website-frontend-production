@@ -94,7 +94,8 @@ export function SceneNavigatorList({
       const scenesToFetch = scenes.filter(scene => {
         // Fetch if no synopsis, or synopsis is the placeholder "Imported from script"
         const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
-        return !hasValidSynopsis && scene.fountain?.startLine && scene.fountain?.endLine;
+        // 🔥 FIX: Check for undefined instead of falsy - 0 is a valid line number (first line)
+        return !hasValidSynopsis && scene.fountain?.startLine !== undefined && scene.fountain?.endLine !== undefined;
       });
       if (scenesToFetch.length === 0) return;
       
@@ -106,8 +107,10 @@ export function SceneNavigatorList({
         const newFirstLines: Record<string, string> = {};
         
         scenesToFetch.forEach(scene => {
-          if (scene.fountain?.startLine && scene.fountain?.endLine) {
-            const sceneLines = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine);
+          // 🔥 FIX: Check for undefined instead of falsy - 0 is a valid line number (first line)
+          if (scene.fountain?.startLine !== undefined && scene.fountain?.endLine !== undefined) {
+            // 🔥 FIX: endLine is inclusive (0-based), but slice() is exclusive, so add 1
+            const sceneLines = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine + 1);
             // Find first non-empty line that's not a heading, section, or synopsis
             const firstLine = sceneLines.find(line => {
               const trimmed = line.trim();
