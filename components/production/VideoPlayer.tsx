@@ -66,7 +66,11 @@ export function VideoPlayer({
     return () => {
       // Cleanup: pause and reset video when src changes or component unmounts
       if (video && video.src !== previousSrc) {
-        video.pause();
+        // Pause first to prevent AbortError
+        video.pause().catch(() => {
+          // Ignore pause errors during cleanup
+        });
+        // Clear src and load to free memory
         video.src = '';
         video.load();
       }
@@ -91,7 +95,9 @@ export function VideoPlayer({
 
       // Check if we've reached trim end
       if (trimEnd && time >= trimEnd) {
-        video.pause();
+        video.pause().catch(() => {
+          // Ignore pause errors (e.g., if already paused)
+        });
         setIsPlaying(false);
         if (onEnded) {
           onEnded();
@@ -126,10 +132,38 @@ export function VideoPlayer({
       }
     };
 
-    const handleError = () => {
+    const handleError = (e: Event) => {
       setIsLoading(false);
+      const video = videoRef.current;
+      if (!video) return;
+      
+      // Get more detailed error information
+      let errorMessage = 'Video failed to load';
+      if (video.error) {
+        switch (video.error.code) {
+          case video.error.MEDIA_ERR_ABORTED:
+            errorMessage = 'Video loading was aborted';
+            break;
+          case video.error.MEDIA_ERR_NETWORK:
+            errorMessage = 'Network error while loading video';
+            break;
+          case video.error.MEDIA_ERR_DECODE:
+            errorMessage = 'Video decoding error';
+            break;
+          case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = 'Video format not supported';
+            break;
+        }
+      }
+      
+      // Only call onError if it exists, and handle it safely
       if (onError) {
-        onError(new Error('Video failed to load'));
+        try {
+          onError(new Error(errorMessage));
+        } catch (err) {
+          // Silently handle errors in error handler to prevent unhandled rejections
+          console.warn('[VideoPlayer] Error in onError callback:', err);
+        }
       }
     };
 
@@ -216,6 +250,32 @@ export function VideoPlayer({
     }
   }, [volume, isMuted]);
 
+  // Handle autoPlay errors (browser autoplay policies)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !autoPlay) return;
+
+    const handleCanPlay = () => {
+      if (autoPlay && video.paused) {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            // Autoplay was prevented by browser policy - this is expected
+            if (error.name !== 'NotAllowedError') {
+              console.warn('[VideoPlayer] Autoplay error:', error);
+            }
+            setIsPlaying(false);
+          });
+        }
+      }
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+    };
+  }, [autoPlay]);
+
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -225,7 +285,17 @@ export function VideoPlayer({
       if (trimEnd && video.currentTime >= trimEnd) {
         video.currentTime = trimStart;
       }
-      video.play();
+      // Handle play() promise to prevent unhandled rejections
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          // AbortError is expected when video is removed/paused during play
+          if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+            console.warn('[VideoPlayer] Play error:', error);
+          }
+          setIsPlaying(false);
+        });
+      }
     } else {
       video.pause();
     }
