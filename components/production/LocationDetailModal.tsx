@@ -190,6 +190,7 @@ export function LocationDetailModal({
   const [regenerateBackground, setRegenerateBackground] = useState<{ backgroundId: string; s3Key: string; backgroundType: string; background?: LocationBackground } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
+  const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
