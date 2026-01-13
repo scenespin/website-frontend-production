@@ -77,7 +77,7 @@ export default function AffiliateApplyPage() {
       if (res.ok) {
         setSuccess(true);
         setTimeout(() => {
-          router.push('/app/affiliates');
+          router.push('/affiliates');
         }, 3000);
       } else {
         const errorData = await res.json();
@@ -102,7 +102,7 @@ export default function AffiliateApplyPage() {
               <p className="text-gray-600">
                 We'll review your application within 24-48 hours and send you an email when approved.
               </p>
-              <Button className="mt-6" onClick={() => router.push('/app/affiliates')}>
+              <Button className="mt-6" onClick={() => router.push('/affiliates')}>
                 Go to Dashboard
               </Button>
             </div>

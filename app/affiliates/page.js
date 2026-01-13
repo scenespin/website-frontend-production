@@ -190,8 +190,8 @@ export default function AffiliatePortal() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          return_url: `${origin}/app/affiliates/connect-success`,
-          refresh_url: `${origin}/app/affiliates/connect-refresh`,
+          return_url: `${origin}/affiliates/connect-success`,
+          refresh_url: `${origin}/affiliates/connect-refresh`,
         }),
       });
 
@@ -229,7 +229,7 @@ export default function AffiliatePortal() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => window.location.href = '/app/affiliates/apply'}>
+            <Button onClick={() => window.location.href = '/affiliates/apply'}>
               Apply Now
             </Button>
           </CardContent>
