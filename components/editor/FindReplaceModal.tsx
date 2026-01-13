@@ -83,7 +83,8 @@ export default function FindReplaceModal({ isOpen, onClose }: FindReplaceModalPr
         setMatches(foundMatches);
         if (foundMatches.length > 0) {
             setCurrentMatchIndex(0);
-            scrollToMatch(foundMatches[0]);
+            // Don't auto-scroll while typing - only scroll on explicit navigation
+            // scrollToMatch(foundMatches[0]);
         } else {
             setCurrentMatchIndex(-1);
         }
