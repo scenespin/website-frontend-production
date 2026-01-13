@@ -66,10 +66,12 @@ export function VideoPlayer({
     return () => {
       // Cleanup: pause and reset video when src changes or component unmounts
       if (video && video.src !== previousSrc) {
-        // Pause first to prevent AbortError
-        video.pause().catch(() => {
+        // Pause first to prevent AbortError (pause() returns void, not a Promise)
+        try {
+          video.pause();
+        } catch (error) {
           // Ignore pause errors during cleanup
-        });
+        }
         // Clear src and load to free memory
         video.src = '';
         video.load();
@@ -95,9 +97,11 @@ export function VideoPlayer({
 
       // Check if we've reached trim end
       if (trimEnd && time >= trimEnd) {
-        video.pause().catch(() => {
+        try {
+          video.pause();
+        } catch (error) {
           // Ignore pause errors (e.g., if already paused)
-        });
+        }
         setIsPlaying(false);
         if (onEnded) {
           onEnded();
