@@ -1819,7 +1819,7 @@ export function LocationDetailModal({
                                             // Check multiple possible paths for providerId (matches angle pattern)
                                             const providerId = (img as any).metadata?.providerId 
                                               || background.metadata?.providerId 
-                                              || background.metadata?.generationMetadata?.providerId
+                                              || (background.metadata as any)?.generationMetadata?.providerId
                                               || (img as any).metadata?.generationMetadata?.providerId;
                                             if (!providerId) return null;
                                             const providerLabel = getProviderLabel(providerId);
