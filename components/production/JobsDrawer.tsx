@@ -564,13 +564,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       if (!hasLoadedOnce) {
         setHasLoadedOnce(true);
       }
-
-      if (!workflowData.success && !soundscapeData.success) {
-        console.error('[JobsDrawer] API error:', workflowData.error || soundscapeData.error);
-        if (showLoading) {
-          toast.error('Failed to load jobs', { description: workflowData.error || soundscapeData.error });
-        }
-      }
     } catch (error: any) {
       console.error('[JobsDrawer] Load error:', error);
       if (showLoading) {
