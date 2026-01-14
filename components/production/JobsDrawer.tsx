@@ -530,7 +530,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       }
 
       // Load all jobs for this session (no filtering)
-      const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=50`;
+      const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=15`;
       
       const response = await fetch(url, {
         headers: {
