@@ -473,11 +473,13 @@ export function GenerateLocationTab({
   
   // Calculate total credits
   const angleCounts: Record<string, number> = {
+    single: 1,
     basic: 3,
     standard: 6,
     premium: 11
   };
   const backgroundCounts: Record<string, number> = {
+    single: 1,
     basic: 3,
     standard: 6,
     premium: 9
