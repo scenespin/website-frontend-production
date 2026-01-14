@@ -21,7 +21,7 @@ import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
-  Sparkles, AlertCircle, Image, Save, X, ChevronRight, GripHorizontal
+  Sparkles, AlertCircle, Image, Save, X, ChevronRight, GripHorizontal, Music
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
