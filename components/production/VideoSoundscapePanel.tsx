@@ -126,10 +126,21 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
       video.onloadedmetadata = () => {
         const duration = video.duration;
         setVideoDuration(duration);
-        URL.revokeObjectURL(url);
+        // Don't revoke URL here - keep it for video preview
         estimateCredits(duration);
       };
       video.src = url;
+      
+      // Cleanup: revoke blob URL when component unmounts or new file selected
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      // Cleanup when videoFile is cleared
+      if (videoUrl && videoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(videoUrl);
+        setVideoUrl(null);
+      }
     }
   }, [videoFile]);
 
