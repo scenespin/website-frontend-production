@@ -119,7 +119,7 @@ export default function AffiliateApplyPage() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">Become a Wryda Affiliate</h1>
           <p className="text-xl text-[#B3B3B3] mb-2">Earn 30% recurring commission on every referral</p>
-          <p className="text-lg text-[#808080]">Join creators who are building passive income by sharing the future of filmmaking</p>
+          <p className="text-base text-[#808080]">Join creators who are building passive income by sharing the future of filmmaking</p>
         </div>
 
         <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-8">
