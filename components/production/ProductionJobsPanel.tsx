@@ -476,7 +476,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   const queryClient = useQueryClient();
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('running');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false); // Track if we've successfully loaded jobs at least once
   
@@ -593,9 +593,9 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
         return;
       }
 
-      // Use the new executions endpoint - default to running jobs only (status=running&limit=15)
+      // Use the new executions endpoint instead of list endpoint
       const statusParam = statusFilter === 'all' ? '' : statusFilter;
-      const url = `/api/workflows/executions?screenplayId=${screenplayId}${statusParam ? `&status=${statusParam}` : ''}&limit=15`;
+      const url = `/api/workflows/executions?screenplayId=${screenplayId}${statusParam ? `&status=${statusParam}` : ''}&limit=50`;
       
       console.log('[JobsPanel] Loading jobs from:', url);
       

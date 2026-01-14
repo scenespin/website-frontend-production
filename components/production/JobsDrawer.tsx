@@ -529,56 +529,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         return;
       }
 
-      // Load workflow jobs and video soundscape jobs in parallel
-      const [workflowResponse, soundscapeResponse] = await Promise.all([
-        fetch(`/api/workflows/executions?screenplayId=${screenplayId}&status=running&limit=15`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`/api/video-soundscape/jobs?status=running`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }).catch(() => null) // Don't fail if endpoint doesn't exist yet
-      ]);
-
-      const workflowData = await workflowResponse.json();
-      const soundscapeData = soundscapeResponse ? await soundscapeResponse.json().catch(() => ({ success: false })) : { success: false };
+      // Load all jobs for this session (no filtering)
+      const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=50`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
 
       const jobList: WorkflowJob[] = [];
 
       // Add workflow jobs
-      if (workflowData.success) {
-        const workflowJobs = workflowData.data?.jobs || workflowData.jobs || [];
+      if (data.success) {
+        const workflowJobs = data.data?.jobs || data.jobs || [];
         jobList.push(...workflowJobs);
-      }
-
-      // Add video soundscape jobs (transform to WorkflowJob format)
-      if (soundscapeData.success && soundscapeData.jobs) {
-        const soundscapeJobs: WorkflowJob[] = soundscapeData.jobs.map((job: any) => ({
-          jobId: job.jobId,
-          workflowId: `video-soundscape-${job.jobId}`,
-          workflowName: 'Video Soundscape Analysis',
-          jobType: 'video-soundscape' as const,
-          status: job.status,
-          progress: job.progress,
-          message: job.message,
-          results: job.result ? {
-            videoSoundscape: {
-              analysisId: job.result.analysisId,
-              videoUrl: job.result.videoUrl,
-              videoDuration: job.result.videoDuration,
-              detectedCues: job.result.detectedCues || job.result.cues,
-              moodProfile: job.result.moodProfile || job.result.moodAnalysis
-            }
-          } : undefined,
-          error: job.error,
-          createdAt: job.createdAt ? new Date(job.createdAt).toISOString() : new Date().toISOString(),
-          completedAt: job.completedAt ? new Date(job.completedAt).toISOString() : undefined,
-          creditsUsed: 0, // Will be calculated from video duration if needed
-          metadata: {
-            videoSoundscape: true,
-            analysisId: job.result?.analysisId
-          }
-        }));
-        jobList.push(...soundscapeJobs);
       }
       
       setJobs(prevJobs => {
@@ -963,7 +929,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const renderDrawerContent = () => (
     <>
       {/* Header - Matches AgentDrawer style (hidden on mobile, shown on desktop) */}
-      <div className="hidden md:flex h-14 flex-shrink-0 items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
+      <div className="hidden md:flex h-14 items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
           <h3 className="text-base font-semibold text-[#E5E7EB]">Jobs</h3>
@@ -983,8 +949,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         </button>
       </div>
 
-      {/* Content - Scrollable when content exceeds available space */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
         {isLoading && jobs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
@@ -1422,12 +1388,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
         {/* Mobile Drawer - Slides up from bottom - EXACT same as AgentDrawer */}
         <div
-          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#3F3F46] z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl flex flex-col"
+          className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#3F3F46] z-50 transition-all duration-300 ease-out md:hidden rounded-t-2xl"
           style={{ height: `${currentMobileHeight}px` }}
         >
           {/* Drag Handle (Mobile) - Compact like debug panel */}
           <div
-            className="w-full py-1.5 flex-shrink-0 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
+            className="w-full py-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#1F1F1F] border-b border-[#3F3F46] rounded-t-2xl relative"
             onMouseDown={(e) => handleDragStart(e.clientY)}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           >
@@ -1465,9 +1431,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             )}
           </div>
 
-          {/* Content - Scrollable when content exceeds available space */}
+          {/* Content */}
           {isOpen && (
-            <div className="flex-1 min-h-0 overflow-y-auto pb-6">
+            <div className="h-[calc(100%-48px)] overflow-auto pb-6">
               {renderDrawerContent()}
             </div>
           )}
@@ -1550,7 +1516,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
       {/* Desktop Drawer - Slides in from right - EXACT same as AgentDrawer */}
       <div
-        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:flex md:flex-col ${
+        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ width: compact ? '100vw' : '400px', maxWidth: '90vw' }}
