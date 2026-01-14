@@ -1816,7 +1816,11 @@ export function LocationDetailModal({
                                           </div>
                                           {/* Bottom-right label: Provider */}
                                           {(() => {
-                                            const providerId = (img as any).metadata?.providerId || background.metadata?.providerId;
+                                            // Check multiple possible paths for providerId (matches angle pattern)
+                                            const providerId = (img as any).metadata?.providerId 
+                                              || background.metadata?.providerId 
+                                              || background.metadata?.generationMetadata?.providerId
+                                              || (img as any).metadata?.generationMetadata?.providerId;
                                             if (!providerId) return null;
                                             const providerLabel = getProviderLabel(providerId);
                                             if (!providerLabel) return null;
