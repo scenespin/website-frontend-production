@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { 
   Upload, 
@@ -70,6 +70,7 @@ interface StyleAnalyzerProps {
   sceneId?: string;
   onAnalysisComplete?: (profile: StyleProfile) => void;
   className?: string;
+  autoStart?: boolean; // Auto-start analysis when videoUrl is provided
 }
 
 // ============================================================================
@@ -82,6 +83,7 @@ export default function StyleAnalyzer({
   sceneId,
   onAnalysisComplete,
   className = '',
+  autoStart = false,
 }: StyleAnalyzerProps) {
   const { getToken } = useAuth();
 
@@ -94,6 +96,7 @@ export default function StyleAnalyzer({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [hasAutoStarted, setHasAutoStarted] = useState(false);
 
   // ============================================================================
   // EFFECTS
@@ -195,6 +198,19 @@ export default function StyleAnalyzer({
     }
   };
 
+  // Auto-start analysis when videoUrl is set and autoStart is true
+  useEffect(() => {
+    if (autoStart && videoUrl && !profile && !isAnalyzing && !hasAutoStarted) {
+      setHasAutoStarted(true);
+      // Delay to ensure component is fully mounted and analyzeVideo is available
+      const timer = setTimeout(() => {
+        analyzeVideo();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, videoUrl, profile, isAnalyzing, hasAutoStarted]);
+
   const saveChanges = async () => {
     if (!editedProfile) return;
 
@@ -262,7 +278,7 @@ export default function StyleAnalyzer({
             {value.map((item, idx) => (
               <span
                 key={idx}
-                className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm"
+                className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] text-[#00D9FF] rounded-full text-sm"
               >
                 {item}
               </span>
@@ -282,7 +298,7 @@ export default function StyleAnalyzer({
           <div className="ml-6 space-y-2">
             {Object.entries(value).map(([subKey, subValue]) => (
               <div key={subKey} className="flex items-center gap-2">
-                <span className="text-gray-600 dark:text-gray-400 capitalize min-w-[150px]">
+                <span className="text-[#B3B3B3] capitalize min-w-[150px]">
                   {subKey.replace(/([A-Z])/g, ' $1').trim()}:
                 </span>
                 {isEditMode ? (
@@ -294,10 +310,10 @@ export default function StyleAnalyzer({
                       (newProfile.attributes as any)[category][key][subKey] = e.target.value;
                       setEditedProfile(newProfile);
                     }}
-                    className="flex-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="flex-1 px-3 py-1 border border-[#3F3F46] rounded bg-[#0A0A0A] text-[#FFFFFF]"
                   />
                 ) : (
-                  <span className="font-medium">{String(subValue)}</span>
+                  <span className="font-medium text-[#FFFFFF]">{String(subValue)}</span>
                 )}
               </div>
             ))}
@@ -309,7 +325,7 @@ export default function StyleAnalyzer({
     return (
       <div key={key} className="flex items-center gap-2 mb-2">
         {icon}
-        <span className="text-gray-600 dark:text-gray-400 capitalize">
+        <span className="text-[#B3B3B3] capitalize">
           {key.replace(/([A-Z])/g, ' $1').trim()}:
         </span>
         {isEditMode ? (
@@ -321,10 +337,10 @@ export default function StyleAnalyzer({
               (newProfile.attributes as any)[category][key] = e.target.value;
               setEditedProfile(newProfile);
             }}
-            className="flex-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            className="flex-1 px-3 py-1 border border-[#3F3F46] rounded bg-[#0A0A0A] text-[#FFFFFF]"
           />
         ) : (
-          <span className="font-medium">{String(value)}</span>
+          <span className="font-medium text-[#FFFFFF]">{String(value)}</span>
         )}
       </div>
     );
@@ -335,12 +351,12 @@ export default function StyleAnalyzer({
   // ============================================================================
 
   return (
-    <div className={`bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 ${className}`}>
+    <div className={`bg-[#141414] border border-[#3F3F46] rounded-lg p-6 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Sparkles className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <Sparkles className="w-6 h-6 text-[#DC143C]" />
+          <h2 className="text-2xl font-bold text-[#FFFFFF]">
             Style Analyzer
           </h2>
         </div>
@@ -352,7 +368,7 @@ export default function StyleAnalyzer({
                 <button
                   onClick={saveChanges}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -364,7 +380,7 @@ export default function StyleAnalyzer({
                 <button
                   onClick={cancelEditing}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-[#1F1F1F] text-[#FFFFFF] rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <X className="w-4 h-4" />
                   Cancel
@@ -373,7 +389,7 @@ export default function StyleAnalyzer({
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors flex items-center gap-2"
               >
                 <Edit2 className="w-4 h-4" />
                 Edit
@@ -385,11 +401,11 @@ export default function StyleAnalyzer({
 
       {/* Error Message */}
       {error && (
-        <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+        <div className="mb-4 p-4 bg-[#DC143C]/20 border border-[#DC143C] rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-[#DC143C] flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-red-800 dark:text-red-200">Analysis Error</p>
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            <p className="font-medium text-[#FFFFFF]">Analysis Error</p>
+            <p className="text-sm text-[#B3B3B3]">{error}</p>
           </div>
         </div>
       )}
@@ -397,7 +413,7 @@ export default function StyleAnalyzer({
       {/* Video URL Input */}
       {!profile && (
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[#FFFFFF] mb-2">
             Video URL
           </label>
           <input
@@ -406,7 +422,7 @@ export default function StyleAnalyzer({
             onChange={(e) => setVideoUrl(e.target.value)}
             placeholder="https://example.com/video.mp4"
             disabled={isAnalyzing}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#0A0A0A] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
       )}
@@ -416,7 +432,7 @@ export default function StyleAnalyzer({
         <button
           onClick={analyzeVideo}
           disabled={isAnalyzing || !videoUrl}
-          className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg font-medium"
+          className="w-full px-6 py-3 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg font-medium"
         >
           {isAnalyzing ? (
             <>
@@ -435,13 +451,13 @@ export default function StyleAnalyzer({
       {/* Analysis Progress */}
       {isAnalyzing && (
         <div className="mt-4">
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-[#1F1F1F] rounded-full h-3 overflow-hidden">
             <div
-              className="bg-purple-600 h-full transition-all duration-300"
+              className="bg-[#DC143C] h-full transition-all duration-300"
               style={{ width: `${analysisProgress}%` }}
             />
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
+          <p className="text-sm text-[#B3B3B3] mt-2 text-center">
             Extracting frames and analyzing visual style...
           </p>
         </div>
@@ -451,69 +467,69 @@ export default function StyleAnalyzer({
       {profile && (
         <div className="space-y-6">
           {/* Success Banner */}
-          <div className="p-4 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 rounded-lg flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <div className="p-4 bg-[#00D9FF]/20 border border-[#00D9FF] rounded-lg flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-[#00D9FF]" />
             <div>
-              <p className="font-medium text-green-800 dark:text-green-200">
+              <p className="font-medium text-[#FFFFFF]">
                 Style Analysis Complete
               </p>
-              <p className="text-sm text-green-700 dark:text-green-300">
+              <p className="text-sm text-[#B3B3B3]">
                 Confidence: {Math.round(profile.confidence * 100)}%
               </p>
             </div>
           </div>
 
           {/* Video Info */}
-          <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <div className="p-4 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <Film className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <span className="font-medium text-gray-900 dark:text-white">Video Source</span>
+              <Film className="w-5 h-5 text-[#808080]" />
+              <span className="font-medium text-[#FFFFFF]">Video Source</span>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 break-all ml-7">
+            <p className="text-sm text-[#B3B3B3] break-all ml-7">
               {profile.videoUrl}
             </p>
           </div>
 
           {/* Lighting */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-[#3F3F46] pt-4">
             {renderAttribute('lighting', 'lighting', profile.attributes.lighting, 
-              <Lightbulb className="w-5 h-5 text-yellow-500" />
+              <Lightbulb className="w-5 h-5 text-[#FFD700]" />
             )}
           </div>
 
           {/* Color */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-[#3F3F46] pt-4">
             {renderAttribute('color', 'color', profile.attributes.color,
-              <Palette className="w-5 h-5 text-pink-500" />
+              <Palette className="w-5 h-5 text-[#DC143C]" />
             )}
           </div>
 
           {/* Composition */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-[#3F3F46] pt-4">
             {renderAttribute('composition', 'composition', profile.attributes.composition,
-              <Camera className="w-5 h-5 text-blue-500" />
+              <Camera className="w-5 h-5 text-[#00D9FF]" />
             )}
           </div>
 
           {/* Camera Style */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-[#3F3F46] pt-4">
             {renderAttribute('cameraStyle', 'cameraStyle', profile.attributes.cameraStyle,
-              <Film className="w-5 h-5 text-purple-500" />
+              <Film className="w-5 h-5 text-[#DC143C]" />
             )}
           </div>
 
           {/* Texture */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-[#3F3F46] pt-4">
             {renderAttribute('texture', 'texture', profile.attributes.texture,
-              <Sparkles className="w-5 h-5 text-green-500" />
+              <Sparkles className="w-5 h-5 text-[#00D9FF]" />
             )}
           </div>
 
           {/* Suggested Prompt Additions */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-[#3F3F46] pt-4">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-5 h-5 text-purple-500" />
-              <span className="font-semibold text-lg text-gray-900 dark:text-white">
+              <Sparkles className="w-5 h-5 text-[#DC143C]" />
+              <span className="font-semibold text-lg text-[#FFFFFF]">
                 Suggested Prompt Additions
               </span>
             </div>
@@ -521,16 +537,16 @@ export default function StyleAnalyzer({
               {profile.suggestedPromptAdditions.map((suggestion, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-sm"
+                  className="p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-sm"
                 >
-                  <code className="text-purple-800 dark:text-purple-200">{suggestion}</code>
+                  <code className="text-[#00D9FF]">{suggestion}</code>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Re-analyze Button */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-[#3F3F46] pt-4">
             <button
               onClick={() => {
                 setProfile(null);
@@ -538,7 +554,7 @@ export default function StyleAnalyzer({
                 setIsEditing(false);
                 setAnalysisProgress(0);
               }}
-              className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+              className="w-full px-4 py-2 bg-[#1F1F1F] text-[#FFFFFF] rounded-lg hover:bg-[#2A2A2A] transition-colors flex items-center justify-center gap-2"
             >
               <Eye className="w-4 h-4" />
               Analyze Different Video

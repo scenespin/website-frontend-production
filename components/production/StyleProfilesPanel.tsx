@@ -275,7 +275,7 @@ export function StyleProfilesPanel({
 
       const { downloadUrl } = await downloadUrlResponse.json();
 
-      // Set video URL and show analyzer
+      // Set video URL and show analyzer (auto-start will be handled by StyleAnalyzer)
       setVideoUrl(downloadUrl);
       setAnalyzerMode('url');
       setShowAnalyzer(true);
@@ -551,6 +551,7 @@ export function StyleProfilesPanel({
                   projectId={projectId}
                   videoUrl={videoUrl}
                   onAnalysisComplete={handleAnalysisComplete}
+                  autoStart={true}
                 />
               </div>
             )}
