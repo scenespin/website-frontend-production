@@ -341,3 +341,211 @@ export function normalizeScreenplayText(content: string): string {
   return normalized;
 }
 
+/**
+ * Clean web-pasted text for Fountain format
+ * Feature 0197: Aggressive cleaning for content pasted from websites or imperfect sources
+ * 
+ * Handles:
+ * - HTML tags and encoding issues
+ * - Smart quotes and invisible characters
+ * - Incorrect blank line spacing (Fountain spec: 2 before scene heading, 1 after)
+ * - Title pages, page numbers, formatting artifacts
+ * 
+ * This is an OPT-IN feature - only use when user explicitly enables web cleaning mode
+ */
+export function cleanWebPastedText(text: string): string {
+  if (!text || text.trim().length === 0) {
+    return text;
+  }
+  
+  console.log('[WebPasteCleaner] Cleaning web-pasted text...', {
+    originalLength: text.length
+  });
+  
+  let cleaned = text;
+  
+  // Phase 1: Strip HTML and Encoding Issues
+  // Remove HTML tags (conservative - only remove obvious tags)
+  cleaned = cleaned.replace(/<[^>]+>/g, '');
+  
+  // Fix smart quotes and special characters
+  const quoteReplacements: Array<[RegExp, string]> = [
+    [/[""]/g, '"'],      // Smart double quotes
+    [/['']/g, "'"],      // Smart single quotes
+    [/—/g, '--'],        // Em dash to double dash
+    [/–/g, '-'],        // En dash to single dash
+    [/…/g, '...'],      // Ellipsis to three dots
+  ];
+  
+  for (const [pattern, replacement] of quoteReplacements) {
+    cleaned = cleaned.replace(pattern, replacement);
+  }
+  
+  // Remove invisible characters (zero-width spaces, non-breaking spaces, etc.)
+  cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, ''); // Zero-width spaces
+  cleaned = cleaned.replace(/\u00A0/g, ' '); // Non-breaking space to regular space
+  
+  // Normalize line endings
+  cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  
+  // Phase 2: Fix Blank Line Spacing (Primary Issue)
+  // Fountain spec: 2 blank lines BEFORE scene heading, 1 blank line AFTER
+  const lines = cleaned.split('\n');
+  const fixedLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Detect scene heading
+    const isSceneHeading = /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(trimmed);
+    
+    if (isSceneHeading) {
+      // Count blank lines BEFORE this scene heading
+      let blankLinesBefore = 0;
+      for (let j = fixedLines.length - 1; j >= 0; j--) {
+        if (fixedLines[j].trim() === '') {
+          blankLinesBefore++;
+        } else {
+          break;
+        }
+      }
+      
+      // Fix spacing BEFORE scene heading: need exactly 2 blank lines
+      // (unless it's the first scene heading, then 0 is fine)
+      if (blankLinesBefore > 2) {
+        // Remove excess blank lines, keep exactly 2
+        while (blankLinesBefore > 2) {
+          fixedLines.pop();
+          blankLinesBefore--;
+        }
+      } else if (blankLinesBefore === 0 && fixedLines.length > 0) {
+        // Need to add 2 blank lines (scene separation)
+        fixedLines.push('');
+        fixedLines.push('');
+      } else if (blankLinesBefore === 1) {
+        // Need one more to make it 2
+        fixedLines.push('');
+      }
+      // If blankLinesBefore === 2, we're good
+      
+      // Add the scene heading
+      fixedLines.push(line);
+      
+      // Fix spacing AFTER scene heading: need exactly 1 blank line
+      // Check next non-blank line
+      let nextNonBlank = '';
+      let nextIndex = i + 1;
+      while (nextIndex < lines.length && !nextNonBlank) {
+        if (lines[nextIndex].trim()) {
+          nextNonBlank = lines[nextIndex].trim();
+          break;
+        }
+        nextIndex++;
+      }
+      
+      // Count blank lines between scene heading and next content
+      let blankLinesAfter = 0;
+      for (let j = i + 1; j < nextIndex && j < lines.length; j++) {
+        if (lines[j].trim() === '') {
+          blankLinesAfter++;
+        }
+      }
+      
+      // If we have 2+ blank lines after, we'll fix it when we process those lines
+      // For now, if next line is blank, we'll add exactly 1 blank line
+      if (nextNonBlank && blankLinesAfter === 0) {
+        // Need to add 1 blank line after scene heading
+        fixedLines.push('');
+      } else if (blankLinesAfter > 1) {
+        // We have too many - we'll skip the excess when we process them
+        // Add exactly 1 blank line
+        fixedLines.push('');
+        // Skip the excess blank lines
+        i += blankLinesAfter - 1; // -1 because we'll increment in the loop
+      } else if (blankLinesAfter === 1) {
+        // Perfect - we'll add it when we process it
+      }
+    } else {
+      // Not a scene heading - preserve the line
+      // But skip if it's an excess blank line after a scene heading
+      // (We already handled that case above)
+      fixedLines.push(line);
+    }
+  }
+  
+  cleaned = fixedLines.join('\n');
+  
+  // Phase 3: Remove Common Artifacts
+  const artifactLines = cleaned.split('\n');
+  const cleanedLines: string[] = [];
+  
+  for (let i = 0; i < artifactLines.length; i++) {
+    const line = artifactLines[i];
+    const trimmed = line.trim();
+    
+    // Remove standalone page numbers: lines with only a number (possibly with period)
+    if (/^\s*\d+\.?\s*$/.test(trimmed)) {
+      // Replace with blank line to preserve spacing
+      cleanedLines.push('');
+      continue;
+    }
+    
+    // Remove standalone underscores (page break markers)
+    if (/^\s*_\s*$/.test(trimmed)) {
+      cleanedLines.push('');
+      continue;
+    }
+    
+    // Remove lines with only dashes/separators
+    if (/^\s*[-=]{3,}\s*$/.test(trimmed)) {
+      cleanedLines.push('');
+      continue;
+    }
+    
+    // Keep the line
+    cleanedLines.push(line);
+  }
+  
+  cleaned = cleanedLines.join('\n');
+  
+  // Phase 4: Remove Title Page (if script start is detected)
+  // Find first "FADE IN:" or scene heading
+  const fadeInIndex = cleaned.toUpperCase().indexOf('FADE IN:');
+  const firstSceneHeadingMatch = cleaned.match(/^(.*?)((?:^|\n)(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s])/im);
+  
+  let scriptStartIndex = 0;
+  if (fadeInIndex !== -1) {
+    scriptStartIndex = fadeInIndex;
+  } else if (firstSceneHeadingMatch && firstSceneHeadingMatch.index !== undefined) {
+    scriptStartIndex = firstSceneHeadingMatch.index;
+  }
+  
+  // Only remove title page if script start is found and it's not too early (within first 50 lines)
+  if (scriptStartIndex > 0) {
+    const linesBeforeStart = cleaned.substring(0, scriptStartIndex).split('\n').length;
+    if (linesBeforeStart > 10) {
+      // Remove everything before script start
+      cleaned = cleaned.substring(scriptStartIndex);
+    }
+  }
+  
+  // Phase 5: Normalize Whitespace
+  // Collapse excessive blank lines (3+ to 2, preserving scene separation)
+  cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n'); // 4+ newlines = 3+ blank lines, reduce to 2 blank lines
+  
+  // Trim trailing whitespace from lines
+  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
+  
+  // Remove leading/trailing blank lines
+  cleaned = cleaned.trim();
+  
+  console.log('[WebPasteCleaner] Cleaning complete', {
+    originalLength: text.length,
+    cleanedLength: cleaned.length,
+    linesOriginal: text.split('\n').length,
+    linesCleaned: cleaned.split('\n').length
+  });
+  
+  return cleaned;
+}

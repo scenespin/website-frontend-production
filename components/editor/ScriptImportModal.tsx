@@ -7,7 +7,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { updateScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
-import { normalizeScreenplayText } from '@/utils/screenplayNormalizer';
+import { normalizeScreenplayText, cleanWebPastedText } from '@/utils/screenplayNormalizer';
 import { processChunkedImport } from '@/utils/screenplayStreamParser';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X, File } from 'lucide-react';
@@ -38,6 +38,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null); // 🔥 NEW: Track uploaded file name
     const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload'); // 🔥 NEW: Tab state
     const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<Record<number, string>>({}); // 🔥 NEW: Track selected time of day for each scene heading issue
+    const [enableWebCleaning, setEnableWebCleaning] = useState(false); // Feature 0197: Opt-in web paste cleaning
     
     // Parse content whenever it changes (debounced)
     // Feature 0177: Normalize content before parsing
@@ -50,22 +51,28 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         
         const timer = setTimeout(async () => {
             try {
+                // Feature 0197: Apply web cleaning if enabled (paste tab only)
+                let processedContent = content;
+                if (enableWebCleaning && activeTab === 'paste') {
+                    processedContent = cleanWebPastedText(content);
+                }
+                
                 // Feature 0177: Normalize content before parsing
-                const isLargeFile = content.length > 1024 * 1024; // >1MB
+                const isLargeFile = processedContent.length > 1024 * 1024; // >1MB
                 
                 let normalized: string;
                 if (isLargeFile) {
                     // Large file: use chunked processing with progress
                     setNormalizationProgress(0);
                     normalized = await processChunkedImport(
-                        content,
+                        processedContent,
                         (chunk) => normalizeScreenplayText(chunk),
                         (progress) => setNormalizationProgress(progress)
                     );
                     setNormalizationProgress(null);
                 } else {
                     // Small file: normalize in one pass
-                    normalized = normalizeScreenplayText(content);
+                    normalized = normalizeScreenplayText(processedContent);
                 }
                 
                 const result = parseContentForImport(normalized);
@@ -77,7 +84,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         }, 500); // Debounce 500ms
         
         return () => clearTimeout(timer);
-    }, [content]);
+    }, [content, enableWebCleaning, activeTab]);
     
     // 🔥 NEW: Handle file upload (PDF or Word)
     const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -285,23 +292,30 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 correctedContent = lines.join('\n');
             }
             
-            // Step 3: Normalize and set content in editor
+            // Step 3: Apply web cleaning if enabled (paste tab only)
+            // Feature 0197: Opt-in web paste cleaning
+            let processedContent = correctedContent;
+            if (enableWebCleaning && activeTab === 'paste') {
+                processedContent = cleanWebPastedText(correctedContent);
+            }
+            
+            // Step 4: Normalize and set content in editor
             // Feature 0177: Normalize content before setting in editor
-            const isLargeFile = correctedContent.length > 1024 * 1024; // >1MB
+            const isLargeFile = processedContent.length > 1024 * 1024; // >1MB
             let normalizedContent: string;
             
             if (isLargeFile) {
                 // Large file: use chunked processing with progress
                 setNormalizationProgress(0);
                 normalizedContent = await processChunkedImport(
-                    correctedContent,
+                    processedContent,
                     (chunk) => normalizeScreenplayText(chunk),
                     (progress) => setNormalizationProgress(progress)
                 );
                 setNormalizationProgress(null);
             } else {
                 // Small file: normalize in one pass
-                normalizedContent = normalizeScreenplayText(correctedContent);
+                normalizedContent = normalizeScreenplayText(processedContent);
             }
             
             setContent(normalizedContent);
@@ -480,7 +494,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         } finally {
             setIsImporting(false);
         }
-    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent]);
+    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent, enableWebCleaning, activeTab, selectedTimeOfDay, user]);
     
     if (!isOpen) return null;
     
@@ -631,6 +645,27 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                             />
                                         </div>
                                     )}
+                                    
+                                    {/* Feature 0197: Web paste cleaning checkbox */}
+                                    <div className="mt-4">
+                                        <label className="label cursor-pointer gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={enableWebCleaning}
+                                                onChange={(e) => setEnableWebCleaning(e.target.checked)}
+                                                className="checkbox checkbox-sm bg-[#1F1F1F] border-[#3F3F46] checked:bg-[#DC143C] checked:border-[#DC143C]"
+                                            />
+                                            <div className="flex flex-col gap-1">
+                                                <span className="label-text text-sm text-[#FFFFFF]">
+                                                    Clean web-pasted content (for imports from websites or imperfect sources)
+                                                </span>
+                                                <span className="label-text text-xs text-[#808080]">
+                                                    Note: This may not work perfectly for all content. Manual cleanup may still be required.
+                                                    Perfect Fountain format is always recommended for best results.
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                             </TabsContent>
                         </Tabs>
