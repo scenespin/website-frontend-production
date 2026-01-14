@@ -47,7 +47,7 @@ interface WorkflowJob {
   jobId: string;
   workflowId: string;
   workflowName: string;
-  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading';
+  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading' | 'video-soundscape';
   status: 'queued' | 'running' | 'completed' | 'failed';
   progress: number;
   results?: {
@@ -126,6 +126,22 @@ interface WorkflowJob {
       backgroundType: string;
       error: string;
     }>;
+    videoSoundscape?: {
+      analysisId: string;
+      videoUrl: string;
+      videoDuration: number;
+      detectedCues?: Array<{
+        timestamp: number;
+        type: string;
+        description: string;
+        confidence: number;
+      }>;
+      moodProfile?: {
+        primaryMood: string;
+        intensity: number;
+        tempo: string;
+      };
+    };
   };
   error?: string;
   createdAt: string;
@@ -513,40 +529,80 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         return;
       }
 
-      // Load only active/running jobs (default: status=running&limit=15)
-      const url = `/api/workflows/executions?screenplayId=${screenplayId}&status=running&limit=15`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
+      // Load workflow jobs and video soundscape jobs in parallel
+      const [workflowResponse, soundscapeResponse] = await Promise.all([
+        fetch(`/api/workflows/executions?screenplayId=${screenplayId}&status=running&limit=15`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`/api/video-soundscape/jobs?status=running`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(() => null) // Don't fail if endpoint doesn't exist yet
+      ]);
 
-      if (data.success) {
-        const jobList = data.data?.jobs || data.jobs || [];
-        
-        setJobs(prevJobs => {
-          const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
-          jobList.forEach((newJob: WorkflowJob) => {
-            jobMap.set(newJob.jobId, newJob);
-          });
-          const mergedJobs = Array.from(jobMap.values());
-          mergedJobs.sort((a, b) => {
-            const dateA = new Date(a.createdAt).getTime();
-            const dateB = new Date(b.createdAt).getTime();
-            return dateB - dateA;
-          });
-          return mergedJobs;
+      const workflowData = await workflowResponse.json();
+      const soundscapeData = soundscapeResponse ? await soundscapeResponse.json().catch(() => ({ success: false })) : { success: false };
+
+      const jobList: WorkflowJob[] = [];
+
+      // Add workflow jobs
+      if (workflowData.success) {
+        const workflowJobs = workflowData.data?.jobs || workflowData.jobs || [];
+        jobList.push(...workflowJobs);
+      }
+
+      // Add video soundscape jobs (transform to WorkflowJob format)
+      if (soundscapeData.success && soundscapeData.jobs) {
+        const soundscapeJobs: WorkflowJob[] = soundscapeData.jobs.map((job: any) => ({
+          jobId: job.jobId,
+          workflowId: `video-soundscape-${job.jobId}`,
+          workflowName: 'Video Soundscape Analysis',
+          jobType: 'video-soundscape' as const,
+          status: job.status,
+          progress: job.progress,
+          message: job.message,
+          results: job.result ? {
+            videoSoundscape: {
+              analysisId: job.result.analysisId,
+              videoUrl: job.result.videoUrl,
+              videoDuration: job.result.videoDuration,
+              detectedCues: job.result.detectedCues || job.result.cues,
+              moodProfile: job.result.moodProfile || job.result.moodAnalysis
+            }
+          } : undefined,
+          error: job.error,
+          createdAt: job.createdAt ? new Date(job.createdAt).toISOString() : new Date().toISOString(),
+          completedAt: job.completedAt ? new Date(job.completedAt).toISOString() : undefined,
+          creditsUsed: 0, // Will be calculated from video duration if needed
+          metadata: {
+            videoSoundscape: true,
+            analysisId: job.result?.analysisId
+          }
+        }));
+        jobList.push(...soundscapeJobs);
+      }
+      
+      setJobs(prevJobs => {
+        const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
+        jobList.forEach((newJob: WorkflowJob) => {
+          jobMap.set(newJob.jobId, newJob);
         });
-        
-        if (!hasLoadedOnce) {
-          setHasLoadedOnce(true);
-        }
-      } else {
-        console.error('[JobsDrawer] API error:', data.error);
+        const mergedJobs = Array.from(jobMap.values());
+        mergedJobs.sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+        return mergedJobs;
+      });
+      
+      if (!hasLoadedOnce) {
+        setHasLoadedOnce(true);
+      }
+
+      if (!workflowData.success && !soundscapeData.success) {
+        console.error('[JobsDrawer] API error:', workflowData.error || soundscapeData.error);
         if (showLoading) {
-          toast.error('Failed to load jobs', { description: data.error });
+          toast.error('Failed to load jobs', { description: workflowData.error || soundscapeData.error });
         }
       }
     } catch (error: any) {
@@ -1050,6 +1106,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                           {job.results.screenplayReading.sceneAudios?.length || job.results.screenplayReading.scenesProcessed?.length || 0} scene(s)
                         </span>
                       )}
+                      {job.jobType === 'video-soundscape' && job.results.videoSoundscape && (
+                        <span className="flex items-center gap-0.5">
+                          <Music className="w-2.5 h-2.5" />
+                          Analysis complete
+                        </span>
+                      )}
                     </div>
 
                     {/* Compact thumbnails - 4 columns for drawer */}
@@ -1307,6 +1369,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                         </>
                       )}
 
+                      {job.jobType === 'video-soundscape' && job.results.videoSoundscape && (
+                        <button
+                          onClick={() => {
+                            router.push('/direct?tab=soundscape');
+                            onClose(); // Close drawer when navigating
+                            // Store analysisId in sessionStorage so VideoSoundscapePanel can load it
+                            if (job.results?.videoSoundscape?.analysisId) {
+                              sessionStorage.setItem('videoSoundscape_analysisId', job.results.videoSoundscape.analysisId);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                        >
+                          <ChevronRight className="w-2.5 h-2.5" />
+                          View Analysis
+                        </button>
+                      )}
                       {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (
                         <button
                           onClick={() => {

@@ -316,6 +316,49 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
     };
   }, [analysisJobId, pollJobStatus]);
 
+  // Check for stored analysisId from JobsDrawer navigation
+  useEffect(() => {
+    const storedAnalysisId = sessionStorage.getItem('videoSoundscape_analysisId');
+    if (storedAnalysisId && !analysis) {
+      // Load analysis from job
+      const loadAnalysisFromJob = async () => {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) return;
+
+          // Find the job with this analysisId
+          const jobsResponse = await fetch(`${BACKEND_API_URL}/api/video-soundscape/jobs`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (jobsResponse.ok) {
+            const jobsData = await jobsResponse.json();
+            const completedJob = jobsData.jobs?.find((job: any) => 
+              job.result?.analysisId === storedAnalysisId && job.status === 'completed'
+            );
+
+            if (completedJob?.result) {
+              setAnalysis(completedJob.result);
+              setUploadedVideoUrl(completedJob.result.videoUrl);
+              setVideoDuration(completedJob.result.videoDuration);
+              setStep('generate');
+              sessionStorage.removeItem('videoSoundscape_analysisId');
+              toast.success('Analysis loaded from previous job');
+            }
+          }
+        } catch (error) {
+          console.error('[VideoSoundscape] Failed to load analysis from job:', error);
+          sessionStorage.removeItem('videoSoundscape_analysisId');
+        }
+      };
+
+      loadAnalysisFromJob();
+    }
+  }, [analysis, getToken]);
+
   // Analyze video (async job pattern)
   const analyzeVideo = async () => {
     if (!videoFile || !videoDuration) return;
