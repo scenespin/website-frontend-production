@@ -106,6 +106,8 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
   const [generateSFX, setGenerateSFX] = useState(true);
   const [generateMusic, setGenerateMusic] = useState(true);
   const [musicStyle, setMusicStyle] = useState('cinematic');
@@ -150,7 +152,7 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
 
       const breakdown = await response.json();
       setCreditBreakdown(breakdown);
-      setStep('estimate');
+      setStep('choose-method');
     } catch (error: any) {
       toast.error(error.message || 'Failed to estimate credits');
     }
@@ -217,12 +219,89 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
     return downloadUrl;
   };
 
-  // Analyze video
+  // Poll job status (following useVideoGeneration pattern)
+  const pollJobStatus = React.useCallback(async (jobId: string) => {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const response = await fetch(`${BACKEND_API_URL}/api/video-soundscape/jobs/${jobId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get job status: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const job = data.job;
+
+      // Update progress
+      setAnalysisProgress(job.progress || 0);
+      setLoadingMessage(job.message || 'Analyzing...');
+
+      // Check if job is complete
+      if (job.status === 'completed') {
+        setAnalysis(job.result);
+        setStep('generate');
+        setAnalysisJobId(null);
+        setIsLoading(false);
+        setLoadingMessage('');
+        toast.success('Video analyzed successfully!');
+        return true; // Stop polling
+      } else if (job.status === 'failed') {
+        setAnalysisJobId(null);
+        setIsLoading(false);
+        setLoadingMessage('');
+        toast.error(job.error || 'Analysis failed');
+        return true; // Stop polling
+      }
+
+      return false; // Continue polling
+    } catch (error: any) {
+      console.error('[VideoSoundscape] Poll error:', error);
+      return false; // Continue polling on error
+    }
+  }, [getToken]);
+
+  // Polling effect
+  useEffect(() => {
+    if (!analysisJobId) return;
+
+    let interval: NodeJS.Timeout | null = null;
+
+    const startPolling = async () => {
+      // Initial poll
+      const shouldStop = await pollJobStatus(analysisJobId!);
+      if (shouldStop) return;
+
+      // Continue polling
+      interval = setInterval(async () => {
+        const stop = await pollJobStatus(analysisJobId!);
+        if (stop && interval) {
+          clearInterval(interval);
+        }
+      }, 2000); // Poll every 2 seconds
+    };
+
+    startPolling();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [analysisJobId, pollJobStatus]);
+
+  // Analyze video (async job pattern)
   const analyzeVideo = async () => {
     if (!videoFile || !videoDuration) return;
 
     setIsLoading(true);
     setLoadingMessage('Uploading video...');
+    setAnalysisProgress(0);
 
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -232,9 +311,9 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
       const uploadedVideoUrl = await uploadVideoToS3(videoFile);
       setUploadedVideoUrl(uploadedVideoUrl); // Store for merge step
 
-      setLoadingMessage('Analyzing video frames...');
+      setLoadingMessage('Starting analysis...');
 
-      // Analyze video
+      // Start analysis job (returns jobId immediately)
       const analyzeResponse = await fetch(`${BACKEND_API_URL}/api/video-soundscape/analyze`, {
         method: 'POST',
         headers: {
@@ -243,6 +322,7 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         },
         body: JSON.stringify({
           videoUrl: uploadedVideoUrl,
+          videoDuration, // Send duration to avoid backend download
         }),
       });
 
@@ -252,14 +332,14 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
       }
 
       const result = await analyzeResponse.json();
-      setAnalysis(result);
-      setStep('generate');
-      toast.success('Video analyzed successfully!');
+      setAnalysisJobId(result.jobId);
+      // Polling will be handled by useEffect
+      toast.success('Analysis started. You can navigate away.');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to analyze video');
-    } finally {
       setIsLoading(false);
       setLoadingMessage('');
+      setAnalysisProgress(0);
+      toast.error(error.message || 'Failed to start analysis');
     }
   };
 
@@ -495,32 +575,56 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
     setGenerateSFX(true);
     setGenerateMusic(true);
     setMusicStyle('cinematic');
+    setAnalysisJobId(null);
+    setAnalysisProgress(0);
+    setIsLoading(false);
+    setLoadingMessage('');
   };
 
   return (
-    <div className={cn('p-6 space-y-6', className)}>
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white mb-2">Video Soundscape</h1>
-        <p className="text-gray-400">
-          AI-powered sound effects and music generation for your videos
+    <div className={cn('p-4 space-y-4', className)}>
+      {/* Header - Compact */}
+      <div className="mb-3">
+        <h1 className="text-xl font-bold text-white">Video Soundscape</h1>
+        <p className="text-gray-400 text-sm">
+          AI-powered sound effects and music generation
         </p>
       </div>
+
+      {/* Video Preview - Always at Top */}
+      {(videoUrl || uploadedVideoUrl) && (
+        <div className="mb-4">
+          <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', maxHeight: '300px' }}>
+            <video
+              ref={videoRef}
+              src={uploadedVideoUrl || videoUrl || undefined}
+              controls
+              className="w-full h-full object-contain"
+              key={uploadedVideoUrl || videoUrl} // Force re-render when URL changes
+            />
+            {videoDuration && (
+              <div className="absolute top-2 right-2 bg-black/70 px-2 py-1 rounded text-white text-xs">
+                {videoDuration.toFixed(1)}s
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Step 1: Upload */}
       {step === 'upload' && (
         <Card className="bg-[#1A1A1A] border-white/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Upload className="w-4 h-4" />
               Upload Video
             </CardTitle>
-            <CardDescription>
-              Upload a video (3 seconds - 5 minutes) to generate audio
+            <CardDescription className="text-xs">
+              Upload a video (3 seconds - 5 minutes)
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="border-2 border-dashed border-white/20 rounded-lg p-8 text-center">
+          <CardContent className="pt-0">
+            <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center">
               <input
                 type="file"
                 accept="video/*"
@@ -539,28 +643,28 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
               />
               <label
                 htmlFor="video-upload"
-                className="cursor-pointer flex flex-col items-center gap-4"
+                className="cursor-pointer flex flex-col items-center gap-3"
               >
-                <FileVideo className="w-12 h-12 text-gray-400" />
+                <FileVideo className="w-10 h-10 text-gray-400" />
                 <div>
-                  <p className="text-white font-medium">Click to upload or drag and drop</p>
-                  <p className="text-gray-400 text-sm mt-1">MP4, MOV, AVI (max 500MB)</p>
+                  <p className="text-white font-medium text-sm">Click to upload or drag and drop</p>
+                  <p className="text-gray-400 text-xs mt-1">MP4, MOV, AVI (max 500MB)</p>
                 </div>
               </label>
             </div>
             {videoFile && (
-              <div className="mt-4 p-4 bg-white/5 rounded-lg flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileVideo className="w-5 h-5 text-gray-400" />
+              <div className="mt-3 p-3 bg-white/5 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileVideo className="w-4 h-4 text-gray-400" />
                   <div>
-                    <p className="text-white font-medium">{videoFile.name}</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white font-medium text-sm">{videoFile.name}</p>
+                    <p className="text-gray-400 text-xs">
                       {(videoFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setVideoFile(null)}>
-                  <X className="w-4 h-4" />
+                <Button variant="ghost" size="sm" onClick={() => setVideoFile(null)} className="h-7 w-7 p-0">
+                  <X className="w-3 h-3" />
                 </Button>
               </div>
             )}
@@ -571,43 +675,39 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
       {/* Step 2: Choose Method */}
       {step === 'choose-method' && creditBreakdown && (
         <Card className="bg-[#1A1A1A] border-white/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              Choose Generation Method
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Choose Method
             </CardTitle>
-            <CardDescription>
-              Let AI analyze your video or enter prompts manually
+            <CardDescription className="text-xs">
+              AI analysis or manual prompts
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="pt-0 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* AI Analysis Option */}
               <Card 
                 className="bg-white/5 border-2 border-white/10 cursor-pointer hover:border-cinema-red/50 transition-colors"
                 onClick={() => setStep('estimate')}
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-cinema-red/20 rounded-lg">
-                      <Sparkles className="w-6 h-6 text-cinema-red" />
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-cinema-red/20 rounded-lg">
+                      <Sparkles className="w-5 h-5 text-cinema-red" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-2">AI Analysis</h3>
-                      <p className="text-gray-400 text-sm mb-3">
-                        Let AI detect sounds and mood from your video frames
+                      <h3 className="text-white font-semibold text-sm mb-1">AI Analysis</h3>
+                      <p className="text-gray-400 text-xs mb-2">
+                        AI detects sounds and mood
                       </p>
-                      <div className="space-y-1 text-xs text-gray-500">
-                        <p>✓ Detects visible actions</p>
-                        <p>✓ Analyzes mood & tempo</p>
-                        <p>✓ Suggests matching audio</p>
+                      <div className="space-y-0.5 text-xs text-gray-500 mb-2">
+                        <p>✓ Detects actions</p>
+                        <p>✓ Analyzes mood</p>
                       </div>
-                      <div className="mt-4 pt-4 border-t border-white/10">
-                        <p className="text-gray-400 text-sm">
-                          Cost: <span className="text-white font-medium">{creditBreakdown.analysis} cr</span> for analysis
-                        </p>
-                        <p className="text-gray-500 text-xs mt-1">
-                          + {creditBreakdown.sfxAndMusic} cr for generation
+                      <div className="pt-2 border-t border-white/10">
+                        <p className="text-gray-400 text-xs">
+                          <span className="text-white font-medium">{creditBreakdown.analysis} cr</span> analysis
                         </p>
                       </div>
                     </div>
@@ -620,27 +720,23 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
                 className="bg-white/5 border-2 border-white/10 cursor-pointer hover:border-cinema-red/50 transition-colors"
                 onClick={() => setStep('manual-prompt')}
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-blue-500/20 rounded-lg">
-                      <Zap className="w-6 h-6 text-blue-400" />
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-500/20 rounded-lg">
+                      <Zap className="w-5 h-5 text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-2">Manual Prompts</h3>
-                      <p className="text-gray-400 text-sm mb-3">
-                        Enter your own music and sound effect descriptions
+                      <h3 className="text-white font-semibold text-sm mb-1">Manual Prompts</h3>
+                      <p className="text-gray-400 text-xs mb-2">
+                        Enter your own descriptions
                       </p>
-                      <div className="space-y-1 text-xs text-gray-500">
-                        <p>✓ Full creative control</p>
-                        <p>✓ Skip analysis step</p>
-                        <p>✓ Faster & cheaper</p>
+                      <div className="space-y-0.5 text-xs text-gray-500 mb-2">
+                        <p>✓ Full control</p>
+                        <p>✓ Skip analysis</p>
                       </div>
-                      <div className="mt-4 pt-4 border-t border-white/10">
-                        <p className="text-gray-400 text-sm">
-                          Cost: <span className="text-white font-medium">0 cr</span> for analysis
-                        </p>
-                        <p className="text-gray-500 text-xs mt-1">
-                          Only {creditBreakdown.sfxAndMusic} cr for generation
+                      <div className="pt-2 border-t border-white/10">
+                        <p className="text-gray-400 text-xs">
+                          <span className="text-white font-medium">0 cr</span> analysis
                         </p>
                       </div>
                     </div>
@@ -649,13 +745,13 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
               </Card>
             </div>
 
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="w-5 h-5 text-yellow-500 mt-0.5" />
+                <Info className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-yellow-500 font-medium text-sm">Save {creditBreakdown.analysis} credits</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    Choose "Manual Prompts" to skip analysis and save {creditBreakdown.analysis} credits. Perfect if you already know what audio you want.
+                  <p className="text-yellow-500 font-medium text-xs">Save {creditBreakdown.analysis} credits</p>
+                  <p className="text-gray-400 text-xs mt-0.5">
+                    Manual prompts skip analysis
                   </p>
                 </div>
               </div>
@@ -664,80 +760,78 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         </Card>
       )}
 
-      {/* Step 2b: Estimate & Confirm (AI Analysis Path) */}
+      {/* Step 2b: Estimate & Confirm (AI Analysis Path) - Compact */}
       {step === 'estimate' && creditBreakdown && (
         <Card className="bg-[#1A1A1A] border-white/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Coins className="w-5 h-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Coins className="w-4 h-4" />
               Credit Estimate
             </CardTitle>
-            <CardDescription>
-              Review costs before analyzing your video
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-white/5 rounded-lg">
-                <p className="text-gray-400 text-sm">Video Duration</p>
-                <p className="text-white text-2xl font-bold">
+          <CardContent className="pt-0 space-y-3">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2 bg-white/5 rounded">
+                <p className="text-gray-400 text-xs">Duration</p>
+                <p className="text-white text-lg font-bold">
                   {creditBreakdown.videoDuration.toFixed(1)}s
                 </p>
               </div>
-              <div className="p-4 bg-white/5 rounded-lg">
-                <p className="text-gray-400 text-sm">Your Balance</p>
-                <p className="text-white text-2xl font-bold">
+              <div className="p-2 bg-white/5 rounded">
+                <p className="text-gray-400 text-xs">Balance</p>
+                <p className="text-white text-lg font-bold">
                   {creditBreakdown.userBalance} cr
+                </p>
+              </div>
+              <div className="p-2 bg-cinema-red/10 rounded border border-cinema-red/50">
+                <p className="text-gray-400 text-xs">Total</p>
+                <p className="text-cinema-red text-lg font-bold">
+                  {creditBreakdown.total} cr
                 </p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded">
-                <span className="text-gray-300">Analysis (2 cr/sec)</span>
-                <span className="text-white font-medium">{creditBreakdown.analysis} cr</span>
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between items-center p-2 bg-white/5 rounded">
+                <span className="text-gray-300 text-xs">Analysis (2 cr/sec)</span>
+                <span className="text-white font-medium text-xs">{creditBreakdown.analysis} cr</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded">
-                <span className="text-gray-300">SFX Only (3 cr/sec)</span>
-                <span className="text-white font-medium">{creditBreakdown.sfx} cr</span>
+              <div className="flex justify-between items-center p-2 bg-white/5 rounded">
+                <span className="text-gray-300 text-xs">SFX (3 cr/sec)</span>
+                <span className="text-white font-medium text-xs">{creditBreakdown.sfx} cr</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded">
-                <span className="text-gray-300">Music Only (4 cr/sec)</span>
-                <span className="text-white font-medium">{creditBreakdown.music} cr</span>
+              <div className="flex justify-between items-center p-2 bg-white/5 rounded">
+                <span className="text-gray-300 text-xs">Music (4 cr/sec)</span>
+                <span className="text-white font-medium text-xs">{creditBreakdown.music} cr</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded border border-cinema-red/50">
-                <span className="text-white font-medium">Full (SFX + Music)</span>
-                <span className="text-cinema-red font-bold">{creditBreakdown.sfxAndMusic} cr</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-cinema-red/10 rounded border border-cinema-red">
-                <span className="text-white font-bold">Total (Analysis + Full)</span>
-                <span className="text-cinema-red font-bold">{creditBreakdown.total} cr</span>
+              <div className="flex justify-between items-center p-2 bg-cinema-red/10 rounded border border-cinema-red/50">
+                <span className="text-white font-medium text-xs">Full (SFX + Music)</span>
+                <span className="text-cinema-red font-bold text-xs">{creditBreakdown.sfxAndMusic} cr</span>
               </div>
             </div>
 
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-yellow-500 font-medium">Balance After Analysis</p>
-                  <p className="text-white text-lg font-bold">
-                    {creditBreakdown.balanceAfterAnalysis} cr
-                  </p>
-                  <p className="text-gray-400 text-sm mt-1">
-                    You'll need {creditBreakdown.sfxAndMusic} more credits for full generation
+                  <p className="text-yellow-500 font-medium text-xs">After Analysis: {creditBreakdown.balanceAfterAnalysis} cr</p>
+                  <p className="text-gray-400 text-xs mt-0.5">
+                    Need {creditBreakdown.sfxAndMusic} more for full generation
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={handleReset} className="flex-1">
+            {/* Action Button - Prominent */}
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" onClick={handleReset} size="sm" className="flex-1">
                 Cancel
               </Button>
               <Button
                 onClick={() => setShowConfirmDialog(true)}
                 className="flex-1 bg-cinema-red hover:bg-cinema-red/90"
                 disabled={creditBreakdown.userBalance < creditBreakdown.analysis}
+                size="sm"
               >
                 Analyze Video ({creditBreakdown.analysis} cr)
               </Button>
@@ -746,32 +840,35 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         </Card>
       )}
 
-      {/* Confirmation Dialog */}
+      {/* Confirmation Dialog - Compact */}
       {showConfirmDialog && creditBreakdown && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <Card className="bg-[#1A1A1A] border-white/10 max-w-md w-full mx-4">
-            <CardHeader>
-              <CardTitle>Confirm Analysis</CardTitle>
-              <CardDescription>
-                This will charge {creditBreakdown.analysis} credits for analysis
+          <Card className="bg-[#1A1A1A] border-white/10 max-w-sm w-full mx-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Confirm Analysis</CardTitle>
+              <CardDescription className="text-xs">
+                Charge {creditBreakdown.analysis} credits
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-white/5 rounded-lg">
-                <p className="text-gray-400 text-sm mb-2">Current Balance</p>
-                <p className="text-white text-2xl font-bold">{creditBreakdown.userBalance} cr</p>
+            <CardContent className="pt-0 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 bg-white/5 rounded">
+                  <p className="text-gray-400 text-xs mb-1">Current</p>
+                  <p className="text-white text-lg font-bold">{creditBreakdown.userBalance} cr</p>
+                </div>
+                <div className="p-3 bg-white/5 rounded">
+                  <p className="text-gray-400 text-xs mb-1">After</p>
+                  <p className="text-white text-lg font-bold">
+                    {creditBreakdown.balanceAfterAnalysis} cr
+                  </p>
+                </div>
               </div>
-              <div className="p-4 bg-white/5 rounded-lg">
-                <p className="text-gray-400 text-sm mb-2">After Analysis</p>
-                <p className="text-white text-2xl font-bold">
-                  {creditBreakdown.balanceAfterAnalysis} cr
-                </p>
-              </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowConfirmDialog(false)}
                   className="flex-1"
+                  size="sm"
                 >
                   Cancel
                 </Button>
@@ -781,6 +878,7 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
                     analyzeVideo();
                   }}
                   className="flex-1 bg-cinema-red hover:bg-cinema-red/90"
+                  size="sm"
                 >
                   Confirm & Analyze
                 </Button>
@@ -790,12 +888,23 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         </div>
       )}
 
-      {/* Loading State */}
+      {/* Loading State - Compact with Progress */}
       {isLoading && (
         <Card className="bg-[#1A1A1A] border-white/10">
-          <CardContent className="p-8 text-center">
-            <Loader2 className="w-12 h-12 text-cinema-red animate-spin mx-auto mb-4" />
-            <p className="text-white font-medium">{loadingMessage}</p>
+          <CardContent className="p-4 space-y-3">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 text-cinema-red animate-spin mx-auto mb-2" />
+              <p className="text-white font-medium text-sm">{loadingMessage}</p>
+            </div>
+            {analysisProgress > 0 && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-gray-400">
+                  <span>Progress</span>
+                  <span>{analysisProgress}%</span>
+                </div>
+                <Progress value={analysisProgress} className="h-2" />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -949,85 +1058,86 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         </Card>
       )}
 
-      {/* Step 3: Analysis Results */}
+      {/* Step 3: Analysis Results - Compact */}
       {step === 'generate' && analysis && (
         <Card className="bg-[#1A1A1A] border-white/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
               Analysis Complete
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs">
               {analysis.detectedCues.length} audio cues detected
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-white/5 rounded-lg">
-              <p className="text-gray-400 text-sm mb-2">Mood Profile</p>
-              <div className="flex items-center gap-4">
-                <Badge variant="outline">{analysis.moodProfile.primaryMood}</Badge>
-                <Badge variant="outline">{analysis.moodProfile.tempo}</Badge>
-                <Badge variant="outline">Intensity: {analysis.moodProfile.intensity}/10</Badge>
+          <CardContent className="pt-0 space-y-3">
+            <div className="p-3 bg-white/5 rounded-lg">
+              <p className="text-gray-400 text-xs mb-2">Mood Profile</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="text-xs">{analysis.moodProfile.primaryMood}</Badge>
+                <Badge variant="outline" className="text-xs">{analysis.moodProfile.tempo}</Badge>
+                <Badge variant="outline" className="text-xs">Intensity: {analysis.moodProfile.intensity}/10</Badge>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-white font-medium text-sm">Detected Audio Cues</p>
+              <div className="max-h-48 overflow-y-auto space-y-1.5">
+                {analysis.detectedCues.slice(0, 5).map((cue, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2 bg-white/5 rounded text-xs"
+                  >
+                    <p className="text-white font-medium text-xs">{cue.description}</p>
+                    <p className="text-gray-400 text-xs">
+                      {cue.timestamp.toFixed(1)}s • {(cue.confidence * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                ))}
+                {analysis.detectedCues.length > 5 && (
+                  <p className="text-gray-400 text-xs text-center">+ {analysis.detectedCues.length - 5} more</p>
+                )}
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-white font-medium">Detected Audio Cues</p>
-              <div className="max-h-64 overflow-y-auto space-y-2">
-                {analysis.detectedCues.map((cue, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-white/5 rounded-lg flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="text-white font-medium">{cue.description}</p>
-                      <p className="text-gray-400 text-sm">
-                        {cue.timestamp.toFixed(1)}s • {cue.type} • {(cue.confidence * 100).toFixed(0)}% confidence
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center justify-between p-2 bg-white/5 rounded">
+                <label className="flex items-center gap-2 cursor-pointer flex-1">
                   <input
                     type="checkbox"
                     checked={generateSFX}
                     onChange={(e) => setGenerateSFX(e.target.checked)}
                     className="w-4 h-4"
                   />
-                  <span className="text-white">Generate Sound Effects</span>
+                  <span className="text-white text-sm">Sound Effects</span>
                 </label>
                 {generateSFX && creditBreakdown && (
-                  <Badge>{creditBreakdown.sfx} cr</Badge>
+                  <Badge className="text-xs">{creditBreakdown.sfx} cr</Badge>
                 )}
               </div>
 
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center justify-between p-2 bg-white/5 rounded">
+                <label className="flex items-center gap-2 cursor-pointer flex-1">
                   <input
                     type="checkbox"
                     checked={generateMusic}
                     onChange={(e) => setGenerateMusic(e.target.checked)}
                     className="w-4 h-4"
                   />
-                  <span className="text-white">Generate Background Music</span>
+                  <span className="text-white text-sm">Background Music</span>
                 </label>
                 {generateMusic && creditBreakdown && (
-                  <Badge>{creditBreakdown.music} cr</Badge>
+                  <Badge className="text-xs">{creditBreakdown.music} cr</Badge>
                 )}
               </div>
 
               {generateMusic && (
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Music Style</label>
+                  <label className="text-gray-400 text-xs mb-1 block">Music Style</label>
                   <select
                     value={musicStyle}
                     onChange={(e) => setMusicStyle(e.target.value)}
-                    className="w-full p-2 bg-white/5 border border-white/10 rounded text-white"
+                    className="w-full p-2 bg-white/5 border border-white/10 rounded text-white text-sm"
                   >
                     <option value="cinematic">Cinematic</option>
                     <option value="upbeat">Upbeat</option>
@@ -1043,6 +1153,7 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
               onClick={generateAudio}
               className="w-full bg-cinema-red hover:bg-cinema-red/90"
               disabled={!generateSFX && !generateMusic}
+              size="sm"
             >
               Generate Audio
               {creditBreakdown && (
