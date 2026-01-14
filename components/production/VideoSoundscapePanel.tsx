@@ -245,6 +245,15 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
       });
 
       if (!response.ok) {
+        if (response.status === 404) {
+          // Job not found - might have been cleared or server restarted
+          console.warn('[VideoSoundscape] Job not found, stopping polling');
+          setAnalysisJobId(null);
+          setIsLoading(false);
+          setLoadingMessage('');
+          toast.error('Analysis job was lost. Please try again.');
+          return true; // Stop polling
+        }
         throw new Error(`Failed to get job status: ${response.statusText}`);
       }
 
@@ -275,6 +284,7 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
       return false; // Continue polling
     } catch (error: any) {
       console.error('[VideoSoundscape] Poll error:', error);
+      // Don't stop polling on network errors, only on 404
       return false; // Continue polling on error
     }
   }, [getToken]);
@@ -602,10 +612,10 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         </p>
       </div>
 
-      {/* Video Preview - Always at Top */}
+      {/* Video Preview - Always at Top, Centered */}
       {(videoUrl || uploadedVideoUrl) && (
-        <div className="mb-4">
-          <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', maxHeight: '300px' }}>
+        <div className="mb-4 flex justify-center">
+          <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', maxHeight: '300px', maxWidth: '100%' }}>
             <video
               ref={videoRef}
               src={uploadedVideoUrl || videoUrl || undefined}
@@ -620,6 +630,25 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
             )}
           </div>
         </div>
+      )}
+
+      {/* Progress Bar - Below Video, Above Buttons */}
+      {isLoading && analysisProgress > 0 && (
+        <Card className="bg-[#1A1A1A] border-white/10">
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 text-cinema-red animate-spin" />
+              <p className="text-white font-medium text-sm">{loadingMessage}</p>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>Progress</span>
+                <span>{analysisProgress}%</span>
+              </div>
+              <Progress value={analysisProgress} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Step 1: Upload */}
@@ -683,89 +712,39 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         </Card>
       )}
 
-      {/* Step 2: Choose Method */}
+      {/* Step 2: Choose Method - Compact Tabs */}
       {step === 'choose-method' && creditBreakdown && (
         <Card className="bg-[#1A1A1A] border-white/10">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Choose Method
-            </CardTitle>
-            <CardDescription className="text-xs">
-              AI analysis or manual prompts
-            </CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Choose Method</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* AI Analysis Option */}
-              <Card 
-                className="bg-white/5 border-2 border-white/10 cursor-pointer hover:border-cinema-red/50 transition-colors"
+          <CardContent className="pt-0 space-y-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className={cn(
+                  "flex-1 h-9 text-xs",
+                  "bg-white/5 border-white/10 hover:bg-white/10 hover:border-cinema-red/50"
+                )}
                 onClick={() => setStep('estimate')}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-cinema-red/20 rounded-lg">
-                      <Sparkles className="w-5 h-5 text-cinema-red" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold text-sm mb-1">AI Analysis</h3>
-                      <p className="text-gray-400 text-xs mb-2">
-                        AI detects sounds and mood
-                      </p>
-                      <div className="space-y-0.5 text-xs text-gray-500 mb-2">
-                        <p>✓ Detects actions</p>
-                        <p>✓ Analyzes mood</p>
-                      </div>
-                      <div className="pt-2 border-t border-white/10">
-                        <p className="text-gray-400 text-xs">
-                          <span className="text-white font-medium">{creditBreakdown.analysis} cr</span> analysis
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Manual Prompts Option */}
-              <Card 
-                className="bg-white/5 border-2 border-white/10 cursor-pointer hover:border-cinema-red/50 transition-colors"
+                AI Analysis
+                <span className="ml-1 text-gray-400">({creditBreakdown.analysis} cr)</span>
+              </Button>
+              <Button
+                variant="outline"
+                className={cn(
+                  "flex-1 h-9 text-xs",
+                  "bg-white/5 border-white/10 hover:bg-white/10 hover:border-cinema-red/50"
+                )}
                 onClick={() => setStep('manual-prompt')}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-blue-500/20 rounded-lg">
-                      <Zap className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold text-sm mb-1">Manual Prompts</h3>
-                      <p className="text-gray-400 text-xs mb-2">
-                        Enter your own descriptions
-                      </p>
-                      <div className="space-y-0.5 text-xs text-gray-500 mb-2">
-                        <p>✓ Full control</p>
-                        <p>✓ Skip analysis</p>
-                      </div>
-                      <div className="pt-2 border-t border-white/10">
-                        <p className="text-gray-400 text-xs">
-                          <span className="text-white font-medium">0 cr</span> analysis
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                Manual Prompts
+                <span className="ml-1 text-gray-400">(0 cr)</span>
+              </Button>
             </div>
-
-            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-yellow-500 font-medium text-xs">Save {creditBreakdown.analysis} credits</p>
-                  <p className="text-gray-400 text-xs mt-0.5">
-                    Manual prompts skip analysis
-                  </p>
-                </div>
-              </div>
+            <div className="p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs">
+              <p className="text-yellow-500">Save {creditBreakdown.analysis} credits with manual prompts</p>
             </div>
           </CardContent>
         </Card>
@@ -899,23 +878,14 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
         </div>
       )}
 
-      {/* Loading State - Compact with Progress */}
-      {isLoading && (
+      {/* Loading State - Only show if progress bar not already shown above */}
+      {isLoading && analysisProgress === 0 && (
         <Card className="bg-[#1A1A1A] border-white/10">
-          <CardContent className="p-4 space-y-3">
+          <CardContent className="p-4">
             <div className="text-center">
               <Loader2 className="w-8 h-8 text-cinema-red animate-spin mx-auto mb-2" />
               <p className="text-white font-medium text-sm">{loadingMessage}</p>
             </div>
-            {analysisProgress > 0 && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-gray-400">
-                  <span>Progress</span>
-                  <span>{analysisProgress}%</span>
-                </div>
-                <Progress value={analysisProgress} className="h-2" />
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
