@@ -296,7 +296,7 @@ export default function Navigation() {
     {
       name: 'Direct',
       icon: Film,
-      href: '/direct',
+      href: '/coming-soon',
       // Mobile-only sub-items (for accordion)
       subItems: [
         { name: 'Scene Builder', href: '/direct?tab=scene-builder', icon: Clapperboard, description: 'Script-based scene generation' },
