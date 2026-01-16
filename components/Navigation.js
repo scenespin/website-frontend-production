@@ -474,7 +474,14 @@ export default function Navigation() {
                   // Accordion-style parent with sub-items
                   <div className="space-y-1">
                     <button
-                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                      onClick={() => {
+                        if (item.name === 'Direct') {
+                          router.push('/coming-soon');
+                          setMobileMenuOpen(false);
+                        } else {
+                          setOpenDropdown(openDropdown === item.name ? null : item.name);
+                        }
+                      }}
                       className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors w-full min-h-[44px] ${
                         isParentActive(item)
                           ? 'bg-cinema-red/20 text-cinema-red border-l-[3px] border-cinema-red'
