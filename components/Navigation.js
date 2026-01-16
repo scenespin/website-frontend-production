@@ -485,7 +485,7 @@ export default function Navigation() {
                       className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors w-full min-h-[44px] ${
                         isParentActive(item)
                           ? 'bg-cinema-red/20 text-cinema-red border-l-[3px] border-cinema-red'
-                          : 'text-base-content hover:bg-base-300'
+                          : 'text-base-content hover:bg-white/5'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -509,7 +509,7 @@ export default function Navigation() {
                               className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px] ${
                                 isItemActive
                                   ? 'bg-cinema-red/20 text-cinema-red border-l-[3px] border-cinema-red'
-                                  : 'text-base-content hover:bg-base-300'
+                                  : 'text-base-content hover:bg-white/5'
                               }`}
                             >
                               <subItem.icon className="w-4 h-4 mt-0.5 shrink-0" />
@@ -533,7 +533,7 @@ export default function Navigation() {
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors min-h-[44px] ${
                       isActive(item.href)
                         ? 'bg-cinema-red/20 text-cinema-red border-l-[3px] border-cinema-red'
-                        : 'text-base-content hover:bg-base-300'
+                        : 'text-base-content hover:bg-white/5'
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
