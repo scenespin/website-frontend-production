@@ -164,11 +164,12 @@ export default function WritingHelp() {
                       <td colSpan="3" className="italic">In scene headings: Navigate Type → Location → Time fields with SmartType suggestions</td>
                     </tr>
                     <tr className="border-white/10">
-                      <td>Smart Tab (Mobile)</td>
-                      <td colSpan="2" className="text-center"><span className="text-[#DC143C]">📍</span> Smart Tab button</td>
+                      <td>Smart Tab (Mobile Shortcut)</td>
+                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">$</kbd></td>
+                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">$</kbd></td>
                     </tr>
                     <tr className="border-white/10 text-xs text-[#808080]">
-                      <td colSpan="3" className="italic">Mobile: Tap the Smart Tab button in scene headings to navigate Type → Location → Time fields</td>
+                      <td colSpan="3" className="italic">Mobile: Type $ after INT/EXT to complete, or use the Smart Tab button for quick dropdown</td>
                     </tr>
                     <tr className="border-white/10">
                       <td>Quick Link Character/Location</td>
