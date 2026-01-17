@@ -703,11 +703,18 @@ export function CharacterDetailModal({
   );
   
   // Enrich Media Library images with presigned URLs
+  // 🔥 Feature 0200: Filter out images with expired/broken presigned URLs
   const enrichedMediaLibraryImages = useMemo(() => {
-    return imagesFromMediaLibrary.map(img => ({
-      ...img,
-      imageUrl: mediaLibraryUrls.get(img.s3Key) || img.imageUrl || '' // Use Media Library URL, fallback to empty
-    }));
+    return imagesFromMediaLibrary
+      .map(img => ({
+        ...img,
+        imageUrl: mediaLibraryUrls.get(img.s3Key) || img.imageUrl || '' // Use Media Library URL, fallback to empty
+      }))
+      .filter(img => {
+        // Only include images with valid URLs (non-empty string)
+        // This prevents broken images from appearing in the UI
+        return !!img.imageUrl && img.imageUrl.length > 0;
+      });
   }, [imagesFromMediaLibrary, mediaLibraryUrls]);
   
   // 🔥 FALLBACK: Use character prop images if not in Media Library (for backward compatibility)

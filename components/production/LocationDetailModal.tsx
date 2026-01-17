@@ -607,11 +607,18 @@ export function LocationDetailModal({
   );
   
   // Enrich Media Library images with presigned URLs
+  // 🔥 Feature 0200: Filter out images with expired/broken presigned URLs
   const enrichedMediaLibraryImages = useMemo(() => {
-    return imagesFromMediaLibrary.map(img => ({
-      ...img,
-      imageUrl: mediaLibraryUrls.get(img.s3Key) || img.imageUrl || ''
-    }));
+    return imagesFromMediaLibrary
+      .map(img => ({
+        ...img,
+        imageUrl: mediaLibraryUrls.get(img.s3Key) || img.imageUrl || ''
+      }))
+      .filter(img => {
+        // Only include images with valid URLs (non-empty string)
+        // This prevents broken images from appearing in the UI
+        return !!img.imageUrl && img.imageUrl.length > 0;
+      });
   }, [imagesFromMediaLibrary, mediaLibraryUrls]);
   
   // 🔥 FALLBACK: Use location prop images if not in Media Library (for backward compatibility)

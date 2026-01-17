@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { 
   Upload, 
@@ -648,6 +648,29 @@ export default function MediaLibrary({
     // Cloud storage files use their original URLs
     return file.fileUrl;
   };
+
+  // 🔥 Feature 0200: Filter out files with expired/broken presigned URLs
+  // This prevents broken images from appearing in the UI
+  const validDisplayFiles = useMemo(() => {
+    if (!bulkPresignedUrls || bulkPresignedUrls.size === 0) {
+      // If URLs haven't loaded yet, show all files (they'll be filtered once URLs load)
+      return displayFiles;
+    }
+    
+    return displayFiles.filter(file => {
+      // Cloud storage files are always valid (they have original URLs)
+      if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
+        return !!file.fileUrl; // Only filter if no fileUrl at all
+      }
+      
+      // For S3 files, check if we have a valid presigned URL
+      const useThumbnail = viewMode === 'grid' && !!file.thumbnailS3Key;
+      const fileUrl = getFileUrl(file, useThumbnail);
+      
+      // Include file if it has a valid URL (non-empty string)
+      return !!fileUrl && fileUrl.length > 0;
+    });
+  }, [displayFiles, bulkPresignedUrls, viewMode, getFileUrl]);
 
   // Helper function to detect file type from MIME type or filename
   const detectFileType = (mimeTypeOrFilename: string): 'video' | 'image' | 'audio' | 'other' => {
@@ -1639,7 +1662,8 @@ export default function MediaLibrary({
   
   const childFolders = getChildFolders();
 
-  const filteredFiles = displayFiles.filter(file => {
+  // 🔥 Feature 0200: Use validDisplayFiles (already filtered for expired URLs) as base for additional filters
+  const filteredFiles = validDisplayFiles.filter(file => {
     // Feature 0174: Hide thumbnail files from Archive display
     // Thumbnails are stored in Media Library for reference but shouldn't be shown to users
     if ((file as any).metadata?.isThumbnail === true) {
