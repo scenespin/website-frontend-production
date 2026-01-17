@@ -164,12 +164,11 @@ export default function WritingHelp() {
                       <td colSpan="3" className="italic">In scene headings: Navigate Type → Location → Time fields with SmartType suggestions</td>
                     </tr>
                     <tr className="border-white/10">
-                      <td>Wryda Smart Tab (Mobile)</td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">$</kbd></td>
-                      <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">$</kbd></td>
+                      <td>Smart Tab (Mobile)</td>
+                      <td colSpan="2" className="text-center"><span className="text-[#DC143C]">📍</span> Smart Tab button</td>
                     </tr>
                     <tr className="border-white/10 text-xs text-[#808080]">
-                      <td colSpan="3" className="italic">Mobile: Type $ in scene heading to trigger Tab navigation (e.g., "INT$" → shows location dropdown)</td>
+                      <td colSpan="3" className="italic">Mobile: Tap the Smart Tab button in scene headings to navigate Type → Location → Time fields</td>
                     </tr>
                     <tr className="border-white/10">
                       <td>Quick Link Character/Location</td>
@@ -229,7 +228,7 @@ export default function WritingHelp() {
 
               <h3 className="font-bold mb-4 mt-6 text-[#DC143C]">Smart Suggestions</h3>
               <ul className="space-y-2 text-[#B3B3B3]">
-                <li>• <strong className="text-[#FFFFFF]">Wryda Smart Tab</strong> - In scene headings, press Tab (or $ on mobile) to navigate between Type → Location → Time fields with SmartType suggestions. 
+                <li>• <strong className="text-[#FFFFFF]">Smart Tab</strong> - In scene headings, press Tab (desktop) or tap the Smart Tab button (mobile) to navigate between Type → Location → Time fields with SmartType suggestions. 
                   <ul className="ml-6 mt-2 space-y-1 text-sm">
                     <li><strong className="text-[#FFFFFF]">Type formatting:</strong>
                       <ul className="ml-4 mt-1 space-y-0.5">
