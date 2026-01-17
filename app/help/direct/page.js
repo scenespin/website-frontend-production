@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
+import ComingSoonBadge from "@/components/ComingSoonBadge";
 import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
@@ -31,7 +32,10 @@ export default function DirectHelp() {
       </header>
 
       <main className="max-w-4xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
-        <h1 className="text-4xl font-extrabold mb-4 text-[#FFFFFF]">🎞️ Direct</h1>
+        <div className="flex items-center gap-3 mb-4">
+          <h1 className="text-4xl font-extrabold text-[#FFFFFF]">🎞️ Direct</h1>
+          <ComingSoonBadge size="md" />
+        </div>
         <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
           Review, organize, and control your production. Use Scene Builder to generate scenes and Storyboard to view all your generated videos.
         </p>

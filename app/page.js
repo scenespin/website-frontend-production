@@ -10,6 +10,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import ButtonSignin from "@/components/ButtonSignin";
+import ComingSoonBadge from "@/components/ComingSoonBadge";
 
 export default function Page() {
   const { user, isLoaded } = useUser();
@@ -235,7 +236,11 @@ export default function Page() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🎞️</span>
-                      <span><strong>Direct</strong> - Review, edit, and control your production</span>
+                      <span className="flex items-center gap-2 flex-wrap">
+                        <strong>Direct</strong>
+                        <ComingSoonBadge size="sm" />
+                        <span className="text-gray-300">- Review, edit, and control your production</span>
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🔗</span>
@@ -395,7 +400,10 @@ export default function Page() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
                   3
                 </div>
-                <h3 className="text-xl font-bold mb-3">Direct</h3>
+                <h3 className="text-xl font-bold mb-3 flex items-center justify-center gap-2">
+                  Direct
+                  <ComingSoonBadge size="sm" />
+                </h3>
                 <p className="text-gray-300">
                   Generate complete video scenes from your script. Our motion picture technology automatically maintains character, location, and prop consistency across every scene.
                 </p>
