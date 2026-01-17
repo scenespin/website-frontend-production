@@ -97,15 +97,15 @@ export default function Page() {
 
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
-                Turn Your Screenplay Into Video
+                Turn Your Screenplay Into Visual Assets
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-3xl mx-auto mb-4 md:mb-6 px-4">
-                The World's First Integrated Screenwriting Environment (ISE)
+                The First Integrated Screenwriting Environment (ISE)
               </p>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-                Create trailers, pilots, storyboards, or full features—all from your screenplay. End-to-end workflow from script to video production.
+                Generate production-ready assets from your screenplay: characters, locations, props, and wardrobe. Then bring them to life with video scenes that become your live storyboard. <span className="italic">(Video scenes coming soon)</span>
               </p>
 
               {/* CTAs */}
@@ -179,6 +179,12 @@ export default function Page() {
                   </svg>
                   <span>Everything unlocked</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Import PDF, Fountain, or paste</span>
+                </div>
               </div>
             </div>
           </div>
@@ -194,31 +200,19 @@ export default function Page() {
                   <ul className="space-y-2 text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span>Final Draft ($249/year) → Write only</span>
+                      <span>Writing lives in one app</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span>Celtx ($20-50/month) → Write only</span>
+                      <span>Production assets live somewhere else</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span>Fade In ($80 one-time) → Write only</span>
+                      <span>Context gets lost between tools</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span>WriterDuet ($9-19/month) → Write only</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
-                      <span>StudioBinder ($29-99/month) → Production only</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
-                      <span>Video editors → Produce separately</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
-                      <span className="text-gray-400 italic">Result: Context lost, workflow broken, tools don't talk to each other</span>
+                      <span className="text-gray-400 italic">Result: Workflow broken, tools don't talk to each other</span>
                     </li>
                   </ul>
                 </div>
@@ -228,27 +222,27 @@ export default function Page() {
                   <ul className="space-y-2 text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">✍️</span>
-                      <span><strong>Write</strong> - Professional screenplay editor with 5 AI writing agents</span>
+                      <span><strong>Write</strong> : Professional screenplay editor with 5 AI writing agents</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🎬</span>
-                      <span><strong>Produce</strong> - Scene Builder turns your script into video automatically (trailers, pilots, storyboards, features)</span>
+                      <span><strong>Produce</strong> : Generate consistent character, location, and prop assets</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🎞️</span>
                       <span className="flex items-center gap-2 flex-wrap">
                         <strong>Direct</strong>
                         <ComingSoonBadge size="sm" />
-                        <span className="text-gray-300">- Review, edit, and control your production</span>
+                        <span className="text-gray-300">: Scene Builder turns your script into video</span>
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🔗</span>
-                      <span><strong>Integrated</strong> - Everything works together. Characters, locations, and props maintain consistency across your entire production</span>
+                      <span><strong>Integrated</strong> : Everything understands your screenplay context</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">📤</span>
-                      <span><strong>Export</strong> - Ready for further editing and refinement in professional video editing tools</span>
+                      <span><strong>Export</strong> : Ready for professional editing tools</span>
                     </li>
                   </ul>
                 </div>
@@ -262,12 +256,12 @@ export default function Page() {
                 <div className="mt-4 pt-4 border-t border-[#3F3F46]">
                   <p className="text-sm font-semibold text-gray-300 mb-2">Perfect For:</p>
                   <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Trailers and teasers</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pilot episodes</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Storyboards and pre-visualization</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Short films</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Feature films (with additional editing)</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Trailers & Teasers</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pilot Episodes</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Short Films</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Feature Development</span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-2 italic">Built from production assets and video scenes (video coming soon)</p>
                 </div>
               </div>
             </div>
@@ -282,82 +276,36 @@ export default function Page() {
                 Professional Production Consistency
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                The only platform that maintains character, location, and prop consistency across every scene.
+                One reference, unlimited scenes.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
-              {/* Character Consistency */}
+              {/* Characters */}
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-4xl mb-4">👤</div>
-                <h3 className="text-lg md:text-xl font-bold mb-3">Character Consistency</h3>
-                <p className="text-gray-300 mb-4">
-                  Same character, same voice, same outfit across every scene. Virtual try-ons for wardrobe changes. One headshot → unlimited scenes.
+                <h3 className="text-lg md:text-xl font-bold mb-3">Characters</h3>
+                <p className="text-gray-300">
+                  Same face, voice, and wardrobe across every scene. Virtual try-ons for outfit changes.
                 </p>
-                <ul className="space-y-2 text-sm text-gray-400">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Face consistency across all scenes</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Voice consistency with premade or cloned voices</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Outfit consistency with virtual try-ons</span>
-                  </li>
-                </ul>
               </div>
 
-              {/* Location Consistency */}
+              {/* Locations */}
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-4xl mb-4">📍</div>
-                <h3 className="text-lg md:text-xl font-bold mb-3">Location Consistency</h3>
-                <p className="text-gray-300 mb-4">
-                  Same location, multiple angles. Background consistency across shots. Upload once, use everywhere.
+                <h3 className="text-lg md:text-xl font-bold mb-3">Locations</h3>
+                <p className="text-gray-300">
+                  Multiple camera angles per location. Consistent backgrounds across shots.
                 </p>
-                <ul className="space-y-2 text-sm text-gray-400">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Multiple camera angles per location</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Background consistency across scenes</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Reuse locations across unlimited scenes</span>
-                  </li>
-                </ul>
               </div>
 
-              {/* Prop Consistency */}
+              {/* Props */}
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-4xl mb-4">🎬</div>
-                <h3 className="text-lg md:text-xl font-bold mb-3">Prop Consistency</h3>
-                <p className="text-gray-300 mb-4">
-                  Same prop, multiple angles. Background consistency across shots. Upload once, use everywhere.
+                <h3 className="text-lg md:text-xl font-bold mb-3">Props</h3>
+                <p className="text-gray-300">
+                  Same prop, multiple angles. Consistent appearance everywhere.
                 </p>
-                <ul className="space-y-2 text-sm text-gray-400">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Multiple angles per prop</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Consistent appearance across scenes</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Reuse props across unlimited scenes</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">•</span>
-                    <span>Digital asset library</span>
-                  </li>
-                </ul>
               </div>
             </div>
           </div>
@@ -371,7 +319,7 @@ export default function Page() {
                 How It Works
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                From screenplay to finished video in three simple steps.
+                From screenplay to visual development in three steps.
               </p>
             </div>
 
@@ -382,7 +330,7 @@ export default function Page() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Write</h3>
                 <p className="text-gray-300">
-                  Write your screenplay or let AI help. Define your characters, locations, and props. Upload initial reference images to establish your vision.
+                  Import your existing screenplay (PDF, Fountain, or paste) or start fresh. Characters and locations auto-detect instantly. Write with AI assistance or on your own.
                 </p>
               </div>
 
@@ -390,9 +338,9 @@ export default function Page() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
                   2
                 </div>
-                <h3 className="text-xl font-bold mb-3">Build</h3>
+                <h3 className="text-xl font-bold mb-3">Produce</h3>
                 <p className="text-gray-300">
-                  In the Production Hub, use AI to generate advanced images from your references. Create character angle packages, location angles, prop angles, and virtual try-ons for wardrobe changes.
+                  Generate consistent images from your references: character angles, location packages, wardrobe variations, and props.
                 </p>
               </div>
 
@@ -405,7 +353,7 @@ export default function Page() {
                   <ComingSoonBadge size="sm" />
                 </h3>
                 <p className="text-gray-300">
-                  Generate complete video scenes from your script. Our motion picture technology automatically maintains character, location, and prop consistency across every scene.
+                  Generate video scenes from your script. Your scenes become a live storyboard. Our motion picture technology handles consistency automatically.
                 </p>
               </div>
             </div>
@@ -423,7 +371,7 @@ export default function Page() {
                 5 Specialized Agents Powered by OpenAI, Anthropic, and Google
               </p>
               <p className="text-xs sm:text-sm text-gray-400">
-                All agents understand your screenplay context and work together to help you write better scripts.
+                Five specialized agents work inside your screenplay, not on isolated prompts.
               </p>
             </div>
 
@@ -509,7 +457,7 @@ export default function Page() {
                 Complete Production Platform
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Everything you need to turn your screenplay into a movie.
+                Everything you need for visual story development.
               </p>
             </div>
 
@@ -628,10 +576,10 @@ export default function Page() {
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-              Ready to Turn Your Screenplay Into Video?
+              Ready to Visualize Your Screenplay?
             </h2>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8">
-              Join creators using the first Integrated Screenwriting Environment. Create trailers, pilots, storyboards, or features. Start free with 50 credits.
+              Join creators using the first Integrated Screenwriting Environment. Develop trailers, pilots, and pitch-ready assets. Start free with 50 credits.
             </p>
             <Link
               href="/sign-up"

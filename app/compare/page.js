@@ -66,7 +66,7 @@ export default function ComparePage() {
               What Makes Wryda.ai Unique
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              The only Integrated Screenwriting Environment (ISE) that turns your screenplay into video.
+              The only Integrated Screenwriting Environment (ISE) that turns your screenplay into visual assets.
               <br />
               <strong className="text-white">We're not competing. We're creating a new category.</strong>
             </p>
@@ -234,10 +234,10 @@ export default function ComparePage() {
 
                   {/* Video Generation */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 font-semibold bg-[#141414]">Scene Builder (AI Video Generation)</td>
+                    <td className="p-4 font-semibold bg-[#141414]">Scene Builder <span className="text-xs text-yellow-400">(Coming Soon)</span></td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Groundbreaking</span>
-                      <div className="text-xs text-gray-400 mt-1">Only Wryda.ai - Generate complete scenes from screenplay</div>
+                      <div className="text-xs text-gray-400 mt-1">Only Wryda.ai - Generate video scenes from screenplay</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
                       <span className="text-gray-500">No</span>
@@ -306,7 +306,7 @@ export default function ComparePage() {
 
                   {/* Scene-to-Video */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Scene-to-Video Generation</td>
+                    <td className="p-4 bg-[#141414]">Visual Asset Generation</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">From screenplay</div>
