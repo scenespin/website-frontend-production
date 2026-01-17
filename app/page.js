@@ -252,7 +252,7 @@ export default function Page() {
               <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-3 text-[#DC143C]">The Difference</h3>
                 <p className="text-gray-300 mb-4">
-                  An Integrated Screenwriting Environment isn't just a tool, it's a complete environment where every feature understands your screenplay context. Your characters stay consistent. Your locations are reused intelligently. Your AI agents know your full story. Create complete video productions from script to screen, then export for final editing and polish.
+                  An Integrated Screenwriting Environment isn't just a tool, it's a complete environment where every feature understands your screenplay context. Your characters stay consistent. Your locations are reused intelligently. Your AI agents know your full story. Create complete video productions from script to screen, making it an amazing tool for pitching by generating extensive visualizations upfront. Export for final editing and polish.
                 </p>
                 <div className="mt-4 pt-4 border-t border-[#3F3F46]">
                   <p className="text-sm font-semibold text-gray-300 mb-2">Perfect For:</p>
