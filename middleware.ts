@@ -10,6 +10,12 @@ function isPublicRoute(pathname: string): boolean {
       pathname === '/pricing' || 
       pathname === '/help' ||
       pathname === '/how-it-works' ||
+      pathname === '/examples' ||
+      pathname === '/agencies' ||
+      pathname === '/filmmakers' ||
+      pathname === '/marketing-teams' ||
+      pathname === '/screenwriters' ||
+      pathname === '/social-creators' ||
       pathname === '/tos' ||
       pathname === '/privacy-policy') {
     return true
