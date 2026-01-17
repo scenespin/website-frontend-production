@@ -72,8 +72,9 @@ export default function Features() {
               <strong className="text-white">Everything unlocked from day one.</strong>
               <br />
               Free users get everything. Pro/Ultra/Studio just get more credits.
-              <br />
-              <span className="text-gray-400 text-lg mt-2 block">The only Integrated Screenwriting Environment (ISE) that combines writing, production, and direction in one platform.</span>
+            </p>
+            <p className="text-sm text-gray-500 max-w-2xl mx-auto mt-3">
+              The only Integrated Screenwriting Environment (ISE) that combines writing, production, and direction in one platform.
             </p>
           </div>
         </section>
@@ -100,15 +101,15 @@ export default function Features() {
                 <ul className="space-y-2 text-sm text-gray-400">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Face consistency across all scenes</span>
+                    <span>Same face across all scenes</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Voice consistency with premade or cloned voices</span>
+                    <span>Consistent voice (premade or cloned)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Outfit consistency with virtual try-ons</span>
+                    <span>Outfit consistency via virtual try-ons</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -281,23 +282,23 @@ export default function Features() {
                 <ul className="space-y-2 text-sm text-gray-400">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span><strong className="text-gray-300">Smart Import:</strong> Paste your script → characters, locations, and scenes auto-populate</span>
+                    <span><strong className="text-gray-300">Smart Import:</strong> Paste script → auto-populate characters, locations, scenes</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span><strong className="text-gray-300">Real-Time Collaboration:</strong> See collaborators' cursors, edit together seamlessly</span>
+                    <span><strong className="text-gray-300">Real-Time Collaboration:</strong> See collaborators' cursors, edit together</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span><strong className="text-gray-300">Professional Export:</strong> PDF with bookmarks, text/image watermarking (free for all)</span>
+                    <span><strong className="text-gray-300">Professional Export:</strong> PDF with bookmarks and watermarking</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span><strong className="text-gray-300">Auto-Save:</strong> Never lose work—saves every 2 seconds locally, 60 seconds to cloud</span>
+                    <span><strong className="text-gray-300">Auto-Save:</strong> Saves every 2s locally, 60s to cloud</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span><strong className="text-gray-300">Fountain Format:</strong> Compatible with Final Draft, Celtx, and Fade In</span>
+                    <span><strong className="text-gray-300">Fountain Format:</strong> Works with Final Draft, Celtx, Fade In</span>
                   </li>
                 </ul>
               </div>

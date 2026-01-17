@@ -96,7 +96,7 @@ export default function Page() {
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
                 Turn Your Screenplay Into Visual Assets
               </h1>
 
