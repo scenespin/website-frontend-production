@@ -105,7 +105,7 @@ export default function Page() {
               </p>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-                Generate production-ready assets from your screenplay: characters, locations, props, and wardrobe. Then bring them to life with video scenes that become your live storyboard. <span className="italic">(Video scenes coming soon)</span>
+                Generate production-ready assets from your screenplay: characters in any wardrobe, locations, and props. Then bring them to life with video scenes that become your live storyboard. <span className="italic">(Video scenes coming soon)</span>
               </p>
 
               {/* CTAs */}
