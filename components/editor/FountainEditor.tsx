@@ -644,7 +644,10 @@ export default function FountainEditor({
                         flex: 1,
                         width: '100%',
                         margin: 0,
-                        padding: 'var(--space-6)',
+                        paddingTop: 'var(--space-6)',
+                        paddingLeft: 'var(--space-6)',
+                        paddingRight: 'var(--space-6)',
+                        paddingBottom: '50vh', // Scroll beyond last line - allows cursor to be positioned mid-screen
                         fontSize: `${state.fontSize}px`,
                         fontFamily: 'var(--font-mono)',
                         lineHeight: '1.625',
