@@ -11,6 +11,7 @@ import type { Asset, AssetCategory } from '@/types/asset';
 import AssetDetailSidebar from './AssetDetailSidebar';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useMediaFiles } from '@/hooks/useMediaLibrary';
 
 interface AssetColumn {
     id: string;
@@ -50,6 +51,32 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedColumnCategory, setSelectedColumnCategory] = useState<AssetCategory | null>(null);
+    
+    // 🔥 Feature 0200: Query Media Library for asset image counts (source of truth)
+    // This replaces counting from asset.images[] which may contain expired references
+    const { data: allAssetMediaFiles = [] } = useMediaFiles(
+        screenplayId || '',
+        undefined,
+        !!screenplayId,
+        true, // includeAllFolders
+        'asset' // entityType - get all asset media files
+    );
+    
+    // Create a map of assetId → valid image count
+    const assetImageCountMap = useMemo(() => {
+        const countMap = new Map<string, number>();
+        allAssetMediaFiles.forEach((file: any) => {
+            if (file.entityId && file.s3Key && !file.s3Key.startsWith('thumbnails/')) {
+                // Only count creation images (not angle-generation from Production Hub)
+                const source = file.metadata?.source;
+                if (source !== 'angle-generation') {
+                    const current = countMap.get(file.entityId) || 0;
+                    countMap.set(file.entityId, current + 1);
+                }
+            }
+        });
+        return countMap;
+    }, [allAssetMediaFiles]);
     
     // 🔥 FIX: Sync selectedAsset with latest asset from context (for immediate UI updates)
     useEffect(() => {
@@ -710,14 +737,11 @@ function AssetCardContent({
                     📝 {sceneCount} {sceneCount === 1 ? 'scene' : 'scenes'}
                 </span>
                 {(() => {
-                    // 🔥 FIX: Only count Creation images (user-uploaded), not AI-generated Production Hub images
-                    // Filter out images with source='angle-generation' or createdIn='production-hub'
-                    const creationImages = (asset.images || []).filter((img: any) => {
-                        const metadata = img.metadata || {};
-                        return metadata.source !== 'angle-generation' && metadata.createdIn !== 'production-hub';
-                    });
-                    return creationImages.length > 0 ? (
-                        <span className="text-blue-400">🖼️ {creationImages.length}</span>
+                    // 🔥 Feature 0200: Use Media Library count (source of truth)
+                    // This prevents showing counts for expired/deleted images
+                    const imageCount = assetImageCountMap.get(asset.id) || 0;
+                    return imageCount > 0 ? (
+                        <span className="text-blue-400">🖼️ {imageCount}</span>
                     ) : null;
                 })()}
             </div>

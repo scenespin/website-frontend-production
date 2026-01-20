@@ -306,12 +306,10 @@ export default function AssetDetailSidebar({
     // Support multiple files - process all selected files
     const fileArray = Array.from(files);
 
-    // 🔥 NEW: Validate 5-image limit (1 base + 4 additional)
-    // Assets have images directly on the asset object, not via getEntityImages
-    const currentImages = asset?.images || [];
-    const currentCount = currentImages.filter(img => {
-      const source = (img.metadata as any)?.source;
-      return !source || source === 'user-upload';
+    // 🔥 Feature 0200: Validate 5-image limit using Media Library (source of truth)
+    const currentCount = mediaLibraryImages.filter((img: any) => {
+      const source = img.metadata?.source;
+      return !source || source === 'user-upload' || source === 'upload';
     }).length;
     const maxImages = 5;
     
@@ -1143,11 +1141,11 @@ export default function AssetDetailSidebar({
               <div className="space-y-3">
                 {/* Upload Buttons */}
                 {(() => {
-                  // Calculate user-uploaded image count for the upload button
-                  const currentImages = asset?.images || [];
-                  const userUploadedCount = currentImages.filter((img: any) => {
+                  // 🔥 Feature 0200: Use Media Library count (source of truth)
+                  // Filter for user-uploaded images only (not angle-generation from Production Hub)
+                  const userUploadedCount = mediaLibraryImages.filter((img: any) => {
                     const source = img.metadata?.source;
-                    return !source || source === 'user-upload';
+                    return !source || source === 'user-upload' || source === 'upload';
                   }).length;
                   
                   return (
