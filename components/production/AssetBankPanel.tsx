@@ -7,7 +7,7 @@
  * Matches LocationBankPanel pattern exactly
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Package, Car, Armchair, Box, Film, X, Loader2 } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssets } from '@/hooks/useAssetBank';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 
 interface AssetBankPanelProps {
   className?: string;
@@ -39,6 +40,74 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
     screenplayId || '',
     'production-hub',
     !!screenplayId
+  );
+
+  // 🔥 Feature 0200: Query Media Library for all asset files (source of truth for cards)
+  // This matches the pattern used by AssetDetailModal - ensures cards and modals show same data
+  const { data: allAssetMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined, // no folder filter
+    !!screenplayId, // enabled
+    true, // includeAllFolders
+    'asset' // entityType - get all asset files
+  );
+
+  // 🔥 Feature 0200: Process Media Library files to get images per asset
+  // This is the same logic used in AssetDetailModal - ensures consistency
+  const assetImagesFromMediaLibrary = useMemo(() => {
+    const assetMap: Record<string, {
+      creationImages: Array<{ s3Key: string; label?: string; isBase?: boolean }>;
+      angleReferences: Array<{ s3Key: string; angle?: string; label?: string }>;
+    }> = {};
+
+    allAssetMediaFiles.forEach((file: any) => {
+      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
+      
+      const entityId = file.metadata?.entityId || file.entityId;
+      if (!entityId) return;
+
+      if (!assetMap[entityId]) {
+        assetMap[entityId] = { creationImages: [], angleReferences: [] };
+      }
+
+      // Determine image type from Media Library metadata
+      const isAngleReference = file.metadata?.source === 'angle-generation' ||
+                              file.metadata?.uploadMethod === 'angle-generation' ||
+                              file.metadata?.isAngleReference === true;
+      const isBase = file.metadata?.isBase === true;
+
+      if (isAngleReference) {
+        assetMap[entityId].angleReferences.push({
+          s3Key: file.s3Key,
+          angle: file.metadata?.angle,
+          label: file.metadata?.angle || 'angle'
+        });
+      } else {
+        assetMap[entityId].creationImages.push({
+          s3Key: file.s3Key,
+          label: file.fileName?.replace(/\.[^/.]+$/, '') || 'Image',
+          isBase
+        });
+      }
+    });
+
+    return assetMap;
+  }, [allAssetMediaFiles]);
+
+  // 🔥 Feature 0200: Get all s3Keys for presigned URL generation
+  const allAssetS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    Object.values(assetImagesFromMediaLibrary).forEach(asset => {
+      asset.creationImages.forEach(img => keys.push(img.s3Key));
+      asset.angleReferences.forEach(ref => keys.push(ref.s3Key));
+    });
+    return keys;
+  }, [assetImagesFromMediaLibrary]);
+
+  // 🔥 Feature 0200: Generate presigned URLs for all asset images
+  const { data: assetPresignedUrls = new Map() } = useBulkPresignedUrls(
+    allAssetS3Keys,
+    !!screenplayId && allAssetS3Keys.length > 0
   );
 
   const isLoading = queryLoading;
@@ -225,50 +294,49 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
             {filteredAssets.map((asset) => {
               const allReferences: CinemaCardImage[] = [];
               
-              // 🔥 DEBUG: Log full asset structure
-              if (asset.name === 'coffee cup') {
-                console.log(`[AssetBankPanel] Full asset data for ${asset.name}:`, {
-                  id: asset.id,
-                  name: asset.name,
-                  imagesCount: asset.images?.length || 0,
-                  angleReferencesCount: asset.angleReferences?.length || 0,
-                  angleReferences: asset.angleReferences,
-                  images: asset.images?.map((img: any) => ({
-                    url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
-                    s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
-                    source: img.metadata?.source || 'unknown',
-                    metadata: img.metadata, // 🔥 DEBUG: Show full metadata
-                    angle: img.angle || img.metadata?.angle
-                  }))
-                });
-              }
+              // 🔥 Feature 0200: Use Media Library as source of truth (matches AssetDetailModal pattern)
+              const mediaLibraryImages = assetImagesFromMediaLibrary[asset.id];
               
-              // Add base images (user-uploaded, from Creation section)
-              if (asset.images && asset.images.length > 0) {
-                asset.images.forEach((img, idx) => {
-                  // Only add images that are NOT angle-generated (those go in angleReferences section)
-                  const isAngleGenerated = img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation';
-                  if (!isAngleGenerated) {
+              if (mediaLibraryImages) {
+                // Add creation images (user-uploaded, from Creation section) with valid presigned URLs
+                mediaLibraryImages.creationImages.forEach((img) => {
+                  const imageUrl = assetPresignedUrls.get(img.s3Key);
+                  if (imageUrl) {
                     allReferences.push({
-                      id: img.s3Key || `img-${asset.id}-${idx}`,
-                      imageUrl: img.url,
-                      label: `${asset.name} - Image ${idx + 1}`
+                      id: img.s3Key,
+                      imageUrl: imageUrl,
+                      label: `${asset.name} - ${img.label || 'Image'}`
                     });
                   }
                 });
-              }
-              
-              // Add angle references (like locations add angleVariations)
-              // 🔥 FIX: Use EITHER angleReferences OR angleImages from images array, but NOT both (prevents double-counting)
-              const angleRefs = asset.angleReferences || [];
-              const angleImages = asset.images?.filter((img: any) => 
-                img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation'
-              ) || [];
-              
-              // Prefer angleReferences if it exists and has items, otherwise use angleImages from images array
-              if (angleRefs.length > 0) {
-                console.log(`[AssetBankPanel] Found ${angleRefs.length} angle references for ${asset.name}:`, angleRefs);
-                // Add angleReferences from dedicated field
+                
+                // Add angle references with valid presigned URLs
+                mediaLibraryImages.angleReferences.forEach((ref) => {
+                  const imageUrl = assetPresignedUrls.get(ref.s3Key);
+                  if (imageUrl) {
+                    allReferences.push({
+                      id: ref.s3Key,
+                      imageUrl: imageUrl,
+                      label: `${asset.name} - ${ref.angle || ref.label || 'angle'} view`
+                    });
+                  }
+                });
+              } else {
+                // Fallback to asset prop data (for backward compatibility)
+                if (asset.images && asset.images.length > 0) {
+                  asset.images.forEach((img, idx) => {
+                    const isAngleGenerated = img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation';
+                    if (!isAngleGenerated && img.url) {
+                      allReferences.push({
+                        id: img.s3Key || `img-${asset.id}-${idx}`,
+                        imageUrl: img.url,
+                        label: `${asset.name} - Image ${idx + 1}`
+                      });
+                    }
+                  });
+                }
+                
+                const angleRefs = asset.angleReferences || [];
                 angleRefs.forEach((ref, idx) => {
                   if (ref && ref.imageUrl) {
                     allReferences.push({
@@ -276,26 +344,13 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
                       imageUrl: ref.imageUrl,
                       label: `${asset.name} - ${ref.angle || 'angle'} view`
                     });
-                  } else if (ref && !ref.imageUrl) {
-                    console.warn(`[AssetBankPanel] Angle reference missing imageUrl for ${asset.name}:`, ref);
                   }
                 });
-              } else if (angleImages.length > 0) {
-                console.log(`[AssetBankPanel] Found ${angleImages.length} angle images in images array for ${asset.name}:`, angleImages);
-                // Add angle images from images array (backend merges them here)
-                angleImages.forEach((img, idx) => {
-                  allReferences.push({
-                    id: img.s3Key || `angle-img-${asset.id}-${idx}`,
-                    imageUrl: img.url,
-                    label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
-                  });
-                });
-              } else if (asset.name === 'coffee cup') {
-                console.warn(`[AssetBankPanel] ⚠️ No angleReferences or angle images found for ${asset.name}`);
-                console.log(`[AssetBankPanel] Full images array:`, asset.images);
               }
 
-              const metadata = `${allReferences.length} images`;
+              // 🔥 Feature 0200: Count images with valid presigned URLs (matches detail modal)
+              const imageCount = allReferences.length;
+              const metadata = imageCount > 0 ? `${imageCount} image${imageCount !== 1 ? 's' : ''}` : undefined;
 
               return (
                 <CinemaCard

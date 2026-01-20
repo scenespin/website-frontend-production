@@ -17,7 +17,7 @@ import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import { useLocations, type LocationProfile } from '@/hooks/useLocationBank';
-import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 
 interface LocationBankPanelProps {
   className?: string;
@@ -48,8 +48,8 @@ export function LocationBankPanel({
     !!screenplayId
   );
 
-  // 🔥 FIX: Query Media Library for all location files to get accurate backgrounds count
-  // This fixes the stale backgrounds count issue where Location Bank API returns old data
+  // 🔥 Feature 0200: Query Media Library for all location files (source of truth for cards)
+  // This matches the pattern used by LocationDetailModal - ensures cards and modals show same data
   const { data: allLocationMediaFiles = [] } = useMediaFiles(
     screenplayId || '',
     undefined, // no folder filter
@@ -58,22 +58,87 @@ export function LocationBankPanel({
     'location' // entityType - get all location files
   );
 
+  // 🔥 Feature 0200: Process Media Library files to get angles and backgrounds per location
+  // This is the same logic used in LocationDetailModal - ensures consistency
+  const locationImagesFromMediaLibrary = useMemo(() => {
+    const locationMap: Record<string, {
+      angles: Array<{ s3Key: string; angle?: string; label?: string }>;
+      backgrounds: Array<{ s3Key: string; backgroundType?: string }>;
+      baseReference?: { s3Key: string };
+    }> = {};
+
+    allLocationMediaFiles.forEach((file: any) => {
+      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
+      
+      const entityId = file.metadata?.entityId || file.entityId;
+      if (!entityId) return;
+
+      if (!locationMap[entityId]) {
+        locationMap[entityId] = { angles: [], backgrounds: [] };
+      }
+
+      // Check if it's a background
+      const hasAngleMetadata = file.metadata?.angle !== undefined;
+      const isBackground = !hasAngleMetadata && (
+        file.metadata?.isBackground === true ||
+        file.metadata?.source === 'background-generation' ||
+        file.metadata?.backgroundType !== undefined
+      );
+
+      if (isBackground) {
+        locationMap[entityId].backgrounds.push({
+          s3Key: file.s3Key,
+          backgroundType: file.metadata?.backgroundType
+        });
+      } else if (hasAngleMetadata || file.metadata?.sourceType === 'angle-variations') {
+        // Angle variation
+        locationMap[entityId].angles.push({
+          s3Key: file.s3Key,
+          angle: file.metadata?.angle,
+          label: file.metadata?.angle
+        });
+      } else if (file.metadata?.isBase || file.metadata?.source === 'user-upload') {
+        // Base reference
+        locationMap[entityId].baseReference = { s3Key: file.s3Key };
+      }
+    });
+
+    return locationMap;
+  }, [allLocationMediaFiles]);
+
+  // 🔥 Feature 0200: Get all s3Keys for presigned URL generation
+  const allLocationS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    Object.values(locationImagesFromMediaLibrary).forEach(loc => {
+      if (loc.baseReference?.s3Key) keys.push(loc.baseReference.s3Key);
+      loc.angles.forEach(a => keys.push(a.s3Key));
+      loc.backgrounds.forEach(b => keys.push(b.s3Key));
+    });
+    return keys;
+  }, [locationImagesFromMediaLibrary]);
+
+  // 🔥 Feature 0200: Generate presigned URLs for all location images
+  const { data: locationPresignedUrls = new Map() } = useBulkPresignedUrls(
+    allLocationS3Keys,
+    !!screenplayId && allLocationS3Keys.length > 0
+  );
+
   // 🔥 FIX: Calculate backgrounds count per location from Media Library (source of truth)
   const backgroundsCountByLocation = useMemo(() => {
     const counts: Record<string, number> = {};
     
-    allLocationMediaFiles.forEach((file: any) => {
-      // Check if this is a background image
-      const isBackground = file.metadata?.isBackground === true || 
-                          file.metadata?.source === 'background-generation';
-      
-      if (isBackground && file.entityId) {
-        counts[file.entityId] = (counts[file.entityId] || 0) + 1;
+    Object.entries(locationImagesFromMediaLibrary).forEach(([entityId, loc]) => {
+      // Only count backgrounds that have valid presigned URLs
+      const validBackgrounds = loc.backgrounds.filter(bg => 
+        locationPresignedUrls.has(bg.s3Key) && locationPresignedUrls.get(bg.s3Key)
+      );
+      if (validBackgrounds.length > 0) {
+        counts[entityId] = validBackgrounds.length;
       }
     });
     
     return counts;
-  }, [allLocationMediaFiles]);
+  }, [locationImagesFromMediaLibrary, locationPresignedUrls]);
 
   const isLoading = queryLoading || propsIsLoading;
 
@@ -202,36 +267,65 @@ export function LocationBankPanel({
               {locations.map((location) => {
                 const allReferences: CinemaCardImage[] = [];
                 
-                // 🔥 Feature 0200: Only include baseReference if it has a valid imageUrl
-                if (location.baseReference && location.baseReference.imageUrl) {
-                  allReferences.push({
-                    id: location.baseReference.id,
-                    imageUrl: location.baseReference.imageUrl,
-                    label: `${location.name} - Base Reference`
-                  });
-                }
+                // 🔥 Feature 0200: Use Media Library as source of truth (matches LocationDetailModal pattern)
+                const mediaLibraryImages = locationImagesFromMediaLibrary[location.locationId];
                 
-                // 🔥 Feature 0200: Filter out expired images (those without valid imageUrls)
-                (location.angleVariations || [])
-                  .filter((variation: any) => variation.imageUrl) // Only include variations with valid URLs
-                  .forEach((variation) => {
-                    allReferences.push({
-                      id: variation.id,
-                      imageUrl: variation.imageUrl,
-                      label: `${location.name} - ${variation.angle} view`
-                    });
+                if (mediaLibraryImages) {
+                  // Add base reference if it exists and has valid presigned URL
+                  if (mediaLibraryImages.baseReference?.s3Key) {
+                    const imageUrl = locationPresignedUrls.get(mediaLibraryImages.baseReference.s3Key);
+                    if (imageUrl) {
+                      allReferences.push({
+                        id: mediaLibraryImages.baseReference.s3Key,
+                        imageUrl: imageUrl,
+                        label: `${location.name} - Base Reference`
+                      });
+                    }
+                  }
+                  
+                  // Add angle variations with valid presigned URLs
+                  mediaLibraryImages.angles.forEach((angle) => {
+                    const imageUrl = locationPresignedUrls.get(angle.s3Key);
+                    if (imageUrl) {
+                      allReferences.push({
+                        id: angle.s3Key,
+                        imageUrl: imageUrl,
+                        label: `${location.name} - ${angle.angle || angle.label || 'angle'} view`
+                      });
+                    }
                   });
+                } else {
+                  // Fallback to location prop data (for backward compatibility)
+                  if (location.baseReference && location.baseReference.imageUrl) {
+                    allReferences.push({
+                      id: location.baseReference.id,
+                      imageUrl: location.baseReference.imageUrl,
+                      label: `${location.name} - Base Reference`
+                    });
+                  }
+                  
+                  (location.angleVariations || [])
+                    .filter((variation: any) => variation.imageUrl)
+                    .forEach((variation) => {
+                      allReferences.push({
+                        id: variation.id,
+                        imageUrl: variation.imageUrl,
+                        label: `${location.name} - ${variation.angle} view`
+                      });
+                    });
+                }
 
                 const locationType = location.type;
                 const typeLabel = location.type === 'interior' ? 'INT.' : 
                                  location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
                 // Build metadata string with angles and backgrounds count
-                // 🔥 Feature 0200: Filter out expired images (those without valid imageUrls) before counting
-                const validAngleVariations = (location.angleVariations || []).filter((v: any) => v.imageUrl);
-                const angleCount = validAngleVariations.length;
-                // 🔥 FIX: Use Media Library count (source of truth) instead of stale location.backgrounds
+                // 🔥 Feature 0200: Use Media Library counts (source of truth) - matches detail modal
+                const angleCount = mediaLibraryImages 
+                  ? mediaLibraryImages.angles.filter(a => locationPresignedUrls.has(a.s3Key) && locationPresignedUrls.get(a.s3Key)).length
+                  : (location.angleVariations || []).filter((v: any) => v.imageUrl).length;
                 const backgroundCount = backgroundsCountByLocation[location.locationId] || 0;
+                
                 let metadata: string | undefined;
                 if (angleCount > 0 && backgroundCount > 0) {
                   metadata = `${angleCount} angle${angleCount !== 1 ? 's' : ''}, ${backgroundCount} background${backgroundCount !== 1 ? 's' : ''}`;
