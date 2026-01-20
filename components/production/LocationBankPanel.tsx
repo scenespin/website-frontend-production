@@ -202,7 +202,8 @@ export function LocationBankPanel({
               {locations.map((location) => {
                 const allReferences: CinemaCardImage[] = [];
                 
-                if (location.baseReference) {
+                // 🔥 Feature 0200: Only include baseReference if it has a valid imageUrl
+                if (location.baseReference && location.baseReference.imageUrl) {
                   allReferences.push({
                     id: location.baseReference.id,
                     imageUrl: location.baseReference.imageUrl,
@@ -210,20 +211,25 @@ export function LocationBankPanel({
                   });
                 }
                 
-                (location.angleVariations || []).forEach((variation) => {
-                  allReferences.push({
-                    id: variation.id,
-                    imageUrl: variation.imageUrl,
-                    label: `${location.name} - ${variation.angle} view`
+                // 🔥 Feature 0200: Filter out expired images (those without valid imageUrls)
+                (location.angleVariations || [])
+                  .filter((variation: any) => variation.imageUrl) // Only include variations with valid URLs
+                  .forEach((variation) => {
+                    allReferences.push({
+                      id: variation.id,
+                      imageUrl: variation.imageUrl,
+                      label: `${location.name} - ${variation.angle} view`
+                    });
                   });
-                });
 
                 const locationType = location.type;
                 const typeLabel = location.type === 'interior' ? 'INT.' : 
                                  location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
                 // Build metadata string with angles and backgrounds count
-                const angleCount = location.angleVariations?.length || 0;
+                // 🔥 Feature 0200: Filter out expired images (those without valid imageUrls) before counting
+                const validAngleVariations = (location.angleVariations || []).filter((v: any) => v.imageUrl);
+                const angleCount = validAngleVariations.length;
                 // 🔥 FIX: Use Media Library count (source of truth) instead of stale location.backgrounds
                 const backgroundCount = backgroundsCountByLocation[location.locationId] || 0;
                 let metadata: string | undefined;
