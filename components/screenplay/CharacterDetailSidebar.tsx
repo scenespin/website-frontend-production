@@ -14,6 +14,7 @@ import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary'
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -42,6 +43,52 @@ export default function CharacterDetailSidebar({
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
   const queryClient = useQueryClient() // 🔥 NEW: For invalidating Media Library cache
+  
+  // 🔥 Feature 0200: Use Media Library as source of truth for character images
+  // Query Media Library for character's images (same pattern as LocationDetailModal)
+  const { data: characterMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    !!screenplayId && !!character?.id,
+    true, // includeAllFolders
+    'character', // entityType
+    character?.id // entityId
+  );
+  
+  // Get s3Keys for presigned URL generation
+  const characterMediaS3Keys = useMemo(() => {
+    return characterMediaFiles
+      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
+      .map((file: any) => file.s3Key);
+  }, [characterMediaFiles]);
+  
+  // Fetch presigned URLs for character images
+  const { data: characterPresignedUrls = new Map() } = useBulkPresignedUrls(
+    characterMediaS3Keys,
+    characterMediaS3Keys.length > 0
+  );
+  
+  // 🔥 Feature 0200: Build enriched images from Media Library with valid presigned URLs
+  const mediaLibraryImages = useMemo(() => {
+    return characterMediaFiles
+      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
+      .map((file: any) => {
+        const presignedUrl = characterPresignedUrls.get(file.s3Key);
+        return {
+          imageUrl: presignedUrl || '',
+          metadata: {
+            s3Key: file.s3Key,
+            source: file.metadata?.source || 'upload',
+            prompt: file.metadata?.prompt,
+            modelUsed: file.metadata?.modelUsed,
+            angle: file.metadata?.angle,
+            ...file.metadata
+          },
+          createdAt: file.createdAt || new Date().toISOString()
+        };
+      })
+      .filter((img: any) => !!img.imageUrl); // Only include images with valid presigned URLs
+  }, [characterMediaFiles, characterPresignedUrls]);
   
   // Check if character is in script (if editing existing character) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -958,30 +1005,25 @@ export default function CharacterDetailSidebar({
             </label>
           </div>
           {(() => {
-            const images = character ? getEntityImages('character', character.id) : []
-            // For existing characters, images come from getEntityImages (ImageAsset[])
-            // For new characters, we create ImageAsset objects from pendingImages
-            // 🔥 FIX: Use regenerated URLs when available (for expired presigned URLs)
-            const allImages: ImageAsset[] = character ? images.map(img => {
-              const s3Key = img.metadata?.s3Key;
-              const imageUrl = s3Key && regeneratedImageUrls[s3Key] 
-                ? regeneratedImageUrls[s3Key] 
-                : img.imageUrl;
-              
-              return {
-                ...img,
-                imageUrl
-              };
-            }) : pendingImages.map((img, idx) => ({
-              imageUrl: img.imageUrl,
-              metadata: { 
-                angle: img.angle,
-                s3Key: img.s3Key,
-                prompt: img.prompt, 
-                modelUsed: img.modelUsed 
-              },
-              createdAt: new Date().toISOString()
-            }))
+            // 🔥 Feature 0200: Use Media Library as source of truth (same pattern as LocationDetailModal)
+            // For existing characters, use mediaLibraryImages (from useMediaFiles hook)
+            // For new characters, use pendingImages
+            const allImages: ImageAsset[] = character 
+              ? mediaLibraryImages.map((img: any) => ({
+                  imageUrl: img.imageUrl,
+                  metadata: img.metadata,
+                  createdAt: img.createdAt
+                }))
+              : pendingImages.map((img, idx) => ({
+                  imageUrl: img.imageUrl,
+                  metadata: { 
+                    angle: img.angle,
+                    s3Key: img.s3Key,
+                    prompt: img.prompt, 
+                    modelUsed: img.modelUsed 
+                  },
+                  createdAt: new Date().toISOString()
+                }));
             
             // 🔥 FIX: Filter out Production Hub images (pose-generation) from Creation section
             // Creation section should only show Creation images

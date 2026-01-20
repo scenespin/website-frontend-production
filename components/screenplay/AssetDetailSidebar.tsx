@@ -13,6 +13,7 @@ import { useAuth } from '@clerk/nextjs'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary'
 
 interface AssetDetailSidebarProps {
   asset?: Asset | null
@@ -44,6 +45,54 @@ export default function AssetDetailSidebar({
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
   const queryClient = useQueryClient()
+  
+  // 🔥 Feature 0200: Use Media Library as source of truth for asset images
+  // Query Media Library for asset's images (same pattern as LocationDetailModal)
+  const { data: assetMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    !!screenplayId && !!asset?.id,
+    true, // includeAllFolders
+    'asset', // entityType
+    asset?.id // entityId
+  );
+  
+  // Get s3Keys for presigned URL generation
+  const assetMediaS3Keys = useMemo(() => {
+    return assetMediaFiles
+      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
+      .map((file: any) => file.s3Key);
+  }, [assetMediaFiles]);
+  
+  // Fetch presigned URLs for asset images
+  const { data: assetPresignedUrls = new Map() } = useBulkPresignedUrls(
+    assetMediaS3Keys,
+    assetMediaS3Keys.length > 0
+  );
+  
+  // 🔥 Feature 0200: Build enriched images from Media Library with valid presigned URLs
+  const mediaLibraryImages = useMemo(() => {
+    return assetMediaFiles
+      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
+      .map((file: any) => {
+        const presignedUrl = assetPresignedUrls.get(file.s3Key);
+        return {
+          id: file.fileId || file.s3Key,
+          url: presignedUrl || '',
+          imageUrl: presignedUrl || '',
+          s3Key: file.s3Key,
+          uploadedAt: file.createdAt,
+          metadata: {
+            s3Key: file.s3Key,
+            source: file.metadata?.source || 'upload',
+            prompt: file.metadata?.prompt,
+            modelUsed: file.metadata?.modelUsed,
+            ...file.metadata
+          }
+        };
+      })
+      .filter((img: any) => !!img.url); // Only include images with valid presigned URLs
+  }, [assetMediaFiles, assetPresignedUrls]);
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -1128,26 +1177,19 @@ export default function AssetDetailSidebar({
                 })()}
                 
                 {/* Image Gallery */}
-                {asset && asset.images && asset.images.length > 0 && (() => {
-                  // 🔥 FIX: Filter images by source (same pattern as CharacterDetailSidebar)
-                  // Creation section should only show user-uploaded images, not Production Hub angle images
-                  const allImages = asset.images.map((img, idx) => {
-                    // Use regenerated URL if available, otherwise use original URL
-                    const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
-                      ? regeneratedImageUrls[img.s3Key] 
-                      : img.url;
-                    
-                    return {
-                      id: `asset-img-${idx}`,
-                      imageUrl: imageUrl,
-                      createdAt: img.uploadedAt,
-                      metadata: {
-                        ...(img.s3Key ? { s3Key: img.s3Key } : {}),
-                        ...(img.metadata || {}), // Preserve all metadata (source, angle, etc.)
-                        source: img.metadata?.source || (img.s3Key ? undefined : 'user-upload')
-                      }
-                    };
-                  });
+                {asset && mediaLibraryImages.length > 0 && (() => {
+                  // 🔥 Feature 0200: Use Media Library as source of truth (same pattern as LocationDetailModal)
+                  // mediaLibraryImages already has valid presigned URLs (expired images are filtered out)
+                  const allImages = mediaLibraryImages.map((img: any, idx: number) => ({
+                    id: img.id || `asset-img-${idx}`,
+                    imageUrl: img.imageUrl || img.url,
+                    createdAt: img.uploadedAt,
+                    metadata: {
+                      s3Key: img.s3Key,
+                      ...(img.metadata || {}),
+                      source: img.metadata?.source || 'user-upload'
+                    }
+                  }));
                   
                   // Filter: User-uploaded images (Creation section can delete these)
                   const userUploadedImages = allImages.filter(img => {

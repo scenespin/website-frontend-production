@@ -688,14 +688,17 @@ export function LocationDetailModal({
   }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from location prop)
+  // 🔥 Feature 0200: Filter out fallback images with empty imageUrl (expired files)
   const allImages = useMemo(() => {
-    const combined = [...enrichedMediaLibraryImages, ...fallbackImages];
+    // Filter fallback images to only include those with valid URLs
+    const validFallbackImages = fallbackImages.filter(img => !!img.imageUrl && img.imageUrl.length > 0);
+    const combined = [...enrichedMediaLibraryImages, ...validFallbackImages];
     
-    // 🔥 DEBUG: Log allImages composition
     // 🔥 DEBUG: Log allImages composition
     console.log('[LocationDetailModal] 🖼️ ALL IMAGES COMPOSITION:', {
       enrichedMediaLibraryCount: enrichedMediaLibraryImages.length,
       fallbackImagesCount: fallbackImages.length,
+      validFallbackImagesCount: validFallbackImages.length,
       totalAllImagesCount: combined.length,
       enrichedMediaLibraryS3Keys: enrichedMediaLibraryImages.map(i => i.s3Key).slice(0, 5),
       fallbackImagesS3Keys: fallbackImages.map(i => i.s3Key).slice(0, 5),
