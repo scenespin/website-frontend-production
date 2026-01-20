@@ -1046,6 +1046,24 @@ export function CharacterDetailModal({
     return map;
   }, [referenceGalleryImages]);
   
+  // 🔥 FIX: Reset outfit filter if the selected outfit becomes empty (after image deletion)
+  useEffect(() => {
+    // Check Gallery filter
+    if (selectedOutfitGallery) {
+      const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === selectedOutfitGallery).length;
+      if (outfitCount === 0) {
+        setSelectedOutfitGallery(null);
+      }
+    }
+    // Check References filter
+    if (selectedOutfitReferences) {
+      const outfitPoses = posesByOutfit[selectedOutfitReferences] || [];
+      if (outfitPoses.length === 0) {
+        setSelectedOutfitReferences(null);
+      }
+    }
+  }, [galleryImages, posesByOutfit, selectedOutfitGallery, selectedOutfitReferences]);
+  
   // Filter gallery images by outfit
   // 🔥 FIX: Normalize both sides when comparing outfit names
   const filteredGalleryImages = useMemo(() => {
@@ -1650,6 +1668,8 @@ export function CharacterDetailModal({
                             <option value="__all__" className="bg-[#1A1A1A] text-[#FFFFFF]">All Outfits ({galleryImages.length})</option>
                             {outfitNames.map((outfitName) => {
                               const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === outfitName).length;
+                              // 🔥 FIX: Skip empty outfits - don't show in dropdown if no images
+                              if (outfitCount === 0) return null;
                               let outfitDisplayName: string;
                               if (outfitName === 'default') {
                                 outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
@@ -2022,6 +2042,8 @@ export function CharacterDetailModal({
                             <option value="__all__" className="bg-[#1A1A1A] text-[#FFFFFF]">All Outfits ({poseReferences.length})</option>
                             {outfitNames.map((outfitName) => {
                               const outfitPoses = posesByOutfit[outfitName] || [];
+                              // 🔥 FIX: Skip empty outfits - don't show in dropdown if no images
+                              if (outfitPoses.length === 0) return null;
                               let outfitDisplayName: string;
                               if (outfitName === 'default') {
                                 outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
