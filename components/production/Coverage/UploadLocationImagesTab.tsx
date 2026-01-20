@@ -214,7 +214,7 @@ export function UploadLocationImagesTab({
 
           // Step 3: Register with Location
           const registerResponse = await fetch(
-            `/api/locations/${screenplayId}/${locationId}/references`,
+            `/api/screenplays/${screenplayId}/locations/${locationId}/references`,
             {
               method: 'POST',
               headers: {
@@ -297,7 +297,7 @@ export function UploadLocationImagesTab({
       for (const file of images) {
         try {
           const response = await fetch(
-            `/api/locations/${screenplayId}/${locationId}/references`,
+            `/api/screenplays/${screenplayId}/locations/${locationId}/references`,
             {
               method: 'POST',
               headers: {

@@ -178,7 +178,7 @@ export function UploadAssetImagesTab({
 
           // Step 3: Register with Asset (uses existing endpoint)
           const registerResponse = await fetch(
-            `/api/assets/${assetId}/images`,
+            `/api/asset-bank/${assetId}/images`,
             {
               method: 'POST',
               headers: {
@@ -254,7 +254,7 @@ export function UploadAssetImagesTab({
       for (const file of images) {
         try {
           const response = await fetch(
-            `/api/assets/${assetId}/images`,
+            `/api/asset-bank/${assetId}/images`,
             {
               method: 'POST',
               headers: {
