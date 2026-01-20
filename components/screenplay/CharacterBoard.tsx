@@ -404,6 +404,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                             onClick={() => setSelectedCharacter(character)}
                                             onEdit={() => openEditForm(character)}
                                             canEdit={canEditScript}
+                                            characterImageCountMap={characterImageCountMap}
                                         />
                                     </motion.div>
                                 ))}
@@ -534,6 +535,7 @@ interface CharacterCardContentProps {
     onClick: () => void;
     onEdit: () => void;
     canEdit: boolean;
+    characterImageCountMap: Map<string, number>; // 🔥 Feature 0200: Media Library image counts
 }
 
 function CharacterCardContent({
@@ -544,6 +546,7 @@ function CharacterCardContent({
     onClick,
     onEdit,
     canEdit,
+    characterImageCountMap,
 }: CharacterCardContentProps) {
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();

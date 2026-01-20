@@ -339,6 +339,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                         isInScript={isInScriptMap.get(asset.id) || false}
                                                         openEditForm={openEditForm}
                                                         canEdit={canEditScript}
+                                                        assetImageCountMap={assetImageCountMap}
                                                     />
                                                 </motion.div>
                                             ))}
@@ -632,6 +633,7 @@ interface AssetCardContentProps {
     isInScript: boolean;
     openEditForm?: (asset: Asset) => void;
     canEdit: boolean;
+    assetImageCountMap: Map<string, number>; // 🔥 Feature 0200: Media Library image counts
 }
 
 function AssetCardContent({
@@ -641,6 +643,7 @@ function AssetCardContent({
     isInScript,
     openEditForm,
     canEdit,
+    assetImageCountMap,
 }: AssetCardContentProps) {
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
