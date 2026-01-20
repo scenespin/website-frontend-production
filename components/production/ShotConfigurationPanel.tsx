@@ -1041,7 +1041,9 @@ export function ShotConfigurationPanel({
                           
                           const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
                           const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
-                          const displayUrl = thumbnailUrl || fullImageUrl || selectedImage?.imageUrl || fullProp.baseReference?.imageUrl || prop.imageUrl;
+                          // 🔥 Feature 0200: Only use presigned URLs from maps - don't fall back to expired entity prop URLs
+                          // This prevents 404/403 errors from expired images
+                          const displayUrl = thumbnailUrl || fullImageUrl;
                           
                           // 🔥 DIAGNOSTIC: Log final URL resolution (always log)
                           console.log('[PropImageDebug] Final URL resolution for', prop.name, ':', {
@@ -1049,9 +1051,6 @@ export function ShotConfigurationPanel({
                             thumbnailKey,
                             thumbnailUrl: thumbnailUrl || 'NOT FOUND',
                             fullImageUrl: fullImageUrl || 'NOT FOUND',
-                            selectedImageUrl: selectedImage?.imageUrl || 'NOT FOUND',
-                            baseReferenceUrl: fullProp.baseReference?.imageUrl || 'NOT FOUND',
-                            propImageUrl: prop.imageUrl || 'NOT FOUND',
                             displayUrl: displayUrl || 'NO URL FOUND',
                             selectedImage: selectedImage
                           });
@@ -1063,22 +1062,13 @@ export function ShotConfigurationPanel({
                               className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
                               loading="lazy"
                               onError={(e) => {
-                                // 🔥 FIX: Fallback chain: thumbnail -> full image -> selected image -> baseReference -> prop.imageUrl
+                                // 🔥 Feature 0200: Only try full image if thumbnail failed - don't fall back to expired entity URLs
                                 const imgElement = e.target as HTMLImageElement;
                                 if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
-                                  // Try full image first
+                                  // Try full image if thumbnail failed
                                   imgElement.src = fullImageUrl;
-                                } else if (selectedImage?.imageUrl && imgElement.src !== selectedImage.imageUrl) {
-                                  // Then try selected image URL
-                                  imgElement.src = selectedImage.imageUrl;
-                                } else if (fullProp.baseReference?.imageUrl && imgElement.src !== fullProp.baseReference.imageUrl) {
-                                  // Then try baseReference
-                                  imgElement.src = fullProp.baseReference.imageUrl;
-                                } else if (prop.imageUrl && imgElement.src !== prop.imageUrl) {
-                                  // Finally try prop.imageUrl
-                                  imgElement.src = prop.imageUrl;
                                 } else {
-                                  // Hide broken image if no fallback
+                                  // Hide broken image - no fallback to expired URLs
                                   imgElement.style.display = 'none';
                                 }
                               }}

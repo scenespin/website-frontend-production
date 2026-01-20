@@ -680,11 +680,11 @@ export function LocationAngleSelector({
                     }}
                     loading="eager"
                     onError={(e) => {
-                      // 🔥 FIX: Try fallback URLs if thumbnail fails
+                      // 🔥 Feature 0200: Only try full image if thumbnail failed - don't fall back to expired photo.imageUrl
                       const imgElement = e.target as HTMLImageElement;
                       const currentSrc = imgElement.src;
                       
-                      // If thumbnail failed, try full image URL
+                      // If thumbnail failed, try full image URL (from presigned URL map)
                       if (photo.s3Key && fullImageUrlsMap?.has(photo.s3Key)) {
                         const fullUrl = fullImageUrlsMap.get(photo.s3Key);
                         if (fullUrl && fullUrl !== currentSrc && isValidImageUrl(fullUrl)) {
@@ -693,13 +693,7 @@ export function LocationAngleSelector({
                         }
                       }
                       
-                      // If full image failed, try fallback imageUrl
-                      if (photo.imageUrl && isValidImageUrl(photo.imageUrl) && photo.imageUrl !== currentSrc) {
-                        imgElement.src = photo.imageUrl;
-                        return;
-                      }
-                      
-                      // If all URLs failed, hide the image and show placeholder
+                      // Hide broken image - no fallback to expired photo.imageUrl
                       imgElement.style.display = 'none';
                     }}
                   />

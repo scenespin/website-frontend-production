@@ -4062,14 +4062,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                                     }}
                                     loading="lazy"
                                     onError={(e) => {
-                                      // 🔥 FIX: If thumbnail fails, try full image URL (if different)
+                                      // 🔥 Feature 0200: Only try full image if thumbnail failed - don't fall back to expired headshot.imageUrl
                                       const imgElement = e.target as HTMLImageElement;
                                       if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
+                                        // Try full image if thumbnail failed
                                         imgElement.src = fullImageUrl;
-                                      } else if (headshot.imageUrl && isValidImageUrl(headshot.imageUrl) && imgElement.src !== headshot.imageUrl) {
-                                        imgElement.src = headshot.imageUrl;
                                       } else {
-                                        // If image fails completely, show placeholder
+                                        // Hide broken image and show placeholder - no fallback to expired URLs
                                         imgElement.style.display = 'none';
                                         const placeholder = imgElement.nextElementSibling as HTMLElement;
                                         if (placeholder) placeholder.classList.remove('hidden');

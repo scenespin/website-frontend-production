@@ -38,15 +38,15 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
   const availableImages: AvailableImage[] = [];
   
   // Add angleReferences first (Production Hub images)
-  // 🔥 FIX: Include angleReferences that have s3Key (even if imageUrl is empty)
-  // Presigned URLs will be fetched separately and used for display
+  // 🔥 Feature 0200: Only include angleReferences that have s3Key (presigned URLs will be fetched)
+  // Don't include images that only have expired imageUrl values
   if (prop.angleReferences && prop.angleReferences.length > 0) {
     prop.angleReferences.forEach(ref => {
-      // Include if it has s3Key (presigned URL will be fetched) OR if it has a valid imageUrl
-      if (ref.s3Key || (ref.imageUrl && ref.imageUrl.trim() !== '')) {
+      // Only include if it has s3Key - presigned URL will be fetched from Media Library
+      if (ref.s3Key) {
         availableImages.push({
           id: ref.id,
-          imageUrl: ref.imageUrl || ref.s3Key || '', // Use s3Key as fallback if imageUrl is empty
+          imageUrl: ref.s3Key, // Use s3Key as identifier - presigned URL will be fetched separately
           label: ref.label
         });
       }
@@ -54,46 +54,43 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
   }
   
   // Add images[] (Creation images) if no valid angleReferences
+  // 🔥 Feature 0200: Only include images that have s3Key
   if (availableImages.length === 0 && prop.images && prop.images.length > 0) {
     prop.images.forEach(img => {
-      // Include if it has s3Key OR a valid URL
-      if (img.s3Key || (img.url && img.url.trim() !== '')) {
+      // Only include if it has s3Key - presigned URL will be fetched
+      if (img.s3Key) {
         availableImages.push({
-          id: img.url || img.s3Key || '',
-          imageUrl: img.url || img.s3Key || '',
+          id: img.s3Key,
+          imageUrl: img.s3Key, // Use s3Key as identifier - presigned URL will be fetched separately
           label: undefined
         });
       }
     });
   }
   
-  // 🔥 FIX: Only show baseReference (creation image) as LAST RESORT if NO Production Hub images
+  // 🔥 Feature 0200: Only show baseReference if it has s3Key (presigned URL will be fetched)
   // This matches the pattern used for locations - creation image only when no Production Hub images exist
-  // IMPORTANT: Only include baseReference if there are NO angleReferences (Production Hub images)
   const hasProductionHubImages = prop.angleReferences && prop.angleReferences.length > 0;
-  if (!hasProductionHubImages && availableImages.length === 0 && prop.baseReference?.imageUrl) {
+  if (!hasProductionHubImages && availableImages.length === 0 && prop.baseReference?.s3Key) {
     availableImages.push({
-      id: prop.baseReference.imageUrl || prop.baseReference.s3Key || 'base-reference',
-      imageUrl: prop.baseReference.imageUrl,
+      id: prop.baseReference.s3Key,
+      imageUrl: prop.baseReference.s3Key, // Use s3Key as identifier - presigned URL will be fetched separately
       label: 'Creation Image (Last Resort)'
     });
   }
   
-  // Final fallback: if no images available, use the default imageUrl
-  if (availableImages.length === 0 && prop.imageUrl) {
-    availableImages.push({
-      id: prop.imageUrl,
-      imageUrl: prop.imageUrl,
-      label: 'Default'
-    });
-  }
+  // 🔥 Feature 0200: Don't fall back to prop.imageUrl - it may be expired
+  // If no images with s3Key are available, return empty array (component will show nothing)
   
   return availableImages;
 }
 
 /**
- * Get the selected image URL for a prop based on the selectedImageId.
+ * Get the selected image s3Key for a prop based on the selectedImageId.
  * Falls back to the first available image if no selection is made.
+ * 
+ * 🔥 Feature 0200: Returns s3Key (not imageUrl) - presigned URLs should be fetched separately
+ * Don't use expired imageUrl values from entity props.
  */
 export function getSelectedPropImageUrl(
   prop: PropType,
@@ -102,7 +99,7 @@ export function getSelectedPropImageUrl(
   const availableImages = getAvailablePropImages(prop);
   
   if (availableImages.length === 0) {
-    return prop.imageUrl; // Final fallback
+    return undefined; // 🔥 Feature 0200: Don't fall back to prop.imageUrl (may be expired)
   }
   
   // If selectedImageId exists, use it; otherwise, first image is auto-selected
@@ -111,11 +108,12 @@ export function getSelectedPropImageUrl(
   if (effectiveSelectedId) {
     const selectedImage = availableImages.find(img => img.id === effectiveSelectedId);
     if (selectedImage) {
+      // Return s3Key (which is stored in imageUrl field) - presigned URL will be fetched separately
       return selectedImage.imageUrl;
     }
   }
   
   // Fallback to first available image
-  return availableImages[0]?.imageUrl || prop.imageUrl;
+  return availableImages[0]?.imageUrl;
 }
 
