@@ -534,8 +534,13 @@ export default function AssetDetailModal({
   }, [latestAsset.images, latestAsset.angleReferences, latestAsset.name, mediaLibraryS3Keys]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from asset prop)
+  // 🔥 Feature 0200: Filter out fallback images with empty imageUrl (expired files)
   const allImages = useMemo(() => {
-    return [...enrichedMediaLibraryImages, ...fallbackImages];
+    // Filter fallback images to only include those with valid URLs
+    const validFallbackImages = fallbackImages.filter(img => !!img.imageUrl && img.imageUrl.length > 0);
+    const combined = [...enrichedMediaLibraryImages, ...validFallbackImages];
+    
+    return combined;
   }, [enrichedMediaLibraryImages, fallbackImages]);
   
   // 🔥 DERIVED: Separate creation images and angle references for backward compatibility

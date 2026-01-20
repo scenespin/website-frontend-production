@@ -863,9 +863,13 @@ export function CharacterDetailModal({
   }, [fallbackImages, fallbackUrls]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from character prop)
+  // 🔥 Feature 0200: Filter out enriched fallback images with empty imageUrl (expired files)
   const allImages = useMemo(() => {
-    // Prioritize Media Library images, then add fallback images
-    return [...enrichedMediaLibraryImages, ...enrichedFallbackImages];
+    // Filter enriched fallback images to only include those with valid URLs
+    // This prevents broken images from appearing when presigned URL generation fails
+    const validFallbackImages = enrichedFallbackImages.filter(img => !!img.imageUrl && img.imageUrl.length > 0);
+    // Prioritize Media Library images, then add valid fallback images
+    return [...enrichedMediaLibraryImages, ...validFallbackImages];
   }, [enrichedMediaLibraryImages, enrichedFallbackImages]);
   
   // 🔥 FIX: Use same simple filtering approach as LocationDetailModal and AssetDetailModal
