@@ -72,7 +72,7 @@ export default function AssetDetailSidebar({
   
   // 🔥 Feature 0200: Build enriched images from Media Library with valid presigned URLs
   const mediaLibraryImages = useMemo(() => {
-    return assetMediaFiles
+    const filtered = assetMediaFiles
       .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
       .map((file: any) => {
         const presignedUrl = assetPresignedUrls.get(file.s3Key);
@@ -90,8 +90,21 @@ export default function AssetDetailSidebar({
             ...file.metadata
           }
         };
-      })
-      .filter((img: any) => !!img.url); // Only include images with valid presigned URLs
+      });
+    
+    const withUrls = filtered.filter((img: any) => !!img.url);
+    
+    // Debug log to help diagnose missing images
+    if (filtered.length !== withUrls.length) {
+      console.log('[AssetDetailSidebar] ⚠️ Some images missing presigned URLs:', {
+        totalFiles: assetMediaFiles.length,
+        filteredFiles: filtered.length,
+        withUrls: withUrls.length,
+        missingUrls: filtered.filter((img: any) => !img.url).map((img: any) => img.s3Key)
+      });
+    }
+    
+    return withUrls; // Only include images with valid presigned URLs
   }, [assetMediaFiles, assetPresignedUrls]);
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
@@ -486,6 +499,11 @@ export default function AssetDetailSidebar({
             // Also invalidate Media Library cache (images are now registered there)
             queryClient.invalidateQueries({ 
               queryKey: ['media', 'files', screenplayId],
+              exact: false
+            });
+            // Invalidate presigned URLs cache so new images get URLs
+            queryClient.invalidateQueries({ 
+              queryKey: ['presigned-urls'],
               exact: false
             });
             setTimeout(() => {
