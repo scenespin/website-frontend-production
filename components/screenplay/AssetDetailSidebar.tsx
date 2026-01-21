@@ -70,15 +70,10 @@ export default function AssetDetailSidebar({
     assetMediaS3Keys.length > 0
   );
   
-  // 🔥 FIX: Convert Map to array for reliable React dependency tracking
-  // Maps don't trigger re-renders when contents change, but arrays do
-  const presignedUrlsArray = useMemo(() => {
-    return Array.from(assetPresignedUrls.entries());
-  }, [assetPresignedUrls]);
-  
   // 🔥 Feature 0200: Build enriched images from Media Library with valid presigned URLs
+  // Using assetPresignedUrls.size as dependency ensures recomputation when URLs arrive
   const mediaLibraryImages = useMemo(() => {
-    const filtered = assetMediaFiles
+    return assetMediaFiles
       .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
       .map((file: any) => {
         const presignedUrl = assetPresignedUrls.get(file.s3Key);
@@ -96,24 +91,9 @@ export default function AssetDetailSidebar({
             ...file.metadata
           }
         };
-      });
-    
-    // Only include images with valid presigned URLs (filter out empty strings)
-    const withUrls = filtered.filter((img: any) => !!img.url);
-    
-    // Debug log to help diagnose missing images
-    if (!presignedUrlsLoading && filtered.length !== withUrls.length) {
-      console.log('[AssetDetailSidebar] ⚠️ Some images missing presigned URLs:', {
-        totalFiles: assetMediaFiles.length,
-        filteredFiles: filtered.length,
-        withUrls: withUrls.length,
-        missingUrls: filtered.filter((img: any) => !img.url).map((img: any) => img.s3Key),
-        presignedUrlsCount: assetPresignedUrls.size
-      });
-    }
-    
-    return withUrls;
-  }, [assetMediaFiles, assetPresignedUrls, presignedUrlsArray, presignedUrlsLoading]);
+      })
+      .filter((img: any) => !!img.url); // Only show images with valid URLs (they'll appear as URLs arrive)
+  }, [assetMediaFiles, assetPresignedUrls.size]); // .size changes when Map contents change, triggering recomputation
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
