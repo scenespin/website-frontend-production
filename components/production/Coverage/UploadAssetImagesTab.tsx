@@ -190,7 +190,8 @@ export function UploadAssetImagesTab({
                 angle: angleNameToUse,
                 fileName: file.name,
                 fileType: file.type,
-                fileSize: file.size
+                fileSize: file.size,
+                createdIn: 'production-hub' // Mark as uploaded in Production Hub
               })
             }
           );
@@ -266,7 +267,8 @@ export function UploadAssetImagesTab({
                 angle: angleNameToUse,
                 fileName: file.fileName,
                 fileType: file.fileType,
-                fileSize: file.fileSize
+                fileSize: file.fileSize,
+                createdIn: 'production-hub' // Mark as uploaded in Production Hub
               })
             }
           );

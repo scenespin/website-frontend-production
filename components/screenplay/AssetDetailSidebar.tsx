@@ -412,6 +412,36 @@ export default function AssetDetailSidebar({
       if (asset) {
         // Existing asset - register all images with asset bank API
         try {
+          // 🔥 FIX: Register each image via the asset-bank API (registers in Media Library)
+          // This matches the pattern used by characters and locations
+          for (const img of uploadedImages) {
+            try {
+              const registerResponse = await fetch(
+                `/api/asset-bank/${asset.id}/images`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    s3Key: img.s3Key,
+                    fileName: fileArray.find(f => img.s3Key.includes(f.name.split('.')[0]))?.name || 'image.jpg',
+                    fileType: fileArray.find(f => img.s3Key.includes(f.name.split('.')[0]))?.type || 'image/jpeg',
+                    fileSize: fileArray.find(f => img.s3Key.includes(f.name.split('.')[0]))?.size || 0,
+                    createdIn: 'creation' // Mark as uploaded in Creation section
+                  }),
+                }
+              );
+              
+              if (!registerResponse.ok) {
+                console.warn('[AssetDetailSidebar] ⚠️ Failed to register image in Media Library:', img.s3Key);
+              }
+            } catch (regError) {
+              console.warn('[AssetDetailSidebar] ⚠️ Error registering image:', regError);
+            }
+          }
+          
           // Transform to AssetImage format (url, angle?, uploadedAt, s3Key)
           // 🔥 FIX: Store s3Key so we can regenerate presigned URLs when they expire
           const newImageObjects = uploadedImages.map(img => ({
@@ -441,19 +471,28 @@ export default function AssetDetailSidebar({
             images: updatedImages
           }));
           
-          // Register all images with the asset via ScreenplayContext (updates both API and local state)
+          // Update asset context (for backward compatibility - backend already updated via API)
           await updateAsset(asset.id, {
             images: updatedImages
           });
           
-          // Invalidate Production Hub cache so cards update (match Locations pattern)
+          // Invalidate Production Hub and Media Library caches so cards update
           if (screenplayId) {
             queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
             queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            // Also invalidate Media Library cache (images are now registered there)
+            queryClient.invalidateQueries({ 
+              queryKey: ['media', 'files', screenplayId],
+              exact: false
+            });
             setTimeout(() => {
               queryClient.refetchQueries({ 
                 queryKey: ['assets', screenplayId, 'production-hub'],
                 type: 'active'
+              });
+              queryClient.refetchQueries({ 
+                queryKey: ['media', 'files', screenplayId],
+                exact: false
               });
             }, 2000);
           }

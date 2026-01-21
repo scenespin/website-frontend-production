@@ -382,6 +382,8 @@ export default function AssetDetailModal({
       label: string;
       isBase: boolean;
       isAngleReference?: boolean;
+      isProductionHubUpload?: boolean;
+      isCreationImage?: boolean;
       angle?: string;
       isRegenerated?: boolean;
       metadata?: any;
@@ -398,10 +400,14 @@ export default function AssetDetailModal({
       const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
       
       // Determine image type from Media Library metadata or DynamoDB
+      // Check if this is a Production Hub image (either AI-generated or user-uploaded in Production Hub)
       const isAngleReference = file.metadata?.source === 'angle-generation' ||
                                 file.metadata?.uploadMethod === 'angle-generation' ||
                                 (dynamoMetadata?.isAngleReference ?? false);
-      const isCreationImage = !isAngleReference;
+      const isProductionHubUpload = file.metadata?.createdIn === 'production-hub' ||
+                                     file.metadata?.isProductionHub === true;
+      // Image is from Creation section only if NOT from Production Hub (either AI or upload)
+      const isCreationImage = !isAngleReference && !isProductionHubUpload;
       const isBase = dynamoMetadata?.isBase ?? (index === 0 && isCreationImage);
       
       // Get label from DynamoDB metadata or Media Library
@@ -416,6 +422,8 @@ export default function AssetDetailModal({
         label,
         isBase,
         isAngleReference,
+        isProductionHubUpload, // User uploads from Production Hub
+        isCreationImage, // Images from Creation section only
         angle: dynamoMetadata?.angle || file.metadata?.angle,
         isRegenerated: dynamoMetadata?.isRegenerated,
         metadata: { ...file.metadata, ...dynamoMetadata?.metadata },
@@ -472,6 +480,8 @@ export default function AssetDetailModal({
       label: string;
       isBase: boolean;
       isAngleReference?: boolean;
+      isProductionHubUpload?: boolean;
+      isCreationImage?: boolean;
       angle?: string;
       isRegenerated?: boolean;
       metadata?: any;
@@ -494,6 +504,8 @@ export default function AssetDetailModal({
             label: `${latestAsset.name} - Image ${idx + 1}`,
             isBase: idx === 0,
             isAngleReference: false,
+            isProductionHubUpload: false,
+            isCreationImage: true, // Fallback images from asset.images are Creation images
             metadata: img.metadata || {},
             index: fallback.length
           });
@@ -513,6 +525,8 @@ export default function AssetDetailModal({
           label: `${latestAsset.name} - ${ref.angle || 'Angle'} view`,
           isBase: false,
           isAngleReference: true,
+          isProductionHubUpload: false, // AI-generated angles are not "uploads"
+          isCreationImage: false, // Angle references are Production Hub images
           angle: ref.angle,
           isRegenerated,
           metadata: {
@@ -543,13 +557,15 @@ export default function AssetDetailModal({
     return combined;
   }, [enrichedMediaLibraryImages, fallbackImages]);
   
-  // 🔥 DERIVED: Separate creation images and angle references for backward compatibility
+  // 🔥 DERIVED: Separate creation images and production hub images
+  // userImages = Creation section images ONLY (not from Production Hub)
   const userImages = useMemo(() => {
-    return allImages.filter(img => !img.isAngleReference);
+    return allImages.filter(img => img.isCreationImage);
   }, [allImages]);
   
+  // Production Hub images (AI-generated angles + user uploads from Production Hub)
   const angleImageObjects = useMemo(() => {
-    return allImages.filter(img => img.isAngleReference);
+    return allImages.filter(img => img.isAngleReference || img.isProductionHubUpload);
   }, [allImages]);
   
   // 🔥 DERIVED: Get angleReferences for backward compatibility
