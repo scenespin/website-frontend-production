@@ -471,10 +471,8 @@ export default function AssetDetailSidebar({
             images: updatedImages
           }));
           
-          // Update asset context (for backward compatibility - backend already updated via API)
-          await updateAsset(asset.id, {
-            images: updatedImages
-          });
+          // 🔥 FIX: Don't call updateAsset() - the /images API already updated DynamoDB
+          // Just invalidate caches so the UI refreshes with the new data
           
           // Invalidate Production Hub and Media Library caches so cards update
           if (screenplayId) {
