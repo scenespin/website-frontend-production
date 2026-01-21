@@ -561,10 +561,13 @@ export function LocationDetailModal({
       const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
       
       // Determine image type from Media Library metadata or DynamoDB
-      const isAngle = file.metadata?.source === 'angle-generation' ||
+      // Check explicit flags first (from user uploads), then generation sources, then DynamoDB fallback
+      const isAngle = file.metadata?.isAngle === true ||
+                      file.metadata?.source === 'angle-generation' ||
                       file.metadata?.uploadMethod === 'angle-generation' ||
                       (dynamoMetadata?.isAngle ?? false);
-      const isBackground = file.metadata?.source === 'background-generation' ||
+      const isBackground = file.metadata?.isBackground === true ||
+                           file.metadata?.source === 'background-generation' ||
                            file.metadata?.uploadMethod === 'background-generation' ||
                            (dynamoMetadata?.isBackground ?? false);
       const isBase = dynamoMetadata?.isBase ?? false;
