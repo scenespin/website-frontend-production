@@ -435,7 +435,12 @@ export default function AssetDetailSidebar({
               );
               
               if (!registerResponse.ok) {
-                console.warn('[AssetDetailSidebar] ⚠️ Failed to register image in Media Library:', img.s3Key);
+                const errorData = await registerResponse.json().catch(() => ({ error: 'Unknown error' }));
+                console.error('[AssetDetailSidebar] ❌ Failed to register image in Media Library:', {
+                  s3Key: img.s3Key,
+                  status: registerResponse.status,
+                  error: errorData
+                });
               }
             } catch (regError) {
               console.warn('[AssetDetailSidebar] ⚠️ Error registering image:', regError);

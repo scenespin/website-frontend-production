@@ -525,8 +525,9 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                     try {
                                                         const token = await getToken({ template: 'wryda-backend' });
                                                         if (token) {
+                                                            let allSucceeded = true;
                                                             for (const img of imageEntries) {
-                                                                await fetch(`/api/asset-bank/${newAsset.id}/images`, {
+                                                                const response = await fetch(`/api/asset-bank/${newAsset.id}/images`, {
                                                                     method: 'POST',
                                                                     headers: {
                                                                         'Authorization': `Bearer ${token}`,
@@ -534,15 +535,33 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                                     },
                                                                     body: JSON.stringify({
                                                                         s3Key: img.s3Key,
+                                                                        fileName: img.fileName || img.s3Key.split('/').pop() || 'image.jpg',
+                                                                        fileType: img.fileType || 'image/jpeg',
+                                                                        fileSize: img.fileSize || 0,
                                                                         createdIn: 'creation'
                                                                     }),
                                                                 });
+                                                                
+                                                                if (!response.ok) {
+                                                                    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                                                                    console.error('[AssetBoard] ❌ Failed to register image:', {
+                                                                        s3Key: img.s3Key,
+                                                                        status: response.status,
+                                                                        error: errorData
+                                                                    });
+                                                                    allSucceeded = false;
+                                                                }
+                                                            }
+                                                            
+                                                            if (allSucceeded) {
+                                                                console.log('[AssetBoard] ✅ Images registered successfully');
+                                                            } else {
+                                                                console.error('[AssetBoard] ⚠️ Some images failed to register');
                                                             }
                                                         }
                                                     } catch (regError) {
-                                                        console.warn('[AssetBoard] ⚠️ Failed to register images via API:', regError);
+                                                        console.error('[AssetBoard] ❌ Error registering images via API:', regError);
                                                     }
-                                                    console.log('[AssetBoard] ✅ Images registered successfully');
                                                     
                                                     // Invalidate and refetch after delay (but don't remove - preserves optimistic update)
                                                     if (screenplayId) {
