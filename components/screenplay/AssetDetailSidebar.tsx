@@ -65,10 +65,16 @@ export default function AssetDetailSidebar({
   }, [assetMediaFiles]);
   
   // Fetch presigned URLs for asset images
-  const { data: assetPresignedUrls = new Map() } = useBulkPresignedUrls(
+  const { data: assetPresignedUrls = new Map(), isLoading: presignedUrlsLoading } = useBulkPresignedUrls(
     assetMediaS3Keys,
     assetMediaS3Keys.length > 0
   );
+  
+  // 🔥 FIX: Convert Map to array for reliable React dependency tracking
+  // Maps don't trigger re-renders when contents change, but arrays do
+  const presignedUrlsArray = useMemo(() => {
+    return Array.from(assetPresignedUrls.entries());
+  }, [assetPresignedUrls]);
   
   // 🔥 Feature 0200: Build enriched images from Media Library with valid presigned URLs
   const mediaLibraryImages = useMemo(() => {
@@ -92,20 +98,22 @@ export default function AssetDetailSidebar({
         };
       });
     
+    // Only include images with valid presigned URLs (filter out empty strings)
     const withUrls = filtered.filter((img: any) => !!img.url);
     
     // Debug log to help diagnose missing images
-    if (filtered.length !== withUrls.length) {
+    if (!presignedUrlsLoading && filtered.length !== withUrls.length) {
       console.log('[AssetDetailSidebar] ⚠️ Some images missing presigned URLs:', {
         totalFiles: assetMediaFiles.length,
         filteredFiles: filtered.length,
         withUrls: withUrls.length,
-        missingUrls: filtered.filter((img: any) => !img.url).map((img: any) => img.s3Key)
+        missingUrls: filtered.filter((img: any) => !img.url).map((img: any) => img.s3Key),
+        presignedUrlsCount: assetPresignedUrls.size
       });
     }
     
-    return withUrls; // Only include images with valid presigned URLs
-  }, [assetMediaFiles, assetPresignedUrls]);
+    return withUrls;
+  }, [assetMediaFiles, assetPresignedUrls, presignedUrlsArray, presignedUrlsLoading]);
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
