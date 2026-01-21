@@ -1192,8 +1192,8 @@ export default function AssetDetailSidebar({
                   // Filter: User-uploaded images (Creation section can delete these)
                   const userUploadedImages = allImages.filter(img => {
                     const source = (img.metadata as any)?.source;
-                    // Show images with no source, 'user-upload', or undefined source (defaults to user-upload)
-                    return !source || source === 'user-upload';
+                    // Show images with no source, 'user-upload', or 'upload' (matches count filter logic)
+                    return !source || source === 'user-upload' || source === 'upload';
                   });
                   
                   // Filter: AI-generated Production Hub images (read-only in Creation section)
