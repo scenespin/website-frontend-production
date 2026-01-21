@@ -12,6 +12,7 @@ import AssetDetailSidebar from './AssetDetailSidebar';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { useAuth } from '@clerk/nextjs';
 
 interface AssetColumn {
     id: string;
@@ -46,6 +47,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
     } = useScreenplay();
     const queryClient = useQueryClient();
     const { state: editorState } = useEditor();
+    const { getToken } = useAuth();
     const [columns, setColumns] = useState<AssetColumn[]>([]);
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -519,10 +521,27 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                         }
                                                     }
                                                     
-                                                    // Now update via API
-                                                    await updateAsset(newAsset.id, {
-                                                        images: updatedImages
-                                                    });
+                                                    // 🔥 FIX: Register images via /images API (not updateAsset which causes conflicts)
+                                                    try {
+                                                        const token = await getToken({ template: 'wryda-backend' });
+                                                        if (token) {
+                                                            for (const img of imageEntries) {
+                                                                await fetch(`/api/asset-bank/${newAsset.id}/images`, {
+                                                                    method: 'POST',
+                                                                    headers: {
+                                                                        'Authorization': `Bearer ${token}`,
+                                                                        'Content-Type': 'application/json',
+                                                                    },
+                                                                    body: JSON.stringify({
+                                                                        s3Key: img.s3Key,
+                                                                        createdIn: 'creation'
+                                                                    }),
+                                                                });
+                                                            }
+                                                        }
+                                                    } catch (regError) {
+                                                        console.warn('[AssetBoard] ⚠️ Failed to register images via API:', regError);
+                                                    }
                                                     console.log('[AssetBoard] ✅ Images registered successfully');
                                                     
                                                     // Invalidate and refetch after delay (but don't remove - preserves optimistic update)
