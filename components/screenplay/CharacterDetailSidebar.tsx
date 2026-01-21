@@ -101,7 +101,6 @@ export default function CharacterDetailSidebar({
   const [showStorageModal, setShowStorageModal] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [regeneratedImageUrls, setRegeneratedImageUrls] = useState<Record<string, string>>({})
   
   // 🔥 FIX: Use ref to track latest characters to avoid stale closures in async functions
   const charactersRef = useRef(characters);
@@ -181,54 +180,8 @@ export default function CharacterDetailSidebar({
   // 🔥 REMOVED: Sync from Production Hub - Production Hub is now read-only
   // Production Hub no longer edits character data, so no sync needed
 
-  // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
-  useEffect(() => {
-    if (!character || !character.images || character.images.length === 0) return;
-    
-    const regenerateUrls = async () => {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) return;
-      
-      const urlMap: Record<string, string> = {};
-      
-      for (const img of character.images) {
-        // Regenerate URL if we have s3Key (regardless of whether URL looks expired)
-        // This ensures URLs are always fresh with 7-day expiration
-        const s3Key = img.metadata?.s3Key;
-        if (s3Key) {
-          try {
-            const downloadResponse = await fetch('/api/s3/download-url', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                s3Key: s3Key, 
-                expiresIn: 604800 // 7 days - matches S3 lifecycle
-              }),
-            });
-            
-            if (downloadResponse.ok) {
-              const downloadData = await downloadResponse.json();
-              if (downloadData.downloadUrl) {
-                urlMap[s3Key] = downloadData.downloadUrl;
-              }
-            }
-          } catch (error) {
-            console.warn('[CharacterDetailSidebar] Failed to regenerate presigned URL for', s3Key, error);
-          }
-        }
-      }
-      
-      if (Object.keys(urlMap).length > 0) {
-        setRegeneratedImageUrls(prev => ({ ...prev, ...urlMap }));
-        console.log('[CharacterDetailSidebar] 🔄 Regenerated', Object.keys(urlMap).length, 'presigned URLs for images with s3Key');
-      }
-    };
-    
-    regenerateUrls();
-  }, [character?.id, character?.images, getToken]);
+  // 🔥 REMOVED: Legacy URL regeneration - now using Media Library (useMediaFiles + useBulkPresignedUrls)
+  // The mediaLibraryImages variable already provides valid presigned URLs from the Media Library pattern
 
   // 🔥 FIX: Refetch character data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest character data, including newly uploaded images
