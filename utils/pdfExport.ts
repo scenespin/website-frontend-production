@@ -611,17 +611,20 @@ export async function exportScreenplayToPDF(
         // Ensure consistent double spacing before scene headings
         // Count how many blank lines we've processed before this scene
         let blankLinesBeforeScene = 0;
+        let lastNonBlankElement = null;
         for (let j = i - 1; j >= 0; j--) {
           if (elements[j].type === 'blank') {
             blankLinesBeforeScene++;
-          } else if (elements[j].type !== 'scene') {
-            // Stop counting when we hit a non-blank, non-scene element
+          } else {
+            // Found a non-blank element - this is what we're spacing from
+            lastNonBlankElement = elements[j];
             break;
           }
         }
         
-        // Scene headings need exactly 2 line heights before them
+        // Scene headings need exactly 2 line heights before them (industry standard)
         // If we have fewer than 2 blank lines, add the difference
+        // This ensures consistent spacing even when notes/acts are skipped
         if (blankLinesBeforeScene < 2) {
           currentY += lineHeightPt * (2 - blankLinesBeforeScene);
         }
