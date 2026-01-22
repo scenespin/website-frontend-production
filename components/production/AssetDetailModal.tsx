@@ -1409,9 +1409,16 @@ export default function AssetDetailModal({
                                             // Continue with asset update even if Media Library deletion fails
                                           }
                                           
-                                          // Use exact same working pattern as location backgrounds: filter derived data, then update
+                                          // 🔥 DEFENSIVE FIX: Remove from BOTH angleReferences AND images arrays
+                                          // This handles edge cases where image might be in either array
                                           const updatedAngleReferences = (latestAsset.angleReferences || []).filter(
                                             (ref: any) => ref.s3Key !== img.s3Key
+                                          );
+                                          const updatedImages = (latestAsset.images || []).filter(
+                                            (imgRef: any) => {
+                                              const imgS3Key = imgRef.s3Key || imgRef.metadata?.s3Key;
+                                              return imgS3Key !== img.s3Key;
+                                            }
                                           );
                                           
                                           // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
@@ -1419,12 +1426,12 @@ export default function AssetDetailModal({
                                             if (!old) return old;
                                             return old.map(a => 
                                               a.id === latestAsset.id
-                                                ? { ...a, angleReferences: updatedAngleReferences }
+                                                ? { ...a, angleReferences: updatedAngleReferences, images: updatedImages }
                                                 : a
                                             );
                                           });
                                           
-                                          // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
+                                          // 🔥 ONE-WAY SYNC: Update Production Hub backend with both arrays
                                           const response = await fetch(`/api/asset-bank/${latestAsset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                                             method: 'PUT',
                                             headers: {
@@ -1432,7 +1439,8 @@ export default function AssetDetailModal({
                                               'Authorization': `Bearer ${token}`,
                                             },
                                             body: JSON.stringify({
-                                              angleReferences: updatedAngleReferences
+                                              angleReferences: updatedAngleReferences,
+                                              images: updatedImages
                                             }),
                                           });
                                           
@@ -1673,22 +1681,27 @@ export default function AssetDetailModal({
                     }
                   }
                   
-                  // Batch delete: Remove all selected angle references in one update
+                  // 🔥 DEFENSIVE FIX: Remove from BOTH angleReferences AND images arrays
+                  // This handles edge cases where image might be in either array
                   const updatedAngleReferences = (latestAsset.angleReferences || []).filter((ref: any) => 
                     !s3KeysToDelete.has(ref.s3Key)
                   );
+                  const updatedImages = (latestAsset.images || []).filter((imgRef: any) => {
+                    const imgS3Key = imgRef.s3Key || imgRef.metadata?.s3Key;
+                    return !s3KeysToDelete.has(imgS3Key);
+                  });
                   
                   // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
                   queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
                     if (!old) return old;
                     return old.map(a => 
                       a.id === latestAsset.id
-                        ? { ...a, angleReferences: updatedAngleReferences }
+                        ? { ...a, angleReferences: updatedAngleReferences, images: updatedImages }
                         : a
                     );
                   });
                   
-                  // Make API call to update asset (same pattern as single deletion)
+                  // Make API call to update asset with both arrays
                   const response = await fetch(`/api/asset-bank/${latestAsset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                     method: 'PUT',
                     headers: {
@@ -1696,7 +1709,8 @@ export default function AssetDetailModal({
                       'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify({
-                      angleReferences: updatedAngleReferences
+                      angleReferences: updatedAngleReferences,
+                      images: updatedImages
                     }),
                   });
                   
@@ -1730,7 +1744,8 @@ export default function AssetDetailModal({
                   if (onAssetUpdate) {
                     onAssetUpdate({
                       ...latestAsset,
-                      angleReferences: updatedAngleReferences
+                      angleReferences: updatedAngleReferences,
+                      images: updatedImages
                     });
                   }
                   

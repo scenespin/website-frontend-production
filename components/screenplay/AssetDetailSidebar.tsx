@@ -437,6 +437,12 @@ export default function AssetDetailSidebar({
             images: updatedImages
           });
           
+          // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
+          // This matches the CharacterDetailSidebar pattern
+          if (screenplayId) {
+            invalidateProductionHubAndMediaCache(queryClient, 'assets', screenplayId);
+          }
+          
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
           // Use ref to get latest assets after update
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -1370,6 +1376,12 @@ export default function AssetDetailSidebar({
                   await updateAsset(asset.id, {
                     images: updatedImages
                   });
+                  
+                  // 🔥 FIX: Aggressively clear and refetch asset bank query cache so Production Hub cards refresh
+                  // This matches the CharacterDetailSidebar pattern
+                  if (screenplayId) {
+                    invalidateProductionHubAndMediaCache(queryClient, 'assets', screenplayId);
+                  }
                   
                   // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
                   await new Promise(resolve => setTimeout(resolve, 500));
