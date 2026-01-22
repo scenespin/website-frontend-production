@@ -143,6 +143,24 @@ export default function AssetDetailSidebar({
     }
   }, [assets, asset?.id]) // Watch assets array and asset.id - NOT formData to avoid loops
 
+  // 🔥 FIX: Sync from context on MOUNT to ensure fresh data when sidebar reopens
+  // This catches the case where: upload → close sidebar → reopen sidebar
+  // The other sync effects only run when dependencies change, but on remount
+  // the dependencies might be "the same" even though context has newer data
+  useEffect(() => {
+    if (asset?.id) {
+      const freshAsset = assets.find(a => a.id === asset.id);
+      if (freshAsset) {
+        console.log('[AssetDetailSidebar] 🔄 Mount sync - ensuring fresh data from context:', {
+          assetId: asset.id,
+          contextImageCount: freshAsset.images?.length || 0
+        });
+        setFormData({ ...freshAsset });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty deps = runs only on mount
+
   // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
   useEffect(() => {
     if (!asset || !asset.images || asset.images.length === 0) return;
