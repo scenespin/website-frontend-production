@@ -274,29 +274,46 @@ export function LocationBankPanel({
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2.5">
               {locations.map((location) => {
                 const allReferences: CinemaCardImage[] = [];
+                const addedS3Keys = new Set<string>(); // Track to avoid duplicates
                 
-                // 🔥 Feature 0200: Use Media Library as source of truth (matches LocationDetailModal pattern)
-                const mediaLibraryImages = locationImagesFromMediaLibrary[location.locationId];
-                
-                if (mediaLibraryImages) {
-                  // 🔥 FIX: Add ALL creation images with valid presigned URLs (matches AssetBankPanel pattern)
-                  mediaLibraryImages.creationImages.forEach((img) => {
-                    const imageUrl = locationPresignedUrls.get(img.s3Key);
-                    if (imageUrl) {
+                // 🔥 MATCH CharacterBankPanel: Check location.images FIRST (primary source)
+                // This is the unified images array stored in the entity (DynamoDB)
+                if (location.images && Array.isArray(location.images) && location.images.length > 0) {
+                  location.images.forEach((img: any) => {
+                    const imageUrl = img.imageUrl || img.url;
+                    const s3Key = img.s3Key || img.id;
+                    if (imageUrl && s3Key) {
+                      addedS3Keys.add(s3Key);
                       allReferences.push({
-                        id: img.s3Key,
+                        id: s3Key,
                         imageUrl: imageUrl,
-                        label: img.isBase 
+                        label: img.metadata?.isBase 
                           ? `${location.name} - Base Reference`
                           : `${location.name} - ${img.label || 'Image'}`
                       });
                     }
                   });
-                  
+                } else if (location.baseReference && location.baseReference.imageUrl) {
+                  // Legacy fallback for single baseReference
+                  if (location.baseReference.s3Key) addedS3Keys.add(location.baseReference.s3Key);
+                  allReferences.push({
+                    id: location.baseReference.id || location.baseReference.s3Key,
+                    imageUrl: location.baseReference.imageUrl,
+                    label: `${location.name} - Base Reference`
+                  });
+                }
+                
+                // 🔥 Feature 0200: Add Production Hub images from Media Library (angles, backgrounds)
+                // Only add images not already added from entity.images
+                const mediaLibraryImages = locationImagesFromMediaLibrary[location.locationId];
+                
+                if (mediaLibraryImages) {
                   // Add angle variations with valid presigned URLs
                   mediaLibraryImages.angles.forEach((angle) => {
+                    if (addedS3Keys.has(angle.s3Key)) return; // Skip duplicates
                     const imageUrl = locationPresignedUrls.get(angle.s3Key);
                     if (imageUrl) {
+                      addedS3Keys.add(angle.s3Key);
                       allReferences.push({
                         id: angle.s3Key,
                         imageUrl: imageUrl,
@@ -304,41 +321,32 @@ export function LocationBankPanel({
                       });
                     }
                   });
-                } else {
-                  // Fallback to location prop data (for backward compatibility)
-                  // 🔥 FIX: Also check location.images array (matches CharacterBankPanel pattern)
-                  if (location.images && Array.isArray(location.images) && location.images.length > 0) {
-                    location.images.forEach((img: any) => {
-                      const imageUrl = img.imageUrl || img.url;
-                      if (imageUrl) {
-                        allReferences.push({
-                          id: img.s3Key || img.id || `img-${location.locationId}-${allReferences.length}`,
-                          imageUrl: imageUrl,
-                          label: img.metadata?.isBase 
-                            ? `${location.name} - Base Reference`
-                            : `${location.name} - ${img.label || 'Image'}`
-                        });
-                      }
-                    });
-                  } else if (location.baseReference && location.baseReference.imageUrl) {
-                    // Legacy fallback for single baseReference
-                    allReferences.push({
-                      id: location.baseReference.id,
-                      imageUrl: location.baseReference.imageUrl,
-                      label: `${location.name} - Base Reference`
-                    });
-                  }
                   
-                  (location.angleVariations || [])
-                    .filter((variation: any) => variation.imageUrl)
-                    .forEach((variation) => {
+                  // Add backgrounds with valid presigned URLs
+                  mediaLibraryImages.backgrounds.forEach((bg) => {
+                    if (addedS3Keys.has(bg.s3Key)) return; // Skip duplicates
+                    const imageUrl = locationPresignedUrls.get(bg.s3Key);
+                    if (imageUrl) {
+                      addedS3Keys.add(bg.s3Key);
                       allReferences.push({
-                        id: variation.id,
-                        imageUrl: variation.imageUrl,
-                        label: `${location.name} - ${variation.angle} view`
+                        id: bg.s3Key,
+                        imageUrl: imageUrl,
+                        label: `${location.name} - ${bg.backgroundType || 'Background'}`
                       });
-                    });
+                    }
+                  });
                 }
+                
+                // Legacy fallback: angle variations from entity
+                (location.angleVariations || [])
+                  .filter((variation: any) => variation.imageUrl && !addedS3Keys.has(variation.s3Key || variation.id))
+                  .forEach((variation) => {
+                    allReferences.push({
+                      id: variation.id || variation.s3Key,
+                      imageUrl: variation.imageUrl,
+                      label: `${location.name} - ${variation.angle} view`
+                    });
+                  });
 
                 const locationType = location.type;
                 const typeLabel = location.type === 'interior' ? 'INT.' : 
