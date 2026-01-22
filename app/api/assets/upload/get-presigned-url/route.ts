@@ -42,15 +42,20 @@ export async function GET(request: Request) {
       }, { status: 413 });
     }
 
+    // Generate S3 key matching the backend pattern (same as characters)
+    // Format: temp/images/{userId}/{screenplayId}/assets/{assetId}/{timestamp}_{uuid}.{ext}
     const timestamp = Date.now();
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50);
+    const ext = sanitizedFileName.match(/\.[^.]+$/) || '.jpg';
     const uuid = randomUUID().replace(/-/g, '').substring(0, 16);
     
-    let s3Key = `temp/images/${clerkUserId}/${screenplayId}/assets/${assetId}/uploads/${timestamp}_${uuid}${sanitizedFileName.match(/\.[^.]+$/) || '.jpg'}`;
+    const s3Key = `temp/images/${clerkUserId}/${screenplayId}/assets/${assetId}/${timestamp}_${uuid}${ext}`;
     
+    // Validate s3Key length (S3 max is 1024 bytes)
     if (s3Key.length > 1024) {
-      const ext = sanitizedFileName.match(/\.[^.]+$/) || '.jpg';
-      s3Key = `temp/images/${clerkUserId}/${screenplayId}/assets/${assetId}/${timestamp}_${uuid}${ext}`;
+      return NextResponse.json({ 
+        error: 'Generated S3 key is too long. Please use a shorter filename.' 
+      }, { status: 400 });
     }
     
     const { url, fields } = await createPresignedPost(s3Client, {
