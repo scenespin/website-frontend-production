@@ -169,6 +169,12 @@ export function parseFountain(fountain: string): ParsedElement[] {
       continue;
     }
     
+    // Skip notes (wrapped in [[ ]])
+    if (trimmed.startsWith('[[') && trimmed.endsWith(']]')) {
+      i++;
+      continue;
+    }
+    
     // Action/description (default)
     elements.push({ type: 'action', text: line }); // Keep original spacing
     i++;
