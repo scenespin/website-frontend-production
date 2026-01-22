@@ -275,22 +275,9 @@ export function enforceFountainSpacing(text: string): string {
     // Add the current line
     outputLines.push(line);
     
-    // Rule 6: Blank line AFTER scene heading (if next is action)
-    // Check if we need to add blank line AFTER current line
-    if (isSceneHeading && nextNonBlank) {
-      const nextIsSceneHeading = /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(nextNonBlank);
-      const nextIsTransition = nextNonBlank.endsWith('TO:') && nextNonBlank === nextNonBlank.toUpperCase();
-      const nextIsParenthetical = nextNonBlank.startsWith('(') && nextNonBlank.endsWith(')');
-      const nextIsCharacterName = nextNonBlank === nextNonBlank.toUpperCase() 
-        && /^[A-Z][A-Z\s\.']+(\s*\([^\)]*\))?$/.test(nextNonBlank)
-        && nextNonBlank.split(/\s+/).length <= 4
-        && !nextIsSceneHeading;
-      const nextIsAction = !nextIsSceneHeading && !nextIsCharacterName && !nextIsTransition && !nextIsParenthetical;
-      
-      if (nextIsAction) {
-        outputLines.push('');
-      }
-    }
+    // Rule 6: REMOVED - Do not add blank line AFTER scene heading
+    // Fountain format should preserve exact spacing as written
+    // Blank lines after scene headings should only be added by the writer, not automatically
   }
   
   // Normalize excessive blank lines (preserve double blank lines for scene separation)

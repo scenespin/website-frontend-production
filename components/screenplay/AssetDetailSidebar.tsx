@@ -1103,10 +1103,11 @@ export default function AssetDetailSidebar({
                 })()}
                 
                 {/* Image Gallery */}
-                {asset && asset.images && asset.images.length > 0 && (() => {
-                  // 🔥 FIX: Filter images by source (same pattern as CharacterDetailSidebar)
-                  // Creation section should only show user-uploaded images, not Production Hub angle images
-                  const allImages = asset.images.map((img, idx) => {
+                {asset && formData.images && formData.images.length > 0 && (() => {
+                  // 🔥 FIX: Use formData.images (local state) instead of asset.images (prop)
+                  // This ensures immediate display after upload without waiting for parent re-render
+                  // Filter images by source (same pattern as CharacterDetailSidebar)
+                  const allImages = formData.images.map((img, idx) => {
                     // Use regenerated URL if available, otherwise use original URL
                     const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
                       ? regeneratedImageUrls[img.s3Key] 

@@ -201,6 +201,30 @@ function cleanPDFTextForFountain(text: string): string {
   // Join lines back
   cleaned = cleanedLines.join('\n');
   
+  // Fix INT./EXT. scene headings that may have been split during PDF extraction
+  // Pattern: "/EXT. LOCATION" should become "INT./EXT. LOCATION"
+  // This handles cases where "INT." was on a different line or lost during extraction
+  cleaned = cleaned.split('\n').map((line, index, lines) => {
+    const trimmed = line.trim();
+    
+    // Check if this line starts with "/EXT." and looks like a scene heading
+    // (has location and time pattern, or just location)
+    if (/^\/EXT\.\s+[A-Z]/i.test(trimmed)) {
+      // Check if previous line might have been "INT." or if this is clearly a scene heading
+      const prevLine = index > 0 ? lines[index - 1].trim() : '';
+      const looksLikeSceneHeading = /^\/EXT\.\s+.+?-\s*(DAY|NIGHT|CONTINUOUS|LATER|MOMENTS LATER|DAWN|DUSK)/i.test(trimmed) ||
+                                    /^\/EXT\.\s+[A-Z][A-Z\s]+$/i.test(trimmed);
+      
+      // If previous line is "INT." or empty, or this clearly looks like a scene heading
+      if (prevLine === 'INT.' || prevLine === '' || looksLikeSceneHeading) {
+        // Reconstruct as "INT./EXT."
+        return line.replace(/^(\s*)\/EXT\./i, '$1INT./EXT.');
+      }
+    }
+    
+    return line;
+  }).join('\n');
+  
   // Normalize multiple spaces to single space (but preserve line structure)
   cleaned = cleaned.split('\n').map(line => {
     // Preserve leading spaces (might be intentional indentation)

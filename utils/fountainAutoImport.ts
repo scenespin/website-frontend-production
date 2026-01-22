@@ -157,10 +157,25 @@ export function parseContentForImport(content: string): AutoImportResult {
             }
             
             // 🔥 ENHANCED: Capture location type (INT/EXT/INT-EXT)
-            const locationMatch = trimmed.match(/^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]+(.+?)\s*-\s*(.+)$/i);
+            // Handle INT./EXT. format (with periods) and also handle cases where INT. might be missing from PDF import
+            const locationMatch = trimmed.match(/^(INT|EXT|EST|INT\.?\/EXT|INT\.\/EXT\.|I\/E)[\.\s]+(.+?)\s*-\s*(.+)$/i) ||
+                                 trimmed.match(/^\/EXT\.\s+(.+?)\s*-\s*(.+)$/i); // Handle missing INT. prefix from PDF
             if (locationMatch) {
-                const typePrefix = locationMatch[1].trim().toUpperCase();
-                const location = locationMatch[2].trim();
+                // Handle case where INT. prefix was missing (PDF import issue)
+                let typePrefix: string;
+                let location: string;
+                let time: string;
+                
+                if (locationMatch[1] === undefined) {
+                    // This is the /EXT. pattern (missing INT. prefix)
+                    typePrefix = 'INT./EXT';
+                    location = locationMatch[2]?.trim() || '';
+                    time = locationMatch[3]?.trim() || '';
+                } else {
+                    typePrefix = locationMatch[1].trim().toUpperCase();
+                    location = locationMatch[2]?.trim() || '';
+                    time = locationMatch[3]?.trim() || '';
+                }
                 
                 // Normalize type to standard values
                 let locationType: 'INT' | 'EXT' | 'INT/EXT';
@@ -168,7 +183,7 @@ export function parseContentForImport(content: string): AutoImportResult {
                     locationType = 'INT';
                 } else if (typePrefix === 'EXT' || typePrefix === 'EXT.') {
                     locationType = 'EXT';
-                } else if (typePrefix === 'INT/EXT' || typePrefix === 'INT./EXT' || typePrefix === 'I/E') {
+                } else if (typePrefix === 'INT/EXT' || typePrefix === 'INT./EXT' || typePrefix === 'INT./EXT.' || typePrefix === 'I/E') {
                     locationType = 'INT/EXT';
                 } else {
                     locationType = 'INT'; // Default fallback
@@ -195,10 +210,22 @@ export function parseContentForImport(content: string): AutoImportResult {
             } else {
                 // Missing time of day - flag for user to select (don't auto-correct)
                 // Extract location without time of day
-                const locationMatch = trimmed.match(/^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]+(.+)$/i);
+                // Also handle cases where INT. prefix might be missing from PDF import
+                const locationMatch = trimmed.match(/^(INT|EXT|EST|INT\.?\/EXT|INT\.\/EXT\.|I\/E)[\.\s]+(.+)$/i) ||
+                                      trimmed.match(/^\/EXT\.\s+(.+)$/i); // Handle missing INT. prefix
                 if (locationMatch) {
-                    const typePrefix = locationMatch[1].trim().toUpperCase();
-                    const location = locationMatch[2].trim();
+                    // Handle case where INT. prefix was missing (PDF import issue)
+                    let typePrefix: string;
+                    let location: string;
+                    
+                    if (locationMatch[1] === undefined) {
+                        // This is the /EXT. pattern (missing INT. prefix)
+                        typePrefix = 'INT./EXT';
+                        location = locationMatch[2]?.trim() || '';
+                    } else {
+                        typePrefix = locationMatch[1].trim().toUpperCase();
+                        location = locationMatch[2]?.trim() || '';
+                    }
                     
                     // Normalize type to standard values
                     let locationType: 'INT' | 'EXT' | 'INT/EXT';
@@ -206,7 +233,7 @@ export function parseContentForImport(content: string): AutoImportResult {
                         locationType = 'INT';
                     } else if (typePrefix === 'EXT' || typePrefix === 'EXT.') {
                         locationType = 'EXT';
-                    } else if (typePrefix === 'INT/EXT' || typePrefix === 'INT./EXT' || typePrefix === 'I/E') {
+                    } else if (typePrefix === 'INT/EXT' || typePrefix === 'INT./EXT' || typePrefix === 'INT./EXT.' || typePrefix === 'I/E') {
                         locationType = 'INT/EXT';
                     } else {
                         locationType = 'INT'; // Default fallback
