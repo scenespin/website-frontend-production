@@ -12,7 +12,6 @@ import AssetDetailSidebar from './AssetDetailSidebar';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useMediaFiles } from '@/hooks/useMediaLibrary';
-import { useAuth } from '@clerk/nextjs';
 
 interface AssetColumn {
     id: string;
@@ -47,7 +46,6 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
     } = useScreenplay();
     const queryClient = useQueryClient();
     const { state: editorState } = useEditor();
-    const { getToken } = useAuth();
     const [columns, setColumns] = useState<AssetColumn[]>([]);
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -521,47 +519,12 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                         }
                                                     }
                                                     
-                                                    // 🔥 FIX: Register images via /images API (not updateAsset which causes conflicts)
-                                                    try {
-                                                        const token = await getToken({ template: 'wryda-backend' });
-                                                        if (token) {
-                                                            let allSucceeded = true;
-                                                            for (const img of imageEntries) {
-                                                                const response = await fetch(`/api/asset-bank/${newAsset.id}/images`, {
-                                                                    method: 'POST',
-                                                                    headers: {
-                                                                        'Authorization': `Bearer ${token}`,
-                                                                        'Content-Type': 'application/json',
-                                                                    },
-                                                                    body: JSON.stringify({
-                                                                        s3Key: img.s3Key,
-                                                                        fileName: img.fileName || img.s3Key.split('/').pop() || 'image.jpg',
-                                                                        fileType: img.fileType || 'image/jpeg',
-                                                                        fileSize: img.fileSize || 0,
-                                                                        createdIn: 'creation'
-                                                                    }),
-                                                                });
-                                                                
-                                                                if (!response.ok) {
-                                                                    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                                                                    console.error('[AssetBoard] ❌ Failed to register image:', {
-                                                                        s3Key: img.s3Key,
-                                                                        status: response.status,
-                                                                        error: errorData
-                                                                    });
-                                                                    allSucceeded = false;
-                                                                }
-                                                            }
-                                                            
-                                                            if (allSucceeded) {
-                                                                console.log('[AssetBoard] ✅ Images registered successfully');
-                                                            } else {
-                                                                console.error('[AssetBoard] ⚠️ Some images failed to register');
-                                                            }
-                                                        }
-                                                    } catch (regError) {
-                                                        console.error('[AssetBoard] ❌ Error registering images via API:', regError);
-                                                    }
+                                                    // Use updateAsset directly (like characters/locations do)
+                                                    // This handles both backend update AND context sync in one call
+                                                    await updateAsset(newAsset.id, {
+                                                        images: updatedImages
+                                                    });
+                                                    console.log('[AssetBoard] ✅ Images registered successfully via updateAsset');
                                                     
                                                     // Invalidate and refetch after delay (but don't remove - preserves optimistic update)
                                                     if (screenplayId) {
