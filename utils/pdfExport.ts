@@ -89,7 +89,28 @@ export function parseFountain(fountain: string): ParsedElement[] {
       continue;
     }
     
+    // IMPORTANT: Skip organizational elements FIRST (before other parsing)
+    // Skip synopsis lines (starting with =)
+    if (trimmed.startsWith('=')) {
+      i++;
+      continue;
+    }
+    
+    // Skip section/act headings (starting with #)
+    // Must be checked before scene heading detection to prevent "# INT." from being parsed as scene
+    if (trimmed.startsWith('#')) {
+      i++;
+      continue;
+    }
+    
+    // Skip notes (wrapped in [[ ]])
+    if (trimmed.startsWith('[[') && trimmed.endsWith(']]')) {
+      i++;
+      continue;
+    }
+    
     // Scene heading (INT., EXT., INT/EXT, INT./EXT)
+    // Check AFTER skipping # lines to ensure act headings don't interfere
     if (/^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(trimmed)) {
       elements.push({
         type: 'scene',
@@ -154,24 +175,6 @@ export function parseFountain(fountain: string): ParsedElement[] {
         elements.push({ type: 'dialogue', text: nextLine });
         i++;
       }
-      continue;
-    }
-    
-    // Skip synopsis lines (starting with =)
-    if (trimmed.startsWith('=')) {
-      i++;
-      continue;
-    }
-    
-    // Skip section/act headings (starting with #)
-    if (trimmed.startsWith('#')) {
-      i++;
-      continue;
-    }
-    
-    // Skip notes (wrapped in [[ ]])
-    if (trimmed.startsWith('[[') && trimmed.endsWith(']]')) {
-      i++;
       continue;
     }
     
