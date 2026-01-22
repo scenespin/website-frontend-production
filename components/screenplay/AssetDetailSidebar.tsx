@@ -120,24 +120,28 @@ export default function AssetDetailSidebar({
     // Only reset when asset.id actually changes (switching between assets or modes)
   }, [asset, asset?.id, asset?.images]) // Watch full asset object and images to catch updates
 
-  // 🔥 FIX: Sync formData when asset in context changes (for immediate UI updates)
-  // This ensures the modal reflects changes immediately when images are added/removed
-  // Only sync if the asset prop is stale (not matching context)
+  // 🔥 FIX: ALWAYS sync from context on mount and when assets change
+  // This ensures the modal reflects the latest data even if the asset prop is stale
+  // (which happens because columns state is a separate copy that updates async)
   useEffect(() => {
     if (asset?.id) {
       const updatedAssetFromContext = assets.find(a => a.id === asset.id);
       if (updatedAssetFromContext) {
-        // Only update if the asset from context is different from the prop
-        // This handles the case where selectedAsset in AssetBoard is stale
-        const assetImages = (asset.images || []).map(img => img.url).sort().join(',');
-        const contextImages = (updatedAssetFromContext.images || []).map(img => img.url).sort().join(',');
-        if (assetImages !== contextImages) {
+        // Compare formData with context (not prop with context)
+        // This catches both stale props AND stale formData
+        const formDataImages = (formData.images || []).map(img => img.s3Key || img.url).sort().join(',');
+        const contextImages = (updatedAssetFromContext.images || []).map(img => img.s3Key || img.url).sort().join(',');
+        if (formDataImages !== contextImages) {
           // Context has newer data - update formData
+          console.log('[AssetDetailSidebar] 🔄 Syncing from context (formData stale):', {
+            formDataImageCount: formData.images?.length || 0,
+            contextImageCount: updatedAssetFromContext.images?.length || 0
+          });
           setFormData({ ...updatedAssetFromContext });
         }
       }
     }
-  }, [assets, asset?.id, asset?.images]) // Watch assets array, asset.id, and asset.images
+  }, [assets, asset?.id]) // Watch assets array and asset.id - NOT formData to avoid loops
 
   // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
   useEffect(() => {

@@ -492,24 +492,28 @@ export default function AssetDetailModal({
     // Check creation images
     assetImages.forEach((img: any, idx: number) => {
       const source = img.metadata?.source;
-      const isCreationImage = !source || source === 'user-upload';
+      const createdIn = img.metadata?.createdIn;
+      // 🔥 FIX: Check BOTH source AND createdIn to properly categorize images
+      // Production Hub uploads set createdIn: 'production-hub', not source
+      const isProductionHubImage = createdIn === 'production-hub' || 
+                                    source === 'angle-generation' ||
+                                    source === 'production-hub';
+      const isCreationImage = !isProductionHubImage && (!source || source === 'user-upload');
       
-      if (isCreationImage) {
-        const s3Key = img.s3Key || img.metadata?.s3Key;
-        if (s3Key && !mediaLibraryS3KeysSet.has(s3Key)) {
-          fallback.push({
-            id: `img-${idx}`,
-            imageUrl: img.url || '',
-            s3Key,
-            label: `${latestAsset.name} - Image ${idx + 1}`,
-            isBase: idx === 0,
-            isAngleReference: false,
-            isProductionHubUpload: false,
-            isCreationImage: true, // Fallback images from asset.images are Creation images
-            metadata: img.metadata || {},
-            index: fallback.length
-          });
-        }
+      const s3Key = img.s3Key || img.metadata?.s3Key;
+      if (s3Key && !mediaLibraryS3KeysSet.has(s3Key)) {
+        fallback.push({
+          id: `img-${idx}`,
+          imageUrl: img.url || '',
+          s3Key,
+          label: `${latestAsset.name} - Image ${idx + 1}`,
+          isBase: idx === 0,
+          isAngleReference: source === 'angle-generation',
+          isProductionHubUpload: isProductionHubImage && source !== 'angle-generation',
+          isCreationImage: isCreationImage,
+          metadata: img.metadata || {},
+          index: fallback.length
+        });
       }
     });
     
