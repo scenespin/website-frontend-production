@@ -14,6 +14,7 @@ import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary'
+import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
 
 interface AssetDetailSidebarProps {
   asset?: Asset | null
@@ -639,32 +640,16 @@ export default function AssetDetailSidebar({
       // Update via API
       await updateAsset(asset.id, updateData);
       
-      // Invalidate Production Hub cache so cards update (match Locations pattern)
+      // 🔥 FIX: Use unified cache invalidation utility (matches CharacterDetailSidebar pattern)
+      // This invalidates both Production Hub and Media Library caches
       if (screenplayId) {
-        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        setTimeout(() => {
-          queryClient.refetchQueries({ 
-            queryKey: ['assets', screenplayId, 'production-hub'],
-            type: 'active'
-          });
-        }, 2000);
+        invalidateProductionHubAndMediaCache(queryClient, 'assets', screenplayId);
       }
       
-      // Sync from context after update (with delay for DynamoDB consistency)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // 🔥 FIX: Use ref to get latest asset after update
-      const updatedAssetFromContext = assetsRef.current.find(a => a.id === asset.id);
-      if (updatedAssetFromContext) {
-        console.log('[AssetDetailSidebar] 🗑️ Syncing from context after delete:', {
-          imageCount: updatedAssetFromContext.images?.length || 0
-        });
-        setFormData({ ...updatedAssetFromContext });
-      } else {
-        console.warn('[AssetDetailSidebar] ⚠️ Asset not found in context after delete:', asset.id);
-      }
+      // 🔥 FIX: Don't sync from context immediately after deletion
+      // The useEffect hook will handle syncing when context actually updates
+      // This prevents overwriting the optimistic update with stale data
       
-      // 🔥 FIX: Only show one toast notification
       toast.success('Image removed');
     } catch (error: any) {
       // Rollback on error
