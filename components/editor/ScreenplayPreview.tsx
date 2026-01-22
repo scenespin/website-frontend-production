@@ -38,10 +38,6 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
 
   const renderElement = (element: ParsedElement, index: number) => {
     const key = `element-${index}`;
-    
-    // Check if dialogue follows a parenthetical (for alignment)
-    const previousElement = index > 0 ? elements[index - 1] : null;
-    const isDialogueAfterParenthetical = element.type === 'dialogue' && previousElement?.type === 'parenthetical';
 
     switch (element.type) {
       case 'blank':
@@ -88,9 +84,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mt-3 mb-1 screenplay-character"
             style={{
-              marginLeft: leftMargin,
+              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.character)})`,
               marginRight: rightMargin,
-              textAlign: 'center',
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               fontWeight: 'normal',
@@ -101,19 +96,14 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         );
 
       case 'parenthetical':
-        // Check if parenthetical follows a character name (for centering)
-        const prevElement = index > 0 ? elements[index - 1] : null;
-        const isParentheticalAfterCharacter = prevElement?.type === 'character';
-        
         return (
           <div
             key={key}
             className="mb-1 screenplay-parenthetical"
             style={{
-              marginLeft: isParentheticalAfterCharacter ? leftMargin : `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.parenthetical)})`,
+              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.parenthetical)})`,
               marginRight: rightMargin,
-              maxWidth: isParentheticalAfterCharacter ? `calc(100% - ${leftMargin} - ${rightMargin})` : inchesToRem(SCREENPLAY_FORMAT.width.parenthetical),
-              textAlign: isParentheticalAfterCharacter ? 'center' : 'left',
+              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.parenthetical),
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
@@ -124,21 +114,14 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         );
 
       case 'dialogue':
-        // Check if dialogue follows a character name or parenthetical (for centering)
-        const prevElem = index > 0 ? elements[index - 1] : null;
-        const isDialogueAfterCharacter = prevElem?.type === 'character';
-        const isDialogueAfterParen = prevElem?.type === 'parenthetical';
-        const shouldCenterDialogue = isDialogueAfterCharacter || isDialogueAfterParen;
-        
         return (
           <div
             key={key}
             className="mb-3 screenplay-dialogue"
             style={{
-              marginLeft: shouldCenterDialogue ? leftMargin : `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.dialogue)})`,
+              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.dialogue)})`,
               marginRight: rightMargin,
-              maxWidth: shouldCenterDialogue ? `calc(100% - ${leftMargin} - ${rightMargin})` : inchesToRem(SCREENPLAY_FORMAT.width.dialogue),
-              textAlign: shouldCenterDialogue ? 'center' : 'left',
+              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.dialogue),
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
@@ -204,21 +187,18 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             max-width: calc(100% - 1rem) !important;
           }
           .screenplay-preview-container .screenplay-character {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            text-align: center !important;
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
           }
           .screenplay-preview-container .screenplay-parenthetical {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            text-align: center !important;
-            max-width: 100% !important;
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
+            max-width: calc(100% - 1rem) !important;
           }
           .screenplay-preview-container .screenplay-dialogue {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            text-align: center !important;
-            max-width: 100% !important;
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
+            max-width: calc(100% - 1rem) !important;
           }
           .screenplay-preview-container .screenplay-transition {
             margin-left: 0.5rem !important;
