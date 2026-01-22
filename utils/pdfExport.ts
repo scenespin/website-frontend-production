@@ -608,6 +608,24 @@ export async function exportScreenplayToPDF(
         // Scene headings should not be orphaned
         checkPageBreak(2);
         
+        // Ensure consistent double spacing before scene headings
+        // Count how many blank lines we've processed before this scene
+        let blankLinesBeforeScene = 0;
+        for (let j = i - 1; j >= 0; j--) {
+          if (elements[j].type === 'blank') {
+            blankLinesBeforeScene++;
+          } else if (elements[j].type !== 'scene') {
+            // Stop counting when we hit a non-blank, non-scene element
+            break;
+          }
+        }
+        
+        // Scene headings need exactly 2 line heights before them
+        // If we have fewer than 2 blank lines, add the difference
+        if (blankLinesBeforeScene < 2) {
+          currentY += lineHeightPt * (2 - blankLinesBeforeScene);
+        }
+        
         // Update current scene tracking
         currentScene = element.text;
         sceneContinuing = false; // New scene, not continuing
