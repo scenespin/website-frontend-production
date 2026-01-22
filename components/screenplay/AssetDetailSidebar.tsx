@@ -13,7 +13,6 @@ import { useAuth } from '@clerk/nextjs'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary'
 import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
 
 interface AssetDetailSidebarProps {
@@ -47,55 +46,6 @@ export default function AssetDetailSidebar({
   const { getToken } = useAuth()
   const queryClient = useQueryClient()
   
-  // 🔥 Feature 0200: Use Media Library as source of truth for asset images
-  // Query Media Library for asset's images (same pattern as LocationDetailModal)
-  const { data: assetMediaFiles = [] } = useMediaFiles(
-    screenplayId || '',
-    undefined,
-    !!screenplayId && !!asset?.id,
-    true, // includeAllFolders
-    'asset', // entityType
-    asset?.id // entityId
-  );
-  
-  // Get s3Keys for presigned URL generation
-  const assetMediaS3Keys = useMemo(() => {
-    return assetMediaFiles
-      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
-      .map((file: any) => file.s3Key);
-  }, [assetMediaFiles]);
-  
-  // Fetch presigned URLs for asset images
-  const { data: assetPresignedUrls = new Map(), isLoading: presignedUrlsLoading } = useBulkPresignedUrls(
-    assetMediaS3Keys,
-    assetMediaS3Keys.length > 0
-  );
-  
-  // 🔥 Feature 0200: Build enriched images from Media Library with valid presigned URLs
-  // Using assetPresignedUrls.size as dependency ensures recomputation when URLs arrive
-  const mediaLibraryImages = useMemo(() => {
-    return assetMediaFiles
-      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
-      .map((file: any) => {
-        const presignedUrl = assetPresignedUrls.get(file.s3Key);
-        return {
-          id: file.fileId || file.s3Key,
-          url: presignedUrl || '',
-          imageUrl: presignedUrl || '',
-          s3Key: file.s3Key,
-          uploadedAt: file.createdAt,
-          metadata: {
-            s3Key: file.s3Key,
-            source: file.metadata?.source || 'upload',
-            prompt: file.metadata?.prompt,
-            modelUsed: file.metadata?.modelUsed,
-            ...file.metadata
-          }
-        };
-      })
-      .filter((img: any) => !!img.url); // Only show images with valid URLs (they'll appear as URLs arrive)
-  }, [assetMediaFiles, assetPresignedUrls.size]); // .size changes when Map contents change, triggering recomputation
-  
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
     return asset ? isEntityInScript(editorState.content, asset.name, 'asset') : false;
@@ -107,6 +57,9 @@ export default function AssetDetailSidebar({
   const [showStorageModal, setShowStorageModal] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // 🔥 FIX: Regenerate expired presigned URLs for images
+  const [regeneratedImageUrls, setRegeneratedImageUrls] = useState<Record<string, string>>({})
   
   const [formData, setFormData] = useState<any>(
     asset ? { ...asset } : (initialData ? {
@@ -186,8 +139,53 @@ export default function AssetDetailSidebar({
     }
   }, [assets, asset?.id, asset?.images]) // Watch assets array, asset.id, and asset.images
 
-  // 🔥 REMOVED: Legacy URL regeneration - now using Media Library (useMediaFiles + useBulkPresignedUrls)
-  // The mediaLibraryImages variable already provides valid presigned URLs from the Media Library pattern
+  // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
+  useEffect(() => {
+    if (!asset || !asset.images || asset.images.length === 0) return;
+    
+    const regenerateUrls = async () => {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return;
+      
+      const urlMap: Record<string, string> = {};
+      
+      for (const img of asset.images) {
+        // Regenerate URL if we have s3Key (regardless of whether URL looks expired)
+        // This ensures URLs are always fresh with 7-day expiration
+        if (img.s3Key) {
+          try {
+            const downloadResponse = await fetch('/api/s3/download-url', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                s3Key: img.s3Key, 
+                expiresIn: 604800 // 7 days - matches S3 lifecycle
+              }),
+            });
+            
+            if (downloadResponse.ok) {
+              const downloadData = await downloadResponse.json();
+              if (downloadData.downloadUrl) {
+                urlMap[img.s3Key] = downloadData.downloadUrl;
+              }
+            }
+          } catch (error) {
+            console.warn('[AssetDetailSidebar] Failed to regenerate presigned URL for', img.s3Key, error);
+          }
+        }
+      }
+      
+      if (Object.keys(urlMap).length > 0) {
+        setRegeneratedImageUrls(prev => ({ ...prev, ...urlMap }));
+        console.log('[AssetDetailSidebar] 🔄 Regenerated', Object.keys(urlMap).length, 'presigned URLs for images with s3Key');
+      }
+    };
+    
+    regenerateUrls();
+  }, [asset?.id, asset?.images, getToken]);
 
   // 🔥 FIX: Refetch asset data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest asset data, including newly uploaded images
@@ -229,17 +227,6 @@ export default function AssetDetailSidebar({
       setPendingImages([])
     } else {
       onUpdate(formData)
-      // Invalidate Production Hub cache so cards update (match Locations pattern)
-      if (screenplayId) {
-        queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        setTimeout(() => {
-          queryClient.refetchQueries({ 
-            queryKey: ['assets', screenplayId, 'production-hub'],
-            type: 'active'
-          });
-        }, 2000);
-      }
     }
     
     // Close the sidebar after successful save
@@ -260,10 +247,12 @@ export default function AssetDetailSidebar({
     // Support multiple files - process all selected files
     const fileArray = Array.from(files);
 
-    // 🔥 Feature 0200: Validate 5-image limit using Media Library (source of truth)
-    const currentCount = mediaLibraryImages.filter((img: any) => {
-      const source = img.metadata?.source;
-      return !source || source === 'user-upload' || source === 'upload';
+    // 🔥 NEW: Validate 5-image limit (1 base + 4 additional)
+    // Assets have images directly on the asset object, not via getEntityImages
+    const currentImages = asset?.images || [];
+    const currentCount = currentImages.filter(img => {
+      const source = (img.metadata as any)?.source;
+      return !source || source === 'user-upload';
     }).length;
     const maxImages = 5;
     
@@ -414,41 +403,6 @@ export default function AssetDetailSidebar({
       if (asset) {
         // Existing asset - register all images with asset bank API
         try {
-          // 🔥 FIX: Register each image via the asset-bank API (registers in Media Library)
-          // This matches the pattern used by characters and locations
-          for (const img of uploadedImages) {
-            try {
-              const registerResponse = await fetch(
-                `/api/asset-bank/${asset.id}/images`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    s3Key: img.s3Key,
-                    fileName: fileArray.find(f => img.s3Key.includes(f.name.split('.')[0]))?.name || 'image.jpg',
-                    fileType: fileArray.find(f => img.s3Key.includes(f.name.split('.')[0]))?.type || 'image/jpeg',
-                    fileSize: fileArray.find(f => img.s3Key.includes(f.name.split('.')[0]))?.size || 0,
-                    createdIn: 'creation' // Mark as uploaded in Creation section
-                  }),
-                }
-              );
-              
-              if (!registerResponse.ok) {
-                const errorData = await registerResponse.json().catch(() => ({ error: 'Unknown error' }));
-                console.error('[AssetDetailSidebar] ❌ Failed to register image in Media Library:', {
-                  s3Key: img.s3Key,
-                  status: registerResponse.status,
-                  error: errorData
-                });
-              }
-            } catch (regError) {
-              console.warn('[AssetDetailSidebar] ⚠️ Error registering image:', regError);
-            }
-          }
-          
           // Transform to AssetImage format (url, angle?, uploadedAt, s3Key)
           // 🔥 FIX: Store s3Key so we can regenerate presigned URLs when they expire
           const newImageObjects = uploadedImages.map(img => ({
@@ -478,34 +432,10 @@ export default function AssetDetailSidebar({
             images: updatedImages
           }));
           
-          // 🔥 FIX: Don't call updateAsset() - the /images API already updated DynamoDB
-          // Just invalidate caches so the UI refreshes with the new data
-          
-          // Invalidate Production Hub and Media Library caches so cards update
-          if (screenplayId) {
-            queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            // Also invalidate Media Library cache (images are now registered there)
-            queryClient.invalidateQueries({ 
-              queryKey: ['media', 'files', screenplayId],
-              exact: false
-            });
-            // Invalidate presigned URLs cache so new images get URLs
-            queryClient.invalidateQueries({ 
-              queryKey: ['presigned-urls'],
-              exact: false
-            });
-            setTimeout(() => {
-              queryClient.refetchQueries({ 
-                queryKey: ['assets', screenplayId, 'production-hub'],
-                type: 'active'
-              });
-              queryClient.refetchQueries({ 
-                queryKey: ['media', 'files', screenplayId],
-                exact: false
-              });
-            }, 2000);
-          }
+          // Register all images with the asset via ScreenplayContext (updates both API and local state)
+          await updateAsset(asset.id, {
+            images: updatedImages
+          });
           
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
           // Use ref to get latest assets after update
@@ -1126,11 +1056,11 @@ export default function AssetDetailSidebar({
               <div className="space-y-3">
                 {/* Upload Buttons */}
                 {(() => {
-                  // 🔥 Feature 0200: Use Media Library count (source of truth)
-                  // Filter for user-uploaded images only (not angle-generation from Production Hub)
-                  const userUploadedCount = mediaLibraryImages.filter((img: any) => {
+                  // Calculate user-uploaded image count for the upload button
+                  const currentImages = asset?.images || [];
+                  const userUploadedCount = currentImages.filter((img: any) => {
                     const source = img.metadata?.source;
-                    return !source || source === 'user-upload' || source === 'upload';
+                    return !source || source === 'user-upload';
                   }).length;
                   
                   return (
@@ -1160,25 +1090,32 @@ export default function AssetDetailSidebar({
                 })()}
                 
                 {/* Image Gallery */}
-                {asset && mediaLibraryImages.length > 0 && (() => {
-                  // 🔥 Feature 0200: Use Media Library as source of truth (same pattern as LocationDetailModal)
-                  // mediaLibraryImages already has valid presigned URLs (expired images are filtered out)
-                  const allImages = mediaLibraryImages.map((img: any, idx: number) => ({
-                    id: img.id || `asset-img-${idx}`,
-                    imageUrl: img.imageUrl || img.url,
-                    createdAt: img.uploadedAt,
-                    metadata: {
-                      s3Key: img.s3Key,
-                      ...(img.metadata || {}),
-                      source: img.metadata?.source || 'user-upload'
-                    }
-                  }));
+                {asset && asset.images && asset.images.length > 0 && (() => {
+                  // 🔥 FIX: Filter images by source (same pattern as CharacterDetailSidebar)
+                  // Creation section should only show user-uploaded images, not Production Hub angle images
+                  const allImages = asset.images.map((img, idx) => {
+                    // Use regenerated URL if available, otherwise use original URL
+                    const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
+                      ? regeneratedImageUrls[img.s3Key] 
+                      : img.url;
+                    
+                    return {
+                      id: `asset-img-${idx}`,
+                      imageUrl: imageUrl,
+                      createdAt: img.uploadedAt,
+                      metadata: {
+                        ...(img.s3Key ? { s3Key: img.s3Key } : {}),
+                        ...(img.metadata || {}), // Preserve all metadata (source, angle, etc.)
+                        source: img.metadata?.source || (img.s3Key ? undefined : 'user-upload')
+                      }
+                    };
+                  });
                   
                   // Filter: User-uploaded images (Creation section can delete these)
                   const userUploadedImages = allImages.filter(img => {
                     const source = (img.metadata as any)?.source;
-                    // Show images with no source, 'user-upload', or 'upload' (matches count filter logic)
-                    return !source || source === 'user-upload' || source === 'upload';
+                    // Show images with no source, 'user-upload', or undefined source (defaults to user-upload)
+                    return !source || source === 'user-upload';
                   });
                   
                   // Filter: AI-generated Production Hub images (read-only in Creation section)
