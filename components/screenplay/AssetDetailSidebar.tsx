@@ -292,15 +292,18 @@ export default function AssetDetailSidebar({
       if (!token) throw new Error('Not authenticated');
 
       // Upload all files to S3
+      // 🔥 FIX: Use asset-specific endpoint (matches CharacterDetailSidebar pattern)
+      const assetId = asset?.id || 'new';
+      
       for (const file of fileArray) {
         // Step 1: Get presigned POST URL for S3 upload
         const presignedResponse = await fetch(
-          `/api/video/upload/get-presigned-url?` + 
+          `/api/assets/upload/get-presigned-url?` + 
           `fileName=${encodeURIComponent(file.name)}` +
           `&fileType=${encodeURIComponent(file.type)}` +
           `&fileSize=${file.size}` +
           `&screenplayId=${encodeURIComponent(screenplayId)}` +
-          `&projectId=${encodeURIComponent(screenplayId)}`, // Keep for backward compatibility
+          `&assetId=${encodeURIComponent(assetId)}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,

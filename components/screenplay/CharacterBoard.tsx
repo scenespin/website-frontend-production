@@ -17,7 +17,6 @@ import {
   sortCharacters,
   type CharacterSortOption 
 } from '@/utils/characterSorting';
-import { useMediaFiles } from '@/hooks/useMediaLibrary';
 
 interface CharacterColumn {
     id: string;
@@ -59,32 +58,6 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [sortBy, setSortBy] = useState<CharacterSortOption>(() => getCharacterSortPreference());
-    
-    // 🔥 Feature 0200: Query Media Library for character image counts (source of truth)
-    // This replaces counting from character.images[] which may contain expired references
-    const { data: allCharacterMediaFiles = [] } = useMediaFiles(
-        screenplayId || '',
-        undefined,
-        !!screenplayId,
-        true, // includeAllFolders
-        'character' // entityType - get all character media files
-    );
-    
-    // Create a map of characterId → valid image count
-    const characterImageCountMap = useMemo(() => {
-        const countMap = new Map<string, number>();
-        allCharacterMediaFiles.forEach((file: any) => {
-            if (file.entityId && file.s3Key && !file.s3Key.startsWith('thumbnails/')) {
-                // Only count creation images (not pose-generation from Production Hub)
-                const source = file.metadata?.source;
-                if (source !== 'pose-generation') {
-                    const current = countMap.get(file.entityId) || 0;
-                    countMap.set(file.entityId, current + 1);
-                }
-            }
-        });
-        return countMap;
-    }, [allCharacterMediaFiles]);
     
     // Delete confirmation dialog state
     const [characterToDelete, setCharacterToDelete] = useState<Character | null>(null);
@@ -404,7 +377,6 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                             onClick={() => setSelectedCharacter(character)}
                                             onEdit={() => openEditForm(character)}
                                             canEdit={canEditScript}
-                                            characterImageCountMap={characterImageCountMap}
                                         />
                                     </motion.div>
                                 ))}
@@ -535,7 +507,6 @@ interface CharacterCardContentProps {
     onClick: () => void;
     onEdit: () => void;
     canEdit: boolean;
-    characterImageCountMap: Map<string, number>; // 🔥 Feature 0200: Media Library image counts
 }
 
 function CharacterCardContent({
@@ -546,7 +517,6 @@ function CharacterCardContent({
     onClick,
     onEdit,
     canEdit,
-    characterImageCountMap,
 }: CharacterCardContentProps) {
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -649,11 +619,15 @@ function CharacterCardContent({
             <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: '#6B7280' }}>
                 <span>📝 {sceneCount}</span>
                 {(() => {
-                    // 🔥 Feature 0200: Use Media Library count (source of truth)
-                    // This prevents showing counts for expired/deleted images
-                    const imageCount = characterImageCountMap.get(character.id) || 0;
-                    return imageCount > 0 ? (
-                        <span className="text-blue-400">🖼️ {imageCount}</span>
+                    // 🔥 FIX: Use character.images directly (matches LocationBoard pattern)
+                    // This ensures immediate icon updates after upload without waiting for Media Library sync
+                    const creationImages = (character.images || []).filter((img: any) => {
+                        const metadata = img.metadata || {};
+                        // Only count Creation images (user-uploaded), not AI-generated Production Hub images
+                        return metadata.source !== 'pose-generation' && metadata.createdIn !== 'production-hub';
+                    });
+                    return creationImages.length > 0 ? (
+                        <span className="text-blue-400">🖼️ {creationImages.length}</span>
                     ) : null;
                 })()}
             </div>
