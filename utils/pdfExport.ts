@@ -611,23 +611,21 @@ export async function exportScreenplayToPDF(
         // Scene headings should not be orphaned
         checkPageBreak(2);
         
-        // Ensure consistent double spacing before scene headings
-        // Count how many blank lines we've processed before this scene
+        // Ensure consistent double spacing before scene headings (Fountain spec requirement)
+        // Count blank lines that have already been processed (they've already moved currentY)
         let blankLinesBeforeScene = 0;
-        let lastNonBlankElement = null;
         for (let j = i - 1; j >= 0; j--) {
           if (elements[j].type === 'blank') {
             blankLinesBeforeScene++;
           } else {
-            // Found a non-blank element - this is what we're spacing from
-            lastNonBlankElement = elements[j];
+            // Found a non-blank element - stop counting
             break;
           }
         }
         
-        // Scene headings need exactly 2 line heights before them (industry standard)
-        // If we have fewer than 2 blank lines, add the difference
-        // This ensures consistent spacing even when notes/acts are skipped
+        // Scene headings need exactly 2 line heights of space before them
+        // Blank lines have already moved currentY down by blankLinesBeforeScene * lineHeightPt
+        // If we have fewer than 2 blank lines, add the remaining space needed
         if (blankLinesBeforeScene < 2) {
           currentY += lineHeightPt * (2 - blankLinesBeforeScene);
         }
