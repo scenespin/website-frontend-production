@@ -625,10 +625,15 @@ export async function exportScreenplayToPDF(
         
         // Scene headings need exactly 2 line heights of space before them
         // Blank lines have already moved currentY down by blankLinesBeforeScene * lineHeightPt
-        // If we have fewer than 2 blank lines, add the remaining space needed
         if (blankLinesBeforeScene < 2) {
+          // Too few blank lines - add the remaining space needed
           currentY += lineHeightPt * (2 - blankLinesBeforeScene);
+        } else if (blankLinesBeforeScene > 2) {
+          // Too many blank lines (from skipped notes/acts/synopsis) - reduce spacing to exactly 2
+          // Move currentY back up by the excess blank lines
+          currentY -= lineHeightPt * (blankLinesBeforeScene - 2);
         }
+        // If blankLinesBeforeScene === 2, we're already at the correct spacing
         
         // Update current scene tracking
         currentScene = element.text;
