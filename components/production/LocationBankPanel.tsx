@@ -60,11 +60,12 @@ export function LocationBankPanel({
 
   // 🔥 Feature 0200: Process Media Library files to get angles and backgrounds per location
   // This is the same logic used in LocationDetailModal - ensures consistency
+  // 🔥 FIX: Use creationImages ARRAY instead of single baseReference (matches AssetBankPanel pattern)
   const locationImagesFromMediaLibrary = useMemo(() => {
     const locationMap: Record<string, {
+      creationImages: Array<{ s3Key: string; label?: string; isBase?: boolean }>;
       angles: Array<{ s3Key: string; angle?: string; label?: string }>;
       backgrounds: Array<{ s3Key: string; backgroundType?: string }>;
-      baseReference?: { s3Key: string };
     }> = {};
 
     allLocationMediaFiles.forEach((file: any) => {
@@ -74,7 +75,7 @@ export function LocationBankPanel({
       if (!entityId) return;
 
       if (!locationMap[entityId]) {
-        locationMap[entityId] = { angles: [], backgrounds: [] };
+        locationMap[entityId] = { creationImages: [], angles: [], backgrounds: [] };
       }
 
       // Check if it's a background
@@ -98,8 +99,14 @@ export function LocationBankPanel({
           label: file.metadata?.angle
         });
       } else if (file.metadata?.isBase || file.metadata?.source === 'user-upload') {
-        // Base reference
-        locationMap[entityId].baseReference = { s3Key: file.s3Key };
+        // 🔥 FIX: Push to array instead of overwriting (matches AssetBankPanel pattern)
+        // This ensures ALL creation images are displayed, not just the last one
+        const isBase = file.metadata?.isBase === true;
+        locationMap[entityId].creationImages.push({
+          s3Key: file.s3Key,
+          label: file.fileName?.replace(/\.[^/.]+$/, '') || 'Image',
+          isBase
+        });
       }
     });
 
@@ -110,7 +117,8 @@ export function LocationBankPanel({
   const allLocationS3Keys = useMemo(() => {
     const keys: string[] = [];
     Object.values(locationImagesFromMediaLibrary).forEach(loc => {
-      if (loc.baseReference?.s3Key) keys.push(loc.baseReference.s3Key);
+      // 🔥 FIX: Iterate over creationImages array (matches AssetBankPanel pattern)
+      loc.creationImages.forEach(img => keys.push(img.s3Key));
       loc.angles.forEach(a => keys.push(a.s3Key));
       loc.backgrounds.forEach(b => keys.push(b.s3Key));
     });
@@ -271,17 +279,19 @@ export function LocationBankPanel({
                 const mediaLibraryImages = locationImagesFromMediaLibrary[location.locationId];
                 
                 if (mediaLibraryImages) {
-                  // Add base reference if it exists and has valid presigned URL
-                  if (mediaLibraryImages.baseReference?.s3Key) {
-                    const imageUrl = locationPresignedUrls.get(mediaLibraryImages.baseReference.s3Key);
+                  // 🔥 FIX: Add ALL creation images with valid presigned URLs (matches AssetBankPanel pattern)
+                  mediaLibraryImages.creationImages.forEach((img) => {
+                    const imageUrl = locationPresignedUrls.get(img.s3Key);
                     if (imageUrl) {
                       allReferences.push({
-                        id: mediaLibraryImages.baseReference.s3Key,
+                        id: img.s3Key,
                         imageUrl: imageUrl,
-                        label: `${location.name} - Base Reference`
+                        label: img.isBase 
+                          ? `${location.name} - Base Reference`
+                          : `${location.name} - ${img.label || 'Image'}`
                       });
                     }
-                  }
+                  });
                   
                   // Add angle variations with valid presigned URLs
                   mediaLibraryImages.angles.forEach((angle) => {
@@ -296,7 +306,22 @@ export function LocationBankPanel({
                   });
                 } else {
                   // Fallback to location prop data (for backward compatibility)
-                  if (location.baseReference && location.baseReference.imageUrl) {
+                  // 🔥 FIX: Also check location.images array (matches CharacterBankPanel pattern)
+                  if (location.images && Array.isArray(location.images) && location.images.length > 0) {
+                    location.images.forEach((img: any) => {
+                      const imageUrl = img.imageUrl || img.url;
+                      if (imageUrl) {
+                        allReferences.push({
+                          id: img.s3Key || img.id || `img-${location.locationId}-${allReferences.length}`,
+                          imageUrl: imageUrl,
+                          label: img.metadata?.isBase 
+                            ? `${location.name} - Base Reference`
+                            : `${location.name} - ${img.label || 'Image'}`
+                        });
+                      }
+                    });
+                  } else if (location.baseReference && location.baseReference.imageUrl) {
+                    // Legacy fallback for single baseReference
                     allReferences.push({
                       id: location.baseReference.id,
                       imageUrl: location.baseReference.imageUrl,
