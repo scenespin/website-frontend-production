@@ -134,7 +134,8 @@ function cleanPDFTextForFountain(text: string): string {
     }
     
     // Detect first scene heading to mark start of actual screenplay
-    if (!foundFirstScene && /^(INT|EXT|INT\/EXT|INT\.\/EXT|EST|I\/E)[\.\s]/i.test(trimmed)) {
+    // CRITICAL: Order matters! More specific patterns (INT./EXT., I./E.) must come BEFORE simpler ones (INT, EXT)
+    if (!foundFirstScene && /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(trimmed)) {
       foundFirstScene = true;
     }
     

@@ -40,8 +40,9 @@ export function detectElementType(line: string, previousType?: FountainElementTy
     
     // Scene heading (INT., EXT., EST., INT./EXT., I/E)
     // Also handles partial inputs like "INT" without period, "int/ext", "i/e" (for Tab navigation)
-    if (/^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]/i.test(trimmed) || 
-        /^(INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)$/i.test(trimmed)) {
+    // CRITICAL: Order matters! More specific patterns (INT./EXT., I./E.) must come BEFORE simpler ones (INT, EXT)
+    if (/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(trimmed) || 
+        /^(INT\.\/EXT\.|I\.\/E\.|INT\/EXT|I\/E|EST|INT|EXT)$/i.test(trimmed)) {
         return 'scene_heading';
     }
     

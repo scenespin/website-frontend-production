@@ -133,7 +133,8 @@ export function parseContentForImport(content: string): AutoImportResult {
                         break;
                     }
                 }
-                const nextIsSceneHeading = /^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]/i.test(nextNonEmptyLine);
+                // CRITICAL: Order matters! More specific patterns (INT./EXT., I./E.) must come BEFORE simpler ones (INT, EXT)
+                const nextIsSceneHeading = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextNonEmptyLine);
                 
                 if (currentScene && !nextIsSceneHeading) {
                     // Synopsis after scene heading (not before next scene) - apply to current scene
@@ -158,7 +159,8 @@ export function parseContentForImport(content: string): AutoImportResult {
             
             // 🔥 ENHANCED: Capture location type (INT/EXT/INT-EXT)
             // Handle INT./EXT. format (with periods) and also handle cases where INT. might be missing from PDF import
-            const locationMatch = trimmed.match(/^(INT|EXT|EST|INT\.?\/EXT|INT\.\/EXT\.|I\/E)[\.\s]+(.+?)\s*-\s*(.+)$/i) ||
+            // CRITICAL: Order matters! More specific patterns (INT./EXT., I./E.) must come BEFORE simpler ones (INT, EXT)
+            const locationMatch = trimmed.match(/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]+(.+?)\s*-\s*(.+)$/i) ||
                                  trimmed.match(/^\/EXT\.\s+(.+?)\s*-\s*(.+)$/i); // Handle missing INT. prefix from PDF
             if (locationMatch) {
                 // Handle case where INT. prefix was missing (PDF import issue)
@@ -179,12 +181,14 @@ export function parseContentForImport(content: string): AutoImportResult {
                 
                 // Normalize type to standard values
                 let locationType: 'INT' | 'EXT' | 'INT/EXT';
-                if (typePrefix === 'INT' || typePrefix === 'INT.') {
+                // Check INT/EXT patterns first (most specific)
+                if (typePrefix === 'INT./EXT.' || typePrefix === 'INT./EXT' || typePrefix === 'INT/EXT' || 
+                    typePrefix === 'I./E.' || typePrefix === 'I/E') {
+                    locationType = 'INT/EXT';
+                } else if (typePrefix === 'INT' || typePrefix === 'INT.') {
                     locationType = 'INT';
                 } else if (typePrefix === 'EXT' || typePrefix === 'EXT.') {
                     locationType = 'EXT';
-                } else if (typePrefix === 'INT/EXT' || typePrefix === 'INT./EXT' || typePrefix === 'INT./EXT.' || typePrefix === 'I/E') {
-                    locationType = 'INT/EXT';
                 } else {
                     locationType = 'INT'; // Default fallback
                 }
@@ -211,7 +215,8 @@ export function parseContentForImport(content: string): AutoImportResult {
                 // Missing time of day - flag for user to select (don't auto-correct)
                 // Extract location without time of day
                 // Also handle cases where INT. prefix might be missing from PDF import
-                const locationMatch = trimmed.match(/^(INT|EXT|EST|INT\.?\/EXT|INT\.\/EXT\.|I\/E)[\.\s]+(.+)$/i) ||
+                // CRITICAL: Order matters! More specific patterns (INT./EXT., I./E.) must come BEFORE simpler ones (INT, EXT)
+                const locationMatch = trimmed.match(/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]+(.+)$/i) ||
                                       trimmed.match(/^\/EXT\.\s+(.+)$/i); // Handle missing INT. prefix
                 if (locationMatch) {
                     // Handle case where INT. prefix was missing (PDF import issue)
@@ -229,12 +234,14 @@ export function parseContentForImport(content: string): AutoImportResult {
                     
                     // Normalize type to standard values
                     let locationType: 'INT' | 'EXT' | 'INT/EXT';
-                    if (typePrefix === 'INT' || typePrefix === 'INT.') {
+                    // Check INT/EXT patterns first (most specific)
+                    if (typePrefix === 'INT./EXT.' || typePrefix === 'INT./EXT' || typePrefix === 'INT/EXT' || 
+                        typePrefix === 'I./E.' || typePrefix === 'I/E') {
+                        locationType = 'INT/EXT';
+                    } else if (typePrefix === 'INT' || typePrefix === 'INT.') {
                         locationType = 'INT';
                     } else if (typePrefix === 'EXT' || typePrefix === 'EXT.') {
                         locationType = 'EXT';
-                    } else if (typePrefix === 'INT/EXT' || typePrefix === 'INT./EXT' || typePrefix === 'INT./EXT.' || typePrefix === 'I/E') {
-                        locationType = 'INT/EXT';
                     } else {
                         locationType = 'INT'; // Default fallback
                     }
