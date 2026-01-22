@@ -2389,6 +2389,13 @@ export function CharacterDetailModal({
                                             return poseS3Key === img.s3Key;
                                           });
                                           
+                                          // 🔥 DEFENSIVE FIX: Also remove from images[] array (same pattern as AssetDetailModal)
+                                          // This prevents the image from appearing in fallback (which reads from images[])
+                                          const updatedImages = (latestCharacter.images || []).filter((imgRef: any) => {
+                                            const imgS3Key = imgRef.s3Key || imgRef.metadata?.s3Key;
+                                            return imgS3Key !== img.s3Key;
+                                          });
+                                          
                                           // Use exact same working pattern as location backgrounds: filter derived data, then onUpdate
                                           if (isPoseRef) {
                                             // Remove from poseReferences (AI-generated poses) - same pattern as location backgrounds
@@ -2403,14 +2410,15 @@ export function CharacterDetailModal({
                                               if (!old) return old;
                                               return old.map(char => 
                                                 char.id === latestCharacter.id
-                                                  ? { ...char, poseReferences: updatedPoseReferences, angleReferences: updatedPoseReferences }
+                                                  ? { ...char, poseReferences: updatedPoseReferences, angleReferences: updatedPoseReferences, images: updatedImages }
                                                   : char
                                               );
                                             });
                                             
-                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
+                                            // 🔥 ONE-WAY SYNC: Update Production Hub backend with both arrays
                                             await onUpdate(latestCharacter.id, { 
-                                              poseReferences: updatedPoseReferences
+                                              poseReferences: updatedPoseReferences,
+                                              images: updatedImages
                                             });
                                           } else {
                                             // Remove from references (user-uploaded references)
@@ -2425,14 +2433,15 @@ export function CharacterDetailModal({
                                               if (!old) return old;
                                               return old.map(char => 
                                                 char.id === latestCharacter.id
-                                                  ? { ...char, references: updatedReferences }
+                                                  ? { ...char, references: updatedReferences, images: updatedImages }
                                                   : char
                                               );
                                             });
                                             
-                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
+                                            // 🔥 ONE-WAY SYNC: Update Production Hub backend with both arrays
                                             await onUpdate(latestCharacter.id, { 
-                                              references: updatedReferences 
+                                              references: updatedReferences,
+                                              images: updatedImages
                                             });
                                           }
                                           
@@ -2784,10 +2793,17 @@ export function CharacterDetailModal({
                       return !s3KeysToDelete.has(refS3Key);
                     });
                     
-                    // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as backgrounds)
+                    // 🔥 DEFENSIVE FIX: Also remove from images[] array (same pattern as AssetDetailModal)
+                    const updatedImages = (latestCharacter.images || []).filter((imgRef: any) => {
+                      const imgS3Key = imgRef.s3Key || imgRef.metadata?.s3Key;
+                      return !s3KeysToDelete.has(imgS3Key);
+                    });
+                    
+                    // 🔥 ONE-WAY SYNC: Update Production Hub backend with all arrays
                     await onUpdate(latestCharacter.id, { 
                       poseReferences: updatedPoseReferences,
-                      references: updatedReferences
+                      references: updatedReferences,
+                      images: updatedImages
                     });
                     
                     // 🔥 FIX: Aggressively clear and refetch character queries (same pattern as Creation section)
