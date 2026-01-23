@@ -2871,11 +2871,113 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           : (sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId ? [sceneAnalysisResult.workflowRecommendations[0].workflowId] : ['complete-scene']);
       }
       
-      // 🔥 RESTORED: Backend handles first frame generation automatically
-      // Scene builder just sends data (references, prompts, etc.) to backend
-      // Backend generates first frames using FirstFrameService during workflow execution
-      // This follows best practices: complex operations run on server, not client
-      console.log(`[SceneBuilderPanel] 📤 Sending workflow request - backend will generate first frames automatically`);
+      // Get scene information early (needed for first frame generation)
+      const sceneId = sceneAnalysisResult?.sceneId || selectedSceneId;
+      let sceneNumber: number | undefined;
+      if (selectedSceneId && screenplay.scenes) {
+        const selectedScene = screenplay.scenes.find((s: any) => s.id === selectedSceneId);
+        if (selectedScene) {
+          sceneNumber = selectedScene.number;
+        }
+      }
+      
+      // 🔥 RESTORED: Generate first frames per shot BEFORE sending workflow request
+      // This ensures the scene builder's first frames (with references) are used by the video model
+      // Backend will use these first frames if provided, otherwise generate its own
+      console.log(`[SceneBuilderPanel] 🎨 Generating first frames for ${enabledShots.length} enabled shot(s)...`);
+      
+      const firstFramesByShot: Record<number, string> = {};
+      
+      // Generate first frame for each enabled shot
+      if (sceneAnalysisResult?.shotBreakdown && enabledShots.length > 0) {
+        const enabledShotsData = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => enabledShots.includes(shot.slot));
+        
+        for (const shot of enabledShotsData) {
+          try {
+            // Collect references for this shot
+            const shotReferences: string[] = [];
+            
+            // 1. Character reference (priority)
+            if (shot.type === 'dialogue' && shot.characterId && selectedCharacterReferences[shot.slot]?.[shot.characterId]) {
+              const charRef = selectedCharacterReferences[shot.slot][shot.characterId];
+              if (charRef.imageUrl) shotReferences.push(charRef.imageUrl);
+            } else if (shot.characterId && finalCharacterRefs.length > 0) {
+              // Fallback to global character refs
+              shotReferences.push(...finalCharacterRefs.slice(0, 1));
+            }
+            
+            // 2. Location reference
+            if (selectedLocationReferences[shot.slot]?.imageUrl) {
+              shotReferences.push(selectedLocationReferences[shot.slot].imageUrl);
+            }
+            
+            // 3. Asset/prop references
+            if (shotProps[shot.slot]) {
+              for (const [propId, propConfig] of Object.entries(shotProps[shot.slot] as any)) {
+                const config = propConfig as { selectedImageId?: string; usageDescription?: string };
+                if (config.selectedImageId) {
+                  // Get prop image URL from Media Library
+                  // Note: This is simplified - in production, you'd fetch the actual URL
+                  // For now, we'll rely on backend to handle prop references
+                }
+              }
+            }
+            
+            // Build prompt for first frame (use shot's dialogue/action description)
+            const shotPrompt = shot.dialogueBlock?.dialogue || 
+                              shot.actionDescription || 
+                              sceneDescription.trim();
+            
+            // Get aspect ratio for this shot
+            const shotAspectRatio = shotAspectRatios[shot.slot] || '16:9';
+            
+            // Get quality tier (use selectedReferenceShotModels to determine provider)
+            const providerId = selectedReferenceShotModels[shot.slot] || (qualityTier === 'premium' ? 'nano-banana-pro' : 'flux2-pro-2k');
+            
+            // Generate first frame using /api/first-frame/generate endpoint
+            const firstFrameResponse = await fetch('/api/first-frame/generate', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                prompt: shotPrompt,
+                references: shotReferences.length > 0 ? shotReferences : finalCharacterRefs.slice(0, 1), // Fallback to global refs if no shot-specific
+                aspectRatio: shotAspectRatio,
+                qualityTier: qualityTier,
+                entityType: 'shot',
+                entityId: `shot_${shot.slot}`,
+                projectId: projectId,
+                sceneId: sceneId,
+                sceneNumber: sceneNumber,
+                shotNumber: shot.slot,
+                shotSlot: shot.slot,
+                shotType: shot.type,
+                characterId: shot.characterId
+              })
+            });
+            
+            if (!firstFrameResponse.ok) {
+              const errorData = await firstFrameResponse.json().catch(() => ({}));
+              console.warn(`[SceneBuilderPanel] ⚠️ Failed to generate first frame for shot ${shot.slot}:`, errorData.message || firstFrameResponse.statusText);
+              // Continue with other shots even if one fails
+              continue;
+            }
+            
+            const firstFrameData = await firstFrameResponse.json();
+            if (firstFrameData.success && firstFrameData.imageUrl) {
+              firstFramesByShot[shot.slot] = firstFrameData.imageUrl;
+              console.log(`[SceneBuilderPanel] ✅ Generated first frame for shot ${shot.slot}`);
+            }
+          } catch (error: any) {
+            console.error(`[SceneBuilderPanel] ❌ Error generating first frame for shot ${shot.slot}:`, error);
+            // Continue with other shots even if one fails
+          }
+        }
+      }
+      
+      console.log(`[SceneBuilderPanel] ✅ Generated ${Object.keys(firstFramesByShot).length} first frame(s) - sending to backend`);
       
       const workflowRequest: any = {
         workflowIds: workflowIdsToUse, // NEW: Pass array of workflow IDs for combined execution
@@ -2946,7 +3048,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       // Add scene information for media organization (Feature 0170)
       // Priority: sceneAnalysisResult.sceneId > selectedSceneId (no editor context fallback)
-      const sceneId = sceneAnalysisResult?.sceneId || selectedSceneId;
       if (sceneId) {
         workflowRequest.sceneId = sceneId;
       }
@@ -2958,11 +3059,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       }
       
       // Add scene number and name if available from selected scene
-      if (selectedSceneId && screenplay.scenes) {
-        const selectedScene = screenplay.scenes.find(s => s.id === selectedSceneId);
-        if (selectedScene) {
-          workflowRequest.sceneNumber = selectedScene.number;
-          workflowRequest.sceneName = selectedScene.heading || selectedScene.synopsis || undefined;
+      if (sceneNumber !== undefined) {
+        workflowRequest.sceneNumber = sceneNumber;
+        if (selectedSceneId && screenplay.scenes) {
+          const selectedScene = screenplay.scenes.find((s: any) => s.id === selectedSceneId);
+          if (selectedScene) {
+            workflowRequest.sceneName = selectedScene.heading || selectedScene.synopsis || undefined;
+          }
         }
       }
       
@@ -2987,10 +3090,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         // };
       }
       
-      // 🔥 RESTORED: Backend generates first frames automatically
-      // Scene builder sends shot data, references, prompts, etc.
-      // Backend's DialogueFirstFrameLipsyncService will generate first frames using FirstFrameService
-      // No need to pass firstFramesByShot - backend handles generation
+      // 🔥 RESTORED: Pass per-shot first frames to backend
+      // Backend will use these first frames (generated with references) instead of generating its own
+      if (Object.keys(firstFramesByShot).length > 0) {
+        workflowRequest.firstFramesByShot = firstFramesByShot;
+        console.log(`[SceneBuilderPanel] ✅ Passing ${Object.keys(firstFramesByShot).length} per-shot first frame(s) to workflow:`, 
+          Object.keys(firstFramesByShot).map(slot => `shot ${slot}`).join(', '));
+      }
       
       // Legacy: Also support single firstFrameUrl for backward compatibility (scene-level first frame)
       if (firstFrameUrl) {
