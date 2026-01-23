@@ -2921,275 +2921,275 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           while (attempt < MAX_RETRIES && !success) {
             attempt++;
             try {
-            // Collect references for this shot (same logic as backend executeDialogueShot)
-            const references: string[] = [];
+              // Collect references for this shot (same logic as backend executeDialogueShot)
+              const references: string[] = [];
             
-            // 1. Character references (from selectedCharacterReferences)
-            if (shot.characterId && selectedCharacterReferences[shot.slot]?.[shot.characterId]) {
-              const charRef = selectedCharacterReferences[shot.slot][shot.characterId];
-              let charImageUrl = charRef.imageUrl;
-              
-              // If no imageUrl but we have s3Key, get presigned URL
-              if (!charImageUrl && charRef.s3Key) {
-                if (selectedReferenceFullImageUrlsMap?.has(charRef.s3Key)) {
-                  charImageUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
-                } else {
-                  // Fetch presigned URL on-demand
-                  try {
-                    const downloadUrlResponse = await fetch('/api/s3/download-url', {
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ s3Key: charRef.s3Key, expiresIn: 3600 })
-                    });
-                    if (downloadUrlResponse.ok) {
-                      const { downloadUrl } = await downloadUrlResponse.json();
-                      charImageUrl = downloadUrl;
+              // 1. Character references (from selectedCharacterReferences)
+              if (shot.characterId && selectedCharacterReferences[shot.slot]?.[shot.characterId]) {
+                const charRef = selectedCharacterReferences[shot.slot][shot.characterId];
+                let charImageUrl = charRef.imageUrl;
+                
+                // If no imageUrl but we have s3Key, get presigned URL
+                if (!charImageUrl && charRef.s3Key) {
+                  if (selectedReferenceFullImageUrlsMap?.has(charRef.s3Key)) {
+                    charImageUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
+                  } else {
+                    // Fetch presigned URL on-demand
+                    try {
+                      const downloadUrlResponse = await fetch('/api/s3/download-url', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ s3Key: charRef.s3Key, expiresIn: 3600 })
+                      });
+                      if (downloadUrlResponse.ok) {
+                        const { downloadUrl } = await downloadUrlResponse.json();
+                        charImageUrl = downloadUrl;
+                      }
+                    } catch (error) {
+                      console.warn(`[SceneBuilderPanel] Failed to get presigned URL for character reference:`, error);
                     }
-                  } catch (error) {
-                    console.warn(`[SceneBuilderPanel] Failed to get presigned URL for character reference:`, error);
                   }
+                }
+                
+                if (charImageUrl) {
+                  references.push(charImageUrl);
                 }
               }
               
-              if (charImageUrl) {
-                references.push(charImageUrl);
-              }
-            }
-            
-            // 2. Additional characters (for scene-voiceover workflows)
-            if (selectedCharactersForShots[shot.slot]) {
-              for (const charId of selectedCharactersForShots[shot.slot]) {
-                if (charId === shot.characterId) continue; // Skip main character
-                
-                const charRef = selectedCharacterReferences[shot.slot]?.[charId];
-                if (charRef) {
-                  let charImageUrl = charRef.imageUrl;
-                  if (!charImageUrl && charRef.s3Key) {
-                    if (selectedReferenceFullImageUrlsMap?.has(charRef.s3Key)) {
-                      charImageUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
-                    } else {
-                      try {
-                        const downloadUrlResponse = await fetch('/api/s3/download-url', {
-                          method: 'POST',
-                          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ s3Key: charRef.s3Key, expiresIn: 3600 })
-                        });
-                        if (downloadUrlResponse.ok) {
-                          const { downloadUrl } = await downloadUrlResponse.json();
-                          charImageUrl = downloadUrl;
+              // 2. Additional characters (for scene-voiceover workflows)
+              if (selectedCharactersForShots[shot.slot]) {
+                for (const charId of selectedCharactersForShots[shot.slot]) {
+                  if (charId === shot.characterId) continue; // Skip main character
+                  
+                  const charRef = selectedCharacterReferences[shot.slot]?.[charId];
+                  if (charRef) {
+                    let charImageUrl = charRef.imageUrl;
+                    if (!charImageUrl && charRef.s3Key) {
+                      if (selectedReferenceFullImageUrlsMap?.has(charRef.s3Key)) {
+                        charImageUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
+                      } else {
+                        try {
+                          const downloadUrlResponse = await fetch('/api/s3/download-url', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ s3Key: charRef.s3Key, expiresIn: 3600 })
+                          });
+                          if (downloadUrlResponse.ok) {
+                            const { downloadUrl } = await downloadUrlResponse.json();
+                            charImageUrl = downloadUrl;
+                          }
+                        } catch (error) {
+                          console.warn(`[SceneBuilderPanel] Failed to get presigned URL for additional character:`, error);
                         }
-                      } catch (error) {
-                        console.warn(`[SceneBuilderPanel] Failed to get presigned URL for additional character:`, error);
                       }
                     }
-                  }
-                  if (charImageUrl && references.length < 4) {
-                    references.push(charImageUrl);
-                  }
-                }
-              }
-            }
-            
-            // 3. Location references (from selectedLocationReferences)
-            if (selectedLocationReferences[shot.slot]) {
-              const locationRef = selectedLocationReferences[shot.slot];
-              let locationImageUrl = locationRef.imageUrl;
-              
-              if (!locationImageUrl && locationRef.s3Key) {
-                if (locationFullImageUrlsMap?.has(locationRef.s3Key)) {
-                  locationImageUrl = locationFullImageUrlsMap.get(locationRef.s3Key);
-                } else {
-                  try {
-                    const downloadUrlResponse = await fetch('/api/s3/download-url', {
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ s3Key: locationRef.s3Key, expiresIn: 3600 })
-                    });
-                    if (downloadUrlResponse.ok) {
-                      const { downloadUrl } = await downloadUrlResponse.json();
-                      locationImageUrl = downloadUrl;
+                    if (charImageUrl && references.length < 4) {
+                      references.push(charImageUrl);
                     }
-                  } catch (error) {
-                    console.warn(`[SceneBuilderPanel] Failed to get presigned URL for location reference:`, error);
                   }
                 }
               }
               
-              if (locationImageUrl && references.length < 4) {
-                references.push(locationImageUrl);
-              }
-            }
-            
-            // 4. Asset/prop references (from shotProps)
-            if (shotProps[shot.slot] && propsToShots) {
-              const shotPropConfigs = shotProps[shot.slot];
-              const propsForShot: string[] = [];
-              
-              // Get props assigned to this shot
-              for (const [propId, shotSlots] of Object.entries(propsToShots)) {
-                if (Array.isArray(shotSlots) && shotSlots.includes(shot.slot)) {
-                  propsForShot.push(propId);
-                }
-              }
-              
-              // Get prop image URLs (up to 3 props)
-              for (const propId of propsForShot.slice(0, 3)) {
-                const propConfig = shotPropConfigs[propId];
-                if (propConfig?.selectedImageId) {
-                  // For props, we need to fetch the asset and get the image URL
-                  // This is complex - for now, skip prop references in first frame generation
-                  // The prompt will include prop descriptions instead
-                  // TODO: Implement prop image URL fetching if needed
-                }
-              }
-            }
-            
-            // Build prompt for first frame using hash system (single source of truth)
-            // This matches backend's getSceneContentForPrompt() logic
-            // 🔥 REVERTED: Back to original simple prompt building (removed structured format)
-            let prompt = baseSceneDescription;
-            
-            // Add dialogue workflow prompt override if available
-            const dialogueWorkflowPrompt = dialogueWorkflowPrompts[shot.slot];
-            if (dialogueWorkflowPrompt && shot.type === 'dialogue') {
-              prompt = dialogueWorkflowPrompt;
-            } else if (shot.type === 'dialogue' && shot.dialogueBlock) {
-              // Build from dialogue block components
-              const actionParts: string[] = [];
-              if (shot.dialogueBlock.precedingAction?.trim()) {
-                actionParts.push(shot.dialogueBlock.precedingAction.trim());
-              }
-              if (shot.dialogueBlock.parenthetical?.trim()) {
-                actionParts.push(`(${shot.dialogueBlock.parenthetical.trim()})`);
-              }
-              if (shot.dialogueBlock.dialogue?.trim()) {
-                actionParts.push(shot.dialogueBlock.dialogue.trim());
-              }
-              if (actionParts.length > 0) {
-                prompt = `${prompt}. ${actionParts.join(' ')}`;
-              }
-            } else if (shot.type === 'action' && shot.narrationBlock?.text) {
-              prompt = `${prompt}. ${shot.narrationBlock.text}`;
-            }
-            
-            // Add pronoun extras prompts (for skipped pronouns)
-            if (pronounExtrasPrompts[shot.slot]) {
-              const extras = Object.values(pronounExtrasPrompts[shot.slot]).filter(p => p?.trim());
-              if (extras.length > 0) {
-                prompt = `${prompt}. ${extras.join('. ')}`;
-              }
-            }
-            
-            // Add prop descriptions
-            if (shotProps[shot.slot]) {
-              const propDescriptions: string[] = [];
-              for (const [propId, propConfig] of Object.entries(shotProps[shot.slot])) {
-                const config = propConfig as { usageDescription?: string } | undefined;
-                if (config?.usageDescription?.trim()) {
-                  propDescriptions.push(config.usageDescription.trim());
-                }
-              }
-              if (propDescriptions.length > 0) {
-                prompt = `${prompt}. Props: ${propDescriptions.join(', ')}`;
-              }
-            }
-            
-            // Add dialogue framing and quality enhancements (same as backend)
-            const dialogueFraming = ', character visible from waist up or extreme close-up, mouth and face clearly visible, location visible in background or context';
-            const qualityEnhancements = ', cinematic lighting, professional cinematography, high quality, 4K resolution';
-            prompt = `${prompt}${dialogueFraming}${qualityEnhancements}`;
-            
-            // Debug logging for prompt (testing)
-            // This runs automatically when "Generate" button is clicked (workflow generation)
-            console.log(`[SceneBuilderPanel] 📝 Prompt for shot ${shot.slot} (${shot.type}):`, {
-              shotSlot: shot.slot,
-              shotType: shot.type,
-              promptLength: prompt.length,
-              promptPreview: prompt.substring(0, 200) + '...'
-            });
-            
-            // Determine aspect ratio for this shot
-            const shotAspectRatio = shotAspectRatios[shot.slot] || '16:9';
-            
-            // Generate first frame using new endpoint (with retry logic)
-            // Debug: Log reference collection status
-            console.log(`[SceneBuilderPanel] 🔍 Reference collection for shot ${shot.slot}:`, {
-              shotSlot: shot.slot,
-              shotType: shot.type,
-              characterId: shot.characterId,
-              hasCharacterRef: !!selectedCharacterReferences[shot.slot]?.[shot.characterId],
-              characterRefData: selectedCharacterReferences[shot.slot]?.[shot.characterId] ? {
-                hasImageUrl: !!selectedCharacterReferences[shot.slot][shot.characterId].imageUrl,
-                hasS3Key: !!selectedCharacterReferences[shot.slot][shot.characterId].s3Key
-              } : null,
-              hasLocationRef: !!selectedLocationReferences[shot.slot],
-              referencesCollected: references.length,
-              referenceUrls: references.map((url, idx) => ({ index: idx, urlPreview: url.substring(0, 100) + '...' }))
-            });
-            
-            if (references.length > 0) {
-              if (attempt > 1) {
-                console.log(`[SceneBuilderPanel] 🔄 Retry attempt ${attempt}/${MAX_RETRIES} for shot ${shot.slot}...`);
-                // Add small delay between retries
-                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-              }
-              
-              console.log(`[SceneBuilderPanel] 🚀 Calling /api/first-frame/generate for shot ${shot.slot} (attempt ${attempt})...`);
-              const firstFrameResponse = await fetch('/api/first-frame/generate', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  prompt,
-                  references,
-                  aspectRatio: shotAspectRatio,
-                  qualityTier: qualityTier || 'premium',
-                  referenceMetadata: {
-                    characterRefs: references.filter((_, idx) => idx === 0 && shot.characterId ? [references[0]] : []),
-                    locationRefs: selectedLocationReferences[shot.slot] ? [references.find((_, idx) => idx > 0 && selectedLocationReferences[shot.slot])] : undefined
+              // 3. Location references (from selectedLocationReferences)
+              if (selectedLocationReferences[shot.slot]) {
+                const locationRef = selectedLocationReferences[shot.slot];
+                let locationImageUrl = locationRef.imageUrl;
+                
+                if (!locationImageUrl && locationRef.s3Key) {
+                  if (locationFullImageUrlsMap?.has(locationRef.s3Key)) {
+                    locationImageUrl = locationFullImageUrlsMap.get(locationRef.s3Key);
+                  } else {
+                    try {
+                      const downloadUrlResponse = await fetch('/api/s3/download-url', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ s3Key: locationRef.s3Key, expiresIn: 3600 })
+                      });
+                      if (downloadUrlResponse.ok) {
+                        const { downloadUrl } = await downloadUrlResponse.json();
+                        locationImageUrl = downloadUrl;
+                      }
+                    } catch (error) {
+                      console.warn(`[SceneBuilderPanel] Failed to get presigned URL for location reference:`, error);
+                    }
                   }
-                })
+                }
+                
+                if (locationImageUrl && references.length < 4) {
+                  references.push(locationImageUrl);
+                }
+              }
+              
+              // 4. Asset/prop references (from shotProps)
+              if (shotProps[shot.slot] && propsToShots) {
+                const shotPropConfigs = shotProps[shot.slot];
+                const propsForShot: string[] = [];
+                
+                // Get props assigned to this shot
+                for (const [propId, shotSlots] of Object.entries(propsToShots)) {
+                  if (Array.isArray(shotSlots) && shotSlots.includes(shot.slot)) {
+                    propsForShot.push(propId);
+                  }
+                }
+                
+                // Get prop image URLs (up to 3 props)
+                for (const propId of propsForShot.slice(0, 3)) {
+                  const propConfig = shotPropConfigs[propId];
+                  if (propConfig?.selectedImageId) {
+                    // For props, we need to fetch the asset and get the image URL
+                    // This is complex - for now, skip prop references in first frame generation
+                    // The prompt will include prop descriptions instead
+                    // TODO: Implement prop image URL fetching if needed
+                  }
+                }
+              }
+              
+              // Build prompt for first frame using hash system (single source of truth)
+              // This matches backend's getSceneContentForPrompt() logic
+              // 🔥 REVERTED: Back to original simple prompt building (removed structured format)
+              let prompt = baseSceneDescription;
+              
+              // Add dialogue workflow prompt override if available
+              const dialogueWorkflowPrompt = dialogueWorkflowPrompts[shot.slot];
+              if (dialogueWorkflowPrompt && shot.type === 'dialogue') {
+                prompt = dialogueWorkflowPrompt;
+              } else if (shot.type === 'dialogue' && shot.dialogueBlock) {
+                // Build from dialogue block components
+                const actionParts: string[] = [];
+                if (shot.dialogueBlock.precedingAction?.trim()) {
+                  actionParts.push(shot.dialogueBlock.precedingAction.trim());
+                }
+                if (shot.dialogueBlock.parenthetical?.trim()) {
+                  actionParts.push(`(${shot.dialogueBlock.parenthetical.trim()})`);
+                }
+                if (shot.dialogueBlock.dialogue?.trim()) {
+                  actionParts.push(shot.dialogueBlock.dialogue.trim());
+                }
+                if (actionParts.length > 0) {
+                  prompt = `${prompt}. ${actionParts.join(' ')}`;
+                }
+              } else if (shot.type === 'action' && shot.narrationBlock?.text) {
+                prompt = `${prompt}. ${shot.narrationBlock.text}`;
+              }
+              
+              // Add pronoun extras prompts (for skipped pronouns)
+              if (pronounExtrasPrompts[shot.slot]) {
+                const extras = Object.values(pronounExtrasPrompts[shot.slot]).filter(p => p?.trim());
+                if (extras.length > 0) {
+                  prompt = `${prompt}. ${extras.join('. ')}`;
+                }
+              }
+              
+              // Add prop descriptions
+              if (shotProps[shot.slot]) {
+                const propDescriptions: string[] = [];
+                for (const [propId, propConfig] of Object.entries(shotProps[shot.slot])) {
+                  const config = propConfig as { usageDescription?: string } | undefined;
+                  if (config?.usageDescription?.trim()) {
+                    propDescriptions.push(config.usageDescription.trim());
+                  }
+                }
+                if (propDescriptions.length > 0) {
+                  prompt = `${prompt}. Props: ${propDescriptions.join(', ')}`;
+                }
+              }
+              
+              // Add dialogue framing and quality enhancements (same as backend)
+              const dialogueFraming = ', character visible from waist up or extreme close-up, mouth and face clearly visible, location visible in background or context';
+              const qualityEnhancements = ', cinematic lighting, professional cinematography, high quality, 4K resolution';
+              prompt = `${prompt}${dialogueFraming}${qualityEnhancements}`;
+              
+              // Debug logging for prompt (testing)
+              // This runs automatically when "Generate" button is clicked (workflow generation)
+              console.log(`[SceneBuilderPanel] 📝 Prompt for shot ${shot.slot} (${shot.type}):`, {
+                shotSlot: shot.slot,
+                shotType: shot.type,
+                promptLength: prompt.length,
+                promptPreview: prompt.substring(0, 200) + '...'
               });
               
-              if (!firstFrameResponse.ok) {
-                const errorData = await firstFrameResponse.json().catch(() => ({}));
-                throw new Error(errorData.error || `Failed to generate first frame for shot ${shot.slot}: ${firstFrameResponse.statusText}`);
-              }
+              // Determine aspect ratio for this shot
+              const shotAspectRatio = shotAspectRatios[shot.slot] || '16:9';
               
-              const firstFrameData = await firstFrameResponse.json();
-              if (firstFrameData.success && firstFrameData.imageUrl) {
-                firstFramesByShot[shot.slot] = firstFrameData.imageUrl;
-                success = true;
-                console.log(`[SceneBuilderPanel] ✅ Generated first frame for shot ${shot.slot}${attempt > 1 ? ` (after ${attempt} attempts)` : ''}`, {
-                  shotSlot: shot.slot,
-                  shotType: shot.type,
-                  referencesCount: references.length,
-                  creditsUsed: firstFrameData.creditsUsed,
-                  attempt
-                });
-              } else {
-                throw new Error(`Failed to generate first frame for shot ${shot.slot}: ${firstFrameData.message || 'Unknown error'}`);
-              }
-            } else {
-              // ⚠️ CRITICAL: No references available - this will cause backend to skip the shot
-              // For dialogue shots, we need at least a character reference
-              console.error(`[SceneBuilderPanel] ❌ No references available for shot ${shot.slot} - first frame generation skipped`, {
+              // Generate first frame using new endpoint (with retry logic)
+              // Debug: Log reference collection status
+              console.log(`[SceneBuilderPanel] 🔍 Reference collection for shot ${shot.slot}:`, {
                 shotSlot: shot.slot,
                 shotType: shot.type,
                 characterId: shot.characterId,
                 hasCharacterRef: !!selectedCharacterReferences[shot.slot]?.[shot.characterId],
+                characterRefData: selectedCharacterReferences[shot.slot]?.[shot.characterId] ? {
+                  hasImageUrl: !!selectedCharacterReferences[shot.slot][shot.characterId].imageUrl,
+                  hasS3Key: !!selectedCharacterReferences[shot.slot][shot.characterId].s3Key
+                } : null,
                 hasLocationRef: !!selectedLocationReferences[shot.slot],
-                note: 'Backend will skip this shot because no first frame was provided. Please ensure character references are selected.'
+                referencesCollected: references.length,
+                referenceUrls: references.map((url, idx) => ({ index: idx, urlPreview: url.substring(0, 100) + '...' }))
               });
-              // Don't mark as success - this is a failure that will cause the shot to be skipped
-              failedShots.push(shot.slot);
-              toast.error(`No references available for shot ${shot.slot}`, {
-                description: 'Character reference is required for first frame generation. This shot will be skipped.',
-                duration: 5000
-              });
-            }
+              
+              if (references.length > 0) {
+                if (attempt > 1) {
+                  console.log(`[SceneBuilderPanel] 🔄 Retry attempt ${attempt}/${MAX_RETRIES} for shot ${shot.slot}...`);
+                  // Add small delay between retries
+                  await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                }
+                
+                console.log(`[SceneBuilderPanel] 🚀 Calling /api/first-frame/generate for shot ${shot.slot} (attempt ${attempt})...`);
+                const firstFrameResponse = await fetch('/api/first-frame/generate', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({
+                    prompt,
+                    references,
+                    aspectRatio: shotAspectRatio,
+                    qualityTier: qualityTier || 'premium',
+                    referenceMetadata: {
+                      characterRefs: references.filter((_, idx) => idx === 0 && shot.characterId ? [references[0]] : []),
+                      locationRefs: selectedLocationReferences[shot.slot] ? [references.find((_, idx) => idx > 0 && selectedLocationReferences[shot.slot])] : undefined
+                    }
+                  })
+                });
+                
+                if (!firstFrameResponse.ok) {
+                  const errorData = await firstFrameResponse.json().catch(() => ({}));
+                  throw new Error(errorData.error || `Failed to generate first frame for shot ${shot.slot}: ${firstFrameResponse.statusText}`);
+                }
+                
+                const firstFrameData = await firstFrameResponse.json();
+                if (firstFrameData.success && firstFrameData.imageUrl) {
+                  firstFramesByShot[shot.slot] = firstFrameData.imageUrl;
+                  success = true;
+                  console.log(`[SceneBuilderPanel] ✅ Generated first frame for shot ${shot.slot}${attempt > 1 ? ` (after ${attempt} attempts)` : ''}`, {
+                    shotSlot: shot.slot,
+                    shotType: shot.type,
+                    referencesCount: references.length,
+                    creditsUsed: firstFrameData.creditsUsed,
+                    attempt
+                  });
+                } else {
+                  throw new Error(`Failed to generate first frame for shot ${shot.slot}: ${firstFrameData.message || 'Unknown error'}`);
+                }
+              } else {
+                // ⚠️ CRITICAL: No references available - this will cause backend to skip the shot
+                // For dialogue shots, we need at least a character reference
+                console.error(`[SceneBuilderPanel] ❌ No references available for shot ${shot.slot} - first frame generation skipped`, {
+                  shotSlot: shot.slot,
+                  shotType: shot.type,
+                  characterId: shot.characterId,
+                  hasCharacterRef: !!selectedCharacterReferences[shot.slot]?.[shot.characterId],
+                  hasLocationRef: !!selectedLocationReferences[shot.slot],
+                  note: 'Backend will skip this shot because no first frame was provided. Please ensure character references are selected.'
+                });
+                // Don't mark as success - this is a failure that will cause the shot to be skipped
+                failedShots.push(shot.slot);
+                toast.error(`No references available for shot ${shot.slot}`, {
+                  description: 'Character reference is required for first frame generation. This shot will be skipped.',
+                  duration: 5000
+                });
+              }
           } catch (error: any) {
             if (attempt >= MAX_RETRIES) {
               // All retries exhausted
