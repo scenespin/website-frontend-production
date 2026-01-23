@@ -3544,23 +3544,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Use ref to get current state without closure issues
         const previousAsset = assetsRef.current.find(a => a.id === id);
         
+        // 🔥 FIX: Skip optimistic updates for newly created assets (created within last 2 seconds)
+        // This prevents icon flash when update fails due to eventual consistency
+        const isNewlyCreated = previousAsset && previousAsset.createdAt 
+            ? (Date.now() - new Date(previousAsset.createdAt).getTime()) < 2000
+            : false;
+        
         // 🔥 FIX: Use functional update to get latest state (not closure)
         // This prevents stale state issues when updateAsset is called right after createAsset
         // Even if asset is not in state yet (race condition), we'll still update via API
         let assetInState = false;
-        setAssets(prev => {
-            const assetIndex = prev.findIndex(a => a.id === id);
-            if (assetIndex === -1) {
-                console.warn('[ScreenplayContext] ⚠️ Asset not found in state for update:', id, '- will update via API anyway (race condition)');
-                assetInState = false;
-                return prev; // Asset not found, return unchanged (but we'll still update via API)
-            }
-            assetInState = true;
-            // Update the asset optimistically
-            const updated = [...prev];
-            updated[assetIndex] = { ...updated[assetIndex], ...updates, updatedAt: new Date().toISOString() };
-            return updated;
-        });
+        if (!isNewlyCreated) {
+            // Only do optimistic update for existing assets (not newly created)
+            setAssets(prev => {
+                const assetIndex = prev.findIndex(a => a.id === id);
+                if (assetIndex === -1) {
+                    console.warn('[ScreenplayContext] ⚠️ Asset not found in state for update:', id, '- will update via API anyway (race condition)');
+                    assetInState = false;
+                    return prev; // Asset not found, return unchanged (but we'll still update via API)
+                }
+                assetInState = true;
+                // Update the asset optimistically
+                const updated = [...prev];
+                updated[assetIndex] = { ...updated[assetIndex], ...updates, updatedAt: new Date().toISOString() };
+                return updated;
+            });
+        } else {
+            // Newly created asset - skip optimistic update to prevent flash
+            console.log('[ScreenplayContext] ⏭️ Skipping optimistic update for newly created asset:', id);
+            assetInState = previousAsset !== undefined;
+        }
         
         // Update via API
         if (screenplayId) {
@@ -3674,9 +3687,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Instead, we rely on the state sync above which uses the actual API response
                 // The data will be correct on the next page refresh when initializeData runs
             } catch (error) {
-                // Rollback on error - restore previous asset state
+                // Rollback on error - restore previous asset state (only if we did optimistic update)
                 console.error('[ScreenplayContext] Failed to update asset, rolling back:', error);
-                if (previousAsset) {
+                if (previousAsset && !isNewlyCreated) {
+                    // Only rollback if we did an optimistic update (not for newly created assets)
                     setAssets(prev => {
                         const assetIndex = prev.findIndex(a => a.id === id);
                         if (assetIndex === -1) {
@@ -3689,6 +3703,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             return restored;
                         }
                     });
+                } else if (isNewlyCreated) {
+                    // For newly created assets, no rollback needed (we didn't do optimistic update)
+                    console.log('[ScreenplayContext] ⏭️ No rollback needed for newly created asset (no optimistic update)');
                 }
                 throw error;
             }

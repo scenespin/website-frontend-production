@@ -448,8 +448,10 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                     // Just call updateAsset directly (like characters/locations do)
                                                     // This handles both backend update AND context sync in one call
                                                     // If it fails, there's no stale optimistic data to roll back
-                                                    // 🔥 FIX: Add small delay for DynamoDB eventual consistency after asset creation
-                                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                                    // 🔥 FIX: Increase delay for DynamoDB eventual consistency after asset creation
+                                                    // Backend has retry logic, but this delay reduces retry frequency
+                                                    // Increased from 500ms to 1000ms to give DynamoDB more time to propagate
+                                                    await new Promise(resolve => setTimeout(resolve, 1000));
                                                     await updateAsset(newAsset.id, {
                                                         images: updatedImages
                                                     });
