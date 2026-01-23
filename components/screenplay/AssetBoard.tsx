@@ -433,9 +433,10 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                     console.log('[AssetBoard] 📸 Registering', imageEntries.length, 'images with asset:', newAsset.id);
                                                     
                                                     // Transform imageEntries to AssetImage format
+                                                    // 🔥 FIX: Use img.url (not img.imageUrl) - imageEntries stores url, not imageUrl
                                                     const newImageObjects = imageEntries.map(img => ({
-                                                        url: img.imageUrl,
-                                                        uploadedAt: new Date().toISOString(),
+                                                        url: img.url,
+                                                        uploadedAt: img.uploadedAt || new Date().toISOString(),
                                                         s3Key: img.s3Key
                                                     }));
                                                     
