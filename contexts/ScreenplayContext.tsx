@@ -5514,16 +5514,78 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     
     /**
-     * Check if a character or location name appears in the script content.
+     * Check if a character, location, or asset is "in the script".
+     * 
+     * For characters: Name appears in dialogue (ALL CAPS on standalone line)
+     * For locations: Name appears in scene headings (INT./EXT. LOCATION)
+     * For assets: Either associated with scenes OR name appears in action lines
+     * 
      * Used to determine if an entity is "active" (in script) or "reference-only" (not in script).
      */
     const isEntityInScript = useCallback((scriptContent: string, entityName: string, entityType: 'character' | 'location' | 'asset'): boolean => {
-        if (!scriptContent || !entityName) {
+        if (!entityName) {
             return false;
         }
         
         const normalizedName = entityName.toUpperCase().trim();
         if (!normalizedName) {
+            return false;
+        }
+        
+        // ====================================================================
+        // ASSETS: Check scene associations FIRST (primary method)
+        // Assets are typically linked via UI, not by name in script text
+        // ====================================================================
+        if (entityType === 'asset') {
+            // Find the asset by name (case-insensitive)
+            const asset = assetsRef.current.find(
+                a => a.name.toUpperCase().trim() === normalizedName
+            );
+            
+            if (asset) {
+                // Check if any scene has this asset in its props tags
+                const hasSceneAssociations = scenesRef.current.some(
+                    scene => scene.fountain?.tags?.props?.includes(asset.id)
+                );
+                
+                if (hasSceneAssociations) {
+                    return true;
+                }
+            }
+            
+            // Fall through to text-based check if no scene associations
+            // This handles cases where asset name appears in action lines
+            if (scriptContent) {
+                const lines = scriptContent.split('\n');
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    const upperLine = line.toUpperCase();
+                    
+                    if (upperLine.includes(normalizedName)) {
+                        // Exclude scene headings and metadata tags
+                        if (!line.match(/^(INT|EXT|INT\/EXT|INT\.\/EXT|I\/E)[.\s]/i) && 
+                            !line.match(/^@(location|characters?|props):/i)) {
+                            // Check if it's an action line (has punctuation, not just caps)
+                            const isActionLine = line.length > 0 && 
+                                (!line.match(/^[A-Z\s]+$/) || 
+                                 line.includes('.') || line.includes(',') || 
+                                 line.includes('!') || line.includes('?'));
+                            
+                            if (isActionLine) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        // ====================================================================
+        // CHARACTERS & LOCATIONS: Text-based checks (require script content)
+        // ====================================================================
+        if (!scriptContent) {
             return false;
         }
         
@@ -5542,55 +5604,32 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
                 
                 // Check for character name as dialogue (all caps, standalone)
-                // Character names in dialogue are typically all caps and on their own line
                 if (upperLine === normalizedName && line.length > 0) {
-                    // Make sure it's not part of a scene heading or action
-                    const prevLine = i > 0 ? lines[i - 1].trim() : '';
                     const nextLine = i < lines.length - 1 ? lines[i + 1].trim() : '';
                     
-                    // If next line is empty or dialogue, this is likely a character name
-                    if (!nextLine || nextLine.length === 0 || (!nextLine.startsWith('INT.') && !nextLine.startsWith('EXT.') && !nextLine.startsWith('INT/EXT.'))) {
+                    // If next line is empty or not a scene heading, this is likely a character name
+                    if (!nextLine || nextLine.length === 0 || 
+                        (!nextLine.startsWith('INT.') && !nextLine.startsWith('EXT.') && !nextLine.startsWith('INT/EXT.'))) {
                         return true;
                     }
                 }
             }
         } else if (entityType === 'location') {
             // Check for location name in scene headings (INT./EXT./INT/EXT. LOCATION NAME)
-            const locationPattern = new RegExp(`(?:INT|EXT|INT/EXT)\\.\\s+${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s|$|-)`, 'i');
+            const locationPattern = new RegExp(
+                `(?:INT|EXT|INT/EXT)\\.\\s+${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s|$|-)`, 
+                'i'
+            );
             
             for (const line of lines) {
                 if (locationPattern.test(line)) {
                     return true;
                 }
             }
-        } else if (entityType === 'asset') {
-            // Check for asset name in action lines (ALL CAPS words)
-            // Also check for @props: tags
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                const upperLine = line.toUpperCase();
-                
-                // Check for @props: tag with asset ID (would need to match by name, not ID)
-                // For now, check if asset name appears in ALL CAPS in action lines
-                if (upperLine.includes(normalizedName)) {
-                    // Make sure it's not a scene heading or character name
-                    if (!line.match(/^(INT|EXT|INT\/EXT|INT\.\/EXT|I\/E)[.\s]/i) && 
-                        !line.match(/^@(location|characters?|props):/i)) {
-                        // Check if it's an action line (not dialogue, not empty)
-                        const isActionLine = line.length > 0 && 
-                                            !line.match(/^[A-Z\s]+$/) || // Not all caps (dialogue character names)
-                                            (line.includes('.') || line.includes(',') || line.includes('!') || line.includes('?'));
-                        
-                        if (isActionLine && upperLine.includes(normalizedName)) {
-                            return true;
-                        }
-                    }
-                }
-            }
         }
         
         return false;
-    }, []);
+    }, []); // Note: Uses refs (assetsRef, scenesRef) which don't need to be in deps
     
     // ========================================================================
     // Feature 0122: Role-Based Collaboration System - Phase 3B
