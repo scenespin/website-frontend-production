@@ -2884,13 +2884,19 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // 🔥 RESTORED: Generate first frames per shot BEFORE sending workflow request
       // This ensures the scene builder's first frames (with references) are used by the video model
       // Backend will use these first frames if provided, otherwise generate its own
-      console.log(`[SceneBuilderPanel] 🎨 Generating first frames for ${enabledShots.length} enabled shot(s)...`);
+      console.log(`[SceneBuilderPanel] 🎨 Generating first frames for ${enabledShots.length} enabled shot(s)...`, {
+        hasShotBreakdown: !!sceneAnalysisResult?.shotBreakdown,
+        enabledShots: enabledShots,
+        totalShots: sceneAnalysisResult?.shotBreakdown?.shots?.length || 0,
+        finalCharacterRefsCount: finalCharacterRefs.length
+      });
       
       const firstFramesByShot: Record<number, string> = {};
       
       // Generate first frame for each enabled shot
       if (sceneAnalysisResult?.shotBreakdown && enabledShots.length > 0) {
         const enabledShotsData = sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => enabledShots.includes(shot.slot));
+        console.log(`[SceneBuilderPanel] 🔍 Processing ${enabledShotsData.length} shot(s) for first frame generation...`);
         
         for (const shot of enabledShotsData) {
           try {
@@ -2898,17 +2904,39 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             const shotReferences: string[] = [];
             
             // 1. Character reference (priority)
+            // 🔥 FIX: Use selectedReferenceFullImageUrlsMap to get presigned URLs
             if (shot.type === 'dialogue' && shot.characterId && selectedCharacterReferences[shot.slot]?.[shot.characterId]) {
               const charRef = selectedCharacterReferences[shot.slot][shot.characterId];
-              if (charRef.imageUrl) shotReferences.push(charRef.imageUrl);
+              // Check if imageUrl is already populated (valid URL)
+              let charImageUrl = charRef.imageUrl;
+              // If not, try to get from selectedReferenceFullImageUrlsMap using s3Key
+              if (!charImageUrl && charRef.s3Key) {
+                charImageUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
+              }
+              if (charImageUrl && (charImageUrl.startsWith('http') || charImageUrl.startsWith('data:'))) {
+                shotReferences.push(charImageUrl);
+                console.log(`[SceneBuilderPanel] ✅ Added character reference for shot ${shot.slot} (characterId: ${shot.characterId})`);
+              }
             } else if (shot.characterId && finalCharacterRefs.length > 0) {
               // Fallback to global character refs
               shotReferences.push(...finalCharacterRefs.slice(0, 1));
+              console.log(`[SceneBuilderPanel] ✅ Added fallback character reference for shot ${shot.slot}`);
             }
             
             // 2. Location reference
-            if (selectedLocationReferences[shot.slot]?.imageUrl) {
-              shotReferences.push(selectedLocationReferences[shot.slot].imageUrl);
+            // 🔥 FIX: Use locationReferenceFullImageUrlsMap to get presigned URLs
+            const locationRef = selectedLocationReferences[shot.slot];
+            if (locationRef) {
+              // Check if imageUrl is already populated (valid URL)
+              let locationImageUrl = locationRef.imageUrl;
+              // If not, try to get from locationReferenceFullImageUrlsMap using s3Key
+              if (!locationImageUrl && locationRef.s3Key) {
+                locationImageUrl = locationReferenceFullImageUrlsMap.get(locationRef.s3Key);
+              }
+              if (locationImageUrl && (locationImageUrl.startsWith('http') || locationImageUrl.startsWith('data:'))) {
+                shotReferences.push(locationImageUrl);
+                console.log(`[SceneBuilderPanel] ✅ Added location reference for shot ${shot.slot}`);
+              }
             }
             
             // 3. Asset/prop references
@@ -2923,6 +2951,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               }
             }
             
+            console.log(`[SceneBuilderPanel] 🔍 Collected ${shotReferences.length} reference(s) for shot ${shot.slot}:`, {
+              shotSlot: shot.slot,
+              shotType: shot.type,
+              characterId: shot.characterId,
+              hasCharacterRef: shotReferences.length > 0,
+              hasLocationRef: shotReferences.length > (shot.characterId ? 1 : 0),
+              referencesCount: shotReferences.length
+            });
+            
             // Build prompt for first frame (use shot's dialogue/narration/description)
             const shotPrompt = shot.dialogueBlock?.dialogue || 
                               shot.narrationBlock?.text || 
@@ -2935,7 +2972,27 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             // Get quality tier (use selectedReferenceShotModels to determine provider)
             const providerId = selectedReferenceShotModels[shot.slot] || (qualityTier === 'premium' ? 'nano-banana-pro' : 'flux2-pro-2k');
             
+            // 🔥 FIX: Ensure we have at least one reference (backend requires non-empty array)
+            // Priority: shot-specific references > global character refs
+            const finalReferences = shotReferences.length > 0 
+              ? shotReferences 
+              : (finalCharacterRefs.length > 0 ? finalCharacterRefs.slice(0, 1) : []);
+            
+            // Skip first frame generation if no references available (backend will generate it)
+            if (finalReferences.length === 0) {
+              console.warn(`[SceneBuilderPanel] ⚠️ Skipping first frame generation for shot ${shot.slot} - no references available. Backend will generate it.`, {
+                shotSlot: shot.slot,
+                shotType: shot.type,
+                characterId: shot.characterId,
+                hasSelectedCharacterRef: !!selectedCharacterReferences[shot.slot]?.[shot.characterId],
+                hasSelectedLocationRef: !!selectedLocationReferences[shot.slot],
+                finalCharacterRefsCount: finalCharacterRefs.length
+              });
+              continue;
+            }
+            
             // Generate first frame using /api/first-frame/generate endpoint
+            console.log(`[SceneBuilderPanel] 🎨 Generating first frame for shot ${shot.slot} with ${finalReferences.length} reference(s)...`);
             const firstFrameResponse = await fetch('/api/first-frame/generate', {
               method: 'POST',
               headers: {
@@ -2944,7 +3001,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               },
               body: JSON.stringify({
                 prompt: shotPrompt,
-                references: shotReferences.length > 0 ? shotReferences : finalCharacterRefs.slice(0, 1), // Fallback to global refs if no shot-specific
+                references: finalReferences,
                 aspectRatio: shotAspectRatio,
                 qualityTier: qualityTier,
                 entityType: 'shot',
@@ -2961,7 +3018,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             
             if (!firstFrameResponse.ok) {
               const errorData = await firstFrameResponse.json().catch(() => ({}));
-              console.warn(`[SceneBuilderPanel] ⚠️ Failed to generate first frame for shot ${shot.slot}:`, errorData.message || firstFrameResponse.statusText);
+              console.error(`[SceneBuilderPanel] ❌ Failed to generate first frame for shot ${shot.slot}:`, errorData.message || firstFrameResponse.statusText, {
+                status: firstFrameResponse.status,
+                statusText: firstFrameResponse.statusText,
+                referencesCount: finalReferences.length,
+                promptLength: shotPrompt.length
+              });
               // Continue with other shots even if one fails
               continue;
             }
@@ -2969,7 +3031,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             const firstFrameData = await firstFrameResponse.json();
             if (firstFrameData.success && firstFrameData.imageUrl) {
               firstFramesByShot[shot.slot] = firstFrameData.imageUrl;
-              console.log(`[SceneBuilderPanel] ✅ Generated first frame for shot ${shot.slot}`);
+              console.log(`[SceneBuilderPanel] ✅ Generated first frame for shot ${shot.slot}:`, firstFrameData.imageUrl.substring(0, 100) + '...');
+            } else {
+              console.warn(`[SceneBuilderPanel] ⚠️ First frame generation returned success=false for shot ${shot.slot}:`, firstFrameData);
             }
           } catch (error: any) {
             console.error(`[SceneBuilderPanel] ❌ Error generating first frame for shot ${shot.slot}:`, error);
