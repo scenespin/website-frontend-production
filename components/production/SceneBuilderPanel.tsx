@@ -3225,6 +3225,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         }
         
         console.log(`[SceneBuilderPanel] ✅ Generated ${Object.keys(firstFramesByShot).length}/${totalShots} first frame(s) automatically${failedShots.length > 0 ? ` (${failedShots.length} failed after retries)` : ''}`);
+      } // Close for loop
       } // Close if block for first frame generation
       
       const workflowRequest: any = {
