@@ -3186,10 +3186,37 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             const qualityEnhancements = ', cinematic lighting, professional cinematography, high quality, 4K resolution';
             prompt = `${prompt}${dialogueFraming}${qualityEnhancements}`;
             
+            // Debug logging for structured prompt (testing)
+            // This runs automatically when "Generate" button is clicked (workflow generation)
+            console.log(`[SceneBuilderPanel] 📝 Structured prompt for shot ${shot.slot} (${shot.type}):`, {
+              shotSlot: shot.slot,
+              shotType: shot.type,
+              sceneHeading: sceneHeading || 'none',
+              nearbyDialogueCount: nearbyDialogue.length,
+              promptLength: prompt.length,
+              promptPreview: prompt.substring(0, 200) + '...',
+              fullPrompt: prompt // Full prompt for debugging
+            });
+            
             // Determine aspect ratio for this shot
             const shotAspectRatio = shotAspectRatios[shot.slot] || '16:9';
             
             // Generate first frame using new endpoint (with retry logic)
+            // Debug: Log reference collection status
+            console.log(`[SceneBuilderPanel] 🔍 Reference collection for shot ${shot.slot}:`, {
+              shotSlot: shot.slot,
+              shotType: shot.type,
+              characterId: shot.characterId,
+              hasCharacterRef: !!selectedCharacterReferences[shot.slot]?.[shot.characterId],
+              characterRefData: selectedCharacterReferences[shot.slot]?.[shot.characterId] ? {
+                hasImageUrl: !!selectedCharacterReferences[shot.slot][shot.characterId].imageUrl,
+                hasS3Key: !!selectedCharacterReferences[shot.slot][shot.characterId].s3Key
+              } : null,
+              hasLocationRef: !!selectedLocationReferences[shot.slot],
+              referencesCollected: references.length,
+              referenceUrls: references.map((url, idx) => ({ index: idx, urlPreview: url.substring(0, 100) + '...' }))
+            });
+            
             if (references.length > 0) {
               if (attempt > 1) {
                 console.log(`[SceneBuilderPanel] 🔄 Retry attempt ${attempt}/${MAX_RETRIES} for shot ${shot.slot}...`);
@@ -3197,6 +3224,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
               }
               
+              console.log(`[SceneBuilderPanel] 🚀 Calling /api/first-frame/generate for shot ${shot.slot} (attempt ${attempt})...`);
               const firstFrameResponse = await fetch('/api/first-frame/generate', {
                 method: 'POST',
                 headers: {
@@ -3235,8 +3263,22 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 throw new Error(`Failed to generate first frame for shot ${shot.slot}: ${firstFrameData.message || 'Unknown error'}`);
               }
             } else {
-              console.warn(`[SceneBuilderPanel] ⚠️ Skipping first frame generation for shot ${shot.slot} - no references available`);
-              success = true; // Mark as success (no retry needed if no references)
+              // ⚠️ CRITICAL: No references available - this will cause backend to skip the shot
+              // For dialogue shots, we need at least a character reference
+              console.error(`[SceneBuilderPanel] ❌ No references available for shot ${shot.slot} - first frame generation skipped`, {
+                shotSlot: shot.slot,
+                shotType: shot.type,
+                characterId: shot.characterId,
+                hasCharacterRef: !!selectedCharacterReferences[shot.slot]?.[shot.characterId],
+                hasLocationRef: !!selectedLocationReferences[shot.slot],
+                note: 'Backend will skip this shot because no first frame was provided. Please ensure character references are selected.'
+              });
+              // Don't mark as success - this is a failure that will cause the shot to be skipped
+              failedShots.push(shot.slot);
+              toast.error(`No references available for shot ${shot.slot}`, {
+                description: 'Character reference is required for first frame generation. This shot will be skipped.',
+                duration: 5000
+              });
             }
           } catch (error: any) {
             if (attempt >= MAX_RETRIES) {
