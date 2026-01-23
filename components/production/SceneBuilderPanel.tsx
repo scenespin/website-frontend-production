@@ -3380,8 +3380,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         description: 'Your videos are being generated. Check the Jobs panel for progress.',
         duration: 2000
       });
-    }
-    catch (error) {
+    } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
       toast.error('Failed to start generation', {
         description: error instanceof Error ? error.message : 'Unknown error'
