@@ -3225,7 +3225,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         }
         
         console.log(`[SceneBuilderPanel] ✅ Generated ${Object.keys(firstFramesByShot).length}/${totalShots} first frame(s) automatically${failedShots.length > 0 ? ` (${failedShots.length} failed after retries)` : ''}`);
-      }
+      } // Close if block for first frame generation
       
       const workflowRequest: any = {
         workflowIds: workflowIdsToUse, // NEW: Pass array of workflow IDs for combined execution
@@ -3380,7 +3380,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         description: 'Your videos are being generated. Check the Jobs panel for progress.',
         duration: 2000
       });
-    } catch (error) {
+    }
+    catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
       toast.error('Failed to start generation', {
         description: error instanceof Error ? error.message : 'Unknown error'
