@@ -3167,6 +3167,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                     references: validReferences, // Use filtered valid references
                     aspectRatio: shotAspectRatio,
                     qualityTier: qualityTier || 'premium',
+                    projectId: projectId, // Required by requireAssetGeneration middleware
                     referenceMetadata: {
                       characterRefs: validReferences.filter((_, idx) => idx === 0 && shot.characterId ? [validReferences[0]] : []),
                       locationRefs: selectedLocationReferences[shot.slot] ? [validReferences.find((_, idx) => idx > 0 && selectedLocationReferences[shot.slot])] : undefined
