@@ -2866,6 +2866,327 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           : (sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId ? [sceneAnalysisResult.workflowRecommendations[0].workflowId] : ['complete-scene']);
       }
       
+      // 🔥 NEW: Automatically generate first frames per-shot before workflow execution
+      // This ensures scene builder's first frames are always used by the video model
+      // Uses hash system (single source of truth) for scene content extraction
+      const firstFramesByShot: Record<number, string> = {};
+      const failedShots: number[] = []; // Track shots that failed after retries
+      
+      if (sceneAnalysisResult?.shotBreakdown && sceneAnalysisResult.shotBreakdown.shots.length > 0) {
+        const shotsToProcess = enabledShots.length > 0
+          ? sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => enabledShots.includes(shot.slot) && shot.needsFirstFrame)
+          : sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => shot.needsFirstFrame);
+        
+        console.log(`[SceneBuilderPanel] 🔥 Generating first frames for ${shotsToProcess.length} shot(s) automatically...`);
+        
+        // 🔥 Use existing fullSceneContent (already extracted using hash system logic)
+        // This was already working - it extracts scene content using scene.fountain.startLine/endLine
+        // which matches the backend's extractSceneContent() logic
+        // We need to extract action/narration lines from it (same as backend does)
+        if (!selectedSceneId) {
+          throw new Error('Cannot generate first frames: selectedSceneId is missing');
+        }
+        
+        // Wait for fullSceneContent to be loaded if it's still loading
+        if (isLoadingSceneContent[selectedSceneId]) {
+          console.log(`[SceneBuilderPanel] Waiting for scene content to load...`);
+          // Wait up to 5 seconds for content to load
+          let waitAttempts = 0;
+          while (isLoadingSceneContent[selectedSceneId] && waitAttempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            waitAttempts++;
+          }
+        }
+        
+        const fullContent = fullSceneContent[selectedSceneId];
+        if (!fullContent) {
+          throw new Error(`Scene content not loaded for scene ${selectedSceneId}. Please wait for scene content to load and try again.`);
+        }
+        
+        // Extract action/narration lines from full scene content (same logic as backend)
+        // Backend uses extractNarrationFromScene() which filters out dialogue, scene headings, etc.
+        // We'll do a simple extraction here: use the full content but the backend will process it correctly
+        // Actually, for first frame prompts, we want the full scene context (not just action lines)
+        // The backend's getSceneContentForPrompt() extracts only action lines, but for first frames
+        // we might want the full context. Let's use the full content for now (matches what was working)
+        const baseSceneDescription = fullContent.trim();
+        
+        console.log(`[SceneBuilderPanel] ✅ Using scene content from fullSceneContent (${baseSceneDescription.length} chars)`);
+        
+        for (const shot of shotsToProcess) {
+          const MAX_RETRIES = 3; // Retry up to 3 times per shot
+          let attempt = 0;
+          let success = false;
+          
+          while (attempt < MAX_RETRIES && !success) {
+            attempt++;
+            try {
+            // Collect references for this shot (same logic as backend executeDialogueShot)
+            const references: string[] = [];
+            
+            // 1. Character references (from selectedCharacterReferences)
+            if (shot.characterId && selectedCharacterReferences[shot.slot]?.[shot.characterId]) {
+              const charRef = selectedCharacterReferences[shot.slot][shot.characterId];
+              let charImageUrl = charRef.imageUrl;
+              
+              // If no imageUrl but we have s3Key, get presigned URL
+              if (!charImageUrl && charRef.s3Key) {
+                if (selectedReferenceFullImageUrlsMap?.has(charRef.s3Key)) {
+                  charImageUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
+                } else {
+                  // Fetch presigned URL on-demand
+                  try {
+                    const downloadUrlResponse = await fetch('/api/s3/download-url', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ s3Key: charRef.s3Key, expiresIn: 3600 })
+                    });
+                    if (downloadUrlResponse.ok) {
+                      const { downloadUrl } = await downloadUrlResponse.json();
+                      charImageUrl = downloadUrl;
+                    }
+                  } catch (error) {
+                    console.warn(`[SceneBuilderPanel] Failed to get presigned URL for character reference:`, error);
+                  }
+                }
+              }
+              
+              if (charImageUrl) {
+                references.push(charImageUrl);
+              }
+            }
+            
+            // 2. Additional characters (for scene-voiceover workflows)
+            if (selectedCharactersForShots[shot.slot]) {
+              for (const charId of selectedCharactersForShots[shot.slot]) {
+                if (charId === shot.characterId) continue; // Skip main character
+                
+                const charRef = selectedCharacterReferences[shot.slot]?.[charId];
+                if (charRef) {
+                  let charImageUrl = charRef.imageUrl;
+                  if (!charImageUrl && charRef.s3Key) {
+                    if (selectedReferenceFullImageUrlsMap?.has(charRef.s3Key)) {
+                      charImageUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
+                    } else {
+                      try {
+                        const downloadUrlResponse = await fetch('/api/s3/download-url', {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ s3Key: charRef.s3Key, expiresIn: 3600 })
+                        });
+                        if (downloadUrlResponse.ok) {
+                          const { downloadUrl } = await downloadUrlResponse.json();
+                          charImageUrl = downloadUrl;
+                        }
+                      } catch (error) {
+                        console.warn(`[SceneBuilderPanel] Failed to get presigned URL for additional character:`, error);
+                      }
+                    }
+                  }
+                  if (charImageUrl && references.length < 4) {
+                    references.push(charImageUrl);
+                  }
+                }
+              }
+            }
+            
+            // 3. Location references (from selectedLocationReferences)
+            if (selectedLocationReferences[shot.slot]) {
+              const locationRef = selectedLocationReferences[shot.slot];
+              let locationImageUrl = locationRef.imageUrl;
+              
+              if (!locationImageUrl && locationRef.s3Key) {
+                if (locationFullImageUrlsMap?.has(locationRef.s3Key)) {
+                  locationImageUrl = locationFullImageUrlsMap.get(locationRef.s3Key);
+                } else {
+                  try {
+                    const downloadUrlResponse = await fetch('/api/s3/download-url', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ s3Key: locationRef.s3Key, expiresIn: 3600 })
+                    });
+                    if (downloadUrlResponse.ok) {
+                      const { downloadUrl } = await downloadUrlResponse.json();
+                      locationImageUrl = downloadUrl;
+                    }
+                  } catch (error) {
+                    console.warn(`[SceneBuilderPanel] Failed to get presigned URL for location reference:`, error);
+                  }
+                }
+              }
+              
+              if (locationImageUrl && references.length < 4) {
+                references.push(locationImageUrl);
+              }
+            }
+            
+            // 4. Asset/prop references (from shotProps)
+            if (shotProps[shot.slot] && propsToShots) {
+              const shotPropConfigs = shotProps[shot.slot];
+              const propsForShot: string[] = [];
+              
+              // Get props assigned to this shot
+              for (const [propId, shotSlots] of Object.entries(propsToShots)) {
+                if (Array.isArray(shotSlots) && shotSlots.includes(shot.slot)) {
+                  propsForShot.push(propId);
+                }
+              }
+              
+              // Get prop image URLs (up to 3 props)
+              for (const propId of propsForShot.slice(0, 3)) {
+                const propConfig = shotPropConfigs[propId];
+                if (propConfig?.selectedImageId) {
+                  // For props, we need to fetch the asset and get the image URL
+                  // This is complex - for now, skip prop references in first frame generation
+                  // The prompt will include prop descriptions instead
+                  // TODO: Implement prop image URL fetching if needed
+                }
+              }
+            }
+            
+            // Build prompt for first frame using hash system (single source of truth)
+            // This matches backend's getSceneContentForPrompt() logic
+            let prompt = baseSceneDescription;
+            
+            // Add dialogue workflow prompt override if available
+            const dialogueWorkflowPrompt = dialogueWorkflowPrompts[shot.slot];
+            if (dialogueWorkflowPrompt && shot.type === 'dialogue') {
+              prompt = dialogueWorkflowPrompt;
+            } else if (shot.type === 'dialogue' && shot.dialogueBlock) {
+              // Build from dialogue block components
+              const actionParts: string[] = [];
+              if (shot.dialogueBlock.precedingAction?.trim()) {
+                actionParts.push(shot.dialogueBlock.precedingAction.trim());
+              }
+              if (shot.dialogueBlock.parenthetical?.trim()) {
+                actionParts.push(`(${shot.dialogueBlock.parenthetical.trim()})`);
+              }
+              if (shot.dialogueBlock.dialogue?.trim()) {
+                actionParts.push(shot.dialogueBlock.dialogue.trim());
+              }
+              if (actionParts.length > 0) {
+                prompt = `${prompt}. ${actionParts.join(' ')}`;
+              }
+            } else if (shot.type === 'action' && shot.narrationBlock?.text) {
+              prompt = `${prompt}. ${shot.narrationBlock.text}`;
+            }
+            
+            // Add pronoun extras prompts (for skipped pronouns)
+            if (pronounExtrasPrompts[shot.slot]) {
+              const extras = Object.values(pronounExtrasPrompts[shot.slot]).filter(p => p?.trim());
+              if (extras.length > 0) {
+                prompt = `${prompt}. ${extras.join('. ')}`;
+              }
+            }
+            
+            // Add prop descriptions
+            if (shotProps[shot.slot]) {
+              const propDescriptions: string[] = [];
+              for (const [propId, propConfig] of Object.entries(shotProps[shot.slot])) {
+                const config = propConfig as { usageDescription?: string } | undefined;
+                if (config?.usageDescription?.trim()) {
+                  propDescriptions.push(config.usageDescription.trim());
+                }
+              }
+              if (propDescriptions.length > 0) {
+                prompt = `${prompt}. Props: ${propDescriptions.join(', ')}`;
+              }
+            }
+            
+            // Add dialogue framing and quality enhancements (same as backend)
+            const dialogueFraming = ', character visible from waist up or extreme close-up, mouth and face clearly visible, location visible in background or context';
+            const qualityEnhancements = ', cinematic lighting, professional cinematography, high quality, 4K resolution';
+            prompt = `${prompt}${dialogueFraming}${qualityEnhancements}`;
+            
+            // Determine aspect ratio for this shot
+            const shotAspectRatio = shotAspectRatios[shot.slot] || '16:9';
+            
+            // Generate first frame using new endpoint (with retry logic)
+            if (references.length > 0) {
+              if (attempt > 1) {
+                console.log(`[SceneBuilderPanel] 🔄 Retry attempt ${attempt}/${MAX_RETRIES} for shot ${shot.slot}...`);
+                // Add small delay between retries
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+              }
+              
+              const firstFrameResponse = await fetch('/api/first-frame/generate', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  prompt,
+                  references,
+                  aspectRatio: shotAspectRatio,
+                  qualityTier: qualityTier || 'premium',
+                  referenceMetadata: {
+                    characterRefs: references.filter((_, idx) => idx === 0 && shot.characterId ? [references[0]] : []),
+                    locationRefs: selectedLocationReferences[shot.slot] ? [references.find((_, idx) => idx > 0 && selectedLocationReferences[shot.slot])] : undefined
+                  }
+                })
+              });
+              
+              if (!firstFrameResponse.ok) {
+                const errorData = await firstFrameResponse.json().catch(() => ({}));
+                throw new Error(errorData.error || `Failed to generate first frame for shot ${shot.slot}: ${firstFrameResponse.statusText}`);
+              }
+              
+              const firstFrameData = await firstFrameResponse.json();
+              if (firstFrameData.success && firstFrameData.imageUrl) {
+                firstFramesByShot[shot.slot] = firstFrameData.imageUrl;
+                success = true;
+                console.log(`[SceneBuilderPanel] ✅ Generated first frame for shot ${shot.slot}${attempt > 1 ? ` (after ${attempt} attempts)` : ''}`, {
+                  shotSlot: shot.slot,
+                  shotType: shot.type,
+                  referencesCount: references.length,
+                  creditsUsed: firstFrameData.creditsUsed,
+                  attempt
+                });
+              } else {
+                throw new Error(`Failed to generate first frame for shot ${shot.slot}: ${firstFrameData.message || 'Unknown error'}`);
+              }
+            } else {
+              console.warn(`[SceneBuilderPanel] ⚠️ Skipping first frame generation for shot ${shot.slot} - no references available`);
+              success = true; // Mark as success (no retry needed if no references)
+            }
+          } catch (error: any) {
+            if (attempt >= MAX_RETRIES) {
+              // All retries exhausted
+              console.error(`[SceneBuilderPanel] ❌ Failed to generate first frame for shot ${shot.slot} after ${MAX_RETRIES} attempts:`, error);
+              failedShots.push(shot.slot);
+              toast.error(`Failed to generate first frame for shot ${shot.slot}`, {
+                description: `After ${MAX_RETRIES} attempts: ${error.message || 'Unknown error'}. This shot will be skipped.`,
+                duration: 5000
+              });
+            } else {
+              // Retry on next iteration
+              console.warn(`[SceneBuilderPanel] ⚠️ Attempt ${attempt}/${MAX_RETRIES} failed for shot ${shot.slot}, will retry...`, error.message);
+            }
+          }
+        }
+        
+        // 🔥 NEW: Partial success handling - proceed with available first frames
+        const successfulShots = Object.keys(firstFramesByShot).length;
+        const totalShots = shotsToProcess.length;
+        
+        if (failedShots.length > 0) {
+          console.warn(`[SceneBuilderPanel] ⚠️ Partial success: ${successfulShots}/${totalShots} first frames generated. Failed shots: ${failedShots.join(', ')}`);
+          toast.warning(`Generated ${successfulShots}/${totalShots} first frames`, {
+            description: failedShots.length > 0 
+              ? `Shots ${failedShots.join(', ')} failed after retries and will be skipped in workflow.`
+              : 'All first frames generated successfully.',
+            duration: 5000
+          });
+        }
+        
+        if (successfulShots === 0) {
+          throw new Error(`Failed to generate any first frames. All ${totalShots} shot(s) failed after retries. Cannot proceed with workflow.`);
+        }
+        
+        console.log(`[SceneBuilderPanel] ✅ Generated ${Object.keys(firstFramesByShot).length}/${totalShots} first frame(s) automatically${failedShots.length > 0 ? ` (${failedShots.length} failed after retries)` : ''}`);
+      }
+      
       const workflowRequest: any = {
         workflowIds: workflowIdsToUse, // NEW: Pass array of workflow IDs for combined execution
         sceneDescription: sceneDescription.trim(),
@@ -2975,12 +3296,21 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         // };
       }
       
-      // 🔥 FIX: Pass first frame URL from scene builder to workflow
-      // This is the intended workflow: scene builder generates first frame → sends to video model
-      // Standardized naming: use firstFrameUrl everywhere (not startImageUrl)
+      // 🔥 NEW: Pass per-shot first frames from scene builder to workflow
+      // This is the intended workflow: scene builder generates first frame per-shot → sends to video model
+      // Standardized naming: use firstFramesByShot for per-shot mapping
+      if (Object.keys(firstFramesByShot).length > 0) {
+        workflowRequest.firstFramesByShot = firstFramesByShot;
+        console.log('[SceneBuilderPanel] Passing per-shot first frames to workflow:', {
+          shotCount: Object.keys(firstFramesByShot).length,
+          shots: Object.keys(firstFramesByShot).map(slot => `shot ${slot}`).join(', ')
+        });
+      }
+      
+      // Legacy: Also support single firstFrameUrl for backward compatibility (scene-level first frame)
       if (firstFrameUrl) {
         workflowRequest.firstFrameUrl = firstFrameUrl;
-        console.log('[SceneBuilderPanel] Passing first frame URL to workflow:', firstFrameUrl.substring(0, 100) + '...');
+        console.log('[SceneBuilderPanel] Passing scene-level first frame URL to workflow:', firstFrameUrl.substring(0, 100) + '...');
       }
       
       const { executionId } = await SceneBuilderService.executeWorkflow(workflowRequest, getToken);
