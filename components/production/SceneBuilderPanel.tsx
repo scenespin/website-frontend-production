@@ -3413,7 +3413,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           // Scroll to top
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }, 1500); // 1.5 second simple animation
-      
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
       toast.error('Failed to start generation', {
