@@ -2923,9 +2923,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               }
             }
             
-            // Build prompt for first frame (use shot's dialogue/action description)
+            // Build prompt for first frame (use shot's dialogue/narration/description)
             const shotPrompt = shot.dialogueBlock?.dialogue || 
-                              shot.actionDescription || 
+                              shot.narrationBlock?.text || 
+                              shot.description || 
                               sceneDescription.trim();
             
             // Get aspect ratio for this shot
