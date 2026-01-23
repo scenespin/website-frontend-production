@@ -3044,119 +3044,32 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               }
             }
             
-            // Build structured prompt for first frame using hash system (single source of truth)
-            // Uses PDF import pattern for scene heading extraction and structured format
+            // Build prompt for first frame using hash system (single source of truth)
+            // This matches backend's getSceneContentForPrompt() logic
+            // 🔥 REVERTED: Back to original simple prompt building (removed structured format)
+            let prompt = baseSceneDescription;
             
-            // Helper: Extract scene heading from scene content (first line)
-            // Uses PDF import pattern: INT./EXT., I./E., INT, EXT, EST (order matters - more specific first)
-            const extractSceneHeading = (sceneContent: string): string => {
-              const lines = sceneContent.split('\n');
-              const firstLine = lines[0]?.trim() || '';
-              // Match PDF import pattern: INT./EXT., I./E., INT./EXT, I/E, EST, INT, EXT
-              // Also handle optional time (with or without dash)
-              const sceneHeadingMatch = firstLine.match(/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]+(.+?)(?:\s*-\s*(.+))?$/i);
-              if (sceneHeadingMatch) {
-                return firstLine;
+            // Add dialogue workflow prompt override if available
+            const dialogueWorkflowPrompt = dialogueWorkflowPrompts[shot.slot];
+            if (dialogueWorkflowPrompt && shot.type === 'dialogue') {
+              prompt = dialogueWorkflowPrompt;
+            } else if (shot.type === 'dialogue' && shot.dialogueBlock) {
+              // Build from dialogue block components
+              const actionParts: string[] = [];
+              if (shot.dialogueBlock.precedingAction?.trim()) {
+                actionParts.push(shot.dialogueBlock.precedingAction.trim());
               }
-              return '';
-            };
-            
-            // Helper: Get nearby dialogue blocks (within 10 lines before/after current shot)
-            const getNearbyDialogue = (currentShot: any, allShots: any[]): string[] => {
-              if (!currentShot.lineNumber) return [];
-              
-              const nearbyDialogue: string[] = [];
-              const currentLine = currentShot.lineNumber;
-              const proximityWindow = 10; // Lines before/after
-              
-              for (const otherShot of allShots) {
-                if (otherShot.type === 'dialogue' && otherShot.dialogueBlock && otherShot.lineNumber) {
-                  const lineDiff = Math.abs(otherShot.lineNumber - currentLine);
-                  if (lineDiff <= proximityWindow && otherShot.slot !== currentShot.slot) {
-                    // Build dialogue text: character name + dialogue
-                    const dialogueText = otherShot.dialogueBlock.dialogue?.trim();
-                    const characterName = otherShot.dialogueBlock.character?.trim();
-                    if (dialogueText && characterName) {
-                      nearbyDialogue.push(`${characterName}: ${dialogueText}`);
-                    }
-                  }
-                }
+              if (shot.dialogueBlock.parenthetical?.trim()) {
+                actionParts.push(`(${shot.dialogueBlock.parenthetical.trim()})`);
               }
-              
-              return nearbyDialogue.slice(0, 3); // Limit to 3 nearby dialogue blocks
-            };
-            
-            // Extract scene heading
-            const sceneHeading = extractSceneHeading(baseSceneDescription);
-            
-            // Get nearby dialogue for context (for action shots)
-            const nearbyDialogue = shot.type === 'action' 
-              ? getNearbyDialogue(shot, sceneAnalysisResult.shotBreakdown.shots)
-              : [];
-            
-            // Build structured prompt
-            let prompt = '';
-            
-            // [SCENE:] - Scene heading (if available)
-            if (sceneHeading) {
-              prompt += `[SCENE:] ${sceneHeading}`;
-            }
-            
-            // [CONTEXT:] - Nearby dialogue (for action shots) or dialogue block (for dialogue shots)
-            const contextParts: string[] = [];
-            
-            if (shot.type === 'action' && nearbyDialogue.length > 0) {
-              contextParts.push(nearbyDialogue.join('. '));
-            } else if (shot.type === 'dialogue') {
-              // Add dialogue workflow prompt override if available
-              const dialogueWorkflowPrompt = dialogueWorkflowPrompts[shot.slot];
-              if (dialogueWorkflowPrompt) {
-                contextParts.push(dialogueWorkflowPrompt);
-              } else if (shot.dialogueBlock) {
-                // Build from dialogue block components
-                const actionParts: string[] = [];
-                if (shot.dialogueBlock.precedingAction?.trim()) {
-                  actionParts.push(shot.dialogueBlock.precedingAction.trim());
-                }
-                if (shot.dialogueBlock.parenthetical?.trim()) {
-                  actionParts.push(`(${shot.dialogueBlock.parenthetical.trim()})`);
-                }
-                if (shot.dialogueBlock.dialogue?.trim()) {
-                  actionParts.push(shot.dialogueBlock.dialogue.trim());
-                }
-                if (actionParts.length > 0) {
-                  contextParts.push(actionParts.join(' '));
-                }
+              if (shot.dialogueBlock.dialogue?.trim()) {
+                actionParts.push(shot.dialogueBlock.dialogue.trim());
               }
-            }
-            
-            // Add remaining scene content (action lines) as context
-            if (baseSceneDescription && baseSceneDescription.trim()) {
-              // Remove scene heading from baseSceneDescription if it was extracted
-              let remainingContent = baseSceneDescription;
-              if (sceneHeading) {
-                const lines = remainingContent.split('\n');
-                if (lines[0]?.trim() === sceneHeading) {
-                  remainingContent = lines.slice(1).join('\n').trim();
-                }
+              if (actionParts.length > 0) {
+                prompt = `${prompt}. ${actionParts.join(' ')}`;
               }
-              if (remainingContent) {
-                contextParts.push(remainingContent);
-              }
-            }
-            
-            if (contextParts.length > 0) {
-              if (prompt) prompt += ' ';
-              prompt += `[CONTEXT:] ${contextParts.join('. ')}`;
-            }
-            
-            // [ACTION:] - Specific action/narration for this shot
-            if (shot.type === 'action' && shot.narrationBlock?.text) {
-              if (prompt) prompt += ' ';
-              prompt += `[ACTION:] ${shot.narrationBlock.text}`;
-            } else if (shot.type === 'dialogue' && shot.dialogueBlock?.dialogue) {
-              // For dialogue shots, action is the dialogue itself (already in CONTEXT)
-              // But we can add it here for clarity if needed
+            } else if (shot.type === 'action' && shot.narrationBlock?.text) {
+              prompt = `${prompt}. ${shot.narrationBlock.text}`;
             }
             
             // Add pronoun extras prompts (for skipped pronouns)
@@ -3186,16 +3099,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             const qualityEnhancements = ', cinematic lighting, professional cinematography, high quality, 4K resolution';
             prompt = `${prompt}${dialogueFraming}${qualityEnhancements}`;
             
-            // Debug logging for structured prompt (testing)
+            // Debug logging for prompt (testing)
             // This runs automatically when "Generate" button is clicked (workflow generation)
-            console.log(`[SceneBuilderPanel] 📝 Structured prompt for shot ${shot.slot} (${shot.type}):`, {
+            console.log(`[SceneBuilderPanel] 📝 Prompt for shot ${shot.slot} (${shot.type}):`, {
               shotSlot: shot.slot,
               shotType: shot.type,
-              sceneHeading: sceneHeading || 'none',
-              nearbyDialogueCount: nearbyDialogue.length,
               promptLength: prompt.length,
-              promptPreview: prompt.substring(0, 200) + '...',
-              fullPrompt: prompt // Full prompt for debugging
+              promptPreview: prompt.substring(0, 200) + '...'
             });
             
             // Determine aspect ratio for this shot
