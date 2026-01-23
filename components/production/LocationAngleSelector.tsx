@@ -206,11 +206,13 @@ export function LocationAngleSelector({
       
       if (!groups[groupKey]) groups[groupKey] = [];
       
-      // Format background type label
+      // Format background type label (with null check)
       const backgroundTypeLabel = background.backgroundType
-        .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+        ? background.backgroundType
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ')
+        : 'Background'; // Default label if backgroundType is missing
       
       groups[groupKey].push({
         type: 'background',
