@@ -3380,47 +3380,47 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           description: 'Your videos are being generated. Check the Jobs panel for progress.',
           duration: 2000
         });
-        
-        // Wait 1.5 seconds for simple animation, then redirect
-        setTimeout(() => {
-          // Open jobs drawer to show job progress
-          setIsJobsDrawerOpen(true);
-          
-          // 🔥 FIX: Set flag to prevent immediate recovery
-          hasIntentionallyClearedRef.current = true;
-          
-          // Reset scene builder to initial state (fresh start)
-          setCurrentStep(1);
-          setWizardStep('analysis');
-          setSceneAnalysisResult(null);
-          setSelectedSceneId(null);
-          setHasConfirmedSceneSelection(false);
-          setCurrentShotIndex(0);
-          setIsGenerating(false);
-          setWorkflowExecutionId(null);
-          setWorkflowStatus(null);
-          
-          // 🔥 FIX: Keep executionId in localStorage for recovery, but don't auto-recover immediately
-          // The Jobs panel will show the job status, and user can start a new workflow
-          // localStorage is only used for recovery if user navigates away and comes back
-          
-          // Clear context state for fresh start
-          setEnabledShots([]);
-          contextActions.setSelectedCharacterReferences({});
-          contextActions.setSelectedLocationReferences({});
-          contextActions.setSelectedVideoTypes({});
-          
-          // Scroll to top
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 1500); // 1.5 second simple animation
-        
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
       toast.error('Failed to start generation', {
         description: error instanceof Error ? error.message : 'Unknown error'
       });
       setIsGenerating(false);
+      return; // Exit early on error
     }
+    
+    // Wait 1.5 seconds for simple animation, then redirect (moved outside try-catch)
+    setTimeout(() => {
+      // Open jobs drawer to show job progress
+      setIsJobsDrawerOpen(true);
+      
+      // 🔥 FIX: Set flag to prevent immediate recovery
+      hasIntentionallyClearedRef.current = true;
+      
+      // Reset scene builder to initial state (fresh start)
+      setCurrentStep(1);
+      setWizardStep('analysis');
+      setSceneAnalysisResult(null);
+      setSelectedSceneId(null);
+      setHasConfirmedSceneSelection(false);
+      setCurrentShotIndex(0);
+      setIsGenerating(false);
+      setWorkflowExecutionId(null);
+      setWorkflowStatus(null);
+      
+      // 🔥 FIX: Keep executionId in localStorage for recovery, but don't auto-recover immediately
+      // The Jobs panel will show the job status, and user can start a new workflow
+      // localStorage is only used for recovery if user navigates away and comes back
+      
+      // Clear context state for fresh start
+      setEnabledShots([]);
+      contextActions.setSelectedCharacterReferences({});
+      contextActions.setSelectedLocationReferences({});
+      contextActions.setSelectedVideoTypes({});
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 1500); // 1.5 second simple animation
   }
   
   /**
