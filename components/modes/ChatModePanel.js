@@ -400,6 +400,11 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
           setTimeout(() => {
             setStreaming(false, '');
           }, 100);
+          
+          // Refresh credits immediately after Story Advisor completes
+          if (typeof window !== 'undefined' && window.refreshCredits) {
+            window.refreshCredits();
+          }
         },
         // onError
         (error) => {

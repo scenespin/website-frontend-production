@@ -459,6 +459,11 @@ Rules:
           // Show success toast
           toast.success(`Generated ${sceneCount} scene${sceneCount > 1 ? 's' : ''}`);
 
+          // Refresh credits immediately after Director completes
+          if (typeof window !== 'undefined' && window.refreshCredits) {
+            window.refreshCredits();
+          }
+
           // Wait for state update to complete before closing modal (prevents mobile refresh issue)
           // Use requestAnimationFrame to ensure DOM is ready
           requestAnimationFrame(() => {
