@@ -5,7 +5,7 @@ import { Plus, Package, MoreVertical, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query'
-import { invalidateProductionHubCache } from '@/utils/cacheInvalidation';
+import { invalidateProductionHubCache, invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation';
 import { useEditor } from '@/contexts/EditorContext';
 import type { Asset, AssetCategory } from '@/types/asset';
 import AssetDetailSidebar from './AssetDetailSidebar';
@@ -468,78 +468,20 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                         ...newImageObjects
                                                     ];
                                                     
-                                                    // 🔥 CRITICAL: Optimistically update React Query cache BEFORE API call
-                                                    // This ensures Production Hub card shows image immediately
-                                                    if (screenplayId) {
-                                                        const queryKey = ['assets', screenplayId, 'production-hub'];
-                                                        const queryState = queryClient.getQueryState(queryKey);
-                                                        const isQueryActive = queryState?.status === 'success' || queryState?.dataUpdatedAt !== undefined;
-                                                        
-                                                        // Initialize cache if empty
-                                                        let cacheBefore = queryClient.getQueryData<Asset[]>(queryKey);
-                                                        if (!cacheBefore) {
-                                                            const allAssets = assets.map(a => ({ ...a }));
-                                                            cacheBefore = allAssets;
-                                                            queryClient.setQueryData<Asset[]>(queryKey, allAssets);
-                                                        }
-                                                        
-                                                        // Optimistically update cache
-                                                        queryClient.setQueryData<Asset[]>(queryKey, (old) => {
-                                                            if (!old || !Array.isArray(old)) {
-                                                                return [{
-                                                                    ...newAsset,
-                                                                    images: updatedImages
-                                                                }];
-                                                            }
-                                                            
-                                                            return old.map(a => {
-                                                                if (a.id === newAsset.id) {
-                                                                    return {
-                                                                        ...a,
-                                                                        images: updatedImages,
-                                                                        angleReferences: a.angleReferences ? [...(a.angleReferences || [])] : undefined
-                                                                    };
-                                                                }
-                                                                return { ...a };
-                                                            });
-                                                        });
-                                                        
-                                                        console.log('[AssetBoard] ✅ Optimistically updated React Query cache:', {
-                                                            assetId: newAsset.id,
-                                                            imageCount: updatedImages.length,
-                                                            isQueryActive
-                                                        });
-                                                        
-                                                        // If query is active, trigger immediate re-render
-                                                        if (isQueryActive) {
-                                                            queryClient.refetchQueries({
-                                                                queryKey,
-                                                                type: 'active'
-                                                            });
-                                                        }
-                                                    }
-                                                    
-                                                    // Use updateAsset directly (like characters/locations do)
+                                                    // 🔥 FIX: Match CharacterBoard pattern - no optimistic updates
+                                                    // Just call updateAsset directly (like characters/locations do)
                                                     // This handles both backend update AND context sync in one call
+                                                    // If it fails, there's no stale optimistic data to roll back
                                                     // 🔥 FIX: Add small delay for DynamoDB eventual consistency after asset creation
-                                                    // Delay to allow DynamoDB eventual consistency for newly created assets
-                                                    // Backend also has retry logic, but this delay reduces retry frequency
                                                     await new Promise(resolve => setTimeout(resolve, 500));
                                                     await updateAsset(newAsset.id, {
                                                         images: updatedImages
                                                     });
                                                     console.log('[AssetBoard] ✅ Images registered successfully via updateAsset');
                                                     
-                                                    // Invalidate and refetch after delay (but don't remove - preserves optimistic update)
+                                                    // 🔥 FIX: Invalidate cache after successful update (matches CharacterBoard pattern)
                                                     if (screenplayId) {
-                                                        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                                        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-                                                        setTimeout(() => {
-                                                            queryClient.refetchQueries({
-                                                                queryKey: ['assets', screenplayId, 'production-hub'],
-                                                                type: 'active'
-                                                            });
-                                                        }, 2000);
+                                                        invalidateProductionHubAndMediaCache(queryClient, 'assets', screenplayId);
                                                     }
                                                     
                                                     // 🔥 FIX: Refresh asset from context after images are registered
