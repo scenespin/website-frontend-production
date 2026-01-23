@@ -3357,29 +3357,29 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       console.log('[SceneBuilderPanel] ✅ Workflow execution started:', executionId);
       setWorkflowExecutionId(executionId);
-        
-        // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
+      
+      // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
       localStorage.setItem(`scene-builder-execution-${projectId}`, executionId);
-        
-        // Set initial workflow status to show progress immediately
-        setWorkflowStatus({
+      
+      // Set initial workflow status to show progress immediately
+      setWorkflowStatus({
         id: executionId,
-          status: 'running',
-          currentStep: 1,
-          totalSteps: 5,
-          stepResults: [],
-          totalCreditsUsed: 0,
-          finalOutputs: []
-        });
-        
-        // 🔥 NEW: Show simple animation, then redirect to jobs drawer and reset scene builder
-        setIsGenerating(true);
-        
-        // Show success toast
-        toast.success('🎬 Video generation started!', {
-          description: 'Your videos are being generated. Check the Jobs panel for progress.',
-          duration: 2000
-        });
+        status: 'running',
+        currentStep: 1,
+        totalSteps: 5,
+        stepResults: [],
+        totalCreditsUsed: 0,
+        finalOutputs: []
+      });
+      
+      // 🔥 NEW: Show simple animation, then redirect to jobs drawer and reset scene builder
+      setIsGenerating(true);
+      
+      // Show success toast
+      toast.success('🎬 Video generation started!', {
+        description: 'Your videos are being generated. Check the Jobs panel for progress.',
+        duration: 2000
+      });
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
       toast.error('Failed to start generation', {
