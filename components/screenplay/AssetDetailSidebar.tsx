@@ -347,44 +347,33 @@ export default function AssetDetailSidebar({
           throw new Error('Invalid response from server');
         }
 
-        // Step 2: Upload directly to S3 using FormData POST (presigned POST)
-        const formData = new FormData();
+        // Step 2: Upload directly to S3 using presigned POST (matches CharacterDetailSidebar pattern)
+        const s3FormData = new FormData();
         
+        // Add all the fields returned from createPresignedPost
         Object.entries(fields).forEach(([key, value]) => {
           // Skip 'bucket' field - it's only used in the policy, not in FormData
           if (key.toLowerCase() !== 'bucket') {
-            formData.append(key, value as string);
+            s3FormData.append(key, value as string);
           }
         });
         
         // Add the file last (must be last field in FormData per AWS requirements)
-        formData.append('file', file);
+        s3FormData.append('file', file);
         
-        // Use XMLHttpRequest for progress tracking
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-              // Progress tracking (optional, can be enhanced with UI)
-            }
-          });
-          
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve();
-            } else {
-              reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
-            }
-          });
-          
-          xhr.addEventListener('error', () => {
-            reject(new Error('S3 upload failed: Network error'));
-          });
-          
-          xhr.open('POST', url);
-          xhr.send(formData);
+        // Upload to S3 using fetch (matches CharacterDetailSidebar pattern)
+        const s3UploadResponse = await fetch(url, {
+          method: 'POST',
+          body: s3FormData,
         });
+
+        if (!s3UploadResponse.ok) {
+          const errorText = await s3UploadResponse.text();
+          console.error('[AssetDetailSidebar] S3 upload failed:', errorText);
+          throw new Error(`S3 upload failed: ${s3UploadResponse.status}`);
+        }
+
+        console.log(`[AssetDetailSidebar] ✅ Uploaded to S3: ${s3Key}`);
 
         // Step 3: Get presigned download URL for StorageDecisionModal (bucket is private)
         // 🔥 FIX: Generate 7-day presigned URL for temporary storage (matches S3 lifecycle)
