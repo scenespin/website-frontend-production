@@ -1424,10 +1424,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           // 🔥 FIX: endLine is inclusive (0-based), but slice() is exclusive, so add 1
           // This matches the backend's extractSceneContent logic and ScreenplayContext's scene extraction
           const rawContent = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine + 1);
-          // Filter out sections (#) and synopses (=) per Fountain spec
+          // Filter out sections (#), synopses (=), and notes ([[ note ]]) per Fountain spec
           const filteredContent = rawContent.filter(line => {
             const trimmed = line.trim();
-            return !trimmed.startsWith('#') && !trimmed.startsWith('=');
+            return !trimmed.startsWith('#') && !trimmed.startsWith('=') && !(/^\[\[.*\]\]$/.test(trimmed));
           });
           setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: filteredContent.join('\n') }));
         } else {
