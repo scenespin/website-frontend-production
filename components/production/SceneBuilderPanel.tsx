@@ -3124,10 +3124,31 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 } : null,
                 hasLocationRef: !!selectedLocationReferences[shot.slot],
                 referencesCollected: references.length,
-                referenceUrls: references.map((url, idx) => ({ index: idx, urlPreview: url.substring(0, 100) + '...' }))
+                referencesValid: references.every(url => url && typeof url === 'string' && url.length > 0),
+                referenceUrls: references.map((url, idx) => ({ 
+                  index: idx, 
+                  url: url ? url.substring(0, 100) + '...' : 'null/undefined',
+                  isValid: !!(url && typeof url === 'string' && url.length > 0)
+                }))
               });
               
-              if (references.length > 0) {
+              // Validate references before API call
+              if (references.length === 0) {
+                throw new Error(`No references available for shot ${shot.slot}. Character or location references are required.`);
+              }
+              
+              // Filter out any invalid references (null, undefined, empty strings)
+              const validReferences = references.filter(url => url && typeof url === 'string' && url.trim().length > 0);
+              if (validReferences.length === 0) {
+                throw new Error(`No valid references for shot ${shot.slot}. All references are invalid (null, undefined, or empty).`);
+              }
+              
+              if (validReferences.length !== references.length) {
+                console.warn(`[SceneBuilderPanel] ⚠️ Filtered out ${references.length - validReferences.length} invalid references for shot ${shot.slot}`);
+              }
+              
+              // Use validReferences instead of references
+              if (validReferences.length > 0) {
                 if (attempt > 1) {
                   console.log(`[SceneBuilderPanel] 🔄 Retry attempt ${attempt}/${MAX_RETRIES} for shot ${shot.slot}...`);
                   // Add small delay between retries
@@ -3143,19 +3164,30 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   },
                   body: JSON.stringify({
                     prompt,
-                    references,
+                    references: validReferences, // Use filtered valid references
                     aspectRatio: shotAspectRatio,
                     qualityTier: qualityTier || 'premium',
                     referenceMetadata: {
-                      characterRefs: references.filter((_, idx) => idx === 0 && shot.characterId ? [references[0]] : []),
-                      locationRefs: selectedLocationReferences[shot.slot] ? [references.find((_, idx) => idx > 0 && selectedLocationReferences[shot.slot])] : undefined
+                      characterRefs: validReferences.filter((_, idx) => idx === 0 && shot.characterId ? [validReferences[0]] : []),
+                      locationRefs: selectedLocationReferences[shot.slot] ? [validReferences.find((_, idx) => idx > 0 && selectedLocationReferences[shot.slot])] : undefined
                     }
                   })
                 });
                 
                 if (!firstFrameResponse.ok) {
                   const errorData = await firstFrameResponse.json().catch(() => ({}));
-                  throw new Error(errorData.error || `Failed to generate first frame for shot ${shot.slot}: ${firstFrameResponse.statusText}`);
+                  const errorMessage = errorData.message || errorData.error || `Failed to generate first frame for shot ${shot.slot}: ${firstFrameResponse.statusText}`;
+                  console.error(`[SceneBuilderPanel] ❌ First frame generation failed for shot ${shot.slot}:`, {
+                    status: firstFrameResponse.status,
+                    statusText: firstFrameResponse.statusText,
+                    errorData,
+                    promptLength: prompt.length,
+                    promptPreview: prompt.substring(0, 200),
+                    aspectRatio: shotAspectRatio,
+                    referencesCount: validReferences.length,
+                    references: validReferences.map((url, idx) => ({ index: idx, url: url?.substring(0, 100) || 'null/undefined' }))
+                  });
+                  throw new Error(errorMessage);
                 }
                 
                 const firstFrameData = await firstFrameResponse.json();
