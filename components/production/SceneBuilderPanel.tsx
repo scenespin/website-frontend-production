@@ -2977,8 +2977,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       // 🔥 FIX: Pass first frame URL from scene builder to workflow
       // This is the intended workflow: scene builder generates first frame → sends to video model
+      // Standardized naming: use firstFrameUrl everywhere (not startImageUrl)
       if (firstFrameUrl) {
-        workflowRequest.startImageUrl = firstFrameUrl;
+        workflowRequest.firstFrameUrl = firstFrameUrl;
         console.log('[SceneBuilderPanel] Passing first frame URL to workflow:', firstFrameUrl.substring(0, 100) + '...');
       }
       
