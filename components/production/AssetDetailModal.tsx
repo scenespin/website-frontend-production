@@ -114,6 +114,8 @@ export default function AssetDetailModal({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
+  // Track which dropdown is open (only one at a time)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
@@ -1288,25 +1290,34 @@ export default function AssetDetailModal({
                                   </div>
                                 );
                               })()}
-                              <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
-                                selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
-                              }`}>
-                                <div className="absolute bottom-2 left-2 right-2">
-                                  <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
-                                </div>
-                                {/* Three dots dropdown - always visible (matching character style) */}
-                                {!img.isBase && !selectionMode && (
-                              <div className="absolute top-2 right-2 pointer-events-auto z-20">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      className={`${isMobile ? 'p-1.5 bg-[#DC143C]' : 'p-2 bg-[#DC143C]/90 hover:bg-[#DC143C]'} rounded-lg transition-colors ${isMobile ? 'min-w-[32px] min-h-[32px]' : 'min-w-[36px] min-h-[36px]'} flex items-center justify-center shadow-lg`}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MoreVertical className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white`} />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent 
+                              {/* Three dots dropdown - always visible (not in hover div) */}
+                              {!img.isBase && !selectionMode && (
+                                <div className="absolute top-2 right-2 pointer-events-auto z-20">
+                                  <DropdownMenu
+                                    open={openDropdownId === img.id}
+                                    onOpenChange={(open) => {
+                                      if (open) {
+                                        setOpenDropdownId(img.id);
+                                      } else {
+                                        setOpenDropdownId(null);
+                                      }
+                                    }}
+                                  >
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        className={`${isMobile ? 'p-1.5 bg-[#DC143C]' : 'p-2 bg-[#DC143C]/90 hover:bg-[#DC143C]'} rounded-lg transition-colors ${isMobile ? 'min-w-[32px] min-h-[32px]' : 'min-w-[36px] min-h-[36px]'} flex items-center justify-center shadow-lg`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Close other dropdowns when opening this one
+                                          if (openDropdownId !== img.id) {
+                                            setOpenDropdownId(img.id);
+                                          }
+                                        }}
+                                      >
+                                        <MoreVertical className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white`} />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent 
                                     align="end"
                                     className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
                                     style={{ backgroundColor: '#0A0A0A' }}
@@ -1486,6 +1497,14 @@ export default function AssetDetailModal({
                                 </DropdownMenu>
                               </div>
                             )}
+                            {/* Label overlay - shown on hover */}
+                            <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity pointer-events-none ${
+                              selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+                            }`}>
+                              <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
+                                <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
