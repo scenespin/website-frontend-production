@@ -125,20 +125,6 @@ export function mapMediaFilesToHeadshots(
       outfitName: isCreationImage ? 'Creation' : (file.metadata?.outfitName || undefined)
     };
   });
-    const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
-    const label = file.metadata?.poseName || file.metadata?.angle || file.fileName || 'Image';
-    
-    return {
-      poseId: poseId || file.s3Key,
-      s3Key: file.s3Key!,
-      // 🔥 FIX: Media Library files don't have s3Url - presigned URLs are fetched separately
-      // Set imageUrl to null (not empty string) - will be resolved via URL maps
-      imageUrl: null as any, // Will be resolved via thumbnailUrlsMap or fullImageUrlsMap
-      label,
-      priority: 0, // No prioritization - all images are equal
-      outfitName: file.metadata?.outfitName
-    };
-  });
   
   // Return all headshots - no sorting, no limiting - let the user decide
   return headshots;
