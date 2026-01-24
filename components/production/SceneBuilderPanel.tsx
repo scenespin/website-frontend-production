@@ -3013,8 +3013,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       // Show success toast
       toast.success('🎬 Video generation started!', {
-        description: 'Your videos are being generated. Check the Jobs panel for progress.',
-        duration: 2000
+        description: 'Your videos are being generated. Check the Storyboard when your job is completed.',
+        duration: 4000
       });
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
@@ -3025,11 +3025,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       return; // Exit early on error
     }
     
-    // Wait 1.5 seconds for simple animation, then redirect (moved outside try-catch)
+    // Wait 1.5 seconds for simple animation, then reset scene builder (moved outside try-catch)
+    // 🔥 REMOVED: Auto-opening jobs drawer - users will check storyboard when job completes
     setTimeout(() => {
-      // Open jobs drawer to show job progress
-      setIsJobsDrawerOpen(true);
-      
       // 🔥 FIX: Set flag to prevent immediate recovery
       hasIntentionallyClearedRef.current = true;
       
