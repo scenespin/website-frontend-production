@@ -42,13 +42,10 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
     // Extract text from each page
     for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
       const page = await pdf.getPage(pageNum);
-      // Use pdf.js getTextContent with options for better text extraction
-      // normalizeWhitespace: false keeps original spacing to detect line breaks
-      // disableCombineTextItems: false allows pdf.js to combine text items when possible
-      const textContent = await page.getTextContent({
-        normalizeWhitespace: false,
-        disableCombineTextItems: false
-      });
+      // Extract text content from page
+      // Note: pdf.js 5.4.530 doesn't support normalizeWhitespace or disableCombineTextItems options
+      // We handle line merging manually based on Y-position differences
+      const textContent = await page.getTextContent();
       
       // Build text from text items
       // Key insight: PDF text extraction creates new text items when text wraps
