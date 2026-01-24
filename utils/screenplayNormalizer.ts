@@ -6,6 +6,13 @@
  * - Character encoding issues ( characters)
  * - Whitespace normalization (wrapped lines, inconsistent spacing)
  * - Preserves Fountain format structure (line breaks)
+ * 
+ * Fountain Format Compliance:
+ * - Scene Heading: ONE blank line BEFORE (required), ONE blank line AFTER (common practice)
+ * - Character: ONE blank line BEFORE (required), NO blank line AFTER (dialogue follows immediately)
+ * - Dialogue: Follows character immediately, ONE blank line AFTER when block ends
+ * 
+ * Reference: https://fountain.io/syntax/
  */
 
 /**
@@ -70,13 +77,23 @@ export function fixCharacterEncoding(text: string): string {
 
 /**
  * Add basic Fountain spacing for PDF imports
- * This is a LIGHTWEIGHT version that only adds necessary blank lines
- * Does NOT merge, join, or modify content - just adds spacing
  * 
- * Rules:
- * 1. One blank line after scene headings
- * 2. One blank line before character names (dialogue blocks)  
- * 3. One blank line after dialogue blocks (before action/scenes)
+ * Per official Fountain specification (https://fountain.io/syntax/):
+ * 
+ * Scene Heading:
+ * - ONE blank line BEFORE (required: "always has at least one blank line preceding it")
+ * - ONE blank line AFTER (implied: "has a blank line following it")
+ * 
+ * Character:
+ * - ONE blank line BEFORE (required: "one empty line before it")
+ * - NO blank line AFTER (required: "without an empty line after it" - dialogue follows immediately)
+ * 
+ * Dialogue:
+ * - Follows Character immediately (no blank line)
+ * - ONE blank line AFTER when dialogue block ends
+ * 
+ * This is a LIGHTWEIGHT version that only adds necessary blank lines.
+ * Does NOT merge, join, or modify content - just adds spacing where missing.
  */
 /**
  * Merge wrapped action lines from PDF imports
@@ -203,6 +220,7 @@ export function addBasicFountainSpacing(text: string): string {
     
     // Scene heading - Fountain spec requires ONE blank line BEFORE scene headings
     // Reference: https://fountain.io/syntax/ - "A Scene Heading always has at least one blank line preceding it"
+    // Also: "A Scene Heading is any line that has a blank line following it" (implies blank line after)
     if (isSceneHeading) {
       inDialogueBlock = false;
       // Add ONE blank line before scene heading (Fountain spec requirement)
@@ -210,22 +228,24 @@ export function addBasicFountainSpacing(text: string): string {
         output.push('');
       }
       output.push(line);
-      // Add ONE blank line after scene heading (common practice, not required by spec)
+      // Add ONE blank line after scene heading (per spec: "has a blank line following it")
       if (nextLine !== '') {
         output.push('');
       }
       continue;
     }
     
-    // Dialogue detection: character name starts a block, continues until blank line or new block
+    // Character name - Per Fountain spec: "one empty line before it and without an empty line after it"
+    // Reference: https://fountain.io/syntax/ - Character element rules
     if (isCharacterName) {
       // Starting a dialogue block
       if (prevLine !== '' && !inDialogueBlock) {
-        // Need blank line before character name
+        // Add ONE blank line before character name (Fountain spec requirement)
         output.push('');
       }
       inDialogueBlock = true;
       output.push(line);
+      // NO blank line after character (dialogue follows immediately, per spec)
       continue;
     }
     
