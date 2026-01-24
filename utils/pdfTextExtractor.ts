@@ -59,82 +59,72 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
           return yDiff;
         });
       
-      // Build text from sorted items
-      // Based on Stack Overflow solution: https://stackoverflow.com/questions/64364269/how-to-allow-line-breaks-when-extracting-text-from-pdf-reader
-      // Key insight: Compare Y positions - if it changes significantly (> 5px), insert newline
-      // Wrapped text has small Y differences (1-5px), real line breaks have large differences (10-20px+)
-      let lastY: number | null = null;
-      let lastXEnd: number | null = null; // Track end X position of previous item
-      let currentLine = '';
+      // NEW APPROACH: Group items by Y-coordinate first, then process each group
+      // This is more reliable than threshold-based detection
+      // Key insight: Items on the same line have similar Y coordinates (within 2-3px)
+      // Group them first, then sort each group by X to get reading order
       
-      // First pass: Calculate line height from SIGNIFICANT Y differences only
-      // Key insight: Wrapped text has small Y differences (1-5px), real line breaks have large differences (10-20px+)
-      // We should only use large differences (real line breaks) for median calculation
-      const yPositions = sortedItems.map((item: any) => item.transform[5]);
-      const yDifferences: number[] = [];
-      for (let i = 1; i < yPositions.length; i++) {
-        const diff = Math.abs(yPositions[i] - yPositions[i - 1]);
-        // Only include differences that are likely real line breaks (not wrapped text)
-        // Wrapped text: 1-5px, Real breaks: 10px+
-        if (diff >= 10) {
-          yDifferences.push(diff);
-        }
-      }
-      
-      // Calculate median line height from SIGNIFICANT differences only (real line breaks)
-      // This represents the typical spacing between actual lines
-      const sortedDiffs = [...yDifferences].sort((a, b) => a - b);
-      const medianLineHeight = sortedDiffs.length > 0
-        ? sortedDiffs[Math.floor(sortedDiffs.length / 2)]
-        : 15; // Default fallback (typical line height)
-      
-      // Use a threshold that's MUCH smaller than typical line height
-      // Wrapped text: 1-5px Y difference (should be merged)
-      // Real line breaks: typically 10-20px+ (should create new line)
-      // Threshold: Use 25% of median, but clamp between 3-6px to aggressively merge wrapped text
-      // Lower threshold = more aggressive merging of wrapped text
-      const threshold = Math.min(Math.max(medianLineHeight * 0.25, 3), 6);
+      // Step 1: Group items by Y-coordinate (within tolerance)
+      const Y_TOLERANCE = 2.5; // Items within 2.5px of each other are on the same line
+      const yGroups = new Map<number, any[]>();
       
       for (const item of sortedItems) {
         const textItem = item as any;
-        const y = textItem.transform[5]; // Y position
-        const x = textItem.transform[4]; // X position
-        const width = textItem.width || 0; // Item width
-        const xEnd = x + width; // End X position of this item
+        const y = textItem.transform[5];
         
-        // Check if Y position changed significantly (new line)
-        if (lastY !== null && Math.abs(y - lastY) > threshold) {
-          // Significant Y change - new line detected
-          if (currentLine.trim()) {
-            textLines.push(currentLine.trim());
+        // Find existing group with similar Y coordinate
+        let matchedGroup: number | null = null;
+        for (const groupY of yGroups.keys()) {
+          if (Math.abs(y - groupY) <= Y_TOLERANCE) {
+            matchedGroup = groupY;
+            break;
           }
-          currentLine = textItem.str;
-          lastXEnd = xEnd;
+        }
+        
+        if (matchedGroup !== null) {
+          // Add to existing group
+          yGroups.get(matchedGroup)!.push(textItem);
         } else {
-          // Same logical line (wrapped text or same line)
-          // Check if we need a space between words using horizontal gap
-          // Per Stack Overflow solution: "compare horizontal gaps between items to insert spaces"
-          if (currentLine && lastXEnd !== null) {
-            const xGap = x - lastXEnd; // Gap between end of previous item and start of current item
-            
-            // Add space if:
-            // 1. There's a horizontal gap (items are separated)
-            // 2. Current line doesn't already end with space
-            // 3. Item doesn't already start with space
-            if (xGap > 1 && !currentLine.endsWith(' ') && !textItem.str.startsWith(' ')) {
-              currentLine += ' ';
+          // Create new group
+          yGroups.set(y, [textItem]);
+        }
+      }
+      
+      // Step 2: Sort groups by Y position (descending - top to bottom)
+      const sortedGroups = Array.from(yGroups.entries())
+        .sort((a, b) => b[0] - a[0]); // Sort by Y descending
+      
+      // Step 3: Process each group as a line
+      for (const [groupY, items] of sortedGroups) {
+        // Sort items within group by X position (ascending - left to right)
+        items.sort((a, b) => a.transform[4] - b.transform[4]);
+        
+        // Build line from items in this group
+        let line = '';
+        let lastXEnd: number | null = null;
+        
+        for (const item of items) {
+          const x = item.transform[4];
+          const width = item.width || 0;
+          const xEnd = x + width;
+          
+          // Add space if there's a horizontal gap between items
+          if (line && lastXEnd !== null) {
+            const xGap = x - lastXEnd;
+            // Add space if there's a gap and items don't already have spaces
+            if (xGap > 1 && !line.endsWith(' ') && !item.str.startsWith(' ')) {
+              line += ' ';
             }
           }
-          currentLine += textItem.str;
+          
+          line += item.str;
           lastXEnd = xEnd;
         }
         
-        lastY = y;
-      }
-      
-      // Add last line of page
-      if (currentLine.trim()) {
-        textLines.push(currentLine.trim());
+        // Add completed line
+        if (line.trim()) {
+          textLines.push(line.trim());
+        }
       }
       
       // Add page break (blank line) between pages (except last page)
