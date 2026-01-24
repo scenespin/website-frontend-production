@@ -14,6 +14,7 @@ import { FileText, Upload, AlertTriangle, CheckCircle, X, File } from 'lucide-re
 import type { Character, Location, Scene, StoryBeat } from '@/types/screenplay';
 import { extractTextFromPDF, isPDFFile } from '@/utils/pdfTextExtractor';
 import { extractTextFromWord, isWordFile } from '@/utils/wordTextExtractor';
+import { extractTextFromFDX, isFDXFile } from '@/utils/fdxTextExtractor';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface ScriptImportModalProps {
@@ -35,6 +36,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [normalizationProgress, setNormalizationProgress] = useState<number | null>(null); // Feature 0177: Progress for large files
     const [isExtractingPDF, setIsExtractingPDF] = useState(false); // 🔥 NEW: PDF extraction state
     const [isExtractingWord, setIsExtractingWord] = useState(false); // 🔥 NEW: Word extraction state
+    const [isExtractingFDX, setIsExtractingFDX] = useState(false); // 🔥 NEW: FDX extraction state
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null); // 🔥 NEW: Track uploaded file name
     const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload'); // 🔥 NEW: Tab state
     const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<Record<number, string>>({}); // 🔥 NEW: Track selected time of day for each scene heading issue
@@ -49,6 +51,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             setNormalizationProgress(null);
             setIsExtractingPDF(false);
             setIsExtractingWord(false);
+            setIsExtractingFDX(false);
             setUploadedFileName(null);
             setSelectedTimeOfDay({});
         }
@@ -183,8 +186,46 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 setIsExtractingWord(false);
                 event.target.value = '';
             }
+        } else if (isFDXFile(file)) {
+            // Reset state for new file
+            setContentLocal('');
+            setParseResult(null);
+            
+            setIsExtractingFDX(true);
+            setUploadedFileName(file.name);
+            
+            try {
+                toast.info('Extracting text from Final Draft file...', { duration: 2000 });
+                
+                const result = await extractTextFromFDX(file);
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to extract text from FDX file');
+                }
+                
+                if (!result.text.trim()) {
+                    throw new Error('FDX file appears to be empty or contains no extractable text');
+                }
+                
+                // Set extracted text as content (will trigger parsing via useEffect)
+                setContentLocal(result.text);
+                
+                toast.success('✅ Final Draft file extracted successfully', {
+                    description: 'Review the preview below and click Import when ready'
+                });
+                
+            } catch (error) {
+                console.error('[ScriptImportModal] FDX extraction error:', error);
+                toast.error('Failed to extract text from FDX file', {
+                    description: error instanceof Error ? error.message : 'Please try another FDX file'
+                });
+                setUploadedFileName(null);
+            } finally {
+                setIsExtractingFDX(false);
+                event.target.value = '';
+            }
         } else {
-            toast.error('Please select a PDF or Word (.docx) file');
+            toast.error('Please select a PDF, Word (.docx), or Final Draft (.fdx) file');
             return;
         }
     }, []);
@@ -545,7 +586,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         <div className="p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
                             <div className="flex items-start gap-3">
                                 <Upload className="w-5 h-5 text-[#DC143C] mt-0.5" />
-                                <span className="text-[#FFFFFF] text-sm">Upload a PDF or Word document, or paste your screenplay in Fountain format. We'll automatically detect characters, locations, and scenes.</span>
+                                <span className="text-[#FFFFFF] text-sm">Upload a PDF, Word document, or Final Draft (.fdx) file, or paste your screenplay in Fountain format. We'll automatically detect characters, locations, and scenes.</span>
                             </div>
                         </div>
                         
@@ -572,26 +613,27 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                             <TabsContent value="upload" className="mt-4 space-y-4">
                                 <div>
                                     <label className="block mb-2">
-                                        <span className="text-sm font-medium text-[#FFFFFF]">Upload PDF or Word Document</span>
+                                        <span className="text-sm font-medium text-[#FFFFFF]">Upload PDF, Word, or Final Draft File</span>
                                     </label>
                                     <div className="flex items-center gap-3">
                                         <input
                                             type="file"
-                                            accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                            accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.fdx,application/xml,text/xml"
                                             onChange={handleFileUpload}
-                                            disabled={isImporting || isExtractingPDF || isExtractingWord}
+                                            disabled={isImporting || isExtractingPDF || isExtractingWord || isExtractingFDX}
                                             className="file-input w-full max-w-xs bg-[#1F1F1F] border-[#3F3F46] text-[#FFFFFF] file:bg-[#DC143C] file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer hover:file:bg-[#DC143C]/90"
                                         />
-                                        {(isExtractingPDF || isExtractingWord) && (
+                                        {(isExtractingPDF || isExtractingWord || isExtractingFDX) && (
                                             <div className="flex items-center gap-2 text-sm text-[#808080]">
                                                 <span className="loading loading-spinner loading-sm"></span>
                                                 <span>
                                                     {isExtractingPDF && 'Extracting text from PDF...'}
                                                     {isExtractingWord && 'Extracting text from Word document...'}
+                                                    {isExtractingFDX && 'Extracting text from Final Draft file...'}
                                                 </span>
                                             </div>
                                         )}
-                                        {uploadedFileName && !isExtractingPDF && !isExtractingWord && (
+                                        {uploadedFileName && !isExtractingPDF && !isExtractingWord && !isExtractingFDX && (
                                             <div className="flex items-center gap-2 text-sm text-[#DC143C]">
                                                 <CheckCircle className="w-4 h-4" />
                                                 <span className="text-[#FFFFFF]">{uploadedFileName}</span>
@@ -600,7 +642,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                     </div>
                                     <div className="mt-2">
                                         <span className="text-xs text-[#808080]">
-                                            Supports PDF and Word (.docx) files. Files will be automatically converted to Fountain format.
+                                            Supports PDF, Word (.docx), and Final Draft (.fdx) files. Files will be automatically converted to Fountain format.
                                         </span>
                                     </div>
                                 </div>
