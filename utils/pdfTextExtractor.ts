@@ -45,22 +45,48 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
       const textContent = await page.getTextContent();
       
       // Build text from text items
+      // Key insight: PDF text extraction creates new text items when text wraps
+      // Wrapped text has small Y differences (2-5px), real line breaks have large differences (10-20px+)
+      // We need to merge items with small Y differences (wrapped) and break on large differences (new lines)
       let lastY = -1;
       let currentLine = '';
+      const yPositions: number[] = []; // Track Y positions to calculate average line height
       
       for (const item of textContent.items) {
         if ('str' in item) {
           const textItem = item as any;
           const y = textItem.transform[5]; // Y position
           
-          // If Y position changed significantly, start new line
-          if (lastY !== -1 && Math.abs(y - lastY) > 2) {
+          // Track Y positions to calculate line height dynamically
+          if (lastY !== -1) {
+            const yDiff = Math.abs(y - lastY);
+            if (yDiff > 5) { // Only track significant Y changes (likely real line breaks)
+              yPositions.push(yDiff);
+            }
+          }
+          
+          // Calculate average line height from observed Y differences
+          // Use this to distinguish wrapped text (small Y diff) from real breaks (large Y diff)
+          const avgLineHeight = yPositions.length > 0 
+            ? yPositions.reduce((a, b) => a + b, 0) / yPositions.length 
+            : 12; // Default to 12px if no data yet
+          
+          // Calculate Y difference
+          const yDiff = lastY !== -1 ? Math.abs(y - lastY) : Infinity;
+          
+          // Break on new line if Y position changed significantly (more than 1/3 of average line height)
+          // This merges wrapped text (small Y diff) but breaks on real line breaks (large Y diff)
+          // Use minimum threshold of 8px to handle small fonts
+          const threshold = Math.max(avgLineHeight / 3, 8);
+          
+          if (lastY !== -1 && yDiff > threshold) {
+            // Significant Y change - new line
             if (currentLine.trim()) {
               textLines.push(currentLine.trim());
             }
             currentLine = textItem.str;
           } else {
-            // Same line - append with space if needed
+            // Same logical line (wrapped text) - append with space if needed
             if (currentLine && !currentLine.endsWith(' ') && textItem.str && !textItem.str.startsWith(' ')) {
               currentLine += ' ';
             }
