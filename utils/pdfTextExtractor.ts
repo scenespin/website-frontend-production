@@ -226,6 +226,12 @@ function cleanPDFTextForFountain(text: string): string {
     return line;
   }).join('\n');
   
+  // Merge wrapped dialogue lines
+  // PDF extraction often splits dialogue across multiple lines with blank lines between them
+  // This breaks Fountain format where dialogue continues until a blank line
+  // Solution: Detect CHARACTER NAME, then merge all subsequent non-blank lines as dialogue
+  cleaned = mergeDialogueLines(cleaned);
+  
   // Normalize multiple spaces to single space (but preserve line structure)
   cleaned = cleaned.split('\n').map(line => {
     // Preserve leading spaces (might be intentional indentation)
@@ -246,6 +252,168 @@ function cleanPDFTextForFountain(text: string): string {
   cleaned = cleaned.trim();
   
   return cleaned;
+}
+
+/**
+ * Merge wrapped dialogue lines that were split during PDF extraction
+ * 
+ * PDF extraction often breaks dialogue into multiple lines with blank lines between them.
+ * Per Fountain spec, dialogue should continue until a blank line is encountered.
+ * 
+ * This function:
+ * 1. Detects CHARACTER NAME (all caps, preceded by blank line, short)
+ * 2. Merges all subsequent lines as dialogue (including skipping single blank lines that are PDF artifacts)
+ * 3. Stops at: multiple consecutive blank lines, new character name, scene heading
+ * 4. Preserves parentheticals (lines wrapped in parentheses)
+ * 
+ * @param text - Extracted text from PDF
+ * @returns Text with dialogue lines properly merged
+ */
+function mergeDialogueLines(text: string): string {
+  const lines = text.split('\n');
+  const mergedLines: string[] = [];
+  let i = 0;
+  
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Check if this is a character name
+    // Per Fountain spec: ALL CAPS, preceded by blank line, typically 2-50 chars, not a scene heading
+    const prevLine = i > 0 ? lines[i - 1].trim() : '';
+    const isCharacterName = trimmed.length > 0 &&
+                           trimmed === trimmed.toUpperCase() &&
+                           trimmed.length >= 2 &&
+                           trimmed.length <= 50 &&
+                           !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(trimmed) &&
+                           (prevLine === '' || i === 0); // Preceded by blank line (or start of script)
+    
+    if (isCharacterName) {
+      // Add character name
+      mergedLines.push(line);
+      i++;
+      
+      // Look ahead and merge dialogue lines
+      const dialogueLines: string[] = [];
+      let consecutiveBlankLines = 0;
+      
+      while (i < lines.length) {
+        const dialogueLine = lines[i];
+        const dialogueTrimmed = dialogueLine.trim();
+        
+        // Check for blank lines
+        if (dialogueTrimmed === '') {
+          consecutiveBlankLines++;
+          // If we see 2+ consecutive blank lines, dialogue block is definitely over
+          if (consecutiveBlankLines >= 2) {
+            // Add dialogue if we have any
+            if (dialogueLines.length > 0) {
+              mergedLines.push(dialogueLines.join(' '));
+              dialogueLines.length = 0;
+            }
+            // Add one blank line (preserve paragraph spacing)
+            mergedLines.push('');
+            i++;
+            break;
+          }
+          // Single blank line - might be PDF wrapping artifact, look ahead
+          i++;
+          continue;
+        }
+        
+        // Reset blank line counter
+        consecutiveBlankLines = 0;
+        
+        // Check if we've hit a new scene heading
+        if (/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(dialogueTrimmed)) {
+          // Add accumulated dialogue first
+          if (dialogueLines.length > 0) {
+            mergedLines.push(dialogueLines.join(' '));
+            dialogueLines.length = 0;
+          }
+          // Add blank line before scene heading
+          mergedLines.push('');
+          // Don't consume the scene heading line
+          break;
+        }
+        
+        // Check if we've hit a new character name (all caps, short, preceded by blank line)
+        const nextIsCharacter = dialogueTrimmed === dialogueTrimmed.toUpperCase() &&
+                               dialogueTrimmed.length >= 2 &&
+                               dialogueTrimmed.length <= 50 &&
+                               !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(dialogueTrimmed) &&
+                               !dialogueTrimmed.startsWith('(') && // Not a parenthetical
+                               consecutiveBlankLines > 0; // Must be preceded by blank line
+        
+        if (nextIsCharacter) {
+          // Add accumulated dialogue first
+          if (dialogueLines.length > 0) {
+            mergedLines.push(dialogueLines.join(' '));
+            dialogueLines.length = 0;
+          }
+          // Add blank line before next character
+          mergedLines.push('');
+          // Don't consume the character line
+          break;
+        }
+        
+        // Check if this is a parenthetical - preserve it as a separate line
+        if (/^\(.+\)$/.test(dialogueTrimmed)) {
+          // If we have accumulated dialogue, add it first
+          if (dialogueLines.length > 0) {
+            mergedLines.push(dialogueLines.join(' '));
+            dialogueLines.length = 0;
+          }
+          // Add parenthetical as its own line
+          mergedLines.push(dialogueTrimmed);
+          i++;
+          continue;
+        }
+        
+        // Check if this might be an action line (mixed case, descriptive)
+        // Action lines typically:
+        // - Start with capital letter (He, She, The, etc.)
+        // - Have mixed case
+        // - Are longer/more descriptive OR start with common action words
+        const hasLowerCase = /[a-z]/.test(dialogueTrimmed);
+        const hasUpperCase = /[A-Z]/.test(dialogueTrimmed);
+        const isMixedCase = hasLowerCase && hasUpperCase;
+        const startsWithActionWord = /^(He|She|They|The|A|An|In|On|At|From|To|With|And|But|It's|It|That|This)\s/.test(dialogueTrimmed);
+        const isLong = dialogueTrimmed.length > 45;
+        
+        // Only treat as action if we already have some dialogue AND this looks clearly like action
+        const looksLikeAction = dialogueLines.length > 0 &&
+                               isMixedCase &&
+                               (isLong || startsWithActionWord);
+        
+        if (looksLikeAction) {
+          // This is probably an action line, not dialogue continuation
+          // Add accumulated dialogue first
+          mergedLines.push(dialogueLines.join(' '));
+          dialogueLines.length = 0;
+          // Add blank line before action
+          mergedLines.push('');
+          // Don't consume the action line
+          break;
+        }
+        
+        // This is a dialogue continuation line - accumulate it
+        dialogueLines.push(dialogueTrimmed);
+        i++;
+      }
+      
+      // Add any remaining accumulated dialogue
+      if (dialogueLines.length > 0) {
+        mergedLines.push(dialogueLines.join(' '));
+      }
+    } else {
+      // Not a character name - keep line as-is
+      mergedLines.push(line);
+      i++;
+    }
+  }
+  
+  return mergedLines.join('\n');
 }
 
 /**
