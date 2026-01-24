@@ -2904,10 +2904,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // Add scene number and name if available from selected scene
       if (sceneNumber !== undefined) {
         workflowRequest.sceneNumber = sceneNumber;
-        if (selectedSceneId && screenplay.scenes) {
+      if (selectedSceneId && screenplay.scenes) {
           const selectedScene = screenplay.scenes.find((s: any) => s.id === selectedSceneId);
-          if (selectedScene) {
-            workflowRequest.sceneName = selectedScene.heading || selectedScene.synopsis || undefined;
+        if (selectedScene) {
+          workflowRequest.sceneName = selectedScene.heading || selectedScene.synopsis || undefined;
           }
         }
       }
@@ -2928,23 +2928,23 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       console.log('[SceneBuilderPanel] ✅ Workflow execution started:', executionId);
       setWorkflowExecutionId(executionId);
-      
-      // Set initial workflow status to show progress immediately
-      setWorkflowStatus({
+        
+        // Set initial workflow status to show progress immediately
+        setWorkflowStatus({
         id: executionId,
-        status: 'running',
-        currentStep: 1,
-        totalSteps: 5,
-        stepResults: [],
-        totalCreditsUsed: 0,
-        finalOutputs: []
-      });
-      
-      // 🔥 NEW: Show simple animation, then redirect to jobs drawer and reset scene builder
-      setIsGenerating(true);
-      
-      // Show success toast
-      toast.success('🎬 Video generation started!', {
+          status: 'running',
+          currentStep: 1,
+          totalSteps: 5,
+          stepResults: [],
+          totalCreditsUsed: 0,
+          finalOutputs: []
+        });
+        
+        // 🔥 NEW: Show simple animation, then redirect to jobs drawer and reset scene builder
+        setIsGenerating(true);
+        
+        // Show success toast
+        toast.success('🎬 Video generation started!', {
         description: 'Your videos are being generated. Check the Storyboard when your job is completed.',
         duration: 4000
       });
@@ -2956,35 +2956,35 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       setIsGenerating(false);
       return; // Exit early on error
     }
-    
+        
     // Wait 1.5 seconds for simple animation, then reset scene builder (moved outside try-catch)
     // 🔥 REMOVED: Auto-opening jobs drawer - users will check storyboard when job completes
-    setTimeout(() => {
-      // Reset scene builder to initial state (fresh start)
-      setCurrentStep(1);
-      setWizardStep('analysis');
-      setSceneAnalysisResult(null);
-      setSelectedSceneId(null);
-      setHasConfirmedSceneSelection(false);
-      setCurrentShotIndex(0);
-      setIsGenerating(false);
-      setWorkflowExecutionId(null);
-      setWorkflowStatus(null);
-      
+        setTimeout(() => {
+          // Reset scene builder to initial state (fresh start)
+          setCurrentStep(1);
+          setWizardStep('analysis');
+          setSceneAnalysisResult(null);
+          setSelectedSceneId(null);
+          setHasConfirmedSceneSelection(false);
+          setCurrentShotIndex(0);
+          setIsGenerating(false);
+          setWorkflowExecutionId(null);
+          setWorkflowStatus(null);
+          
       // 🔥 FIX: Clear localStorage when workflow completes - no recovery needed
       // Scene builder workflows are quick/instant, so recovery isn't necessary
       // User can check the Storyboard for results
       localStorage.removeItem(`scene-builder-execution-${projectId}`);
-      
-      // Clear context state for fresh start
-      setEnabledShots([]);
-      contextActions.setSelectedCharacterReferences({});
-      contextActions.setSelectedLocationReferences({});
-      contextActions.setSelectedVideoTypes({});
-      
-      // Scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 1500); // 1.5 second simple animation
+          
+          // Clear context state for fresh start
+          setEnabledShots([]);
+          contextActions.setSelectedCharacterReferences({});
+          contextActions.setSelectedLocationReferences({});
+          contextActions.setSelectedVideoTypes({});
+          
+          // Scroll to top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 1500); // 1.5 second simple animation
   }
   
   /**
