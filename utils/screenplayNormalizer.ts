@@ -69,7 +69,91 @@ export function fixCharacterEncoding(text: string): string {
 }
 
 /**
- * Normalize whitespace while preserving line break structure
+ * Add basic Fountain spacing for PDF imports
+ * This is a LIGHTWEIGHT version that only adds necessary blank lines
+ * Does NOT merge, join, or modify content - just adds spacing
+ * 
+ * Rules:
+ * 1. One blank line after scene headings
+ * 2. One blank line before character names (dialogue blocks)  
+ * 3. One blank line after dialogue blocks (before action/scenes)
+ */
+export function addBasicFountainSpacing(text: string): string {
+  const lines = text.split('\n');
+  const output: string[] = [];
+  let inDialogueBlock = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    const prevLine = output.length > 0 ? output[output.length - 1].trim() : '';
+    const nextLine = i < lines.length - 1 ? lines[i + 1].trim() : '';
+    
+    // Skip if already blank
+    if (trimmed === '') {
+      output.push(line);
+      inDialogueBlock = false; // Blank line ends dialogue block
+      continue;
+    }
+    
+    // Detect element types
+    const isSceneHeading = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(trimmed);
+    const isTransition = /^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO|FADE TO BLACK):?$/i.test(trimmed);
+    const isParenthetical = trimmed.startsWith('(') && trimmed.endsWith(')');
+    const isCharacterName = !isSceneHeading 
+      && !isTransition
+      && trimmed === trimmed.toUpperCase() 
+      && trimmed.length >= 2 
+      && trimmed.length <= 50;
+    
+    // Dialogue detection: character name starts a block, continues until blank line or new block
+    if (isCharacterName) {
+      // Starting a dialogue block
+      if (prevLine !== '' && !inDialogueBlock) {
+        // Need blank line before character name
+        output.push('');
+      }
+      inDialogueBlock = true;
+      output.push(line);
+      continue;
+    }
+    
+    if (isParenthetical && inDialogueBlock) {
+      // Parenthetical within dialogue block
+      output.push(line);
+      continue;
+    }
+    
+    // If we're in dialogue block and this isn't a special element, it's dialogue
+    if (inDialogueBlock && !isSceneHeading && !isTransition) {
+      output.push(line);
+      // Check if dialogue block ends (next line is not parenthetical or more dialogue)
+      if (nextLine !== '' && !nextLine.startsWith('(') && nextLine !== nextLine.toUpperCase()) {
+        // Next line is action, end dialogue block with blank line
+        output.push('');
+        inDialogueBlock = false;
+      }
+      continue;
+    }
+    
+    // Scene heading
+    if (isSceneHeading) {
+      inDialogueBlock = false;
+      output.push(line);
+      // Add blank line after scene heading if next isn't blank
+      if (nextLine !== '') {
+        output.push('');
+      }
+      continue;
+    }
+    
+    // Regular action line
+    inDialogueBlock = false;
+    output.push(line);
+  }
+  
+  return output.join('\n');
+}
  * - Strips leading/trailing spaces from each line
  * - Collapses multiple spaces to single space
  * - Preserves single vs double line breaks (Fountain structure)

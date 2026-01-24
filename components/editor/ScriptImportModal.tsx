@@ -7,7 +7,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { updateScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
-import { normalizeScreenplayText, cleanWebPastedText, fixCharacterEncoding } from '@/utils/screenplayNormalizer';
+import { normalizeScreenplayText, cleanWebPastedText, fixCharacterEncoding, addBasicFountainSpacing } from '@/utils/screenplayNormalizer';
 import { processChunkedImport } from '@/utils/screenplayStreamParser';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X, File } from 'lucide-react';
@@ -74,6 +74,12 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 // Always fix character encoding issues (safe for all sources)
                 // This handles UTF-8 corruption from PDF extraction, copy-paste, etc.
                 processedContent = fixCharacterEncoding(processedContent);
+                
+                // Add basic Fountain spacing for PDF/Word imports (they lack blank lines)
+                // Only applies to upload tab (PDF/Word), not paste tab (already has spacing)
+                if (activeTab === 'upload') {
+                    processedContent = addBasicFountainSpacing(processedContent);
+                }
                 
                 // Parse the content (no additional normalization for PDF/Word/clean Fountain)
                 const result = parseContentForImport(processedContent);
