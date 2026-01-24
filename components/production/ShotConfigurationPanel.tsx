@@ -1116,7 +1116,9 @@ export function ShotConfigurationPanel({
                           propName={prop.name}
                           prop={fullProp}
                           selectedImageId={propConfig.selectedImageId}
-                          onImageChange={onPropImageChange}
+                          onImageChange={(propId, imageId) => {
+                            onPropImageChange(shot.slot, propId, imageId);
+                          }}
                           propThumbnailS3KeyMap={propThumbnailS3KeyMap}
                           propThumbnailUrlsMap={propThumbnailUrlsMap}
                           propFullImageUrlsMap={propFullImageUrlsMap}
