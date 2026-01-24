@@ -42,42 +42,48 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
     // Extract text from each page
     for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
       const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
+      // Use pdf.js getTextContent with options for better text extraction
+      // normalizeWhitespace: false keeps original spacing to detect line breaks
+      // disableCombineTextItems: false allows pdf.js to combine text items when possible
+      const textContent = await page.getTextContent({
+        normalizeWhitespace: false,
+        disableCombineTextItems: false
+      });
       
       // Build text from text items
       // Key insight: PDF text extraction creates new text items when text wraps
-      // Wrapped text has small Y differences (2-5px), real line breaks have large differences (10-20px+)
+      // Wrapped text has small Y differences (2-8px), real line breaks have large differences (12-20px+)
       // We need to merge items with small Y differences (wrapped) and break on large differences (new lines)
       let lastY = -1;
       let currentLine = '';
-      const yPositions: number[] = []; // Track Y positions to calculate average line height
+      const yDifferences: number[] = []; // Track all Y differences to calculate median line height
       
       for (const item of textContent.items) {
         if ('str' in item) {
           const textItem = item as any;
           const y = textItem.transform[5]; // Y position
           
-          // Track Y positions to calculate line height dynamically
+          // Track Y differences to calculate line height
           if (lastY !== -1) {
             const yDiff = Math.abs(y - lastY);
-            if (yDiff > 5) { // Only track significant Y changes (likely real line breaks)
-              yPositions.push(yDiff);
-            }
+            yDifferences.push(yDiff);
           }
           
-          // Calculate average line height from observed Y differences
-          // Use this to distinguish wrapped text (small Y diff) from real breaks (large Y diff)
-          const avgLineHeight = yPositions.length > 0 
-            ? yPositions.reduce((a, b) => a + b, 0) / yPositions.length 
+          // Calculate median line height from observed Y differences
+          // Median is more robust than average (less affected by outliers)
+          // Only use differences > 5px (likely real line breaks, not wrapped text)
+          const significantDiffs = yDifferences.filter(diff => diff > 5);
+          const medianLineHeight = significantDiffs.length > 0
+            ? significantDiffs.sort((a, b) => a - b)[Math.floor(significantDiffs.length / 2)]
             : 12; // Default to 12px if no data yet
           
-          // Calculate Y difference
+          // Calculate Y difference for current item
           const yDiff = lastY !== -1 ? Math.abs(y - lastY) : Infinity;
           
-          // Break on new line if Y position changed significantly (more than 1/3 of average line height)
-          // This merges wrapped text (small Y diff) but breaks on real line breaks (large Y diff)
-          // Use minimum threshold of 8px to handle small fonts
-          const threshold = Math.max(avgLineHeight / 3, 8);
+          // Break on new line if Y position changed significantly
+          // Use 40% of median line height as threshold - this catches real breaks but merges wrapped text
+          // Minimum threshold of 10px to handle various font sizes
+          const threshold = Math.max(medianLineHeight * 0.4, 10);
           
           if (lastY !== -1 && yDiff > threshold) {
             // Significant Y change - new line
