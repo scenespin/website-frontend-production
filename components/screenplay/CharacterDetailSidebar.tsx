@@ -986,15 +986,13 @@ export default function CharacterDetailSidebar({
               const source = metadata.source;
               const createdIn = metadata.createdIn;
               // Exclude Production Hub images (matching LocationDetailSidebar pattern)
-              // Include if: createdIn === 'creation' OR createdIn is undefined/null (defaults to creation)
-              // Exclude if: createdIn === 'production-hub' OR source indicates Production Hub
-              const isProductionHub = createdIn === 'production-hub' || 
-                                      source === 'pose-generation' ||
-                                      source === 'angle-generation' ||
-                                      source === 'image-generation';
-              // Include if NOT Production Hub (defaults to Creation if createdIn is undefined)
-              // This includes: createdIn === 'creation', createdIn === undefined, createdIn === null
-              return !isProductionHub;
+              // Original logic: (!source || source === 'user-upload') - only show user-uploaded images
+              // Plus: Exclude Production Hub images
+              return source !== 'pose-generation' && 
+                     source !== 'angle-generation' && 
+                     source !== 'image-generation' &&
+                     createdIn !== 'production-hub' &&
+                     (!source || source === 'user-upload');
             });
             const aiGeneratedImages = allImages.filter(img => {
               const metadata = img.metadata || {};
