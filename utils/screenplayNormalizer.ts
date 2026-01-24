@@ -154,6 +154,9 @@ export function addBasicFountainSpacing(text: string): string {
   
   return output.join('\n');
 }
+
+/**
+ * Normalize whitespace while preserving line break structure
  * - Strips leading/trailing spaces from each line
  * - Collapses multiple spaces to single space
  * - Preserves single vs double line breaks (Fountain structure)
