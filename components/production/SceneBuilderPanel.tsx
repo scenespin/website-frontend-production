@@ -1851,7 +1851,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   totalCreditsUsed: execution.totalCreditsUsed || 0,
                   finalOutputs: execution.finalOutputs || []
                 });
-                setCurrentStep(2); // Stay on Step 2 (wizard flow)
+                // 🔥 FIX: Don't change currentStep - keep scene builder in initial state
+                // Recovery is only for tracking, not for showing UI
+                // User can check the Storyboard for results
               // Toast removed - progress indicator shows this status
               } else {
                 // Execution completed or failed, remove from localStorage
@@ -3042,9 +3044,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       setWorkflowExecutionId(null);
       setWorkflowStatus(null);
       
-      // 🔥 FIX: Keep executionId in localStorage for recovery, but don't auto-recover immediately
-      // The Jobs panel will show the job status, and user can start a new workflow
-      // localStorage is only used for recovery if user navigates away and comes back
+      // 🔥 FIX: Clear localStorage when workflow completes - no recovery needed
+      // Scene builder workflows are quick/instant, so recovery isn't necessary
+      // User can check the Storyboard for results
+      localStorage.removeItem(`scene-builder-execution-${projectId}`);
       
       // Clear context state for fresh start
       setEnabledShots([]);
