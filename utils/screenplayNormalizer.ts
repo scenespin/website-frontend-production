@@ -201,15 +201,16 @@ export function addBasicFountainSpacing(text: string): string {
       && trimmed.length >= 2 
       && trimmed.length <= 50;
     
-    // Scene heading - add blank line BEFORE if previous isn't blank
+    // Scene heading - Fountain spec requires ONE blank line BEFORE scene headings
+    // Reference: https://fountain.io/syntax/ - "A Scene Heading always has at least one blank line preceding it"
     if (isSceneHeading) {
       inDialogueBlock = false;
-      // Add blank line before scene heading if previous line isn't blank
+      // Add ONE blank line before scene heading (Fountain spec requirement)
       if (prevLine !== '') {
         output.push('');
       }
       output.push(line);
-      // Add blank line after scene heading if next isn't blank
+      // Add ONE blank line after scene heading (common practice, not required by spec)
       if (nextLine !== '') {
         output.push('');
       }
