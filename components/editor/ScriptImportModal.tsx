@@ -39,6 +39,22 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload'); // 🔥 NEW: Tab state
     const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<Record<number, string>>({}); // 🔥 NEW: Track selected time of day for each scene heading issue
     const [enableWebCleaning, setEnableWebCleaning] = useState(false); // Feature 0197: Opt-in web paste cleaning
+    const [isPDFImport, setIsPDFImport] = useState(false); // Track if current content is from PDF/Word import (already processed)
+    
+    // Reset all state when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setContentLocal('');
+            setParseResult(null);
+            setShowWarning(false);
+            setNormalizationProgress(null);
+            setIsExtractingPDF(false);
+            setIsExtractingWord(false);
+            setUploadedFileName(null);
+            setSelectedTimeOfDay({});
+            setIsPDFImport(false);
+        }
+    }, [isOpen]);
     
     // Parse content whenever it changes (debounced)
     // Feature 0177: Normalize content before parsing
@@ -58,21 +74,27 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 }
                 
                 // Feature 0177: Normalize content before parsing
-                const isLargeFile = processedContent.length > 1024 * 1024; // >1MB
-                
+                // SKIP normalization for PDF/Word imports - they're already processed
                 let normalized: string;
-                if (isLargeFile) {
-                    // Large file: use chunked processing with progress
-                    setNormalizationProgress(0);
-                    normalized = await processChunkedImport(
-                        processedContent,
-                        (chunk) => normalizeScreenplayText(chunk),
-                        (progress) => setNormalizationProgress(progress)
-                    );
-                    setNormalizationProgress(null);
+                if (isPDFImport) {
+                    // PDF/Word already processed - skip normalization
+                    normalized = processedContent;
                 } else {
-                    // Small file: normalize in one pass
-                    normalized = normalizeScreenplayText(processedContent);
+                    const isLargeFile = processedContent.length > 1024 * 1024; // >1MB
+                    
+                    if (isLargeFile) {
+                        // Large file: use chunked processing with progress
+                        setNormalizationProgress(0);
+                        normalized = await processChunkedImport(
+                            processedContent,
+                            (chunk) => normalizeScreenplayText(chunk),
+                            (progress) => setNormalizationProgress(progress)
+                        );
+                        setNormalizationProgress(null);
+                    } else {
+                        // Small file: normalize in one pass
+                        normalized = normalizeScreenplayText(processedContent);
+                    }
                 }
                 
                 const result = parseContentForImport(normalized);
@@ -84,7 +106,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         }, 500); // Debounce 500ms
         
         return () => clearTimeout(timer);
-    }, [content, enableWebCleaning, activeTab]);
+    }, [content, enableWebCleaning, activeTab, isPDFImport]);
     
     // 🔥 NEW: Handle file upload (PDF or Word)
     const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,6 +123,11 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         
         // Determine file type and extract
         if (isPDFFile(file)) {
+            // Reset state for new file
+            setContentLocal('');
+            setParseResult(null);
+            setIsPDFImport(false);
+            
             setIsExtractingPDF(true);
             setUploadedFileName(file.name);
             
@@ -118,6 +145,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 }
                 
                 // Set extracted text as content (will trigger parsing via useEffect)
+                setIsPDFImport(true); // Mark as PDF import to skip normalization
                 setContentLocal(result.text);
                 
                 toast.success(`✅ PDF extracted successfully (${result.pageCount} pages)`, {
@@ -135,6 +163,11 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 event.target.value = '';
             }
         } else if (isWordFile(file)) {
+            // Reset state for new file
+            setContentLocal('');
+            setParseResult(null);
+            setIsPDFImport(false);
+            
             setIsExtractingWord(true);
             setUploadedFileName(file.name);
             
@@ -152,6 +185,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 }
                 
                 // Set extracted text as content (will trigger parsing via useEffect)
+                setIsPDFImport(true); // Mark as Word import to skip normalization
                 setContentLocal(result.text);
                 
                 toast.success('✅ Word document extracted successfully', {
