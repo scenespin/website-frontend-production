@@ -317,7 +317,11 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // Always fix character encoding issues (safe for all sources)
             processedContent = fixCharacterEncoding(processedContent);
             
-            // Set content in editor (no additional normalization)
+            // Apply basic Fountain spacing (blank lines after scene headings, before characters, after dialogue)
+            // This is essential for PDF/Word imports which lack proper spacing
+            processedContent = addBasicFountainSpacing(processedContent);
+            
+            // Set content in editor
             setContent(processedContent);
             
             // Step 3: Import characters (with explicit screenplay ID)
