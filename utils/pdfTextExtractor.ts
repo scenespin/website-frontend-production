@@ -106,6 +106,135 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
 }
 
 /**
+ * Aggressively merge wrapped lines from PDF extraction
+ * 
+ * PDF text extraction preserves line breaks from PDF layout, creating wrapped lines
+ * that should be merged into single paragraphs. This function detects and merges
+ * consecutive lines that are clearly part of the same paragraph.
+ * 
+ * Key insight: If a line doesn't end with sentence-ending punctuation and the next
+ * line is not a special element, they should be merged.
+ */
+function mergeWrappedLines(text: string): string {
+  const lines = text.split('\n');
+  const merged: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    const nextLine = i < lines.length - 1 ? lines[i + 1]?.trim() : '';
+    
+    // Blank line - preserve as-is (but check if it's between wrapped lines)
+    if (trimmed === '') {
+      // If we have accumulated content and next line looks like continuation, skip this blank
+      if (merged.length > 0) {
+        const prevLine = merged[merged.length - 1].trim();
+        if (prevLine && nextLine) {
+          // Check if next line is a continuation (not a special element)
+          const nextIsSpecial = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
+            || /^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO|FADE TO BLACK|SMASH CUT):?$/i.test(nextLine)
+            || (nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50 && !nextLine.startsWith('('))
+            || (nextLine.startsWith('(') && nextLine.endsWith(')'));
+          
+          const prevEndsSentence = /[.!?]$/.test(prevLine);
+          
+          // If next is not special and previous doesn't end sentence, this blank is likely a PDF artifact
+          if (!nextIsSpecial && !prevEndsSentence) {
+            continue; // Skip blank line, continue merging
+          }
+        }
+      }
+      merged.push(line);
+      continue;
+    }
+    
+    // Detect special elements that should NEVER be merged with previous line
+    const isSceneHeading = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(trimmed);
+    const isTransition = /^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO|FADE TO BLACK|SMASH CUT):?$/i.test(trimmed);
+    const isCharacterName = !isSceneHeading 
+      && !isTransition
+      && trimmed === trimmed.toUpperCase() 
+      && trimmed.length >= 2 
+      && trimmed.length <= 50
+      && !trimmed.startsWith('(');
+    const isParenthetical = trimmed.startsWith('(') && trimmed.endsWith(')');
+    
+    // Special elements - don't merge with previous
+    if (isSceneHeading || isTransition || isCharacterName || isParenthetical) {
+      merged.push(line);
+      continue;
+    }
+    
+    // Check if this line should be merged with the previous line
+    if (merged.length > 0) {
+      const prevLine = merged[merged.length - 1].trim();
+      
+      // Don't merge if previous line is blank or a special element
+      if (prevLine === '') {
+        merged.push(line);
+        continue;
+      }
+      
+      // Check if previous line is a special element
+      const prevIsSceneHeading = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(prevLine);
+      const prevIsTransition = /^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO|FADE TO BLACK|SMASH CUT):?$/i.test(prevLine);
+      const prevIsCharacterName = !prevIsSceneHeading 
+        && !prevIsTransition
+        && prevLine === prevLine.toUpperCase() 
+        && prevLine.length >= 2 
+        && prevLine.length <= 50
+        && !prevLine.startsWith('(');
+      const prevIsParenthetical = prevLine.startsWith('(') && prevLine.endsWith(')');
+      
+      if (prevIsSceneHeading || prevIsTransition || prevIsCharacterName || prevIsParenthetical) {
+        merged.push(line);
+        continue;
+      }
+      
+      // SIMPLIFIED MERGE CRITERIA:
+      // Merge if previous line doesn't end with sentence punctuation (., !, ?)
+      // OR if previous line ends with mid-sentence punctuation (comma, dash, etc.)
+      // AND next line is not a special element
+      
+      const prevEndsSentence = /[.!?]$/.test(prevLine);
+      const prevEndsMidSentence = /[,;:—–-]$/.test(prevLine);
+      const nextIsSpecial = nextLine === '' 
+        || /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
+        || /^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO|FADE TO BLACK|SMASH CUT):?$/i.test(nextLine)
+        || (nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50 && !nextLine.startsWith('('))
+        || (nextLine.startsWith('(') && nextLine.endsWith(')'));
+      
+      // Also check if this line starts with lowercase (definitely a continuation)
+      const startsWithLowercase = /^[a-z]/.test(trimmed);
+      
+      // Merge if:
+      // - Starts with lowercase (always continuation)
+      // - OR previous doesn't end sentence (likely wrapped)
+      // - OR previous ends mid-sentence (definitely continuation)
+      // AND next is not special
+      const shouldMerge = !nextIsSpecial && (
+        startsWithLowercase ||
+        !prevEndsSentence || 
+        prevEndsMidSentence
+      );
+      
+      if (shouldMerge) {
+        // Merge with previous line
+        merged[merged.length - 1] = merged[merged.length - 1] + ' ' + trimmed;
+      } else {
+        // New paragraph
+        merged.push(line);
+      }
+    } else {
+      // First line
+      merged.push(line);
+    }
+  }
+  
+  return merged.join('\n');
+}
+
+/**
  * Clean extracted PDF text to better match Fountain format
  * Handles common PDF extraction issues:
  * - Title page metadata
@@ -117,6 +246,9 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
  */
 function cleanPDFTextForFountain(text: string): string {
   let cleaned = text;
+  
+  // FIRST: Aggressively merge wrapped lines (this handles both action and dialogue)
+  cleaned = mergeWrappedLines(cleaned);
   
   // Split into lines for processing
   const lines = cleaned.split('\n');
