@@ -125,12 +125,29 @@ export function addBasicFountainSpacing(text: string): string {
     }
     
     // If we're in dialogue block and this isn't a special element, it's dialogue
-    if (inDialogueBlock && !isSceneHeading && !isTransition) {
+    if (inDialogueBlock && !isSceneHeading && !isTransition && !isCharacterName) {
       output.push(line);
-      // Check if dialogue block ends (next line is not parenthetical or more dialogue)
-      if (nextLine !== '' && !nextLine.startsWith('(') && nextLine !== nextLine.toUpperCase()) {
-        // Next line is action, end dialogue block with blank line
-        output.push('');
+      
+      // Check if dialogue block ends by looking at the actual next line
+      const actualNextLine = i < lines.length - 1 ? lines[i + 1].trim() : '';
+      const nextIsSceneHeading = actualNextLine && /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(actualNextLine);
+      const nextIsCharacterName = actualNextLine 
+        && actualNextLine === actualNextLine.toUpperCase() 
+        && actualNextLine.length >= 2 
+        && actualNextLine.length <= 50
+        && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(actualNextLine);
+      const nextIsAction = actualNextLine !== '' 
+        && !actualNextLine.startsWith('(') 
+        && actualNextLine !== actualNextLine.toUpperCase()
+        && /^[A-Z]/.test(actualNextLine) // Starts with capital
+        && /[a-z]/.test(actualNextLine); // Has lowercase (mixed case = action)
+      
+      // Dialogue ends when next line is blank, scene heading, character name, or action
+      if (actualNextLine === '' || nextIsSceneHeading || nextIsCharacterName || nextIsAction) {
+        // End dialogue block with blank line (unless next is already blank)
+        if (actualNextLine !== '') {
+          output.push('');
+        }
         inDialogueBlock = false;
       }
       continue;
