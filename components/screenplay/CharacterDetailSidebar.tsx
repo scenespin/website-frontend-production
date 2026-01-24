@@ -978,30 +978,17 @@ export default function CharacterDetailSidebar({
                   createdAt: new Date().toISOString()
                 }));
             
-            // 🔥 FIX: Filter out Production Hub images from Creation section (matching Location pattern)
+            // 🔥 FIX: Filter out Production Hub images (pose-generation) from Creation section
             // Creation section should only show Creation images
-            // Production Hub images have createdIn='production-hub' or source='pose-generation'
-            const userUploadedImages = allImages.filter(img => {
-              const metadata = img.metadata || {};
-              const source = metadata.source;
-              const createdIn = metadata.createdIn;
-              // Exclude Production Hub images (matching LocationDetailSidebar pattern)
-              // Original logic: (!source || source === 'user-upload') - only show user-uploaded images
-              // Plus: Exclude Production Hub images
-              return source !== 'pose-generation' && 
-                     source !== 'angle-generation' && 
-                     source !== 'image-generation' &&
-                     createdIn !== 'production-hub' &&
-                     (!source || source === 'user-upload');
-            });
+            // Production Hub images have source='pose-generation'
+            const userUploadedImages = allImages.filter(img => 
+              (img.metadata as any)?.source !== 'pose-generation'
+            );
             const aiGeneratedImages = allImages.filter(img => {
               const metadata = img.metadata || {};
-              const source = metadata.source;
-              const createdIn = metadata.createdIn;
-              // Only show AI-generated images that are NOT Production Hub images
-              return (source === 'image-generation' || metadata.modelUsed) && 
-                     source !== 'pose-generation' &&
-                     createdIn !== 'production-hub';
+              // Only show AI-generated images that are NOT Production Hub pose images
+              return (metadata.source === 'image-generation' || metadata.modelUsed) && 
+                     metadata.source !== 'pose-generation';
             });
             
             return (

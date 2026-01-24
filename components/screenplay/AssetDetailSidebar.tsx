@@ -1133,18 +1133,10 @@ export default function AssetDetailSidebar({
                   });
                   
                   // Filter: User-uploaded images (Creation section can delete these)
-                  // Match LocationDetailSidebar pattern - exclude Production Hub images
                   const userUploadedImages = allImages.filter(img => {
-                    const metadata = img.metadata || {};
-                    const source = metadata.source;
-                    const createdIn = metadata.createdIn;
-                    // Exclude Production Hub images (matching LocationDetailSidebar pattern)
-                    // Original logic: (!source || source === 'user-upload') - only show user-uploaded images
-                    // Plus: Exclude Production Hub images
-                    return source !== 'angle-generation' && 
-                           source !== 'image-generation' && 
-                           createdIn !== 'production-hub' &&
-                           (!source || source === 'user-upload');
+                    const source = (img.metadata as any)?.source;
+                    // Show images with no source, 'user-upload', or undefined source (defaults to user-upload)
+                    return !source || source === 'user-upload';
                   });
                   
                   // Filter: AI-generated Production Hub images (read-only in Creation section)
