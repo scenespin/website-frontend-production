@@ -67,29 +67,33 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
       let lastXEnd: number | null = null; // Track end X position of previous item
       let currentLine = '';
       
-      // First pass: Calculate line height from all Y differences
-      // This gives us a better threshold than calculating during iteration
+      // First pass: Calculate line height from SIGNIFICANT Y differences only
+      // Key insight: Wrapped text has small Y differences (1-5px), real line breaks have large differences (10-20px+)
+      // We should only use large differences (real line breaks) for median calculation
       const yPositions = sortedItems.map((item: any) => item.transform[5]);
       const yDifferences: number[] = [];
       for (let i = 1; i < yPositions.length; i++) {
         const diff = Math.abs(yPositions[i] - yPositions[i - 1]);
-        if (diff > 0.1) { // Ignore tiny differences (same line)
+        // Only include differences that are likely real line breaks (not wrapped text)
+        // Wrapped text: 1-5px, Real breaks: 10px+
+        if (diff >= 10) {
           yDifferences.push(diff);
         }
       }
       
-      // Calculate median line height from all differences
-      // This represents the typical spacing between lines
+      // Calculate median line height from SIGNIFICANT differences only (real line breaks)
+      // This represents the typical spacing between actual lines
       const sortedDiffs = [...yDifferences].sort((a, b) => a - b);
       const medianLineHeight = sortedDiffs.length > 0
         ? sortedDiffs[Math.floor(sortedDiffs.length / 2)]
-        : 12; // Default fallback
+        : 15; // Default fallback (typical line height)
       
-      // Use a threshold that's smaller than typical line height
-      // Wrapped text: 1-5px Y difference
-      // Real line breaks: typically 50-100% of line height (10-20px+)
-      // Threshold: Use 30% of median, but minimum 5px to catch small fonts, maximum 8px to merge wrapped text
-      const threshold = Math.min(Math.max(medianLineHeight * 0.3, 5), 8);
+      // Use a threshold that's MUCH smaller than typical line height
+      // Wrapped text: 1-5px Y difference (should be merged)
+      // Real line breaks: typically 10-20px+ (should create new line)
+      // Threshold: Use 25% of median, but clamp between 3-6px to aggressively merge wrapped text
+      // Lower threshold = more aggressive merging of wrapped text
+      const threshold = Math.min(Math.max(medianLineHeight * 0.25, 3), 6);
       
       for (const item of sortedItems) {
         const textItem = item as any;
@@ -487,21 +491,13 @@ function mergeDialogueLines(text: string): string {
             break;
           }
           
-          // Check if dialogue ended and next line is clearly action
-          // Only break if previous dialogue ended with sentence AND next line starts with clear action word
-          const lastDialogue = dialogueLines.length > 0 ? dialogueLines[dialogueLines.length - 1] : '';
-          const lastEndsSentence = /[.!?]$/.test(lastDialogue);
-          const nextStartsWithActionWord = /^(In|The|A|An|He|She|They|It|This|That|Already|Another|CAMERA|EXT|INT|CLOSE|FADE|CUT|DISSOLVE)\s/i.test(nextDialogueTrimmed);
-          const nextIsMixedCase = /[a-z]/.test(nextDialogueTrimmed) && /[A-Z]/.test(nextDialogueTrimmed);
-          
-          // Break ONLY if: previous dialogue ended with sentence AND next is clearly action (starts with action word, mixed case)
-          // This prevents merging "Thanks." with "In the shadows..."
-          if (lastEndsSentence && nextStartsWithActionWord && nextIsMixedCase) {
-            break;
-          }
+          // REMOVED action detection - dialogue can start with any word
+          // Key insight: If there's no blank line between lines, they should be merged as dialogue
+          // Only break on special elements (scene heading, character name, parenthetical) or blank lines
+          // This is ULTRA aggressive - merge everything unless it's clearly a special element
           
           // Default: This is dialogue continuation - merge it
-          // Be ULTRA aggressive - if there's no blank line and it's not clearly action, merge it
+          // Be ULTRA aggressive - if there's no blank line and it's not a special element, merge it
           dialogueLines.push(nextDialogueTrimmed);
           i++;
         }
