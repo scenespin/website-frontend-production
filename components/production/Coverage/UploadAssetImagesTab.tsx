@@ -243,6 +243,30 @@ export function UploadAssetImagesTab({
       return;
     }
     
+    // Feature 0205: Check for duplicates before processing
+    const existingS3Keys = new Set(
+      (existingImages || [])
+        .map(img => img.s3Key)
+        .filter((key): key is string => !!key)
+    );
+    
+    const duplicates = images.filter(img => existingS3Keys.has(img.s3Key));
+    const newImages = images.filter(img => !existingS3Keys.has(img.s3Key));
+    
+    // Block if all duplicates
+    if (duplicates.length > 0 && newImages.length === 0) {
+      const message = duplicates.length === 1
+        ? 'This image is already added'
+        : 'All selected images are already added';
+      toast.error(message);
+      return;
+    }
+    
+    // Warn if some duplicates
+    if (duplicates.length > 0) {
+      toast.warning(`${duplicates.length} already added, adding ${newImages.length} new`);
+    }
+    
     setIsProcessing(true);
     const angleNameToUse = finalAngleName;
 
@@ -252,7 +276,7 @@ export function UploadAssetImagesTab({
 
       const uploadedS3Keys: string[] = [];
 
-      for (const file of images) {
+      for (const file of newImages) {
         try {
           const response = await fetch(
             `/api/asset-bank/${assetId}/images`,
@@ -274,6 +298,12 @@ export function UploadAssetImagesTab({
           );
 
           if (!response.ok) {
+            // Feature 0205: Handle 409 (duplicate) as silent skip
+            if (response.status === 409) {
+              console.log(`Skipped duplicate: ${file.fileName}`);
+              continue;
+            }
+            
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || 'Failed to register image');
           }
