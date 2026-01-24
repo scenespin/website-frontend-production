@@ -209,11 +209,32 @@ function mergeWrappedActionLines(text: string): string {
         && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
         && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50);
       
-      // More aggressive merging for PDF wrapped lines:
-      // 1. Starts with lowercase (clearly continuation) - ALWAYS merge
-      // 2. If we already have action accumulated, be very aggressive about merging
-      //    - Only start new paragraph if previous ends with sentence AND this starts with paragraph word AND next is NOT action
+      // ULTRA aggressive merging for PDF wrapped lines:
+      // Key insight: Original PDF has complete action paragraphs. If extracted with breaks, merge them.
+      // Only start new paragraph if:
+      // - Previous ends with sentence punctuation (. ! ?)
+      // - AND this starts with paragraph word (He, She, They, The, etc.)
+      // - AND next line is NOT action (next is blank or special element)
+      // Otherwise, merge it (it's wrapped)
       const startsWithParagraphWord = /^(He|She|They|The|A|An|In|On|At|From|To|With|And|But|It's|It|That|This|Already|Another|CAMERA|EXT|INT)\s/i.test(trimmed);
+      
+      // Check if next line is action (for paragraph detection)
+      const nextIsActionContinuation = nextLine !== '' 
+        && nextLine !== nextLine.toUpperCase() 
+        && /[a-z]/.test(nextLine)
+        && /^[A-Z]/.test(nextLine)
+        && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
+        && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50);
+      
+      // Only start new paragraph if:
+      // - We have previous action
+      // - Previous ends with sentence (paragraph complete)
+      // - This starts with paragraph word (new paragraph indicator)
+      // - Next is NOT action (paragraph break, not wrapped)
+      const isNewParagraph = currentAction.length > 0 
+        && prevEndsSentence 
+        && startsWithParagraphWord 
+        && !nextIsActionContinuation;
       
       // Merge if:
       // - Starts with lowercase (always continuation)
@@ -221,11 +242,7 @@ function mergeWrappedActionLines(text: string): string {
       // - Previous doesn't end sentence (likely wrapped)
       // - Previous ends sentence BUT next is also action (likely wrapped, not new paragraph)
       // - Previous ends sentence AND this doesn't start with paragraph word (likely wrapped)
-      const isNewParagraph = currentAction.length > 0 
-        && prevEndsSentence 
-        && startsWithParagraphWord 
-        && !nextIsAction;
-      
+      // - NOT a new paragraph (default to merging)
       if (startsLowercase || !isNewParagraph) {
         // Merge with previous action
         currentAction.push(trimmed);

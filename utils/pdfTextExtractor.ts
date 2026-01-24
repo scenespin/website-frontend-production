@@ -394,35 +394,10 @@ function mergeDialogueLines(text: string): string {
           continue;
         }
         
-        // Check if this might be an action line
-        // ULTRA CONSERVATIVE - only break if it's a camera direction
-        const startsWithCameraDirection = /^(CAMERA|EXT|INT|CLOSE|FADE|CUT|DISSOLVE)\s/i.test(dialogueTrimmed);
-        
-        // ULTRA CONSERVATIVE action detection - only break dialogue if ABSOLUTELY CERTAIN:
-        // Key insight: In original PDF, dialogue and action are complete lines. If extracted with breaks,
-        // they should be merged. Only break if we're 100% certain it's action.
-        // Only break if:
-        // - Previous dialogue ended with sentence punctuation (dialogue is complete)
-        // - AND next line starts with CAMERA/EXT/INT/CLOSE/FADE/CUT/DISSOLVE (camera direction)
-        // - AND previous doesn't end mid-sentence (no comma, dash, etc.)
-        const prevDialogue = dialogueLines.length > 0 ? dialogueLines[dialogueLines.length - 1] : '';
-        const prevEndsSentence = /[.!?]$/.test(prevDialogue); // Previous dialogue ended with sentence
-        const prevEndsMidSentence = /[,;:—–-]$/.test(prevDialogue); // Previous ends with punctuation that suggests continuation
-        const looksLikeAction = dialogueLines.length > 0 &&
-                               prevEndsSentence && // Previous dialogue ended with sentence (dialogue is complete)
-                               !prevEndsMidSentence && // Don't break if previous suggests continuation
-                               startsWithCameraDirection; // ONLY break if it's a camera direction
-        
-        if (looksLikeAction) {
-          // This is probably an action line, not dialogue continuation
-          // Add accumulated dialogue first
-          mergedLines.push(dialogueLines.join(' '));
-          dialogueLines.length = 0;
-          // Add blank line before action
-          mergedLines.push('');
-          // Don't consume the action line
-          break;
-        }
+        // NO action detection in dialogue merging
+        // Key insight: If there's no blank line between lines, merge them as dialogue
+        // Action lines will be handled separately by mergeWrappedActionLines after dialogue is merged
+        // Only break dialogue on special elements (scene heading, character name, parenthetical) or blank lines
         
         // This is a dialogue continuation line - accumulate it
         // Even if it starts with capital, if it doesn't look like action, it's dialogue
@@ -443,37 +418,33 @@ function mergeDialogueLines(text: string): string {
           }
           
           // Stop if special element (scene heading, character name, parenthetical)
-          if (/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextDialogueTrimmed) ||
-              (nextDialogueTrimmed === nextDialogueTrimmed.toUpperCase() && nextDialogueTrimmed.length >= 2 && nextDialogueTrimmed.length <= 50 && !nextDialogueTrimmed.startsWith('(')) ||
-              (nextDialogueTrimmed.startsWith('(') && nextDialogueTrimmed.endsWith(')'))) {
+          const isSceneHeading = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextDialogueTrimmed);
+          const isCharacterName = nextDialogueTrimmed === nextDialogueTrimmed.toUpperCase() 
+            && nextDialogueTrimmed.length >= 2 
+            && nextDialogueTrimmed.length <= 50 
+            && !nextDialogueTrimmed.startsWith('(')
+            && !isSceneHeading;
+          const isParenthetical = nextDialogueTrimmed.startsWith('(') && nextDialogueTrimmed.endsWith(')');
+          
+          if (isSceneHeading || isCharacterName || isParenthetical) {
             break;
           }
           
-          // ULTRA CONSERVATIVE action detection - only break if ABSOLUTELY CERTAIN it's action:
-          // Key insight from original PDF: If there's NO blank line between lines, they should be merged
-          // Only break if:
-          // 1. Previous dialogue ended with sentence punctuation (. ! ?)
-          // 2. AND next line starts with CAMERA/EXT/INT/CLOSE/FADE/CUT/DISSOLVE (camera direction)
-          // AND previous doesn't end mid-sentence (no comma, dash, etc.)
+          // Check if dialogue ended and next line is clearly action
+          // Only break if previous dialogue ended with sentence AND next line starts with clear action word
           const lastDialogue = dialogueLines.length > 0 ? dialogueLines[dialogueLines.length - 1] : '';
-          const lastEndsSentence = /[.!?]$/.test(lastDialogue); // Previous dialogue ended with sentence
-          const lastEndsMidSentence = /[,;:—–-]$/.test(lastDialogue); // Previous ends with punctuation that suggests continuation
-          const nextStartsWithCameraDirection = /^(CAMERA|EXT|INT|CLOSE|FADE|CUT|DISSOLVE)\s/i.test(nextDialogueTrimmed);
+          const lastEndsSentence = /[.!?]$/.test(lastDialogue);
+          const nextStartsWithActionWord = /^(In|The|A|An|He|She|They|It|This|That|Already|Another|CAMERA|EXT|INT|CLOSE|FADE|CUT|DISSOLVE)\s/i.test(nextDialogueTrimmed);
+          const nextIsMixedCase = /[a-z]/.test(nextDialogueTrimmed) && /[A-Z]/.test(nextDialogueTrimmed);
           
-          // ONLY break if previous dialogue ended with sentence AND next is camera direction
-          // This is the ONLY case where we're certain it's action, not dialogue
-          const isAbsolutelyAction = lastEndsSentence && 
-                                    !lastEndsMidSentence &&
-                                    nextStartsWithCameraDirection;
-          
-          if (isAbsolutelyAction) {
+          // Break ONLY if: previous dialogue ended with sentence AND next is clearly action (starts with action word, mixed case)
+          // This prevents merging "Thanks." with "In the shadows..."
+          if (lastEndsSentence && nextStartsWithActionWord && nextIsMixedCase) {
             break;
           }
           
           // Default: This is dialogue continuation - merge it
-          // Be ULTRA aggressive - if there's no blank line, merge it as dialogue
-          // The original PDF shows dialogue and action are complete lines, so if extracted with line breaks,
-          // they should be merged back together
+          // Be ULTRA aggressive - if there's no blank line and it's not clearly action, merge it
           dialogueLines.push(nextDialogueTrimmed);
           i++;
         }
