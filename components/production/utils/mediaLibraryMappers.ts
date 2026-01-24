@@ -72,7 +72,7 @@ export function mapMediaFilesToHeadshots(
   const allImages: MediaFile[] = [];
   let hasProductionImages = false;
   
-  // First pass: collect all images and check if we have production images
+  // 🔥 SIMPLIFIED: Collect all images (no filtering - user selects what they want)
   mediaFiles.forEach((file) => {
     if ((file.metadata?.entityId || file.entityId) === characterId) {
       // Skip thumbnail FILES (separate files in S3 that are just smaller versions)
@@ -95,45 +95,36 @@ export function mapMediaFilesToHeadshots(
         return; // Skip clothing references
       }
       
-      // Check if this is a production image (not a creation image)
-      const isProductionImage =
-        file.metadata?.createdIn === 'production-hub' ||
-        file.metadata?.source === 'pose-generation' ||
-        file.metadata?.uploadMethod === 'pose-generation' ||
-        file.metadata?.poseId || // Any pose ID means it's from production
-        file.metadata?.angle; // Any angle means it's from production
-      
-      const isCreationImage =
-        file.metadata?.createdIn === 'creation' ||
-        file.metadata?.referenceType === 'base' ||
-        file.metadata?.uploadMethod === 'character-creation' ||
-        file.metadata?.uploadMethod === 'character-generation' ||
-        file.metadata?.uploadMethod === 'character-bank';
-      
-      if (isProductionImage) {
-        hasProductionImages = true;
-      }
-      
       allImages.push(file);
     }
   });
   
-  // Filter: if production images exist, exclude creation images (last resort only)
-  // If no production images, include creation images
-  const filteredImages = hasProductionImages
-    ? allImages.filter((file) => {
-        const isCreationImage =
-          file.metadata?.createdIn === 'creation' ||
-          file.metadata?.referenceType === 'base' ||
-          file.metadata?.uploadMethod === 'character-creation' ||
-          file.metadata?.uploadMethod === 'character-generation' ||
-          file.metadata?.uploadMethod === 'character-bank';
-        return !isCreationImage; // Exclude creation images if production images exist
-      })
-    : allImages; // Include everything (including creation) if no production images
-  
   // Map to headshot structure - no sorting, no prioritization, no limits
-  const headshots: CharacterHeadshot[] = filteredImages.map((file) => {
+  // 🔥 SIMPLIFIED: Always include all images (production + creation) - user selects what they want
+  const headshots: CharacterHeadshot[] = allImages.map((file) => {
+    // Check if this is a creation image to assign special outfit name
+    const isCreationImage =
+      file.metadata?.createdIn === 'creation' ||
+      file.metadata?.referenceType === 'base' ||
+      file.metadata?.uploadMethod === 'character-creation' ||
+      file.metadata?.uploadMethod === 'character-generation' ||
+      file.metadata?.uploadMethod === 'character-bank';
+    
+    const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
+    const label = file.metadata?.poseName || file.metadata?.angle || file.fileName || 'Image';
+    
+    return {
+      poseId: poseId || file.s3Key,
+      s3Key: file.s3Key!,
+      // 🔥 FIX: Media Library files don't have s3Url - presigned URLs are fetched separately
+      // Set imageUrl to null (not empty string) - will be resolved via URL maps
+      imageUrl: null as any, // Will be resolved via thumbnailUrlsMap or fullImageUrlsMap
+      label,
+      priority: 0, // No prioritization - all images are equal
+      // 🔥 NEW: Assign "Creation" as outfit name for creation images so they can be selected as an outfit option
+      outfitName: isCreationImage ? 'Creation' : (file.metadata?.outfitName || undefined)
+    };
+  });
     const poseId = file.metadata?.poseId || file.metadata?.pose?.id;
     const label = file.metadata?.poseName || file.metadata?.angle || file.fileName || 'Image';
     

@@ -21,6 +21,7 @@ import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType } from '
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { toast } from 'sonner';
 import { getAvailablePropImages } from './utils/propImageUtils';
+import { PropImageSelector } from './PropImageSelector';
 import { cn } from '@/lib/utils';
 
 // Base Workflow Selector Component (Custom DaisyUI Dropdown)
@@ -308,9 +309,9 @@ export function ShotConfigurationPanel({
         });
       }
       
-      // 🔥 PRIORITY 2: Add images[] thumbnail s3Keys from Media Library map (Creation images)
-      // Only if no angleReferences exist
-      if (fullProp.angleReferences?.length === 0 && fullProp.images) {
+      // 🔥 SIMPLIFIED: Always add images[] thumbnail s3Keys from Media Library map (Creation images)
+      // No conditional check - always include creation images
+      if (fullProp.images) {
         fullProp.images.forEach(img => {
           if (img.s3Key) {
             if (propThumbnailS3KeyMap?.has(img.s3Key)) {
@@ -1105,113 +1106,23 @@ export function ShotConfigurationPanel({
                     </div>
                     
                     {/* Prop Image Selection */}
-                    {onPropImageChange && (() => {
-                      // Use centralized prop image utility
-                      const availableImages = getAvailablePropImages(fullProp);
-                      const selectedImageId = propConfig.selectedImageId;
-                      
-                      // Show image selection if we have any images (even just 1)
-                      if (availableImages.length > 0) {
-                        return (
-                          <div className="mt-3">
-                            <label className="block text-[10px] text-[#808080] mb-2">
-                              Select prop image for this shot:
-                            </label>
-                            <div className="grid grid-cols-4 gap-2">
-                              {availableImages.map((img) => {
-                                const isSelected = selectedImageId === img.id || (!selectedImageId && img.id === availableImages[0].id);
-                                return (
-                                  <button
-                                    key={img.id}
-                                    onClick={() => {
-                                      onPropImageChange(shot.slot, prop.id, isSelected ? undefined : img.id);
-                                    }}
-                                    className={`relative aspect-video bg-[#141414] rounded border-2 transition-all ${
-                                      isSelected
-                                        ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                                        : 'border-[#3F3F46] hover:border-[#808080]'
-                                    }`}
-                                    title={img.label || 'Prop image'}
-                                  >
-                                    {(() => {
-                                      // 🔥 FIX: Get thumbnail URL if available, otherwise use full image from presigned URL maps
-                                      // Find the s3Key for this image
-                                      const fullPropForImage = prop as typeof prop & {
-                                        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
-                                        images?: Array<{ url: string; s3Key?: string }>;
-                                        baseReference?: { s3Key?: string; imageUrl?: string };
-                                      };
-                                      
-                                      let imageS3Key: string | null = null;
-                                      if (fullPropForImage.angleReferences) {
-                                        const ref = fullPropForImage.angleReferences.find(r => r.id === img.id);
-                                        if (ref?.s3Key) imageS3Key = ref.s3Key;
-                                      }
-                                      if (!imageS3Key && fullPropForImage.images) {
-                                        const imgData = fullPropForImage.images.find(i => i.url === img.id);
-                                        if (imgData?.s3Key) imageS3Key = imgData.s3Key;
-                                      }
-                                      if (!imageS3Key && fullPropForImage.baseReference?.s3Key && img.label === 'Creation Image') {
-                                        imageS3Key = fullPropForImage.baseReference.s3Key;
-                                      }
-                                      
-                                      // 🔥 NEW: Use Media Library thumbnailS3KeyMap to get thumbnail key
-                                      let thumbnailKey: string | null = null;
-                                      if (imageS3Key && propThumbnailS3KeyMap?.has(imageS3Key)) {
-                                        thumbnailKey = propThumbnailS3KeyMap.get(imageS3Key) || null;
-                                      }
-                                      
-                                      const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
-                                      const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
-                                      const displayUrl = thumbnailUrl || fullImageUrl || img.imageUrl;
-                                      
-                                      // Get baseReference for fallback
-                                      const baseRefImageUrl = fullPropForImage.baseReference?.imageUrl;
-                                      
-                                      return (
-                                        <img
-                                          src={displayUrl}
-                                          alt={img.label || prop.name}
-                                          className="w-full h-full object-cover"
-                                          style={{
-                                            maxWidth: '640px',
-                                            maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
-                                          }}
-                                          loading="lazy"
-                                          onError={(e) => {
-                                            // 🔥 FIX: Fallback chain: thumbnail -> full image -> img.imageUrl -> baseReference
-                                            const imgElement = e.target as HTMLImageElement;
-                                            if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
-                                              // Try full image first
-                                              imgElement.src = fullImageUrl;
-                                            } else if (img.imageUrl && imgElement.src !== img.imageUrl) {
-                                              // Then try img.imageUrl
-                                              imgElement.src = img.imageUrl;
-                                            } else if (baseRefImageUrl && imgElement.src !== baseRefImageUrl) {
-                                              // Then try baseReference
-                                              imgElement.src = baseRefImageUrl;
-                                            } else {
-                                              // Hide broken image if no fallback
-                                              imgElement.style.display = 'none';
-                                            }
-                                          }}
-                                        />
-                                      );
-                                    })()}
-                                    {isSelected && (
-                                      <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
-                                        <Check className="w-3 h-3 text-[#DC143C]" />
-                                      </div>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {onPropImageChange && (
+                      <div className="mt-3">
+                        <label className="block text-[10px] text-[#808080] mb-2">
+                          Select prop image for this shot:
+                        </label>
+                        <PropImageSelector
+                          propId={prop.id}
+                          propName={prop.name}
+                          prop={fullProp}
+                          selectedImageId={propConfig.selectedImageId}
+                          onImageChange={onPropImageChange}
+                          propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+                          propThumbnailUrlsMap={propThumbnailUrlsMap}
+                          propFullImageUrlsMap={propFullImageUrlsMap}
+                        />
+                      </div>
+                    )}
                     
                     {/* Prop Usage Description */}
                     {onPropDescriptionChange && (

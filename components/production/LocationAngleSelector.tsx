@@ -256,20 +256,15 @@ export function LocationAngleSelector({
   }, [baseReference, angleVariations, backgrounds]);
   
   // Get all group keys (sorted: "No Metadata" last, then alphabetically)
-  // IMPORTANT: Only include "Creation Image" if there are NO Production Hub images
+  // 🔥 SIMPLIFIED: Always include "Creation Image" - user selects what they want
   const groupKeys = React.useMemo(() => {
     const keys = Object.keys(groupedPhotos);
-    const hasProductionHubImages = keys.some(k => k !== 'Creation Image' && k !== 'No Metadata');
     
-    // Only include Creation Image if it's the absolute last resort (no Production Hub images)
-    const filteredKeys = hasProductionHubImages 
-      ? keys.filter(k => k !== 'Creation Image')
-      : keys;
-    
-    return filteredKeys.sort((a, b) => {
+    // Always include all groups (including Creation Image) - no filtering
+    return keys.sort((a, b) => {
       if (a === 'No Metadata') return 1;
       if (b === 'No Metadata') return -1;
-      if (a === 'Creation Image') return 1; // Creation Image last (only if no Production Hub)
+      if (a === 'Creation Image') return 1; // Creation Image last
       if (b === 'Creation Image') return -1;
       return a.localeCompare(b);
     });
