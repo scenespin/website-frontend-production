@@ -103,14 +103,45 @@ function mergeWrappedActionLines(text: string): string {
   const lines = text.split('\n');
   const merged: string[] = [];
   let currentAction: string[] = [];
+  let consecutiveBlankLines = 0;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
     const nextLine = i < lines.length - 1 ? lines[i + 1]?.trim() : '';
     
-    // Blank line - flush current action and add blank
+    // Blank line - might be PDF wrapping artifact
     if (trimmed === '') {
+      consecutiveBlankLines++;
+      
+      // If we have 2+ consecutive blank lines, definitely end action paragraph
+      if (consecutiveBlankLines >= 2) {
+        if (currentAction.length > 0) {
+          merged.push(currentAction.join(' '));
+          currentAction = [];
+        }
+        merged.push('');
+        continue;
+      }
+      
+      // Single blank line - might be PDF wrapping artifact
+      // Look ahead to see if next line is action continuation
+      if (currentAction.length > 0) {
+        // Check if next line looks like action continuation
+        const nextIsAction = nextLine !== '' 
+          && nextLine !== nextLine.toUpperCase() 
+          && /[a-z]/.test(nextLine)
+          && /^[A-Z]/.test(nextLine) // Starts with capital
+          && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
+          && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50);
+        
+        // If next is action, skip this blank line (PDF artifact)
+        if (nextIsAction) {
+          continue; // Skip the blank line, continue merging
+        }
+      }
+      
+      // Not a continuation - flush action and add blank
       if (currentAction.length > 0) {
         merged.push(currentAction.join(' '));
         currentAction = [];
@@ -118,6 +149,9 @@ function mergeWrappedActionLines(text: string): string {
       merged.push('');
       continue;
     }
+    
+    // Reset blank line counter
+    consecutiveBlankLines = 0;
     
     // Detect element types
     const isSceneHeading = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(trimmed);
@@ -154,13 +188,24 @@ function mergeWrappedActionLines(text: string): string {
       const nextIsAction = nextLine !== '' 
         && nextLine !== nextLine.toUpperCase() 
         && /[a-z]/.test(nextLine)
+        && /^[A-Z]/.test(nextLine) // Starts with capital (action lines do)
         && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
         && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50);
       
+      // More aggressive merging for PDF wrapped lines:
+      // 1. Starts with lowercase (clearly continuation) - ALWAYS merge
+      // 2. Previous doesn't end sentence AND next is also action - merge (likely wrapped)
+      // 3. Previous doesn't end sentence AND this doesn't start with common paragraph-starting words - merge (likely wrapped)
+      const startsWithParagraphWord = /^(He|She|They|The|A|An|In|On|At|From|To|With|And|But|It's|It|That|This|Already|Another|CAMERA|EXT|INT)\s/i.test(trimmed);
+      
       // Merge if:
-      // 1. Starts with lowercase (clearly continuation)
-      // 2. Previous doesn't end sentence AND next is also action (likely wrapped)
-      if (startsLowercase || (!prevEndsSentence && nextIsAction && currentAction.length > 0)) {
+      // - Starts with lowercase (always continuation)
+      // - Previous doesn't end sentence AND (next is action OR this doesn't start paragraph word) - likely wrapped
+      const shouldMerge = startsLowercase || 
+                         (!prevEndsSentence && (nextIsAction || !startsWithParagraphWord) && currentAction.length > 0);
+      
+      if (shouldMerge) {
+        // Merge with previous action
         currentAction.push(trimmed);
       } else {
         // New action paragraph - flush previous and start new

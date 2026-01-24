@@ -378,13 +378,18 @@ function mergeDialogueLines(text: string): string {
         const hasLowerCase = /[a-z]/.test(dialogueTrimmed);
         const hasUpperCase = /[A-Z]/.test(dialogueTrimmed);
         const isMixedCase = hasLowerCase && hasUpperCase;
-        const startsWithActionWord = /^(He|She|They|The|A|An|In|On|At|From|To|With|And|But|It's|It|That|This)\s/.test(dialogueTrimmed);
+        const startsWithActionWord = /^(He|She|They|The|A|An|In|On|At|From|To|With|And|But|It's|It|That|This|Already|Another|It|CAMERA|EXT|INT)\s/i.test(dialogueTrimmed);
         const isLong = dialogueTrimmed.length > 45;
+        const startsWithCapital = /^[A-Z]/.test(dialogueTrimmed);
         
-        // Only treat as action if we already have some dialogue AND this looks clearly like action
+        // More aggressive action detection:
+        // - If it starts with common action words AND is mixed case AND we have dialogue already
+        // - OR if it's very long (45+ chars) and mixed case
+        // - OR if it starts with "CAMERA", "EXT", "INT" (scene directions)
         const looksLikeAction = dialogueLines.length > 0 &&
                                isMixedCase &&
-                               (isLong || startsWithActionWord);
+                               startsWithCapital &&
+                               (isLong || startsWithActionWord || /^(CAMERA|EXT|INT)\s/i.test(dialogueTrimmed));
         
         if (looksLikeAction) {
           // This is probably an action line, not dialogue continuation
@@ -398,6 +403,7 @@ function mergeDialogueLines(text: string): string {
         }
         
         // This is a dialogue continuation line - accumulate it
+        // Even if it starts with capital, if it doesn't look like action, it's dialogue
         dialogueLines.push(dialogueTrimmed);
         i++;
       }
