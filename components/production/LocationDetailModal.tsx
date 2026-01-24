@@ -2054,7 +2054,6 @@ export function LocationDetailModal({
                                               </div>
                                             </div>
                                           </div>
-                                        </div>
                                       );
                                     })}
                                   </div>

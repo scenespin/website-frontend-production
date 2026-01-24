@@ -1506,7 +1506,6 @@ export default function AssetDetailModal({
                               </div>
                             </div>
                           </div>
-                        </div>
                       );
                         })}
                       </div>
