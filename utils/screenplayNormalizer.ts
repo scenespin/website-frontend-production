@@ -78,8 +78,103 @@ export function fixCharacterEncoding(text: string): string {
  * 2. One blank line before character names (dialogue blocks)  
  * 3. One blank line after dialogue blocks (before action/scenes)
  */
-export function addBasicFountainSpacing(text: string): string {
+/**
+ * Merge wrapped action lines from PDF imports
+ * PDFs wrap lines at specific points, but Fountain action should be full paragraphs
+ */
+function mergeWrappedActionLines(text: string): string {
   const lines = text.split('\n');
+  const merged: string[] = [];
+  let currentAction: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    const nextLine = i < lines.length - 1 ? lines[i + 1]?.trim() : '';
+    
+    // Blank line - flush current action and add blank
+    if (trimmed === '') {
+      if (currentAction.length > 0) {
+        merged.push(currentAction.join(' '));
+        currentAction = [];
+      }
+      merged.push('');
+      continue;
+    }
+    
+    // Detect element types
+    const isSceneHeading = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(trimmed);
+    const isTransition = /^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO|FADE TO BLACK):?$/i.test(trimmed);
+    const isParenthetical = trimmed.startsWith('(') && trimmed.endsWith(')');
+    const isCharacterName = !isSceneHeading 
+      && !isTransition
+      && trimmed === trimmed.toUpperCase() 
+      && trimmed.length >= 2 
+      && trimmed.length <= 50;
+    
+    // Special elements - flush current action and add as-is
+    if (isSceneHeading || isTransition || isCharacterName || isParenthetical) {
+      if (currentAction.length > 0) {
+        merged.push(currentAction.join(' '));
+        currentAction = [];
+      }
+      merged.push(line);
+      continue;
+    }
+    
+    // Check if this is action (mixed case, not all caps, not dialogue)
+    const isAction = trimmed !== trimmed.toUpperCase() 
+      && /[a-z]/.test(trimmed)
+      && /^[A-Z]/.test(trimmed); // Starts with capital (action lines do)
+    
+    if (isAction) {
+      // Check if this is a continuation of previous action
+      const prevAction = currentAction.length > 0 ? currentAction[currentAction.length - 1] : '';
+      const prevEndsSentence = /[.!?]$/.test(prevAction);
+      const startsLowercase = /^[a-z]/.test(trimmed);
+      
+      // Check if next line is also action (not a break)
+      const nextIsAction = nextLine !== '' 
+        && nextLine !== nextLine.toUpperCase() 
+        && /[a-z]/.test(nextLine)
+        && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
+        && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50);
+      
+      // Merge if:
+      // 1. Starts with lowercase (clearly continuation)
+      // 2. Previous doesn't end sentence AND next is also action (likely wrapped)
+      if (startsLowercase || (!prevEndsSentence && nextIsAction && currentAction.length > 0)) {
+        currentAction.push(trimmed);
+      } else {
+        // New action paragraph - flush previous and start new
+        if (currentAction.length > 0) {
+          merged.push(currentAction.join(' '));
+        }
+        currentAction = [trimmed];
+      }
+    } else {
+      // Not action (probably all caps or special) - flush and add as-is
+      if (currentAction.length > 0) {
+        merged.push(currentAction.join(' '));
+        currentAction = [];
+      }
+      merged.push(line);
+    }
+  }
+  
+  // Flush any remaining action
+  if (currentAction.length > 0) {
+    merged.push(currentAction.join(' '));
+  }
+  
+  return merged.join('\n');
+}
+
+export function addBasicFountainSpacing(text: string): string {
+  // First, merge wrapped action lines
+  let processed = mergeWrappedActionLines(text);
+  
+  const lines = processed.split('\n');
   const output: string[] = [];
   let inDialogueBlock = false;
   
@@ -105,6 +200,21 @@ export function addBasicFountainSpacing(text: string): string {
       && trimmed === trimmed.toUpperCase() 
       && trimmed.length >= 2 
       && trimmed.length <= 50;
+    
+    // Scene heading - add blank line BEFORE if previous isn't blank
+    if (isSceneHeading) {
+      inDialogueBlock = false;
+      // Add blank line before scene heading if previous line isn't blank
+      if (prevLine !== '') {
+        output.push('');
+      }
+      output.push(line);
+      // Add blank line after scene heading if next isn't blank
+      if (nextLine !== '') {
+        output.push('');
+      }
+      continue;
+    }
     
     // Dialogue detection: character name starts a block, continues until blank line or new block
     if (isCharacterName) {
@@ -149,17 +259,6 @@ export function addBasicFountainSpacing(text: string): string {
           output.push('');
         }
         inDialogueBlock = false;
-      }
-      continue;
-    }
-    
-    // Scene heading
-    if (isSceneHeading) {
-      inDialogueBlock = false;
-      output.push(line);
-      // Add blank line after scene heading if next isn't blank
-      if (nextLine !== '') {
-        output.push('');
       }
       continue;
     }
