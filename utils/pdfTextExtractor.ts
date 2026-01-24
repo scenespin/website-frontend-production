@@ -316,9 +316,29 @@ function mergeDialogueLines(text: string): string {
             i++;
             break;
           }
-          // Single blank line - might be PDF wrapping artifact, look ahead
+          // Single blank line - might be PDF wrapping artifact
+          // Look ahead to see if next line is dialogue continuation
+          const nextLine = i < lines.length - 1 ? lines[i + 1]?.trim() : '';
+          const nextIsDialogue = nextLine !== '' 
+            && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
+            && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50)
+            && !nextLine.startsWith('(')
+            && !(/^[A-Z]/.test(nextLine) && /^(He|She|They|The|A|An|In|On|At|From|To|With|And|But|It's|It|That|This|Already|Another|CAMERA|EXT|INT)\s/i.test(nextLine) && nextLine.length > 45);
+          
+          // If next line looks like dialogue continuation, skip this blank (PDF artifact)
+          if (nextIsDialogue && dialogueLines.length > 0) {
+            i++;
+            continue; // Skip blank, continue merging dialogue
+          }
+          
+          // Not a continuation - end dialogue block
+          if (dialogueLines.length > 0) {
+            mergedLines.push(dialogueLines.join(' '));
+            dialogueLines.length = 0;
+          }
+          mergedLines.push('');
           i++;
-          continue;
+          break;
         }
         
         // Reset blank line counter
@@ -379,17 +399,22 @@ function mergeDialogueLines(text: string): string {
         const hasUpperCase = /[A-Z]/.test(dialogueTrimmed);
         const isMixedCase = hasLowerCase && hasUpperCase;
         const startsWithActionWord = /^(He|She|They|The|A|An|In|On|At|From|To|With|And|But|It's|It|That|This|Already|Another|It|CAMERA|EXT|INT)\s/i.test(dialogueTrimmed);
-        const isLong = dialogueTrimmed.length > 45;
+        const isLong = dialogueTrimmed.length > 50; // Increased threshold
         const startsWithCapital = /^[A-Z]/.test(dialogueTrimmed);
         
-        // More aggressive action detection:
-        // - If it starts with common action words AND is mixed case AND we have dialogue already
-        // - OR if it's very long (45+ chars) and mixed case
-        // - OR if it starts with "CAMERA", "EXT", "INT" (scene directions)
+        // More conservative action detection - only break dialogue if VERY CLEAR it's action:
+        // - Must have dialogue already accumulated
+        // - Must be mixed case
+        // - Must start with capital
+        // - AND (very long OR starts with clear action word OR is CAMERA/EXT/INT direction)
+        // - AND previous dialogue line doesn't end mid-sentence (no comma, dash, etc.)
+        const prevDialogue = dialogueLines.length > 0 ? dialogueLines[dialogueLines.length - 1] : '';
+        const prevEndsMidSentence = /[,;:—–-]$/.test(prevDialogue); // Previous ends with punctuation that suggests continuation
         const looksLikeAction = dialogueLines.length > 0 &&
                                isMixedCase &&
                                startsWithCapital &&
-                               (isLong || startsWithActionWord || /^(CAMERA|EXT|INT)\s/i.test(dialogueTrimmed));
+                               !prevEndsMidSentence && // Don't break if previous suggests continuation
+                               (isLong || (startsWithActionWord && dialogueTrimmed.length > 30) || /^(CAMERA|EXT|INT)\s/i.test(dialogueTrimmed));
         
         if (looksLikeAction) {
           // This is probably an action line, not dialogue continuation

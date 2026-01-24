@@ -128,16 +128,33 @@ function mergeWrappedActionLines(text: string): string {
       // Look ahead to see if next line is action continuation
       if (currentAction.length > 0) {
         // Check if next line looks like action continuation
+        // More aggressive: if it's mixed case and not a special element, it's likely action
         const nextIsAction = nextLine !== '' 
           && nextLine !== nextLine.toUpperCase() 
           && /[a-z]/.test(nextLine)
-          && /^[A-Z]/.test(nextLine) // Starts with capital
+          && /^[A-Za-z]/.test(nextLine) // Starts with letter (action or dialogue continuation)
           && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
-          && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50);
+          && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50)
+          && !nextLine.startsWith('('); // Not a parenthetical
         
         // If next is action, skip this blank line (PDF artifact)
         if (nextIsAction) {
           continue; // Skip the blank line, continue merging
+        }
+      }
+      
+      // Also check if we're starting a new action block and next line is continuation
+      if (currentAction.length === 0 && nextLine !== '') {
+        const nextIsAction = nextLine !== nextLine.toUpperCase() 
+          && /[a-z]/.test(nextLine)
+          && /^[A-Za-z]/.test(nextLine)
+          && !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(nextLine)
+          && !(nextLine === nextLine.toUpperCase() && nextLine.length >= 2 && nextLine.length <= 50)
+          && !nextLine.startsWith('(');
+        
+        // If next is action, skip this blank (it's between action lines)
+        if (nextIsAction) {
+          continue;
         }
       }
       
@@ -194,17 +211,22 @@ function mergeWrappedActionLines(text: string): string {
       
       // More aggressive merging for PDF wrapped lines:
       // 1. Starts with lowercase (clearly continuation) - ALWAYS merge
-      // 2. Previous doesn't end sentence AND next is also action - merge (likely wrapped)
-      // 3. Previous doesn't end sentence AND this doesn't start with common paragraph-starting words - merge (likely wrapped)
+      // 2. If we already have action accumulated, be very aggressive about merging
+      //    - Only start new paragraph if previous ends with sentence AND this starts with paragraph word AND next is NOT action
       const startsWithParagraphWord = /^(He|She|They|The|A|An|In|On|At|From|To|With|And|But|It's|It|That|This|Already|Another|CAMERA|EXT|INT)\s/i.test(trimmed);
       
       // Merge if:
       // - Starts with lowercase (always continuation)
-      // - Previous doesn't end sentence AND (next is action OR this doesn't start paragraph word) - likely wrapped
-      const shouldMerge = startsLowercase || 
-                         (!prevEndsSentence && (nextIsAction || !startsWithParagraphWord) && currentAction.length > 0);
+      // - We have no previous action (start new)
+      // - Previous doesn't end sentence (likely wrapped)
+      // - Previous ends sentence BUT next is also action (likely wrapped, not new paragraph)
+      // - Previous ends sentence AND this doesn't start with paragraph word (likely wrapped)
+      const isNewParagraph = currentAction.length > 0 
+        && prevEndsSentence 
+        && startsWithParagraphWord 
+        && !nextIsAction;
       
-      if (shouldMerge) {
+      if (startsLowercase || !isNewParagraph) {
         // Merge with previous action
         currentAction.push(trimmed);
       } else {
