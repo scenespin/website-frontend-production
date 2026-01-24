@@ -1107,22 +1107,24 @@ export function ShotConfigurationPanel({
                     
                     {/* Prop Image Selection */}
                     {onPropImageChange && (
-                      <div className="mt-3">
-                        <label className="block text-[10px] text-[#808080] mb-2">
-                          Select prop image for this shot:
-                        </label>
+                          <div className="mt-3">
+                            <label className="block text-[10px] text-[#808080] mb-2">
+                              Select prop image for this shot:
+                            </label>
                         <PropImageSelector
                           propId={prop.id}
                           propName={prop.name}
                           prop={fullProp}
                           selectedImageId={propConfig.selectedImageId}
-                          onImageChange={onPropImageChange}
+                          onImageChange={(propId, imageId) => {
+                            onPropImageChange(shot.slot, propId, imageId);
+                          }}
                           propThumbnailS3KeyMap={propThumbnailS3KeyMap}
                           propThumbnailUrlsMap={propThumbnailUrlsMap}
                           propFullImageUrlsMap={propFullImageUrlsMap}
-                        />
-                      </div>
-                    )}
+                                        />
+                                      </div>
+                                    )}
                     
                     {/* Prop Usage Description */}
                     {onPropDescriptionChange && (
