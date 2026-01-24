@@ -60,66 +60,72 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
         });
       
       // Build text from sorted items
-      // Now that items are sorted, we can properly detect:
-      // - Wrapped text: small Y differences (2-8px) on same logical line
-      // - Real line breaks: large Y differences (12-20px+)
-      let lastY = -1;
-      let lastX = -1;
+      // Based on Stack Overflow solution: https://stackoverflow.com/questions/64364269/how-to-allow-line-breaks-when-extracting-text-from-pdf-reader
+      // Key insight: Compare Y positions - if it changes significantly (> 5px), insert newline
+      // Wrapped text has small Y differences (1-5px), real line breaks have large differences (10-20px+)
+      let lastY: number | null = null;
+      let lastXEnd: number | null = null; // Track end X position of previous item
       let currentLine = '';
-      const yDifferences: number[] = []; // Track Y differences to calculate median line height
+      
+      // First pass: Calculate line height from all Y differences
+      // This gives us a better threshold than calculating during iteration
+      const yPositions = sortedItems.map((item: any) => item.transform[5]);
+      const yDifferences: number[] = [];
+      for (let i = 1; i < yPositions.length; i++) {
+        const diff = Math.abs(yPositions[i] - yPositions[i - 1]);
+        if (diff > 0.1) { // Ignore tiny differences (same line)
+          yDifferences.push(diff);
+        }
+      }
+      
+      // Calculate median line height from all differences
+      // This represents the typical spacing between lines
+      const sortedDiffs = [...yDifferences].sort((a, b) => a - b);
+      const medianLineHeight = sortedDiffs.length > 0
+        ? sortedDiffs[Math.floor(sortedDiffs.length / 2)]
+        : 12; // Default fallback
+      
+      // Use a threshold that's smaller than typical line height
+      // Wrapped text: 1-5px Y difference
+      // Real line breaks: typically 50-100% of line height (10-20px+)
+      // Threshold: Use 30% of median, but minimum 5px to catch small fonts, maximum 8px to merge wrapped text
+      const threshold = Math.min(Math.max(medianLineHeight * 0.3, 5), 8);
       
       for (const item of sortedItems) {
         const textItem = item as any;
         const y = textItem.transform[5]; // Y position
         const x = textItem.transform[4]; // X position
+        const width = textItem.width || 0; // Item width
+        const xEnd = x + width; // End X position of this item
         
-        // Track Y differences to calculate line height
-        if (lastY !== -1) {
-          const yDiff = Math.abs(y - lastY);
-          yDifferences.push(yDiff);
-        }
-        
-        // Calculate median line height from observed Y differences
-        // Only use differences > 5px (likely real line breaks, not wrapped text)
-        const significantDiffs = yDifferences.filter(diff => diff > 5);
-        const medianLineHeight = significantDiffs.length > 0
-          ? significantDiffs.sort((a, b) => a - b)[Math.floor(significantDiffs.length / 2)]
-          : 12; // Default to 12px if no data yet
-        
-        // Calculate Y difference for current item
-        const yDiff = lastY !== -1 ? Math.abs(y - lastY) : Infinity;
-        
-        // Break on new line if Y position changed significantly
-        // Use 40% of median line height as threshold - catches real breaks but merges wrapped text
-        // Minimum threshold of 10px to handle various font sizes
-        const threshold = Math.max(medianLineHeight * 0.4, 10);
-        
-        if (lastY !== -1 && yDiff > threshold) {
-          // Significant Y change - new line
+        // Check if Y position changed significantly (new line)
+        if (lastY !== null && Math.abs(y - lastY) > threshold) {
+          // Significant Y change - new line detected
           if (currentLine.trim()) {
             textLines.push(currentLine.trim());
           }
           currentLine = textItem.str;
+          lastXEnd = xEnd;
         } else {
-          // Same logical line - check if we need a space
-          // Add space if:
-          // 1. Current line exists
-          // 2. X position suggests a gap (item is not immediately adjacent)
-          // 3. Neither string already has space at boundary
-          const needsSpace = currentLine && 
-                           lastX !== -1 && 
-                           (x - lastX) > 2 && // X gap suggests space needed
-                           !currentLine.endsWith(' ') && 
-                           !textItem.str.startsWith(' ');
-          
-          if (needsSpace) {
-            currentLine += ' ';
+          // Same logical line (wrapped text or same line)
+          // Check if we need a space between words using horizontal gap
+          // Per Stack Overflow solution: "compare horizontal gaps between items to insert spaces"
+          if (currentLine && lastXEnd !== null) {
+            const xGap = x - lastXEnd; // Gap between end of previous item and start of current item
+            
+            // Add space if:
+            // 1. There's a horizontal gap (items are separated)
+            // 2. Current line doesn't already end with space
+            // 3. Item doesn't already start with space
+            if (xGap > 1 && !currentLine.endsWith(' ') && !textItem.str.startsWith(' ')) {
+              currentLine += ' ';
+            }
           }
           currentLine += textItem.str;
+          lastXEnd = xEnd;
         }
         
         lastY = y;
-        lastX = x + (textItem.width || 0); // Track end of current item for next space detection
       }
       
       // Add last line of page
