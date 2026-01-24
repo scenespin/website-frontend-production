@@ -1628,8 +1628,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const [workflowExecutionId, setWorkflowExecutionId] = useState<string | null>(null);
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus | null>(null);
   
-  // 🔥 FIX: Track when we've intentionally cleared state to prevent immediate recovery
-  const hasIntentionallyClearedRef = useRef(false);
   const [showDecisionModal, setShowDecisionModal] = useState(false);
   const [showPartialDeliveryModal, setShowPartialDeliveryModal] = useState(false);
   const [partialDeliveryData, setPartialDeliveryData] = useState<any>(null);
@@ -1812,71 +1810,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       });
     }
   }, [sceneAnalysisResult]);
-  
-  // 🔥 NEW: Recover workflow execution on mount (if user navigated away and came back)
-  useEffect(() => {
-    async function recoverWorkflowExecution() {
-      // Only recover if we don't already have a workflowExecutionId
-      if (workflowExecutionId || isGenerating) return;
-      
-      // 🔥 FIX: Don't recover if we've intentionally cleared the state (user started fresh)
-      // Recovery should only happen if user was in the middle of something and navigated away
-      if (hasIntentionallyClearedRef.current) {
-        hasIntentionallyClearedRef.current = false; // Reset flag after checking
-        return;
-      }
-      
-      try {
-        // Check localStorage for saved workflowExecutionId
-        const savedExecutionId = localStorage.getItem(`scene-builder-execution-${projectId}`);
-        if (savedExecutionId) {
-          console.log('[SceneBuilderPanel] Found saved workflow execution ID:', savedExecutionId);
-          
-          // 🔥 FIX: Use pollWorkflowStatus with screenplayId instead of recoverWorkflowExecution
-          // This uses the executions endpoint which works across containers
-          try {
-            const execution = await SceneBuilderService.pollWorkflowStatus(savedExecutionId, getToken, projectId);
-            
-            // Only recover if still running (same logic as recoverWorkflowExecution)
-            if (execution && ['running', 'queued', 'awaiting_user_decision'].includes(execution.status)) {
-                console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
-                setWorkflowExecutionId(savedExecutionId);
-                setIsGenerating(true);
-                setWorkflowStatus({
-                  id: execution.executionId,
-                  status: execution.status,
-                  currentStep: execution.currentStep || 1,
-                  totalSteps: execution.totalSteps || 5,
-                  stepResults: execution.stepResults || [],
-                  totalCreditsUsed: execution.totalCreditsUsed || 0,
-                  finalOutputs: execution.finalOutputs || []
-                });
-                // 🔥 FIX: Don't change currentStep - keep scene builder in initial state
-                // Recovery is only for tracking, not for showing UI
-                // User can check the Storyboard for results
-              // Toast removed - progress indicator shows this status
-              } else {
-                // Execution completed or failed, remove from localStorage
-                localStorage.removeItem(`scene-builder-execution-${projectId}`);
-              }
-          } catch (error: any) {
-            // Execution not found or error, remove from localStorage
-            console.warn('[SceneBuilderPanel] Execution not found or error:', error.message);
-            localStorage.removeItem(`scene-builder-execution-${projectId}`);
-          }
-        }
-      } catch (error) {
-        console.error('[SceneBuilderPanel] Failed to recover workflow execution:', error);
-            // Execution not found, remove from localStorage
-            localStorage.removeItem(`scene-builder-execution-${projectId}`);
-      }
-    }
-    
-    // Only run recovery on mount (when component first loads)
-    if (projectId) {
-      recoverWorkflowExecution();
-    }
-  }, [projectId]); // Only run when projectId changes (on mount)
   
   // Poll workflow status every 3 seconds
   useEffect(() => {
@@ -2996,9 +2929,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       console.log('[SceneBuilderPanel] ✅ Workflow execution started:', executionId);
       setWorkflowExecutionId(executionId);
       
-      // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
-      localStorage.setItem(`scene-builder-execution-${projectId}`, executionId);
-      
       // Set initial workflow status to show progress immediately
       setWorkflowStatus({
         id: executionId,
@@ -3030,9 +2960,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // Wait 1.5 seconds for simple animation, then reset scene builder (moved outside try-catch)
     // 🔥 REMOVED: Auto-opening jobs drawer - users will check storyboard when job completes
     setTimeout(() => {
-      // 🔥 FIX: Set flag to prevent immediate recovery
-      hasIntentionallyClearedRef.current = true;
-      
       // Reset scene builder to initial state (fresh start)
       setCurrentStep(1);
       setWizardStep('analysis');
