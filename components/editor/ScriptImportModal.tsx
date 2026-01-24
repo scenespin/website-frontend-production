@@ -7,7 +7,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { updateScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
-import { normalizeScreenplayText, cleanWebPastedText } from '@/utils/screenplayNormalizer';
+import { normalizeScreenplayText, cleanWebPastedText, fixCharacterEncoding } from '@/utils/screenplayNormalizer';
 import { processChunkedImport } from '@/utils/screenplayStreamParser';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X, File } from 'lucide-react';
@@ -39,7 +39,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload'); // 🔥 NEW: Tab state
     const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<Record<number, string>>({}); // 🔥 NEW: Track selected time of day for each scene heading issue
     const [enableWebCleaning, setEnableWebCleaning] = useState(false); // Feature 0197: Opt-in web paste cleaning
-    const [isPDFImport, setIsPDFImport] = useState(false); // Track if current content is from PDF/Word import (already processed)
     
     // Reset all state when modal closes
     useEffect(() => {
@@ -52,7 +51,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             setIsExtractingWord(false);
             setUploadedFileName(null);
             setSelectedTimeOfDay({});
-            setIsPDFImport(false);
         }
     }, [isOpen]);
     
@@ -73,31 +71,12 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     processedContent = cleanWebPastedText(content);
                 }
                 
-                // Feature 0177: Normalize content before parsing
-                // SKIP normalization for PDF/Word imports - they're already processed
-                let normalized: string;
-                if (isPDFImport) {
-                    // PDF/Word already processed - skip normalization
-                    normalized = processedContent;
-                } else {
-                    const isLargeFile = processedContent.length > 1024 * 1024; // >1MB
-                    
-                    if (isLargeFile) {
-                        // Large file: use chunked processing with progress
-                        setNormalizationProgress(0);
-                        normalized = await processChunkedImport(
-                            processedContent,
-                            (chunk) => normalizeScreenplayText(chunk),
-                            (progress) => setNormalizationProgress(progress)
-                        );
-                        setNormalizationProgress(null);
-                    } else {
-                        // Small file: normalize in one pass
-                        normalized = normalizeScreenplayText(processedContent);
-                    }
-                }
+                // Always fix character encoding issues (safe for all sources)
+                // This handles UTF-8 corruption from PDF extraction, copy-paste, etc.
+                processedContent = fixCharacterEncoding(processedContent);
                 
-                const result = parseContentForImport(normalized);
+                // Parse the content (no additional normalization for PDF/Word/clean Fountain)
+                const result = parseContentForImport(processedContent);
                 setParseResult(result);
             } catch (error) {
                 console.error('[ScriptImportModal] Parse error:', error);
@@ -106,7 +85,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         }, 500); // Debounce 500ms
         
         return () => clearTimeout(timer);
-    }, [content, enableWebCleaning, activeTab, isPDFImport]);
+    }, [content, enableWebCleaning, activeTab]);
     
     // 🔥 NEW: Handle file upload (PDF or Word)
     const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +105,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // Reset state for new file
             setContentLocal('');
             setParseResult(null);
-            setIsPDFImport(false);
             
             setIsExtractingPDF(true);
             setUploadedFileName(file.name);
@@ -145,7 +123,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 }
                 
                 // Set extracted text as content (will trigger parsing via useEffect)
-                setIsPDFImport(true); // Mark as PDF import to skip normalization
                 setContentLocal(result.text);
                 
                 toast.success(`✅ PDF extracted successfully (${result.pageCount} pages)`, {
@@ -166,7 +143,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // Reset state for new file
             setContentLocal('');
             setParseResult(null);
-            setIsPDFImport(false);
             
             setIsExtractingWord(true);
             setUploadedFileName(file.name);
@@ -185,7 +161,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 }
                 
                 // Set extracted text as content (will trigger parsing via useEffect)
-                setIsPDFImport(true); // Mark as Word import to skip normalization
                 setContentLocal(result.text);
                 
                 toast.success('✅ Word document extracted successfully', {
@@ -333,26 +308,11 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 processedContent = cleanWebPastedText(correctedContent);
             }
             
-            // Step 4: Normalize and set content in editor
-            // Feature 0177: Normalize content before setting in editor
-            const isLargeFile = processedContent.length > 1024 * 1024; // >1MB
-            let normalizedContent: string;
+            // Always fix character encoding issues (safe for all sources)
+            processedContent = fixCharacterEncoding(processedContent);
             
-            if (isLargeFile) {
-                // Large file: use chunked processing with progress
-                setNormalizationProgress(0);
-                normalizedContent = await processChunkedImport(
-                    processedContent,
-                    (chunk) => normalizeScreenplayText(chunk),
-                    (progress) => setNormalizationProgress(progress)
-                );
-                setNormalizationProgress(null);
-            } else {
-                // Small file: normalize in one pass
-                normalizedContent = normalizeScreenplayText(processedContent);
-            }
-            
-            setContent(normalizedContent);
+            // Set content in editor (no additional normalization)
+            setContent(processedContent);
             
             // Step 3: Import characters (with explicit screenplay ID)
             let importedCharacters: Character[] = [];
