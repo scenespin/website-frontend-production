@@ -29,6 +29,7 @@ export interface SceneVideo {
       video: MediaFile;
       metadata?: any;
       timestamp?: string;
+      isNewest?: boolean; // Mark newest variation of each shot number
     }>;
   };
 }
@@ -257,6 +258,7 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
     }
 
     // Sort shots by shot number and timestamp
+    // Also mark the newest variation of each shot number
     for (const scene of sceneMap.values()) {
       scene.videos.shots.sort((a, b) => {
         if (a.shotNumber !== b.shotNumber) {
@@ -266,7 +268,32 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
         if (a.timestamp && b.timestamp) {
           return b.timestamp.localeCompare(a.timestamp);
         }
+        // Fallback: use uploadedAt if timestamp not available
+        if (a.video.uploadedAt && b.video.uploadedAt) {
+          return new Date(b.video.uploadedAt).getTime() - new Date(a.video.uploadedAt).getTime();
+        }
         return 0;
+      });
+      
+      // Mark the newest variation of each shot number
+      const shotNumberGroups = new Map<number, typeof scene.videos.shots>();
+      scene.videos.shots.forEach(shot => {
+        if (!shotNumberGroups.has(shot.shotNumber)) {
+          shotNumberGroups.set(shot.shotNumber, []);
+        }
+        shotNumberGroups.get(shot.shotNumber)!.push(shot);
+      });
+      
+      // Mark first (newest) variation of each shot as "isNewest"
+      shotNumberGroups.forEach((variations, shotNumber) => {
+        if (variations.length > 0) {
+          variations[0].isNewest = true;
+          // Also add to metadata for easy access
+          if (!variations[0].metadata) {
+            variations[0].metadata = {};
+          }
+          variations[0].metadata.isNewestVariation = true;
+        }
       });
     }
 
