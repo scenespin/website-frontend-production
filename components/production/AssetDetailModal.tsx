@@ -1573,11 +1573,16 @@ export default function AssetDetailModal({
                   onComplete={async (result) => {
                     // 🔥 FIX: Use same aggressive pattern as AssetDetailModal.handleFileUpload (works!)
                     // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+                    // Also invalidate presigned URLs so new images get fresh URLs
                     queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ 
                       queryKey: ['media', 'files', screenplayId],
                       exact: false
+                    });
+                    queryClient.invalidateQueries({ 
+                      queryKey: ['media', 'presigned-urls'],
+                      exact: false // Invalidate all presigned URL queries (they have dynamic keys)
                     });
                     setTimeout(() => {
                       queryClient.refetchQueries({ 
@@ -1587,6 +1592,10 @@ export default function AssetDetailModal({
                       queryClient.refetchQueries({ 
                         queryKey: ['media', 'files', screenplayId],
                         exact: false
+                      });
+                      queryClient.refetchQueries({ 
+                        queryKey: ['media', 'presigned-urls'],
+                        exact: false // Refetch all presigned URL queries
                       });
                     }, 2000);
                     toast.success(`Successfully added ${result.images.length} image(s) to ${result.angleName}`);

@@ -428,12 +428,16 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
             onAssetUpdate={() => {
               // 🔥 FIX: Use same aggressive pattern as AssetDetailModal.handleFileUpload (works!)
               // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
-              // Also invalidate Media Library to ensure card thumbnails update
+              // Also invalidate Media Library and presigned URLs to ensure card thumbnails update
               queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
               queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
               queryClient.invalidateQueries({ 
                 queryKey: ['media', 'files', screenplayId],
                 exact: false
+              });
+              queryClient.invalidateQueries({ 
+                queryKey: ['media', 'presigned-urls'],
+                exact: false // Invalidate all presigned URL queries (they have dynamic keys)
               });
               setTimeout(() => {
                 queryClient.refetchQueries({ 
@@ -443,6 +447,10 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
                 queryClient.refetchQueries({ 
                   queryKey: ['media', 'files', screenplayId],
                   exact: false
+                });
+                queryClient.refetchQueries({ 
+                  queryKey: ['media', 'presigned-urls'],
+                  exact: false // Refetch all presigned URL queries
                 });
               }, 2000);
             }}

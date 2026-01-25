@@ -353,12 +353,20 @@ export function LocationDetailModal({
       const result = await response.json();
       
       // Refresh location data after flip (same pattern as regenerate)
+      // Also invalidate presigned URLs so new images get fresh URLs
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-      queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'] }); // Invalidate thumbnail URLs
+      queryClient.invalidateQueries({ 
+        queryKey: ['media', 'presigned-urls'],
+        exact: false // Invalidate all presigned URL queries (they have dynamic keys)
+      });
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
-        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] }),
+        queryClient.refetchQueries({ 
+          queryKey: ['media', 'presigned-urls'],
+          exact: false // Refetch all presigned URL queries
+        })
       ]);
       
       toast.success('Angle flipped successfully');
@@ -903,11 +911,16 @@ export function LocationDetailModal({
       await onUploadImage(latestLocation.locationId, file);
       
       // 🔥 FIX: Aggressively clear and refetch location queries (same pattern as Creation section)
+      // Also invalidate presigned URLs so new images get fresh URLs
       queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ 
         queryKey: ['media', 'files', screenplayId],
         exact: false
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['media', 'presigned-urls'],
+        exact: false // Invalidate all presigned URL queries (they have dynamic keys)
       });
       setTimeout(() => {
         queryClient.refetchQueries({ 
@@ -917,6 +930,10 @@ export function LocationDetailModal({
         queryClient.refetchQueries({ 
           queryKey: ['media', 'files', screenplayId],
           exact: false
+        });
+        queryClient.refetchQueries({ 
+          queryKey: ['media', 'presigned-urls'],
+          exact: false // Refetch all presigned URL queries
         });
       }, 2000);
       
@@ -2014,11 +2031,16 @@ export function LocationDetailModal({
                                                           
                                                           // 🔥 FIX: Aggressively clear and refetch location queries (same pattern as Creation section)
                                                           // Remove query from cache completely, then refetch after delay to account for DynamoDB eventual consistency
+                                                          // Also invalidate presigned URLs so new images get fresh URLs
                                                           queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                                                           queryClient.invalidateQueries({ 
                                                             queryKey: ['media', 'files', screenplayId],
                                                             exact: false
+                                                          });
+                                                          queryClient.invalidateQueries({ 
+                                                            queryKey: ['media', 'presigned-urls'],
+                                                            exact: false // Invalidate all presigned URL queries (they have dynamic keys)
                                                           });
                                                           setTimeout(() => {
                                                             queryClient.refetchQueries({ 
@@ -2028,6 +2050,10 @@ export function LocationDetailModal({
                                                             queryClient.refetchQueries({ 
                                                               queryKey: ['media', 'files', screenplayId],
                                                               exact: false
+                                                            });
+                                                            queryClient.refetchQueries({ 
+                                                              queryKey: ['media', 'presigned-urls'],
+                                                              exact: false // Refetch all presigned URL queries
                                                             });
                                                           }, 2000);
                                                           
@@ -2137,11 +2163,16 @@ export function LocationDetailModal({
                   onComplete={async (result) => {
                     // 🔥 FIX: Use same aggressive pattern as CharacterBankPanel and LocationDetailModal.handleFileUpload (works!)
                     // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+                    // Also invalidate presigned URLs so new images get fresh URLs
                     queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ 
                       queryKey: ['media', 'files', screenplayId],
                       exact: false
+                    });
+                    queryClient.invalidateQueries({ 
+                      queryKey: ['media', 'presigned-urls'],
+                      exact: false // Invalidate all presigned URL queries (they have dynamic keys)
                     });
                     setTimeout(() => {
                       queryClient.refetchQueries({ 
@@ -2151,6 +2182,10 @@ export function LocationDetailModal({
                       queryClient.refetchQueries({ 
                         queryKey: ['media', 'files', screenplayId],
                         exact: false
+                      });
+                      queryClient.refetchQueries({ 
+                        queryKey: ['media', 'presigned-urls'],
+                        exact: false // Refetch all presigned URL queries
                       });
                     }, 2000);
                     const categoryLabel = result.category === 'angles' ? 'Location Angles' : 'Location Backgrounds';

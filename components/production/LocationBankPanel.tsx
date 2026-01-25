@@ -231,12 +231,17 @@ export function LocationBankPanel({
       // 🔥 FIX: Use same aggressive pattern as CharacterBankPanel and LocationDetailModal (works!)
       // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
       // This ensures disabled queries don't block invalidation (see GitHub issue #947)
+      // Also invalidate presigned URLs so new images get fresh URLs
       console.log('[LocationBankPanel] 🔄 Invalidating locations cache');
       queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ 
         queryKey: ['media', 'files', screenplayId],
         exact: false
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['media', 'presigned-urls'],
+        exact: false // Invalidate all presigned URL queries (they have dynamic keys)
       });
       setTimeout(() => {
         queryClient.refetchQueries({ 
@@ -246,6 +251,10 @@ export function LocationBankPanel({
         queryClient.refetchQueries({ 
           queryKey: ['media', 'files', screenplayId],
           exact: false
+        });
+        queryClient.refetchQueries({ 
+          queryKey: ['media', 'presigned-urls'],
+          exact: false // Refetch all presigned URL queries
         });
       }, 2000);
       
