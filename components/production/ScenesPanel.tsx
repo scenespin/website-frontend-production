@@ -171,7 +171,12 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
       {/* Header with Refresh Button */}
       <div className="px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#FFFFFF]">Storyboard</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-[#FFFFFF]">Storyboard</h2>
+          <span className="text-xs text-[#808080]">
+            ({scenesWithVideos.length} scene{scenesWithVideos.length !== 1 ? 's' : ''})
+          </span>
+        </div>
         <button
           onClick={handleRefresh}
           className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-[#FFFFFF] hover:bg-[#1A1A1A] rounded transition-colors"
