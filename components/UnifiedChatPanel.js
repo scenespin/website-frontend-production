@@ -286,8 +286,14 @@ function LLMModelSelector() {
     };
   }, [isOpen]);
   
-  // Memoize providers array to prevent new array reference on every render
-  const providers = useMemo(() => ['Anthropic', 'OpenAI', 'Google', 'xAI'], []);
+  // Dynamically group models by provider (same approach as modals - automatic, no hardcoding)
+  const groupedModels = useMemo(() => {
+    return LLM_MODELS.reduce((acc, model) => {
+      if (!acc[model.provider]) acc[model.provider] = [];
+      acc[model.provider].push(model);
+      return acc;
+    }, {});
+  }, []);
   
   // Calculate max width needed for model names
   const maxModelNameLength = useMemo(() => {
@@ -311,13 +317,12 @@ function LLMModelSelector() {
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {providers.map(provider => {
-        const providerModels = LLM_MODELS.filter(m => m.provider === provider);
+      {Object.entries(groupedModels).map(([provider, providerModels]) => {
         return (
           <li key={provider} className="menu-title">
             <span className="text-xs font-bold text-base-content/60">{provider}</span>
             <ul className="ml-0">
-              {providerModels.map(model => {
+              {providerModels.map((model) => {
                 const isActive = selectedModel === model.id;
                 return (
                   <li key={model.id}>
