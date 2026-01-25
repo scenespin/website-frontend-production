@@ -13,7 +13,7 @@
  * - Trim support (seek to start, stop at end)
  */
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward } from 'lucide-react';
 
 interface VideoPlayerProps {
@@ -29,7 +29,13 @@ interface VideoPlayerProps {
   onError?: (error: Error) => void;
 }
 
-export function VideoPlayer({
+export interface VideoPlayerRef {
+  play: () => Promise<void>;
+  pause: () => void;
+  seekTo: (time: number) => void;
+}
+
+export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   src,
   className = '',
   autoPlay = false,
@@ -40,7 +46,7 @@ export function VideoPlayer({
   onTimeUpdate,
   onEnded,
   onError,
-}: VideoPlayerProps) {
+}, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
@@ -359,6 +365,43 @@ export function VideoPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    play: async () => {
+      const video = videoRef.current;
+      if (!video) return;
+      
+      // If at trim end, seek to trim start
+      if (trimEnd && video.currentTime >= trimEnd) {
+        video.currentTime = trimStart;
+      }
+      
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        await playPromise.catch((error) => {
+          if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+            console.warn('[VideoPlayer] Play error:', error);
+          }
+          setIsPlaying(false);
+          throw error;
+        });
+      }
+      setIsPlaying(true);
+    },
+    pause: () => {
+      const video = videoRef.current;
+      if (!video) return;
+      video.pause();
+      setIsPlaying(false);
+    },
+    seekTo: (time: number) => {
+      const video = videoRef.current;
+      if (!video) return;
+      const seekTime = Math.max(trimStart, Math.min(trimEnd || duration, time));
+      video.currentTime = seekTime;
+    },
+  }), [trimStart, trimEnd, duration]);
+
   return (
     <div ref={containerRef} className={`relative bg-black rounded-lg overflow-hidden ${className}`}>
       <video
@@ -483,5 +526,7 @@ export function VideoPlayer({
       )}
     </div>
   );
-}
+});
+
+VideoPlayer.displayName = 'VideoPlayer';
 
