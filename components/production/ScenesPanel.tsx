@@ -26,10 +26,20 @@ interface ScenesPanelProps {
 export function ScenesPanel({ className = '' }: ScenesPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
+  const queryClient = useQueryClient();
 
   // Fetch scenes and scene videos
   const { data: scenes = [], isLoading: scenesLoading } = useScenes(screenplayId || '', !!screenplayId);
   const { data: sceneVideos = [], isLoading: videosLoading } = useSceneVideos(screenplayId || '', !!screenplayId);
+
+  // 🔥 FIX: Manual refresh function to force refetch of scene videos
+  const handleRefresh = () => {
+    if (screenplayId) {
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: ['scenes', screenplayId] });
+      toast.success('Refreshing storyboard...');
+    }
+  };
 
   // 🔥 DEBUG: Log data for troubleshooting
   React.useEffect(() => {
