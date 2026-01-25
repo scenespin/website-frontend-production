@@ -192,6 +192,21 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
 
       // 🔥 CRITICAL: Only process individual shots (full scenes are filtered out above)
       // shotNumber is required - videos without shotNumber won't appear in storyboard
+      // 🔥 DEBUG: Log shotNumber status for troubleshooting
+      if (shotNumber === undefined || shotNumber === null) {
+        console.warn(`[useSceneVideos] ⚠️ File missing shotNumber (WILL BE SKIPPED - won't appear in storyboard):`, {
+          fileName: file.fileName,
+          fileId: file.id,
+          sceneId,
+          sceneNumber,
+          shotNumber,
+          shotNumberType: typeof shotNumber,
+          metadataKeys: Object.keys(metadata),
+          allMetadata: metadata,
+          topLevelKeys: Object.keys(file)
+        });
+      }
+      
       if (shotNumber !== undefined && shotNumber !== null) {
         // Individual shot
         // 🔥 FIX: Check for duplicate by file ID (not just shotNumber + timestamp)
