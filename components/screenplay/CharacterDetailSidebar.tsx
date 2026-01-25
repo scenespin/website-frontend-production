@@ -183,6 +183,46 @@ export default function CharacterDetailSidebar({
   // 🔥 REMOVED: Legacy URL regeneration - now using Media Library (useMediaFiles + useBulkPresignedUrls)
   // The mediaLibraryImages variable already provides valid presigned URLs from the Media Library pattern
 
+  // 🔥 FIX: ALWAYS sync from context on mount and when characters change (matching AssetDetailSidebar pattern)
+  // This ensures the modal reflects the latest data even if the character prop is stale
+  // (which happens because columns state is a separate copy that updates async)
+  useEffect(() => {
+    if (character?.id) {
+      const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+      if (updatedCharacterFromContext) {
+        // Compare formData with context (not prop with context)
+        // This catches both stale props AND stale formData
+        const formDataImages = (formData.images || []).map(img => img.imageUrl || img.s3Key).sort().join(',');
+        const contextImages = (updatedCharacterFromContext.images || []).map(img => img.imageUrl || img.s3Key).sort().join(',');
+        if (formDataImages !== contextImages) {
+          // Context has newer data - update formData
+          console.log('[CharacterDetailSidebar] 🔄 Syncing from context (formData stale):', {
+            formDataImageCount: formData.images?.length || 0,
+            contextImageCount: updatedCharacterFromContext.images?.length || 0
+          });
+          setFormData({ ...updatedCharacterFromContext });
+        }
+      }
+    }
+  }, [characters, character?.id]) // Watch characters array and character.id - NOT formData to avoid loops
+
+  // 🔥 FIX: Sync from context on MOUNT to ensure fresh data when sidebar reopens
+  // This catches the case where: upload → close sidebar → reopen sidebar
+  // The other sync effects only run when dependencies change, but on remount
+  // the dependencies might be "the same" even though context has newer data
+  useEffect(() => {
+    if (character?.id) {
+      const freshCharacter = characters.find(c => c.id === character.id);
+      if (freshCharacter) {
+        console.log('[CharacterDetailSidebar] 🔄 Syncing from context on mount:', {
+          characterId: character.id,
+          imageCount: freshCharacter.images?.length || 0
+        });
+        setFormData({ ...freshCharacter });
+      }
+    }
+  }, [character?.id]) // Only run when character.id changes (on mount or when switching characters)
+
   // 🔥 FIX: Refetch character data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest character data, including newly uploaded images
   // EXACT WORKING PATTERN from before - just sync from context, no cache invalidation here
