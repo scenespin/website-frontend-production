@@ -102,11 +102,17 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {hasVideos && (
-              <span className="text-xs text-[#808080]">
-                {scene.videos?.shots.length ? `${scene.videos.shots.length} shot${scene.videos.shots.length !== 1 ? 's' : ''}` : ''}
-              </span>
-            )}
+            {hasVideos && (() => {
+              const shots = scene.videos?.shots || [];
+              const uniqueShotNumbers = new Set(shots.map(s => s.shotNumber));
+              const totalVariations = shots.length;
+              const uniqueShots = uniqueShotNumbers.size;
+              return (
+                <span className="text-xs text-[#808080]" title={`${totalVariations} variation${totalVariations !== 1 ? 's' : ''} across ${uniqueShots} shot${uniqueShots !== 1 ? 's' : ''}`}>
+                  {uniqueShots} shot{uniqueShots !== 1 ? 's' : ''} ({totalVariations} variation{totalVariations !== 1 ? 's' : ''})
+                </span>
+              );
+            })()}
             {isExpanded ? (
               <ChevronUp className="w-4 h-4 text-[#808080]" />
             ) : (

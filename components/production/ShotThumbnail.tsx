@@ -72,9 +72,14 @@ export function ShotThumbnail({
           </div>
         )}
 
-        {/* Shot number badge */}
+        {/* Shot number badge - show variation number if multiple variations exist */}
         <div className="absolute top-2 left-2 bg-[#DC143C] text-white text-xs font-semibold px-2 py-1 rounded">
           Shot {shot.shotNumber}
+          {shot.timestamp && (
+            <span className="ml-1 text-[10px] opacity-75">
+              {new Date(shot.timestamp.replace(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:$5:$6')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+          )}
         </div>
       </div>
 

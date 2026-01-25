@@ -175,7 +175,7 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
         });
         continue;
       }
-      
+
       const key = `${sceneId}-${sceneNumber}`;
       if (!sceneMap.has(key)) {
         sceneMap.set(key, {
@@ -194,7 +194,12 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
       // shotNumber is required - videos without shotNumber won't appear in storyboard
       if (shotNumber !== undefined && shotNumber !== null) {
         // Individual shot
-        const existingShot = scene.videos.shots.find(s => s.shotNumber === shotNumber && s.timestamp === timestamp);
+        // 🔥 FIX: Check for duplicate by file ID (not just shotNumber + timestamp)
+        // This ensures all variations are shown, even if they have the same timestamp
+        const existingShot = scene.videos.shots.find(s => 
+          s.video.id === file.id || 
+          (s.shotNumber === shotNumber && s.timestamp === timestamp && s.video.s3Key === file.s3Key)
+        );
         if (!existingShot) {
           scene.videos.shots.push({
             shotNumber,
@@ -204,6 +209,18 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
           });
           console.log(`[useSceneVideos] ✅ Added shot ${shotNumber} to scene ${sceneNumber}`, {
             fileName: file.fileName,
+            fileId: file.id,
+            sceneId,
+            sceneNumber,
+            shotNumber,
+            timestamp,
+            totalShotsForThisShotNumber: scene.videos.shots.filter(s => s.shotNumber === shotNumber).length + 1
+          });
+        } else {
+          console.log(`[useSceneVideos] ⚠️ Skipping duplicate shot ${shotNumber}`, {
+            fileName: file.fileName,
+            fileId: file.id,
+            existingFileId: existingShot.video.id,
             sceneId,
             sceneNumber,
             shotNumber,
@@ -241,16 +258,32 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
     // Convert to array and sort by scene number
     const result = Array.from(sceneMap.values()).sort((a, b) => a.sceneNumber - b.sceneNumber);
     
+    // 🔥 DEBUG: Calculate shot variation statistics
+    const shotStats = result.map(s => {
+      const shots = s.videos.shots;
+      const uniqueShotNumbers = new Set(shots.map(shot => shot.shotNumber));
+      const variationsByShot = Array.from(uniqueShotNumbers).map(shotNum => {
+        const variations = shots.filter(shot => shot.shotNumber === shotNum);
+        return {
+          shotNumber: shotNum,
+          variationCount: variations.length,
+          timestamps: variations.map(v => v.timestamp).filter(Boolean)
+        };
+      });
+      return {
+        sceneNumber: s.sceneNumber,
+        sceneId: s.sceneId,
+        totalShots: shots.length,
+        uniqueShotNumbers: uniqueShotNumbers.size,
+        variationsByShot
+      };
+    });
+
     console.log(`[useSceneVideos] 📊 Final result:`, {
       totalScenes: result.length,
       scenesWithVideos: result.filter(s => s.videos.shots.length > 0).length,
       totalShots: result.reduce((sum, s) => sum + s.videos.shots.length, 0),
-      sceneDetails: result.map(s => ({
-        sceneNumber: s.sceneNumber,
-        sceneId: s.sceneId,
-        shotsCount: s.videos.shots.length,
-        shotNumbers: s.videos.shots.map(shot => shot.shotNumber)
-      }))
+      sceneDetails: shotStats
     });
     
     return result;
