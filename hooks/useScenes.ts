@@ -68,9 +68,17 @@ export function useScenes(screenplayId: string, enabled: boolean = true) {
  * Groups videos by scene and organizes by timestamp
  */
 export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
-  // 🔥 FIX: Include files from all folders (videos are organized in scene folders)
-  // Without includeAllFolders, the API filters out files with folderId, which excludes all scene videos
-  const { data: allFiles = [], isLoading: filesLoading } = useMediaFiles(screenplayId, undefined, enabled, true);
+  // 🔥 SCALABLE FIX: Query by entityType='scene' to use GSI for efficient database queries
+  // This fetches only scene videos (not all files), reducing bandwidth and improving performance
+  // The API uses entityType-entityId-index GSI which is much faster than scanning all files
+  // includeAllFolders:true ensures videos in scene folders are included
+  const { data: allFiles = [], isLoading: filesLoading } = useMediaFiles(
+    screenplayId, 
+    undefined, 
+    enabled, 
+    true, // includeAllFolders: needed because videos are in scene folders
+    'scene' // entityType: filter at API level using GSI for efficiency
+  );
   const { data: folderTree = [], isLoading: foldersLoading } = useMediaFolderTree(screenplayId, enabled);
 
   // Organize files by scene

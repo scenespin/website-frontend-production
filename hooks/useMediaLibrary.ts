@@ -57,7 +57,7 @@ export function useMediaFiles(
   folderId?: string, 
   enabled: boolean = true, 
   includeAllFolders: boolean = false,
-  entityType?: 'character' | 'location' | 'asset',
+  entityType?: 'character' | 'location' | 'asset' | 'scene',
   entityId?: string
 ) {
   const { getToken } = useAuth();
