@@ -82,7 +82,7 @@ import { SceneAnalysisStep } from './SceneAnalysisStep';
 import { SceneReviewStep } from './SceneReviewStep';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 import { categorizeCharacters } from './utils/characterCategorization';
-import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
+import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
 import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
 import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_STYLE } from './utils/imageConstants';
@@ -425,7 +425,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
   }, [contextState.selectedReferenceShotModels]);
   
-  const setSelectedVideoTypes = useCallback((updater: Record<number, 'cinematic-visuals' | 'natural-motion'> | ((prev: Record<number, 'cinematic-visuals' | 'natural-motion'>) => Record<number, 'cinematic-visuals' | 'natural-motion'>)) => {
+  const setSelectedVideoTypes = useCallback((updater: Record<number, VideoType> | ((prev: Record<number, VideoType>) => Record<number, VideoType>)) => {
     if (typeof updater === 'function') {
       const newValue = updater(contextState.selectedVideoTypes);
       contextActions.setSelectedVideoTypes(newValue);
