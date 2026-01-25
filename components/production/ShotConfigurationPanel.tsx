@@ -496,8 +496,7 @@ export function ShotConfigurationPanel({
       'animal-kingdom': 'Animal Kingdom',
       'style-chameleon': 'Style Chameleon',
       'broll-master': 'B-Roll Master',
-      'complete-scene': 'Complete Scene',
-      'hollywood-standard': 'Hollywood Standard'
+      'complete-scene': 'Complete Scene'
     };
     return labels[workflow] || workflow;
   };
