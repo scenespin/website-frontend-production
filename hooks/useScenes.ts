@@ -95,22 +95,26 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
     // Filter scene-related files (videos only, exclude metadata.json, first frames, and full scenes)
     const sceneFiles = allFiles.filter(file => {
       const metadata = (file as any).metadata || {};
-      const isSceneFile = metadata.entityType === 'scene' && metadata.sceneId;
+      // 🔥 FIX: Check both top-level entityType and metadata.entityType (backend stores in both places)
+      const entityType = (file as any).entityType || metadata.entityType;
+      const isSceneFile = entityType === 'scene' && metadata.sceneId;
       // 🔥 FIX: Check both mediaFileType (simplified) and fileType (MIME type) for video detection
       const isVideo = (file as any).mediaFileType === 'video' || 
                       file.fileType === 'video' || 
                       (typeof file.fileType === 'string' && file.fileType.startsWith('video/'));
       const isFullScene = metadata.isFullScene === true;
       
-      // 🔥 DEBUG: Log why files are filtered out
+      // 🔥 DEBUG: Log why files are filtered out with explicit values
       if (!isSceneFile) {
         console.log(`[useSceneVideos] ⚠️ File filtered out (not scene file):`, {
           fileName: file.fileName,
-          entityType: metadata.entityType,
-          sceneId: metadata.sceneId,
-          hasEntityType: !!metadata.entityType,
+          topLevelEntityType: (file as any).entityType || 'MISSING',
+          metadataEntityType: metadata.entityType || 'MISSING',
+          sceneId: metadata.sceneId || 'MISSING',
+          hasEntityType: !!entityType,
           hasSceneId: !!metadata.sceneId,
-          metadataKeys: Object.keys(metadata)
+          metadataKeys: Object.keys(metadata),
+          allFileKeys: Object.keys(file)
         });
       } else if (!isVideo) {
         console.log(`[useSceneVideos] ⚠️ File filtered out (not video):`, {
@@ -125,6 +129,16 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
           isMetadata: metadata.isMetadata,
           isFirstFrame: metadata.isFirstFrame,
           isFullScene: isFullScene
+        });
+      } else {
+        // 🔥 DEBUG: Log files that pass the filter
+        console.log(`[useSceneVideos] ✅ Included file:`, {
+          fileName: file.fileName,
+          entityType,
+          sceneId: metadata.sceneId,
+          sceneNumber: metadata.sceneNumber,
+          shotNumber: metadata.shotNumber,
+          isVideo
         });
       }
       
@@ -162,17 +176,6 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
         continue;
       }
       
-      // 🔥 DEBUG: Log files missing shotNumber
-      if (!shotNumber) {
-        console.warn(`[useSceneVideos] ⚠️ File missing shotNumber (will be skipped):`, {
-          fileName: file.fileName,
-          sceneId,
-          sceneNumber,
-          shotNumber,
-          metadataKeys: Object.keys(metadata)
-        });
-      }
-
       const key = `${sceneId}-${sceneNumber}`;
       if (!sceneMap.has(key)) {
         sceneMap.set(key, {
@@ -187,8 +190,9 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
 
       const scene = sceneMap.get(key)!;
 
-      // Only process individual shots (full scenes are filtered out above)
-      if (shotNumber) {
+      // 🔥 CRITICAL: Only process individual shots (full scenes are filtered out above)
+      // shotNumber is required - videos without shotNumber won't appear in storyboard
+      if (shotNumber !== undefined && shotNumber !== null) {
         // Individual shot
         const existingShot = scene.videos.shots.find(s => s.shotNumber === shotNumber && s.timestamp === timestamp);
         if (!existingShot) {
@@ -198,7 +202,25 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
             metadata,
             timestamp,
           });
+          console.log(`[useSceneVideos] ✅ Added shot ${shotNumber} to scene ${sceneNumber}`, {
+            fileName: file.fileName,
+            sceneId,
+            sceneNumber,
+            shotNumber,
+            timestamp
+          });
         }
+      } else {
+        // 🔥 WARNING: Log files missing shotNumber (they won't appear in storyboard)
+        console.warn(`[useSceneVideos] ⚠️ File missing shotNumber (WILL BE SKIPPED - won't appear in storyboard):`, {
+          fileName: file.fileName,
+          sceneId,
+          sceneNumber,
+          shotNumber,
+          shotNumberType: typeof shotNumber,
+          metadataKeys: Object.keys(metadata),
+          allMetadata: metadata
+        });
       }
     }
 
