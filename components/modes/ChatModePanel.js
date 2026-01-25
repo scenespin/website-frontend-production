@@ -24,8 +24,8 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
     clearWorkflowCompletion
   } = useChatMode();
   
-  // Model selection for AI chat
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
+  // Model selection for AI chat - use model from context (set by LLMModelSelector in UnifiedChatPanel)
+  const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   
