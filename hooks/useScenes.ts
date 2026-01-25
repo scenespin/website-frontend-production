@@ -46,7 +46,7 @@ export function useScenes(screenplayId: string, enabled: boolean = true) {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      const response = await fetch(`/api/screenplay/${screenplayId}/scenes`, {
+      const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -90,6 +90,13 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
     }
 
     console.log(`[useSceneVideos] 🔍 Processing ${allFiles.length} files from media library`);
+    console.log(`[useSceneVideos] 📊 Files breakdown:`, {
+      total: allFiles.length,
+      withEntityType: allFiles.filter(f => (f as any).entityType || f.metadata?.entityType).length,
+      withSceneId: allFiles.filter(f => f.metadata?.sceneId).length,
+      videos: allFiles.filter(f => (f as any).mediaFileType === 'video' || f.fileType?.startsWith('video/')).length,
+      firstFrames: allFiles.filter(f => f.metadata?.isFirstFrame).length
+    });
     
     // 🔥 DEBUG: Log all files with their metadata to help debug missing videos
     console.log(`[useSceneVideos] 📋 All files sample (first 10):`, allFiles.slice(0, 10).map(f => ({
