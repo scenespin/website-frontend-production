@@ -90,6 +90,26 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
     }
 
     console.log(`[useSceneVideos] 🔍 Processing ${allFiles.length} files from media library`);
+    
+    // 🔥 DEBUG: Log all files with their metadata to help debug missing videos
+    console.log(`[useSceneVideos] 📋 All files sample (first 10):`, allFiles.slice(0, 10).map(f => ({
+      fileName: f.fileName,
+      fileId: f.id,
+      fileType: f.fileType,
+      mediaFileType: (f as any).mediaFileType,
+      entityType: (f as any).entityType,
+      metadata: {
+        entityType: f.metadata?.entityType,
+        sceneId: f.metadata?.sceneId,
+        sceneNumber: f.metadata?.sceneNumber,
+        shotNumber: f.metadata?.shotNumber,
+        isMetadata: f.metadata?.isMetadata,
+        isFirstFrame: f.metadata?.isFirstFrame,
+        isFullScene: f.metadata?.isFullScene,
+        timestamp: f.metadata?.timestamp,
+        uploadedAt: f.uploadedAt
+      }
+    })));
 
     const sceneMap = new Map<string, SceneVideo>();
 
@@ -132,14 +152,18 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
           isFullScene: isFullScene
         });
       } else {
-        // 🔥 DEBUG: Log files that pass the filter
+        // 🔥 DEBUG: Log files that pass the filter with full details
         console.log(`[useSceneVideos] ✅ Included file:`, {
           fileName: file.fileName,
+          fileId: file.id,
           entityType,
           sceneId: metadata.sceneId,
           sceneNumber: metadata.sceneNumber,
           shotNumber: metadata.shotNumber,
-          isVideo
+          timestamp: metadata.timestamp,
+          uploadedAt: file.uploadedAt,
+          isVideo,
+          s3Key: file.s3Key?.substring(0, 50)
         });
       }
       
@@ -148,6 +172,30 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
     });
 
     console.log(`[useSceneVideos] ✅ Filtered to ${sceneFiles.length} scene video files (from ${allFiles.length} total)`);
+    
+    // 🔥 DEBUG: Log which shot numbers we found
+    const shotNumbersFound = new Set(sceneFiles.map(f => f.metadata?.shotNumber).filter(Boolean));
+    console.log(`[useSceneVideos] 📊 Shot numbers found:`, Array.from(shotNumbersFound).sort((a, b) => a - b));
+    
+    // 🔥 DEBUG: Log files by shot number to see what we have
+    const filesByShot = new Map<number, typeof sceneFiles>();
+    sceneFiles.forEach(file => {
+      const shotNum = file.metadata?.shotNumber;
+      if (shotNum !== undefined && shotNum !== null) {
+        if (!filesByShot.has(shotNum)) {
+          filesByShot.set(shotNum, []);
+        }
+        filesByShot.get(shotNum)!.push(file);
+      }
+    });
+    filesByShot.forEach((files, shotNum) => {
+      console.log(`[useSceneVideos] 📊 Shot ${shotNum}: ${files.length} variation(s)`, files.map(f => ({
+        fileName: f.fileName,
+        fileId: f.id,
+        timestamp: f.metadata?.timestamp,
+        uploadedAt: f.uploadedAt
+      })));
+    });
 
     // Group by scene
     for (const file of sceneFiles) {
