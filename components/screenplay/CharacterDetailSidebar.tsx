@@ -192,8 +192,8 @@ export default function CharacterDetailSidebar({
       if (updatedCharacterFromContext) {
         // Compare formData with context (not prop with context)
         // This catches both stale props AND stale formData
-        const formDataImages = (formData.images || []).map(img => img.imageUrl || img.s3Key).sort().join(',');
-        const contextImages = (updatedCharacterFromContext.images || []).map(img => img.imageUrl || img.s3Key).sort().join(',');
+        const formDataImages = (formData.images || []).map(img => img.imageUrl || (img.metadata as any)?.s3Key).sort().join(',');
+        const contextImages = (updatedCharacterFromContext.images || []).map(img => img.imageUrl || (img.metadata as any)?.s3Key).sort().join(',');
         if (formDataImages !== contextImages) {
           // Context has newer data - update formData
           console.log('[CharacterDetailSidebar] 🔄 Syncing from context (formData stale):', {
