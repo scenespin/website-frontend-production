@@ -56,7 +56,8 @@ export function useScenes(screenplayId: string, enabled: boolean = true) {
       }
 
       const data = await response.json();
-      return data.scenes || [];
+      // API returns { data: { scenes: [...] } } format
+      return data.data?.scenes || data.scenes || [];
     },
     enabled: enabled && !!screenplayId,
     staleTime: 30 * 1000,
