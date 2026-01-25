@@ -148,8 +148,13 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     const video = videoRef.current;
     if (!video || !videoSrc) return;
 
-    // Only reload if src actually changed
-    if (video.src !== videoSrc) {
+    // Only reload if src actually changed (avoid reloading on every render)
+    const currentSrc = video.src || video.getAttribute('src') || '';
+    if (currentSrc !== videoSrc) {
+      console.log('[VideoPlayer] Video src changed, reloading:', {
+        from: currentSrc.substring(0, 50),
+        to: videoSrc.substring(0, 50)
+      });
       video.src = videoSrc;
       video.load();
     }
@@ -263,8 +268,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         if (blobUrl) {
           revokeBlobUrl(blobUrl);
         }
-        // Reset video and try again with original URL
-        video.load();
+        // Don't call video.load() here - let the useEffect handle the src change
         return; // Don't show error yet, try original URL first
       }
       
