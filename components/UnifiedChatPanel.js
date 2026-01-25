@@ -287,17 +287,30 @@ function LLMModelSelector() {
   }, [isOpen]);
   
   // Dynamically group models by provider (same approach as modals - automatic, no hardcoding)
+  // Preserve provider order: Anthropic, OpenAI, Google, xAI
   const groupedModels = useMemo(() => {
     const grouped = LLM_MODELS.reduce((acc, model) => {
       if (!acc[model.provider]) acc[model.provider] = [];
       acc[model.provider].push(model);
       return acc;
     }, {});
+    
+    // Ensure consistent order (xAI should be last)
+    const providerOrder = ['Anthropic', 'OpenAI', 'Google', 'xAI'];
+    const ordered = {};
+    providerOrder.forEach(provider => {
+      if (grouped[provider]) {
+        ordered[provider] = grouped[provider];
+      }
+    });
+    
     // Debug: Log grouped models to console
-    console.log('[LLMModelSelector] Grouped models:', grouped);
-    console.log('[LLMModelSelector] All providers:', Object.keys(grouped));
-    console.log('[LLMModelSelector] xAI models:', grouped['xAI']);
-    return grouped;
+    console.log('[LLMModelSelector] Grouped models:', ordered);
+    console.log('[LLMModelSelector] All providers:', Object.keys(ordered));
+    console.log('[LLMModelSelector] xAI models:', ordered['xAI']);
+    console.log('[LLMModelSelector] Object.entries result:', Object.entries(ordered));
+    
+    return ordered;
   }, []);
   
   // Calculate max width needed for model names
@@ -311,7 +324,7 @@ function LLMModelSelector() {
     <ul 
       ref={dropdownRef}
       tabIndex={0} 
-      className="fixed menu p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] max-h-96 overflow-y-auto pointer-events-auto"
+      className="fixed menu p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] max-h-[500px] overflow-y-auto pointer-events-auto"
       style={{ 
         top: `${dropdownPosition.top}px`,
         right: `${dropdownPosition.right}px`,
@@ -323,6 +336,10 @@ function LLMModelSelector() {
       onMouseDown={(e) => e.stopPropagation()}
     >
       {Object.entries(groupedModels).map(([provider, providerModels]) => {
+        // Debug: Log each provider being rendered
+        if (provider === 'xAI') {
+          console.log('[LLMModelSelector] Rendering xAI provider with', providerModels.length, 'models');
+        }
         return (
           <li key={provider} className="menu-title">
             <span className="text-xs font-bold text-base-content/60">{provider}</span>
