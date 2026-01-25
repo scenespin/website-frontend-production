@@ -270,17 +270,9 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
       if (shotNumber !== undefined && shotNumber !== null) {
         // Individual shot
         // 🔥 CRITICAL: Deduplication logic - only skip if it's the EXACT same file
-        // We check by file.id first (most reliable), then by shotNumber + timestamp + s3Key
-        // This ensures all unique variations are shown, even if they have the same timestamp
-        const existingShotById = scene.videos.shots.find(s => s.video.id === file.id);
-        const existingShotByKey = !existingShotById && file.s3Key 
-          ? scene.videos.shots.find(s => 
-              s.shotNumber === shotNumber && 
-              s.timestamp === timestamp && 
-              s.video.s3Key === file.s3Key
-            )
-          : null;
-        const existingShot = existingShotById || existingShotByKey;
+        // Different file.id = different file = always show (even if same shotNumber)
+        // This ensures all unique file variations are shown
+        const existingShot = scene.videos.shots.find(s => s.video.id === file.id);
         
         if (!existingShot) {
           scene.videos.shots.push({
@@ -301,19 +293,16 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
             totalShotsInScene: scene.videos.shots.length
           });
         } else {
-          console.log(`[useSceneVideos] ⚠️ Skipping duplicate shot ${shotNumber}`, {
+          console.log(`[useSceneVideos] ⚠️ Skipping duplicate shot ${shotNumber} (same file.id)`, {
             fileName: file.fileName,
             fileId: file.id,
             existingFileId: existingShot.video.id,
             existingFileName: existingShot.video.fileName,
-            existingS3Key: existingShot.video.s3Key?.substring(0, 50),
-            newS3Key: file.s3Key?.substring(0, 50),
             sceneId,
             sceneNumber,
             shotNumber,
             timestamp,
             existingTimestamp: existingShot.timestamp,
-            matchReason: existingShotById ? 'same-file-id' : 'same-shot-timestamp-s3key',
             totalShotsForThisShotNumber: scene.videos.shots.filter(s => s.shotNumber === shotNumber).length,
             totalShotsInScene: scene.videos.shots.length
           });

@@ -127,13 +127,14 @@ export function useMediaFiles(
       }
       
       // Map backend format to frontend MediaFile format
-      // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt, metadata, entityType?, entityId? }
-      // Frontend expects: { id, fileName, s3Key, fileType (enum), fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key }
+      // Backend returns: { fileId, fileName, fileType (MIME), mediaFileType, fileSize, s3Key, folderId, folderPath, createdAt, metadata, entityType?, entityId? }
+      // Frontend expects: { id, fileName, s3Key, fileType (enum), mediaFileType, fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key }
       return backendFiles.map((file: any) => ({
         id: file.fileId,
         fileName: file.fileName,
         s3Key: file.s3Key, // Required - used for on-demand presigned URL generation
         fileType: detectFileType(file.fileType),
+        mediaFileType: file.mediaFileType, // 🔥 FIX: Preserve mediaFileType from backend (required for video filtering)
         fileSize: file.fileSize,
         storageType: 'local' as const, // S3 files are 'local' storage type
         uploadedAt: file.createdAt,
