@@ -1276,7 +1276,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // Removed: Auto-select scene from editor context
   // Users can now freely select any scene in Production Hub without being forced into editor context
 
-  // Fetch props when scene is selected
+  // 🔥 FIX: Read prop IDs from context in render phase (matches SceneNavigatorList pattern)
+  // This makes the component reactive to prop changes without needing memoization
+  // String comparison is by value, so React will only re-run effect when prop IDs actually change
+  const currentScene = selectedSceneId ? screenplay.scenes?.find(s => s.id === selectedSceneId) : null;
+  const currentPropIds = currentScene?.fountain?.tags?.props || [];
+  const currentPropIdsString = [...currentPropIds].sort().join(',');
+
+  // Fetch props when scene is selected or prop IDs change
   // NOTE: Props are stored in scene.fountain.tags.props (manually linked via UI)
   // The relationships.scenes[sceneId].props is NOT populated/synced, so we only use fountain.tags.props
   useEffect(() => {
@@ -1285,11 +1292,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
     runInfo.count++;
     const timeSinceLastRun = now - runInfo.lastRun;
-    const depsChanged = JSON.stringify([selectedSceneId, projectId]) !== JSON.stringify(runInfo.lastDeps);
+    const depsChanged = JSON.stringify([selectedSceneId, projectId, currentPropIdsString]) !== JSON.stringify(runInfo.lastDeps);
     
     console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
       selectedSceneId,
-      projectId: projectId?.substring(0, 20) + '...'
+      projectId: projectId?.substring(0, 20) + '...',
+      currentPropIdsString,
+      propIdsCount: currentPropIds.length
     });
     
     if (timeSinceLastRun < 100 && runInfo.count > 5) {
@@ -1297,7 +1306,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     
     runInfo.lastRun = now;
-    runInfo.lastDeps = [selectedSceneId, projectId];
+    runInfo.lastDeps = [selectedSceneId, projectId, currentPropIdsString];
     useEffectRunCountsRef.current[effectName] = runInfo;
     
     async function fetchSceneProps() {
@@ -1318,8 +1327,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         }
         
         // Get prop IDs from fountain tags (source of truth - manually linked via SceneDetailSidebar)
-        const fetchedPropIds = scene.fountain?.tags?.props || [];
-        const fetchedPropIdsString = fetchedPropIds.sort().join(',');
+        // Use the render-phase value (currentPropIdsString) instead of reading again
+        const fetchedPropIds = currentPropIds;
+        const fetchedPropIdsString = currentPropIdsString;
         
         // 🔥 FIX: Only fetch if scene ID or prop IDs have actually changed
         if (
@@ -1363,13 +1373,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     
     fetchSceneProps();
-    // 🔥 FIX: Removed screenplay.scenes and currentScenePropIdsString from dependencies
-    // We read the scene inside the effect and compare prop IDs to prevent infinite loops
-    // 🔥 FIX: Removed contextActions from dependencies - it's recreated on every render
-    // The individual functions are memoized with useCallback, so they're stable
-    // We only use contextActions.setSceneProps which is stable
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSceneId, projectId, getToken]);
+    // 🔥 FIX: Added currentPropIdsString to dependencies to make component reactive to prop changes
+    // This matches SceneNavigatorList pattern - reading from context in render phase
+    // String comparison is by value, so React only re-runs when prop IDs actually change
+    // The ref check inside the effect still prevents redundant API calls
+  }, [selectedSceneId, projectId, getToken, currentPropIdsString]);
   
   // Props enrichment is now handled by usePropReferences hook (see above)
 
