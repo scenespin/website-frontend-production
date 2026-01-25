@@ -13,8 +13,8 @@ import React from 'react';
 interface VideoGenerationSelectorProps {
   shotSlot: number;
   shotType: 'dialogue' | 'action' | 'establishing';
-  selectedVideoType: 'cinematic-visuals' | 'natural-motion' | undefined;
-  onVideoTypeChange: (shotSlot: number, videoType: 'cinematic-visuals' | 'natural-motion') => void;
+  selectedVideoType: 'cinematic-visuals' | 'natural-motion' | 'premium-quality' | undefined;
+  onVideoTypeChange: (shotSlot: number, videoType: 'cinematic-visuals' | 'natural-motion' | 'premium-quality') => void;
   // Camera Angle and Shot Duration (moved from ShotConfigurationPanel)
   shotCameraAngle?: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto';
   onCameraAngleChange?: (shotSlot: number, angle: 'close-up' | 'medium-shot' | 'wide-shot' | 'extreme-close-up' | 'extreme-wide-shot' | 'over-the-shoulder' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'auto' | undefined) => void;
@@ -57,6 +57,12 @@ export function VideoGenerationSelector({
         name: 'Natural Motion',
         description: 'Physics-accurate movement, realistic motion, natural actions',
         bestFor: 'Action sequences, character movement, realistic scenes'
+      },
+      {
+        id: 'premium-quality' as const,
+        name: 'Premium Quality',
+        description: 'Highest quality generation with advanced motion understanding',
+        bestFor: 'Premium productions, high-end content, maximum quality'
       }
     ];
     
@@ -110,7 +116,7 @@ export function VideoGenerationSelector({
               <select
                 value={selectVideoType}
                 onChange={(e) => {
-                  onVideoTypeChange(shotSlot, e.target.value as 'cinematic-visuals' | 'natural-motion');
+                  onVideoTypeChange(shotSlot, e.target.value as 'cinematic-visuals' | 'natural-motion' | 'premium-quality');
                 }}
                 className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
               >
@@ -161,6 +167,12 @@ export function VideoGenerationSelector({
       name: 'Natural Motion',
       description: 'Physics-accurate movement, realistic motion, natural actions',
       bestFor: 'Action sequences, character movement, realistic scenes'
+    },
+    {
+      id: 'premium-quality' as const,
+      name: 'Premium Quality',
+      description: 'Highest quality generation with advanced motion understanding',
+      bestFor: 'Premium productions, high-end content, maximum quality'
     }
   ];
 
@@ -219,7 +231,7 @@ export function VideoGenerationSelector({
           <select
             value={selectVideoType}
             onChange={(e) => {
-              onVideoTypeChange(shotSlot, e.target.value as 'cinematic-visuals' | 'natural-motion');
+              onVideoTypeChange(shotSlot, e.target.value as 'cinematic-visuals' | 'natural-motion' | 'premium-quality');
             }}
             className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
           >

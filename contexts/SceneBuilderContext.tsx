@@ -64,7 +64,7 @@ export type ShotDuration = 'quick-cut' | 'extended-take';
 export type Resolution = '1080p' | '4k';
 export type AspectRatio = '16:9' | '9:16' | '1:1';
 export type ReferenceShotModel = 'nano-banana-pro' | 'flux2-max-4k-16:9';
-export type VideoType = 'cinematic-visuals' | 'natural-motion';
+export type VideoType = 'cinematic-visuals' | 'natural-motion' | 'premium-quality';
 export type DialogueQuality = 'premium' | 'reliable';
 export type WizardStep = 'analysis' | 'shot-config' | 'review';
 
