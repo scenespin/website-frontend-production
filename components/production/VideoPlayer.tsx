@@ -67,6 +67,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [codecSupported, setCodecSupported] = useState<boolean | null>(null);
   const [draggingTrim, setDraggingTrim] = useState<'start' | 'end' | null>(null);
+  const [useOriginalUrl, setUseOriginalUrl] = useState(false); // Fallback flag if Blob URL fails
 
   // Get effective duration (trimmed or full)
   const effectiveDuration = trimEnd && trimEnd > 0 ? trimEnd - trimStart : duration;
@@ -137,8 +138,25 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     };
   }, [src, onError]);
 
-  // Use blob URL if available, otherwise use original src
-  const videoSrc = blobUrl || src;
+  // Reset fallback flag when src changes
+  useEffect(() => {
+    setUseOriginalUrl(false);
+  }, [src]);
+
+  // Reload video when videoSrc changes (e.g., when falling back to original URL)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !videoSrc) return;
+
+    // Only reload if src actually changed
+    if (video.src !== videoSrc) {
+      video.src = videoSrc;
+      video.load();
+    }
+  }, [videoSrc]);
+
+  // Use original URL if Blob URL failed, otherwise use Blob URL if available, otherwise use original src
+  const videoSrc = useOriginalUrl ? src : (blobUrl || src);
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
@@ -235,6 +253,21 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       const video = videoRef.current;
       if (!video) return;
       
+      // 🔥 FALLBACK: If Blob URL fails, try original URL
+      const isBlobUrl = videoSrc.startsWith('blob:');
+      if (isBlobUrl && !useOriginalUrl && src && src !== videoSrc) {
+        console.warn('[VideoPlayer] Blob URL failed, falling back to original URL');
+        setUseOriginalUrl(true);
+        setBlobUrl(null); // Clear blob URL
+        // Revoke the failed blob URL to free memory
+        if (blobUrl) {
+          revokeBlobUrl(blobUrl);
+        }
+        // Reset video and try again with original URL
+        video.load();
+        return; // Don't show error yet, try original URL first
+      }
+      
       // Get more detailed error information
       let errorMessage = 'Video failed to load';
       let errorDetails = '';
@@ -257,8 +290,8 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
             // Try to detect file type from URL
             const urlLower = videoSrc.toLowerCase();
             const fileExtension = urlLower.match(/\.(mp4|mov|webm|mkv|avi|m4v)(\?|$)/)?.[1] || 'unknown';
-            const isBlobUrl = videoSrc.startsWith('blob:');
-            errorDetails = `Your browser does not support this video format. File extension: ${fileExtension}. ${isBlobUrl ? 'Using prefetched Blob URL.' : 'Using original presigned URL.'} The file may use an unsupported codec (e.g., H.265/HEVC). Supported: MP4 (H.264), WebM, MOV.`;
+            const isBlobUrlError = videoSrc.startsWith('blob:');
+            errorDetails = `Your browser does not support this video format. File extension: ${fileExtension}. ${isBlobUrlError ? 'Tried prefetched Blob URL and original URL - both failed.' : 'Using original presigned URL.'} The file may use an unsupported codec (e.g., H.265/HEVC). Supported: MP4 (H.264), WebM, MOV.`;
             break;
         }
       }
@@ -327,7 +360,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('error', handleError);
     };
-  }, [trimStart, trimEnd, onTimeUpdate, onEnded, onError, videoSrc, src]);
+  }, [trimStart, trimEnd, onTimeUpdate, onEnded, onError, videoSrc, src, useOriginalUrl, blobUrl]);
 
   // Keyboard shortcuts
   useEffect(() => {
