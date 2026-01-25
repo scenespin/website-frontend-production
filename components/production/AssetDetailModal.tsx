@@ -1571,9 +1571,24 @@ export default function AssetDetailModal({
                   screenplayId={screenplayId || ''}
                   existingImages={latestAsset.images || []}
                   onComplete={async (result) => {
+                    // 🔥 FIX: Use same aggressive pattern as AssetDetailModal.handleFileUpload (works!)
+                    // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+                    queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                    await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                    queryClient.invalidateQueries({ 
+                      queryKey: ['media', 'files', screenplayId],
+                      exact: false
+                    });
+                    setTimeout(() => {
+                      queryClient.refetchQueries({ 
+                        queryKey: ['assets', screenplayId, 'production-hub'],
+                        type: 'active' // Only refetch active (enabled) queries
+                      });
+                      queryClient.refetchQueries({ 
+                        queryKey: ['media', 'files', screenplayId],
+                        exact: false
+                      });
+                    }, 2000);
                     toast.success(`Successfully added ${result.images.length} image(s) to ${result.angleName}`);
                     setCoverageTab(null);
                   }}

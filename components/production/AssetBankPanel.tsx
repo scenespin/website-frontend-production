@@ -426,13 +426,23 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
               setSelectedAssetId(null);
             }}
             onAssetUpdate={() => {
-              // 🔥 FIX: Use same aggressive pattern as AssetDetailModal
+              // 🔥 FIX: Use same aggressive pattern as AssetDetailModal.handleFileUpload (works!)
+              // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+              // Also invalidate Media Library to ensure card thumbnails update
               queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
               queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+              queryClient.invalidateQueries({ 
+                queryKey: ['media', 'files', screenplayId],
+                exact: false
+              });
               setTimeout(() => {
                 queryClient.refetchQueries({ 
                   queryKey: ['assets', screenplayId, 'production-hub'],
-                  type: 'active'
+                  type: 'active' // Only refetch active (enabled) queries
+                });
+                queryClient.refetchQueries({ 
+                  queryKey: ['media', 'files', screenplayId],
+                  exact: false
                 });
               }, 2000);
             }}

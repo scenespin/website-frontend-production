@@ -2135,9 +2135,24 @@ export function LocationDetailModal({
                     backgroundType: bg.backgroundType || 'default'
                   }))}
                   onComplete={async (result) => {
+                    // 🔥 FIX: Use same aggressive pattern as CharacterBankPanel and LocationDetailModal.handleFileUpload (works!)
+                    // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
+                    queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                    await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                    queryClient.invalidateQueries({ 
+                      queryKey: ['media', 'files', screenplayId],
+                      exact: false
+                    });
+                    setTimeout(() => {
+                      queryClient.refetchQueries({ 
+                        queryKey: ['locations', screenplayId, 'production-hub'],
+                        type: 'active' // Only refetch active (enabled) queries
+                      });
+                      queryClient.refetchQueries({ 
+                        queryKey: ['media', 'files', screenplayId],
+                        exact: false
+                      });
+                    }, 2000);
                     const categoryLabel = result.category === 'angles' ? 'Location Angles' : 'Location Backgrounds';
                     toast.success(`Successfully added ${result.images.length} image(s) to ${categoryLabel}: ${result.viewName}`);
                     setCoverageTab(null);
