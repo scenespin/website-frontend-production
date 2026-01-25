@@ -2858,7 +2858,22 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         selectedLocationReferences: Object.keys(selectedLocationReferences).length > 0 ? selectedLocationReferences : undefined, // Phase 2: Per-shot location angle selection
         locationOptOuts: Object.keys(locationOptOuts).length > 0 ? locationOptOuts : undefined, // Per-shot location opt-out state
         locationDescriptions: Object.keys(locationDescriptions).length > 0 ? locationDescriptions : undefined, // Per-shot location descriptions when opted out
-        selectedCharactersForShots: Object.keys(selectedCharactersForShots).length > 0 ? selectedCharactersForShots : undefined, // Pronoun Detection: Multi-character selection per shot
+        // 🔥 FIX: Populate selectedCharactersForShots from selectedCharacterReferences if array is empty
+        // This ensures action shots with character references but empty arrays still work correctly
+        selectedCharactersForShots: (() => {
+          const normalized = { ...selectedCharactersForShots };
+          // For each shot that has character references but empty array, populate from reference keys
+          Object.keys(selectedCharacterReferences).forEach(shotSlotStr => {
+            const shotSlot = parseInt(shotSlotStr, 10);
+            const charRefs = selectedCharacterReferences[shotSlot];
+            const charIds = Object.keys(charRefs || {});
+            // If array is empty/missing but references exist, populate from reference keys
+            if (charIds.length > 0 && (!normalized[shotSlot] || normalized[shotSlot].length === 0)) {
+              normalized[shotSlot] = charIds;
+            }
+          });
+          return Object.keys(normalized).length > 0 ? normalized : undefined;
+        })(), // Pronoun Detection: Multi-character selection per shot (normalized from references if needed)
         pronounMappingsForShots: Object.keys(pronounMappingsForShots).length > 0 ? pronounMappingsForShots : undefined, // Pronoun-to-character mappings: { shotSlot: { pronoun: characterId } }
         characterOutfits: Object.keys(characterOutfits).length > 0 ? characterOutfits : undefined, // Per-shot, per-character outfit selection: { shotSlot: { characterId: outfitName } }
         selectedDialogueQualities: Object.keys(selectedDialogueQualities).length > 0 ? selectedDialogueQualities : undefined, // NEW: Per-shot dialogue quality selection (Premium vs Reliable): { shotSlot: 'premium' | 'reliable' }
