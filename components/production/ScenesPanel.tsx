@@ -13,6 +13,7 @@ import React, { useState, useMemo } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useScenes, useSceneVideos, type SceneVideo } from '@/hooks/useScenes';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useQueryClient } from '@tanstack/react-query';
 import { Film, Loader2, Play, Info, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { SceneCard } from './SceneCard';
@@ -147,6 +148,19 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
 
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
+      {/* Header with Refresh Button */}
+      <div className="px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-[#FFFFFF]">Storyboard</h2>
+        <button
+          onClick={handleRefresh}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-[#FFFFFF] hover:bg-[#1A1A1A] rounded transition-colors"
+          title="Refresh storyboard to show new videos"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
+      </div>
+
       {/* Content */}
       {scenesWithVideos.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-5 text-center">

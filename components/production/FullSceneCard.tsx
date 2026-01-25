@@ -7,7 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import { Play, Info, Download, Film } from 'lucide-react';
+import { Play, Info, Download, Film, X } from 'lucide-react';
 import { VideoThumbnail } from './VideoThumbnail';
 
 interface FullSceneCardProps {
@@ -103,7 +103,16 @@ export function FullSceneCard({
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setShowVideo(false)}
         >
-          <div className="max-w-6xl w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="relative max-w-6xl w-full" onClick={(e) => e.stopPropagation()}>
+            {/* Close Button */}
+            <button
+              onClick={() => setShowVideo(false)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-colors"
+              aria-label="Close video"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+            
             <video
               src={presignedUrl}
               controls

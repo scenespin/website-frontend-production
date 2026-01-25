@@ -149,8 +149,10 @@ export function useMediaFiles(
       }));
     },
     enabled: enabled && !!screenplayId,
-    staleTime: 30 * 1000, // 30 seconds - files list doesn't change often
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 1000, // 10 seconds - reduced to catch new videos faster
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 15 * 1000, // 🔥 FIX: Auto-refetch every 15 seconds to catch new videos
+    refetchIntervalInBackground: false, // Only refetch when tab is active // 5 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
