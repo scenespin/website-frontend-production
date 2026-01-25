@@ -288,11 +288,16 @@ function LLMModelSelector() {
   
   // Dynamically group models by provider (same approach as modals - automatic, no hardcoding)
   const groupedModels = useMemo(() => {
-    return LLM_MODELS.reduce((acc, model) => {
+    const grouped = LLM_MODELS.reduce((acc, model) => {
       if (!acc[model.provider]) acc[model.provider] = [];
       acc[model.provider].push(model);
       return acc;
     }, {});
+    // Debug: Log grouped models to console
+    console.log('[LLMModelSelector] Grouped models:', grouped);
+    console.log('[LLMModelSelector] All providers:', Object.keys(grouped));
+    console.log('[LLMModelSelector] xAI models:', grouped['xAI']);
+    return grouped;
   }, []);
   
   // Calculate max width needed for model names
