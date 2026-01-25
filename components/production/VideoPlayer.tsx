@@ -143,6 +143,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     setUseOriginalUrl(false);
   }, [src]);
 
+  // Use original URL if Blob URL failed, otherwise use Blob URL if available, otherwise use original src
+  const videoSrc = useOriginalUrl ? src : (blobUrl || src);
+
   // Reload video when videoSrc changes (e.g., when falling back to original URL)
   useEffect(() => {
     const video = videoRef.current;
@@ -159,9 +162,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       video.load();
     }
   }, [videoSrc]);
-
-  // Use original URL if Blob URL failed, otherwise use Blob URL if available, otherwise use original src
-  const videoSrc = useOriginalUrl ? src : (blobUrl || src);
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
