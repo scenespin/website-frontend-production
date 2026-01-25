@@ -12,6 +12,7 @@ import { Play, Info, Download, ChevronDown, ChevronUp, Film } from 'lucide-react
 import { toast } from 'sonner';
 import { ShotThumbnail } from './ShotThumbnail';
 import { ScenePlaylistPlayer } from './ScenePlaylistPlayer';
+import { useDeleteMedia } from '@/hooks/useMediaLibrary';
 import type { SceneVideo } from '@/hooks/useScenes';
 
 interface SceneCardProps {
@@ -31,6 +32,9 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  
+  // Delete media mutation
+  const deleteMedia = useDeleteMedia(screenplayId || '');
 
   const hasVideos = scene.videos && (
     scene.videos.shots && scene.videos.shots.length > 0
@@ -63,6 +67,16 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
     } catch (error: any) {
       console.error('[SceneCard] Download failed:', error);
       toast.error(`Download failed: ${error.message}`);
+    }
+  };
+
+  const handleDelete = async (fileId: string) => {
+    try {
+      await deleteMedia.mutateAsync(fileId);
+      toast.success('Shot deleted successfully');
+    } catch (error: any) {
+      console.error('[SceneCard] Delete failed:', error);
+      toast.error(`Failed to delete shot: ${error.message}`);
     }
   };
 
@@ -146,6 +160,7 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
                       // TODO: Implement reshoot (opens Scene Builder wizard)
                       console.log('[SceneCard] Reshoot shot:', shot);
                     }}
+                    onDelete={handleDelete}
                     screenplayId={screenplayId}
                     sceneId={scene.id}
                   />

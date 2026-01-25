@@ -8,7 +8,7 @@
  */
 
 import React, { useState } from 'react';
-import { Play, Info, Download, RefreshCw, Film, HelpCircle, X } from 'lucide-react';
+import { Play, Info, Download, RefreshCw, Film, HelpCircle, X, Trash2 } from 'lucide-react';
 import { VideoThumbnail } from './VideoThumbnail';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -16,6 +16,7 @@ interface ShotThumbnailProps {
   shot: {
     shotNumber: number;
     video: {
+      id?: string; // Media file ID for deletion
       s3Key?: string;
       fileName: string;
       fileType: string;
@@ -28,6 +29,7 @@ interface ShotThumbnailProps {
   onViewMetadata?: () => void;
   onRegenerate?: (shot: any) => void; // Regenerate with same setup
   onReshoot?: (shot: any) => void; // Reshoot with new setup
+  onDelete?: (fileId: string) => void; // Delete video
   screenplayId?: string;
   sceneId?: string;
 }
@@ -39,6 +41,7 @@ export function ShotThumbnail({
   onViewMetadata,
   onRegenerate,
   onReshoot,
+  onDelete,
   screenplayId,
   sceneId,
 }: ShotThumbnailProps) {
@@ -185,6 +188,29 @@ export function ShotThumbnail({
             >
               <Download className="w-3.5 h-3.5 text-[#808080]" />
             </button>
+          )}
+          {onDelete && shot.video.id && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Delete this shot? This will permanently remove the video file "${shot.video.fileName}".`)) {
+                        onDelete(shot.video.id);
+                      }
+                    }}
+                    className="p-1.5 hover:bg-[#DC143C]/20 hover:text-[#DC143C] rounded transition-colors"
+                    title="Delete Shot"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-[#808080]" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <div className="text-xs">Delete this shot video</div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
