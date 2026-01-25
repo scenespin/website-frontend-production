@@ -56,7 +56,7 @@ function BaseWorkflowDropdown({
         }}
         className="w-full h-8 text-xs px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
       >
-        <span>{currentLabel} {value === 'action-line' ? '(suggested)' : ''}</span>
+        <span>{currentLabel} {value === 'hollywood-standard' ? '(suggested)' : ''}</span>
         <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
       </button>
       {isOpen && (
@@ -82,7 +82,7 @@ function BaseWorkflowDropdown({
                     : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
                 )}
               >
-                {wf.label} {wf.value === 'action-line' ? '(suggested)' : ''}
+                {wf.label} {wf.value === 'hollywood-standard' ? '(suggested)' : ''}
               </button>
             </li>
           ))}
@@ -127,7 +127,7 @@ interface UnifiedDialogueDropdownProps {
 
 // Available base workflows for voiceover options
 const AVAILABLE_WORKFLOWS = [
-  { value: 'action-line', label: 'Action Line' },
+  { value: 'hollywood-standard', label: 'Hollywood Standard' },
   { value: 'action-director', label: 'Action Director' },
   { value: 'reality-to-toon', label: 'Reality to Toon' },
   { value: 'anime-master', label: 'Anime Master' },
@@ -347,7 +347,7 @@ export function UnifiedDialogueDropdown({
                     </label>
                     <BaseWorkflowDropdown
                       key={`base-workflow-${shot.slot}-${selectedWorkflow}`}
-                      value={selectedBaseWorkflow || 'action-line'}
+                      value={selectedBaseWorkflow || 'hollywood-standard'}
                       workflows={AVAILABLE_WORKFLOWS}
                       onChange={(value) => {
                         if (onBaseWorkflowChange) {
@@ -357,7 +357,7 @@ export function UnifiedDialogueDropdown({
                       }}
                     />
                     <div className="text-[10px] text-[#808080] italic mt-1">
-                      This will generate a {AVAILABLE_WORKFLOWS.find(wf => wf.value === (selectedBaseWorkflow || 'action-line'))?.label || 'selected workflow'} video and add voiceover audio to it.
+                      This will generate a {AVAILABLE_WORKFLOWS.find(wf => wf.value === (selectedBaseWorkflow || 'hollywood-standard'))?.label || 'selected workflow'} video and add voiceover audio to it.
                     </div>
                   </div>
                 )}

@@ -72,7 +72,7 @@ function BaseWorkflowSelector({
           }}
           className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
         >
-          <span>{currentLabel} {value === 'action-line' ? '(suggested)' : ''}</span>
+          <span>{currentLabel} {value === 'hollywood-standard' ? '(suggested)' : ''}</span>
           <ChevronDown className={cn("w-4 h-4 transition-transform", isOpen && "rotate-180")} />
         </button>
         {isOpen && (
@@ -98,7 +98,7 @@ function BaseWorkflowSelector({
                       : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
                   )}
                 >
-                  {wf.label} {wf.value === 'action-line' ? '(suggested)' : ''}
+                  {wf.label} {wf.value === 'hollywood-standard' ? '(suggested)' : ''}
                 </button>
               </li>
             ))}
@@ -173,7 +173,7 @@ interface ShotConfigurationPanelProps {
   // Dialogue workflow selection (per-shot) - NEW: Unified dropdown
   selectedDialogueQuality?: DialogueQuality; // 'premium' or 'reliable'
   selectedDialogueWorkflow?: DialogueWorkflowType; // Selected workflow for this shot (overrides auto-detection)
-  selectedBaseWorkflow?: string; // For voiceover workflows (e.g., 'action-line', 'reality-to-toon')
+  selectedBaseWorkflow?: string; // For voiceover workflows (e.g., 'hollywood-standard', 'reality-to-toon')
   onDialogueQualityChange?: (shotSlot: number, quality: DialogueQuality) => void;
   onDialogueWorkflowChange?: (shotSlot: number, workflowType: DialogueWorkflowType) => void;
   onBaseWorkflowChange?: (shotSlot: number, baseWorkflow: string) => void; // For voiceover workflows
@@ -484,7 +484,7 @@ export function ShotConfigurationPanel({
   // Helper function to get workflow label
   const getWorkflowLabel = (workflow: string) => {
     const labels: Record<string, string> = {
-      'action-line': 'Action Line',
+      'hollywood-standard': 'Hollywood Standard',
       'action-director': 'Action Director',
       'reality-to-toon': 'Reality to Toon',
       'anime-master': 'Anime Master',
@@ -505,8 +505,8 @@ export function ShotConfigurationPanel({
   // All available workflows for override dropdown (action shots only)
   const ACTION_WORKFLOWS = [
     { 
-      value: 'action-line', 
-      label: 'Action Line',
+      value: 'hollywood-standard', 
+      label: 'Hollywood Standard',
       description: 'Standard action shots with realistic motion and natural character movement. Best for everyday scenes, conversations, and straightforward actions.'
     },
     { 
@@ -1238,7 +1238,7 @@ export function ShotConfigurationPanel({
 
           {/* Base Workflow Dropdown */}
           <BaseWorkflowSelector
-            value={selectedBaseWorkflow || 'action-line'}
+            value={selectedBaseWorkflow || 'hollywood-standard'}
             workflows={ACTION_WORKFLOWS}
             getWorkflowLabel={getWorkflowLabel}
             shotWorkflowOverride={shotWorkflowOverride}

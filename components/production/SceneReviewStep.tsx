@@ -246,7 +246,7 @@ export function SceneReviewStep({
       'extreme-closeup-mouth': 'Extreme Close-Up (Mouth)',
       'off-frame-voiceover': 'Hidden Mouth Dialogue',
       'scene-voiceover': 'Narrate Shot',
-      'action-line': 'Action Line',
+      'hollywood-standard': 'Hollywood Standard',
       'action-director': 'Action Director',
       'reality-to-toon': 'Reality to Toon',
       'anime-master': 'Anime Master',
@@ -272,7 +272,7 @@ export function SceneReviewStep({
     { value: 'off-frame-voiceover', label: 'Hidden Mouth Dialogue', category: 'dialogue' },
     { value: 'scene-voiceover', label: 'Narrate Shot', category: 'dialogue' },
     // Action workflows
-    { value: 'action-line', label: 'Action Line', category: 'action' },
+    { value: 'hollywood-standard', label: 'Hollywood Standard', category: 'action' },
     { value: 'action-director', label: 'Action Director', category: 'action' },
     { value: 'reality-to-toon', label: 'Reality to Toon', category: 'action' },
     { value: 'anime-master', label: 'Anime Master', category: 'action' },
@@ -411,7 +411,7 @@ export function SceneReviewStep({
 
                     {/* Workflow - Display only (no override in review step) */}
                     <div className="text-[10px] text-[#808080]">
-                      Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'action-line')}</span>
+                      Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'hollywood-standard')}</span>
                       {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
                         <span className="text-[#DC143C] ml-2">
                           (Override: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])})
