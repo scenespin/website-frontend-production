@@ -1018,12 +1018,15 @@ export default function CharacterDetailSidebar({
                   createdAt: new Date().toISOString()
                 }));
             
-            // 🔥 FIX: Filter out Production Hub images (pose-generation) from Creation section
+            // 🔥 FIX: Filter out Production Hub images (pose-generation and user-uploaded) from Creation section
             // Creation section should only show Creation images
-            // Production Hub images have source='pose-generation'
-            const userUploadedImages = allImages.filter(img => 
-              (img.metadata as any)?.source !== 'pose-generation'
-            );
+            // Production Hub images have source='pose-generation' OR createdIn='production-hub'
+            const userUploadedImages = allImages.filter(img => {
+              const metadata = img.metadata as any;
+              // Exclude Production Hub images (both pose-generation and user-uploaded)
+              return metadata?.source !== 'pose-generation' && 
+                     metadata?.createdIn !== 'production-hub';
+            });
             const aiGeneratedImages = allImages.filter(img => {
               const metadata = img.metadata || {};
               // Only show AI-generated images that are NOT Production Hub pose images
