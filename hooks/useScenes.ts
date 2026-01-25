@@ -219,6 +219,8 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
       if (!sceneId || !sceneNumber) {
         console.warn(`[useSceneVideos] ⚠️ Skipping file (missing sceneId or sceneNumber):`, {
           fileName: file.fileName,
+          fileId: file.id,
+          s3Key: file.s3Key,
           sceneId,
           sceneNumber,
           metadata: {
@@ -228,7 +230,8 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
             shotNumber: metadata.shotNumber,
             sceneName: metadata.sceneName,
             allMetadataKeys: Object.keys(metadata)
-          }
+          },
+          topLevelKeys: Object.keys(file)
         });
         continue;
       }
@@ -293,10 +296,16 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
             fileName: file.fileName,
             fileId: file.id,
             existingFileId: existingShot.video.id,
+            existingFileName: existingShot.video.fileName,
+            existingS3Key: existingShot.video.s3Key?.substring(0, 50),
+            newS3Key: file.s3Key?.substring(0, 50),
             sceneId,
             sceneNumber,
             shotNumber,
-            timestamp
+            timestamp,
+            existingTimestamp: existingShot.timestamp,
+            matchReason: existingShot.video.id === file.id ? 'same-file-id' : 'same-shot-timestamp-s3key',
+            totalShotsForThisShotNumber: scene.videos.shots.filter(s => s.shotNumber === shotNumber).length
           });
         }
       } else {
@@ -365,7 +374,9 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
         return {
           shotNumber: shotNum,
           variationCount: variations.length,
-          timestamps: variations.map(v => v.timestamp).filter(Boolean)
+          timestamps: variations.map(v => v.timestamp).filter(Boolean),
+          fileIds: variations.map(v => v.video.id),
+          fileNames: variations.map(v => v.video.fileName)
         };
       });
       return {
@@ -373,7 +384,9 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
         sceneId: s.sceneId,
         totalShots: shots.length,
         uniqueShotNumbers: uniqueShotNumbers.size,
-        variationsByShot
+        variationsByShot,
+        allFileIds: shots.map(shot => shot.video.id),
+        allFileNames: shots.map(shot => shot.video.fileName)
       };
     });
 
