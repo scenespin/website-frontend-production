@@ -1380,6 +1380,66 @@ export function ShotConfigurationPanel({
                 )}
               </div>
             )}
+
+            {/* 🔥 NEW: Additional Characters Section for Action Shots - allows manual character selection and reference selection */}
+            {shot.type === 'action' && onCharactersForShotChange && (
+              <div className="mt-4">
+                <div className="mb-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                  Add characters that will appear in this action shot. Select a character reference image for each character.
+                </div>
+                <div className="text-xs font-medium text-[#FFFFFF] mb-2">Characters</div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => {
+                    const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
+                    return (
+                      <div key={char.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            e.stopPropagation(); // Prevent event bubbling
+                            if (!onCharactersForShotChange) return;
+                            const current = selectedCharactersForShots[shot.slot] || [];
+                            const updated = e.target.checked
+                              ? [...current, char.id]
+                              : current.filter((id: string) => id !== char.id);
+                            onCharactersForShotChange(shot.slot, updated);
+                          }}
+                          onClick={(e) => e.stopPropagation()} // Also prevent click bubbling
+                          className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                          disabled={!onCharactersForShotChange} // Disable if handler not available
+                        />
+                        <span className="text-xs text-[#FFFFFF] flex-1">
+                          {char.name}
+                        </span>
+                        {isSelected && (
+                          <span className="text-[10px] text-[#DC143C]">✓</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
+                  <div className="mt-4 space-y-4">
+                    {selectedCharactersForShots[shot.slot].map((charId: string, index: number) => {
+                      const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
+                      if (!char) return null;
+                      const isLast = index === selectedCharactersForShots[shot.slot].length - 1;
+                      
+                      // 🔥 FIX: Wrap additional character controls + images with separator
+                      return (
+                        <div key={charId} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
+                          <div className="space-y-3">
+                            {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                            {renderCharacterImagesOnly(charId, shot.slot)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       )}
 
