@@ -287,7 +287,7 @@ function LLMModelSelector() {
   }, [isOpen]);
   
   // Memoize providers array to prevent new array reference on every render
-  const providers = useMemo(() => ['Anthropic', 'OpenAI', 'Google'], []);
+  const providers = useMemo(() => ['Anthropic', 'OpenAI', 'Google', 'xAI'], []);
   
   // Calculate max width needed for model names
   const maxModelNameLength = useMemo(() => {
