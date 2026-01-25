@@ -57,7 +57,7 @@ export async function prefetchVideo(
       throw new Error('Response body is not readable');
     }
 
-    const chunks: Uint8Array[] = [];
+    const chunks: BlobPart[] = [];
     let received = 0;
 
     while (true) {
