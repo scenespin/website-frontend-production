@@ -30,6 +30,44 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
   const { data: scenes = [], isLoading: scenesLoading } = useScenes(screenplayId || '', !!screenplayId);
   const { data: sceneVideos = [], isLoading: videosLoading } = useSceneVideos(screenplayId || '', !!screenplayId);
 
+  // 🔥 DEBUG: Log data for troubleshooting
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Always expose debug function (even if data not loaded yet)
+      (window as any).debugStoryboard = () => {
+        console.log('=== STORYBOARD DEBUG ===');
+        console.log('Screenplay ID:', screenplayId);
+        console.log('Scenes:', scenes);
+        console.log('Scene Videos:', sceneVideos);
+        console.log('Scenes with videos:', sceneVideos.filter(sv => sv.videos.shots.length > 0));
+        console.log('Is Loading:', videosLoading || scenesLoading);
+        return { screenplayId, scenes, sceneVideos, isLoading: videosLoading || scenesLoading };
+      };
+    }
+    
+    if (!videosLoading && !scenesLoading && screenplayId) {
+      console.log('[ScenesPanel] 📊 Storyboard Data:', {
+        screenplayId,
+        scenesCount: scenes.length,
+        sceneVideosCount: sceneVideos.length,
+        scenesWithVideos: sceneVideos.filter(sv => sv.videos.shots.length > 0).length,
+        sceneVideosDetails: sceneVideos.map(sv => ({
+          sceneId: sv.sceneId,
+          sceneNumber: sv.sceneNumber,
+          sceneHeading: sv.sceneHeading,
+          shotsCount: sv.videos.shots.length,
+          shots: sv.videos.shots.map(s => ({
+            shotNumber: s.shotNumber,
+            fileName: s.video.fileName,
+            hasS3Key: !!s.video.s3Key,
+            metadata: s.metadata
+          }))
+        }))
+      });
+      console.log('[ScenesPanel] 🔧 Debug function available: window.debugStoryboard()');
+    }
+  }, [screenplayId, scenes, sceneVideos, videosLoading, scenesLoading]);
+
   // Merge scene data with video data
   const scenesWithVideos = useMemo(() => {
     const sceneMap = new Map<number, any>();

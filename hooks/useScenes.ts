@@ -68,12 +68,19 @@ export function useScenes(screenplayId: string, enabled: boolean = true) {
  * Groups videos by scene and organizes by timestamp
  */
 export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
-  const { data: allFiles = [], isLoading: filesLoading } = useMediaFiles(screenplayId, undefined, enabled);
+  // 🔥 FIX: Include files from all folders (videos are organized in scene folders)
+  // Without includeAllFolders, the API filters out files with folderId, which excludes all scene videos
+  const { data: allFiles = [], isLoading: filesLoading } = useMediaFiles(screenplayId, undefined, enabled, true);
   const { data: folderTree = [], isLoading: foldersLoading } = useMediaFolderTree(screenplayId, enabled);
 
   // Organize files by scene
   const sceneVideos = React.useMemo(() => {
-    if (!allFiles.length) return [];
+    if (!allFiles.length) {
+      console.log('[useSceneVideos] 🔍 No files found in media library');
+      return [];
+    }
+
+    console.log(`[useSceneVideos] 🔍 Processing ${allFiles.length} files from media library`);
 
     const sceneMap = new Map<string, SceneVideo>();
 
@@ -86,9 +93,38 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
                       file.fileType === 'video' || 
                       (typeof file.fileType === 'string' && file.fileType.startsWith('video/'));
       const isFullScene = metadata.isFullScene === true;
+      
+      // 🔥 DEBUG: Log why files are filtered out
+      if (!isSceneFile) {
+        console.log(`[useSceneVideos] ⚠️ File filtered out (not scene file):`, {
+          fileName: file.fileName,
+          entityType: metadata.entityType,
+          sceneId: metadata.sceneId,
+          hasEntityType: !!metadata.entityType,
+          hasSceneId: !!metadata.sceneId,
+          metadataKeys: Object.keys(metadata)
+        });
+      } else if (!isVideo) {
+        console.log(`[useSceneVideos] ⚠️ File filtered out (not video):`, {
+          fileName: file.fileName,
+          fileType: file.fileType,
+          mediaFileType: (file as any).mediaFileType,
+          isVideo: isVideo
+        });
+      } else if (metadata.isMetadata || metadata.isFirstFrame || isFullScene) {
+        console.log(`[useSceneVideos] ⚠️ File filtered out (metadata/firstFrame/fullScene):`, {
+          fileName: file.fileName,
+          isMetadata: metadata.isMetadata,
+          isFirstFrame: metadata.isFirstFrame,
+          isFullScene: isFullScene
+        });
+      }
+      
       // Include individual shot videos only, exclude metadata files, first frames, and full stitched scenes
       return isSceneFile && isVideo && !metadata.isMetadata && !metadata.isFirstFrame && !isFullScene;
     });
+
+    console.log(`[useSceneVideos] ✅ Filtered to ${sceneFiles.length} scene video files (from ${allFiles.length} total)`);
 
     // Group by scene
     for (const file of sceneFiles) {
@@ -100,7 +136,34 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
       const isFullScene = metadata.isFullScene === true;
       const timestamp = metadata.timestamp;
 
-      if (!sceneId || !sceneNumber) continue;
+      // 🔥 DEBUG: Log files missing required metadata
+      if (!sceneId || !sceneNumber) {
+        console.warn(`[useSceneVideos] ⚠️ Skipping file (missing sceneId or sceneNumber):`, {
+          fileName: file.fileName,
+          sceneId,
+          sceneNumber,
+          metadata: {
+            entityType: metadata.entityType,
+            sceneId: metadata.sceneId,
+            sceneNumber: metadata.sceneNumber,
+            shotNumber: metadata.shotNumber,
+            sceneName: metadata.sceneName,
+            allMetadataKeys: Object.keys(metadata)
+          }
+        });
+        continue;
+      }
+      
+      // 🔥 DEBUG: Log files missing shotNumber
+      if (!shotNumber) {
+        console.warn(`[useSceneVideos] ⚠️ File missing shotNumber (will be skipped):`, {
+          fileName: file.fileName,
+          sceneId,
+          sceneNumber,
+          shotNumber,
+          metadataKeys: Object.keys(metadata)
+        });
+      }
 
       const key = `${sceneId}-${sceneNumber}`;
       if (!sceneMap.has(key)) {
@@ -146,7 +209,21 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
     }
 
     // Convert to array and sort by scene number
-    return Array.from(sceneMap.values()).sort((a, b) => a.sceneNumber - b.sceneNumber);
+    const result = Array.from(sceneMap.values()).sort((a, b) => a.sceneNumber - b.sceneNumber);
+    
+    console.log(`[useSceneVideos] 📊 Final result:`, {
+      totalScenes: result.length,
+      scenesWithVideos: result.filter(s => s.videos.shots.length > 0).length,
+      totalShots: result.reduce((sum, s) => sum + s.videos.shots.length, 0),
+      sceneDetails: result.map(s => ({
+        sceneNumber: s.sceneNumber,
+        sceneId: s.sceneId,
+        shotsCount: s.videos.shots.length,
+        shotNumbers: s.videos.shots.map(shot => shot.shotNumber)
+      }))
+    });
+    
+    return result;
   }, [allFiles]);
 
   return {
