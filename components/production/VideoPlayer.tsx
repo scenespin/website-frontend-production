@@ -166,21 +166,36 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
             break;
           case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = 'Video format not supported';
-            errorDetails = 'Your browser does not support this video format. Supported formats: MP4 (H.264), WebM, MOV.';
+            // Try to detect file type from URL
+            const urlLower = src.toLowerCase();
+            const fileExtension = urlLower.match(/\.(mp4|mov|webm|mkv|avi|m4v)(\?|$)/)?.[1] || 'unknown';
+            errorDetails = `Your browser does not support this video format. File extension: ${fileExtension}. Supported formats: MP4 (H.264), WebM, MOV. The file may be corrupted or use an unsupported codec.`;
             break;
         }
       }
+      
+      // Extract file info from URL for better diagnostics
+      const urlMatch = src.match(/([^\/\?]+\.(mp4|mov|webm|mkv|avi|m4v))(\?|$)/i);
+      const fileName = urlMatch ? urlMatch[1] : 'unknown';
+      const detectedExtension = urlMatch ? urlMatch[2] : 'unknown';
       
       // Log detailed error information for debugging
       console.warn('[VideoPlayer] Video error details:', {
         errorCode: video.error?.code,
         errorMessage,
         errorDetails,
-        videoSrc: src.substring(0, 100),
+        videoSrc: src.substring(0, 150),
+        fileName,
+        detectedExtension,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
         readyState: video.readyState,
-        networkState: video.networkState
+        networkState: video.networkState,
+        canPlayType: {
+          'video/mp4': video.canPlayType('video/mp4'),
+          'video/webm': video.canPlayType('video/webm'),
+          'video/quicktime': video.canPlayType('video/quicktime'),
+        }
       });
       
       // Only call onError if it exists, and handle it safely

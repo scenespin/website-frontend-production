@@ -422,8 +422,16 @@ export function ScenePlaylistPlayer({
                       updated[currentIndex] = { ...updated[currentIndex], hasError: true };
                       return updated;
                     });
+                    
+                    // More helpful error message based on error type
+                    const errorMessage = error.message || 'Unable to play this video';
+                    const isFormatError = errorMessage.includes('format not supported');
+                    
                     toast.error('Video playback error', {
-                      description: error.message || 'Unable to play this video'
+                      description: isFormatError 
+                        ? 'This video format may not be supported by your browser. Try downloading the file or contact support.'
+                        : errorMessage,
+                      duration: 6000
                     });
                   }}
                 />
