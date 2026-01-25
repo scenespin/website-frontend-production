@@ -11,6 +11,7 @@
 import React, { useMemo, useState } from 'react';
 import { Check, Package } from 'lucide-react';
 import { getAvailablePropImagesByGroup, type AvailableImage } from './utils/propImageUtils';
+import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_ASPECT_RATIO, THUMBNAIL_STYLE } from './utils/imageConstants';
 
 interface PropImageSelectorProps {
   propId: string;
@@ -157,7 +158,7 @@ export function PropImageSelector({
               {currentGroup}
             </div>
           )}
-          <div className="grid grid-cols-4 gap-2">
+          <div className={`grid ${SCENE_BUILDER_GRID_COLS} ${SCENE_BUILDER_GRID_GAP}`}>
             {currentGroupImages.map((image) => {
               const isSelected = selectedImageId === image.id;
               const imageUrl = resolveImageUrl(image);
@@ -167,7 +168,7 @@ export function PropImageSelector({
                   key={image.id}
                   type="button"
                   onClick={() => handleImageSelect(image.id)}
-                  className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                  className={`relative ${THUMBNAIL_ASPECT_RATIO} rounded-lg overflow-hidden border-2 transition-all ${
                     isSelected
                       ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                       : 'border-[#3F3F46] hover:border-[#DC143C]/50'
@@ -178,6 +179,7 @@ export function PropImageSelector({
                       src={imageUrl}
                       alt={image.label || propName}
                       className="w-full h-full object-cover"
+                      style={THUMBNAIL_STYLE}
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}

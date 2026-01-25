@@ -11,6 +11,7 @@ import React from 'react';
 import { Check, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { resolveImageUrl, isValidImageUrl } from './utils/imageUrlResolver';
+import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_STYLE } from './utils/imageConstants';
 
 interface LocationAngleSelectorProps {
   locationId: string;
@@ -599,7 +600,7 @@ export function LocationAngleSelector({
   // Image grid section (right side) - bigger thumbnails
   // Shows both angles AND backgrounds from selected metadata group
   const imageGridSection = !optOut ? (
-    <div className="grid grid-cols-4 gap-2">
+    <div className={`grid ${SCENE_BUILDER_GRID_COLS} ${SCENE_BUILDER_GRID_GAP}`}>
       {allPhotos.map((photo, idx) => {
         const selected = isSelected(photo);
         const isRec = isRecommended(photo);
@@ -671,10 +672,7 @@ export function LocationAngleSelector({
                     src={displayUrl}
                     alt={photo.label}
                     className="w-full h-full object-cover"
-                    style={{
-                      maxWidth: '640px',
-                      maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
-                    }}
+                    style={THUMBNAIL_STYLE}
                     loading="eager"
                     onError={(e) => {
                       // 🔥 Feature 0200: Only try full image if thumbnail failed - don't fall back to expired photo.imageUrl

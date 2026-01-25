@@ -85,6 +85,7 @@ import { categorizeCharacters } from './utils/characterCategorization';
 import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
 import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
+import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_STYLE } from './utils/imageConstants';
 import {
   getFullShotText,
   actionShotHasExplicitCharacter,
@@ -3912,7 +3913,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                             Outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
                           </div>
                         )}
-                        <div className="grid grid-cols-6 gap-1.5">
+                        <div className={`grid ${SCENE_BUILDER_GRID_COLS} ${SCENE_BUILDER_GRID_GAP}`}>
                           {headshots.map((headshot: any, idx: number) => {
                             const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
                             const isSelected = selectedHeadshot && (
@@ -3997,10 +3998,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                                     src={displayUrl}
                                     alt={headshot.label || `Headshot ${idx + 1}`}
                                     className="w-full h-full object-cover"
-                                    style={{
-                                      maxWidth: '640px',
-                                      maxHeight: '360px' // 16:9 aspect ratio (640/1.777 = 360)
-                                    }}
+                                    style={THUMBNAIL_STYLE}
                                     loading="lazy"
                                     onError={(e) => {
                                       // 🔥 Feature 0200: Only try full image if thumbnail failed - don't fall back to expired headshot.imageUrl
