@@ -149,10 +149,10 @@ export function useMediaFiles(
       }));
     },
     enabled: enabled && !!screenplayId,
-    staleTime: 10 * 1000, // 10 seconds - reduced to catch new videos faster
+    staleTime: 5 * 1000, // 5 seconds - reduced further to catch new videos faster
     gcTime: 5 * 60 * 1000,
-    refetchInterval: 15 * 1000, // 🔥 FIX: Auto-refetch every 15 seconds to catch new videos
-    refetchIntervalInBackground: false, // Only refetch when tab is active // 5 minutes
+    refetchInterval: 10 * 1000, // Auto-refetch every 10 seconds to catch new videos faster
+    refetchIntervalInBackground: false, // Only refetch when tab is active
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
