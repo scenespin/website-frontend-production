@@ -107,8 +107,19 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
       }
     });
 
-    return Array.from(sceneMap.values())
+    const result = Array.from(sceneMap.values())
       .sort((a, b) => a.number - b.number);
+    
+    // 🔥 DEBUG: Log merged scenes
+    console.log('[ScenesPanel] 🔍 Merged scenes:', {
+      totalScenes: scenes.length,
+      totalSceneVideos: sceneVideos.length,
+      mergedCount: result.length,
+      sceneNumbers: result.map(s => s.number),
+      scenesWithVideos: result.filter(s => s.videos?.shots?.length > 0).length
+    });
+    
+    return result;
   }, [scenes, sceneVideos]);
 
   // Collect all S3 keys for bulk presigned URL generation
@@ -183,18 +194,26 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
       ) : (
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 space-y-4 md:space-y-5">
-            {scenesWithVideos.map((scene) => (
-              <SceneCard
-                key={scene.id || scene.number}
-                scene={scene}
-                presignedUrls={presignedUrls as Map<string, string> | undefined}
-                screenplayId={screenplayId}
-                onViewMetadata={(metadata) => {
-                  setSelectedMetadata(metadata);
-                  setShowMetadataModal(true);
-                }}
-              />
-            ))}
+            {(() => {
+              // 🔥 DEBUG: Log what's being rendered
+              console.log('[ScenesPanel] 🎬 Rendering scenes:', {
+                totalToRender: scenesWithVideos.length,
+                sceneNumbers: scenesWithVideos.map(s => s.number),
+                scenesWithVideosCount: scenesWithVideos.filter(s => s.videos?.shots?.length > 0).length
+              });
+              return scenesWithVideos.map((scene) => (
+                <SceneCard
+                  key={scene.id || scene.number}
+                  scene={scene}
+                  presignedUrls={presignedUrls as Map<string, string> | undefined}
+                  screenplayId={screenplayId}
+                  onViewMetadata={(metadata) => {
+                    setSelectedMetadata(metadata);
+                    setShowMetadataModal(true);
+                  }}
+                />
+              ));
+            })()}
           </div>
         </div>
       )}
