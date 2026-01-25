@@ -269,12 +269,19 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
       
       if (shotNumber !== undefined && shotNumber !== null) {
         // Individual shot
-        // 🔥 FIX: Check for duplicate by file ID (not just shotNumber + timestamp)
-        // This ensures all variations are shown, even if they have the same timestamp
-        const existingShot = scene.videos.shots.find(s => 
-          s.video.id === file.id || 
-          (s.shotNumber === shotNumber && s.timestamp === timestamp && s.video.s3Key === file.s3Key)
-        );
+        // 🔥 CRITICAL: Deduplication logic - only skip if it's the EXACT same file
+        // We check by file.id first (most reliable), then by shotNumber + timestamp + s3Key
+        // This ensures all unique variations are shown, even if they have the same timestamp
+        const existingShotById = scene.videos.shots.find(s => s.video.id === file.id);
+        const existingShotByKey = !existingShotById && file.s3Key 
+          ? scene.videos.shots.find(s => 
+              s.shotNumber === shotNumber && 
+              s.timestamp === timestamp && 
+              s.video.s3Key === file.s3Key
+            )
+          : null;
+        const existingShot = existingShotById || existingShotByKey;
+        
         if (!existingShot) {
           scene.videos.shots.push({
             shotNumber,
@@ -289,7 +296,9 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
             sceneNumber,
             shotNumber,
             timestamp,
-            totalShotsForThisShotNumber: scene.videos.shots.filter(s => s.shotNumber === shotNumber).length + 1
+            s3Key: file.s3Key?.substring(0, 50),
+            totalShotsForThisShotNumber: scene.videos.shots.filter(s => s.shotNumber === shotNumber).length,
+            totalShotsInScene: scene.videos.shots.length
           });
         } else {
           console.log(`[useSceneVideos] ⚠️ Skipping duplicate shot ${shotNumber}`, {
@@ -304,8 +313,9 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
             shotNumber,
             timestamp,
             existingTimestamp: existingShot.timestamp,
-            matchReason: existingShot.video.id === file.id ? 'same-file-id' : 'same-shot-timestamp-s3key',
-            totalShotsForThisShotNumber: scene.videos.shots.filter(s => s.shotNumber === shotNumber).length
+            matchReason: existingShotById ? 'same-file-id' : 'same-shot-timestamp-s3key',
+            totalShotsForThisShotNumber: scene.videos.shots.filter(s => s.shotNumber === shotNumber).length,
+            totalShotsInScene: scene.videos.shots.length
           });
         }
       } else {

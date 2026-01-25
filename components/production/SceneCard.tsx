@@ -147,10 +147,28 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
                   Individual Shots
                 </h4>
               </div>
+              {(() => {
+                // 🔥 DEBUG: Log what shots are being rendered
+                console.log(`[SceneCard] 🎬 Rendering scene ${scene.number}:`, {
+                  sceneId: scene.id,
+                  sceneNumber: scene.number,
+                  totalShots: scene.videos.shots.length,
+                  shots: scene.videos.shots.map((shot, idx) => ({
+                    index: idx,
+                    shotNumber: shot.shotNumber,
+                    fileId: shot.video.id,
+                    fileName: shot.video.fileName,
+                    timestamp: shot.timestamp,
+                    s3Key: shot.video.s3Key?.substring(0, 50),
+                    hasPresignedUrl: !!getPresignedUrl(shot.video.s3Key)
+                  }))
+                });
+                return null;
+              })()}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {scene.videos.shots.map((shot, index) => (
                   <ShotThumbnail
-                    key={`${shot.shotNumber}-${shot.timestamp || index}`}
+                    key={`${shot.video.id}-${shot.shotNumber}-${shot.timestamp || index}`}
                     shot={shot}
                     presignedUrl={getPresignedUrl(shot.video.s3Key)}
                     onDownload={() => handleDownload(

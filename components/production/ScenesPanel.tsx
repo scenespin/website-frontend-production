@@ -200,11 +200,24 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 space-y-4 md:space-y-5">
             {(() => {
-              // 🔥 DEBUG: Log what's being rendered
+              // 🔥 DEBUG: Log what's being rendered with detailed shot counts
               console.log('[ScenesPanel] 🎬 Rendering scenes:', {
                 totalToRender: scenesWithVideos.length,
                 sceneNumbers: scenesWithVideos.map(s => s.number),
-                scenesWithVideosCount: scenesWithVideos.filter(s => s.videos?.shots?.length > 0).length
+                scenesWithVideosCount: scenesWithVideos.filter(s => s.videos?.shots?.length > 0).length,
+                detailedSceneData: scenesWithVideos.map(s => ({
+                  sceneNumber: s.number,
+                  sceneId: s.id,
+                  heading: s.heading,
+                  shotsCount: s.videos?.shots?.length || 0,
+                  shots: s.videos?.shots?.map(shot => ({
+                    shotNumber: shot.shotNumber,
+                    fileId: shot.video.id,
+                    fileName: shot.video.fileName,
+                    timestamp: shot.timestamp,
+                    s3Key: shot.video.s3Key?.substring(0, 50)
+                  })) || []
+                }))
               });
               return scenesWithVideos.map((scene) => (
                 <SceneCard
