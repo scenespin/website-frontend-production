@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch each asset individually (since backend doesn't have bulk fetch)
     // Handle 404s gracefully - some assets might not exist
+    // 🔥 FIX: Return tuples with assetId to preserve input order
     const assetPromises = assetIds.map(async (assetId) => {
       try {
         const backendHeaders: Record<string, string> = {
@@ -76,23 +77,37 @@ export async function GET(request: NextRequest) {
         if (!response.ok) {
           if (response.status === 404) {
             console.warn(`[Assets API] Asset not found: ${assetId}`);
-            return null; // Asset doesn't exist, skip it
+            return { id: assetId, asset: null }; // Return tuple with null asset
           }
           throw new Error(`Failed to fetch asset ${assetId}: ${response.statusText}`);
         }
 
         const data = await response.json();
-        return data.asset || data; // Backend might return { asset: {...} } or just the asset
+        const asset = data.asset || data; // Backend might return { asset: {...} } or just the asset
+        return { id: assetId, asset }; // Return tuple with asset
       } catch (error: any) {
         console.error(`[Assets API] Error fetching asset ${assetId}:`, error.message);
-        return null; // Skip failed assets
+        return { id: assetId, asset: null }; // Return tuple with null asset
       }
     });
 
-    // Wait for all requests and filter out nulls (missing assets)
-    const assets = (await Promise.all(assetPromises)).filter((asset): asset is any => asset !== null);
+    // Wait for all requests (results may be in any order due to parallel execution)
+    const results = await Promise.all(assetPromises);
+    
+    // 🔥 FIX: Create a Map for O(1) lookup, then map results back to input order
+    const assetMap = new Map<string, any>();
+    results.forEach(({ id, asset }) => {
+      if (asset !== null) {
+        assetMap.set(id, asset);
+      }
+    });
+    
+    // Map original assetIds array to preserve input order, filter out missing assets
+    const assets = assetIds
+      .map(id => assetMap.get(id))
+      .filter((asset): asset is any => asset !== undefined);
 
-    // Return as array (matching expected format)
+    // Return as array (matching expected format, in input order)
     return NextResponse.json(assets);
 
   } catch (error: any) {
