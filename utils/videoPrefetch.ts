@@ -91,34 +91,53 @@ export async function prefetchVideo(
 
 /**
  * Check if browser supports the video format
+ * Tests multiple codec variants for better compatibility detection
  */
-export function canPlayVideoFormat(url: string): { supported: boolean; format: string } {
+export function canPlayVideoFormat(url: string): { supported: boolean; format: string; codecSupport: Record<string, string> } {
   const video = document.createElement('video');
   
   // Detect format from URL
   const urlLower = url.toLowerCase();
   let format = 'unknown';
-  let mimeType = '';
+  const codecTests: Record<string, string> = {};
 
   if (urlLower.includes('.mp4') || urlLower.includes('video/mp4')) {
     format = 'mp4';
-    mimeType = 'video/mp4; codecs="avc1.42E01E"'; // H.264 baseline
+    // Test multiple H.264 variants
+    codecTests['H.264 Baseline'] = 'video/mp4; codecs="avc1.42E01E"';
+    codecTests['H.264 Main'] = 'video/mp4; codecs="avc1.4D401E"';
+    codecTests['H.264 High'] = 'video/mp4; codecs="avc1.640028"';
+    codecTests['H.264 Generic'] = 'video/mp4; codecs="avc1"';
+    codecTests['MP4 Generic'] = 'video/mp4';
+    // Also test H.265/HEVC (some videos might use this)
+    codecTests['H.265/HEVC'] = 'video/mp4; codecs="hev1.1.6.L93.B0"';
   } else if (urlLower.includes('.webm') || urlLower.includes('video/webm')) {
     format = 'webm';
-    mimeType = 'video/webm; codecs="vp8, vorbis"';
+    codecTests['VP8'] = 'video/webm; codecs="vp8, vorbis"';
+    codecTests['VP9'] = 'video/webm; codecs="vp9, opus"';
+    codecTests['WebM Generic'] = 'video/webm';
   } else if (urlLower.includes('.mov') || urlLower.includes('video/quicktime')) {
     format = 'mov';
-    mimeType = 'video/quicktime';
+    codecTests['QuickTime'] = 'video/quicktime';
+    codecTests['H.264 in MOV'] = 'video/quicktime; codecs="avc1"';
   } else if (urlLower.includes('.mkv')) {
     format = 'mkv';
-    mimeType = 'video/x-matroska';
+    codecTests['Matroska'] = 'video/x-matroska';
   }
 
-  // Check if browser can play this format
-  const canPlay = mimeType ? video.canPlayType(mimeType) : 'maybe';
-  const supported = canPlay === 'probably' || canPlay === 'maybe';
+  // Test all codec variants
+  const codecSupport: Record<string, string> = {};
+  let anySupported = false;
 
-  return { supported, format };
+  for (const [name, mimeType] of Object.entries(codecTests)) {
+    const canPlay = video.canPlayType(mimeType);
+    codecSupport[name] = canPlay;
+    if (canPlay === 'probably' || canPlay === 'maybe') {
+      anySupported = true;
+    }
+  }
+
+  return { supported: anySupported, format, codecSupport };
 }
 
 /**

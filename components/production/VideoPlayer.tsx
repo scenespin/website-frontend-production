@@ -76,16 +76,22 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   useEffect(() => {
     if (!src) return;
     
-    const { supported, format } = canPlayVideoFormat(src);
+    const { supported, format, codecSupport } = canPlayVideoFormat(src);
     setCodecSupported(supported);
     
+    console.log('[VideoPlayer] Codec detection:', {
+      url: src.substring(0, 100),
+      format,
+      supported,
+      codecSupport
+    });
+    
     if (!supported) {
-      console.warn('[VideoPlayer] Codec may not be supported:', format);
-      if (onError) {
-        onError(new Error(`Video format ${format} may not be supported by your browser`));
-      }
+      console.warn('[VideoPlayer] Codec may not be supported:', format, codecSupport);
+      // Don't call onError here - let the video element try to load first
+      // The actual error will come from the video element if it truly can't play
     }
-  }, [src, onError]);
+  }, [src]);
 
   // Prefetch video to Blob URL (fixes CORS/format issues)
   useEffect(() => {
@@ -110,17 +116,17 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       timeout: 30000,
     })
       .then((blob) => {
+        console.log('[VideoPlayer] Prefetch successful, using Blob URL:', blob.substring(0, 50));
         currentBlobUrl = blob;
         setBlobUrl(blob);
         setIsPrefetching(false);
       })
       .catch((error) => {
-        console.error('[VideoPlayer] Prefetch failed, using original URL:', error);
+        console.warn('[VideoPlayer] Prefetch failed, falling back to original URL:', error.message);
         setIsPrefetching(false);
         setBlobUrl(null); // Fallback to original URL
-        if (onError) {
-          onError(new Error(`Failed to prefetch video: ${error.message}`));
-        }
+        // Don't call onError here - let the video element try the original URL
+        // The error will come from the video element if it truly can't play
       });
 
     // Cleanup on unmount or src change
@@ -224,7 +230,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       }
     };
 
-    const handleError = (e: Event) => {
+      const handleError = (e: Event) => {
       setIsLoading(false);
       const video = videoRef.current;
       if (!video) return;
@@ -249,34 +255,47 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
           case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = 'Video format not supported';
             // Try to detect file type from URL
-            const urlLower = src.toLowerCase();
+            const urlLower = videoSrc.toLowerCase();
             const fileExtension = urlLower.match(/\.(mp4|mov|webm|mkv|avi|m4v)(\?|$)/)?.[1] || 'unknown';
-            errorDetails = `Your browser does not support this video format. File extension: ${fileExtension}. Supported formats: MP4 (H.264), WebM, MOV. The file may be corrupted or use an unsupported codec.`;
+            const isBlobUrl = videoSrc.startsWith('blob:');
+            errorDetails = `Your browser does not support this video format. File extension: ${fileExtension}. ${isBlobUrl ? 'Using prefetched Blob URL.' : 'Using original presigned URL.'} The file may use an unsupported codec (e.g., H.265/HEVC). Supported: MP4 (H.264), WebM, MOV.`;
             break;
         }
       }
       
       // Extract file info from URL for better diagnostics
-      const urlMatch = src.match(/([^\/\?]+\.(mp4|mov|webm|mkv|avi|m4v))(\?|$)/i);
+      const urlMatch = videoSrc.match(/([^\/\?]+\.(mp4|mov|webm|mkv|avi|m4v))(\?|$)/i);
       const fileName = urlMatch ? urlMatch[1] : 'unknown';
       const detectedExtension = urlMatch ? urlMatch[2] : 'unknown';
+      
+      // Check codec support (use original src, not videoSrc, for detection)
+      const { supported, format, codecSupport } = canPlayVideoFormat(src);
       
       // Log detailed error information for debugging
       console.warn('[VideoPlayer] Video error details:', {
         errorCode: video.error?.code,
         errorMessage,
         errorDetails,
-        videoSrc: src.substring(0, 150),
+        videoSrc: videoSrc.substring(0, 150),
+        originalSrc: src.substring(0, 150),
+        isBlobUrl: videoSrc.startsWith('blob:'),
         fileName,
         detectedExtension,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
         readyState: video.readyState,
         networkState: video.networkState,
+        codecDetection: {
+          format,
+          supported,
+          codecSupport
+        },
         canPlayType: {
           'video/mp4': video.canPlayType('video/mp4'),
           'video/webm': video.canPlayType('video/webm'),
           'video/quicktime': video.canPlayType('video/quicktime'),
+          'H.264': video.canPlayType('video/mp4; codecs="avc1.42E01E"'),
+          'H.265': video.canPlayType('video/mp4; codecs="hev1.1.6.L93.B0"'),
         }
       });
       
@@ -308,7 +327,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('error', handleError);
     };
-  }, [trimStart, trimEnd, onTimeUpdate, onEnded, onError]);
+  }, [trimStart, trimEnd, onTimeUpdate, onEnded, onError, videoSrc, src]);
 
   // Keyboard shortcuts
   useEffect(() => {
