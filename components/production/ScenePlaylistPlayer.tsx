@@ -408,6 +408,11 @@ export function ScenePlaylistPlayer({
                   autoPlay={false}
                   trimStart={currentShot?.trimStart || 0}
                   trimEnd={currentShot?.trimEnd}
+                  enableTrimHandles={true}
+                  onTrimChange={(start, end) => {
+                    // Update trim points in playlist
+                    updateTrim(currentIndex, start, end);
+                  }}
                   onEnded={handleVideoEnd}
                   onTimeUpdate={(time) => {
                     // Handle trim end automatically

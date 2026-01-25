@@ -14,7 +14,8 @@
  */
 
 import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, GripVertical } from 'lucide-react';
+import { prefetchVideo, canPlayVideoFormat, revokeBlobUrl } from '@/utils/videoPrefetch';
 
 interface VideoPlayerProps {
   src: string;
@@ -27,6 +28,8 @@ interface VideoPlayerProps {
   onTimeUpdate?: (currentTime: number) => void;
   onEnded?: () => void;
   onError?: (error: Error) => void;
+  onTrimChange?: (start: number, end: number) => void; // Callback for trim changes
+  enableTrimHandles?: boolean; // Enable draggable trim handles
 }
 
 export interface VideoPlayerRef {
@@ -46,9 +49,12 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   onTimeUpdate,
   onEnded,
   onError,
+  onTrimChange,
+  enableTrimHandles = false,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -56,10 +62,86 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPrefetching, setIsPrefetching] = useState(false);
+  const [prefetchProgress, setPrefetchProgress] = useState(0);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [codecSupported, setCodecSupported] = useState<boolean | null>(null);
+  const [draggingTrim, setDraggingTrim] = useState<'start' | 'end' | null>(null);
 
   // Get effective duration (trimmed or full)
   const effectiveDuration = trimEnd && trimEnd > 0 ? trimEnd - trimStart : duration;
   const effectiveCurrentTime = Math.max(0, currentTime - trimStart);
+
+  // Check codec support before loading
+  useEffect(() => {
+    if (!src) return;
+    
+    const { supported, format } = canPlayVideoFormat(src);
+    setCodecSupported(supported);
+    
+    if (!supported) {
+      console.warn('[VideoPlayer] Codec may not be supported:', format);
+      if (onError) {
+        onError(new Error(`Video format ${format} may not be supported by your browser`));
+      }
+    }
+  }, [src, onError]);
+
+  // Prefetch video to Blob URL (fixes CORS/format issues)
+  useEffect(() => {
+    if (!src || src.startsWith('blob:')) {
+      // Already a blob URL or no src
+      return;
+    }
+
+    // Check if we should prefetch (only for presigned URLs or remote URLs)
+    const shouldPrefetch = src.includes('amazonaws.com') || src.includes('?') || src.startsWith('http');
+    
+    if (!shouldPrefetch) {
+      return;
+    }
+
+    let currentBlobUrl: string | null = null;
+    setIsPrefetching(true);
+    setPrefetchProgress(0);
+
+    prefetchVideo(src, {
+      onProgress: (progress) => setPrefetchProgress(progress),
+      timeout: 30000,
+    })
+      .then((blob) => {
+        currentBlobUrl = blob;
+        setBlobUrl(blob);
+        setIsPrefetching(false);
+      })
+      .catch((error) => {
+        console.error('[VideoPlayer] Prefetch failed, using original URL:', error);
+        setIsPrefetching(false);
+        setBlobUrl(null); // Fallback to original URL
+        if (onError) {
+          onError(new Error(`Failed to prefetch video: ${error.message}`));
+        }
+      });
+
+    // Cleanup on unmount or src change
+    return () => {
+      if (currentBlobUrl) {
+        revokeBlobUrl(currentBlobUrl);
+      }
+    };
+  }, [src, onError]);
+
+  // Use blob URL if available, otherwise use original src
+  const videoSrc = blobUrl || src;
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        revokeBlobUrl(blobUrl);
+      }
+    };
+  }, [blobUrl]);
 
   // Cleanup video when src changes to prevent memory leaks
   useEffect(() => {
@@ -83,7 +165,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         video.load();
       }
     };
-  }, [src]);
+  }, [videoSrc]);
 
   // Update video time when trim points change
   useEffect(() => {
@@ -421,7 +503,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     <div ref={containerRef} className={`relative bg-black rounded-lg overflow-hidden ${className}`}>
       <video
         ref={videoRef}
-        src={src}
+        src={videoSrc}
         className="w-full h-auto"
         autoPlay={autoPlay}
         loop={loop}
@@ -433,29 +515,112 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
       {/* Controls Overlay */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-        {/* Progress Bar */}
+        {/* Progress Bar with Trim Handles */}
         <div className="mb-3">
-          <div className="relative h-1 bg-white/20 rounded-full cursor-pointer" onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
-            const seekTime = trimStart + (percent * effectiveDuration);
-            seekTo(seekTime);
-          }}>
-            <div 
-              className="absolute top-0 left-0 h-full bg-[#DC143C] rounded-full transition-all"
-              style={{ width: `${(effectiveCurrentTime / effectiveDuration) * 100}%` }}
-            />
-            {/* Trim markers */}
-            {trimStart > 0 && (
+          <div 
+            ref={progressBarRef}
+            className="relative h-2 bg-white/20 rounded-full cursor-pointer"
+            onClick={(e) => {
+              if (draggingTrim) return; // Don't seek while dragging trim
+              const rect = e.currentTarget.getBoundingClientRect();
+              const percent = (e.clientX - rect.left) / rect.width;
+              const seekTime = trimStart + (percent * effectiveDuration);
+              seekTo(seekTime);
+            }}
+            onMouseMove={(e) => {
+              if (!draggingTrim || !progressBarRef.current || !duration) return;
+              
+              const rect = progressBarRef.current.getBoundingClientRect();
+              const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+              const newTime = percent * duration;
+              
+              if (draggingTrim === 'start') {
+                const currentEnd = trimEnd || duration;
+                const newStart = Math.max(0, Math.min(newTime, currentEnd - 0.1));
+                if (onTrimChange && Math.abs(newStart - (trimStart || 0)) > 0.05) {
+                  onTrimChange(newStart, currentEnd);
+                }
+              } else if (draggingTrim === 'end') {
+                const currentStart = trimStart || 0;
+                const newEnd = Math.max(currentStart + 0.1, Math.min(newTime, duration));
+                if (onTrimChange && Math.abs(newEnd - (trimEnd || duration)) > 0.05) {
+                  onTrimChange(currentStart, newEnd);
+                }
+              }
+            }}
+            onMouseUp={() => setDraggingTrim(null)}
+            onMouseLeave={() => setDraggingTrim(null)}
+          >
+            {/* Progress fill - shows current playback position within trimmed area */}
+            {duration > 0 && (
               <div 
-                className="absolute top-0 h-full w-0.5 bg-green-500"
-                style={{ left: '0%' }}
+                className="absolute top-0 left-0 h-full bg-[#DC143C] rounded-full transition-all"
+                style={{ 
+                  left: `${(trimStart / duration) * 100}%`,
+                  width: trimEnd 
+                    ? `${Math.min(((currentTime - trimStart) / (trimEnd - trimStart)) * 100, 100)}%`
+                    : `${(currentTime / duration) * 100}%`,
+                  maxWidth: trimEnd ? `${((trimEnd - trimStart) / duration) * 100}%` : '100%'
+                }}
               />
             )}
-            {trimEnd && trimEnd < duration && (
+            
+            {/* Trimmed area highlight */}
+            {trimStart > 0 && trimEnd && (
+              <div 
+                className="absolute top-0 h-full bg-green-500/30 rounded-full"
+                style={{ 
+                  left: `${(trimStart / duration) * 100}%`,
+                  width: `${((trimEnd - trimStart) / duration) * 100}%`
+                }}
+              />
+            )}
+            
+            {/* Trim Start Handle */}
+            {enableTrimHandles && trimStart > 0 && (
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform ${
+                  draggingTrim === 'start' ? 'scale-110 ring-2 ring-green-300' : ''
+                }`}
+                style={{ left: `calc(${(trimStart / duration) * 100}% - 8px)` }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setDraggingTrim('start');
+                }}
+                title={`Trim start: ${trimStart.toFixed(2)}s`}
+              >
+                <GripVertical className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+              </div>
+            )}
+            
+            {/* Trim End Handle */}
+            {enableTrimHandles && trimEnd && trimEnd < duration && (
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform ${
+                  draggingTrim === 'end' ? 'scale-110 ring-2 ring-red-300' : ''
+                }`}
+                style={{ left: `calc(${(trimEnd / duration) * 100}% - 8px)` }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setDraggingTrim('end');
+                }}
+                title={`Trim end: ${trimEnd.toFixed(2)}s`}
+              >
+                <GripVertical className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+              </div>
+            )}
+            
+            {/* Trim markers (non-draggable fallback) */}
+            {!enableTrimHandles && trimStart > 0 && (
+              <div 
+                className="absolute top-0 h-full w-0.5 bg-green-500"
+                style={{ left: `${(trimStart / duration) * 100}%` }}
+              />
+            )}
+            {!enableTrimHandles && trimEnd && trimEnd < duration && (
               <div 
                 className="absolute top-0 h-full w-0.5 bg-red-500"
-                style={{ left: `${((trimEnd - trimStart) / effectiveDuration) * 100}%` }}
+                style={{ left: `${(trimEnd / duration) * 100}%` }}
               />
             )}
           </div>
@@ -534,9 +699,27 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       </div>
 
       {/* Loading indicator */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+      {(isLoading || isPrefetching) && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-2"></div>
+          {isPrefetching && (
+            <div className="w-48 bg-white/20 rounded-full h-1">
+              <div 
+                className="bg-[#DC143C] h-1 rounded-full transition-all"
+                style={{ width: `${prefetchProgress * 100}%` }}
+              />
+            </div>
+          )}
+          {isPrefetching && (
+            <p className="text-white text-xs mt-2">Loading video... {Math.round(prefetchProgress * 100)}%</p>
+          )}
+        </div>
+      )}
+      
+      {/* Codec warning */}
+      {codecSupported === false && !isLoading && (
+        <div className="absolute top-2 right-2 bg-yellow-500/90 text-black text-xs px-2 py-1 rounded">
+          Format may not be supported
         </div>
       )}
     </div>
