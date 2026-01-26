@@ -423,7 +423,7 @@ export function PlaylistBuilderModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Build Playlist - Scene ${scene.number}`}
-      maxWidth="6xl"
+      maxWidth="4xl"
       variant="dark"
     >
       <div className="flex flex-col h-[calc(90vh-100px)]">
