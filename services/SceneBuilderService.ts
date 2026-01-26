@@ -7,6 +7,7 @@
 
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
+import { VideoType } from '@/contexts/SceneBuilderContext';
 
 export interface ScenePropsResponse {
   id: string;
@@ -729,7 +730,7 @@ export class SceneBuilderService {
     shotDurations?: Record<number, 'quick-cut' | 'extended-take'>,
     getTokenFn?: (options: { template: string }) => Promise<string | null>,
     referenceShotModels?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>,
-    videoTypes?: Record<number, 'cinematic-visuals' | 'natural-motion'>,
+    videoTypes?: Record<number, VideoType>,
     dialogueQualities?: Record<number, 'premium' | 'reliable'>,
     dialogueWorkflows?: Record<number, string>,
     voiceoverBaseWorkflows?: Record<number, string>
