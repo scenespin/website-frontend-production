@@ -814,64 +814,64 @@ export function ShotConfigurationStep({
     
     // 2. Validate character headshots (required - skip if first frame is uploaded)
     if (!uploadedFirstFrameUrl) {
-      // Collect all character IDs for this shot
-      const shotCharacterIds = new Set<string>();
-      
-      // Add explicit characters from dialogue
-      if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
-        const dialogueChar = getCharacterSource(allCharacters, sceneAnalysisResult)
-          .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
-        if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
-      }
-      
-      // Add explicit characters from action shots
-      if (shot.type === 'action' && shot.characterId) {
-        shotCharacterIds.add(shot.characterId);
-      }
-      
-      // Add explicit characters from action shots (detected from text)
-      if (shot.type === 'action') {
-        const actionChars = getCharactersFromActionShot(shot, sceneAnalysisResult);
-        actionChars.forEach((char: any) => shotCharacterIds.add(char.id));
-      }
-      
-      // Add characters from pronoun mappings (but not skipped ones)
-      // shotMappings is already a prop that contains mappings for this shot
-      for (const [pronoun, mapping] of Object.entries(shotMappings || {})) {
-        if (mapping && mapping !== '__ignore__') {
-          if (Array.isArray(mapping)) {
-            mapping.forEach(charId => shotCharacterIds.add(charId));
-          } else {
-            shotCharacterIds.add(mapping);
-          }
+    // Collect all character IDs for this shot
+    const shotCharacterIds = new Set<string>();
+    
+    // Add explicit characters from dialogue
+    if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
+      const dialogueChar = getCharacterSource(allCharacters, sceneAnalysisResult)
+        .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
+      if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
+    }
+    
+    // Add explicit characters from action shots
+    if (shot.type === 'action' && shot.characterId) {
+      shotCharacterIds.add(shot.characterId);
+    }
+    
+    // Add explicit characters from action shots (detected from text)
+    if (shot.type === 'action') {
+      const actionChars = getCharactersFromActionShot(shot, sceneAnalysisResult);
+      actionChars.forEach((char: any) => shotCharacterIds.add(char.id));
+    }
+    
+    // Add characters from pronoun mappings (but not skipped ones)
+    // shotMappings is already a prop that contains mappings for this shot
+    for (const [pronoun, mapping] of Object.entries(shotMappings || {})) {
+      if (mapping && mapping !== '__ignore__') {
+        if (Array.isArray(mapping)) {
+          mapping.forEach(charId => shotCharacterIds.add(charId));
+        } else {
+          shotCharacterIds.add(mapping);
         }
       }
+    }
+    
+    // Add additional characters for dialogue workflows
+    const additionalChars = finalSelectedCharactersForShots[shot.slot] || [];
+    additionalChars.forEach(charId => shotCharacterIds.add(charId));
+    
+    // Check each character has headshots and image selection
+    for (const charId of shotCharacterIds) {
+      if (!charId || charId === '__ignore__') continue;
       
-      // Add additional characters for dialogue workflows
-      const additionalChars = finalSelectedCharactersForShots[shot.slot] || [];
-      additionalChars.forEach(charId => shotCharacterIds.add(charId));
+      const headshots = finalCharacterHeadshots[charId] || [];
+      const hasSelectedReference = finalSelectedCharacterReferences[shot.slot]?.[charId] !== undefined;
       
-      // Check each character has headshots and image selection
-      for (const charId of shotCharacterIds) {
-        if (!charId || charId === '__ignore__') continue;
-        
-        const headshots = finalCharacterHeadshots[charId] || [];
-        const hasSelectedReference = finalSelectedCharacterReferences[shot.slot]?.[charId] !== undefined;
-        
-        // If headshots are displayed, a selection is required
-        if (headshots.length > 0 && !hasSelectedReference) {
-          const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
-          validationErrors.push(
-            `${charName} requires a character image selection. Please select an image from the options displayed above.`
-          );
-        }
-        
-        // If no headshots available and no reference selected, require adding headshots
-        if (headshots.length === 0 && !hasSelectedReference) {
-          const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
-          validationErrors.push(
-            `${charName} requires a character image. Please add headshots in the Character Bank (Production Hub) or Creation Hub, or upload images.`
-          );
+      // If headshots are displayed, a selection is required
+      if (headshots.length > 0 && !hasSelectedReference) {
+        const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
+        validationErrors.push(
+          `${charName} requires a character image selection. Please select an image from the options displayed above.`
+        );
+      }
+      
+      // If no headshots available and no reference selected, require adding headshots
+      if (headshots.length === 0 && !hasSelectedReference) {
+        const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
+        validationErrors.push(
+          `${charName} requires a character image. Please add headshots in the Character Bank (Production Hub) or Creation Hub, or upload images.`
+        );
         }
       }
     }
