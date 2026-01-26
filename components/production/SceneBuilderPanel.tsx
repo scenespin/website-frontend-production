@@ -2891,8 +2891,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         selectedReferenceShotModels: Object.keys(selectedReferenceShotModels).length > 0 ? selectedReferenceShotModels : undefined, // Per-shot first frame provider selection: { shotSlot: 'nano-banana-pro' | 'flux2-max-4k-16:9' }
         voiceoverBaseWorkflows: Object.keys(voiceoverBaseWorkflows).length > 0 ? voiceoverBaseWorkflows : undefined, // NEW: Per-shot voiceover base workflows (for Narrate Shot and Hidden Mouth Dialogue): { shotSlot: baseWorkflow }
         shotWorkflowOverrides: Object.keys(shotWorkflowOverrides).length > 0 ? shotWorkflowOverrides : undefined, // NEW: Per-shot workflow overrides (for action shots and dialogue shots): { shotSlot: workflow }
-        dialogueWorkflowPrompts: Object.keys(dialogueWorkflowPrompts).length > 0 ? dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
-        pronounExtrasPrompts: Object.keys(pronounExtrasPrompts).length > 0 ? pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
+        dialogueWorkflowPrompts: Object.keys(contextState.dialogueWorkflowPrompts).length > 0 ? contextState.dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
+        pronounExtrasPrompts: Object.keys(contextState.pronounExtrasPrompts).length > 0 ? contextState.pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
+        firstFramePromptOverrides: Object.keys(contextState.firstFramePromptOverrides).length > 0 ? contextState.firstFramePromptOverrides : undefined, // 🔥 NEW: Per-shot first frame prompt overrides: { shotSlot: "custom prompt" }
+        videoPromptOverrides: Object.keys(contextState.videoPromptOverrides).length > 0 ? contextState.videoPromptOverrides : undefined, // 🔥 NEW: Per-shot video prompt overrides: { shotSlot: "custom prompt" }
         globalResolution: globalResolution !== '1080p' ? globalResolution : undefined, // Only send if not default (set in review step)
         // Note: Resolution is global only (no per-shot resolution) - set in review step before generation
         // Camera Angles (per-shot, defaults to 'auto' if not specified)
@@ -2903,6 +2905,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         propsToShots: Object.keys(propsToShots).length > 0 ? propsToShots : undefined, // Props-to-shots assignment: { propId: [shotSlot1, shotSlot2] }
         shotProps: Object.keys(shotProps).length > 0 ? shotProps : undefined, // Per-shot prop configurations: { shotSlot: { propId: { usageDescription, selectedImageId } } }
         selectedVideoTypes: Object.keys(selectedVideoTypes).length > 0 ? selectedVideoTypes : undefined, // 🔥 NEW: Per-shot video model selection: { [shotSlot]: 'cinematic-visuals' | 'natural-motion' }
+        // Prompt Overrides
+        firstFramePromptOverrides: Object.keys(firstFramePromptOverrides).length > 0 ? firstFramePromptOverrides : undefined, // 🔥 NEW: Per-shot first frame prompt overrides: { shotSlot: "custom prompt" }
+        videoPromptOverrides: Object.keys(videoPromptOverrides).length > 0 ? videoPromptOverrides : undefined, // 🔥 NEW: Per-shot video prompt overrides: { shotSlot: "custom prompt" }
         // Note: Video quality (1080p/4K) is set globally in Review Step via globalResolution, not per-shot
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it

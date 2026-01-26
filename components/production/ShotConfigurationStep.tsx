@@ -319,6 +319,8 @@ export function ShotConfigurationStep({
   const finalSelectedDialogueWorkflow = state.selectedDialogueWorkflows[shotSlot];
   const finalDialogueWorkflowPrompt = state.dialogueWorkflowPrompts[shotSlot];
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
+  const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
+  const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
   
   // 🔥 FIX: Initialize default video type when shot is first accessed (for action/establishing shots)
   useEffect(() => {
@@ -514,6 +516,14 @@ export function ShotConfigurationStep({
     actions.updateShotWorkflowOverride(shotSlot, workflow);
   }, [actions]);
   
+  const finalOnFirstFramePromptOverrideChange = useCallback((shotSlot: number, prompt: string) => {
+    actions.updateFirstFramePromptOverride(shotSlot, prompt);
+  }, [actions]);
+  
+  const finalOnVideoPromptOverrideChange = useCallback((shotSlot: number, prompt: string) => {
+    actions.updateVideoPromptOverride(shotSlot, prompt);
+  }, [actions]);
+  
   const finalOnReferenceShotModelChange = useCallback((shotSlot: number, model: 'nano-banana-pro' | 'flux2-max-4k-16:9') => {
     actions.updateReferenceShotModel(shotSlot, model);
   }, [actions]);
@@ -530,6 +540,7 @@ export function ShotConfigurationStep({
   const [pricing, setPricing] = useState<{ hdPrice: number; k4Price: number; firstFramePrice: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('basic');
+  const firstFrameTextareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Determine if this is a dialogue shot (only dialogue shots have tabs)
   const isDialogueShot = shot.type === 'dialogue';
@@ -1264,6 +1275,170 @@ export function ShotConfigurationStep({
               )}
             </>
           )}
+
+          {/* Prompt Override Section */}
+          <div className="mt-4 pt-3 border-t border-[#3F3F46]">
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                id={`prompt-override-${shotSlot}`}
+                checked={!!(finalFirstFramePromptOverride || finalVideoPromptOverride)}
+                onChange={(e) => {
+                  if (!e.target.checked) {
+                    // Clear both overrides when unchecked
+                    actions.updateFirstFramePromptOverride(shotSlot, '');
+                    actions.updateVideoPromptOverride(shotSlot, '');
+                  }
+                }}
+                className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+              />
+              <label 
+                htmlFor={`prompt-override-${shotSlot}`}
+                className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
+              >
+                Override Prompts
+              </label>
+            </div>
+            
+            {(finalFirstFramePromptOverride || finalVideoPromptOverride) && (
+              <div className="space-y-3">
+                {/* Available Variables Section (for First Frame Prompt) */}
+                {finalFirstFramePromptOverride && (() => {
+                  // Collect available references for this shot
+                  const availableVariables: Array<{ label: string; variable: string; type: 'character' | 'location' | 'prop' }> = [];
+                  
+                  // Character references (need to get all characters for this shot, including explicit and pronoun-mapped)
+                  const allShotCharacters = new Set<string>();
+                  explicitCharacters.forEach(charId => allShotCharacters.add(charId));
+                  Object.values(shotMappings || {}).forEach(mapping => {
+                    if (mapping && mapping !== '__ignore__') {
+                      if (Array.isArray(mapping)) {
+                        mapping.forEach(charId => allShotCharacters.add(charId));
+                      } else {
+                        allShotCharacters.add(mapping);
+                      }
+                    }
+                  });
+                  (finalSelectedCharactersForShots[shotSlot] || []).forEach(charId => allShotCharacters.add(charId));
+                  
+                  // Convert to array and filter to only those with references
+                  const charactersWithRefs = Array.from(allShotCharacters).filter(charId => 
+                    finalSelectedCharacterReferences[shotSlot]?.[charId]
+                  );
+                  
+                  charactersWithRefs.forEach((charId, index) => {
+                    const char = allCharacters.find(c => c.id === charId);
+                    if (char) {
+                      availableVariables.push({
+                        label: char.name || `Character ${index + 1}`,
+                        variable: `{{character${index + 1}}}`,
+                        type: 'character'
+                      });
+                    }
+                  });
+                  
+                  // Location reference
+                  if (finalSelectedLocationReferences[shotSlot]) {
+                    availableVariables.push({
+                      label: 'Location',
+                      variable: '{{location}}',
+                      type: 'location'
+                    });
+                  }
+                  
+                  // Prop references
+                  const shotPropsForThisShot = finalSceneProps.filter(prop => 
+                    finalPropsToShots[prop.id]?.includes(shotSlot)
+                  );
+                  shotPropsForThisShot.forEach((prop, index) => {
+                    if (finalShotProps[shotSlot]?.[prop.id]?.selectedImageId) {
+                      availableVariables.push({
+                        label: prop.name || `Prop ${index + 1}`,
+                        variable: `{{prop${index + 1}}}`,
+                        type: 'prop'
+                      });
+                    }
+                  });
+                  
+                  return availableVariables.length > 0 ? (
+                    <div className="mb-2">
+                      <label className="block text-[10px] text-[#808080] mb-1.5">
+                        Available Variables (click to insert):
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableVariables.map((item, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              const textarea = firstFrameTextareaRef.current;
+                              if (!textarea) return;
+                              
+                              const start = textarea.selectionStart || 0;
+                              const end = textarea.selectionEnd || 0;
+                              const currentPrompt = finalFirstFramePromptOverride || '';
+                              const newPrompt = currentPrompt.slice(0, start) + item.variable + currentPrompt.slice(end);
+                              
+                              finalOnFirstFramePromptOverrideChange(shotSlot, newPrompt);
+                              
+                              // Set cursor position after inserted variable
+                              setTimeout(() => {
+                                textarea.focus();
+                                const newCursorPos = start + item.variable.length;
+                                textarea.setSelectionRange(newCursorPos, newCursorPos);
+                              }, 0);
+                            }}
+                            className="px-2 py-1 text-[10px] bg-[#2A2A2A] border border-[#3F3F46] rounded text-[#FFFFFF] hover:bg-[#3A3A3A] hover:border-[#DC143C] transition-colors"
+                            title={`Insert ${item.variable} for ${item.label}`}
+                          >
+                            {item.label} ({item.variable})
+                          </button>
+                        ))}
+                      </div>
+                      <div className="text-[9px] text-[#808080] italic mt-1">
+                        Only references with variables in your prompt will be used. References are passed as images to the API.
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+                
+                {/* First Frame Prompt Override */}
+                <div>
+                  <label className="block text-[10px] text-[#808080] mb-1.5">
+                    First Frame Prompt (Image Model):
+                  </label>
+                  <textarea
+                    ref={firstFrameTextareaRef}
+                    value={finalFirstFramePromptOverride || ''}
+                    onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
+                    placeholder="Enter custom prompt for first frame generation (image model)... Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
+                    rows={3}
+                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
+                  />
+                  <div className="text-[10px] text-[#808080] italic mt-1">
+                    This prompt will be used instead of the auto-generated prompt. Only references with variables (e.g., {{character1}}) will be included.
+                  </div>
+                </div>
+                
+                {/* Video Prompt Override */}
+                <div>
+                  <label className="block text-[10px] text-[#808080] mb-1.5">
+                    Video Prompt (Video Model):
+                  </label>
+                  <textarea
+                    value={finalVideoPromptOverride || ''}
+                    onChange={(e) => finalOnVideoPromptOverrideChange(shotSlot, e.target.value)}
+                    placeholder="Enter custom prompt for video generation (video model)..."
+                    rows={3}
+                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                  />
+                  <div className="text-[10px] text-[#808080] italic mt-1">
+                    This prompt will be used instead of the auto-generated prompt for video generation.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Cost Calculator - Prices from backend (margins hidden) - Moved after Video Generation */}
           {pricing && (

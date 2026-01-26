@@ -102,6 +102,10 @@ export interface SceneBuilderState {
   voiceoverBaseWorkflows: Record<number, string>;
   dialogueWorkflowPrompts: Record<number, string>;
   
+  // Prompt Override State
+  firstFramePromptOverrides: Record<number, string>;
+  videoPromptOverrides: Record<number, string>;
+  
   // Workflow Override State
   shotWorkflowOverrides: Record<number, string>;
   
@@ -174,6 +178,12 @@ export interface SceneBuilderActions {
   updateVoiceoverBaseWorkflow: (shotSlot: number, workflow: string) => void;
   setDialogueWorkflowPrompts: (prompts: Record<number, string>) => void;
   updateDialogueWorkflowPrompt: (shotSlot: number, prompt: string) => void;
+  
+  // Prompt Override Actions
+  setFirstFramePromptOverrides: (overrides: Record<number, string>) => void;
+  updateFirstFramePromptOverride: (shotSlot: number, prompt: string) => void;
+  setVideoPromptOverrides: (overrides: Record<number, string>) => void;
+  updateVideoPromptOverride: (shotSlot: number, prompt: string) => void;
   
   // Workflow Override Actions
   setShotWorkflowOverrides: (overrides: Record<number, string>) => void;
@@ -272,6 +282,10 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     selectedDialogueWorkflows: {},
     voiceoverBaseWorkflows: {},
     dialogueWorkflowPrompts: {},
+    
+    // Prompt Override State
+    firstFramePromptOverrides: {},
+    videoPromptOverrides: {},
     
     // Workflow Override State
     shotWorkflowOverrides: {},
@@ -789,6 +803,35 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         ...prev,
         dialogueWorkflowPrompts: {
           ...prev.dialogueWorkflowPrompts,
+          [shotSlot]: prompt
+        }
+      }));
+    }, []),
+    
+    // Prompt Override Actions
+    setFirstFramePromptOverrides: useCallback((overrides) => {
+      setState(prev => ({ ...prev, firstFramePromptOverrides: overrides }));
+    }, []),
+    
+    updateFirstFramePromptOverride: useCallback((shotSlot, prompt) => {
+      setState(prev => ({
+        ...prev,
+        firstFramePromptOverrides: {
+          ...prev.firstFramePromptOverrides,
+          [shotSlot]: prompt
+        }
+      }));
+    }, []),
+    
+    setVideoPromptOverrides: useCallback((overrides) => {
+      setState(prev => ({ ...prev, videoPromptOverrides: overrides }));
+    }, []),
+    
+    updateVideoPromptOverride: useCallback((shotSlot, prompt) => {
+      setState(prev => ({
+        ...prev,
+        videoPromptOverrides: {
+          ...prev.videoPromptOverrides,
           [shotSlot]: prompt
         }
       }));
