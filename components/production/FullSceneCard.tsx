@@ -33,6 +33,7 @@ export function FullSceneCard({
 }: FullSceneCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   return (
     <div className="bg-[#1A1A1A] rounded-lg border border-[#3F3F46] overflow-hidden">
@@ -101,26 +102,85 @@ export function FullSceneCard({
       {showVideo && presignedUrl && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setShowVideo(false)}
+          onClick={() => {
+            setShowVideo(false);
+            setVideoError(null);
+          }}
         >
           <div className="relative max-w-6xl w-full" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <button
-              onClick={() => setShowVideo(false)}
+              onClick={() => {
+                setShowVideo(false);
+                setVideoError(null);
+              }}
               className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-colors"
               aria-label="Close video"
             >
               <X className="w-6 h-6 text-white" />
             </button>
             
-            <video
-              src={presignedUrl}
-              controls
-              autoPlay
-              className="w-full h-auto rounded-lg"
-            >
-              Your browser does not support the video tag.
-            </video>
+            {videoError ? (
+              <div className="bg-[#1A1A1A] rounded-lg p-8 text-center border border-[#DC143C]">
+                <p className="text-[#DC143C] font-semibold mb-2">Video Playback Error</p>
+                <p className="text-[#B3B3B3] text-sm mb-4">{videoError}</p>
+                <button
+                  onClick={() => {
+                    setVideoError(null);
+                    // Force video reload by toggling showVideo
+                    setShowVideo(false);
+                    setTimeout(() => setShowVideo(true), 100);
+                  }}
+                  className="px-4 py-2 bg-[#DC143C] text-white rounded hover:bg-[#B01030] transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <video
+                src={presignedUrl}
+                controls
+                autoPlay
+                className="w-full h-auto rounded-lg"
+                onError={(e) => {
+                  const video = e.currentTarget;
+                  let errorMessage = 'Failed to load video.';
+                  
+                  if (video.error) {
+                    switch (video.error.code) {
+                      case video.error.MEDIA_ERR_ABORTED:
+                        errorMessage = 'Video loading was aborted.';
+                        break;
+                      case video.error.MEDIA_ERR_NETWORK:
+                        errorMessage = 'Network error while loading video. Please check your connection.';
+                        break;
+                      case video.error.MEDIA_ERR_DECODE:
+                        errorMessage = 'Video decoding error. The file may be corrupted.';
+                        break;
+                      case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                        errorMessage = 'Video format not supported by your browser.';
+                        break;
+                    }
+                  }
+                  
+                  console.error('[FullSceneCard] Video playback error:', {
+                    errorCode: video.error?.code,
+                    errorMessage,
+                    videoSrc: presignedUrl?.substring(0, 100),
+                    fileName: fullScene.video.fileName,
+                    s3Key: fullScene.video.s3Key?.substring(0, 100)
+                  });
+                  
+                  setVideoError(errorMessage);
+                }}
+                onLoadedMetadata={() => {
+                  // Clear any previous errors when video loads successfully
+                  setVideoError(null);
+                }}
+              >
+                Your browser does not support the video tag.
+              </video>
+            )}
           </div>
         </div>
       )}
