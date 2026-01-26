@@ -342,13 +342,18 @@ export function ShotConfigurationStep({
   const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Sync local state when context state changes (only if user hasn't manually enabled)
-  // This allows external updates to show/hide the section, but preserves user's manual toggle
+  // Sync local state when context state changes
+  // Preserve state when navigating back/forward - if context has override data, keep checkbox checked
   useEffect(() => {
-    if (!userManuallyEnabled) {
-      setIsPromptOverrideEnabled(!!(finalFirstFramePromptOverride || finalVideoPromptOverride));
+    // If context has override data, ensure checkbox is checked (preserves state on navigation)
+    if (finalFirstFramePromptOverride || finalVideoPromptOverride || uploadedFirstFrameUrl) {
+      setIsPromptOverrideEnabled(true);
+      setUserManuallyEnabled(true); // Mark as manually enabled to preserve state
+    } else if (!userManuallyEnabled) {
+      // Only uncheck if user hasn't manually enabled AND context is empty
+      setIsPromptOverrideEnabled(false);
     }
-  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, userManuallyEnabled]);
+  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, uploadedFirstFrameUrl, userManuallyEnabled]);
   
   // Sync first frame mode when uploaded first frame changes
   useEffect(() => {
@@ -388,7 +393,7 @@ export function ShotConfigurationStep({
       formData.append('screenplayId', screenplayId);
       formData.append('maxSizeBytes', (10 * 1024 * 1024).toString()); // 10MB default
       
-      const response = await fetch('/api/image/first-frame/upload-and-compress', {
+      const response = await fetch('/api/first-frame/upload-and-compress', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -759,7 +764,24 @@ export function ShotConfigurationStep({
   const handleNext = () => {
     const validationErrors: string[] = [];
     
-    // 1. Validate location requirement
+    // 1. Validate prompt override requirements (if override is enabled)
+    const isOverrideEnabled = isPromptOverrideEnabled || !!(finalFirstFramePromptOverride || finalVideoPromptOverride);
+    if (isOverrideEnabled) {
+      // First frame validation: Must have either prompt OR uploaded image
+      const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
+      const hasUploadedFirstFrame = !!uploadedFirstFrameUrl;
+      if (!hasFirstFramePrompt && !hasUploadedFirstFrame) {
+        validationErrors.push('First frame: Enter a prompt OR upload a first frame image when Override Prompts is enabled.');
+      }
+      
+      // Video prompt validation: Must have video prompt
+      const hasVideoPrompt = finalVideoPromptOverride?.trim() !== '';
+      if (!hasVideoPrompt) {
+        validationErrors.push('Video prompt is required when Override Prompts is enabled.');
+      }
+    }
+    
+    // 2. Validate location requirement
     if (isLocationAngleRequired(shot) && needsLocationAngle(shot)) {
       const hasLocation = finalSelectedLocationReferences[shot.slot] !== undefined;
       const hasOptOut = finalLocationOptOuts[shot.slot] === true;
