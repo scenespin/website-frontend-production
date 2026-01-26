@@ -4285,6 +4285,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   sceneAnalysisResult={enrichedSceneAnalysisResult || sceneAnalysisResult}
                   shotIndex={currentShotIndex}
                   totalShots={enabledShotsList.length}
+                  projectId={projectId}
                   explicitCharacters={explicitCharacters}
                   singularPronounCharacters={singularPronounCharacters}
                   pluralPronounCharacters={pluralPronounCharacters}

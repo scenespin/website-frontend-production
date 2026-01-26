@@ -117,6 +117,7 @@ interface ShotConfigurationStepProps {
   sceneAnalysisResult: SceneAnalysisResult;
   shotIndex: number;
   totalShots: number;
+  projectId?: string; // Screenplay/project ID (passed from SceneBuilderPanel)
   // Character categorization
   explicitCharacters: string[];
   singularPronounCharacters: string[];
@@ -287,7 +288,8 @@ export function ShotConfigurationStep({
   onShotSelect,
   enabledShots = [],
   completedShots = new Set(),
-  isMobile = false
+  isMobile = false,
+  projectId
 }: ShotConfigurationStepProps) {
   const { getToken } = useAuth();
   
@@ -349,10 +351,9 @@ export function ShotConfigurationStep({
     }
   }, [uploadedFirstFrameUrl]);
   
-  // Get projectId from sceneAnalysisResult (sceneId is the scene ID, not screenplay ID)
-  // Note: projectId should ideally be passed as prop, but for now we'll use sceneId as fallback
-  // The API endpoint will handle validation if projectId is missing
-  const projectId = sceneAnalysisResult?.sceneId || '';
+  // Get projectId from prop (passed from SceneBuilderPanel)
+  // This is the screenplay/project ID, not the scene ID
+  const screenplayId = projectId || '';
   
   // Handle first frame file upload (uses compression utility)
   const handleFirstFrameUpload = useCallback(async (file: File) => {
@@ -372,7 +373,7 @@ export function ShotConfigurationStep({
       // Use compression API endpoint (handles compression and upload)
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('screenplayId', projectId);
+      formData.append('screenplayId', screenplayId);
       formData.append('maxSizeBytes', (10 * 1024 * 1024).toString()); // 10MB default
       
       const response = await fetch('/api/first-frame/upload-and-compress', {
@@ -405,7 +406,7 @@ export function ShotConfigurationStep({
     } finally {
       setIsUploadingFirstFrame(false);
     }
-  }, [projectId, getToken, shotSlot, actions]);
+  }, [screenplayId, getToken, shotSlot, actions]);
   
   // Handle file input change
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
