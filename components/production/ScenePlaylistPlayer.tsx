@@ -18,6 +18,7 @@ import { X, Play, ChevronUp, ChevronDown, Scissors, Film, Loader2, AlertCircle, 
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { VideoPlayer, type VideoPlayerRef } from './VideoPlayer';
 import { PlaylistBuilderModal } from './PlaylistBuilderModal';
 import type { SceneVideo } from '@/hooks/useScenes';
@@ -62,6 +63,7 @@ export function ScenePlaylistPlayer({
   initialPlaylist,
 }: ScenePlaylistPlayerProps) {
   const { getToken } = useAuth();
+  const isMobile = useIsMobile();
   const screenplay = useScreenplay();
   const screenplayId = propScreenplayId || screenplay?.screenplayId;
   const sceneId = scene.id || `scene-${scene.number}`;
@@ -584,38 +586,38 @@ export function ScenePlaylistPlayer({
 
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
-      <div className="w-full max-w-7xl h-full flex flex-col bg-[#0A0A0A] rounded-lg overflow-hidden border border-[#3F3F46]">
+    <div className={`fixed ${isMobile ? 'inset-4' : 'inset-0'} z-50 bg-black/95 flex items-center justify-center ${isMobile ? 'p-0' : 'p-4'}`}>
+      <div className={`w-full ${isMobile ? 'h-full' : 'max-w-7xl h-full'} flex flex-col bg-[#0A0A0A] rounded-lg overflow-hidden border border-[#3F3F46]`}>
         {/* Header - Streamlined */}
-        <div className="flex items-center justify-between p-4 border-b border-[#3F3F46] bg-[#1A1A1A]">
-          <div>
-            <h2 className="text-lg font-semibold text-white">
+        <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'} ${isMobile ? 'p-3' : 'p-4'} border-b border-[#3F3F46] bg-[#1A1A1A]`}>
+          <div className={isMobile ? 'w-full' : ''}>
+            <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white`}>
               Scene {scene.number}: {scene.heading}
             </h2>
-            <p className="text-xs text-[#808080] mt-0.5">
+            <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] mt-0.5`}>
               {playlist.length} shot{playlist.length !== 1 ? 's' : ''} in playlist
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center ${isMobile ? 'gap-1.5 w-full' : 'gap-2'}`}>
             <button
               onClick={() => setShowPlaylistBuilder(true)}
-              className="px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] hover:border-[#DC143C] rounded text-sm text-[#FFFFFF] transition-colors flex items-center gap-2"
+              className={`${isMobile ? 'flex-1 px-3 py-2.5 min-h-[44px]' : 'px-3 py-1.5'} bg-[#1A1A1A] border border-[#3F3F46] hover:border-[#DC143C] rounded ${isMobile ? 'text-base' : 'text-sm'} text-[#FFFFFF] transition-colors flex items-center justify-center gap-2`}
             >
-              <Edit className="w-4 h-4" />
-              Edit Playlist
+              <Edit className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+              <span>Edit Playlist</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-[#3F3F46] rounded transition-colors"
+              className={`${isMobile ? 'p-2.5 min-w-[44px] min-h-[44px]' : 'p-2'} hover:bg-[#3F3F46] rounded transition-colors flex items-center justify-center`}
               aria-label="Close"
             >
-              <X className="w-5 h-5 text-[#B3B3B3]" />
+              <X className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} text-[#B3B3B3]`} />
             </button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+        <div className={`flex-1 flex ${isMobile ? 'flex-col' : 'flex-row'} ${isMobile ? 'gap-3 p-3' : 'gap-4 p-4'} overflow-hidden`}>
           {/* Video Player - Larger, cleaner */}
           <div className="flex-1 flex flex-col min-w-0">
             {isLoadingUrls ? (
@@ -677,53 +679,55 @@ export function ScenePlaylistPlayer({
             )}
 
             {/* Controls - Streamlined */}
-            <div className="mt-4 flex items-center gap-2">
-              <button
-                onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)}
-                disabled={currentIndex === 0}
-                className="px-4 py-2 bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg text-sm font-medium transition-colors border border-[#3F3F46]"
-              >
-                Previous
-              </button>
+            <div className={`mt-4 flex ${isMobile ? 'flex-col gap-2' : 'items-center gap-2'}`}>
+              <div className={`flex items-center ${isMobile ? 'gap-2 w-full' : 'gap-2'}`}>
+                <button
+                  onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)}
+                  disabled={currentIndex === 0}
+                  className={`${isMobile ? 'flex-1 px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg ${isMobile ? 'text-base' : 'text-sm'} font-medium transition-colors border border-[#3F3F46]`}
+                >
+                  Previous
+                </button>
 
-              <button
-                onClick={() => currentIndex < playlist.length - 1 && setCurrentIndex(currentIndex + 1)}
-                disabled={currentIndex === playlist.length - 1}
-                className="px-4 py-2 bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg text-sm font-medium transition-colors border border-[#3F3F46]"
-              >
-                Next
-              </button>
+                <button
+                  onClick={() => currentIndex < playlist.length - 1 && setCurrentIndex(currentIndex + 1)}
+                  disabled={currentIndex === playlist.length - 1}
+                  className={`${isMobile ? 'flex-1 px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg ${isMobile ? 'text-base' : 'text-sm'} font-medium transition-colors border border-[#3F3F46]`}
+                >
+                  Next
+                </button>
 
-              {/* Auto-play toggle - Only control needed since VideoPlayer has its own play/pause */}
-              <button
-                onClick={() => setAutoPlayNext(!autoPlayNext)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border flex items-center gap-2 ${
-                  autoPlayNext
-                    ? 'bg-[#DC143C]/20 border-[#DC143C] text-[#DC143C] hover:bg-[#DC143C]/30'
-                    : 'bg-[#1A1A1A] border-[#3F3F46] text-[#B3B3B3] hover:bg-[#2A2A2A]'
-                }`}
-                title={autoPlayNext ? 'Auto-play next video is enabled' : 'Click to enable auto-play next video'}
-              >
-                <Play className="w-4 h-4" />
-                <span>Auto-play</span>
-              </button>
+                {/* Auto-play toggle - Only control needed since VideoPlayer has its own play/pause */}
+                <button
+                  onClick={() => setAutoPlayNext(!autoPlayNext)}
+                  className={`${isMobile ? 'px-3 py-2.5 min-w-[44px] min-h-[44px]' : 'px-4 py-2'} rounded-lg ${isMobile ? 'text-base' : 'text-sm'} font-medium transition-colors border flex items-center justify-center gap-2 ${
+                    autoPlayNext
+                      ? 'bg-[#DC143C]/20 border-[#DC143C] text-[#DC143C] hover:bg-[#DC143C]/30'
+                      : 'bg-[#1A1A1A] border-[#3F3F46] text-[#B3B3B3] hover:bg-[#2A2A2A]'
+                  }`}
+                  title={autoPlayNext ? 'Auto-play next video is enabled' : 'Click to enable auto-play next video'}
+                >
+                  <Play className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+                  {!isMobile && <span>Auto-play</span>}
+                </button>
+              </div>
 
-              <div className="flex-1" />
+              {!isMobile && <div className="flex-1" />}
 
               <button
                 onClick={handleGenerateStitched}
                 disabled={isGenerating || playlist.length === 0}
-                className="px-4 py-2 bg-[#DC143C] hover:bg-[#B0111E] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                className={`${isMobile ? 'w-full px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#DC143C] hover:bg-[#B0111E] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg ${isMobile ? 'text-base' : 'text-sm'} font-medium transition-colors flex items-center justify-center gap-2`}
               >
                 {isGenerating ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} animate-spin />
                     Generating...
                   </>
                 ) : (
                   <>
-                    <Film className="w-4 h-4" />
-                    Generate Stitched Video ({cost} credits)
+                    <Film className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+                    <span>Generate Stitched Video ({cost} credits)</span>
                   </>
                 )}
               </button>
@@ -731,56 +735,56 @@ export function ScenePlaylistPlayer({
           </div>
 
           {/* Playlist Sidebar - Cleaner */}
-          <div className="w-80 bg-[#0A0A0A] rounded-lg border border-[#3F3F46] p-4 overflow-y-auto">
-            <div className="flex items-center gap-2 mb-4">
-              <Film className="w-4 h-4 text-[#DC143C]" />
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
+          <div className={`${isMobile ? 'w-full' : 'w-80'} bg-[#0A0A0A] rounded-lg border border-[#3F3F46] ${isMobile ? 'p-3' : 'p-4'} overflow-y-auto`}>
+            <div className={`flex items-center gap-2 ${isMobile ? 'mb-3' : 'mb-4'}`}>
+              <Film className={`${isMobile ? 'w-4 h-4' : 'w-4 h-4'} text-[#DC143C]`} />
+              <h3 className={`${isMobile ? 'text-base' : 'text-sm'} font-semibold text-white uppercase tracking-wide`}>
                 Playlist
               </h3>
             </div>
 
-            <div className="space-y-2">
+            <div className={`${isMobile ? 'space-y-2' : 'space-y-2'}`}>
               {playlist.map((shot, index) => (
                 <div
                   key={`${shot.shotNumber}-${shot.timestamp || index}`}
-                  className={`p-3 rounded-lg border-2 transition-all min-w-0 ${
+                  className={`${isMobile ? 'p-2.5' : 'p-3'} rounded-lg border-2 transition-all min-w-0 ${
                     index === currentIndex
                       ? 'border-[#DC143C] bg-[#DC143C]/10'
                       : 'border-[#3F3F46] bg-[#1A1A1A] hover:border-[#4F4F56]'
                   } ${shot.hasError ? 'opacity-60' : ''}`}
                 >
                   {/* Shot Header */}
-                  <div className="flex items-center justify-between mb-2">
+                  <div className={`flex items-center justify-between ${isMobile ? 'mb-1.5' : 'mb-2'}`}>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#DC143C]">
+                      <span className={`${isMobile ? 'text-xs' : 'text-xs'} font-semibold text-[#DC143C]`}>
                         Shot {shot.shotNumber}
                       </span>
                       {index === currentIndex && (
-                        <span className="text-xs text-[#808080]">(Playing)</span>
+                        <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>(Playing)</span>
                       )}
                       {shot.hasError && (
-                        <AlertCircle className="w-3 h-3 text-[#DC143C]" />
+                        <AlertCircle className={`${isMobile ? 'w-3.5 h-3.5' : 'w-3 h-3'} text-[#DC143C]`} />
                       )}
                       {shot.isLoading && (
-                        <Loader2 className="w-3 h-3 animate-spin text-[#808080]" />
+                        <Loader2 className={`${isMobile ? 'w-3.5 h-3.5' : 'w-3 h-3'} animate-spin text-[#808080]`} />
                       )}
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => moveShot(index, Math.max(0, index - 1))}
                         disabled={index === 0}
-                        className="p-1 hover:bg-[#3F3F46] rounded disabled:opacity-50"
+                        className={`${isMobile ? 'p-1.5 min-w-[44px] min-h-[44px]' : 'p-1'} hover:bg-[#3F3F46] rounded disabled:opacity-50 flex items-center justify-center`}
                         aria-label="Move up"
                       >
-                        <ChevronUp className="w-3 h-3 text-[#808080]" />
+                        <ChevronUp className={`${isMobile ? 'w-4 h-4' : 'w-3 h-3'} text-[#808080]`} />
                       </button>
                       <button
                         onClick={() => moveShot(index, Math.min(playlist.length - 1, index + 1))}
                         disabled={index === playlist.length - 1}
-                        className="p-1 hover:bg-[#3F3F46] rounded disabled:opacity-50"
+                        className={`${isMobile ? 'p-1.5 min-w-[44px] min-h-[44px]' : 'p-1'} hover:bg-[#3F3F46] rounded disabled:opacity-50 flex items-center justify-center`}
                         aria-label="Move down"
                       >
-                        <ChevronDown className="w-3 h-3 text-[#808080]" />
+                        <ChevronDown className={`${isMobile ? 'w-4 h-4' : 'w-3 h-3'} text-[#808080]`} />
                       </button>
                     </div>
                   </div>

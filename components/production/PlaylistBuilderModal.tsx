@@ -16,8 +16,17 @@ import { CSS } from '@dnd-kit/utilities';
 import { GlassModal } from '@/components/ui/glass-modal';
 import { useCreatePlaylist, useUpdatePlaylist, useDeletePlaylist, useScenePlaylists, usePlaylistTemplates, useDuplicatePlaylist, exportPlaylistAsJSON } from '@/hooks/usePlaylists';
 import { useAuth } from '@clerk/nextjs';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { PlaylistShot, Playlist } from '@/types/playlist';
 import type { SceneVideo } from '@/hooks/useScenes';
+
+interface PlaylistItemProps {
+  shot: PlaylistShot;
+  presignedUrl?: string;
+  onRemove: () => void;
+  onTrimChange: (trimStart: number, trimEnd: number) => void;
+  duration?: number;
+}
 
 interface PlaylistBuilderModalProps {
   isOpen: boolean;
@@ -34,15 +43,8 @@ interface PlaylistBuilderModalProps {
   initialPlaylist?: PlaylistShot[];
 }
 
-interface PlaylistItemProps {
-  shot: PlaylistShot;
-  presignedUrl?: string;
-  onRemove: () => void;
-  onTrimChange: (trimStart: number, trimEnd: number) => void;
-  duration?: number;
-}
-
 function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: PlaylistItemProps) {
+  const isMobile = useIsMobile();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.fileId });
   const [trimStart, setTrimStart] = useState(shot.trimStart || 0);
   const [trimEnd, setTrimEnd] = useState(shot.trimEnd || duration || 5);
@@ -72,19 +74,19 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: 
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-[#1A1A1A] border border-[#3F3F46] rounded-lg p-3 flex items-center gap-3 group hover:border-[#DC143C]/50 transition-colors min-w-0"
+      className={`bg-[#1A1A1A] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-2.5' : 'p-3'} flex items-center ${isMobile ? 'gap-2' : 'gap-3'} group hover:border-[#DC143C]/50 transition-colors min-w-0`}
     >
       {/* Drag Handle */}
       <div
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing text-[#808080] hover:text-[#FFFFFF] transition-colors"
+        className={`cursor-grab active:cursor-grabbing text-[#808080] hover:text-[#FFFFFF] transition-colors ${isMobile ? 'min-w-[44px] min-h-[44px] flex items-center justify-center' : ''}`}
       >
-        <GripVertical className="w-5 h-5" />
+        <GripVertical className={isMobile ? 'w-6 h-6' : 'w-5 h-5'} />
       </div>
 
       {/* Thumbnail */}
-      <div className="w-20 h-12 bg-[#0A0A0A] rounded border border-[#3F3F46] overflow-hidden flex-shrink-0">
+      <div className={`${isMobile ? 'w-16 h-10' : 'w-20 h-12'} bg-[#0A0A0A] rounded border border-[#3F3F46] overflow-hidden flex-shrink-0`}>
         {presignedUrl ? (
           <video
             src={presignedUrl}
@@ -101,23 +103,23 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: 
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-semibold text-[#DC143C]">Shot {shot.shotNumber}</span>
+        <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} mb-1`}>
+          <span className={`${isMobile ? 'text-xs' : 'text-xs'} font-semibold text-[#DC143C]`}>Shot {shot.shotNumber}</span>
           {shot.fileName && (
-            <span className="text-xs text-[#808080] truncate">{shot.fileName}</span>
+            <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] truncate`}>{shot.fileName}</span>
           )}
         </div>
-        <div className="flex items-center gap-4 text-xs text-[#808080]">
+        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-4'} ${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>
           <span>Duration: {trimmedDuration.toFixed(1)}s</span>
           {duration && <span>Full: {duration.toFixed(1)}s</span>}
         </div>
       </div>
 
       {/* Trim Controls */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-2'} flex-shrink-0`}>
         <div className="flex items-center gap-1">
-          <Scissors className="w-3.5 h-3.5 text-[#808080] flex-shrink-0" />
-          <div className="flex items-center gap-0.5">
+          <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-[#808080] flex-shrink-0`} />
+          <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-0.5'}`}>
             <input
               type="number"
               step="0.1"
@@ -125,10 +127,10 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: 
               max={duration || 10}
               value={trimStart.toFixed(1)}
               onChange={(e) => handleTrimStartChange(parseFloat(e.target.value) || 0)}
-              className="w-12 px-1.5 py-0.5 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-center"
+              className={`${isMobile ? 'w-14' : 'w-12'} ${isMobile ? 'px-2 py-1 text-sm' : 'px-1.5 py-0.5 text-xs'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-center`}
               placeholder="0.0"
             />
-            <span className="text-xs text-[#808080] px-0.5">-</span>
+            <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] ${isMobile ? 'px-1' : 'px-0.5'}`}>-</span>
             <input
               type="number"
               step="0.1"
@@ -136,7 +138,7 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: 
               max={duration || 10}
               value={trimEnd.toFixed(1)}
               onChange={(e) => handleTrimEndChange(parseFloat(e.target.value) || 0)}
-              className="w-12 px-1.5 py-0.5 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-center"
+              className={`${isMobile ? 'w-14' : 'w-12'} ${isMobile ? 'px-2 py-1 text-sm' : 'px-1.5 py-0.5 text-xs'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-center`}
               placeholder="0.0"
             />
           </div>
@@ -146,10 +148,10 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: 
       {/* Remove Button */}
       <button
         onClick={onRemove}
-        className="p-1.5 text-[#808080] hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors opacity-0 group-hover:opacity-100"
+        className={`${isMobile ? 'p-2 min-w-[44px] min-h-[44px]' : 'p-1.5'} text-[#808080] hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
         title="Remove from playlist"
       >
-        <X className="w-4 h-4" />
+        <X className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
       </button>
     </div>
   );
@@ -165,6 +167,7 @@ export function PlaylistBuilderModal({
   initialPlaylist,
 }: PlaylistBuilderModalProps) {
   const { getToken } = useAuth();
+  const isMobile = useIsMobile();
   const sceneId = scene.id || `scene-${scene.number}`;
   
   // State
@@ -428,24 +431,24 @@ export function PlaylistBuilderModal({
       maxWidth="4xl"
       variant="dark"
     >
-      <div className="flex flex-col h-[calc(90vh-100px)]">
+      <div className="flex flex-col h-[calc(100vh-2rem)] md:h-[calc(90vh-100px)]">
         {/* Header with Playlist Name and Actions */}
-        <div className="px-6 py-4 border-b border-[#3F3F46] bg-[#1A1A1A] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1">
+        <div className={`${isMobile ? 'px-3 py-2.5' : 'px-6 py-4'} border-b border-[#3F3F46] bg-[#1A1A1A] flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between gap-4'}`}>
+          <div className={`flex ${isMobile ? 'flex-col gap-2 w-full' : 'items-center gap-3 flex-1'}`}>
             <input
               type="text"
               value={playlistName}
               onChange={(e) => setPlaylistName(e.target.value)}
               placeholder="Playlist name (optional)"
-              className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] placeholder-[#808080] focus:border-[#DC143C] focus:outline-none flex-1 max-w-xs"
+              className={`${isMobile ? 'w-full' : 'flex-1 max-w-xs'} px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded ${isMobile ? 'text-base' : 'text-sm'} text-[#FFFFFF] placeholder-[#808080] focus:border-[#DC143C] focus:outline-none`}
             />
-            <div className="flex items-center gap-2 text-sm text-[#808080]">
+            <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-[#808080]`}>
               <span>{playlist.length} video{playlist.length !== 1 ? 's' : ''}</span>
               <span>•</span>
               <span>{totalDuration.toFixed(1)}s total</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center ${isMobile ? 'gap-1.5 w-full' : 'gap-2'}`}>
             {/* Load Saved Playlist */}
             {savedPlaylists.length > 0 && (
               <select
@@ -460,7 +463,7 @@ export function PlaylistBuilderModal({
                     setPlaylistName('');
                   }
                 }}
-                className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
+                className={`px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded ${isMobile ? 'text-base flex-1' : 'text-sm'} text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none`}
               >
                 <option value="">New Playlist</option>
                 {savedPlaylists.map(p => (
@@ -472,26 +475,26 @@ export function PlaylistBuilderModal({
             )}
             <button
               onClick={() => setShowTemplates(!showTemplates)}
-              className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] hover:border-[#DC143C] transition-colors flex items-center gap-2"
+              className={`${isMobile ? 'px-3 py-2.5 min-w-[44px] min-h-[44px]' : 'px-3 py-2'} bg-[#0A0A0A] border border-[#3F3F46] rounded ${isMobile ? 'text-base' : 'text-sm'} text-[#FFFFFF] hover:border-[#DC143C] transition-colors flex items-center gap-2`}
             >
-              <FileText className="w-4 h-4" />
-              Templates
+              <FileText className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+              {!isMobile && <span>Templates</span>}
             </button>
           </div>
         </div>
 
         {/* Templates Dropdown */}
         {showTemplates && (
-          <div className="px-6 py-3 border-b border-[#3F3F46] bg-[#141414] max-h-40 overflow-y-auto">
+          <div className={`${isMobile ? 'px-3 py-2' : 'px-6 py-3'} border-b border-[#3F3F46] bg-[#141414] max-h-40 overflow-y-auto`}>
             {templates.length === 0 ? (
-              <p className="text-sm text-[#808080]">No templates available</p>
+              <p className={`${isMobile ? 'text-sm' : 'text-sm'} text-[#808080]`}>No templates available</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
                 {templates.map(template => (
                   <button
                     key={template.playlistId}
                     onClick={() => handleApplyTemplate(template)}
-                    className="px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] hover:border-[#DC143C] transition-colors text-left"
+                    className={`px-3 ${isMobile ? 'py-2.5 min-h-[44px] text-base' : 'py-2 text-sm'} bg-[#1A1A1A] border border-[#3F3F46] rounded text-[#FFFFFF] hover:border-[#DC143C] transition-colors text-left`}
                   >
                     {template.playlistName || 'Untitled Template'}
                   </button>
@@ -502,26 +505,26 @@ export function PlaylistBuilderModal({
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left Panel: Available Videos */}
-          <div className="w-2/5 border-r border-[#3F3F46] flex flex-col bg-[#141414]">
-            <div className="px-4 py-3 border-b border-[#3F3F46]">
+          <div className={`${isMobile ? 'w-full border-b' : 'w-2/5 border-r'} border-[#3F3F46] flex flex-col bg-[#141414]`}>
+            <div className={`${isMobile ? 'px-3 py-2' : 'px-4 py-3'} border-b border-[#3F3F46]`}>
               <div className="flex items-center gap-2 mb-2">
-                <Search className="w-4 h-4 text-[#808080]" />
+                <Search className={`${isMobile ? 'w-4 h-4' : 'w-4 h-4'} text-[#808080]`} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search videos..."
-                  className="flex-1 px-2 py-1.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] placeholder-[#808080] focus:border-[#DC143C] focus:outline-none"
+                  className={`flex-1 px-2 ${isMobile ? 'py-2.5 text-base' : 'py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] placeholder-[#808080] focus:border-[#DC143C] focus:outline-none`}
                 />
               </div>
-              <p className="text-xs text-[#808080]">
+              <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>
                 {filteredVideos.length} video{filteredVideos.length !== 1 ? 's' : ''} available
               </p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="grid grid-cols-2 gap-3">
+            <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-3' : 'p-4'}`}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 gap-3">
                 {filteredVideos.map((video) => {
                   const fileId = video.video.id;
                   const isSelected = selectedVideoIds.has(fileId);
@@ -549,15 +552,15 @@ export function PlaylistBuilderModal({
                           <FileText className="w-8 h-8 text-[#808080]" />
                         )}
                       </div>
-                      <div className="p-2">
+                      <div className={`${isMobile ? 'p-2' : 'p-2'}`}>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-[#DC143C]">Shot {video.shotNumber}</span>
+                          <span className={`${isMobile ? 'text-xs' : 'text-xs'} font-semibold text-[#DC143C]`}>Shot {video.shotNumber}</span>
                           {isSelected && (
-                            <Check className="w-4 h-4 text-[#DC143C]" />
+                            <Check className={`${isMobile ? 'w-4 h-4' : 'w-4 h-4'} text-[#DC143C]`} />
                           )}
                         </div>
                         {video.video.fileName && (
-                          <p className="text-xs text-[#808080] truncate mt-1">{video.video.fileName}</p>
+                          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] truncate mt-1`}>{video.video.fileName}</p>
                         )}
                       </div>
                     </div>
@@ -569,18 +572,18 @@ export function PlaylistBuilderModal({
 
           {/* Right Panel: Playlist */}
           <div className="flex-1 flex flex-col bg-[#0A0A0A]">
-            <div className="px-4 py-3 border-b border-[#3F3F46]">
-              <h3 className="text-sm font-semibold text-[#FFFFFF]">Playlist</h3>
-              <p className="text-xs text-[#808080] mt-1">
+            <div className={`${isMobile ? 'px-3 py-2' : 'px-4 py-3'} border-b border-[#3F3F46]`}>
+              <h3 className={`${isMobile ? 'text-base' : 'text-sm'} font-semibold text-[#FFFFFF]`}>Playlist</h3>
+              <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] mt-1`}>
                 Drag to reorder • Click trim controls to adjust
               </p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 min-w-0">
+            <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-3' : 'p-4'} min-w-0`}>
               {playlist.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <FileText className="w-12 h-12 text-[#808080] mb-3" />
-                  <p className="text-sm text-[#808080]">No videos in playlist</p>
-                  <p className="text-xs text-[#808080] mt-1">Select videos from the left panel</p>
+                  <FileText className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} text-[#808080] ${isMobile ? 'mb-2' : 'mb-3'}`} />
+                  <p className={`${isMobile ? 'text-base' : 'text-sm'} text-[#808080]`}>No videos in playlist</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] mt-1`}>Select videos from the left panel</p>
                 </div>
               ) : (
                 <DndContext
@@ -615,15 +618,15 @@ export function PlaylistBuilderModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 border-t border-[#3F3F46] bg-[#1A1A1A] flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className={`${isMobile ? 'px-3 py-3' : 'px-6 py-4'} border-t border-[#3F3F46] bg-[#1A1A1A] flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
+          <div className={`flex items-center ${isMobile ? 'gap-1.5 w-full' : 'gap-2'}`}>
             <button
               onClick={handleExport}
               disabled={playlist.length === 0}
-              className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] hover:border-[#DC143C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className={`${isMobile ? 'px-3 py-2.5 min-w-[44px] min-h-[44px] flex-1' : 'px-3 py-2'} bg-[#0A0A0A] border border-[#3F3F46] rounded ${isMobile ? 'text-base' : 'text-sm'} text-[#FFFFFF] hover:border-[#DC143C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
             >
-              <Download className="w-4 h-4" />
-              Export
+              <Download className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+              {!isMobile && <span>Export</span>}
             </button>
             {selectedPlaylistId && (
               <button
@@ -641,35 +644,35 @@ export function PlaylistBuilderModal({
                     }
                   }
                 }}
-                className="px-3 py-2 bg-[#0A0A0A] border border-[#DC143C]/50 rounded text-sm text-[#DC143C] hover:bg-[#DC143C]/10 transition-colors flex items-center gap-2"
+                className={`${isMobile ? 'px-3 py-2.5 min-w-[44px] min-h-[44px]' : 'px-3 py-2'} bg-[#0A0A0A] border border-[#DC143C]/50 rounded ${isMobile ? 'text-base' : 'text-sm'} text-[#DC143C] hover:bg-[#DC143C]/10 transition-colors flex items-center justify-center gap-2`}
               >
-                <Trash2 className="w-4 h-4" />
-                Delete
+                <Trash2 className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+                {!isMobile && <span>Delete</span>}
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center ${isMobile ? 'flex-col gap-2 w-full' : 'gap-2'}`}>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] hover:border-[#808080] transition-colors"
+              className={`${isMobile ? 'w-full px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#0A0A0A] border border-[#3F3F46] rounded ${isMobile ? 'text-base' : 'text-sm'} text-[#FFFFFF] hover:border-[#808080] transition-colors`}
             >
               Cancel
             </button>
             <button
               onClick={handleSaveAsTemplate}
               disabled={playlist.length === 0}
-              className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] hover:border-[#DC143C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className={`${isMobile ? 'w-full px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#0A0A0A] border border-[#3F3F46] rounded ${isMobile ? 'text-base' : 'text-sm'} text-[#FFFFFF] hover:border-[#DC143C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
             >
-              <Copy className="w-4 h-4" />
-              Save as Template
+              <Copy className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+              <span>Save as Template</span>
             </button>
             <button
               onClick={handleSave}
               disabled={playlist.length === 0}
-              className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-[#FFFFFF] hover:border-[#DC143C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className={`${isMobile ? 'w-full px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#0A0A0A] border border-[#3F3F46] rounded ${isMobile ? 'text-base' : 'text-sm'} text-[#FFFFFF] hover:border-[#DC143C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
             >
-              <Save className="w-4 h-4" />
-              Save Playlist
+              <Save className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+              <span>Save Playlist</span>
             </button>
             <button
               onClick={() => {
@@ -681,10 +684,10 @@ export function PlaylistBuilderModal({
                 onClose();
               }}
               disabled={playlist.length === 0}
-              className="px-4 py-2 bg-[#DC143C] rounded text-sm text-white hover:bg-[#DC143C]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className={`${isMobile ? 'w-full px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#DC143C] rounded ${isMobile ? 'text-base' : 'text-sm'} text-white hover:bg-[#DC143C]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
             >
-              <Play className="w-4 h-4" />
-              Play
+              <Play className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
+              <span>Play</span>
             </button>
           </div>
         </div>
