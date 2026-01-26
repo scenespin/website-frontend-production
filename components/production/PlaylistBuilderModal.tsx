@@ -72,7 +72,7 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: 
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-[#1A1A1A] border border-[#3F3F46] rounded-lg p-3 flex items-center gap-3 group hover:border-[#DC143C]/50 transition-colors"
+      className="bg-[#1A1A1A] border border-[#3F3F46] rounded-lg p-3 flex items-center gap-3 group hover:border-[#DC143C]/50 transition-colors min-w-0"
     >
       {/* Drag Handle */}
       <div
@@ -114,30 +114,32 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: 
       </div>
 
       {/* Trim Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <div className="flex items-center gap-1">
-          <Scissors className="w-4 h-4 text-[#808080]" />
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max={duration || 10}
-            value={trimStart.toFixed(1)}
-            onChange={(e) => handleTrimStartChange(parseFloat(e.target.value) || 0)}
-            className="w-16 px-2 py-1 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
-            placeholder="Start"
-          />
-          <span className="text-xs text-[#808080]">-</span>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max={duration || 10}
-            value={trimEnd.toFixed(1)}
-            onChange={(e) => handleTrimEndChange(parseFloat(e.target.value) || 0)}
-            className="w-16 px-2 py-1 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
-            placeholder="End"
-          />
+          <Scissors className="w-3.5 h-3.5 text-[#808080] flex-shrink-0" />
+          <div className="flex items-center gap-0.5">
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max={duration || 10}
+              value={trimStart.toFixed(1)}
+              onChange={(e) => handleTrimStartChange(parseFloat(e.target.value) || 0)}
+              className="w-12 px-1.5 py-0.5 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-center"
+              placeholder="0.0"
+            />
+            <span className="text-xs text-[#808080] px-0.5">-</span>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max={duration || 10}
+              value={trimEnd.toFixed(1)}
+              onChange={(e) => handleTrimEndChange(parseFloat(e.target.value) || 0)}
+              className="w-12 px-1.5 py-0.5 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-center"
+              placeholder="0.0"
+            />
+          </div>
         </div>
       </div>
 
@@ -194,7 +196,7 @@ export function PlaylistBuilderModal({
     return scene.videos?.shots || [];
   }, [scene.videos]);
 
-  // Filter videos by search
+  // Filter videos by search (keep all videos visible, dimmed if in playlist)
   const filteredVideos = useMemo(() => {
     if (!searchQuery) return availableVideos;
     const query = searchQuery.toLowerCase();
@@ -532,7 +534,7 @@ export function PlaylistBuilderModal({
                         isSelected
                           ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                           : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-                      }`}
+                      } ${isSelected ? 'opacity-50' : 'opacity-100'}`}
                       onClick={() => handleVideoToggle(fileId, video)}
                     >
                       <div className="aspect-video bg-[#0A0A0A] flex items-center justify-center">
@@ -573,7 +575,7 @@ export function PlaylistBuilderModal({
                 Drag to reorder • Click trim controls to adjust
               </p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 min-w-0">
               {playlist.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <FileText className="w-12 h-12 text-[#808080] mb-3" />
@@ -590,7 +592,7 @@ export function PlaylistBuilderModal({
                     items={playlist.map(s => s.fileId)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-2">
+                    <div className="space-y-2 min-w-0">
                       {playlist.map((shot) => {
                         const presignedUrl = shot.s3Key ? presignedUrls.get(shot.s3Key) : undefined;
                         return (

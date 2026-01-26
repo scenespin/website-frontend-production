@@ -743,7 +743,7 @@ export function ScenePlaylistPlayer({
               {playlist.map((shot, index) => (
                 <div
                   key={`${shot.shotNumber}-${shot.timestamp || index}`}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-3 rounded-lg border-2 transition-all min-w-0 ${
                     index === currentIndex
                       ? 'border-[#DC143C] bg-[#DC143C]/10'
                       : 'border-[#3F3F46] bg-[#1A1A1A] hover:border-[#4F4F56]'
@@ -787,25 +787,25 @@ export function ScenePlaylistPlayer({
 
                   {/* Trim Controls - Compact with +/- buttons */}
                   {!shot.hasError && shot.duration > 0 && (
-                  <div className="space-y-1.5 pt-1 border-t border-[#3F3F46]">
+                  <div className="space-y-1.5 pt-1 border-t border-[#3F3F46] min-w-0">
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <Scissors className="w-3 h-3 text-[#808080]" />
+                      <Scissors className="w-3 h-3 text-[#808080] flex-shrink-0" />
                       <span className="text-xs text-[#808080] font-medium">Trim</span>
                     </div>
                     
                     {/* Start Time */}
-                    <div className="flex items-center gap-1.5">
-                      <label className="text-xs text-[#808080] w-12">Start:</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-[#808080] w-10 flex-shrink-0">Start:</label>
                       <button
                         onClick={() => {
                           const newStart = Math.max(0, shot.trimStart - 0.1);
                           updateTrim(index, newStart, shot.trimEnd);
                         }}
                         disabled={shot.trimStart <= 0}
-                        className="p-1.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="p-1 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                         aria-label="Decrease start time"
                       >
-                        <Minus className="w-3.5 h-3.5 text-[#B3B3B3]" />
+                        <Minus className="w-3 h-3 text-[#B3B3B3]" />
                       </button>
                       <input
                         type="text"
@@ -826,7 +826,7 @@ export function ScenePlaylistPlayer({
                           const validValue = Math.max(0, Math.min(value, shot.trimEnd - 0.1));
                           updateTrim(index, validValue, shot.trimEnd);
                         }}
-                        className="flex-1 px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none text-center"
+                        className="w-12 px-1 py-0.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none text-center"
                         placeholder="0.0"
                       />
                       <button
@@ -835,27 +835,27 @@ export function ScenePlaylistPlayer({
                           updateTrim(index, newStart, shot.trimEnd);
                         }}
                         disabled={shot.trimStart >= shot.trimEnd - 0.1}
-                        className="p-1.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="p-1 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                         aria-label="Increase start time"
                       >
-                        <Plus className="w-3.5 h-3.5 text-[#B3B3B3]" />
+                        <Plus className="w-3 h-3 text-[#B3B3B3]" />
                       </button>
-                      <span className="text-xs text-[#808080] w-6">s</span>
+                      <span className="text-xs text-[#808080] w-4 flex-shrink-0">s</span>
                     </div>
                     
                     {/* End Time */}
-                    <div className="flex items-center gap-1.5">
-                      <label className="text-xs text-[#808080] w-12">End:</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-[#808080] w-10 flex-shrink-0">End:</label>
                       <button
                         onClick={() => {
                           const newEnd = Math.max(shot.trimStart + 0.1, shot.trimEnd - 0.1);
                           updateTrim(index, shot.trimStart, newEnd);
                         }}
                         disabled={shot.trimEnd <= shot.trimStart + 0.1}
-                        className="p-1.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="p-1 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                         aria-label="Decrease end time"
                       >
-                        <Minus className="w-3.5 h-3.5 text-[#B3B3B3]" />
+                        <Minus className="w-3 h-3 text-[#B3B3B3]" />
                       </button>
                       <input
                         type="text"
@@ -876,7 +876,7 @@ export function ScenePlaylistPlayer({
                           const validValue = Math.max(shot.trimStart + 0.1, Math.min(value, shot.duration));
                           updateTrim(index, shot.trimStart, validValue);
                         }}
-                        className="flex-1 px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none text-center"
+                        className="w-12 px-1 py-0.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none text-center"
                         placeholder="0.0"
                       />
                       <button
@@ -885,12 +885,12 @@ export function ScenePlaylistPlayer({
                           updateTrim(index, shot.trimStart, newEnd);
                         }}
                         disabled={shot.trimEnd >= shot.duration}
-                        className="p-1.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="p-1 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                         aria-label="Increase end time"
                       >
-                        <Plus className="w-3.5 h-3.5 text-[#B3B3B3]" />
+                        <Plus className="w-3 h-3 text-[#B3B3B3]" />
                       </button>
-                      <span className="text-xs text-[#808080] w-6">s</span>
+                      <span className="text-xs text-[#808080] w-4 flex-shrink-0">s</span>
                     </div>
                     
                     <div className="text-xs text-[#808080] text-center pt-0.5">

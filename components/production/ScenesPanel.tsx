@@ -81,24 +81,34 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
 
   // Merge scene data with video data
   const scenesWithVideos = useMemo(() => {
-    const sceneMap = new Map<number, any>();
+    // Use sceneId as primary key to avoid merging videos from different scenes with same sceneNumber
+    const sceneMap = new Map<string, any>();
     
-    // Add all scenes from screenplay
+    // Add all scenes from screenplay - sceneId is required
     scenes.forEach(scene => {
-      sceneMap.set(scene.number, {
+      if (!scene.id) {
+        console.warn('[ScenesPanel] ⚠️ Scene missing sceneId:', { number: scene.number, heading: scene.heading });
+        return; // Skip scenes without IDs - they should not exist
+      }
+      sceneMap.set(scene.id, {
         ...scene,
         videos: null,
       });
     });
 
-    // Add video data
+    // Add video data - match strictly by sceneId
     sceneVideos.forEach(sceneVideo => {
-      const existing = sceneMap.get(sceneVideo.sceneNumber);
+      if (!sceneVideo.sceneId) {
+        console.warn('[ScenesPanel] ⚠️ Video missing sceneId:', { sceneNumber: sceneVideo.sceneNumber, sceneHeading: sceneVideo.sceneHeading });
+        return; // Skip videos without sceneId
+      }
+      
+      const existing = sceneMap.get(sceneVideo.sceneId);
       if (existing) {
         existing.videos = sceneVideo.videos;
       } else {
         // Scene has videos but not in screenplay (edge case)
-        sceneMap.set(sceneVideo.sceneNumber, {
+        sceneMap.set(sceneVideo.sceneId, {
           id: sceneVideo.sceneId,
           number: sceneVideo.sceneNumber,
           heading: sceneVideo.sceneHeading,
@@ -116,7 +126,8 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
       totalSceneVideos: sceneVideos.length,
       mergedCount: result.length,
       sceneNumbers: result.map(s => s.number),
-      scenesWithVideos: result.filter(s => s.videos?.shots?.length > 0).length
+      scenesWithVideos: result.filter(s => s.videos?.shots?.length > 0).length,
+      sceneIds: result.map(s => s.id).filter(Boolean)
     });
     
     return result;
