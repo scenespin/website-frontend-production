@@ -376,6 +376,12 @@ export function ShotConfigurationStep({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
       
+      // Validate screenplayId before upload
+      if (!screenplayId || screenplayId.trim() === '') {
+        toast.error('Project ID is required for upload');
+        return;
+      }
+      
       // Use compression API endpoint (handles compression and upload)
       const formData = new FormData();
       formData.append('file', file);
