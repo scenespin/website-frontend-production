@@ -14,16 +14,20 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Play, Pause, ChevronUp, ChevronDown, Scissors, Film, Loader2, AlertCircle } from 'lucide-react';
+import { X, Play, Pause, ChevronUp, ChevronDown, Scissors, Film, Loader2, AlertCircle, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { VideoPlayer, type VideoPlayerRef } from './VideoPlayer';
+import { PlaylistBuilderModal } from './PlaylistBuilderModal';
 import type { SceneVideo } from '@/hooks/useScenes';
+import type { PlaylistShot as PlaylistShotType } from '@/types/playlist';
 
+// Internal PlaylistShot format used by the player (includes presigned URLs and loading states)
 interface PlaylistShot {
   shotNumber: number;
   video: {
+    id: string;
     s3Key?: string;
     fileName: string;
     fileType: string;
@@ -47,6 +51,7 @@ interface ScenePlaylistPlayerProps {
   presignedUrls: Map<string, string>;
   onClose: () => void;
   screenplayId?: string;
+  initialPlaylist?: PlaylistShot[];
 }
 
 export function ScenePlaylistPlayer({
@@ -54,6 +59,7 @@ export function ScenePlaylistPlayer({
   presignedUrls,
   onClose,
   screenplayId: propScreenplayId,
+  initialPlaylist,
 }: ScenePlaylistPlayerProps) {
   const { getToken } = useAuth();
   const screenplay = useScreenplay();
@@ -140,11 +146,43 @@ export function ScenePlaylistPlayer({
     }
   }, [autoPlayNext, sceneId]);
 
-  // 🔥 FIX: Initialize playlist from scene shots (only on first mount or when scene changes)
+  // 🔥 FIX: Initialize playlist from initialPlaylist, persisted state, or scene shots
   useEffect(() => {
     if (!scene.videos?.shots) return;
 
-    // Check if we have persisted state for this scene
+    // Priority 1: Use initialPlaylist if provided (from PlaylistBuilderModal)
+    if (initialPlaylist && initialPlaylist.length > 0 && !isInitializedRef.current) {
+      setIsLoadingUrls(true);
+      const shots: PlaylistShot[] = initialPlaylist.map((shot) => {
+        const presignedUrl = shot.s3Key ? presignedUrls.get(shot.s3Key) : undefined;
+        const hasError = shot.s3Key && !presignedUrl;
+        
+        return {
+          shotNumber: shot.shotNumber,
+          video: {
+            id: shot.fileId,
+            s3Key: shot.s3Key,
+            fileName: shot.fileName,
+            fileType: 'video/mp4',
+          },
+          presignedUrl,
+          trimStart: shot.trimStart || 0,
+          trimEnd: shot.trimEnd || shot.duration || 5,
+          duration: shot.duration || 5,
+          timestamp: shot.timestamp,
+          isLoading: !!presignedUrl,
+          hasError,
+        };
+      });
+      
+      setPlaylist(shots);
+      setCurrentIndex(0);
+      setIsLoadingUrls(false);
+      isInitializedRef.current = true;
+      return;
+    }
+
+    // Priority 2: Check if we have persisted state for this scene
     const persistedState = loadPersistedState();
     
     // If we have persisted state and this is the same scene, restore it
@@ -169,7 +207,7 @@ export function ScenePlaylistPlayer({
       return;
     }
 
-    // Otherwise, initialize from scene shots (first time or scene changed)
+    // Priority 3: Initialize from scene shots (first time or scene changed)
     if (!isInitializedRef.current) {
       setIsLoadingUrls(true);
 
@@ -240,7 +278,16 @@ export function ScenePlaylistPlayer({
         return newShots;
       });
     }
-  }, [scene.videos, presignedUrls, loadPersistedState]);
+  }, [scene.videos, presignedUrls, loadPersistedState, initialPlaylist]);
+
+  // Reset initialization when initialPlaylist changes
+  useEffect(() => {
+    if (initialPlaylist) {
+      isInitializedRef.current = false;
+    }
+  }, [initialPlaylist]);
+
+  const [showPlaylistBuilder, setShowPlaylistBuilder] = useState(false);
 
   // 🔥 FIX: Save playlist state whenever it changes
   useEffect(() => {
@@ -537,13 +584,22 @@ export function ScenePlaylistPlayer({
               {playlist.length} shot{playlist.length !== 1 ? 's' : ''} in playlist
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-[#3F3F46] rounded transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-[#B3B3B3]" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPlaylistBuilder(true)}
+              className="px-3 py-1.5 bg-[#1A1A1A] border border-[#3F3F46] hover:border-[#DC143C] rounded text-sm text-[#FFFFFF] transition-colors flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Edit Playlist
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-[#3F3F46] rounded transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-[#B3B3B3]" />
+            </button>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -791,6 +847,56 @@ export function ScenePlaylistPlayer({
           </div>
         </div>
       </div>
+
+      {/* Playlist Builder Modal */}
+      {showPlaylistBuilder && (
+        <PlaylistBuilderModal
+          isOpen={showPlaylistBuilder}
+          onClose={() => setShowPlaylistBuilder(false)}
+          scene={{
+            id: scene.id,
+            number: scene.number,
+            heading: scene.heading,
+            videos: scene.videos,
+          }}
+          presignedUrls={presignedUrls}
+          onPlay={(playlist) => {
+            // Convert PlaylistShot[] to internal format
+            const convertedPlaylist = playlist.map(shot => ({
+              shotNumber: shot.shotNumber,
+              video: {
+                id: shot.fileId,
+                s3Key: shot.s3Key,
+                fileName: shot.fileName,
+                fileType: 'video/mp4',
+              },
+              presignedUrl: shot.s3Key ? presignedUrls.get(shot.s3Key) : undefined,
+              trimStart: shot.trimStart,
+              trimEnd: shot.trimEnd,
+              duration: shot.duration || 5,
+              timestamp: shot.timestamp,
+              isLoading: false,
+              hasError: false,
+            }));
+            setPlaylist(convertedPlaylist);
+            setCurrentIndex(0);
+            setShowPlaylistBuilder(false);
+            isInitializedRef.current = false; // Reset to allow re-initialization
+          }}
+          screenplayId={screenplayId || ''}
+          initialPlaylist={playlist.map(shot => ({
+            fileId: shot.video.id,
+            s3Key: shot.video.s3Key || '',
+            shotNumber: shot.shotNumber,
+            trimStart: shot.trimStart,
+            trimEnd: shot.trimEnd,
+            order: 0,
+            fileName: shot.video.fileName,
+            duration: shot.duration,
+            timestamp: shot.timestamp,
+          }))}
+        />
+      )}
     </div>
   );
 }

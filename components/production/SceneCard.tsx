@@ -8,12 +8,14 @@
  */
 
 import React, { useState } from 'react';
-import { Play, Info, Download, ChevronDown, ChevronUp, Film } from 'lucide-react';
+import { Play, Info, Download, ChevronDown, ChevronUp, Film, List } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShotThumbnail } from './ShotThumbnail';
 import { ScenePlaylistPlayer } from './ScenePlaylistPlayer';
+import { PlaylistBuilderModal } from './PlaylistBuilderModal';
 import { useDeleteMedia } from '@/hooks/useMediaLibrary';
 import type { SceneVideo } from '@/hooks/useScenes';
+import type { PlaylistShot } from '@/types/playlist';
 
 interface SceneCardProps {
   scene: {
@@ -32,6 +34,8 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [showPlaylistBuilder, setShowPlaylistBuilder] = useState(false);
+  const [initialPlaylist, setInitialPlaylist] = useState<PlaylistShot[] | undefined>(undefined);
   
   // Delete media mutation
   const deleteMedia = useDeleteMedia(screenplayId || '');
@@ -125,11 +129,24 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
       {/* Scene Content */}
       {isExpanded && hasVideos && (
         <div className="p-4 space-y-4">
-          {/* Watch Scene Button - Opens playlist player */}
+          {/* Build Playlist and Watch Scene Buttons */}
           {scene.videos?.shots && scene.videos.shots.length > 0 && (
-            <div className="flex justify-end mb-3">
+            <div className="flex justify-end gap-2 mb-3">
               <button
-                onClick={() => setShowPlaylist(true)}
+                onClick={() => {
+                  setInitialPlaylist(undefined);
+                  setShowPlaylistBuilder(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+              >
+                <List className="w-4 h-4" />
+                Build Playlist
+              </button>
+              <button
+                onClick={() => {
+                  setInitialPlaylist(undefined);
+                  setShowPlaylist(true);
+                }}
                 className="flex items-center gap-2 px-4 py-2 bg-[#DC143C] hover:bg-[#B0111E] text-white rounded-lg text-sm font-medium transition-colors"
               >
                 <Play className="w-4 h-4" />
@@ -203,6 +220,28 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
         </div>
       )}
 
+      {/* Playlist Builder Modal */}
+      {showPlaylistBuilder && scene.videos && (
+        <PlaylistBuilderModal
+          isOpen={showPlaylistBuilder}
+          onClose={() => setShowPlaylistBuilder(false)}
+          scene={{
+            id: scene.id,
+            number: scene.number,
+            heading: scene.heading,
+            videos: scene.videos,
+          }}
+          presignedUrls={presignedUrls || new Map()}
+          onPlay={(playlist) => {
+            setInitialPlaylist(playlist);
+            setShowPlaylistBuilder(false);
+            setShowPlaylist(true);
+          }}
+          screenplayId={screenplayId || ''}
+          initialPlaylist={initialPlaylist}
+        />
+      )}
+
       {/* Playlist Player Modal */}
       {showPlaylist && scene.videos && (
         <ScenePlaylistPlayer
@@ -215,6 +254,7 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
           presignedUrls={presignedUrls || new Map()}
           onClose={() => setShowPlaylist(false)}
           screenplayId={screenplayId}
+          initialPlaylist={initialPlaylist}
         />
       )}
     </div>

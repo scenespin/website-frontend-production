@@ -12,7 +12,7 @@
 import React, { useState, useMemo } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useScenes, useSceneVideos, type SceneVideo } from '@/hooks/useScenes';
-import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
+import { useBulkPresignedUrls, useMediaFiles, useMediaFolderTree } from '@/hooks/useMediaLibrary';
 import { useQueryClient } from '@tanstack/react-query';
 import { Film, Loader2, Play, Info, Download, RefreshCw, Folder, Grid } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,11 +34,49 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
   const [selectedStorageType, setSelectedStorageType] = useState<'s3' | 'cloud'>('s3');
+  const [hasAutoSelectedScenes, setHasAutoSelectedScenes] = useState(false);
 
   // Fetch scenes and scene videos
   const { data: scenes = [], isLoading: scenesLoading } = useScenes(screenplayId || '', !!screenplayId);
   const { data: sceneVideos = [], isLoading: videosLoading } = useSceneVideos(screenplayId || '', !!screenplayId);
   
+  // 🔥 FIX: Fetch folder tree to find Scenes folder
+  const { data: folderTree = [] } = useMediaFolderTree(screenplayId || '', viewMode === 'folders' && !!screenplayId);
+  
+  // 🔥 FIX: Auto-select Scenes folder when folder view is first opened
+  React.useEffect(() => {
+    if (viewMode === 'folders' && !hasAutoSelectedScenes && folderTree.length > 0 && !selectedFolderId) {
+      // Find Scenes folder in the tree
+      const findScenesFolder = (nodes: any[]): any => {
+        for (const node of nodes) {
+          if (node.folderName === 'Scenes' || node.folderPath?.[0] === 'Scenes') {
+            return node;
+          }
+          if (node.children) {
+            const found = findScenesFolder(node.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      
+      const scenesFolder = findScenesFolder(folderTree);
+      if (scenesFolder) {
+        setSelectedFolderId(scenesFolder.folderId);
+        setSelectedFolderPath(scenesFolder.folderPath || ['Scenes']);
+        setSelectedStorageType('s3');
+        setHasAutoSelectedScenes(true);
+      }
+    }
+  }, [viewMode, folderTree, hasAutoSelectedScenes, selectedFolderId]);
+  
+  // Reset auto-select flag when switching back to scenes view
+  React.useEffect(() => {
+    if (viewMode === 'scenes') {
+      setHasAutoSelectedScenes(false);
+    }
+  }, [viewMode]);
+
   // 🔥 FIX: Fetch folder files when in folder view
   // If no folder selected, show all videos (includeAllFolders = true)
   const { data: folderFiles = [], isLoading: folderFilesLoading } = useMediaFiles(
