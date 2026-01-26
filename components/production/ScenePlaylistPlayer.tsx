@@ -327,19 +327,23 @@ export function ScenePlaylistPlayer({
       });
 
       // Update trimEnd to full duration if not set or if it's the default 5 seconds
+      // Also clamp trimEnd to duration if it exceeds it (handles videos shorter than 5s)
       setPlaylist(prev => {
         const updated = [...prev];
         const shot = updated[index];
+        
         // If trimEnd is 0 or the default 5 seconds, set it to full duration
-        if (shot.trimEnd === 0 || (shot.trimEnd === 5 && duration > 5)) {
+        // This handles both cases: videos longer than 5s (set to full duration) 
+        // and videos shorter than 5s (clamp to actual duration)
+        if (shot.trimEnd === 0 || shot.trimEnd === 5) {
           updated[index] = {
             ...shot,
-            trimEnd: duration,
+            trimEnd: duration, // Always use actual duration, regardless of video length
             duration: duration,
             isLoading: false,
           };
         } else {
-          // Ensure trimEnd doesn't exceed duration
+          // Ensure trimEnd doesn't exceed duration (safety check for any edge cases)
           updated[index] = {
             ...shot,
             trimEnd: Math.min(shot.trimEnd, duration),
