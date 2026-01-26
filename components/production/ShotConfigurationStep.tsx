@@ -322,6 +322,16 @@ export function ShotConfigurationStep({
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
   
+  // Track if prompt override is enabled for this shot (local state for UI)
+  const [isPromptOverrideEnabled, setIsPromptOverrideEnabled] = useState(
+    !!(finalFirstFramePromptOverride || finalVideoPromptOverride)
+  );
+  
+  // Sync local state when context state changes
+  useEffect(() => {
+    setIsPromptOverrideEnabled(!!(finalFirstFramePromptOverride || finalVideoPromptOverride));
+  }, [finalFirstFramePromptOverride, finalVideoPromptOverride]);
+  
   // 🔥 FIX: Initialize default video type when shot is first accessed (for action/establishing shots)
   useEffect(() => {
     // Only initialize for action/establishing shots that need video type selection
@@ -1282,8 +1292,9 @@ export function ShotConfigurationStep({
               <input
                 type="checkbox"
                 id={`prompt-override-${shotSlot}`}
-                checked={!!(finalFirstFramePromptOverride || finalVideoPromptOverride)}
+                checked={isPromptOverrideEnabled || !!(finalFirstFramePromptOverride || finalVideoPromptOverride)}
                 onChange={(e) => {
+                  setIsPromptOverrideEnabled(e.target.checked);
                   if (!e.target.checked) {
                     // Clear both overrides when unchecked
                     actions.updateFirstFramePromptOverride(shotSlot, '');
@@ -1300,7 +1311,7 @@ export function ShotConfigurationStep({
               </label>
             </div>
             
-            {(finalFirstFramePromptOverride || finalVideoPromptOverride) && (
+            {(isPromptOverrideEnabled || finalFirstFramePromptOverride || finalVideoPromptOverride) && (
               <div className="space-y-3">
                 {/* Available Variables Section (for First Frame Prompt) */}
                 {finalFirstFramePromptOverride && (() => {
