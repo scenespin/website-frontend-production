@@ -26,7 +26,7 @@ import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
-import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
+import { useSceneBuilderState, useSceneBuilderActions, VideoType } from '@/contexts/SceneBuilderContext';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
 import { resolveLocationImageUrl } from './utils/imageUrlResolver';
@@ -198,8 +198,8 @@ interface ShotConfigurationStepProps {
   selectedReferenceShotModel?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>;
   onReferenceShotModelChange?: (shotSlot: number, model: 'nano-banana-pro' | 'flux2-max-4k-16:9') => void;
   // Video Generation Selection
-  selectedVideoType?: Record<number, 'cinematic-visuals' | 'natural-motion'>;
-  onVideoTypeChange?: (shotSlot: number, videoType: 'cinematic-visuals' | 'natural-motion') => void;
+  selectedVideoType?: Record<number, VideoType>;
+  onVideoTypeChange?: (shotSlot: number, videoType: VideoType) => void;
   // Aspect Ratio (per-shot)
   shotAspectRatio?: '16:9' | '9:16' | '1:1';
   onAspectRatioChange?: (shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1') => void;
