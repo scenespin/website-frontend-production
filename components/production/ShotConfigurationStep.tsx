@@ -354,64 +354,49 @@ export function ShotConfigurationStep({
   // Note: projectId should ideally be passed as prop, but for now we'll use sceneId as fallback
   const projectId = sceneAnalysisResult?.screenplayId || sceneAnalysisResult?.sceneId || '';
   
-  // Handle first frame file upload
+  // Handle first frame file upload (uses compression utility)
   const handleFirstFrameUpload = useCallback(async (file: File) => {
     // Validate file type
-    let fileType = file.type;
-    if (!fileType || !fileType.startsWith('image/')) {
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      const mimeTypes: Record<string, string> = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'bmp': 'image/bmp'
-      };
-      fileType = mimeTypes[extension || ''] || 'image/jpeg';
-      
-      if (!file.type) {
-        console.warn('[ShotConfigurationStep] File type was empty, detected:', fileType);
-      } else {
-        toast.error('Please upload an image file');
-        return;
-      }
-    }
-    
-    // Validate file size (10MB max, matches existing pattern)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Image too large. Maximum size is 10MB');
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
       return;
     }
     
+    // No size limit - compression utility handles it
     setIsUploadingFirstFrame(true);
     
     try {
-      // Step 1: Get presigned URL
-      const { url, fields, s3Key } = await SceneBuilderService.getPresignedUploadUrl(
-        file.name,
-        fileType,
-        file.size,
-        projectId,
-        getToken
-      );
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
       
-      // Step 2: Upload to S3
-      await SceneBuilderService.uploadToS3(url, fields, file, '[ShotConfigurationStep] First frame');
+      // Use compression API endpoint (handles compression and upload)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('screenplayId', projectId);
+      formData.append('maxSizeBytes', (10 * 1024 * 1024).toString()); // 10MB default
       
-      // Step 3: Register media
-      await SceneBuilderService.registerMedia(s3Key, file.name, fileType, projectId, getToken);
+      const response = await fetch('/api/first-frame/upload-and-compress', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
       
-      // Step 4: Get download URL
-      const downloadUrl = await SceneBuilderService.getDownloadUrl(s3Key, getToken);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed: ${response.status}`);
+      }
       
-      // Step 5: Store in context
-      actions.updateUploadedFirstFrame(shotSlot, downloadUrl);
+      const { imageUrl, s3Key } = await response.json();
       
-      // Step 6: Clear first frame prompt override (not needed when uploading)
+      // Store in context
+      actions.updateUploadedFirstFrame(shotSlot, imageUrl);
+      
+      // Clear first frame prompt override (not needed when uploading)
       actions.updateFirstFramePromptOverride(shotSlot, '');
       
-      toast.success('First frame uploaded successfully!');
+      toast.success('First frame uploaded and compressed successfully!');
     } catch (error: any) {
       console.error('[ShotConfigurationStep] First frame upload failed:', error);
       toast.error('Failed to upload first frame', {
@@ -1605,7 +1590,7 @@ export function ShotConfigurationStep({
                             <>
                               <Upload className="w-5 h-5 text-[#808080]" />
                               <span className="text-xs text-[#FFFFFF]">Choose Image</span>
-                              <span className="text-[10px] text-[#808080]">Max 10MB (JPG, PNG, GIF, WebP, BMP)</span>
+                              <span className="text-[10px] text-[#808080]">Any size (auto-compressed if needed)</span>
                             </>
                           )}
                         </button>
