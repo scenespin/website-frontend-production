@@ -1313,9 +1313,9 @@ export function ShotConfigurationStep({
             
             {(isPromptOverrideEnabled || finalFirstFramePromptOverride || finalVideoPromptOverride) && (
               <div className="space-y-3">
-                {/* Available Variables Section (for First Frame Prompt) */}
-                {finalFirstFramePromptOverride && (() => {
-                  // Collect available references for this shot
+                {/* Available Variables Display - Shows selected references as ready-to-use variables */}
+                {(() => {
+                  // Collect available references for this shot (reuse same logic)
                   const availableVariables: Array<{ label: string; variable: string; type: 'character' | 'location' | 'prop' }> = [];
                   
                   // Character references (need to get all characters for this shot, including explicit and pronoun-mapped)
@@ -1350,8 +1350,9 @@ export function ShotConfigurationStep({
                   
                   // Location reference
                   if (finalSelectedLocationReferences[shotSlot]) {
+                    const location = finalSceneProps.find(loc => loc.id === shot.locationId);
                     availableVariables.push({
-                      label: 'Location',
+                      label: location?.name || 'Location',
                       variable: '{{location}}',
                       type: 'location'
                     });
@@ -1372,45 +1373,35 @@ export function ShotConfigurationStep({
                   });
                   
                   return availableVariables.length > 0 ? (
-                    <div className="mb-2">
-                      <label className="block text-[10px] text-[#808080] mb-1.5">
-                        Available Variables (click to insert):
+                    <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                      <label className="block text-[10px] text-[#808080] mb-2 font-medium">
+                        Available Variables (from selected references):
                       </label>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="space-y-1.5">
                         {availableVariables.map((item, idx) => (
-                          <button
+                          <div
                             key={idx}
-                            type="button"
-                            onClick={() => {
-                              const textarea = firstFrameTextareaRef.current;
-                              if (!textarea) return;
-                              
-                              const start = textarea.selectionStart || 0;
-                              const end = textarea.selectionEnd || 0;
-                              const currentPrompt = finalFirstFramePromptOverride || '';
-                              const newPrompt = currentPrompt.slice(0, start) + item.variable + currentPrompt.slice(end);
-                              
-                              finalOnFirstFramePromptOverrideChange(shotSlot, newPrompt);
-                              
-                              // Set cursor position after inserted variable
-                              setTimeout(() => {
-                                textarea.focus();
-                                const newCursorPos = start + item.variable.length;
-                                textarea.setSelectionRange(newCursorPos, newCursorPos);
-                              }, 0);
-                            }}
-                            className="px-2 py-1 text-[10px] bg-[#2A2A2A] border border-[#3F3F46] rounded text-[#FFFFFF] hover:bg-[#3A3A3A] hover:border-[#DC143C] transition-colors"
-                            title={`Insert ${item.variable} for ${item.label}`}
+                            className="flex items-center gap-2 text-xs"
                           >
-                            {item.label} ({item.variable})
-                          </button>
+                            <code className="px-2 py-0.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-[#DC143C] font-mono text-[11px]">
+                              {item.variable}
+                            </code>
+                            <span className="text-[#FFFFFF]">=</span>
+                            <span className="text-[#808080]">{item.label}</span>
+                          </div>
                         ))}
                       </div>
-                      <div className="text-[9px] text-[#808080] italic mt-1">
-                        Only references with variables in your prompt will be used. References are passed as images to the API.
+                      <div className="text-[9px] text-[#808080] italic mt-2">
+                        Use these variables in your prompt. Only references with variables will be included.
                       </div>
                     </div>
-                  ) : null;
+                  ) : (
+                    <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                      <div className="text-[10px] text-[#808080] italic">
+                        No references selected. Select characters, location, or props above to create variables.
+                      </div>
+                    </div>
+                  );
                 })()}
                 
                 {/* First Frame Prompt Override */}
