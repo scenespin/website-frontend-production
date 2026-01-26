@@ -296,6 +296,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     // Prompt Override State
     firstFramePromptOverrides: {},
     videoPromptOverrides: {},
+    promptOverrideEnabled: {},
     
     // Uploaded First Frames State
     uploadedFirstFrames: {},
@@ -846,6 +847,20 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         videoPromptOverrides: {
           ...prev.videoPromptOverrides,
           [shotSlot]: prompt
+        }
+      }));
+    }, []),
+    
+    setPromptOverrideEnabled: useCallback((enabled) => {
+      setState(prev => ({ ...prev, promptOverrideEnabled: enabled }));
+    }, []),
+    
+    updatePromptOverrideEnabled: useCallback((shotSlot, enabled) => {
+      setState(prev => ({
+        ...prev,
+        promptOverrideEnabled: {
+          ...prev.promptOverrideEnabled,
+          [shotSlot]: enabled
         }
       }));
     }, []),
