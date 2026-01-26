@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Play, Pause, ChevronUp, ChevronDown, Scissors, Film, Loader2, AlertCircle, Edit } from 'lucide-react';
+import { X, Play, ChevronUp, ChevronDown, Scissors, Film, Loader2, AlertCircle, Edit, Plus, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -220,7 +220,7 @@ export function ScenePlaylistPlayer({
           video: shot.video,
           presignedUrl,
           trimStart: 0,
-          trimEnd: 0, // Will be set when video loads
+          trimEnd: 5, // Default to 5 seconds (will be updated when video loads) - allows immediate playback
           duration: 0, // Will be set when video loads
           timestamp: shot.timestamp,
           isLoading: !!presignedUrl, // Will load if URL exists
@@ -326,18 +326,26 @@ export function ScenePlaylistPlayer({
         return newMap;
       });
 
-      // Update trimEnd to full duration if not set
+      // Update trimEnd to full duration if not set or if it's the default 5 seconds
       setPlaylist(prev => {
         const updated = [...prev];
-        if (updated[index].trimEnd === 0) {
+        const shot = updated[index];
+        // If trimEnd is 0 or the default 5 seconds, set it to full duration
+        if (shot.trimEnd === 0 || (shot.trimEnd === 5 && duration > 5)) {
           updated[index] = {
-            ...updated[index],
+            ...shot,
             trimEnd: duration,
             duration: duration,
             isLoading: false,
           };
         } else {
-          updated[index] = { ...updated[index], isLoading: false };
+          // Ensure trimEnd doesn't exceed duration
+          updated[index] = {
+            ...shot,
+            trimEnd: Math.min(shot.trimEnd, duration),
+            duration: duration,
+            isLoading: false,
+          };
         }
         return updated;
       });
@@ -400,7 +408,8 @@ export function ScenePlaylistPlayer({
     }
   }, [currentIndex, playlist.length, autoPlayNext]);
 
-  // 🔥 FIX: Play/Pause control via ref - stop auto-play when manually paused
+  // Note: Play/pause is handled by VideoPlayer's built-in controls
+  // This function is kept for potential programmatic control if needed
   const togglePlayPause = useCallback(async () => {
     if (!currentVideoUrl || currentShot?.hasError) {
       toast.error('Video not available');
@@ -411,13 +420,12 @@ export function ScenePlaylistPlayer({
       if (isPlaying) {
         videoPlayerRef.current.pause();
         setIsPlaying(false);
-        // 🔥 FIX: Disable auto-play when user manually pauses
+        // Disable auto-play when user manually pauses
         setAutoPlayNext(false);
       } else {
-        // If at trim end, seek to trim start
-        if (currentShot?.trimEnd && currentShot.trimEnd > 0) {
-          videoPlayerRef.current.seekTo(currentShot.trimStart);
-        }
+        // Seek to trim start if trim is set, otherwise start from beginning
+        const startTime = currentShot?.trimStart || 0;
+        videoPlayerRef.current.seekTo(startTime);
         try {
           await videoPlayerRef.current.play();
           setIsPlaying(true);
@@ -665,29 +673,11 @@ export function ScenePlaylistPlayer({
             )}
 
             {/* Controls - Streamlined */}
-            <div className="mt-4 flex items-center gap-3">
-              <button
-                onClick={togglePlayPause}
-                disabled={!currentVideoUrl || currentShot?.hasError}
-                className="px-5 py-2.5 bg-[#DC143C] hover:bg-[#B0111E] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="w-4 h-4" />
-                    Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4" />
-                    Play
-                  </>
-                )}
-              </button>
-
+            <div className="mt-4 flex items-center gap-2">
               <button
                 onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)}
                 disabled={currentIndex === 0}
-                className="px-4 py-2.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg font-medium transition-colors border border-[#3F3F46]"
+                className="px-4 py-2 bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg text-sm font-medium transition-colors border border-[#3F3F46]"
               >
                 Previous
               </button>
@@ -695,15 +685,15 @@ export function ScenePlaylistPlayer({
               <button
                 onClick={() => currentIndex < playlist.length - 1 && setCurrentIndex(currentIndex + 1)}
                 disabled={currentIndex === playlist.length - 1}
-                className="px-4 py-2.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg font-medium transition-colors border border-[#3F3F46]"
+                className="px-4 py-2 bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg text-sm font-medium transition-colors border border-[#3F3F46]"
               >
                 Next
               </button>
 
-              {/* 🔥 FIX: Auto-play toggle */}
+              {/* Auto-play toggle - Only control needed since VideoPlayer has its own play/pause */}
               <button
                 onClick={() => setAutoPlayNext(!autoPlayNext)}
-                className={`px-4 py-2.5 rounded-lg font-medium transition-colors border flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border flex items-center gap-2 ${
                   autoPlayNext
                     ? 'bg-[#DC143C]/20 border-[#DC143C] text-[#DC143C] hover:bg-[#DC143C]/30'
                     : 'bg-[#1A1A1A] border-[#3F3F46] text-[#B3B3B3] hover:bg-[#2A2A2A]'
@@ -711,7 +701,7 @@ export function ScenePlaylistPlayer({
                 title={autoPlayNext ? 'Auto-play next video is enabled' : 'Click to enable auto-play next video'}
               >
                 <Play className="w-4 h-4" />
-                <span className="text-sm">Auto-play</span>
+                <span>Auto-play</span>
               </button>
 
               <div className="flex-1" />
@@ -719,7 +709,7 @@ export function ScenePlaylistPlayer({
               <button
                 onClick={handleGenerateStitched}
                 disabled={isGenerating || playlist.length === 0}
-                className="px-5 py-2.5 bg-[#DC143C] hover:bg-[#B0111E] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-[#DC143C] hover:bg-[#B0111E] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
               >
                 {isGenerating ? (
                   <>
@@ -791,46 +781,115 @@ export function ScenePlaylistPlayer({
                     </div>
                   </div>
 
-                  {/* Trim Controls */}
+                  {/* Trim Controls - Compact with +/- buttons */}
                   {!shot.hasError && shot.duration > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-1.5 pt-1 border-t border-[#3F3F46]">
+                    <div className="flex items-center gap-1.5 mb-1.5">
                       <Scissors className="w-3 h-3 text-[#808080]" />
-                      <span className="text-xs text-[#808080]">Trim</span>
+                      <span className="text-xs text-[#808080] font-medium">Trim</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-[#808080] mb-1 block">Start (s)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max={shot.duration}
-                          step="0.1"
-                          value={shot.trimStart.toFixed(1)}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value) || 0;
-                            updateTrim(index, value, shot.trimEnd);
-                          }}
-                            className="w-full px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-[#808080] mb-1 block">End (s)</label>
-                        <input
-                          type="number"
-                          min={shot.trimStart + 0.1}
-                          max={shot.duration}
-                          step="0.1"
-                          value={shot.trimEnd.toFixed(1)}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value) || shot.duration;
-                            updateTrim(index, shot.trimStart, value);
-                          }}
-                            className="w-full px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
-                        />
-                      </div>
+                    
+                    {/* Start Time */}
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-xs text-[#808080] w-12">Start:</label>
+                      <button
+                        onClick={() => {
+                          const newStart = Math.max(0, shot.trimStart - 0.1);
+                          updateTrim(index, newStart, shot.trimEnd);
+                        }}
+                        disabled={shot.trimStart <= 0}
+                        className="p-1.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Decrease start time"
+                      >
+                        <Minus className="w-3.5 h-3.5 text-[#B3B3B3]" />
+                      </button>
+                      <input
+                        type="text"
+                        value={shot.trimStart.toFixed(1)}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          // Allow typing decimals (e.g., "1.5", "2.3")
+                          if (inputValue === '' || /^\d*\.?\d*$/.test(inputValue)) {
+                            const value = parseFloat(inputValue);
+                            if (!isNaN(value) && value >= 0 && value <= shot.duration) {
+                              updateTrim(index, value, shot.trimEnd);
+                            }
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Ensure valid value on blur
+                          const value = parseFloat(e.target.value) || 0;
+                          const validValue = Math.max(0, Math.min(value, shot.trimEnd - 0.1));
+                          updateTrim(index, validValue, shot.trimEnd);
+                        }}
+                        className="flex-1 px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none text-center"
+                        placeholder="0.0"
+                      />
+                      <button
+                        onClick={() => {
+                          const newStart = Math.min(shot.trimEnd - 0.1, shot.trimStart + 0.1);
+                          updateTrim(index, newStart, shot.trimEnd);
+                        }}
+                        disabled={shot.trimStart >= shot.trimEnd - 0.1}
+                        className="p-1.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Increase start time"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#B3B3B3]" />
+                      </button>
+                      <span className="text-xs text-[#808080] w-6">s</span>
                     </div>
-                    <div className="text-xs text-[#808080]">
+                    
+                    {/* End Time */}
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-xs text-[#808080] w-12">End:</label>
+                      <button
+                        onClick={() => {
+                          const newEnd = Math.max(shot.trimStart + 0.1, shot.trimEnd - 0.1);
+                          updateTrim(index, shot.trimStart, newEnd);
+                        }}
+                        disabled={shot.trimEnd <= shot.trimStart + 0.1}
+                        className="p-1.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Decrease end time"
+                      >
+                        <Minus className="w-3.5 h-3.5 text-[#B3B3B3]" />
+                      </button>
+                      <input
+                        type="text"
+                        value={shot.trimEnd.toFixed(1)}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          // Allow typing decimals (e.g., "1.5", "2.3")
+                          if (inputValue === '' || /^\d*\.?\d*$/.test(inputValue)) {
+                            const value = parseFloat(inputValue);
+                            if (!isNaN(value) && value >= shot.trimStart + 0.1 && value <= shot.duration) {
+                              updateTrim(index, shot.trimStart, value);
+                            }
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Ensure valid value on blur
+                          const value = parseFloat(e.target.value) || shot.duration;
+                          const validValue = Math.max(shot.trimStart + 0.1, Math.min(value, shot.duration));
+                          updateTrim(index, shot.trimStart, validValue);
+                        }}
+                        className="flex-1 px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none text-center"
+                        placeholder="0.0"
+                      />
+                      <button
+                        onClick={() => {
+                          const newEnd = Math.min(shot.duration, shot.trimEnd + 0.1);
+                          updateTrim(index, shot.trimStart, newEnd);
+                        }}
+                        disabled={shot.trimEnd >= shot.duration}
+                        className="p-1.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#3F3F46] hover:border-[#DC143C] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Increase end time"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#B3B3B3]" />
+                      </button>
+                      <span className="text-xs text-[#808080] w-6">s</span>
+                    </div>
+                    
+                    <div className="text-xs text-[#808080] text-center pt-0.5">
                       Duration: {(shot.trimEnd - shot.trimStart).toFixed(1)}s
                     </div>
                   </div>

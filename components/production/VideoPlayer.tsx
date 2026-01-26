@@ -632,30 +632,30 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
               />
             )}
             
-            {/* Trim Start Handle */}
-            {enableTrimHandles && trimStart > 0 && (
+            {/* Trim Start Handle - Always visible when enabled and duration > 0 */}
+            {enableTrimHandles && duration > 0 && (
               <div
                 className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform ${
                   draggingTrim === 'start' ? 'scale-110 ring-2 ring-green-300' : ''
                 }`}
-                style={{ left: `calc(${(trimStart / duration) * 100}% - 8px)` }}
+                style={{ left: `calc(${((trimStart || 0) / duration) * 100}% - 8px)` }}
                 onMouseDown={(e) => {
                   e.stopPropagation();
                   setDraggingTrim('start');
                 }}
-                title={`Trim start: ${trimStart.toFixed(2)}s`}
+                title={`Trim start: ${(trimStart || 0).toFixed(2)}s`}
               >
                 <GripVertical className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
               </div>
             )}
             
-            {/* Trim End Handle */}
-            {enableTrimHandles && trimEnd && trimEnd < duration && (
+            {/* Trim End Handle - Always visible when enabled, duration > 0, and trimEnd is set */}
+            {enableTrimHandles && duration > 0 && trimEnd && trimEnd > 0 && (
               <div
                 className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform ${
                   draggingTrim === 'end' ? 'scale-110 ring-2 ring-red-300' : ''
                 }`}
-                style={{ left: `calc(${(trimEnd / duration) * 100}% - 8px)` }}
+                style={{ left: `calc(${(Math.min(trimEnd, duration) / duration) * 100}% - 8px)` }}
                 onMouseDown={(e) => {
                   e.stopPropagation();
                   setDraggingTrim('end');
