@@ -1454,16 +1454,15 @@ export function ShotConfigurationStep({
               <input
                 type="checkbox"
                 id={`prompt-override-${shotSlot}`}
-                checked={isPromptOverrideEnabled || !!(finalFirstFramePromptOverride || finalVideoPromptOverride)}
+                checked={isPromptOverrideEnabled}
                 onChange={(e) => {
                   const isChecked = e.target.checked;
-                  setIsPromptOverrideEnabled(isChecked);
-                  setUserManuallyEnabled(isChecked); // Track that user manually toggled
+                  actions.updatePromptOverrideEnabled(shotSlot, isChecked);
                   if (!isChecked) {
                     // Clear both overrides when unchecked
                     actions.updateFirstFramePromptOverride(shotSlot, '');
                     actions.updateVideoPromptOverride(shotSlot, '');
-                    setUserManuallyEnabled(false); // Reset manual flag when unchecked
+                    actions.updateUploadedFirstFrame(shotSlot, null);
                   }
                 }}
                 className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
