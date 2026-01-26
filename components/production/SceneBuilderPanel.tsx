@@ -62,6 +62,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { extractS3Key } from '@/utils/s3';
 import { getScreenplay } from '@/utils/screenplayStorage';
 import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
@@ -162,6 +163,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // Authentication
   const { getToken } = useAuth();
+  const queryClient = useQueryClient();
   
   // Get context state and actions
   const contextState = useSceneBuilderState();
@@ -3232,6 +3234,31 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // 🔥 Refresh credits immediately after generation completes
     if (typeof window !== 'undefined' && (window as any).refreshCredits) {
       (window as any).refreshCredits();
+    }
+    
+    // 🔥 FIX: Refresh Media Library after workflow completion (async registration may take 1-5 seconds)
+    // Retry mechanism ensures videos appear in storyboard even if registration is still in progress
+    if (projectId) {
+      const refreshMediaLibrary = async (attempt: number = 1, maxAttempts: number = 3) => {
+        try {
+          // Invalidate and refetch Media Library queries
+          await queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+          await queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
+          await queryClient.invalidateQueries({ queryKey: ['scenes', projectId] });
+          
+          console.log(`[SceneBuilderPanel] ✅ Media Library refreshed (attempt ${attempt})`);
+        } catch (error: any) {
+          console.warn(`[SceneBuilderPanel] ⚠️ Media Library refresh failed (attempt ${attempt}):`, error.message);
+          // Retry with exponential backoff if registration might still be in progress
+          if (attempt < maxAttempts) {
+            const delay = attempt * 2000; // 2s, 4s, 6s
+            setTimeout(() => refreshMediaLibrary(attempt + 1, maxAttempts), delay);
+          }
+        }
+      };
+      
+      // Initial refresh after 2 seconds (gives async registration time to start)
+      setTimeout(() => refreshMediaLibrary(), 2000);
     }
     
     // Show follow-up options toast
