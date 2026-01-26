@@ -349,10 +349,10 @@ export function ShotConfigurationStep({
     }
   }, [uploadedFirstFrameUrl]);
   
-  // Get projectId from context (SceneBuilderProvider has projectId prop)
-  // For now, try to get from sceneAnalysisResult or use empty string (will be handled by parent)
+  // Get projectId from sceneAnalysisResult (sceneId is the scene ID, not screenplay ID)
   // Note: projectId should ideally be passed as prop, but for now we'll use sceneId as fallback
-  const projectId = sceneAnalysisResult?.screenplayId || sceneAnalysisResult?.sceneId || '';
+  // The API endpoint will handle validation if projectId is missing
+  const projectId = sceneAnalysisResult?.sceneId || '';
   
   // Handle first frame file upload (uses compression utility)
   const handleFirstFrameUpload = useCallback(async (file: File) => {
