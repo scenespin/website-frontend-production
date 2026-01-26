@@ -105,6 +105,7 @@ export interface SceneBuilderState {
   // Prompt Override State
   firstFramePromptOverrides: Record<number, string>;
   videoPromptOverrides: Record<number, string>;
+  promptOverrideEnabled: Record<number, boolean>; // Per-shot checkbox state for prompt override
   
   // Uploaded First Frames State
   uploadedFirstFrames: Record<number, string>; // Per-shot uploaded first frame URLs
@@ -187,6 +188,8 @@ export interface SceneBuilderActions {
   updateFirstFramePromptOverride: (shotSlot: number, prompt: string) => void;
   setVideoPromptOverrides: (overrides: Record<number, string>) => void;
   updateVideoPromptOverride: (shotSlot: number, prompt: string) => void;
+  setPromptOverrideEnabled: (enabled: Record<number, boolean>) => void;
+  updatePromptOverrideEnabled: (shotSlot: number, enabled: boolean) => void;
   
   // Uploaded First Frames Actions
   setUploadedFirstFrames: (frames: Record<number, string>) => void;

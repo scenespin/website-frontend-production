@@ -324,14 +324,10 @@ export function ShotConfigurationStep({
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
   const uploadedFirstFrameUrl = state.uploadedFirstFrames[shotSlot];
+  const promptOverrideEnabledFromContext = state.promptOverrideEnabled[shotSlot] ?? false;
   
-  // Track if prompt override is enabled for this shot (local state for UI)
-  const [isPromptOverrideEnabled, setIsPromptOverrideEnabled] = useState(
-    !!(finalFirstFramePromptOverride || finalVideoPromptOverride)
-  );
-  
-  // Track if user has manually enabled the checkbox (prevents closing when textarea is cleared)
-  const [userManuallyEnabled, setUserManuallyEnabled] = useState(false);
+  // Use context state as source of truth, initialize from existing override data if present
+  const isPromptOverrideEnabled = promptOverrideEnabledFromContext || !!(finalFirstFramePromptOverride || finalVideoPromptOverride || uploadedFirstFrameUrl);
   
   // Track first frame mode: 'generate' (default) or 'upload'
   const [firstFrameMode, setFirstFrameMode] = useState<'generate' | 'upload'>(
@@ -342,18 +338,13 @@ export function ShotConfigurationStep({
   const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Sync local state when context state changes
-  // Preserve state when navigating back/forward - if context has override data, keep checkbox checked
+  // Sync context state when override data exists (preserves state on navigation)
   useEffect(() => {
-    // If context has override data, ensure checkbox is checked (preserves state on navigation)
-    if (finalFirstFramePromptOverride || finalVideoPromptOverride || uploadedFirstFrameUrl) {
-      setIsPromptOverrideEnabled(true);
-      setUserManuallyEnabled(true); // Mark as manually enabled to preserve state
-    } else if (!userManuallyEnabled) {
-      // Only uncheck if user hasn't manually enabled AND context is empty
-      setIsPromptOverrideEnabled(false);
+    // If override data exists but checkbox state is not set, set it in context
+    if ((finalFirstFramePromptOverride || finalVideoPromptOverride || uploadedFirstFrameUrl) && !promptOverrideEnabledFromContext) {
+      actions.updatePromptOverrideEnabled(shotSlot, true);
     }
-  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, uploadedFirstFrameUrl, userManuallyEnabled]);
+  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, uploadedFirstFrameUrl, promptOverrideEnabledFromContext, shotSlot, actions]);
   
   // Sync first frame mode when uploaded first frame changes
   useEffect(() => {
@@ -374,6 +365,17 @@ export function ShotConfigurationStep({
       return;
     }
     
+    // Validate screenplayId before upload
+    if (!screenplayId || screenplayId.trim() === '') {
+      console.error('[ShotConfigurationStep] screenplayId is missing:', {
+        projectId,
+        screenplayId,
+        shotSlot
+      });
+      toast.error('Project ID is required for upload. Please refresh the page and try again.');
+      return;
+    }
+    
     // No size limit - compression utility handles it
     setIsUploadingFirstFrame(true);
     
@@ -381,17 +383,30 @@ export function ShotConfigurationStep({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
       
-      // Validate screenplayId before upload
-      if (!screenplayId || screenplayId.trim() === '') {
-        toast.error('Project ID is required for upload');
-        return;
-      }
+      console.log('[ShotConfigurationStep] Uploading first frame:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        screenplayId: screenplayId.substring(0, 20) + '...',
+        shotSlot
+      });
       
       // Use compression API endpoint (handles compression and upload)
       const formData = new FormData();
       formData.append('file', file);
       formData.append('screenplayId', screenplayId);
       formData.append('maxSizeBytes', (10 * 1024 * 1024).toString()); // 10MB default
+      
+      // Verify FormData has screenplayId
+      const formDataScreenplayId = formData.get('screenplayId');
+      if (!formDataScreenplayId || formDataScreenplayId.toString().trim() === '') {
+        console.error('[ShotConfigurationStep] FormData screenplayId is empty:', {
+          screenplayId,
+          formDataScreenplayId,
+          shotSlot
+        });
+        throw new Error('Screenplay ID not found in request. Please refresh the page and try again.');
+      }
       
       const response = await fetch('/api/first-frame/upload-and-compress', {
         method: 'POST',
@@ -407,7 +422,9 @@ export function ShotConfigurationStep({
         console.error('[ShotConfigurationStep] Upload error response:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorData
+          error: errorData,
+          screenplayId: screenplayId.substring(0, 20) + '...',
+          shotSlot
         });
         throw new Error(errorMessage);
       }
@@ -765,8 +782,7 @@ export function ShotConfigurationStep({
     const validationErrors: string[] = [];
     
     // 1. Validate prompt override requirements (if override is enabled)
-    const isOverrideEnabled = isPromptOverrideEnabled || !!(finalFirstFramePromptOverride || finalVideoPromptOverride);
-    if (isOverrideEnabled) {
+    if (isPromptOverrideEnabled) {
       // First frame validation: Must have either prompt OR uploaded image
       const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
       const hasUploadedFirstFrame = !!uploadedFirstFrameUrl;
@@ -781,8 +797,8 @@ export function ShotConfigurationStep({
       }
     }
     
-    // 2. Validate location requirement
-    if (isLocationAngleRequired(shot) && needsLocationAngle(shot)) {
+    // 2. Validate location requirement (skip if first frame is uploaded)
+    if (!uploadedFirstFrameUrl && isLocationAngleRequired(shot) && needsLocationAngle(shot)) {
       const hasLocation = finalSelectedLocationReferences[shot.slot] !== undefined;
       const hasOptOut = finalLocationOptOuts[shot.slot] === true;
       
@@ -796,65 +812,67 @@ export function ShotConfigurationStep({
       }
     }
     
-    // 2. Validate character headshots (required - no checkbox override)
-    // Collect all character IDs for this shot
-    const shotCharacterIds = new Set<string>();
-    
-    // Add explicit characters from dialogue
-    if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
-      const dialogueChar = getCharacterSource(allCharacters, sceneAnalysisResult)
-        .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
-      if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
-    }
-    
-    // Add explicit characters from action shots
-    if (shot.type === 'action' && shot.characterId) {
-      shotCharacterIds.add(shot.characterId);
-    }
-    
-    // Add explicit characters from action shots (detected from text)
-    if (shot.type === 'action') {
-      const actionChars = getCharactersFromActionShot(shot, sceneAnalysisResult);
-      actionChars.forEach((char: any) => shotCharacterIds.add(char.id));
-    }
-    
-    // Add characters from pronoun mappings (but not skipped ones)
-    // shotMappings is already a prop that contains mappings for this shot
-    for (const [pronoun, mapping] of Object.entries(shotMappings || {})) {
-      if (mapping && mapping !== '__ignore__') {
-        if (Array.isArray(mapping)) {
-          mapping.forEach(charId => shotCharacterIds.add(charId));
-        } else {
-          shotCharacterIds.add(mapping);
+    // 2. Validate character headshots (required - skip if first frame is uploaded)
+    if (!uploadedFirstFrameUrl) {
+      // Collect all character IDs for this shot
+      const shotCharacterIds = new Set<string>();
+      
+      // Add explicit characters from dialogue
+      if (shot.type === 'dialogue' && shot.dialogueBlock?.character) {
+        const dialogueChar = getCharacterSource(allCharacters, sceneAnalysisResult)
+          .find((c: any) => c.name?.toUpperCase().trim() === shot.dialogueBlock.character?.toUpperCase().trim());
+        if (dialogueChar) shotCharacterIds.add(dialogueChar.id);
+      }
+      
+      // Add explicit characters from action shots
+      if (shot.type === 'action' && shot.characterId) {
+        shotCharacterIds.add(shot.characterId);
+      }
+      
+      // Add explicit characters from action shots (detected from text)
+      if (shot.type === 'action') {
+        const actionChars = getCharactersFromActionShot(shot, sceneAnalysisResult);
+        actionChars.forEach((char: any) => shotCharacterIds.add(char.id));
+      }
+      
+      // Add characters from pronoun mappings (but not skipped ones)
+      // shotMappings is already a prop that contains mappings for this shot
+      for (const [pronoun, mapping] of Object.entries(shotMappings || {})) {
+        if (mapping && mapping !== '__ignore__') {
+          if (Array.isArray(mapping)) {
+            mapping.forEach(charId => shotCharacterIds.add(charId));
+          } else {
+            shotCharacterIds.add(mapping);
+          }
         }
       }
-    }
-    
-    // Add additional characters for dialogue workflows
-    const additionalChars = finalSelectedCharactersForShots[shot.slot] || [];
-    additionalChars.forEach(charId => shotCharacterIds.add(charId));
-    
-    // Check each character has headshots and image selection
-    for (const charId of shotCharacterIds) {
-      if (!charId || charId === '__ignore__') continue;
       
-      const headshots = finalCharacterHeadshots[charId] || [];
-      const hasSelectedReference = finalSelectedCharacterReferences[shot.slot]?.[charId] !== undefined;
+      // Add additional characters for dialogue workflows
+      const additionalChars = finalSelectedCharactersForShots[shot.slot] || [];
+      additionalChars.forEach(charId => shotCharacterIds.add(charId));
       
-      // If headshots are displayed, a selection is required
-      if (headshots.length > 0 && !hasSelectedReference) {
-        const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
-        validationErrors.push(
-          `${charName} requires a character image selection. Please select an image from the options displayed above.`
-        );
-      }
-      
-      // If no headshots available and no reference selected, require adding headshots
-      if (headshots.length === 0 && !hasSelectedReference) {
-        const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
-        validationErrors.push(
-          `${charName} requires a character image. Please add headshots in the Character Bank (Production Hub) or Creation Hub, or upload images.`
-        );
+      // Check each character has headshots and image selection
+      for (const charId of shotCharacterIds) {
+        if (!charId || charId === '__ignore__') continue;
+        
+        const headshots = finalCharacterHeadshots[charId] || [];
+        const hasSelectedReference = finalSelectedCharacterReferences[shot.slot]?.[charId] !== undefined;
+        
+        // If headshots are displayed, a selection is required
+        if (headshots.length > 0 && !hasSelectedReference) {
+          const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
+          validationErrors.push(
+            `${charName} requires a character image selection. Please select an image from the options displayed above.`
+          );
+        }
+        
+        // If no headshots available and no reference selected, require adding headshots
+        if (headshots.length === 0 && !hasSelectedReference) {
+          const charName = getCharacterName(charId, allCharacters, sceneAnalysisResult);
+          validationErrors.push(
+            `${charName} requires a character image. Please add headshots in the Character Bank (Production Hub) or Creation Hub, or upload images.`
+          );
+        }
       }
     }
     
