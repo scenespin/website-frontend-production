@@ -58,6 +58,18 @@ export function ScenePlaylistPlayer({
   const { getToken } = useAuth();
   const screenplay = useScreenplay();
   const screenplayId = propScreenplayId || screenplay?.screenplayId;
+  const sceneId = scene.id || `scene-${scene.number}`;
+  
+  // 🔥 FIX: Add auto-play toggle state
+  const [autoPlayNext, setAutoPlayNext] = useState(() => {
+    // Load from localStorage if available
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`playlist-autoplay-${sceneId}`);
+      return stored ? JSON.parse(stored) : false;
+    }
+    return false;
+  });
+  
   const [playlist, setPlaylist] = useState<PlaylistShot[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -65,43 +77,184 @@ export function ScenePlaylistPlayer({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingUrls, setIsLoadingUrls] = useState(false);
   const videoPlayerRef = useRef<VideoPlayerRef | null>(null);
+  const isInitializedRef = useRef(false); // 🔥 FIX: Track if playlist has been initialized
 
-  // Initialize playlist from scene shots
+  // 🔥 FIX: Load persisted playlist state from localStorage
+  const loadPersistedState = useCallback(() => {
+    if (typeof window === 'undefined' || !sceneId) return null;
+    
+    try {
+      const stored = localStorage.getItem(`playlist-state-${sceneId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          playlist: parsed.playlist || [],
+          currentIndex: parsed.currentIndex || 0,
+        };
+      }
+    } catch (error) {
+      console.warn('[ScenePlaylistPlayer] Failed to load persisted state:', error);
+    }
+    return null;
+  }, [sceneId]);
+
+  // 🔥 FIX: Save playlist state to localStorage (debounced)
+  const savePersistedStateRef = useRef<NodeJS.Timeout | null>(null);
+  const savePersistedState = useCallback((playlistToSave: PlaylistShot[], index: number) => {
+    if (typeof window === 'undefined' || !sceneId) return;
+    
+    // Debounce saves to avoid excessive writes
+    if (savePersistedStateRef.current) {
+      clearTimeout(savePersistedStateRef.current);
+    }
+    
+    savePersistedStateRef.current = setTimeout(() => {
+      try {
+        // Only save essential data (not presigned URLs which expire)
+        const stateToSave = {
+          playlist: playlistToSave.map(shot => ({
+            shotNumber: shot.shotNumber,
+            video: {
+              s3Key: shot.video.s3Key,
+              fileName: shot.video.fileName,
+              fileType: shot.video.fileType,
+            },
+            trimStart: shot.trimStart,
+            trimEnd: shot.trimEnd,
+            duration: shot.duration,
+            timestamp: shot.timestamp,
+          })),
+          currentIndex: index,
+        };
+        localStorage.setItem(`playlist-state-${sceneId}`, JSON.stringify(stateToSave));
+      } catch (error) {
+        console.warn('[ScenePlaylistPlayer] Failed to save persisted state:', error);
+      }
+    }, 500); // 500ms debounce
+  }, [sceneId]);
+
+  // 🔥 FIX: Save auto-play preference
+  useEffect(() => {
+    if (typeof window !== 'undefined' && sceneId) {
+      localStorage.setItem(`playlist-autoplay-${sceneId}`, JSON.stringify(autoPlayNext));
+    }
+  }, [autoPlayNext, sceneId]);
+
+  // 🔥 FIX: Initialize playlist from scene shots (only on first mount or when scene changes)
   useEffect(() => {
     if (!scene.videos?.shots) return;
 
-    setIsLoadingUrls(true);
+    // Check if we have persisted state for this scene
+    const persistedState = loadPersistedState();
     
-    const shots: PlaylistShot[] = scene.videos.shots.map((shot) => {
-      const presignedUrl = shot.video.s3Key ? presignedUrls.get(shot.video.s3Key) : undefined;
+    // If we have persisted state and this is the same scene, restore it
+    if (persistedState && persistedState.playlist.length > 0 && !isInitializedRef.current) {
+      // Restore playlist with current presigned URLs
+      const restoredPlaylist = persistedState.playlist.map((savedShot: any) => {
+        const presignedUrl = savedShot.video.s3Key ? presignedUrls.get(savedShot.video.s3Key) : undefined;
+        const hasError = savedShot.video.s3Key && !presignedUrl;
+        
+        return {
+          ...savedShot,
+          presignedUrl,
+          hasError,
+          isLoading: !!presignedUrl && !hasError,
+        };
+      });
       
-      // Check if URL is missing
-      const hasError = shot.video.s3Key && !presignedUrl;
-      
-      return {
-        shotNumber: shot.shotNumber,
-        video: shot.video,
-        presignedUrl,
-        trimStart: 0,
-        trimEnd: 0, // Will be set when video loads
-        duration: 0, // Will be set when video loads
-        timestamp: shot.timestamp,
-        isLoading: !!presignedUrl, // Will load if URL exists
-        hasError,
-      };
-    });
+      setPlaylist(restoredPlaylist);
+      setCurrentIndex(persistedState.currentIndex);
+      isInitializedRef.current = true;
+      setIsLoadingUrls(false);
+      return;
+    }
 
-    setPlaylist(shots);
-    setIsLoadingUrls(false);
+    // Otherwise, initialize from scene shots (first time or scene changed)
+    if (!isInitializedRef.current) {
+      setIsLoadingUrls(true);
 
-    // Show warning if any URLs are missing
-    const missingUrls = shots.filter(s => s.hasError);
-    if (missingUrls.length > 0) {
-      toast.warning(`${missingUrls.length} video${missingUrls.length > 1 ? 's' : ''} missing URLs`, {
-        description: 'Some videos may not be available. Try refreshing the storyboard.',
+      const shots: PlaylistShot[] = scene.videos.shots.map((shot) => {
+        const presignedUrl = shot.video.s3Key ? presignedUrls.get(shot.video.s3Key) : undefined;
+        const hasError = shot.video.s3Key && !presignedUrl;
+        
+        return {
+          shotNumber: shot.shotNumber,
+          video: shot.video,
+          presignedUrl,
+          trimStart: 0,
+          trimEnd: 0, // Will be set when video loads
+          duration: 0, // Will be set when video loads
+          timestamp: shot.timestamp,
+          isLoading: !!presignedUrl, // Will load if URL exists
+          hasError,
+        };
+      });
+
+      setPlaylist(shots);
+      setIsLoadingUrls(false);
+      isInitializedRef.current = true;
+
+      // Show warning if any URLs are missing
+      const missingUrls = shots.filter(s => s.hasError);
+      if (missingUrls.length > 0) {
+        toast.warning(`${missingUrls.length} video${missingUrls.length > 1 ? 's' : ''} missing URLs`, {
+          description: 'Some videos may not be available. Try refreshing the storyboard.',
+        });
+      }
+    } else {
+      // 🔥 FIX: Merge new videos into existing playlist instead of replacing
+      // Update presigned URLs for existing videos and add new ones
+      setPlaylist(prev => {
+        const existingByS3Key = new Map(prev.map(s => [s.video.s3Key, s]));
+        const newShots: PlaylistShot[] = [];
+        
+        scene.videos.shots.forEach((shot) => {
+          const presignedUrl = shot.video.s3Key ? presignedUrls.get(shot.video.s3Key) : undefined;
+          const hasError = shot.video.s3Key && !presignedUrl;
+          const existing = existingByS3Key.get(shot.video.s3Key);
+          
+          if (existing) {
+            // Update existing shot with new presigned URL, preserve trim values
+            newShots.push({
+              ...existing,
+              presignedUrl,
+              hasError,
+              isLoading: !!presignedUrl && !hasError,
+            });
+          } else {
+            // Add new shot
+            newShots.push({
+              shotNumber: shot.shotNumber,
+              video: shot.video,
+              presignedUrl,
+              trimStart: 0,
+              trimEnd: 0,
+              duration: 0,
+              timestamp: shot.timestamp,
+              isLoading: !!presignedUrl,
+              hasError,
+            });
+          }
+        });
+        
+        return newShots;
       });
     }
-  }, [scene.videos, presignedUrls]);
+  }, [scene.videos, presignedUrls, loadPersistedState]);
+
+  // 🔥 FIX: Save playlist state whenever it changes
+  useEffect(() => {
+    if (playlist.length > 0) {
+      savePersistedState(playlist, currentIndex);
+    }
+    
+    // Cleanup: clear timeout on unmount
+    return () => {
+      if (savePersistedStateRef.current) {
+        clearTimeout(savePersistedStateRef.current);
+      }
+    };
+  }, [playlist, currentIndex, savePersistedState]);
 
   // Load video durations
   const loadVideoDuration = useCallback((shot: PlaylistShot, index: number) => {
@@ -173,9 +326,9 @@ export function ScenePlaylistPlayer({
   const currentShot = playlist[currentIndex];
   const currentVideoUrl = currentShot?.presignedUrl;
 
-  // Auto-play when switching to next shot (if was playing)
+  // 🔥 FIX: Auto-play when switching to next shot (only if autoPlayNext is enabled)
   useEffect(() => {
-    if (isPlaying && currentVideoUrl && videoPlayerRef.current && !currentShot?.hasError) {
+    if (autoPlayNext && isPlaying && currentVideoUrl && videoPlayerRef.current && !currentShot?.hasError) {
       // Small delay to ensure video element is ready
       const timer = setTimeout(() => {
         videoPlayerRef.current?.play().catch((error) => {
@@ -187,20 +340,20 @@ export function ScenePlaylistPlayer({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [currentIndex, currentVideoUrl, isPlaying, currentShot?.hasError]);
+  }, [currentIndex, currentVideoUrl, isPlaying, currentShot?.hasError, autoPlayNext]);
 
-  // Handle video end - play next
+  // 🔥 FIX: Handle video end - play next only if autoPlayNext is enabled
   const handleVideoEnd = useCallback(() => {
-    if (currentIndex < playlist.length - 1) {
+    if (autoPlayNext && currentIndex < playlist.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setIsPlaying(true);
-      // VideoPlayer will auto-play when src changes
+      // VideoPlayer will auto-play when src changes (if autoPlayNext is true)
     } else {
       setIsPlaying(false);
     }
-  }, [currentIndex, playlist.length]);
+  }, [currentIndex, playlist.length, autoPlayNext]);
 
-  // Play/Pause control via ref
+  // 🔥 FIX: Play/Pause control via ref - stop auto-play when manually paused
   const togglePlayPause = useCallback(async () => {
     if (!currentVideoUrl || currentShot?.hasError) {
       toast.error('Video not available');
@@ -211,6 +364,8 @@ export function ScenePlaylistPlayer({
       if (isPlaying) {
         videoPlayerRef.current.pause();
         setIsPlaying(false);
+        // 🔥 FIX: Disable auto-play when user manually pauses
+        setAutoPlayNext(false);
       } else {
         // If at trim end, seek to trim start
         if (currentShot?.trimEnd && currentShot.trimEnd > 0) {
@@ -401,25 +556,25 @@ export function ScenePlaylistPlayer({
               </div>
             ) : currentVideoUrl && !currentShot?.hasError ? (
               <div className="flex-1 bg-[#0A0A0A] rounded-lg border border-[#3F3F46] overflow-hidden">
-                <VideoPlayer
+              <VideoPlayer
                   ref={videoPlayerRef}
-                  src={currentVideoUrl}
+                src={currentVideoUrl}
                   className="w-full h-full"
                   autoPlay={false}
-                  trimStart={currentShot?.trimStart || 0}
-                  trimEnd={currentShot?.trimEnd}
+                trimStart={currentShot?.trimStart || 0}
+                trimEnd={currentShot?.trimEnd}
                   enableTrimHandles={true}
                   onTrimChange={(start, end) => {
                     // Update trim points in playlist
                     updateTrim(currentIndex, start, end);
                   }}
-                  onEnded={handleVideoEnd}
-                  onTimeUpdate={(time) => {
-                    // Handle trim end automatically
-                    if (currentShot && currentShot.trimEnd && time >= currentShot.trimEnd) {
-                      handleVideoEnd();
-                    }
-                  }}
+                onEnded={handleVideoEnd}
+                onTimeUpdate={(time) => {
+                  // Handle trim end automatically
+                  if (currentShot && currentShot.trimEnd && time >= currentShot.trimEnd) {
+                    handleVideoEnd();
+                  }
+                }}
                   onError={(error) => {
                     console.error('[ScenePlaylistPlayer] Video error:', error);
                     setPlaylist(prev => {
@@ -439,7 +594,7 @@ export function ScenePlaylistPlayer({
                       duration: 6000
                     });
                   }}
-                />
+              />
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center bg-[#0A0A0A] rounded-lg border border-[#3F3F46]">
@@ -487,6 +642,20 @@ export function ScenePlaylistPlayer({
                 className="px-4 py-2.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg font-medium transition-colors border border-[#3F3F46]"
               >
                 Next
+              </button>
+
+              {/* 🔥 FIX: Auto-play toggle */}
+              <button
+                onClick={() => setAutoPlayNext(!autoPlayNext)}
+                className={`px-4 py-2.5 rounded-lg font-medium transition-colors border flex items-center gap-2 ${
+                  autoPlayNext
+                    ? 'bg-[#DC143C]/20 border-[#DC143C] text-[#DC143C] hover:bg-[#DC143C]/30'
+                    : 'bg-[#1A1A1A] border-[#3F3F46] text-[#B3B3B3] hover:bg-[#2A2A2A]'
+                }`}
+                title={autoPlayNext ? 'Auto-play next video is enabled' : 'Click to enable auto-play next video'}
+              >
+                <Play className="w-4 h-4" />
+                <span className="text-sm">Auto-play</span>
               </button>
 
               <div className="flex-1" />
@@ -568,47 +737,47 @@ export function ScenePlaylistPlayer({
 
                   {/* Trim Controls */}
                   {!shot.hasError && shot.duration > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Scissors className="w-3 h-3 text-[#808080]" />
-                        <span className="text-xs text-[#808080]">Trim</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs text-[#808080] mb-1 block">Start (s)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max={shot.duration}
-                            step="0.1"
-                            value={shot.trimStart.toFixed(1)}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value) || 0;
-                              updateTrim(index, value, shot.trimEnd);
-                            }}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Scissors className="w-3 h-3 text-[#808080]" />
+                      <span className="text-xs text-[#808080]">Trim</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-[#808080] mb-1 block">Start (s)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={shot.duration}
+                          step="0.1"
+                          value={shot.trimStart.toFixed(1)}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || 0;
+                            updateTrim(index, value, shot.trimEnd);
+                          }}
                             className="w-full px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-[#808080] mb-1 block">End (s)</label>
-                          <input
-                            type="number"
-                            min={shot.trimStart + 0.1}
-                            max={shot.duration}
-                            step="0.1"
-                            value={shot.trimEnd.toFixed(1)}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value) || shot.duration;
-                              updateTrim(index, shot.trimStart, value);
-                            }}
-                            className="w-full px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
-                          />
-                        </div>
+                        />
                       </div>
-                      <div className="text-xs text-[#808080]">
-                        Duration: {(shot.trimEnd - shot.trimStart).toFixed(1)}s
+                      <div>
+                        <label className="text-xs text-[#808080] mb-1 block">End (s)</label>
+                        <input
+                          type="number"
+                          min={shot.trimStart + 0.1}
+                          max={shot.duration}
+                          step="0.1"
+                          value={shot.trimEnd.toFixed(1)}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || shot.duration;
+                            updateTrim(index, shot.trimStart, value);
+                          }}
+                            className="w-full px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
+                        />
                       </div>
                     </div>
+                    <div className="text-xs text-[#808080]">
+                      Duration: {(shot.trimEnd - shot.trimStart).toFixed(1)}s
+                    </div>
+                  </div>
                   )}
                   
                   {shot.hasError && (
