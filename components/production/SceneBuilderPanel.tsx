@@ -2905,9 +2905,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         propsToShots: Object.keys(propsToShots).length > 0 ? propsToShots : undefined, // Props-to-shots assignment: { propId: [shotSlot1, shotSlot2] }
         shotProps: Object.keys(shotProps).length > 0 ? shotProps : undefined, // Per-shot prop configurations: { shotSlot: { propId: { usageDescription, selectedImageId } } }
         selectedVideoTypes: Object.keys(selectedVideoTypes).length > 0 ? selectedVideoTypes : undefined, // 🔥 NEW: Per-shot video model selection: { [shotSlot]: 'cinematic-visuals' | 'natural-motion' }
-        // Prompt Overrides
-        firstFramePromptOverrides: Object.keys(firstFramePromptOverrides).length > 0 ? firstFramePromptOverrides : undefined, // 🔥 NEW: Per-shot first frame prompt overrides: { shotSlot: "custom prompt" }
-        videoPromptOverrides: Object.keys(videoPromptOverrides).length > 0 ? videoPromptOverrides : undefined, // 🔥 NEW: Per-shot video prompt overrides: { shotSlot: "custom prompt" }
         // Note: Video quality (1080p/4K) is set globally in Review Step via globalResolution, not per-shot
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
