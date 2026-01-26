@@ -360,7 +360,7 @@ export function PlaylistBuilderModal({
           fileId: matchingVideo.video.id,
           s3Key: matchingVideo.video.s3Key,
           fileName: matchingVideo.video.fileName,
-          duration: matchingVideo.duration,
+          duration: matchingVideo.video.metadata?.duration || templateShot.duration,
           timestamp: matchingVideo.timestamp,
         });
       }
