@@ -388,7 +388,7 @@ export function ShotConfigurationStep({
       formData.append('screenplayId', screenplayId);
       formData.append('maxSizeBytes', (10 * 1024 * 1024).toString()); // 10MB default
       
-      const response = await fetch('/api/first-frame/upload-and-compress', {
+      const response = await fetch('/api/image/first-frame/upload-and-compress', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
