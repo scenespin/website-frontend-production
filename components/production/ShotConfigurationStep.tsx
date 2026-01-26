@@ -1416,7 +1416,7 @@ export function ShotConfigurationStep({
                     className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
                   />
                   <div className="text-[10px] text-[#808080] italic mt-1">
-                    This prompt will be used instead of the auto-generated prompt. Only references with variables (e.g., {{character1}}) will be included.
+                    This prompt will be used instead of the auto-generated prompt. Only references with variables (e.g., {'{{character1}}'}) will be included.
                   </div>
                 </div>
                 
