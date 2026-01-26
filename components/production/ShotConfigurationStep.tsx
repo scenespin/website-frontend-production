@@ -392,7 +392,13 @@ export function ShotConfigurationStep({
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Upload failed: ${response.status}`);
+        const errorMessage = errorData.message || errorData.error || `Upload failed: ${response.status}`;
+        console.error('[ShotConfigurationStep] Upload error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        throw new Error(errorMessage);
       }
       
       const { imageUrl, s3Key } = await response.json();
