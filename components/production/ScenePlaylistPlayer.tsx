@@ -51,7 +51,7 @@ interface ScenePlaylistPlayerProps {
   presignedUrls: Map<string, string>;
   onClose: () => void;
   screenplayId?: string;
-  initialPlaylist?: PlaylistShot[];
+  initialPlaylist?: PlaylistShotType[]; // Accept external PlaylistShot type from @/types/playlist
 }
 
 export function ScenePlaylistPlayer({
@@ -161,8 +161,8 @@ export function ScenePlaylistPlayer({
           shotNumber: shot.shotNumber,
           video: {
             id: shot.fileId,
-            s3Key: shot.s3Key,
-            fileName: shot.fileName,
+            s3Key: shot.s3Key || '',
+            fileName: shot.fileName || `Shot ${shot.shotNumber}`,
             fileType: 'video/mp4',
           },
           presignedUrl,
