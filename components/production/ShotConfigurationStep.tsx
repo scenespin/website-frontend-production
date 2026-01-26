@@ -397,16 +397,8 @@ export function ShotConfigurationStep({
       formData.append('screenplayId', screenplayId);
       formData.append('maxSizeBytes', (10 * 1024 * 1024).toString()); // 10MB default
       
-      // Verify FormData has screenplayId
-      const formDataScreenplayId = formData.get('screenplayId');
-      if (!formDataScreenplayId || formDataScreenplayId.toString().trim() === '') {
-        console.error('[ShotConfigurationStep] FormData screenplayId is empty:', {
-          screenplayId,
-          formDataScreenplayId,
-          shotSlot
-        });
-        throw new Error('Screenplay ID not found in request. Please refresh the page and try again.');
-      }
+      // Note: screenplayId is already validated above (line 369-375)
+      // FormData.get() can be unreliable in some browsers, so we trust the append
       
       const response = await fetch('/api/first-frame/upload-and-compress', {
         method: 'POST',
