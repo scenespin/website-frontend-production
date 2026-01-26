@@ -357,12 +357,29 @@ export function ShotConfigurationStep({
   // This is the screenplay/project ID, not the scene ID
   const screenplayId = projectId || '';
   
-  // Handle first frame file upload (uses compression utility)
+  // Handle first frame file upload (uses working annotation pattern - proven to work)
   const handleFirstFrameUpload = useCallback(async (file: File) => {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
-      return;
+    // Validate file type - with fallback detection (matching annotation pattern)
+    let fileType = file.type;
+    if (!fileType || !fileType.startsWith('image/')) {
+      // Try to detect from extension
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp'
+      };
+      fileType = mimeTypes[extension || ''] || 'image/jpeg';
+      
+      if (!file.type) {
+        console.warn('[ShotConfigurationStep] File type was empty, detected:', fileType);
+      } else {
+        toast.error('Please upload an image file');
+        return;
+      }
     }
     
     // Validate screenplayId before upload
@@ -376,7 +393,6 @@ export function ShotConfigurationStep({
       return;
     }
     
-    // No size limit - compression utility handles it
     setIsUploadingFirstFrame(true);
     
     try {
@@ -386,42 +402,96 @@ export function ShotConfigurationStep({
       console.log('[ShotConfigurationStep] Uploading first frame:', {
         fileName: file.name,
         fileSize: file.size,
-        fileType: file.type,
+        fileType: fileType,
         screenplayId: screenplayId.substring(0, 20) + '...',
         shotSlot
       });
       
-      // Use compression API endpoint (handles compression and upload)
+      // Use working annotation pattern: presigned URL -> S3 upload -> register -> get download URL
+      // This avoids multer FormData parsing issues by using query params and JSON bodies
+      
+      // Step 1: Get presigned URL (query params, not FormData - avoids multer parsing issues)
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` +
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(fileType)}` +
+        `&fileSize=${file.size}` +
+        `&projectId=${encodeURIComponent(screenplayId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error('File too large. Maximum size is 10MB.');
+        }
+        if (presignedResponse.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        }
+        const errorData = await presignedResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || `Failed to get upload URL: ${presignedResponse.statusText}`);
+      }
+      
+      const { url, fields, s3Key } = await presignedResponse.json();
+      
+      // Step 2: Upload to S3 directly (using presigned POST)
       const formData = new FormData();
+      Object.entries(fields).forEach(([key, value]) => {
+        if (key.toLowerCase() !== 'bucket') {
+          formData.append(key, value as string);
+        }
+      });
       formData.append('file', file);
-      formData.append('screenplayId', screenplayId);
-      formData.append('maxSizeBytes', (10 * 1024 * 1024).toString()); // 10MB default
       
-      // Note: screenplayId is already validated above (line 369-375)
-      // FormData.get() can be unreliable in some browsers, so we trust the append
-      
-      const response = await fetch('/api/first-frame/upload-and-compress', {
+      const s3Response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formData
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || errorData.error || `Upload failed: ${response.status}`;
-        console.error('[ShotConfigurationStep] Upload error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData,
-          screenplayId: screenplayId.substring(0, 20) + '...',
-          shotSlot
-        });
-        throw new Error(errorMessage);
+      if (!s3Response.ok) {
+        throw new Error('S3 upload failed');
       }
       
-      const { imageUrl, s3Key } = await response.json();
+      // Step 3: Register media in Media Library (JSON body, not FormData)
+      const registerResponse = await fetch('/api/media/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          s3Key,
+          fileName: file.name,
+          fileType: fileType,
+          screenplayId
+        })
+      });
+      
+      if (!registerResponse.ok) {
+        console.warn('[ShotConfigurationStep] Failed to register media (non-fatal):', registerResponse.statusText);
+        // Continue anyway - file is in S3
+      }
+      
+      // Step 4: Get download URL (JSON body, not FormData)
+      const downloadResponse = await fetch('/api/s3/download-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ s3Key })
+      });
+      
+      if (!downloadResponse.ok) {
+        throw new Error(`Failed to get download URL: ${downloadResponse.statusText}`);
+      }
+      
+      const { downloadUrl } = await downloadResponse.json();
+      const imageUrl = downloadUrl || `https://screenplay-assets-043309365215.s3.us-east-1.amazonaws.com/${s3Key}`;
       
       // Store in context
       actions.updateUploadedFirstFrame(shotSlot, imageUrl);
@@ -429,7 +499,7 @@ export function ShotConfigurationStep({
       // Clear first frame prompt override (not needed when uploading)
       actions.updateFirstFramePromptOverride(shotSlot, '');
       
-      toast.success('First frame uploaded and compressed successfully!');
+      toast.success('First frame uploaded successfully!');
     } catch (error: any) {
       console.error('[ShotConfigurationStep] First frame upload failed:', error);
       toast.error('Failed to upload first frame', {
@@ -438,7 +508,7 @@ export function ShotConfigurationStep({
     } finally {
       setIsUploadingFirstFrame(false);
     }
-  }, [screenplayId, getToken, shotSlot, actions]);
+  }, [screenplayId, getToken, shotSlot, actions, projectId]);
   
   // Handle file input change
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
