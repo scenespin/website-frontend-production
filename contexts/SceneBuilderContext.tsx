@@ -106,6 +106,9 @@ export interface SceneBuilderState {
   firstFramePromptOverrides: Record<number, string>;
   videoPromptOverrides: Record<number, string>;
   
+  // Uploaded First Frames State
+  uploadedFirstFrames: Record<number, string>; // Per-shot uploaded first frame URLs
+  
   // Workflow Override State
   shotWorkflowOverrides: Record<number, string>;
   
@@ -184,6 +187,10 @@ export interface SceneBuilderActions {
   updateFirstFramePromptOverride: (shotSlot: number, prompt: string) => void;
   setVideoPromptOverrides: (overrides: Record<number, string>) => void;
   updateVideoPromptOverride: (shotSlot: number, prompt: string) => void;
+  
+  // Uploaded First Frames Actions
+  setUploadedFirstFrames: (frames: Record<number, string>) => void;
+  updateUploadedFirstFrame: (shotSlot: number, firstFrameUrl: string | null) => void;
   
   // Workflow Override Actions
   setShotWorkflowOverrides: (overrides: Record<number, string>) => void;
@@ -286,6 +293,9 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     // Prompt Override State
     firstFramePromptOverrides: {},
     videoPromptOverrides: {},
+    
+    // Uploaded First Frames State
+    uploadedFirstFrames: {},
     
     // Workflow Override State
     shotWorkflowOverrides: {},
@@ -835,6 +845,31 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
           [shotSlot]: prompt
         }
       }));
+    }, []),
+    
+    // Uploaded First Frames Actions
+    setUploadedFirstFrames: useCallback((frames) => {
+      setState(prev => ({ ...prev, uploadedFirstFrames: frames }));
+    }, []),
+    
+    updateUploadedFirstFrame: useCallback((shotSlot, firstFrameUrl) => {
+      setState(prev => {
+        if (firstFrameUrl === null) {
+          // Remove the entry if null
+          const newFrames = { ...prev.uploadedFirstFrames };
+          delete newFrames[shotSlot];
+          return { ...prev, uploadedFirstFrames: newFrames };
+        } else {
+          // Add or update the entry
+          return {
+            ...prev,
+            uploadedFirstFrames: {
+              ...prev.uploadedFirstFrames,
+              [shotSlot]: firstFrameUrl
+            }
+          };
+        }
+      });
     }, []),
     
     // Workflow Override Actions

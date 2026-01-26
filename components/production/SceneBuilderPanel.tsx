@@ -2895,6 +2895,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         pronounExtrasPrompts: Object.keys(contextState.pronounExtrasPrompts).length > 0 ? contextState.pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
         firstFramePromptOverrides: Object.keys(contextState.firstFramePromptOverrides).length > 0 ? contextState.firstFramePromptOverrides : undefined, // 🔥 NEW: Per-shot first frame prompt overrides: { shotSlot: "custom prompt" }
         videoPromptOverrides: Object.keys(contextState.videoPromptOverrides).length > 0 ? contextState.videoPromptOverrides : undefined, // 🔥 NEW: Per-shot video prompt overrides: { shotSlot: "custom prompt" }
+        firstFramesByShot: Object.keys(contextState.uploadedFirstFrames).length > 0 ? contextState.uploadedFirstFrames : undefined, // 🔥 NEW: Per-shot uploaded first frame URLs: { shotSlot: firstFrameUrl }
         globalResolution: globalResolution !== '1080p' ? globalResolution : undefined, // Only send if not default (set in review step)
         // Note: Resolution is global only (no per-shot resolution) - set in review step before generation
         // Camera Angles (per-shot, defaults to 'auto' if not specified)

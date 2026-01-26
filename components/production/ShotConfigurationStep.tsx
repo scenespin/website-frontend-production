@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Film, Check, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Film, Check, ChevronDown, Upload, X, Loader2 } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { ShotNavigatorList } from './ShotNavigatorList';
@@ -321,16 +321,134 @@ export function ShotConfigurationStep({
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
+  const uploadedFirstFrameUrl = state.uploadedFirstFrames[shotSlot];
   
   // Track if prompt override is enabled for this shot (local state for UI)
   const [isPromptOverrideEnabled, setIsPromptOverrideEnabled] = useState(
     !!(finalFirstFramePromptOverride || finalVideoPromptOverride)
   );
   
+  // Track first frame mode: 'generate' (default) or 'upload'
+  const [firstFrameMode, setFirstFrameMode] = useState<'generate' | 'upload'>(
+    uploadedFirstFrameUrl ? 'upload' : 'generate'
+  );
+  
+  // Track upload state
+  const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   // Sync local state when context state changes
   useEffect(() => {
     setIsPromptOverrideEnabled(!!(finalFirstFramePromptOverride || finalVideoPromptOverride));
   }, [finalFirstFramePromptOverride, finalVideoPromptOverride]);
+  
+  // Sync first frame mode when uploaded first frame changes
+  useEffect(() => {
+    if (uploadedFirstFrameUrl) {
+      setFirstFrameMode('upload');
+    }
+  }, [uploadedFirstFrameUrl]);
+  
+  // Get projectId from context (SceneBuilderProvider has projectId prop)
+  // For now, try to get from sceneAnalysisResult or use empty string (will be handled by parent)
+  // Note: projectId should ideally be passed as prop, but for now we'll use sceneId as fallback
+  const projectId = sceneAnalysisResult?.screenplayId || sceneAnalysisResult?.sceneId || '';
+  
+  // Handle first frame file upload
+  const handleFirstFrameUpload = useCallback(async (file: File) => {
+    // Validate file type
+    let fileType = file.type;
+    if (!fileType || !fileType.startsWith('image/')) {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp'
+      };
+      fileType = mimeTypes[extension || ''] || 'image/jpeg';
+      
+      if (!file.type) {
+        console.warn('[ShotConfigurationStep] File type was empty, detected:', fileType);
+      } else {
+        toast.error('Please upload an image file');
+        return;
+      }
+    }
+    
+    // Validate file size (10MB max, matches existing pattern)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image too large. Maximum size is 10MB');
+      return;
+    }
+    
+    setIsUploadingFirstFrame(true);
+    
+    try {
+      // Step 1: Get presigned URL
+      const { url, fields, s3Key } = await SceneBuilderService.getPresignedUploadUrl(
+        file.name,
+        fileType,
+        file.size,
+        projectId,
+        getToken
+      );
+      
+      // Step 2: Upload to S3
+      await SceneBuilderService.uploadToS3(url, fields, file, '[ShotConfigurationStep] First frame');
+      
+      // Step 3: Register media
+      await SceneBuilderService.registerMedia(s3Key, file.name, fileType, projectId, getToken);
+      
+      // Step 4: Get download URL
+      const downloadUrl = await SceneBuilderService.getDownloadUrl(s3Key, getToken);
+      
+      // Step 5: Store in context
+      actions.updateUploadedFirstFrame(shotSlot, downloadUrl);
+      
+      // Step 6: Clear first frame prompt override (not needed when uploading)
+      actions.updateFirstFramePromptOverride(shotSlot, '');
+      
+      toast.success('First frame uploaded successfully!');
+    } catch (error: any) {
+      console.error('[ShotConfigurationStep] First frame upload failed:', error);
+      toast.error('Failed to upload first frame', {
+        description: error?.message || 'Unknown error'
+      });
+    } finally {
+      setIsUploadingFirstFrame(false);
+    }
+  }, [projectId, getToken, shotSlot, actions]);
+  
+  // Handle file input change
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFirstFrameUpload(file);
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [handleFirstFrameUpload]);
+  
+  // Handle remove uploaded first frame
+  const handleRemoveUploadedFirstFrame = useCallback(() => {
+    actions.updateUploadedFirstFrame(shotSlot, null);
+    setFirstFrameMode('generate');
+    toast.success('Uploaded first frame removed');
+  }, [shotSlot, actions]);
+  
+  // Handle first frame mode change
+  const handleFirstFrameModeChange = useCallback((mode: 'generate' | 'upload') => {
+    setFirstFrameMode(mode);
+    if (mode === 'generate') {
+      // Clear uploaded first frame when switching to generate mode
+      actions.updateUploadedFirstFrame(shotSlot, null);
+    }
+  }, [shotSlot, actions]);
   
   // 🔥 FIX: Initialize default video type when shot is first accessed (for action/establishing shots)
   useEffect(() => {
@@ -1404,23 +1522,120 @@ export function ShotConfigurationStep({
                   );
                 })()}
                 
-                {/* First Frame Prompt Override */}
-                <div>
-                  <label className="block text-[10px] text-[#808080] mb-1.5">
-                    First Frame Prompt (Image Model):
+                {/* First Frame Mode Selection */}
+                <div className="mb-3">
+                  <label className="block text-[10px] text-[#808080] mb-2 font-medium">
+                    First Frame Source:
                   </label>
-                  <textarea
-                    ref={firstFrameTextareaRef}
-                    value={finalFirstFramePromptOverride || ''}
-                    onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
-                    placeholder="Enter custom prompt for first frame generation (image model)... Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
-                    rows={3}
-                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
-                  />
-                  <div className="text-[10px] text-[#808080] italic mt-1">
-                    This prompt will be used instead of the auto-generated prompt. Only references with variables (e.g., {'{{character1}}'}) will be included.
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`first-frame-mode-${shotSlot}`}
+                        value="generate"
+                        checked={firstFrameMode === 'generate'}
+                        onChange={() => handleFirstFrameModeChange('generate')}
+                        className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                      />
+                      <span className="text-xs text-[#FFFFFF]">Generate First Frame</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`first-frame-mode-${shotSlot}`}
+                        value="upload"
+                        checked={firstFrameMode === 'upload'}
+                        onChange={() => handleFirstFrameModeChange('upload')}
+                        className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                      />
+                      <span className="text-xs text-[#FFFFFF]">Upload First Frame</span>
+                    </label>
                   </div>
                 </div>
+                
+                {/* First Frame Upload UI (when mode is 'upload') */}
+                {firstFrameMode === 'upload' && (
+                  <div className="mb-3">
+                    <label className="block text-[10px] text-[#808080] mb-1.5">
+                      Upload First Frame Image:
+                    </label>
+                    {uploadedFirstFrameUrl ? (
+                      <div className="relative">
+                        <img
+                          src={uploadedFirstFrameUrl}
+                          alt="Uploaded first frame"
+                          className="w-full h-32 object-cover rounded border border-[#3F3F46]"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveUploadedFirstFrame}
+                          className="absolute top-2 right-2 p-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
+                          title="Remove uploaded first frame"
+                        >
+                          <X className="w-4 h-4 text-[#FFFFFF]" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-[#3F3F46] rounded bg-[#0A0A0A] p-4">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileInputChange}
+                          className="hidden"
+                          disabled={isUploadingFirstFrame}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploadingFirstFrame}
+                          className={cn(
+                            "w-full flex flex-col items-center justify-center gap-2 py-4 px-4 rounded transition-colors",
+                            isUploadingFirstFrame
+                              ? "bg-[#1A1A1A] border border-[#3F3F46] cursor-not-allowed"
+                              : "bg-[#1A1A1A] border border-[#3F3F46] hover:bg-[#2A2A2A] hover:border-[#DC143C] cursor-pointer"
+                          )}
+                        >
+                          {isUploadingFirstFrame ? (
+                            <>
+                              <Loader2 className="w-5 h-5 text-[#DC143C] animate-spin" />
+                              <span className="text-xs text-[#808080]">Uploading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-5 h-5 text-[#808080]" />
+                              <span className="text-xs text-[#FFFFFF]">Choose Image</span>
+                              <span className="text-[10px] text-[#808080]">Max 10MB (JPG, PNG, GIF, WebP, BMP)</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                    <div className="text-[10px] text-[#808080] italic mt-1">
+                      Upload your own first frame image. Only video prompt is needed for generation.
+                    </div>
+                  </div>
+                )}
+                
+                {/* First Frame Prompt Override (when mode is 'generate') */}
+                {firstFrameMode === 'generate' && (
+                  <div>
+                    <label className="block text-[10px] text-[#808080] mb-1.5">
+                      First Frame Prompt (Image Model):
+                    </label>
+                    <textarea
+                      ref={firstFrameTextareaRef}
+                      value={finalFirstFramePromptOverride || ''}
+                      onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
+                      placeholder="Enter custom prompt for first frame generation (image model)... Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
+                      rows={3}
+                      className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
+                    />
+                    <div className="text-[10px] text-[#808080] italic mt-1">
+                      This prompt will be used instead of the auto-generated prompt. Only references with variables (e.g., {'{{character1}}'}) will be included.
+                    </div>
+                  </div>
+                )}
                 
                 {/* Video Prompt Override */}
                 <div>

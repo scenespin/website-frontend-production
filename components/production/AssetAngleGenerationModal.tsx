@@ -135,6 +135,8 @@ export default function AssetAngleGenerationModal({
         quality: quality,
         providerId: providerId, // Required - no fallback
         additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
+        projectId: projectId, // 🔥 FIX: Include projectId for job creation (matches location angle generation pattern)
+        screenplayId: projectId, // Legacy support
       };
       
       // Add selectedAngle for single mode

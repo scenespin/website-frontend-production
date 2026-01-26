@@ -178,7 +178,9 @@ export default function LocationAngleGenerationModal({
         providerId: providerId, // Required - no fallback
         additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
         timeOfDay: defaultTimeOfDay,
-        weather: defaultWeather
+        weather: defaultWeather,
+        projectId: projectId, // 🔥 FIX: Include projectId for job creation (matches location background and asset angle generation pattern)
+        screenplayId: projectId // Legacy support
       };
       
       // Add selectedAngle for single mode, or angles array for package mode

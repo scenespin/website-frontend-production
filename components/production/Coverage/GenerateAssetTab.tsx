@@ -142,6 +142,8 @@ export function GenerateAssetTab({
         quality: quality,
         providerId: providerId,
         additionalPrompt: additionalPrompt.trim() || undefined,
+        projectId: screenplayId, // 🔥 FIX: Include projectId for job creation (matches location angle generation pattern)
+        screenplayId: screenplayId, // Legacy support
       };
       
       // Add selectedAngle for single mode
