@@ -330,6 +330,9 @@ export function ShotConfigurationStep({
     !!(finalFirstFramePromptOverride || finalVideoPromptOverride)
   );
   
+  // Track if user has manually enabled the checkbox (prevents closing when textarea is cleared)
+  const [userManuallyEnabled, setUserManuallyEnabled] = useState(false);
+  
   // Track first frame mode: 'generate' (default) or 'upload'
   const [firstFrameMode, setFirstFrameMode] = useState<'generate' | 'upload'>(
     uploadedFirstFrameUrl ? 'upload' : 'generate'
@@ -339,10 +342,13 @@ export function ShotConfigurationStep({
   const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Sync local state when context state changes
+  // Sync local state when context state changes (only if user hasn't manually enabled)
+  // This allows external updates to show/hide the section, but preserves user's manual toggle
   useEffect(() => {
-    setIsPromptOverrideEnabled(!!(finalFirstFramePromptOverride || finalVideoPromptOverride));
-  }, [finalFirstFramePromptOverride, finalVideoPromptOverride]);
+    if (!userManuallyEnabled) {
+      setIsPromptOverrideEnabled(!!(finalFirstFramePromptOverride || finalVideoPromptOverride));
+    }
+  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, userManuallyEnabled]);
   
   // Sync first frame mode when uploaded first frame changes
   useEffect(() => {
@@ -1398,11 +1404,14 @@ export function ShotConfigurationStep({
                 id={`prompt-override-${shotSlot}`}
                 checked={isPromptOverrideEnabled || !!(finalFirstFramePromptOverride || finalVideoPromptOverride)}
                 onChange={(e) => {
-                  setIsPromptOverrideEnabled(e.target.checked);
-                  if (!e.target.checked) {
+                  const isChecked = e.target.checked;
+                  setIsPromptOverrideEnabled(isChecked);
+                  setUserManuallyEnabled(isChecked); // Track that user manually toggled
+                  if (!isChecked) {
                     // Clear both overrides when unchecked
                     actions.updateFirstFramePromptOverride(shotSlot, '');
                     actions.updateVideoPromptOverride(shotSlot, '');
+                    setUserManuallyEnabled(false); // Reset manual flag when unchecked
                   }
                 }}
                 className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
