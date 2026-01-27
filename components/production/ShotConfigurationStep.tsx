@@ -358,14 +358,21 @@ export function ShotConfigurationStep({
   }, [finalFirstFramePromptOverride, finalVideoPromptOverride, uploadedFirstFrameUrl, firstFrameOverrideEnabledFromContext, videoPromptOverrideEnabledFromContext, shotSlot, actions]);
   
   // Sync first frame mode when uploaded first frame changes
+  // Only auto-switch to 'upload' if a file is uploaded, or back to 'generate' if file is removed
+  // Don't prevent user from manually selecting 'upload' mode
+  const prevUploadedFirstFrameUrl = useRef<string | undefined>(uploadedFirstFrameUrl);
   useEffect(() => {
-    if (uploadedFirstFrameUrl) {
+    // If a file was just uploaded, switch to upload mode
+    if (uploadedFirstFrameUrl && !prevUploadedFirstFrameUrl.current) {
       setFirstFrameMode('upload');
-    } else if (firstFrameMode === 'upload' && !uploadedFirstFrameUrl) {
-      // If user removes uploaded first frame, switch back to generate mode
+    }
+    // If a file was just removed (went from existing to null), switch back to generate mode
+    else if (!uploadedFirstFrameUrl && prevUploadedFirstFrameUrl.current) {
       setFirstFrameMode('generate');
     }
-  }, [uploadedFirstFrameUrl, firstFrameMode]);
+    // Update ref for next comparison
+    prevUploadedFirstFrameUrl.current = uploadedFirstFrameUrl;
+  }, [uploadedFirstFrameUrl]);
   
   // Get projectId from prop (passed from SceneBuilderPanel)
   // This is the screenplay/project ID, not the scene ID
