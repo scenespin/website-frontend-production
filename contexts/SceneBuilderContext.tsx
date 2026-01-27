@@ -105,7 +105,9 @@ export interface SceneBuilderState {
   // Prompt Override State
   firstFramePromptOverrides: Record<number, string>;
   videoPromptOverrides: Record<number, string>;
-  promptOverrideEnabled: Record<number, boolean>; // Per-shot checkbox state for prompt override
+  promptOverrideEnabled: Record<number, boolean>; // Legacy: Per-shot checkbox state for prompt override (kept for backward compatibility)
+  firstFrameOverrideEnabled: Record<number, boolean>; // 🔥 NEW: Per-shot checkbox state for first frame override
+  videoPromptOverrideEnabled: Record<number, boolean>; // 🔥 NEW: Per-shot checkbox state for video prompt override
   
   // Uploaded First Frames State
   uploadedFirstFrames: Record<number, string>; // Per-shot uploaded first frame URLs
@@ -188,8 +190,12 @@ export interface SceneBuilderActions {
   updateFirstFramePromptOverride: (shotSlot: number, prompt: string) => void;
   setVideoPromptOverrides: (overrides: Record<number, string>) => void;
   updateVideoPromptOverride: (shotSlot: number, prompt: string) => void;
-  setPromptOverrideEnabled: (enabled: Record<number, boolean>) => void;
-  updatePromptOverrideEnabled: (shotSlot: number, enabled: boolean) => void;
+  setPromptOverrideEnabled: (enabled: Record<number, boolean>) => void; // Legacy: kept for backward compatibility
+  updatePromptOverrideEnabled: (shotSlot: number, enabled: boolean) => void; // Legacy: kept for backward compatibility
+  setFirstFrameOverrideEnabled: (enabled: Record<number, boolean>) => void; // 🔥 NEW: Separate first frame override enabled
+  updateFirstFrameOverrideEnabled: (shotSlot: number, enabled: boolean) => void; // 🔥 NEW: Separate first frame override enabled
+  setVideoPromptOverrideEnabled: (enabled: Record<number, boolean>) => void; // 🔥 NEW: Separate video prompt override enabled
+  updateVideoPromptOverrideEnabled: (shotSlot: number, enabled: boolean) => void; // 🔥 NEW: Separate video prompt override enabled
   
   // Uploaded First Frames Actions
   setUploadedFirstFrames: (frames: Record<number, string>) => void;
@@ -296,7 +302,9 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     // Prompt Override State
     firstFramePromptOverrides: {},
     videoPromptOverrides: {},
-    promptOverrideEnabled: {},
+    promptOverrideEnabled: {}, // Legacy: kept for backward compatibility
+    firstFrameOverrideEnabled: {}, // 🔥 NEW: Separate first frame override enabled
+    videoPromptOverrideEnabled: {}, // 🔥 NEW: Separate video prompt override enabled
     
     // Uploaded First Frames State
     uploadedFirstFrames: {},
@@ -860,6 +868,36 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         ...prev,
         promptOverrideEnabled: {
           ...prev.promptOverrideEnabled,
+          [shotSlot]: enabled
+        }
+      }));
+    }, []),
+    
+    // 🔥 NEW: Separate first frame override enabled
+    setFirstFrameOverrideEnabled: useCallback((enabled) => {
+      setState(prev => ({ ...prev, firstFrameOverrideEnabled: enabled }));
+    }, []),
+    
+    updateFirstFrameOverrideEnabled: useCallback((shotSlot, enabled) => {
+      setState(prev => ({
+        ...prev,
+        firstFrameOverrideEnabled: {
+          ...prev.firstFrameOverrideEnabled,
+          [shotSlot]: enabled
+        }
+      }));
+    }, []),
+    
+    // 🔥 NEW: Separate video prompt override enabled
+    setVideoPromptOverrideEnabled: useCallback((enabled) => {
+      setState(prev => ({ ...prev, videoPromptOverrideEnabled: enabled }));
+    }, []),
+    
+    updateVideoPromptOverrideEnabled: useCallback((shotSlot, enabled) => {
+      setState(prev => ({
+        ...prev,
+        videoPromptOverrideEnabled: {
+          ...prev.videoPromptOverrideEnabled,
           [shotSlot]: enabled
         }
       }));

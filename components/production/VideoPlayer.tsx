@@ -177,11 +177,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         // 🔥 FIX: Use actual video duration from metadata
         const actualDuration = videoRef.current.duration || 0;
         setDuration(actualDuration);
-        setIsLoading(false);
+      setIsLoading(false);
         trimEndTriggeredRef.current = false;
-        if (trimStart > 0) {
+      if (trimStart > 0) {
           player.currentTime = trimStart;
-        }
+      }
       }
     });
 
@@ -286,7 +286,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         const newEnd = Math.max(currentStart + 0.1, Math.min(newTime, duration));
         if (onTrimChange) {
           onTrimChange(currentStart, newEnd);
-        }
+            }
       }
     };
 
@@ -342,12 +342,12 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         }
       } catch (error: any) {
         setIsAutoPlaying(false);
-        if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
-          console.warn('[VideoPlayer] Play error:', error);
-        }
-        setIsPlaying(false);
+          if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+            console.warn('[VideoPlayer] Play error:', error);
+          }
+          setIsPlaying(false);
         throw error;
-      }
+    }
     },
     pause: () => {
       if (playerRef.current) {
@@ -357,7 +357,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     },
     seekTo: (time: number) => {
       if (playerRef.current) {
-        const seekTime = Math.max(trimStart, Math.min(trimEnd || duration, time));
+    const seekTime = Math.max(trimStart, Math.min(trimEnd || duration, time));
         playerRef.current.currentTime = seekTime;
       }
     },
@@ -396,7 +396,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
             )}
             
             {/* Trim Start Handle */}
-            <div
+            <div 
               className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform pointer-events-auto ${
                 draggingTrim === 'start' ? 'scale-110 ring-2 ring-green-300' : ''
               }`}
@@ -413,7 +413,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
             
             {/* Trim End Handle */}
             {trimEnd && trimEnd > 0 && (
-              <div
+              <div 
                 className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform pointer-events-auto ${
                   draggingTrim === 'end' ? 'scale-110 ring-2 ring-red-300' : ''
                 }`}

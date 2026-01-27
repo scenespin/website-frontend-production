@@ -122,7 +122,7 @@ export function ShotThumbnail({
         {/* Shot number badge - show "NEW" badge for newest variation */}
         <div className="absolute top-2 left-2 flex items-center gap-1">
           <div className="bg-[#DC143C] text-white text-xs font-semibold px-2 py-1 rounded">
-            Shot {shot.shotNumber}
+          Shot {shot.shotNumber}
             {shot.timestamp && (
               <span className="ml-1 text-[10px] opacity-75">
                 {new Date(shot.timestamp.replace(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:$5:$6')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -320,11 +320,11 @@ export function ShotThumbnail({
                 </button>
               </div>
             ) : (
-              <video
-                src={presignedUrl}
-                controls
-                autoPlay
-                className="w-full h-auto rounded-lg"
+            <video
+              src={presignedUrl}
+              controls
+              autoPlay
+              className="w-full h-auto rounded-lg"
                 onError={(e) => {
                   const video = e.currentTarget;
                   let errorMessage = 'Failed to load video.';
@@ -360,9 +360,9 @@ export function ShotThumbnail({
                   // Clear any previous errors when video loads successfully
                   setVideoError(null);
                 }}
-              >
-                Your browser does not support the video tag.
-              </video>
+            >
+              Your browser does not support the video tag.
+            </video>
             )}
           </div>
         </div>

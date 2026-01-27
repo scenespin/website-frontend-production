@@ -231,16 +231,16 @@ export function ScenesPanel({ className = '' }: ScenesPanelProps) {
                 }))
               });
               return scenesWithVideos.map((scene) => (
-                <SceneCard
-                  key={scene.id || scene.number}
-                  scene={scene}
-                  presignedUrls={presignedUrls as Map<string, string> | undefined}
-                  screenplayId={screenplayId}
-                  onViewMetadata={(metadata) => {
-                    setSelectedMetadata(metadata);
-                    setShowMetadataModal(true);
-                  }}
-                />
+              <SceneCard
+                key={scene.id || scene.number}
+                scene={scene}
+                presignedUrls={presignedUrls as Map<string, string> | undefined}
+                screenplayId={screenplayId}
+                onViewMetadata={(metadata) => {
+                  setSelectedMetadata(metadata);
+                  setShowMetadataModal(true);
+                }}
+              />
               ));
             })()}
           </div>

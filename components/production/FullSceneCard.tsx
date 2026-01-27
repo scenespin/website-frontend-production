@@ -137,11 +137,11 @@ export function FullSceneCard({
                 </button>
               </div>
             ) : (
-              <video
-                src={presignedUrl}
-                controls
-                autoPlay
-                className="w-full h-auto rounded-lg"
+            <video
+              src={presignedUrl}
+              controls
+              autoPlay
+              className="w-full h-auto rounded-lg"
                 onError={(e) => {
                   const video = e.currentTarget;
                   let errorMessage = 'Failed to load video.';
@@ -177,9 +177,9 @@ export function FullSceneCard({
                   // Clear any previous errors when video loads successfully
                   setVideoError(null);
                 }}
-              >
-                Your browser does not support the video tag.
-              </video>
+            >
+              Your browser does not support the video tag.
+            </video>
             )}
           </div>
         </div>

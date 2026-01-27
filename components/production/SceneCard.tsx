@@ -114,7 +114,7 @@ export function SceneCard({ scene, presignedUrls, onViewMetadata, screenplayId }
               return (
                 <span className="text-xs text-[#808080]" title={`${totalVariations} variation${totalVariations !== 1 ? 's' : ''} across ${uniqueShots} shot${uniqueShots !== 1 ? 's' : ''}`}>
                   {uniqueShots} shot{uniqueShots !== 1 ? 's' : ''} ({totalVariations} variation{totalVariations !== 1 ? 's' : ''})
-                </span>
+              </span>
               );
             })()}
             {isExpanded ? (

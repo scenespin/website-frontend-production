@@ -325,10 +325,16 @@ export function ShotConfigurationStep({
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
   const uploadedFirstFrameUrl = state.uploadedFirstFrames[shotSlot];
-  const promptOverrideEnabledFromContext = state.promptOverrideEnabled[shotSlot] ?? false;
   
-  // Use context state as source of truth, initialize from existing override data if present
-  const isPromptOverrideEnabled = promptOverrideEnabledFromContext || !!(finalFirstFramePromptOverride || finalVideoPromptOverride || uploadedFirstFrameUrl);
+  // 🔥 NEW: Separate enabled flags for first frame and video prompt overrides
+  const firstFrameOverrideEnabledFromContext = state.firstFrameOverrideEnabled[shotSlot] ?? false;
+  const videoPromptOverrideEnabledFromContext = state.videoPromptOverrideEnabled[shotSlot] ?? false;
+  
+  // Auto-enable checkboxes if override data exists (preserves state on navigation)
+  // First frame: enabled if prompt override exists OR uploaded first frame exists
+  const isFirstFrameOverrideEnabled = firstFrameOverrideEnabledFromContext || !!(finalFirstFramePromptOverride || uploadedFirstFrameUrl);
+  // Video prompt: enabled if prompt override exists
+  const isVideoPromptOverrideEnabled = videoPromptOverrideEnabledFromContext || !!finalVideoPromptOverride;
   
   // Track first frame mode: 'generate' (default) or 'upload'
   const [firstFrameMode, setFirstFrameMode] = useState<'generate' | 'upload'>(
@@ -341,25 +347,32 @@ export function ShotConfigurationStep({
   
   // Sync context state when override data exists (preserves state on navigation)
   useEffect(() => {
-    // If override data exists but checkbox state is not set, set it in context
-    if ((finalFirstFramePromptOverride || finalVideoPromptOverride || uploadedFirstFrameUrl) && !promptOverrideEnabledFromContext) {
-      actions.updatePromptOverrideEnabled(shotSlot, true);
+    // Auto-enable first frame override if prompt override exists OR uploaded first frame exists
+    if ((finalFirstFramePromptOverride || uploadedFirstFrameUrl) && !firstFrameOverrideEnabledFromContext) {
+      actions.updateFirstFrameOverrideEnabled(shotSlot, true);
     }
-  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, uploadedFirstFrameUrl, promptOverrideEnabledFromContext, shotSlot, actions]);
+    // Auto-enable video prompt override if prompt override exists
+    if (finalVideoPromptOverride && !videoPromptOverrideEnabledFromContext) {
+      actions.updateVideoPromptOverrideEnabled(shotSlot, true);
+    }
+  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, uploadedFirstFrameUrl, firstFrameOverrideEnabledFromContext, videoPromptOverrideEnabledFromContext, shotSlot, actions]);
   
   // Sync first frame mode when uploaded first frame changes
   useEffect(() => {
     if (uploadedFirstFrameUrl) {
       setFirstFrameMode('upload');
+    } else if (firstFrameMode === 'upload' && !uploadedFirstFrameUrl) {
+      // If user removes uploaded first frame, switch back to generate mode
+      setFirstFrameMode('generate');
     }
-  }, [uploadedFirstFrameUrl]);
+  }, [uploadedFirstFrameUrl, firstFrameMode]);
   
   // Get projectId from prop (passed from SceneBuilderPanel)
   // This is the screenplay/project ID, not the scene ID
   const screenplayId = projectId || '';
   
   // Get screenplay context for sceneNumber lookup
-  const { screenplay } = useScreenplay();
+  const { scenes } = useScreenplay();
   
   // Handle first frame file upload (uses working annotation pattern - proven to work)
   const handleFirstFrameUpload = useCallback(async (file: File) => {
@@ -467,8 +480,8 @@ export function ShotConfigurationStep({
       
       // Get sceneNumber from screenplay context (same pattern as SceneBuilderPanel)
       let sceneNumber: number | undefined;
-      if (sceneId && screenplay?.scenes) {
-        const selectedScene = screenplay.scenes.find((s: any) => s.id === sceneId);
+      if (sceneId && scenes) {
+        const selectedScene = scenes.find((s: any) => s.id === sceneId);
         if (selectedScene) {
           sceneNumber = selectedScene.number;
         }
@@ -883,19 +896,21 @@ export function ShotConfigurationStep({
   const handleNext = () => {
     const validationErrors: string[] = [];
     
-    // 1. Validate prompt override requirements (if override is enabled)
-    if (isPromptOverrideEnabled) {
-      // First frame validation: Must have either prompt OR uploaded image
+    // 1. Validate prompt override requirements (if overrides are enabled)
+    // First frame override validation: Must have either prompt OR uploaded image
+    if (isFirstFrameOverrideEnabled) {
       const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
       const hasUploadedFirstFrame = !!uploadedFirstFrameUrl;
       if (!hasFirstFramePrompt && !hasUploadedFirstFrame) {
-        validationErrors.push('First frame: Enter a prompt OR upload a first frame image when Override Prompts is enabled.');
+        validationErrors.push('First frame: Enter a prompt OR upload a first frame image when "Override First Frame" is enabled.');
       }
-      
-      // Video prompt validation: Must have video prompt
+    }
+    
+    // Video prompt override validation: Must have video prompt
+    if (isVideoPromptOverrideEnabled) {
       const hasVideoPrompt = finalVideoPromptOverride?.trim() !== '';
       if (!hasVideoPrompt) {
-        validationErrors.push('Video prompt is required when Override Prompts is enabled.');
+        validationErrors.push('Video prompt is required when "Override Video Prompt" is enabled.');
       }
     }
     
@@ -1148,22 +1163,25 @@ export function ShotConfigurationStep({
             </div>
           </div>
 
-          {/* Conditional rendering: Tabs for dialogue shots, single screen for action shots */}
-          {isDialogueShot ? (
-            /* Dialogue shots: Show tabs (LIP SYNC OPTIONS / NON-LIP SYNC OPTIONS) */
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-[#1F1F1F] border border-[#3F3F46]">
-                <TabsTrigger value="basic" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
-                  LIP SYNC OPTIONS
-                </TabsTrigger>
-                <TabsTrigger value="advanced" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
-                  NON-LIP SYNC OPTIONS
-                </TabsTrigger>
-              </TabsList>
-              
-              {/* LIP SYNC OPTIONS Tab */}
-              <TabsContent value="basic" className="mt-4">
-                <ShotConfigurationPanel
+          {/* 🔥 NEW: Hide reference selection UI when first frame is uploaded (references not needed) */}
+          {!uploadedFirstFrameUrl && (
+            <>
+              {/* Conditional rendering: Tabs for dialogue shots, single screen for action shots */}
+              {isDialogueShot ? (
+                /* Dialogue shots: Show tabs (LIP SYNC OPTIONS / NON-LIP SYNC OPTIONS) */
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-[#1F1F1F] border border-[#3F3F46]">
+                    <TabsTrigger value="basic" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
+                      LIP SYNC OPTIONS
+                    </TabsTrigger>
+                    <TabsTrigger value="advanced" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
+                      NON-LIP SYNC OPTIONS
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  {/* LIP SYNC OPTIONS Tab */}
+                  <TabsContent value="basic" className="mt-4">
+                    <ShotConfigurationPanel
                   activeTab="basic"
                   isDialogueShot={isDialogueShot}
                   shot={shot}
@@ -1281,11 +1299,11 @@ export function ShotConfigurationStep({
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                   propThumbnailUrlsMap={propThumbnailUrlsMap}
                 />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            /* Action/Establishing shots: Single screen, no tabs */
-            <ShotConfigurationPanel
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                /* Action/Establishing shots: Single screen, no tabs */
+                <ShotConfigurationPanel
               activeTab="basic"
               isDialogueShot={isDialogueShot}
               shot={shot}
@@ -1339,12 +1357,14 @@ export function ShotConfigurationStep({
               onPropImageChange={finalOnPropImageChange}
               shotWorkflowOverride={finalShotWorkflowOverride}
               onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
-              propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
-            />
+                  propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
+                />
+              )}
+            </>
           )}
 
-          {/* Reference Shot (First Frame) Model Selection */}
-          {onReferenceShotModelChange && (
+          {/* Reference Shot (First Frame) Model Selection - Hide when first frame is uploaded */}
+          {onReferenceShotModelChange && !uploadedFirstFrameUrl && (
             <>
               <ReferenceShotSelector
                 shotSlot={shot.slot}
@@ -1550,37 +1570,62 @@ export function ShotConfigurationStep({
             </>
           )}
 
-          {/* Prompt Override Section */}
+          {/* 🔥 NEW: Separate Prompt Override Section - Two Independent Checkboxes */}
           <div className="mt-4 pt-3 border-t border-[#3F3F46]">
+            {/* First Frame Override Checkbox */}
             <div className="flex items-center gap-2 mb-3">
               <input
                 type="checkbox"
-                id={`prompt-override-${shotSlot}`}
-                checked={isPromptOverrideEnabled}
+                id={`first-frame-override-${shotSlot}`}
+                checked={isFirstFrameOverrideEnabled}
                 onChange={(e) => {
                   const isChecked = e.target.checked;
-                  actions.updatePromptOverrideEnabled(shotSlot, isChecked);
+                  actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
                   if (!isChecked) {
-                    // Clear both overrides when unchecked
+                    // Clear first frame override when unchecked (but keep uploaded first frame if it exists)
                     actions.updateFirstFramePromptOverride(shotSlot, '');
-                    actions.updateVideoPromptOverride(shotSlot, '');
-                    actions.updateUploadedFirstFrame(shotSlot, null);
+                    // Don't clear uploaded first frame - user might want to keep it
                   }
                 }}
                 className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
               />
               <label 
-                htmlFor={`prompt-override-${shotSlot}`}
+                htmlFor={`first-frame-override-${shotSlot}`}
                 className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
               >
-                Override Prompts
+                Override First Frame
               </label>
             </div>
             
-            {(isPromptOverrideEnabled || finalFirstFramePromptOverride || finalVideoPromptOverride) && (
+            {/* Video Prompt Override Checkbox */}
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                id={`video-prompt-override-${shotSlot}`}
+                checked={isVideoPromptOverrideEnabled}
+                onChange={(e) => {
+                  const isChecked = e.target.checked;
+                  actions.updateVideoPromptOverrideEnabled(shotSlot, isChecked);
+                  if (!isChecked) {
+                    // Clear video prompt override when unchecked
+                    actions.updateVideoPromptOverride(shotSlot, '');
+                  }
+                }}
+                className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+              />
+              <label 
+                htmlFor={`video-prompt-override-${shotSlot}`}
+                className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
+              >
+                Override Video Prompt
+              </label>
+            </div>
+            
+            {/* First Frame Override Section */}
+            {isFirstFrameOverrideEnabled && (
               <div className="space-y-3">
-                {/* Available Variables Display - Shows selected references as ready-to-use variables */}
-                {(() => {
+                {/* Available Variables Display - Only show when generating first frame (not when uploading) */}
+                {firstFrameMode === 'generate' && (() => {
                   // Collect available references for this shot (reuse same logic)
                   const availableVariables: Array<{ label: string; variable: string; type: 'character' | 'location' | 'prop' }> = [];
                   
@@ -1765,16 +1810,16 @@ export function ShotConfigurationStep({
                   </div>
                 )}
                 
-                {/* First Frame Prompt Override (when mode is 'generate') */}
-                {firstFrameMode === 'generate' && (
-                  <div>
-                    <label className="block text-[10px] text-[#808080] mb-1.5">
-                      First Frame Prompt (Image Model):
-                    </label>
-                    <textarea
-                      ref={firstFrameTextareaRef}
-                      value={finalFirstFramePromptOverride || ''}
-                      onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
+              {/* First Frame Prompt Override (when mode is 'generate') */}
+              {firstFrameMode === 'generate' && (
+                <div>
+                  <label className="block text-[10px] text-[#808080] mb-1.5">
+                    First Frame Prompt (Image Model):
+                  </label>
+                  <textarea
+                    ref={firstFrameTextareaRef}
+                    value={finalFirstFramePromptOverride || ''}
+                    onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
                       placeholder="Enter custom prompt for first frame generation (image model)... Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
                       rows={3}
                       className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
@@ -1785,7 +1830,12 @@ export function ShotConfigurationStep({
                   </div>
                 )}
                 
-                {/* Video Prompt Override */}
+              </div>
+            )}
+            
+            {/* Video Prompt Override Section */}
+            {isVideoPromptOverrideEnabled && (
+              <div className="space-y-3">
                 <div>
                   <label className="block text-[10px] text-[#808080] mb-1.5">
                     Video Prompt (Video Model):

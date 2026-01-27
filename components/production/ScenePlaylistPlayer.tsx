@@ -213,24 +213,24 @@ export function ScenePlaylistPlayer({
     if (!isInitializedRef.current) {
       setIsLoadingUrls(true);
 
-      const shots: PlaylistShot[] = scene.videos.shots.map((shot) => {
-        const presignedUrl = shot.video.s3Key ? presignedUrls.get(shot.video.s3Key) : undefined;
+    const shots: PlaylistShot[] = scene.videos.shots.map((shot) => {
+      const presignedUrl = shot.video.s3Key ? presignedUrls.get(shot.video.s3Key) : undefined;
         const hasError = shot.video.s3Key && !presignedUrl;
         
-        return {
-          shotNumber: shot.shotNumber,
-          video: shot.video,
-          presignedUrl,
-          trimStart: 0,
+      return {
+        shotNumber: shot.shotNumber,
+        video: shot.video,
+        presignedUrl,
+        trimStart: 0,
           trimEnd: 5, // Default to 5 seconds (will be updated when video loads) - allows immediate playback
-          duration: 0, // Will be set when video loads
-          timestamp: shot.timestamp,
+        duration: 0, // Will be set when video loads
+        timestamp: shot.timestamp,
           isLoading: !!presignedUrl, // Will load if URL exists
           hasError,
-        };
-      });
+      };
+    });
 
-      setPlaylist(shots);
+    setPlaylist(shots);
       setIsLoadingUrls(false);
       isInitializedRef.current = true;
 
@@ -392,8 +392,8 @@ export function ScenePlaylistPlayer({
       setCurrentIndex(prevIndex => {
         if (prevIndex < playlist.length - 1) {
           return prevIndex + 1;
-        } else {
-          setIsPlaying(false);
+    } else {
+      setIsPlaying(false);
           return prevIndex;
         }
       });
@@ -626,13 +626,13 @@ export function ScenePlaylistPlayer({
               <Edit className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
               <span>Edit Playlist</span>
             </button>
-            <button
-              onClick={onClose}
+          <button
+            onClick={onClose}
               className={`${isMobile ? 'p-2.5 min-w-[44px] min-h-[44px]' : 'p-2'} hover:bg-[#3F3F46] rounded transition-colors flex items-center justify-center`}
-              aria-label="Close"
-            >
+            aria-label="Close"
+          >
               <X className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} text-[#B3B3B3]`} />
-            </button>
+          </button>
           </div>
         </div>
 
@@ -668,7 +668,7 @@ export function ScenePlaylistPlayer({
                     }
                     // Small delay before triggering end to ensure video is paused
                     setTimeout(() => {
-                      handleVideoEnd();
+                    handleVideoEnd();
                     }, 10);
                   }
                 }}
@@ -690,7 +690,7 @@ export function ScenePlaylistPlayer({
                         : errorMessage,
                       duration: 6000
                     });
-                  }}
+                }}
               />
               </div>
             ) : (
@@ -708,21 +708,21 @@ export function ScenePlaylistPlayer({
             {/* Controls - Streamlined */}
             <div className={`mt-4 flex ${isMobile ? 'flex-col gap-2' : 'items-center gap-2'}`}>
               <div className={`flex items-center ${isMobile ? 'gap-2 w-full' : 'gap-2'}`}>
-                <button
-                  onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)}
-                  disabled={currentIndex === 0}
+              <button
+                onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)}
+                disabled={currentIndex === 0}
                   className={`${isMobile ? 'flex-1 px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg ${isMobile ? 'text-base' : 'text-sm'} font-medium transition-colors border border-[#3F3F46]`}
-                >
-                  Previous
-                </button>
+              >
+                Previous
+              </button>
 
-                <button
-                  onClick={() => currentIndex < playlist.length - 1 && setCurrentIndex(currentIndex + 1)}
-                  disabled={currentIndex === playlist.length - 1}
+              <button
+                onClick={() => currentIndex < playlist.length - 1 && setCurrentIndex(currentIndex + 1)}
+                disabled={currentIndex === playlist.length - 1}
                   className={`${isMobile ? 'flex-1 px-4 py-2.5 min-h-[44px]' : 'px-4 py-2'} bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:bg-[#0A0A0A] disabled:text-[#808080] text-white rounded-lg ${isMobile ? 'text-base' : 'text-sm'} font-medium transition-colors border border-[#3F3F46]`}
-                >
-                  Next
-                </button>
+              >
+                Next
+              </button>
 
                 {/* Auto-play toggle - Only control needed since VideoPlayer has its own play/pause */}
                 <button
@@ -838,10 +838,10 @@ export function ScenePlaylistPlayer({
                       >
                         <Minus className="w-3 h-3 text-[#B3B3B3]" />
                       </button>
-                      <input
+                        <input
                         type="text"
-                        value={shot.trimStart.toFixed(1)}
-                        onChange={(e) => {
+                          value={shot.trimStart.toFixed(1)}
+                          onChange={(e) => {
                           const inputValue = e.target.value;
                           // Allow typing decimals (e.g., "1.5", "2.3")
                           if (inputValue === '' || /^\d*\.?\d*$/.test(inputValue)) {
@@ -853,13 +853,13 @@ export function ScenePlaylistPlayer({
                         }}
                         onBlur={(e) => {
                           // Ensure valid value on blur
-                          const value = parseFloat(e.target.value) || 0;
+                            const value = parseFloat(e.target.value) || 0;
                           const validValue = Math.max(0, Math.min(value, shot.trimEnd - 0.1));
                           updateTrim(index, validValue, shot.trimEnd);
-                        }}
+                          }}
                         className="w-12 px-1 py-0.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none text-center"
                         placeholder="0.0"
-                      />
+                        />
                       <button
                         onClick={() => {
                           const newStart = Math.min(shot.trimEnd - 0.1, shot.trimStart + 0.1);
@@ -872,7 +872,7 @@ export function ScenePlaylistPlayer({
                         <Plus className="w-3 h-3 text-[#B3B3B3]" />
                       </button>
                       <span className="text-xs text-[#808080] w-4 flex-shrink-0">s</span>
-                    </div>
+                      </div>
                     
                     {/* End Time */}
                     <div className="flex items-center gap-1">
@@ -888,10 +888,10 @@ export function ScenePlaylistPlayer({
                       >
                         <Minus className="w-3 h-3 text-[#B3B3B3]" />
                       </button>
-                      <input
+                        <input
                         type="text"
-                        value={shot.trimEnd.toFixed(1)}
-                        onChange={(e) => {
+                          value={shot.trimEnd.toFixed(1)}
+                          onChange={(e) => {
                           const inputValue = e.target.value;
                           // Allow typing decimals (e.g., "1.5", "2.3")
                           if (inputValue === '' || /^\d*\.?\d*$/.test(inputValue)) {
@@ -903,13 +903,13 @@ export function ScenePlaylistPlayer({
                         }}
                         onBlur={(e) => {
                           // Ensure valid value on blur
-                          const value = parseFloat(e.target.value) || shot.duration;
+                            const value = parseFloat(e.target.value) || shot.duration;
                           const validValue = Math.max(shot.trimStart + 0.1, Math.min(value, shot.duration));
                           updateTrim(index, shot.trimStart, validValue);
-                        }}
+                          }}
                         className="w-12 px-1 py-0.5 bg-[#0A0A0A] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none text-center"
                         placeholder="0.0"
-                      />
+                        />
                       <button
                         onClick={() => {
                           const newEnd = Math.min(shot.duration, shot.trimEnd + 0.1);
