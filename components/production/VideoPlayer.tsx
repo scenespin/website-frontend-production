@@ -64,6 +64,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const [isLoading, setIsLoading] = useState(true);
   const [codecSupported, setCodecSupported] = useState<boolean | null>(null);
   const [draggingTrim, setDraggingTrim] = useState<'start' | 'end' | null>(null);
+  const trimEndTriggeredRef = useRef(false);
 
   // Global mouse event handlers for trim dragging (allows dragging outside progress bar)
   useEffect(() => {
@@ -185,14 +186,13 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     const video = videoRef.current;
     if (!video) return;
 
-    let trimEndTriggered = false;
     const handleTimeUpdate = () => {
       const time = video.currentTime;
       setCurrentTime(time);
 
-      // Check if we've reached trim end (only trigger once)
-      if (trimEnd && time >= trimEnd && !trimEndTriggered) {
-        trimEndTriggered = true;
+      // Check if we've reached trim end (only trigger once per video)
+      if (trimEnd && time >= trimEnd && !trimEndTriggeredRef.current) {
+        trimEndTriggeredRef.current = true;
         try {
           video.pause();
           video.currentTime = trimEnd; // Seek back to trimEnd
@@ -206,11 +206,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         }
         // Reset flag after a short delay
         setTimeout(() => {
-          trimEndTriggered = false;
-        }, 100);
-      } else if (trimEnd && time < trimEnd) {
-        // Reset flag if we're before trim end
-        trimEndTriggered = false;
+          trimEndTriggeredRef.current = false;
+        }, 200);
+      } else if (trimEnd && time < trimEnd - 0.1) {
+        // Reset flag if we're before trim end (with small buffer)
+        trimEndTriggeredRef.current = false;
       }
 
       if (onTimeUpdate) {
@@ -221,6 +221,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
       setIsLoading(false);
+      
+      // Reset trim end trigger when new video loads
+      trimEndTriggeredRef.current = false;
       
       // Seek to trim start if specified
       if (trimStart > 0) {
