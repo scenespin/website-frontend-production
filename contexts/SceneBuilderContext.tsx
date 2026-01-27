@@ -916,13 +916,47 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
           delete newFrames[shotSlot];
           return { ...prev, uploadedFirstFrames: newFrames };
         } else {
-          // Add or update the entry
+          // 🔥 OPTION 1: Clear all first-frame-related selections when uploading
+          // This ensures consistent workflow output: same first frame + same settings = same result
+          // Clears: character references, location references, prop selections, first frame prompt override, reference shot model
+          
+          // Build new state immutably
+          const newCharacterRefs = { ...prev.selectedCharacterReferences };
+          if (newCharacterRefs[shotSlot]) {
+            delete newCharacterRefs[shotSlot];
+          }
+          
+          const newLocationRefs = { ...prev.selectedLocationReferences };
+          if (newLocationRefs[shotSlot]) {
+            delete newLocationRefs[shotSlot];
+          }
+          
+          const newShotProps = { ...prev.shotProps };
+          if (newShotProps[shotSlot]) {
+            delete newShotProps[shotSlot];
+          }
+          
+          const newFirstFrameOverrides = { ...prev.firstFramePromptOverrides };
+          if (newFirstFrameOverrides[shotSlot]) {
+            delete newFirstFrameOverrides[shotSlot];
+          }
+          
+          const newReferenceModels = { ...prev.selectedReferenceShotModels };
+          if (newReferenceModels[shotSlot]) {
+            delete newReferenceModels[shotSlot];
+          }
+          
           return {
             ...prev,
             uploadedFirstFrames: {
               ...prev.uploadedFirstFrames,
               [shotSlot]: firstFrameUrl
-            }
+            },
+            selectedCharacterReferences: newCharacterRefs,
+            selectedLocationReferences: newLocationRefs,
+            shotProps: newShotProps,
+            firstFramePromptOverrides: newFirstFrameOverrides,
+            selectedReferenceShotModels: newReferenceModels
           };
         }
       });
