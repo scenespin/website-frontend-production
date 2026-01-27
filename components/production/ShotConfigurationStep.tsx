@@ -910,9 +910,6 @@ export function ShotConfigurationStep({
   const [activeTab, setActiveTab] = useState<string>('basic');
   const firstFrameTextareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Determine if this is a dialogue shot (only dialogue shots have tabs)
-  const isDialogueShot = shot.type === 'dialogue';
-  
   // 🔥 NEW: Clear character references when switching to non-lip-sync tab or workflow
   // Non-lip-sync workflows generate their own first frame, so they don't need character references from lip-sync
   // 🔥 FIX: Use ref to track last state to prevent infinite loops
