@@ -89,7 +89,7 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration, sc
       <div className="flex-1 min-w-0">
         <div className={`flex flex-col ${isMobile ? 'gap-0.5' : 'gap-0.5'} mb-1`}>
           <span className={`${isMobile ? 'text-xs' : 'text-xs'} font-semibold text-[#DC143C]`}>Shot {shot.shotNumber}</span>
-          <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>Scene {scene.number}</span>
+          <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>Scene {sceneNumber}</span>
         </div>
         <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>
           <span>Duration: {duration ? duration.toFixed(1) : '0.0'}s</span>
