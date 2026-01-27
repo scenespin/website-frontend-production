@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { X, Play, Save, FileText, Trash2, GripVertical, Scissors, Search, Check, Plus, Copy, Download } from 'lucide-react';
+import { X, Play, Save, FileText, Trash2, GripVertical, Search, Check, Copy, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -26,6 +26,7 @@ interface PlaylistItemProps {
   onRemove: () => void;
   onTrimChange: (trimStart: number, trimEnd: number) => void;
   duration?: number;
+  sceneNumber: number;
 }
 
 interface PlaylistBuilderModalProps {
@@ -43,31 +44,14 @@ interface PlaylistBuilderModalProps {
   initialPlaylist?: PlaylistShot[];
 }
 
-function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: PlaylistItemProps) {
+function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration, sceneNumber }: PlaylistItemProps) {
   const isMobile = useIsMobile();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.fileId });
-  const [trimStart, setTrimStart] = useState(shot.trimStart || 0);
-  const [trimEnd, setTrimEnd] = useState(shot.trimEnd || duration || 5);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  };
-
-  const trimmedDuration = Math.max(0, trimEnd - trimStart);
-
-  const handleTrimStartChange = (value: number) => {
-    const newStart = Math.max(0, Math.min(value, trimEnd - 0.1));
-    setTrimStart(newStart);
-    onTrimChange(newStart, trimEnd);
-  };
-
-  const handleTrimEndChange = (value: number) => {
-    const maxEnd = duration || 10;
-    const newEnd = Math.max(trimStart + 0.1, Math.min(value, maxEnd));
-    setTrimEnd(newEnd);
-    onTrimChange(trimStart, newEnd);
   };
 
   return (
@@ -103,45 +87,12 @@ function PlaylistItem({ shot, presignedUrl, onRemove, onTrimChange, duration }: 
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} mb-1`}>
+        <div className={`flex flex-col ${isMobile ? 'gap-0.5' : 'gap-0.5'} mb-1`}>
           <span className={`${isMobile ? 'text-xs' : 'text-xs'} font-semibold text-[#DC143C]`}>Shot {shot.shotNumber}</span>
-          {shot.fileName && (
-            <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] truncate`}>{shot.fileName}</span>
-          )}
+          <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>Scene {scene.number}</span>
         </div>
-        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-4'} ${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>
-          <span>Duration: {trimmedDuration.toFixed(1)}s</span>
-          {duration && <span>Full: {duration.toFixed(1)}s</span>}
-        </div>
-      </div>
-
-      {/* Trim Controls */}
-      <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-2'} flex-shrink-0`}>
-        <div className="flex items-center gap-1">
-          <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-[#808080] flex-shrink-0`} />
-          <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-0.5'}`}>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max={duration || 10}
-              value={trimStart.toFixed(1)}
-              onChange={(e) => handleTrimStartChange(parseFloat(e.target.value) || 0)}
-              className={`${isMobile ? 'w-14' : 'w-12'} ${isMobile ? 'px-2 py-1 text-sm' : 'px-1.5 py-0.5 text-xs'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-center`}
-              placeholder="0.0"
-            />
-            <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] ${isMobile ? 'px-1' : 'px-0.5'}`}>-</span>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max={duration || 10}
-              value={trimEnd.toFixed(1)}
-              onChange={(e) => handleTrimEndChange(parseFloat(e.target.value) || 0)}
-              className={`${isMobile ? 'w-14' : 'w-12'} ${isMobile ? 'px-2 py-1 text-sm' : 'px-1.5 py-0.5 text-xs'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-center`}
-              placeholder="0.0"
-            />
-          </div>
+        <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080]`}>
+          <span>Duration: {duration ? duration.toFixed(1) : '0.0'}s</span>
         </div>
       </div>
 
@@ -559,9 +510,7 @@ export function PlaylistBuilderModal({
                             <Check className={`${isMobile ? 'w-4 h-4' : 'w-4 h-4'} text-[#DC143C]`} />
                           )}
                         </div>
-                        {video.video.fileName && (
-                          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] truncate mt-1`}>{video.video.fileName}</p>
-                        )}
+                        <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] mt-1`}>Scene {scene.number}</p>
                       </div>
                     </div>
                   );
@@ -575,7 +524,7 @@ export function PlaylistBuilderModal({
             <div className={`${isMobile ? 'px-3 py-2' : 'px-4 py-3'} border-b border-[#3F3F46]`}>
               <h3 className={`${isMobile ? 'text-base' : 'text-sm'} font-semibold text-[#FFFFFF]`}>Playlist</h3>
               <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-[#808080] mt-1`}>
-                Drag to reorder • Click trim controls to adjust
+                Drag to reorder
               </p>
             </div>
             <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-3' : 'p-4'} min-w-0`}>
@@ -606,6 +555,7 @@ export function PlaylistBuilderModal({
                             onRemove={() => handleVideoToggle(shot.fileId, { video: { id: shot.fileId } })}
                             onTrimChange={(start, end) => handleTrimChange(shot.fileId, start, end)}
                             duration={shot.duration}
+                            sceneNumber={scene.number}
                           />
                         );
                       })}
