@@ -30,6 +30,7 @@ import { useSceneBuilderState, useSceneBuilderActions, VideoType } from '@/conte
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
 import { resolveLocationImageUrl } from './utils/imageUrlResolver';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 // Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
 function AspectRatioSelector({ value, onChange }: { value: string; onChange: (value: '16:9' | '9:16' | '1:1') => void }) {
@@ -357,6 +358,9 @@ export function ShotConfigurationStep({
   // This is the screenplay/project ID, not the scene ID
   const screenplayId = projectId || '';
   
+  // Get screenplay context for sceneNumber lookup
+  const { screenplay } = useScreenplay();
+  
   // Handle first frame file upload (uses working annotation pattern - proven to work)
   const handleFirstFrameUpload = useCallback(async (file: File) => {
     // Validate file type - with fallback detection (matching annotation pattern)
@@ -457,6 +461,35 @@ export function ShotConfigurationStep({
       }
       
       // Step 3: Register media in Media Library (JSON body, not FormData)
+      // 🔥 NEW: Pass scene context for user-uploaded first frames
+      // This creates organized folder structure: User First Frames/Scene_{number}/{timestamp}-shot-{shotNumber}/
+      const sceneId = sceneAnalysisResult?.sceneId;
+      
+      // Get sceneNumber from screenplay context (same pattern as SceneBuilderPanel)
+      let sceneNumber: number | undefined;
+      if (sceneId && screenplay?.scenes) {
+        const selectedScene = screenplay.scenes.find((s: any) => s.id === sceneId);
+        if (selectedScene) {
+          sceneNumber = selectedScene.number;
+        }
+      }
+      
+      const shotNumber = shot.slot;
+      
+      // Generate timestamp for folder organization (matches backend pattern)
+      const generateTimestamp = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        return `${year}${month}${day}-${hours}${minutes}${seconds}`;
+      };
+      
+      const timestamp = generateTimestamp();
+      
       const registerResponse = await fetch('/api/media/register', {
         method: 'POST',
         headers: {
@@ -467,7 +500,14 @@ export function ShotConfigurationStep({
           s3Key,
           fileName: file.name,
           fileType: fileType,
-          screenplayId
+          fileSize: file.size,
+          screenplayId,
+          // 🔥 NEW: Scene context for user-uploaded first frames
+          isUserFirstFrame: true,
+          sceneId: sceneId,
+          sceneNumber: sceneNumber,
+          shotNumber: shotNumber,
+          timestamp: timestamp
         })
       });
       
@@ -508,7 +548,7 @@ export function ShotConfigurationStep({
     } finally {
       setIsUploadingFirstFrame(false);
     }
-  }, [screenplayId, getToken, shotSlot, actions, projectId]);
+  }, [screenplayId, getToken, shotSlot, actions, projectId, sceneAnalysisResult, shot, screenplay]);
   
   // Handle file input change
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
