@@ -654,6 +654,18 @@ export function ShotConfigurationStep({
     }
   }, [shot.slot, shot.type, selectedVideoTypes, onVideoTypeChange]);
   
+  // 🔥 NEW: Auto-select default dialogue quality (reliable/Wryda) when dialogue shot is first accessed
+  useEffect(() => {
+    // Only initialize for dialogue shots that need quality selection
+    if (shot.type === 'dialogue' && onDialogueQualityChange) {
+      const currentQuality = finalSelectedDialogueQuality;
+      // If no quality is set, default to 'reliable' (Wryda)
+      if (!currentQuality) {
+        onDialogueQualityChange(shotSlot, 'reliable');
+      }
+    }
+  }, [shot.slot, shot.type, finalSelectedDialogueQuality, onDialogueQualityChange]);
+  
   // 🔥 NEW: Fetch presigned URLs for prop images (for references section)
   // Collect all prop image S3 keys for this shot
   const propImageS3Keys = useMemo(() => {
@@ -1856,7 +1868,7 @@ export function ShotConfigurationStep({
                       </div>
                     )}
                     <div className="text-[10px] text-[#808080] italic mt-1">
-                      Upload your own first frame image. Only video prompt is needed for generation.
+                      Upload your own first frame image. The video will animate from this image using the scene's dialogue/action lines from your screenplay. Make sure your uploaded image matches the scene context, or override the video prompt to customize the animation.
                     </div>
                   </div>
                 )}
