@@ -33,7 +33,7 @@ interface VideoPlayerProps {
 }
 
 export interface VideoPlayerRef {
-  play: () => Promise<void>;
+  play: (isAutoplay?: boolean) => Promise<void>;
   pause: () => void;
   seekTo: (time: number) => void;
 }
@@ -62,6 +62,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const [isLoading, setIsLoading] = useState(true);
   const [draggingTrim, setDraggingTrim] = useState<'start' | 'end' | null>(null);
   const trimEndTriggeredRef = useRef(false);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false); // Track if we're autoplaying to hide controls
 
   // Initialize Plyr player
   useEffect(() => {
@@ -90,20 +91,49 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
     playerRef.current = player;
 
+    // 🔥 PRODUCTION: Apply autoplay class to Plyr container when needed
+    const updateAutoplayClass = () => {
+      if (containerRef.current) {
+        const plyrContainer = containerRef.current.querySelector('.plyr');
+        if (plyrContainer) {
+          if (isAutoPlaying) {
+            plyrContainer.classList.add('plyr-autoplaying');
+          } else {
+            plyrContainer.classList.remove('plyr-autoplaying');
+          }
+        }
+      }
+    };
+
     // Event handlers
     player.on('ready', () => {
       setIsLoading(false);
       if (videoRef.current) {
-        setDuration(videoRef.current.duration || 0);
+        const actualDuration = videoRef.current.duration || 0;
+        setDuration(actualDuration);
         // Seek to trim start if specified
         if (trimStart > 0) {
           player.currentTime = trimStart;
         }
       }
+      updateAutoplayClass();
     });
 
+    // 🔥 FIX: Intercept play event to ensure trim is respected
     player.on('play', () => {
       setIsPlaying(true);
+      setIsAutoPlaying(false); // Clear autoplay flag when user manually plays
+      
+      // When play is triggered (including from Plyr's play button), ensure we're at trimStart
+      if (playerRef.current && videoRef.current) {
+        const currentTime = playerRef.current.currentTime;
+        const startTime = trimStart || 0;
+        
+        // If we're before trimStart or after trimEnd, seek to trimStart
+        if (currentTime < startTime || (trimEnd && currentTime >= trimEnd)) {
+          playerRef.current.currentTime = startTime;
+        }
+      }
     });
 
     player.on('pause', () => {
@@ -113,6 +143,13 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     player.on('timeupdate', () => {
       const time = player.currentTime;
       setCurrentTime(time);
+
+      // 🔥 FIX: Ensure we don't go before trimStart or after trimEnd
+      const startTime = trimStart || 0;
+      if (time < startTime) {
+        player.currentTime = startTime;
+        return;
+      }
 
       // Check if we've reached trim end
       if (trimEnd && time >= trimEnd && !trimEndTriggeredRef.current) {
@@ -137,7 +174,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
     player.on('loadedmetadata', () => {
       if (videoRef.current) {
-        setDuration(videoRef.current.duration || 0);
+        // 🔥 FIX: Use actual video duration from metadata
+        const actualDuration = videoRef.current.duration || 0;
+        setDuration(actualDuration);
         setIsLoading(false);
         trimEndTriggeredRef.current = false;
         if (trimStart > 0) {
@@ -195,6 +234,35 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     }
   }, [trimStart]);
 
+  // 🔥 FIX: Update trim end when it changes - ensure video doesn't play past it
+  useEffect(() => {
+    if (playerRef.current && trimEnd && videoRef.current) {
+      const currentTime = playerRef.current.currentTime;
+      // If we're past trimEnd, seek back to trimEnd
+      if (currentTime > trimEnd) {
+        playerRef.current.currentTime = trimEnd;
+        if (isPlaying) {
+          playerRef.current.pause();
+          setIsPlaying(false);
+        }
+      }
+    }
+  }, [trimEnd, isPlaying]);
+
+  // 🔥 PRODUCTION: Update Plyr container class when autoplay state changes
+  useEffect(() => {
+    if (containerRef.current && playerRef.current) {
+      const plyrContainer = containerRef.current.querySelector('.plyr');
+      if (plyrContainer) {
+        if (isAutoPlaying) {
+          plyrContainer.classList.add('plyr-autoplaying');
+        } else {
+          plyrContainer.classList.remove('plyr-autoplaying');
+        }
+      }
+    }
+  }, [isAutoPlaying]);
+
   // Global mouse event handlers for trim dragging
   useEffect(() => {
     if (!draggingTrim || !progressBarRef.current || !duration) return;
@@ -238,14 +306,17 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
-    play: async () => {
+    play: async (isAutoplay: boolean = false) => {
       if (!playerRef.current) return;
+      
+      // Set autoplay flag to hide controls
+      setIsAutoPlaying(isAutoplay);
       
       // Always seek to trimStart before playing
       if (trimStart > 0) {
         playerRef.current.currentTime = trimStart;
       } else if (trimEnd && playerRef.current.currentTime >= trimEnd) {
-        playerRef.current.currentTime = 0;
+        playerRef.current.currentTime = trimStart || 0;
       }
       
       // Wait for video to be ready
@@ -262,7 +333,15 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       try {
         await playerRef.current.play();
         setIsPlaying(true);
+        
+        // Clear autoplay flag after a short delay to show controls on user interaction
+        if (isAutoplay) {
+          setTimeout(() => {
+            setIsAutoPlaying(false);
+          }, 1000);
+        }
       } catch (error: any) {
+        setIsAutoPlaying(false);
         if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
           console.warn('[VideoPlayer] Play error:', error);
         }
@@ -289,7 +368,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const effectiveCurrentTime = Math.max(0, currentTime - trimStart);
 
   return (
-    <div ref={containerRef} className={`relative bg-black rounded-lg overflow-hidden ${className}`}>
+    <div ref={containerRef} className={`relative bg-black rounded-lg overflow-hidden ${className} ${isAutoPlaying ? 'plyr-autoplaying' : ''}`}>
       <video
         ref={videoRef}
         src={src}

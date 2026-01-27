@@ -301,10 +301,17 @@ export function ScenePlaylistPlayer({
     video.preload = 'metadata';
 
     const handleLoadedMetadata = () => {
-      const duration = video.duration;
+      // 🔥 FIX: Use actual video duration from metadata (handles videos shorter than 5s, e.g., 4s)
+      const actualDuration = video.duration || 0;
+      
+      if (actualDuration === 0 || !isFinite(actualDuration)) {
+        console.warn(`[ScenePlaylistPlayer] Invalid duration for video at index ${index}:`, actualDuration);
+        return;
+      }
+      
       setVideoDurations(prev => {
         const newMap = new Map(prev);
-        newMap.set(index, duration);
+        newMap.set(index, actualDuration);
         return newMap;
       });
 
@@ -314,22 +321,22 @@ export function ScenePlaylistPlayer({
         const updated = [...prev];
         const shot = updated[index];
         
-        // If trimEnd is 0 or the default 5 seconds, set it to full duration
+        // If trimEnd is 0 or the default 5 seconds, set it to actual duration
         // This handles both cases: videos longer than 5s (set to full duration) 
-        // and videos shorter than 5s (clamp to actual duration)
-        if (shot.trimEnd === 0 || shot.trimEnd === 5) {
+        // and videos shorter than 5s (clamp to actual duration, e.g., 4s)
+        if (shot.trimEnd === 0 || shot.trimEnd === 5 || shot.trimEnd > actualDuration) {
           updated[index] = {
             ...shot,
-            trimEnd: duration, // Always use actual duration, regardless of video length
-            duration: duration,
+            trimEnd: actualDuration, // Always use actual duration from metadata
+            duration: actualDuration, // Update duration to actual value
             isLoading: false,
           };
         } else {
           // Ensure trimEnd doesn't exceed duration (safety check for any edge cases)
           updated[index] = {
             ...shot,
-            trimEnd: Math.min(shot.trimEnd, duration),
-            duration: duration,
+            trimEnd: Math.min(shot.trimEnd, actualDuration),
+            duration: actualDuration, // Update duration to actual value
             isLoading: false,
           };
         }
@@ -412,7 +419,7 @@ export function ScenePlaylistPlayer({
 
         // Play with a small delay to ensure video is ready
         await new Promise(resolve => setTimeout(resolve, 150));
-        await videoPlayerRef.current.play();
+        await videoPlayerRef.current.play(true); // Pass true to indicate autoplay
         setIsPlaying(true);
       } catch (error: any) {
         // Ignore AbortError (happens when video changes quickly) and NotAllowedError (autoplay policy)
@@ -918,7 +925,10 @@ export function ScenePlaylistPlayer({
                     </div>
                     
                     <div className="text-xs text-[#808080] text-center pt-0.5">
-                      Duration: {(shot.trimEnd - shot.trimStart).toFixed(1)}s
+                      Trimmed: {(shot.trimEnd - shot.trimStart).toFixed(1)}s
+                      {shot.duration > 0 && (
+                        <span className="ml-1">/ Full: {shot.duration.toFixed(1)}s</span>
+                      )}
                     </div>
                   </div>
                   )}

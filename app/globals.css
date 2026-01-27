@@ -493,3 +493,17 @@ progress::-webkit-progress-value {
 .plyr__poster {
   background: #0A0A0A;
 }
+
+/* Hide Plyr controls during autoplay to prevent flashing */
+.plyr-autoplaying .plyr__controls,
+.plyr-autoplaying .plyr__poster,
+.plyr-autoplaying .plyr__control--overlaid {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s ease;
+}
+
+.plyr-autoplaying .plyr__controls:hover {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
