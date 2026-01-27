@@ -1,21 +1,21 @@
 'use client';
 
 /**
- * Video Player Component
+ * Video Player Component (Plyr-based)
  * 
- * Reusable video player with custom controls and keyboard shortcuts.
+ * Professional video player using Plyr library for smooth playback.
  * Features:
- * - Play/pause controls
- * - Volume control
- * - Fullscreen toggle
- * - Keyboard shortcuts (space, arrows, f, m)
- * - Loading and error states
+ * - Smooth autoplay and transitions
  * - Trim support (seek to start, stop at end)
+ * - Custom trim handles
+ * - Loading and error states
+ * - Keyboard shortcuts
  */
 
 import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, GripVertical } from 'lucide-react';
-import { canPlayVideoFormat } from '@/utils/videoPrefetch';
+import Plyr from 'plyr';
+import 'plyr/dist/plyr.css';
+import { GripVertical } from 'lucide-react';
 
 interface VideoPlayerProps {
   src: string;
@@ -55,18 +55,136 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
+  const playerRef = useRef<Plyr | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(muted ? 0 : 1);
-  const [isMuted, setIsMuted] = useState(muted);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [codecSupported, setCodecSupported] = useState<boolean | null>(null);
   const [draggingTrim, setDraggingTrim] = useState<'start' | 'end' | null>(null);
   const trimEndTriggeredRef = useRef(false);
 
-  // Global mouse event handlers for trim dragging (allows dragging outside progress bar)
+  // Initialize Plyr player
+  useEffect(() => {
+    if (!videoRef.current || !containerRef.current) return;
+
+    // Set initial source if provided
+    if (src && videoRef.current) {
+      videoRef.current.src = src;
+    }
+
+    const player = new Plyr(videoRef.current, {
+      controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
+      autoplay: false, // We'll handle autoplay manually for better control
+      clickToPlay: true,
+      keyboard: { focused: true, global: true },
+      tooltips: { controls: true, seek: true },
+      volume: muted ? 0 : 1,
+      muted: muted,
+      loop: loop,
+      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+    });
+
+    playerRef.current = player;
+
+    // Event handlers
+    player.on('ready', () => {
+      setIsLoading(false);
+      if (videoRef.current) {
+        setDuration(videoRef.current.duration || 0);
+        // Seek to trim start if specified
+        if (trimStart > 0) {
+          player.currentTime = trimStart;
+        }
+      }
+    });
+
+    player.on('play', () => {
+      setIsPlaying(true);
+    });
+
+    player.on('pause', () => {
+      setIsPlaying(false);
+    });
+
+    player.on('timeupdate', () => {
+      const time = player.currentTime;
+      setCurrentTime(time);
+
+      // Check if we've reached trim end
+      if (trimEnd && time >= trimEnd && !trimEndTriggeredRef.current) {
+        trimEndTriggeredRef.current = true;
+        player.pause();
+        player.currentTime = trimEnd;
+        setIsPlaying(false);
+        if (onEnded) {
+          onEnded();
+        }
+        setTimeout(() => {
+          trimEndTriggeredRef.current = false;
+        }, 200);
+      } else if (trimEnd && time < trimEnd - 0.1) {
+        trimEndTriggeredRef.current = false;
+      }
+
+      if (onTimeUpdate) {
+        onTimeUpdate(time);
+      }
+    });
+
+    player.on('loadedmetadata', () => {
+      if (videoRef.current) {
+        setDuration(videoRef.current.duration || 0);
+        setIsLoading(false);
+        trimEndTriggeredRef.current = false;
+        if (trimStart > 0) {
+          player.currentTime = trimStart;
+        }
+      }
+    });
+
+    player.on('ended', () => {
+      setIsPlaying(false);
+      if (onEnded) {
+        onEnded();
+      }
+    });
+
+    player.on('error', (event) => {
+      setIsLoading(false);
+      const error = new Error('Video playback error');
+      if (onError) {
+        onError(error);
+      }
+    });
+
+    // Cleanup
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+    };
+  }, []); // Only run once on mount - Plyr handles source updates via video element
+
+  // Update source when it changes
+  useEffect(() => {
+    if (playerRef.current && videoRef.current && src) {
+      // Update video source directly
+      videoRef.current.src = src;
+      videoRef.current.load(); // Reload video with new source
+      setIsLoading(true);
+      trimEndTriggeredRef.current = false;
+    }
+  }, [src]);
+
+  // Update trim start when it changes
+  useEffect(() => {
+    if (playerRef.current && trimStart > 0) {
+      playerRef.current.currentTime = trimStart;
+    }
+  }, [trimStart]);
+
+  // Global mouse event handlers for trim dragging
   useEffect(() => {
     if (!draggingTrim || !progressBarRef.current || !duration) return;
 
@@ -107,486 +225,75 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     };
   }, [draggingTrim, duration, trimStart, trimEnd, onTrimChange]);
 
-  // Get effective duration (trimmed or full)
-  const effectiveDuration = trimEnd && trimEnd > 0 ? trimEnd - trimStart : duration;
-  const effectiveCurrentTime = Math.max(0, currentTime - trimStart);
-
-  // Check codec support before loading
-  useEffect(() => {
-    if (!src) return;
-    
-    const { supported, format, codecSupport } = canPlayVideoFormat(src);
-    setCodecSupported(supported);
-    
-    console.log('[VideoPlayer] Codec detection:', {
-      url: src.substring(0, 100),
-      format,
-      supported,
-      codecSupport
-    });
-    
-    if (!supported) {
-      console.warn('[VideoPlayer] Codec may not be supported:', format, codecSupport);
-      // Don't call onError here - let the video element try to load first
-      // The actual error will come from the video element if it truly can't play
-    }
-  }, [src]);
-
-  // 🔥 SIMPLIFIED: Use presigned URLs directly - no blob prefetching
-  // Blob URLs were causing ERR_FILE_NOT_FOUND errors and complexity
-  const videoSrc = src;
-
-  // Reload video when src changes
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoSrc) return;
-
-    // Only reload if src actually changed (avoid reloading on every render)
-    const currentSrc = video.src || video.getAttribute('src') || '';
-    if (currentSrc !== videoSrc) {
-      video.src = videoSrc;
-      video.load();
-    }
-  }, [videoSrc]);
-
-
-  // Cleanup video when src changes to prevent memory leaks
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    // Reset video state when src changes
-    const previousSrc = video.src;
-    
-    return () => {
-      // Cleanup: pause and reset video when src changes or component unmounts
-      if (video && video.src !== previousSrc) {
-        // Pause first to prevent AbortError (pause() returns void, not a Promise)
-        try {
-          video.pause();
-        } catch (error) {
-          // Ignore pause errors during cleanup
-        }
-        // Clear src and load to free memory
-        video.src = '';
-        video.load();
-      }
-    };
-  }, [videoSrc]);
-
-  // Update video time when trim points change
-  useEffect(() => {
-    if (videoRef.current && trimStart > 0) {
-      videoRef.current.currentTime = trimStart;
-    }
-  }, [trimStart]);
-
-  // Handle time updates
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleTimeUpdate = () => {
-      const time = video.currentTime;
-      setCurrentTime(time);
-
-      // Check if we've reached trim end (only trigger once per video)
-      if (trimEnd && time >= trimEnd && !trimEndTriggeredRef.current) {
-        trimEndTriggeredRef.current = true;
-        try {
-          video.pause();
-          video.currentTime = trimEnd; // Seek back to trimEnd
-        } catch (error) {
-          // Ignore pause errors
-        }
-        setIsPlaying(false);
-        // Trigger ended callback to advance to next video
-        if (onEnded) {
-          onEnded();
-        }
-        // Reset flag after a short delay
-        setTimeout(() => {
-          trimEndTriggeredRef.current = false;
-        }, 200);
-      } else if (trimEnd && time < trimEnd - 0.1) {
-        // Reset flag if we're before trim end (with small buffer)
-        trimEndTriggeredRef.current = false;
-      }
-
-      if (onTimeUpdate) {
-        onTimeUpdate(time);
-      }
-    };
-
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration);
-      setIsLoading(false);
-      
-      // Reset trim end trigger when new video loads
-      trimEndTriggeredRef.current = false;
-      
-      // Seek to trim start if specified
-      if (trimStart > 0) {
-        video.currentTime = trimStart;
-      }
-    };
-
-    const handleLoadedData = () => {
-      setIsLoading(false);
-    };
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      if (onEnded) {
-        onEnded();
-      }
-    };
-
-      const handleError = (e: Event) => {
-      setIsLoading(false);
-      const video = videoRef.current;
-      if (!video) return;
-      
-      // Get more detailed error information
-      let errorMessage = 'Video failed to load';
-      let errorDetails = '';
-      if (video.error) {
-        switch (video.error.code) {
-          case video.error.MEDIA_ERR_ABORTED:
-            errorMessage = 'Video loading was aborted';
-            errorDetails = 'The video loading was interrupted. Please try again.';
-            break;
-          case video.error.MEDIA_ERR_NETWORK:
-            errorMessage = 'Network error while loading video';
-            errorDetails = 'Unable to download the video. Check your internet connection.';
-            break;
-          case video.error.MEDIA_ERR_DECODE:
-            errorMessage = 'Video decoding error';
-            errorDetails = 'The video file may be corrupted or use an unsupported codec. Try downloading the file or contact support if the issue persists.';
-            break;
-          case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = 'Video format not supported';
-            // Try to detect file type from URL
-            const urlLower = videoSrc.toLowerCase();
-            const fileExtension = urlLower.match(/\.(mp4|mov|webm|mkv|avi|m4v)(\?|$)/)?.[1] || 'unknown';
-                errorDetails = `Your browser does not support this video format. File extension: ${fileExtension}. The file may use an unsupported codec (e.g., H.265/HEVC). Supported: MP4 (H.264), WebM, MOV.`;
-            break;
-        }
-      }
-      
-      // Extract file info from URL for better diagnostics
-      const urlMatch = videoSrc.match(/([^\/\?]+\.(mp4|mov|webm|mkv|avi|m4v))(\?|$)/i);
-      const fileName = urlMatch ? urlMatch[1] : 'unknown';
-      const detectedExtension = urlMatch ? urlMatch[2] : 'unknown';
-      
-      // Check codec support (use original src, not videoSrc, for detection)
-      const { supported, format, codecSupport } = canPlayVideoFormat(src);
-      
-      // Log detailed error information for debugging
-      console.warn('[VideoPlayer] Video error details:', {
-        errorCode: video.error?.code,
-        errorMessage,
-        errorDetails,
-        videoSrc: videoSrc.substring(0, 150),
-        fileName,
-        detectedExtension,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        readyState: video.readyState,
-        networkState: video.networkState,
-        codecDetection: {
-          format,
-          supported,
-          codecSupport
-        },
-        canPlayType: {
-          'video/mp4': video.canPlayType('video/mp4'),
-          'video/webm': video.canPlayType('video/webm'),
-          'video/quicktime': video.canPlayType('video/quicktime'),
-          'H.264': video.canPlayType('video/mp4; codecs="avc1.42E01E"'),
-          'H.265': video.canPlayType('video/mp4; codecs="hev1.1.6.L93.B0"'),
-        }
-      });
-      
-      // Only call onError if it exists, and handle it safely
-      if (onError) {
-        try {
-          onError(new Error(errorMessage));
-        } catch (err) {
-          // Silently handle errors in error handler to prevent unhandled rejections
-          console.warn('[VideoPlayer] Error in onError callback:', err);
-        }
-      }
-    };
-
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('loadeddata', handleLoadedData);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('ended', handleEnded);
-    video.addEventListener('error', handleError);
-
-    return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('loadeddata', handleLoadedData);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('ended', handleEnded);
-      video.removeEventListener('error', handleError);
-    };
-  }, [trimStart, trimEnd, onTimeUpdate, onEnded, onError, videoSrc]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      const video = videoRef.current;
-      if (!video || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      switch (e.key) {
-        case ' ':
-          e.preventDefault();
-          togglePlayPause();
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          seek(-5);
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          seek(5);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setVolume(Math.min(1, volume + 0.1));
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          setVolume(Math.max(0, volume - 0.1));
-          break;
-        case 'f':
-        case 'F':
-          e.preventDefault();
-          toggleFullscreen();
-          break;
-        case 'm':
-        case 'M':
-          e.preventDefault();
-          toggleMute();
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [volume]);
-
-  // Fullscreen handling
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
-
-  // Volume sync
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = volume;
-      videoRef.current.muted = isMuted || volume === 0;
-    }
-  }, [volume, isMuted]);
-
-  // Handle autoPlay errors (browser autoplay policies)
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !autoPlay) return;
-
-    const handleCanPlay = () => {
-      if (autoPlay && video.paused) {
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            // Autoplay was prevented by browser policy - this is expected
-            if (error.name !== 'NotAllowedError') {
-              console.warn('[VideoPlayer] Autoplay error:', error);
-            }
-            setIsPlaying(false);
-          });
-        }
-      }
-    };
-
-    video.addEventListener('canplay', handleCanPlay);
-    return () => {
-      video.removeEventListener('canplay', handleCanPlay);
-    };
-  }, [autoPlay]);
-
-  const togglePlayPause = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.paused) {
-      // If at trim end, seek to trim start
-      if (trimEnd && video.currentTime >= trimEnd) {
-        video.currentTime = trimStart;
-      }
-      // Handle play() promise to prevent unhandled rejections
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          // AbortError is expected when video is removed/paused during play
-          if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
-            console.warn('[VideoPlayer] Play error:', error);
-          }
-          setIsPlaying(false);
-        });
-      }
-    } else {
-      video.pause();
-    }
-  }, [trimStart, trimEnd]);
-
-  const seek = useCallback((seconds: number) => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const newTime = Math.max(trimStart, Math.min(trimEnd || duration, video.currentTime + seconds));
-    video.currentTime = newTime;
-  }, [trimStart, trimEnd, duration]);
-
-  const seekTo = useCallback((time: number) => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const seekTime = Math.max(trimStart, Math.min(trimEnd || duration, time));
-    video.currentTime = seekTime;
-  }, [trimStart, trimEnd, duration]);
-
-  const toggleMute = useCallback(() => {
-    setIsMuted(!isMuted);
-  }, [isMuted]);
-
-  const toggleFullscreen = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (!document.fullscreenElement) {
-      container.requestFullscreen();
-    } else {
-      document.exitFullscreen();
-    }
-  }, []);
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
     play: async () => {
-      const video = videoRef.current;
-      if (!video) return;
+      if (!playerRef.current) return;
       
       // Always seek to trimStart before playing
       if (trimStart > 0) {
-        video.currentTime = trimStart;
-      } else if (trimEnd && video.currentTime >= trimEnd) {
-        video.currentTime = 0;
+        playerRef.current.currentTime = trimStart;
+      } else if (trimEnd && playerRef.current.currentTime >= trimEnd) {
+        playerRef.current.currentTime = 0;
       }
       
-      // Wait for video to be ready if needed
-      if (video.readyState < 2) {
+      // Wait for video to be ready
+      if (videoRef.current && videoRef.current.readyState < 2) {
         await new Promise<void>((resolve) => {
           const handleCanPlay = () => {
-            video.removeEventListener('canplay', handleCanPlay);
+            videoRef.current?.removeEventListener('canplay', handleCanPlay);
             resolve();
           };
-          video.addEventListener('canplay', handleCanPlay);
+          videoRef.current?.addEventListener('canplay', handleCanPlay);
         });
       }
       
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        await playPromise.catch((error) => {
-          // Ignore AbortError (happens during rapid changes) and NotAllowedError (autoplay policy)
-          if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
-            console.warn('[VideoPlayer] Play error:', error);
-          }
-          setIsPlaying(false);
-          throw error;
-        });
+      try {
+        await playerRef.current.play();
+        setIsPlaying(true);
+      } catch (error: any) {
+        if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+          console.warn('[VideoPlayer] Play error:', error);
+        }
+        setIsPlaying(false);
+        throw error;
       }
-      setIsPlaying(true);
     },
     pause: () => {
-      const video = videoRef.current;
-      if (!video) return;
-      video.pause();
-      setIsPlaying(false);
+      if (playerRef.current) {
+        playerRef.current.pause();
+        setIsPlaying(false);
+      }
     },
     seekTo: (time: number) => {
-      const video = videoRef.current;
-      if (!video) return;
-      const seekTime = Math.max(trimStart, Math.min(trimEnd || duration, time));
-      video.currentTime = seekTime;
+      if (playerRef.current) {
+        const seekTime = Math.max(trimStart, Math.min(trimEnd || duration, time));
+        playerRef.current.currentTime = seekTime;
+      }
     },
   }), [trimStart, trimEnd, duration]);
+
+  // Get effective duration (trimmed or full)
+  const effectiveDuration = trimEnd && trimEnd > 0 ? trimEnd - trimStart : duration;
+  const effectiveCurrentTime = Math.max(0, currentTime - trimStart);
 
   return (
     <div ref={containerRef} className={`relative bg-black rounded-lg overflow-hidden ${className}`}>
       <video
         ref={videoRef}
-        src={videoSrc}
-        className="w-full h-auto"
-        autoPlay={autoPlay}
-        loop={loop}
-        muted={isMuted}
+        src={src}
+        className="plyr__video"
         playsInline
         preload="metadata"
-        crossOrigin="anonymous"
       />
 
-      {/* Controls Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-        {/* Progress Bar with Trim Handles */}
-        <div className="mb-3">
+      {/* Custom Trim Handles Overlay */}
+      {enableTrimHandles && duration > 0 && (
+        <div className="absolute bottom-16 left-0 right-0 px-4 pointer-events-none">
           <div 
             ref={progressBarRef}
-            className="relative h-2 bg-white/20 rounded-full cursor-pointer"
-            onClick={(e) => {
-              if (draggingTrim) return; // Don't seek while dragging trim
-              const rect = e.currentTarget.getBoundingClientRect();
-              const percent = (e.clientX - rect.left) / rect.width;
-              const seekTime = trimStart + (percent * effectiveDuration);
-              seekTo(seekTime);
-            }}
-            // Mouse move/up/leave are handled by global event listeners when dragging
+            className="relative h-2 bg-white/20 rounded-full pointer-events-auto"
           >
-            {/* Progress fill - shows current playback position within trimmed area */}
-            {duration > 0 && (
-              <div 
-                className="absolute top-0 left-0 h-full bg-[#DC143C] rounded-full transition-all"
-                style={{ 
-                  left: `${(trimStart / duration) * 100}%`,
-                  width: trimEnd 
-                    ? `${Math.min(((currentTime - trimStart) / (trimEnd - trimStart)) * 100, 100)}%`
-                    : `${(currentTime / duration) * 100}%`,
-                  maxWidth: trimEnd ? `${((trimEnd - trimStart) / duration) * 100}%` : '100%'
-                }}
-              />
-            )}
-            
             {/* Trimmed area highlight */}
             {trimStart > 0 && trimEnd && (
               <div 
@@ -598,28 +305,26 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
               />
             )}
             
-            {/* Trim Start Handle - Always visible when enabled and duration > 0 */}
-            {enableTrimHandles && duration > 0 && (
-              <div
-                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform ${
-                  draggingTrim === 'start' ? 'scale-110 ring-2 ring-green-300' : ''
-                }`}
-                style={{ left: `calc(${((trimStart || 0) / duration) * 100}% - 8px)` }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDraggingTrim('start');
-                }}
-                title={`Trim start: ${(trimStart || 0).toFixed(2)}s`}
-              >
-                <GripVertical className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-              </div>
-            )}
+            {/* Trim Start Handle */}
+            <div
+              className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform pointer-events-auto ${
+                draggingTrim === 'start' ? 'scale-110 ring-2 ring-green-300' : ''
+              }`}
+              style={{ left: `calc(${((trimStart || 0) / duration) * 100}% - 8px)` }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDraggingTrim('start');
+              }}
+              title={`Trim start: ${(trimStart || 0).toFixed(2)}s`}
+            >
+              <GripVertical className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            </div>
             
-            {/* Trim End Handle - Always visible when enabled, duration > 0, and trimEnd is set */}
-            {enableTrimHandles && duration > 0 && trimEnd && trimEnd > 0 && (
+            {/* Trim End Handle */}
+            {trimEnd && trimEnd > 0 && (
               <div
-                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform ${
+                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-500 rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform pointer-events-auto ${
                   draggingTrim === 'end' ? 'scale-110 ring-2 ring-red-300' : ''
                 }`}
                 style={{ left: `calc(${(Math.min(trimEnd, duration) / duration) * 100}% - 8px)` }}
@@ -633,106 +338,14 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
                 <GripVertical className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
               </div>
             )}
-            
-            {/* Trim markers (non-draggable fallback) */}
-            {!enableTrimHandles && trimStart > 0 && (
-              <div 
-                className="absolute top-0 h-full w-0.5 bg-green-500"
-                style={{ left: `${(trimStart / duration) * 100}%` }}
-              />
-            )}
-            {!enableTrimHandles && trimEnd && trimEnd < duration && (
-              <div 
-                className="absolute top-0 h-full w-0.5 bg-red-500"
-                style={{ left: `${(trimEnd / duration) * 100}%` }}
-              />
-            )}
           </div>
         </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={togglePlayPause}
-            className="p-2 hover:bg-white/10 rounded transition-colors"
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? (
-              <Pause className="w-5 h-5 text-white" />
-            ) : (
-              <Play className="w-5 h-5 text-white" />
-            )}
-          </button>
-
-          <button
-            onClick={() => seek(-5)}
-            className="p-2 hover:bg-white/10 rounded transition-colors"
-            aria-label="Rewind 5 seconds"
-          >
-            <SkipBack className="w-4 h-4 text-white" />
-          </button>
-
-          <button
-            onClick={() => seek(5)}
-            className="p-2 hover:bg-white/10 rounded transition-colors"
-            aria-label="Forward 5 seconds"
-          >
-            <SkipForward className="w-4 h-4 text-white" />
-          </button>
-
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-white text-sm">
-              {formatTime(effectiveCurrentTime)} / {formatTime(effectiveDuration)}
-            </span>
-          </div>
-
-          <button
-            onClick={toggleMute}
-            className="p-2 hover:bg-white/10 rounded transition-colors"
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
-          >
-            {isMuted || volume === 0 ? (
-              <VolumeX className="w-5 h-5 text-white" />
-            ) : (
-              <Volume2 className="w-5 h-5 text-white" />
-            )}
-          </button>
-
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="w-20"
-          />
-
-          <button
-            onClick={toggleFullscreen}
-            className="p-2 hover:bg-white/10 rounded transition-colors"
-            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          >
-            {isFullscreen ? (
-              <Minimize className="w-5 h-5 text-white" />
-            ) : (
-              <Maximize className="w-5 h-5 text-white" />
-            )}
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Loading indicator */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-50">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-        </div>
-      )}
-      
-      {/* Codec warning */}
-      {codecSupported === false && !isLoading && (
-        <div className="absolute top-2 right-2 bg-yellow-500/90 text-black text-xs px-2 py-1 rounded">
-          Format may not be supported
         </div>
       )}
     </div>
@@ -740,4 +353,3 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 });
 
 VideoPlayer.displayName = 'VideoPlayer';
-

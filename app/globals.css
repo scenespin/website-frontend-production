@@ -403,3 +403,93 @@ progress::-webkit-progress-value {
 [data-sonner-toast] [data-loading] {
   color: #DC143C !important;
 }
+
+/* ===== PLYR VIDEO PLAYER THEME ===== */
+/* Custom dark theme styling for Plyr video player */
+.plyr {
+  --plyr-color-main: #DC143C;
+  --plyr-video-background: #0A0A0A;
+  --plyr-control-icon-size: 18px;
+  --plyr-control-spacing: 10px;
+  --plyr-control-padding: 10px;
+  --plyr-control-radius: 4px;
+  --plyr-control-background: rgba(255, 255, 255, 0.1);
+  --plyr-control-background-hover: rgba(255, 255, 255, 0.2);
+  --plyr-progress-loading-background: rgba(255, 255, 255, 0.1);
+  --plyr-progress-buffered-background: rgba(255, 255, 255, 0.2);
+  --plyr-menu-background: #1A1A1A;
+  --plyr-menu-color: #FFFFFF;
+  --plyr-menu-border-color: #3F3F46;
+  --plyr-menu-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --plyr-tooltip-background: #1A1A1A;
+  --plyr-tooltip-color: #FFFFFF;
+  --plyr-tooltip-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --plyr-audio-controls-background: #0A0A0A;
+  --plyr-audio-control-color: #FFFFFF;
+  --plyr-video-controls-background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  --plyr-video-control-color: #FFFFFF;
+  --plyr-range-thumb-background: #DC143C;
+  --plyr-range-thumb-active-shadow-width: 0 0 0 3px;
+  --plyr-range-thumb-active-shadow-color: rgba(220, 20, 60, 0.3);
+  --plyr-range-track-background: rgba(255, 255, 255, 0.1);
+  --plyr-range-fill-background: #DC143C;
+  --plyr-video-control-color-hover: #DC143C;
+  --plyr-audio-control-color-hover: #DC143C;
+}
+
+.plyr__video-wrapper {
+  background: #0A0A0A;
+}
+
+.plyr__controls {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  border-top: none;
+  padding: 10px;
+}
+
+.plyr__control {
+  color: #FFFFFF;
+  transition: all 0.2s ease;
+}
+
+.plyr__control:hover {
+  color: #DC143C;
+  background: rgba(220, 20, 60, 0.1);
+}
+
+.plyr__control[aria-pressed="true"] {
+  color: #DC143C;
+}
+
+.plyr__progress__played {
+  background: #DC143C;
+}
+
+.plyr__volume {
+  max-width: 110px;
+}
+
+.plyr__menu {
+  background: #1A1A1A;
+  border: 1px solid #3F3F46;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.plyr__menu__container .plyr__control {
+  color: #FFFFFF;
+}
+
+.plyr__menu__container .plyr__control:hover {
+  background: rgba(220, 20, 60, 0.1);
+  color: #DC143C;
+}
+
+.plyr__tooltip {
+  background: #1A1A1A;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.plyr__poster {
+  background: #0A0A0A;
+}

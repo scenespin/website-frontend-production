@@ -66,6 +66,7 @@
     "nodemailer": "^7.0.10",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.530",
+    "plyr": "^3.8.4",
     "react": "^19.1.2",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.1.2",
