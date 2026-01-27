@@ -72,6 +72,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       videoRef.current.src = src;
     }
 
+    // Set loop on video element directly (Plyr types are stricter)
+    if (videoRef.current) {
+      videoRef.current.loop = loop;
+    }
+
     const player = new Plyr(videoRef.current, {
       controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
       autoplay: false, // We'll handle autoplay manually for better control
@@ -80,7 +85,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       tooltips: { controls: true, seek: true },
       volume: muted ? 0 : 1,
       muted: muted,
-      loop: loop,
       speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
     });
 
@@ -176,6 +180,13 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       trimEndTriggeredRef.current = false;
     }
   }, [src]);
+
+  // Update loop property when it changes
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.loop = loop;
+    }
+  }, [loop]);
 
   // Update trim start when it changes
   useEffect(() => {
