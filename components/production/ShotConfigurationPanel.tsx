@@ -1153,8 +1153,8 @@ export function ShotConfigurationPanel({
       )}
 
       {/* 🔥 REORDERED: Dialogue Workflow Selection - Fifth (dialogue shots only) */}
-      {/* Feature 0182: Show in Basic tab for LIP SYNC OPTIONS (first-frame-lipsync) */}
-      {isDialogueBasicTab && shot.type === 'dialogue' && onDialogueWorkflowChange && currentWorkflow === 'first-frame-lipsync' && (
+      {/* Feature 0182: Show in Basic tab for LIP SYNC OPTIONS - Always visible for dialogue shots */}
+      {isDialogueBasicTab && shot.type === 'dialogue' && onDialogueWorkflowChange && (
         <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow Selection</div>
           <UnifiedDialogueDropdown

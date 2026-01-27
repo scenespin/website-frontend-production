@@ -168,7 +168,7 @@ export function UnifiedDialogueDropdown({
         {
           quality: 'reliable' as DialogueQuality,
           workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-          label: 'Reliable Generation (Multi-Character)',
+          label: 'Wryda (Multi-Character)',
           description: 'Single generation, all characters together. Faster & more cost-effective. Natural character interaction. Always generates successfully.',
           isMultiCharacter: true,
           isRecommended: true
@@ -176,7 +176,7 @@ export function UnifiedDialogueDropdown({
         {
           quality: 'premium' as DialogueQuality,
           workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-          label: 'Premium Quality (Sequential Shots)',
+          label: 'Premium Lip Sync (Sequential Shots)',
           description: '3 separate generations (~3x cost, slower). Highest quality per character. Can review/edit individual shots. Some content may be restricted.',
           isMultiCharacter: true,
           costWarning: '~3x cost, slower generation'
@@ -187,37 +187,37 @@ export function UnifiedDialogueDropdown({
         {
           quality: 'reliable' as DialogueQuality,
           workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-          label: 'Reliable Generation (Standard)',
+          label: 'Wryda (Standard)',
           description: 'Always generates successfully. May have minor visual artifacts.',
         },
         {
           quality: 'reliable' as DialogueQuality,
           workflowType: 'extreme-closeup' as DialogueWorkflowType,
-          label: 'Reliable Generation (Extreme Close-Up - Face)',
+          label: 'Wryda (Extreme Close-Up - Face)',
           description: 'Extreme close-up framing focusing on the face. Always generates successfully.',
         },
         {
           quality: 'reliable' as DialogueQuality,
           workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
-          label: 'Reliable Generation (Extreme Close-Up - Mouth)',
+          label: 'Wryda (Extreme Close-Up - Mouth)',
           description: 'Extreme close-up framing focusing on the mouth. Always generates successfully.',
         },
         {
           quality: 'premium' as DialogueQuality,
           workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-          label: 'Premium Quality (Standard)',
+          label: 'Premium Lip Sync (Standard)',
           description: 'Highest quality output. Some content may be restricted by content safety filters.',
         },
         {
           quality: 'premium' as DialogueQuality,
           workflowType: 'extreme-closeup' as DialogueWorkflowType,
-          label: 'Premium Quality (Extreme Close-Up - Face)',
+          label: 'Premium Lip Sync (Extreme Close-Up - Face)',
           description: 'Extreme close-up framing focusing on the face. Highest quality output.',
         },
         {
           quality: 'premium' as DialogueQuality,
           workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
-          label: 'Premium Quality (Extreme Close-Up - Mouth)',
+          label: 'Premium Lip Sync (Extreme Close-Up - Mouth)',
           description: 'Extreme close-up framing focusing on the mouth. Highest quality output.',
         }
       ];
