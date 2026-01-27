@@ -477,18 +477,36 @@ export function ShotConfigurationStep({
       
       // Step 2: Upload to S3 directly (using presigned POST)
       // Match working pattern from AnnotationToVideoPanel and SceneBuilderPanel
+      // Verify 'key' field is present (required for presigned POST)
+      if (!fields.key && !fields.Key) {
+        console.error('[ShotConfigurationStep] WARNING: No "key" field in presigned POST fields!');
+        console.error('[ShotConfigurationStep] Available fields:', Object.keys(fields));
+        throw new Error('Invalid presigned POST response: missing "key" field');
+      }
+      
       const formData = new FormData();
       Object.entries(fields).forEach(([key, value]) => {
-        if (key.toLowerCase() !== 'bucket') {
-          formData.append(key, value as string);
+        // Skip 'bucket' field - it's only used in the policy, not in FormData
+        if (key.toLowerCase() === 'bucket') {
+          console.log(`[ShotConfigurationStep] Skipping 'bucket' field (policy-only): ${value}`);
+          return;
         }
+        formData.append(key, value as string);
       });
-      formData.append('file', file); // File must be last
+      
+      // Add file last (required by S3 presigned POST)
+      formData.append('file', file);
       
       console.log('[ShotConfigurationStep] Uploading to S3:', {
         url: url.substring(0, 100) + '...',
-        formDataKeys: Array.from(formData.keys())
+        formDataKeys: Array.from(formData.keys()),
+        hasKeyField: !!(fields.key || fields.Key),
+        fileSize: file.size,
+        fileType: file.type
       });
+      
+      // Small delay to ensure presigned URL is fully ready (fixes intermittent 403 errors)
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const s3Response = await fetch(url, {
         method: 'POST',
