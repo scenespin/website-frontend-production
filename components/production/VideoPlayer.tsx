@@ -69,6 +69,47 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const [draggingTrim, setDraggingTrim] = useState<'start' | 'end' | null>(null);
   const [useOriginalUrl, setUseOriginalUrl] = useState(false); // Fallback flag if Blob URL fails
 
+  // Global mouse event handlers for trim dragging (allows dragging outside progress bar)
+  useEffect(() => {
+    if (!draggingTrim || !progressBarRef.current || !duration) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!progressBarRef.current) return;
+      
+      e.preventDefault();
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const newTime = percent * duration;
+      
+      if (draggingTrim === 'start') {
+        const currentEnd = trimEnd || duration;
+        const newStart = Math.max(0, Math.min(newTime, currentEnd - 0.1));
+        if (onTrimChange) {
+          onTrimChange(newStart, currentEnd);
+        }
+      } else if (draggingTrim === 'end') {
+        const currentStart = trimStart || 0;
+        const newEnd = Math.max(currentStart + 0.1, Math.min(newTime, duration));
+        if (onTrimChange) {
+          onTrimChange(currentStart, newEnd);
+        }
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      e.preventDefault();
+      setDraggingTrim(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [draggingTrim, duration, trimStart, trimEnd, onTrimChange]);
+
   // Get effective duration (trimmed or full)
   const effectiveDuration = trimEnd && trimEnd > 0 ? trimEnd - trimStart : duration;
   const effectiveCurrentTime = Math.max(0, currentTime - trimStart);
@@ -216,10 +257,13 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       if (trimEnd && time >= trimEnd) {
         try {
           video.pause();
+          // Seek back to trimEnd to prevent going past it
+          video.currentTime = trimEnd;
         } catch (error) {
           // Ignore pause errors (e.g., if already paused)
         }
         setIsPlaying(false);
+        // Trigger ended callback to advance to next video
         if (onEnded) {
           onEnded();
         }
@@ -590,29 +634,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
               const seekTime = trimStart + (percent * effectiveDuration);
               seekTo(seekTime);
             }}
-            onMouseMove={(e) => {
-              if (!draggingTrim || !progressBarRef.current || !duration) return;
-              
-              const rect = progressBarRef.current.getBoundingClientRect();
-              const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-              const newTime = percent * duration;
-              
-              if (draggingTrim === 'start') {
-                const currentEnd = trimEnd || duration;
-                const newStart = Math.max(0, Math.min(newTime, currentEnd - 0.1));
-                if (onTrimChange && Math.abs(newStart - (trimStart || 0)) > 0.05) {
-                  onTrimChange(newStart, currentEnd);
-                }
-              } else if (draggingTrim === 'end') {
-                const currentStart = trimStart || 0;
-                const newEnd = Math.max(currentStart + 0.1, Math.min(newTime, duration));
-                if (onTrimChange && Math.abs(newEnd - (trimEnd || duration)) > 0.05) {
-                  onTrimChange(currentStart, newEnd);
-                }
-              }
-            }}
-            onMouseUp={() => setDraggingTrim(null)}
-            onMouseLeave={() => setDraggingTrim(null)}
+            // Mouse move/up/leave are handled by global event listeners when dragging
           >
             {/* Progress fill - shows current playback position within trimmed area */}
             {duration > 0 && (
@@ -647,6 +669,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
                 }`}
                 style={{ left: `calc(${((trimStart || 0) / duration) * 100}% - 8px)` }}
                 onMouseDown={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setDraggingTrim('start');
                 }}
@@ -664,6 +687,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
                 }`}
                 style={{ left: `calc(${(Math.min(trimEnd, duration) / duration) * 100}% - 8px)` }}
                 onMouseDown={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setDraggingTrim('end');
                 }}

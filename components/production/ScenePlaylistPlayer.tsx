@@ -370,6 +370,8 @@ export function ScenePlaylistPlayer({
   // 🔥 FIX: Handle video end - play next only if autoPlayNext is enabled
   // Use functional updates to avoid stale closure issues
   const handleVideoEnd = useCallback(() => {
+    console.log('[ScenePlaylistPlayer] Video ended', { autoPlayNext, currentIndex, playlistLength: playlist.length });
+    
     if (!autoPlayNext) {
       setIsPlaying(false);
       return;
@@ -379,20 +381,22 @@ export function ScenePlaylistPlayer({
       if (prevIndex < playlist.length - 1) {
         // Immediately move to next video - fast cut, no delay
         const nextIndex = prevIndex + 1;
-        setIsPlaying(true);
+        console.log('[ScenePlaylistPlayer] Moving to next video', { from: prevIndex, to: nextIndex });
+        // Don't set isPlaying here - let the autoplay effect handle it
         return nextIndex;
       } else {
         // End of playlist
+        console.log('[ScenePlaylistPlayer] End of playlist reached');
         setIsPlaying(false);
         return prevIndex;
       }
     });
-  }, [playlist.length, autoPlayNext]);
+  }, [playlist.length, autoPlayNext, currentIndex]);
 
   // 🔥 FIX: Auto-play when switching to next shot (immediate cut, no delay)
   // This effect triggers when currentIndex or currentVideoUrl changes
   useEffect(() => {
-    if (!autoPlayNext || !isPlaying || !currentVideoUrl || currentShot?.hasError || !videoPlayerRef.current) {
+    if (!autoPlayNext || !currentVideoUrl || currentShot?.hasError || !videoPlayerRef.current) {
       return;
     }
 
@@ -410,6 +414,7 @@ export function ScenePlaylistPlayer({
         // Play immediately - fast cut, no delay
         // VideoPlayer's play() method already handles seeking to trimStart if needed
         await videoPlayerRef.current.play();
+        setIsPlaying(true); // Ensure playing state is set
       } catch (error: any) {
         if (error.name !== 'NotAllowedError') {
           console.warn('[ScenePlaylistPlayer] Auto-play failed:', error);
@@ -419,13 +424,13 @@ export function ScenePlaylistPlayer({
     };
 
     // Small delay to ensure video element is mounted and ready
-    // This is minimal (10ms) for immediate cuts while ensuring video is ready
+    // This is minimal (50ms) for immediate cuts while ensuring video is ready
     const timer = setTimeout(() => {
       attemptPlay();
-    }, 10);
+    }, 50);
 
     return () => clearTimeout(timer);
-  }, [currentIndex, currentVideoUrl, isPlaying, currentShot?.hasError, currentShot?.trimStart, autoPlayNext]);
+  }, [currentIndex, currentVideoUrl, currentShot?.hasError, currentShot?.trimStart, autoPlayNext]);
 
   // Note: Play/pause is handled by VideoPlayer's built-in controls
   // This function is kept for potential programmatic control if needed
@@ -653,8 +658,13 @@ export function ScenePlaylistPlayer({
                   }}
                 onEnded={handleVideoEnd}
                 onTimeUpdate={(time) => {
-                  // Handle trim end automatically
+                  // Handle trim end automatically - pause and trigger next video
                   if (currentShot && currentShot.trimEnd && time >= currentShot.trimEnd) {
+                    // Pause the video first
+                    if (videoPlayerRef.current) {
+                      videoPlayerRef.current.pause();
+                    }
+                    // Then trigger the end handler
                     handleVideoEnd();
                   }
                 }}
