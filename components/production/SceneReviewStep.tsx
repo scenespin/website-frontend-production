@@ -144,6 +144,12 @@ interface SceneReviewStepProps {
   styleProfiles?: Array<{ profileId: string; videoUrl: string; createdAt: string; confidence: number }>;
   selectedStyleProfile?: string | null;
   onStyleProfileChange?: (profileId: string | null) => void;
+  // URL Maps for thumbnail display
+  characterThumbnailUrlsMap?: Map<string, string>;
+  locationThumbnailUrlsMap?: Map<string, string>;
+  propThumbnailUrlsMap?: Map<string, string>;
+  // Uploaded first frames
+  uploadedFirstFrames?: Record<number, string>;
 }
 
 export function SceneReviewStep({
@@ -175,7 +181,11 @@ export function SceneReviewStep({
   allCharacters = [],
   styleProfiles = [],
   selectedStyleProfile = null,
-  onStyleProfileChange
+  onStyleProfileChange,
+  characterThumbnailUrlsMap,
+  locationThumbnailUrlsMap,
+  propThumbnailUrlsMap,
+  uploadedFirstFrames = {}
 }: SceneReviewStepProps) {
   const { getToken } = useAuth();
   const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
@@ -472,6 +482,95 @@ export function SceneReviewStep({
                     {shotLocation && (
                       <div className="text-[10px] text-[#808080]">
                         Location: <span className="text-[#FFFFFF]">Selected</span>
+                      </div>
+                    )}
+
+                    {/* Reference Images Section */}
+                    {(uploadedFirstFrames[shot.slot] || 
+                      Object.keys(shotCharacterRefs).length > 0 || 
+                      shotLocation || 
+                      shotPropsForShot.length > 0) && (
+                      <div className="mt-2 pt-2 border-t border-[#3F3F46]">
+                        <div className="text-[10px] text-[#808080] mb-2">First Frame References:</div>
+                        {uploadedFirstFrames[shot.slot] ? (
+                          <div className="flex items-center gap-2">
+                            <img 
+                              src={uploadedFirstFrames[shot.slot]} 
+                              className="w-16 h-16 rounded border border-[#3F3F46] object-cover" 
+                              alt="Uploaded first frame"
+                              onError={(e) => {
+                                const imgElement = e.target as HTMLImageElement;
+                                imgElement.style.display = 'none';
+                              }}
+                            />
+                            <span className="text-[10px] text-[#808080]">Uploaded First Frame</span>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 flex-wrap">
+                            {/* Character references */}
+                            {Object.entries(shotCharacterRefs).map(([charId, ref]) => {
+                              const thumbnailUrl = ref.s3Key && characterThumbnailUrlsMap?.get(ref.s3Key);
+                              return thumbnailUrl ? (
+                                <div key={charId} className="relative">
+                                  <img 
+                                    src={thumbnailUrl} 
+                                    className="w-12 h-12 rounded border border-[#3F3F46] object-cover" 
+                                    alt={`Character: ${getCharName(charId)}`}
+                                    onError={(e) => {
+                                      const imgElement = e.target as HTMLImageElement;
+                                      imgElement.style.display = 'none';
+                                    }}
+                                  />
+                                  <div className="absolute -bottom-4 left-0 right-0 text-[8px] text-[#808080] text-center truncate max-w-[48px]">
+                                    {getCharName(charId)}
+                                  </div>
+                                </div>
+                              ) : null;
+                            })}
+                            {/* Location reference */}
+                            {shotLocation?.s3Key && (() => {
+                              const thumbnailUrl = locationThumbnailUrlsMap?.get(shotLocation.s3Key);
+                              return thumbnailUrl ? (
+                                <div key="location" className="relative">
+                                  <img 
+                                    src={thumbnailUrl} 
+                                    className="w-12 h-12 rounded border border-[#3F3F46] object-cover" 
+                                    alt="Location"
+                                    onError={(e) => {
+                                      const imgElement = e.target as HTMLImageElement;
+                                      imgElement.style.display = 'none';
+                                    }}
+                                  />
+                                  <div className="absolute -bottom-4 left-0 right-0 text-[8px] text-[#808080] text-center">
+                                    Location
+                                  </div>
+                                </div>
+                              ) : null;
+                            })()}
+                            {/* Prop references */}
+                            {shotPropsForShot.map(prop => {
+                              const config = shotPropsConfig[prop.id];
+                              const imageId = config?.selectedImageId;
+                              const thumbnailUrl = imageId && propThumbnailUrlsMap?.get(imageId);
+                              return thumbnailUrl ? (
+                                <div key={prop.id} className="relative">
+                                  <img 
+                                    src={thumbnailUrl} 
+                                    className="w-12 h-12 rounded border border-[#3F3F46] object-cover" 
+                                    alt={`Prop: ${prop.name}`}
+                                    onError={(e) => {
+                                      const imgElement = e.target as HTMLImageElement;
+                                      imgElement.style.display = 'none';
+                                    }}
+                                  />
+                                  <div className="absolute -bottom-4 left-0 right-0 text-[8px] text-[#808080] text-center truncate max-w-[48px]">
+                                    {prop.name}
+                                  </div>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

@@ -4598,6 +4598,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 styleProfiles={styleProfiles}
                 selectedStyleProfile={selectedStyleProfile}
                 onStyleProfileChange={setSelectedStyleProfile}
+                characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                propThumbnailUrlsMap={propThumbnailUrlsMap}
+                uploadedFirstFrames={contextState.uploadedFirstFrames}
               />
             )}
 
