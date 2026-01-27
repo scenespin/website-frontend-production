@@ -326,6 +326,18 @@ export function ShotConfigurationStep({
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
   const uploadedFirstFrameUrl = state.uploadedFirstFrames[shotSlot];
   
+  // 🔥 DEBUG: Log current dialogue state when it changes (for testing reliable workflow selection)
+  useEffect(() => {
+    if (shot.type === 'dialogue') {
+      console.log('[ShotConfigurationStep] 📊 Dialogue state for shot', shotSlot, ':', {
+        quality: finalSelectedDialogueQuality,
+        workflow: finalSelectedDialogueWorkflow,
+        allQualities: state.selectedDialogueQualities,
+        allWorkflows: state.selectedDialogueWorkflows
+      });
+    }
+  }, [shot.slot, shot.type, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow, state.selectedDialogueQualities, state.selectedDialogueWorkflows]);
+  
   // 🔥 NEW: Separate enabled flags for first frame and video prompt overrides
   const firstFrameOverrideEnabledFromContext = state.firstFrameOverrideEnabled[shotSlot] ?? false;
   const videoPromptOverrideEnabledFromContext = state.videoPromptOverrideEnabled[shotSlot] ?? false;
@@ -805,8 +817,9 @@ export function ShotConfigurationStep({
   }, [actions]);
   
   const finalOnDialogueQualityChange = useCallback((shotSlot: number, quality: 'premium' | 'reliable') => {
+    console.log('[ShotConfigurationStep] 🔥 Dialogue quality changed:', { shotSlot, quality, currentState: state.selectedDialogueQualities[shotSlot] });
     actions.updateDialogueQuality(shotSlot, quality);
-  }, [actions]);
+  }, [actions, state.selectedDialogueQualities]);
   
   const finalOnDialogueWorkflowChange = useCallback((shotSlot: number, workflowType: DialogueWorkflowType) => {
     actions.updateDialogueWorkflow(shotSlot, workflowType);
@@ -1282,8 +1295,8 @@ export function ShotConfigurationStep({
                   locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps
                   locationThumbnailUrlsMap={locationThumbnailUrlsMap}
                   locationFullImageUrlsMap={locationFullImageUrlsMap}
-                  selectedDialogueQuality={selectedDialogueQuality}
-                  selectedDialogueWorkflow={selectedDialogueWorkflow}
+                  selectedDialogueQuality={finalSelectedDialogueQuality}
+                  selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
                   onDialogueQualityChange={finalOnDialogueQualityChange}
                   onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
                   dialogueWorkflowPrompt={dialogueWorkflowPrompt}
@@ -1343,8 +1356,8 @@ export function ShotConfigurationStep({
                   locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps
                   locationThumbnailUrlsMap={locationThumbnailUrlsMap}
                   locationFullImageUrlsMap={locationFullImageUrlsMap}
-                  selectedDialogueQuality={selectedDialogueQuality}
-                  selectedDialogueWorkflow={selectedDialogueWorkflow}
+                  selectedDialogueQuality={finalSelectedDialogueQuality}
+                  selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
                   onDialogueQualityChange={finalOnDialogueQualityChange}
                   onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
                   dialogueWorkflowPrompt={dialogueWorkflowPrompt}

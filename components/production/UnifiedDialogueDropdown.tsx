@@ -238,6 +238,7 @@ export function UnifiedDialogueDropdown({
   ], []);
   
   const handleQualityWorkflowChange = (quality: DialogueQuality, workflow: DialogueWorkflowType) => {
+    console.log('[UnifiedDialogueDropdown] 🔥 Selection clicked:', { quality, workflow, shotSlot: shot.slot });
     onQualityChange(quality);
     onWorkflowChange(workflow);
   };
