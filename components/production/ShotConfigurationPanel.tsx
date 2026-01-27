@@ -594,6 +594,7 @@ export function ShotConfigurationPanel({
   return (
     <div className="mt-3 space-y-4">
       {/* Standard configuration - Always show for action shots, show in Basic tab for dialogue shots */}
+      {/* Props section - Show in both tabs for dialogue shots (they persist in state) */}
       {(!isDialogueShot || isDialogueBasicTab) && (
         <>
       {/* 🔥 REORDERED: Character(s) Section - First */}
@@ -1318,6 +1319,151 @@ export function ShotConfigurationPanel({
                 />
               </div>
             )}
+
+            {/* 🔥 NEW: Props Section - Show in Advanced tab for dialogue shots (props persist in state) */}
+            {(() => {
+              // Get props assigned to this shot (same logic as basic tab)
+              const assignedProps = sceneProps.filter(prop => 
+                propsToShots[prop.id]?.includes(shot.slot)
+              );
+              
+              if (assignedProps.length === 0) {
+                return null;
+              }
+              
+              return (
+                <div className="mt-4 pb-3 border-b border-[#3F3F46]">
+                  <div className="text-xs font-medium text-[#FFFFFF] mb-2">Props</div>
+                  <div className="space-y-3">
+                    {assignedProps.map((prop) => {
+                      const propConfig = shotProps[shot.slot]?.[prop.id] || {};
+                      const fullProp = prop as typeof prop & {
+                        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+                        images?: Array<{ url: string; s3Key?: string }>;
+                        baseReference?: { s3Key?: string; imageUrl?: string };
+                      };
+                      
+                      return (
+                        <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-1">
+                              {(() => {
+                                const availableImages = getAvailablePropImages(fullProp);
+                                const selectedImageId = propConfig.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                                const selectedImage = selectedImageId 
+                                  ? availableImages.find(img => img.id === selectedImageId)
+                                  : availableImages[0];
+                                
+                                let imageS3Key: string | null = null;
+                                if (selectedImage) {
+                                  if (fullProp.angleReferences) {
+                                    const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id);
+                                    if (ref?.s3Key) imageS3Key = ref.s3Key;
+                                  }
+                                  if (!imageS3Key && fullProp.images) {
+                                    const imgData = fullProp.images.find(i => i.url === selectedImage.id);
+                                    if (imgData?.s3Key) imageS3Key = imgData.s3Key;
+                                  }
+                                  if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image') {
+                                    imageS3Key = fullProp.baseReference.s3Key;
+                                  }
+                                }
+                                
+                                let thumbnailKey: string | null = null;
+                                if (imageS3Key && propThumbnailS3KeyMap?.has(imageS3Key)) {
+                                  thumbnailKey = propThumbnailS3KeyMap.get(imageS3Key) || null;
+                                }
+                                
+                                const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
+                                const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
+                                const displayUrl = thumbnailUrl || fullImageUrl;
+                                
+                                return displayUrl ? (
+                                  <img 
+                                    src={displayUrl} 
+                                    alt={prop.name}
+                                    className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      const imgElement = e.target as HTMLImageElement;
+                                      if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
+                                        imgElement.src = fullImageUrl;
+                                      } else {
+                                        imgElement.style.display = 'none';
+                                      }
+                                    }}
+                                  />
+                                ) : null;
+                              })()}
+                              <span className="text-xs font-medium text-[#FFFFFF]">{prop.name}</span>
+                            </div>
+                            {onPropsToShotsChange && (
+                              <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={false}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      const updatedPropsToShots = { ...propsToShots };
+                                      if (updatedPropsToShots[prop.id]) {
+                                        updatedPropsToShots[prop.id] = updatedPropsToShots[prop.id].filter(slot => slot !== shot.slot);
+                                        if (updatedPropsToShots[prop.id].length === 0) {
+                                          delete updatedPropsToShots[prop.id];
+                                        }
+                                      }
+                                      onPropsToShotsChange(updatedPropsToShots);
+                                    }
+                                  }}
+                                  className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                                />
+                                <span>Remove from shot</span>
+                              </label>
+                            )}
+                          </div>
+                          
+                          {onPropImageChange && (
+                            <div className="mt-3">
+                              <label className="block text-[10px] text-[#808080] mb-2">
+                                Select prop image for this shot:
+                              </label>
+                              <PropImageSelector
+                                propId={prop.id}
+                                propName={prop.name}
+                                prop={fullProp}
+                                selectedImageId={propConfig.selectedImageId}
+                                onImageChange={(propId, imageId) => {
+                                  onPropImageChange(shot.slot, propId, imageId);
+                                }}
+                                propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+                                propThumbnailUrlsMap={propThumbnailUrlsMap}
+                                propFullImageUrlsMap={propFullImageUrlsMap}
+                              />
+                            </div>
+                          )}
+                          
+                          {onPropDescriptionChange && (
+                            <div className="mt-3">
+                              <label className="block text-[10px] text-[#808080] mb-1.5">
+                                Describe how "{prop.name}" is used in this shot:
+                              </label>
+                              <textarea
+                                value={propConfig.usageDescription || ''}
+                                onChange={(e) => {
+                                  onPropDescriptionChange(shot.slot, prop.id, e.target.value);
+                                }}
+                                placeholder={`e.g., Character picks up ${prop.name} and examines it...`}
+                                rows={2}
+                                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Additional Characters Section for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) - placed below prompt box */}
             {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && shot.type === 'dialogue' && onCharactersForShotChange && (

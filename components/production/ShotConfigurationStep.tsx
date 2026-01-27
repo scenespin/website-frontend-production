@@ -342,11 +342,20 @@ export function ShotConfigurationStep({
   const firstFrameOverrideEnabledFromContext = state.firstFrameOverrideEnabled[shotSlot] ?? false;
   const videoPromptOverrideEnabledFromContext = state.videoPromptOverrideEnabled[shotSlot] ?? false;
   
+  // 🔥 NEW: Check if this is a dialogue shot and if override is allowed
+  // Override is only allowed for scene-voiceover workflow (Narrate Shot)
+  // For action/establishing shots, override is always allowed
+  const isDialogueShot = shot.type === 'dialogue';
+  const isSceneVoiceover = finalSelectedDialogueWorkflow === 'scene-voiceover';
+  const isOverrideAllowed = !isDialogueShot || isSceneVoiceover;
+  
   // Auto-enable checkboxes if override data exists (preserves state on navigation)
   // First frame: enabled if prompt override exists OR uploaded first frame exists
-  const isFirstFrameOverrideEnabled = firstFrameOverrideEnabledFromContext || !!(finalFirstFramePromptOverride || uploadedFirstFrameUrl);
+  // BUT: Only if override is allowed for this workflow
+  const isFirstFrameOverrideEnabled = isOverrideAllowed && (firstFrameOverrideEnabledFromContext || !!(finalFirstFramePromptOverride || uploadedFirstFrameUrl));
   // Video prompt: enabled if prompt override exists
-  const isVideoPromptOverrideEnabled = videoPromptOverrideEnabledFromContext || !!finalVideoPromptOverride;
+  // BUT: Only if override is allowed for this workflow
+  const isVideoPromptOverrideEnabled = isOverrideAllowed && (videoPromptOverrideEnabledFromContext || !!finalVideoPromptOverride);
   
   // Track first frame mode: 'generate' (default) or 'upload'
   const [firstFrameMode, setFirstFrameMode] = useState<'generate' | 'upload'>(
@@ -358,16 +367,33 @@ export function ShotConfigurationStep({
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Sync context state when override data exists (preserves state on navigation)
+  // Also clear overrides when switching away from scene-voiceover for dialogue shots
   useEffect(() => {
+    // If this is a dialogue shot and workflow is NOT scene-voiceover, clear overrides
+    if (isDialogueShot && !isSceneVoiceover) {
+      if (firstFrameOverrideEnabledFromContext) {
+        actions.updateFirstFrameOverrideEnabled(shotSlot, false);
+        actions.updateFirstFramePromptOverride(shotSlot, '');
+        // Don't clear uploaded first frame - user might want to keep it
+      }
+      if (videoPromptOverrideEnabledFromContext) {
+        actions.updateVideoPromptOverrideEnabled(shotSlot, false);
+        actions.updateVideoPromptOverride(shotSlot, '');
+      }
+      return; // Don't auto-enable if override is not allowed
+    }
+    
     // Auto-enable first frame override if prompt override exists OR uploaded first frame exists
-    if ((finalFirstFramePromptOverride || uploadedFirstFrameUrl) && !firstFrameOverrideEnabledFromContext) {
+    // Only if override is allowed
+    if (isOverrideAllowed && (finalFirstFramePromptOverride || uploadedFirstFrameUrl) && !firstFrameOverrideEnabledFromContext) {
       actions.updateFirstFrameOverrideEnabled(shotSlot, true);
     }
     // Auto-enable video prompt override if prompt override exists
-    if (finalVideoPromptOverride && !videoPromptOverrideEnabledFromContext) {
+    // Only if override is allowed
+    if (isOverrideAllowed && finalVideoPromptOverride && !videoPromptOverrideEnabledFromContext) {
       actions.updateVideoPromptOverrideEnabled(shotSlot, true);
     }
-  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, uploadedFirstFrameUrl, firstFrameOverrideEnabledFromContext, videoPromptOverrideEnabledFromContext, shotSlot, actions]);
+  }, [finalFirstFramePromptOverride, finalVideoPromptOverride, uploadedFirstFrameUrl, firstFrameOverrideEnabledFromContext, videoPromptOverrideEnabledFromContext, shotSlot, actions, isDialogueShot, isSceneVoiceover, isOverrideAllowed]);
   
   // Sync first frame mode when uploaded first frame changes
   // Only auto-switch to 'upload' if a file is uploaded, or back to 'generate' if file is removed
@@ -609,11 +635,8 @@ export function ShotConfigurationStep({
       const { downloadUrl } = await downloadResponse.json();
       const imageUrl = downloadUrl || `https://screenplay-assets-043309365215.s3.us-east-1.amazonaws.com/${s3Key}`;
       
-      // Store in context
+      // Store in context (this will automatically clear all first-frame-related selections)
       actions.updateUploadedFirstFrame(shotSlot, imageUrl);
-      
-      // Clear first frame prompt override (not needed when uploading)
-      actions.updateFirstFramePromptOverride(shotSlot, '');
       
       toast.success('First frame uploaded successfully!');
     } catch (error: any) {
@@ -974,7 +997,8 @@ export function ShotConfigurationStep({
     
     // 1. Validate prompt override requirements (if overrides are enabled)
     // First frame override validation: Must have either prompt OR uploaded image
-    if (isFirstFrameOverrideEnabled) {
+    // Only validate if override is allowed for this workflow
+    if (isFirstFrameOverrideEnabled && isOverrideAllowed) {
       const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
       const hasUploadedFirstFrame = !!uploadedFirstFrameUrl;
       if (!hasFirstFramePrompt && !hasUploadedFirstFrame) {
@@ -983,10 +1007,21 @@ export function ShotConfigurationStep({
     }
     
     // Video prompt override validation: Must have video prompt
-    if (isVideoPromptOverrideEnabled) {
+    // Only validate if override is allowed for this workflow
+    if (isVideoPromptOverrideEnabled && isOverrideAllowed) {
       const hasVideoPrompt = finalVideoPromptOverride?.trim() !== '';
       if (!hasVideoPrompt) {
         validationErrors.push('Video prompt is required when "Override Video Prompt" is enabled.');
+      }
+    }
+    
+    // 🔥 NEW: Validation for dialogue workflows - prevent override when not allowed
+    if (isDialogueShot && !isSceneVoiceover) {
+      if (finalFirstFramePromptOverride || uploadedFirstFrameUrl) {
+        validationErrors.push('First frame override is only available for "Narrate Shot (Scene Voiceover)" workflow. Please switch to that workflow or clear the override.');
+      }
+      if (finalVideoPromptOverride) {
+        validationErrors.push('Video prompt override is only available for "Narrate Shot (Scene Voiceover)" workflow. Please switch to that workflow or clear the override.');
       }
     }
     
@@ -1647,58 +1682,60 @@ export function ShotConfigurationStep({
           )}
 
           {/* 🔥 NEW: Separate Prompt Override Section - Two Independent Checkboxes */}
-          <div className="mt-4 pt-3 border-t border-[#3F3F46]">
-            {/* First Frame Override Checkbox */}
-            <div className="flex items-center gap-2 mb-3">
-              <input
-                type="checkbox"
-                id={`first-frame-override-${shotSlot}`}
-                checked={isFirstFrameOverrideEnabled}
-                onChange={(e) => {
-                  const isChecked = e.target.checked;
-                  actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
-                  if (!isChecked) {
-                    // Clear first frame override when unchecked (but keep uploaded first frame if it exists)
-                    actions.updateFirstFramePromptOverride(shotSlot, '');
-                    // Don't clear uploaded first frame - user might want to keep it
-                  }
-                }}
-                className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-              />
-              <label 
-                htmlFor={`first-frame-override-${shotSlot}`}
-                className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
-              >
-                Override First Frame
-              </label>
-            </div>
+          {/* Only show override section if override is allowed for this workflow */}
+          {isOverrideAllowed && (
+            <div className="mt-4 pt-3 border-t border-[#3F3F46]">
+              {/* First Frame Override Checkbox */}
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  id={`first-frame-override-${shotSlot}`}
+                  checked={isFirstFrameOverrideEnabled}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
+                    if (!isChecked) {
+                      // Clear first frame override when unchecked (but keep uploaded first frame if it exists)
+                      actions.updateFirstFramePromptOverride(shotSlot, '');
+                      // Don't clear uploaded first frame - user might want to keep it
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                />
+                <label 
+                  htmlFor={`first-frame-override-${shotSlot}`}
+                  className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
+                >
+                  Override First Frame
+                </label>
+              </div>
+              
+              {/* Video Prompt Override Checkbox */}
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  id={`video-prompt-override-${shotSlot}`}
+                  checked={isVideoPromptOverrideEnabled}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    actions.updateVideoPromptOverrideEnabled(shotSlot, isChecked);
+                    if (!isChecked) {
+                      // Clear video prompt override when unchecked
+                      actions.updateVideoPromptOverride(shotSlot, '');
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                />
+                <label 
+                  htmlFor={`video-prompt-override-${shotSlot}`}
+                  className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
+                >
+                  Override Video Prompt
+                </label>
+              </div>
             
-            {/* Video Prompt Override Checkbox */}
-            <div className="flex items-center gap-2 mb-3">
-              <input
-                type="checkbox"
-                id={`video-prompt-override-${shotSlot}`}
-                checked={isVideoPromptOverrideEnabled}
-                onChange={(e) => {
-                  const isChecked = e.target.checked;
-                  actions.updateVideoPromptOverrideEnabled(shotSlot, isChecked);
-                  if (!isChecked) {
-                    // Clear video prompt override when unchecked
-                    actions.updateVideoPromptOverride(shotSlot, '');
-                  }
-                }}
-                className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-              />
-              <label 
-                htmlFor={`video-prompt-override-${shotSlot}`}
-                className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
-              >
-                Override Video Prompt
-              </label>
-            </div>
-            
-            {/* First Frame Override Section */}
-            {isFirstFrameOverrideEnabled && (
+              {/* First Frame Override Section */}
+              {isFirstFrameOverrideEnabled && (
               <div className="space-y-3">
                 {/* Available Variables Display - Only show when generating first frame (not when uploading) */}
                 {firstFrameMode === 'generate' && (() => {
@@ -1929,7 +1966,8 @@ export function ShotConfigurationStep({
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Cost Calculator - Prices from backend (margins hidden) - Moved after Video Generation */}
           {pricing && (
