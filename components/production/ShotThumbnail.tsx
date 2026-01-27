@@ -7,10 +7,46 @@
  * Note: First frame images are kept in backend only, not displayed in UI.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Play, Info, Download, RefreshCw, Film, HelpCircle, X, Trash2 } from 'lucide-react';
 import { VideoThumbnail } from './VideoThumbnail';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+/**
+ * Feature 0213: Map internal provider/model to user-friendly display label
+ * Scalable mapping that supports future model additions
+ */
+const VIDEO_MODEL_LABELS: Record<string, string> = {
+  // Runway models
+  'runway-gen4': 'Runway Gen4',
+  'runway': 'Runway Gen4',
+  'gen4_turbo': 'Runway Gen4',
+  // Luma models
+  'luma-ray-2': 'Luma Ray2',
+  'luma': 'Luma Ray2',
+  'ray-2': 'Luma Ray2',
+  'ray-3': 'Luma Ray3',
+  // Google Veo models
+  'veo-3.1': 'Veo 3.1',
+  'veo': 'Veo 3.1',
+  'veo-3.1-generate-preview': 'Veo 3.1',
+  // Wryda (Longcat) models
+  'wryda': 'Wryda',
+  'longcat': 'Wryda',
+  'longcat-avatar': 'Wryda',
+};
+
+function getVideoModelLabel(provider?: string, model?: string): string | null {
+  // Try provider first, then model
+  if (provider && VIDEO_MODEL_LABELS[provider]) {
+    return VIDEO_MODEL_LABELS[provider];
+  }
+  if (model && VIDEO_MODEL_LABELS[model]) {
+    return VIDEO_MODEL_LABELS[model];
+  }
+  // Return null for unknown providers (graceful degradation)
+  return null;
+}
 
 interface ShotThumbnailProps {
   shot: {
@@ -20,6 +56,9 @@ interface ShotThumbnailProps {
       s3Key?: string;
       fileName: string;
       fileType: string;
+      // Feature 0213: Video model metadata
+      videoProvider?: string;
+      videoModel?: string;
     };
     timestamp?: string;
     metadata?: any; // Generation metadata for regeneration
@@ -48,6 +87,13 @@ export function ShotThumbnail({
   const [isHovered, setIsHovered] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  
+  // Feature 0213: Get video model label for display
+  const videoModelLabel = useMemo(() => {
+    const provider = shot.video.videoProvider || shot.metadata?.videoProvider;
+    const model = shot.video.videoModel || shot.metadata?.videoModel;
+    return getVideoModelLabel(provider, model);
+  }, [shot.video.videoProvider, shot.video.videoModel, shot.metadata?.videoProvider, shot.metadata?.videoModel]);
 
   return (
     <div
@@ -89,6 +135,13 @@ export function ShotThumbnail({
             </div>
           )}
         </div>
+        
+        {/* Feature 0213: Video model label badge */}
+        {videoModelLabel && (
+          <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+            {videoModelLabel}
+          </div>
+        )}
       </div>
 
       {/* Actions */}

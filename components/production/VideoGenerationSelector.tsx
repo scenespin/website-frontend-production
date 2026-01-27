@@ -1,14 +1,46 @@
 /**
  * Video Generation Selector Component
  * 
- * Allows users to select video generation type for non-dialogue shots.
- * Options: Cinematic Visuals, Natural Motion
+ * Allows users to select video generation model for non-dialogue shots.
+ * Options: Runway Gen4, Luma Ray2, Veo 3.1 (and soon Wryda/Longcat)
  * Note: Quality (1080p/4K) is set globally in the Review Step, not per-shot.
+ * 
+ * Feature 0213: Updated to show actual model names instead of wrapper names.
+ * Internal IDs remain unchanged for backend compatibility.
  */
 
 'use client';
 
 import React from 'react';
+
+/**
+ * Video model options with actual model names
+ * IDs match backend mapping in WorkflowExecutionWorker.ts:
+ * - 'cinematic-visuals' → 'runway-gen4'
+ * - 'natural-motion' → 'luma-ray-2'
+ * - 'premium-quality' → 'veo-3.1'
+ */
+const VIDEO_MODEL_OPTIONS = [
+  {
+    id: 'cinematic-visuals' as const,
+    name: 'Runway Gen4',
+    description: 'Cinematic visuals, dramatic lighting, stylized looks',
+    bestFor: 'Establishing shots, VFX, fantasy scenes'
+  },
+  {
+    id: 'natural-motion' as const,
+    name: 'Luma Ray2',
+    description: 'Physics-accurate movement, realistic motion, natural actions',
+    bestFor: 'Action sequences, character movement, realistic scenes'
+  },
+  {
+    id: 'premium-quality' as const,
+    name: 'Veo 3.1',
+    description: 'Highest quality generation with advanced motion understanding',
+    bestFor: 'Premium productions, high-end content, maximum quality'
+  }
+  // Future: Wryda (Longcat) will be added here when implemented
+] as const;
 
 interface VideoGenerationSelectorProps {
   shotSlot: number;
@@ -45,30 +77,9 @@ export function VideoGenerationSelector({
     const selectVideoType = selectedVideoType ?? 'cinematic-visuals';
     const selectDuration = shotDuration ?? 'quick-cut';
     
-    const videoTypes = [
-      {
-        id: 'cinematic-visuals' as const,
-        name: 'Cinematic Visuals',
-        description: 'Dramatic lighting, high contrast, visual effects, stylized looks',
-        bestFor: 'Establishing shots, VFX, fantasy scenes'
-      },
-      {
-        id: 'natural-motion' as const,
-        name: 'Natural Motion',
-        description: 'Physics-accurate movement, realistic motion, natural actions',
-        bestFor: 'Action sequences, character movement, realistic scenes'
-      },
-      {
-        id: 'premium-quality' as const,
-        name: 'Premium Quality',
-        description: 'Highest quality generation with advanced motion understanding',
-        bestFor: 'Premium productions, high-end content, maximum quality'
-      }
-    ];
-    
     return (
       <div className="pt-3 pb-3 border-t border-b border-[#3F3F46]">
-        <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Generation</div>
+        <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Model</div>
         <div className="space-y-3">
           {/* Camera Angle */}
           {onCameraAngleChange && (
@@ -109,10 +120,10 @@ export function VideoGenerationSelector({
             </div>
           )}
 
-          {/* Video Style (Video Type) */}
+          {/* Video Model Selection */}
           {onVideoTypeChange && (
             <div>
-              <label className="text-[10px] text-[#808080] mb-1.5 block">Video</label>
+              <label className="text-[10px] text-[#808080] mb-1.5 block">Video Model</label>
               <select
                 value={selectVideoType}
                 onChange={(e) => {
@@ -120,9 +131,9 @@ export function VideoGenerationSelector({
                 }}
                 className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
               >
-                {videoTypes.map((videoType) => (
-                  <option key={videoType.id} value={videoType.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
-                    {videoType.name} - {videoType.description} (Best for: {videoType.bestFor})
+                {VIDEO_MODEL_OPTIONS.map((model) => (
+                  <option key={model.id} value={model.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
+                    {model.name} - {model.description}
                   </option>
                 ))}
               </select>
@@ -155,28 +166,7 @@ export function VideoGenerationSelector({
     );
   }
 
-  const videoTypes = [
-    {
-      id: 'cinematic-visuals' as const,
-      name: 'Cinematic Visuals',
-      description: 'Dramatic lighting, high contrast, visual effects, stylized looks',
-      bestFor: 'Establishing shots, VFX, fantasy scenes'
-    },
-    {
-      id: 'natural-motion' as const,
-      name: 'Natural Motion',
-      description: 'Physics-accurate movement, realistic motion, natural actions',
-      bestFor: 'Action sequences, character movement, realistic scenes'
-    },
-    {
-      id: 'premium-quality' as const,
-      name: 'Premium Quality',
-      description: 'Highest quality generation with advanced motion understanding',
-      bestFor: 'Premium productions, high-end content, maximum quality'
-    }
-  ];
-
-  const currentVideoType = videoTypes.find(vt => vt.id === selectedVideoType) || videoTypes[0];
+  const currentVideoType = VIDEO_MODEL_OPTIONS.find(vt => vt.id === selectedVideoType) || VIDEO_MODEL_OPTIONS[0];
   // Ensure all Select values are always strings (never undefined) to prevent React error #185
   const selectCameraAngle = shotCameraAngle ?? 'auto';
   const selectVideoType = selectedVideoType ?? 'cinematic-visuals';
@@ -184,7 +174,7 @@ export function VideoGenerationSelector({
 
   return (
     <div className="pt-3 pb-3 border-t border-b border-[#3F3F46]">
-      <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Generation</div>
+      <div className="text-xs font-medium text-[#FFFFFF] mb-2">Video Model</div>
       <div className="space-y-3">
         {/* Camera Angle */}
         {onCameraAngleChange && (
@@ -225,9 +215,9 @@ export function VideoGenerationSelector({
           </div>
         )}
 
-        {/* Video Type Selection */}
+        {/* Video Model Selection */}
         <div>
-          <label className="text-[10px] text-[#808080] mb-1.5 block">Video</label>
+          <label className="text-[10px] text-[#808080] mb-1.5 block">Video Model</label>
           <select
             value={selectVideoType}
             onChange={(e) => {
@@ -235,9 +225,9 @@ export function VideoGenerationSelector({
             }}
             className="select select-bordered w-full bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-xs h-9 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
           >
-            {videoTypes.map((videoType) => (
-              <option key={videoType.id} value={videoType.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
-                {videoType.name} - {videoType.description} (Best for: {videoType.bestFor})
+            {VIDEO_MODEL_OPTIONS.map((model) => (
+              <option key={model.id} value={model.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
+                {model.name} - {model.description}
               </option>
             ))}
           </select>

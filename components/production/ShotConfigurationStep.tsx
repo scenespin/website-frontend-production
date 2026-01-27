@@ -942,7 +942,7 @@ export function ShotConfigurationStep({
     if ((shot.type === 'action' || shot.type === 'establishing') && onVideoTypeChange) {
       const currentVideoType = selectedVideoTypes[shotSlot];
       if (!currentVideoType) {
-        validationErrors.push('Video model selection required. Please select "Cinematic Visuals" or "Natural Motion" in the Video Generation section.');
+        validationErrors.push('Video model selection required. Please select Runway Gen4, Luma Ray2, or Veo 3.1 in the Video Model section.');
       }
     }
     
