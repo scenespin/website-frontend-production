@@ -15,7 +15,7 @@
 
 import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, GripVertical } from 'lucide-react';
-import { prefetchVideo, canPlayVideoFormat, revokeBlobUrl } from '@/utils/videoPrefetch';
+import { canPlayVideoFormat } from '@/utils/videoPrefetch';
 
 interface VideoPlayerProps {
   src: string;
@@ -62,12 +62,8 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPrefetching, setIsPrefetching] = useState(false);
-  const [prefetchProgress, setPrefetchProgress] = useState(0);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [codecSupported, setCodecSupported] = useState<boolean | null>(null);
   const [draggingTrim, setDraggingTrim] = useState<'start' | 'end' | null>(null);
-  const [useOriginalUrl, setUseOriginalUrl] = useState(false); // Fallback flag if Blob URL fails
 
   // Global mouse event handlers for trim dragging (allows dragging outside progress bar)
   useEffect(() => {
@@ -135,59 +131,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     }
   }, [src]);
 
-  // Prefetch video to Blob URL (fixes CORS/format issues)
-  useEffect(() => {
-    if (!src || src.startsWith('blob:')) {
-      // Already a blob URL or no src
-      return;
-    }
+  // 🔥 SIMPLIFIED: Use presigned URLs directly - no blob prefetching
+  // Blob URLs were causing ERR_FILE_NOT_FOUND errors and complexity
+  const videoSrc = src;
 
-    // Check if we should prefetch (only for presigned URLs or remote URLs)
-    const shouldPrefetch = src.includes('amazonaws.com') || src.includes('?') || src.startsWith('http');
-    
-    if (!shouldPrefetch) {
-      return;
-    }
-
-    let currentBlobUrl: string | null = null;
-    setIsPrefetching(true);
-    setPrefetchProgress(0);
-
-    prefetchVideo(src, {
-      onProgress: (progress) => setPrefetchProgress(progress),
-      timeout: 30000,
-    })
-      .then((blob) => {
-        console.log('[VideoPlayer] Prefetch successful, using Blob URL:', blob.substring(0, 50));
-        currentBlobUrl = blob;
-        setBlobUrl(blob);
-        setIsPrefetching(false);
-      })
-      .catch((error) => {
-        console.warn('[VideoPlayer] Prefetch failed, falling back to original URL:', error.message);
-        setIsPrefetching(false);
-        setBlobUrl(null); // Fallback to original URL
-        // Don't call onError here - let the video element try the original URL
-        // The error will come from the video element if it truly can't play
-      });
-
-    // Cleanup on unmount or src change
-    return () => {
-      if (currentBlobUrl) {
-        revokeBlobUrl(currentBlobUrl);
-      }
-    };
-  }, [src, onError]);
-
-  // Reset fallback flag when src changes
-  useEffect(() => {
-    setUseOriginalUrl(false);
-  }, [src]);
-
-  // Use original URL if Blob URL failed, otherwise use Blob URL if available, otherwise use original src
-  const videoSrc = useOriginalUrl ? src : (blobUrl || src);
-
-  // Reload video when videoSrc changes (e.g., when falling back to original URL)
+  // Reload video when src changes
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoSrc) return;
@@ -195,23 +143,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     // Only reload if src actually changed (avoid reloading on every render)
     const currentSrc = video.src || video.getAttribute('src') || '';
     if (currentSrc !== videoSrc) {
-      console.log('[VideoPlayer] Video src changed, reloading:', {
-        from: currentSrc.substring(0, 50),
-        to: videoSrc.substring(0, 50)
-      });
       video.src = videoSrc;
       video.load();
     }
   }, [videoSrc]);
 
-  // Cleanup blob URLs on unmount
-  useEffect(() => {
-    return () => {
-      if (blobUrl) {
-        revokeBlobUrl(blobUrl);
-      }
-    };
-  }, [blobUrl]);
 
   // Cleanup video when src changes to prevent memory leaks
   useEffect(() => {
@@ -249,24 +185,32 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     const video = videoRef.current;
     if (!video) return;
 
+    let trimEndTriggered = false;
     const handleTimeUpdate = () => {
       const time = video.currentTime;
       setCurrentTime(time);
 
-      // Check if we've reached trim end
-      if (trimEnd && time >= trimEnd) {
+      // Check if we've reached trim end (only trigger once)
+      if (trimEnd && time >= trimEnd && !trimEndTriggered) {
+        trimEndTriggered = true;
         try {
           video.pause();
-          // Seek back to trimEnd to prevent going past it
-          video.currentTime = trimEnd;
+          video.currentTime = trimEnd; // Seek back to trimEnd
         } catch (error) {
-          // Ignore pause errors (e.g., if already paused)
+          // Ignore pause errors
         }
         setIsPlaying(false);
         // Trigger ended callback to advance to next video
         if (onEnded) {
           onEnded();
         }
+        // Reset flag after a short delay
+        setTimeout(() => {
+          trimEndTriggered = false;
+        }, 100);
+      } else if (trimEnd && time < trimEnd) {
+        // Reset flag if we're before trim end
+        trimEndTriggered = false;
       }
 
       if (onTimeUpdate) {
@@ -302,20 +246,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       const video = videoRef.current;
       if (!video) return;
       
-      // 🔥 FALLBACK: If Blob URL fails, try original URL
-      const isBlobUrl = videoSrc.startsWith('blob:');
-      if (isBlobUrl && !useOriginalUrl && src && src !== videoSrc) {
-        console.warn('[VideoPlayer] Blob URL failed, falling back to original URL');
-        setUseOriginalUrl(true);
-        setBlobUrl(null); // Clear blob URL
-        // Revoke the failed blob URL to free memory
-        if (blobUrl) {
-          revokeBlobUrl(blobUrl);
-        }
-        // Don't call video.load() here - let the useEffect handle the src change
-        return; // Don't show error yet, try original URL first
-      }
-      
       // Get more detailed error information
       let errorMessage = 'Video failed to load';
       let errorDetails = '';
@@ -338,8 +268,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
             // Try to detect file type from URL
             const urlLower = videoSrc.toLowerCase();
             const fileExtension = urlLower.match(/\.(mp4|mov|webm|mkv|avi|m4v)(\?|$)/)?.[1] || 'unknown';
-            const isBlobUrlError = videoSrc.startsWith('blob:');
-            errorDetails = `Your browser does not support this video format. File extension: ${fileExtension}. ${isBlobUrlError ? 'Tried prefetched Blob URL and original URL - both failed.' : 'Using original presigned URL.'} The file may use an unsupported codec (e.g., H.265/HEVC). Supported: MP4 (H.264), WebM, MOV.`;
+                errorDetails = `Your browser does not support this video format. File extension: ${fileExtension}. The file may use an unsupported codec (e.g., H.265/HEVC). Supported: MP4 (H.264), WebM, MOV.`;
             break;
         }
       }
@@ -358,8 +287,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         errorMessage,
         errorDetails,
         videoSrc: videoSrc.substring(0, 150),
-        originalSrc: src.substring(0, 150),
-        isBlobUrl: videoSrc.startsWith('blob:'),
         fileName,
         detectedExtension,
         videoWidth: video.videoWidth,
@@ -408,7 +335,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('error', handleError);
     };
-  }, [trimStart, trimEnd, onTimeUpdate, onEnded, onError, videoSrc, src, useOriginalUrl, blobUrl]);
+  }, [trimStart, trimEnd, onTimeUpdate, onEnded, onError, videoSrc]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -568,21 +495,28 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       const video = videoRef.current;
       if (!video) return;
       
-      // 🔥 FIX: Always seek to trimStart before playing (if trimStart is set)
-      // This ensures videos always start at the correct trim point, especially for autoplay
+      // Always seek to trimStart before playing
       if (trimStart > 0) {
-        // Only seek if we're not already in the trimmed range
-        if (video.currentTime < trimStart || (trimEnd && video.currentTime >= trimEnd)) {
-          video.currentTime = trimStart;
-        }
+        video.currentTime = trimStart;
       } else if (trimEnd && video.currentTime >= trimEnd) {
-        // If no trimStart but we're past trimEnd, seek to beginning
         video.currentTime = 0;
+      }
+      
+      // Wait for video to be ready if needed
+      if (video.readyState < 2) {
+        await new Promise<void>((resolve) => {
+          const handleCanPlay = () => {
+            video.removeEventListener('canplay', handleCanPlay);
+            resolve();
+          };
+          video.addEventListener('canplay', handleCanPlay);
+        });
       }
       
       const playPromise = video.play();
       if (playPromise !== undefined) {
         await playPromise.catch((error) => {
+          // Ignore AbortError (happens during rapid changes) and NotAllowedError (autoplay policy)
           if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
             console.warn('[VideoPlayer] Play error:', error);
           }
@@ -786,20 +720,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       </div>
 
       {/* Loading indicator */}
-      {(isLoading || isPrefetching) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-2"></div>
-          {isPrefetching && (
-            <div className="w-48 bg-white/20 rounded-full h-1">
-              <div 
-                className="bg-[#DC143C] h-1 rounded-full transition-all"
-                style={{ width: `${prefetchProgress * 100}%` }}
-              />
-            </div>
-          )}
-          {isPrefetching && (
-            <p className="text-white text-xs mt-2">Loading video... {Math.round(prefetchProgress * 100)}%</p>
-          )}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
         </div>
       )}
       

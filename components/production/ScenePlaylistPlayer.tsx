@@ -367,68 +367,63 @@ export function ScenePlaylistPlayer({
   const currentShot = playlist[currentIndex];
   const currentVideoUrl = currentShot?.presignedUrl;
 
-  // 🔥 FIX: Handle video end - play next only if autoPlayNext is enabled
-  // Use functional updates to avoid stale closure issues
+  // 🔥 SIMPLIFIED: Handle video end - play next only if autoPlayNext is enabled
+  // Add debounce to prevent multiple rapid calls
+  const endHandlerRef = useRef<NodeJS.Timeout | null>(null);
   const handleVideoEnd = useCallback(() => {
-    console.log('[ScenePlaylistPlayer] Video ended', { autoPlayNext, currentIndex, playlistLength: playlist.length });
-    
-    if (!autoPlayNext) {
-      setIsPlaying(false);
-      return;
+    // Debounce to prevent multiple rapid calls
+    if (endHandlerRef.current) {
+      clearTimeout(endHandlerRef.current);
     }
     
-    setCurrentIndex(prevIndex => {
-      if (prevIndex < playlist.length - 1) {
-        // Immediately move to next video - fast cut, no delay
-        const nextIndex = prevIndex + 1;
-        console.log('[ScenePlaylistPlayer] Moving to next video', { from: prevIndex, to: nextIndex });
-        // Don't set isPlaying here - let the autoplay effect handle it
-        return nextIndex;
-      } else {
-        // End of playlist
-        console.log('[ScenePlaylistPlayer] End of playlist reached');
+    endHandlerRef.current = setTimeout(() => {
+      if (!autoPlayNext) {
         setIsPlaying(false);
-        return prevIndex;
+        return;
       }
-    });
-  }, [playlist.length, autoPlayNext, currentIndex]);
+      
+      setCurrentIndex(prevIndex => {
+        if (prevIndex < playlist.length - 1) {
+          return prevIndex + 1;
+        } else {
+          setIsPlaying(false);
+          return prevIndex;
+        }
+      });
+    }, 50); // Small debounce to prevent rapid calls
+  }, [playlist.length, autoPlayNext]);
 
-  // 🔥 FIX: Auto-play when switching to next shot (immediate cut, no delay)
-  // This effect triggers when currentIndex or currentVideoUrl changes
+  // 🔥 SIMPLIFIED: Auto-play when switching to next shot
+  // Simple approach: wait a bit for video to load, then play
   useEffect(() => {
     if (!autoPlayNext || !currentVideoUrl || currentShot?.hasError || !videoPlayerRef.current) {
       return;
     }
 
-    // Use VideoPlayerRef's play method which handles trim points correctly
     const attemptPlay = async () => {
       if (!videoPlayerRef.current) return;
 
       try {
-        // Seek to trimStart first (VideoPlayer will handle this, but we ensure it's done)
+        // Seek to trim start first
         const trimStart = currentShot?.trimStart || 0;
         if (trimStart > 0) {
           videoPlayerRef.current.seekTo(trimStart);
         }
 
-        // Play immediately - fast cut, no delay
-        // VideoPlayer's play() method already handles seeking to trimStart if needed
+        // Play with a small delay to ensure video is ready
+        await new Promise(resolve => setTimeout(resolve, 150));
         await videoPlayerRef.current.play();
-        setIsPlaying(true); // Ensure playing state is set
+        setIsPlaying(true);
       } catch (error: any) {
-        if (error.name !== 'NotAllowedError') {
+        // Ignore AbortError (happens when video changes quickly) and NotAllowedError (autoplay policy)
+        if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') {
           console.warn('[ScenePlaylistPlayer] Auto-play failed:', error);
         }
         setIsPlaying(false);
       }
     };
 
-    // Small delay to ensure video element is mounted and ready
-    // This is minimal (50ms) for immediate cuts while ensuring video is ready
-    const timer = setTimeout(() => {
-      attemptPlay();
-    }, 50);
-
+    const timer = setTimeout(attemptPlay, 200);
     return () => clearTimeout(timer);
   }, [currentIndex, currentVideoUrl, currentShot?.hasError, currentShot?.trimStart, autoPlayNext]);
 
@@ -664,8 +659,10 @@ export function ScenePlaylistPlayer({
                     if (videoPlayerRef.current) {
                       videoPlayerRef.current.pause();
                     }
-                    // Then trigger the end handler
-                    handleVideoEnd();
+                    // Small delay before triggering end to ensure video is paused
+                    setTimeout(() => {
+                      handleVideoEnd();
+                    }, 10);
                   }
                 }}
                   onError={(error) => {
