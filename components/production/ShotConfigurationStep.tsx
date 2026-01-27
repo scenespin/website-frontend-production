@@ -460,16 +460,35 @@ export function ShotConfigurationStep({
         throw new Error(errorData.message || errorData.error || `Failed to get upload URL: ${presignedResponse.statusText}`);
       }
       
-      const { url, fields, s3Key } = await presignedResponse.json();
+      const presignedData = await presignedResponse.json();
+      const { url, fields, s3Key } = presignedData;
+      
+      // Validate presigned URL response
+      if (!url || !fields || !s3Key) {
+        console.error('[ShotConfigurationStep] Invalid presigned URL response:', presignedData);
+        throw new Error('Invalid presigned URL response from server');
+      }
+      
+      console.log('[ShotConfigurationStep] Presigned URL received:', {
+        url: url.substring(0, 100) + '...',
+        fieldsCount: Object.keys(fields).length,
+        s3Key: s3Key.substring(0, 50) + '...'
+      });
       
       // Step 2: Upload to S3 directly (using presigned POST)
+      // Match working pattern from AnnotationToVideoPanel and SceneBuilderPanel
       const formData = new FormData();
       Object.entries(fields).forEach(([key, value]) => {
         if (key.toLowerCase() !== 'bucket') {
           formData.append(key, value as string);
         }
       });
-      formData.append('file', file);
+      formData.append('file', file); // File must be last
+      
+      console.log('[ShotConfigurationStep] Uploading to S3:', {
+        url: url.substring(0, 100) + '...',
+        formDataKeys: Array.from(formData.keys())
+      });
       
       const s3Response = await fetch(url, {
         method: 'POST',
@@ -477,7 +496,14 @@ export function ShotConfigurationStep({
       });
       
       if (!s3Response.ok) {
-        throw new Error('S3 upload failed');
+        const errorText = await s3Response.text().catch(() => 'Unknown error');
+        console.error('[ShotConfigurationStep] S3 upload failed:', {
+          status: s3Response.status,
+          statusText: s3Response.statusText,
+          error: errorText.substring(0, 200),
+          url: url.substring(0, 100) + '...'
+        });
+        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
       }
       
       // Step 3: Register media in Media Library (JSON body, not FormData)
