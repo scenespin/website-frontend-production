@@ -242,42 +242,22 @@ export function ScenePlaylistPlayer({
         });
       }
     } else {
-      // 🔥 FIX: Merge new videos into existing playlist instead of replacing
-      // Update presigned URLs for existing videos and add new ones
+      // 🔥 FIX: Only update presigned URLs for videos already in playlist - NEVER add new videos
+      // This prevents auto-adding videos when scene.videos changes
       setPlaylist(prev => {
-        const existingByS3Key = new Map(prev.map(s => [s.video.s3Key, s]));
-        const newShots: PlaylistShot[] = [];
-        
-        scene.videos.shots.forEach((shot) => {
-          const presignedUrl = shot.video.s3Key ? presignedUrls.get(shot.video.s3Key) : undefined;
-          const hasError = shot.video.s3Key && !presignedUrl;
-          const existing = existingByS3Key.get(shot.video.s3Key);
+        // Only update existing videos with new presigned URLs
+        // Do NOT add videos that aren't already in the playlist
+        return prev.map(existingShot => {
+          const presignedUrl = existingShot.video.s3Key ? presignedUrls.get(existingShot.video.s3Key) : undefined;
+          const hasError = existingShot.video.s3Key && !presignedUrl;
           
-          if (existing) {
-            // Update existing shot with new presigned URL, preserve trim values
-            newShots.push({
-              ...existing,
-              presignedUrl,
-              hasError,
-              isLoading: !!presignedUrl && !hasError,
-            });
-          } else {
-            // Add new shot
-            newShots.push({
-              shotNumber: shot.shotNumber,
-              video: shot.video,
-              presignedUrl,
-              trimStart: 0,
-              trimEnd: 0,
-              duration: 0,
-              timestamp: shot.timestamp,
-              isLoading: !!presignedUrl,
-              hasError,
-            });
-          }
+          return {
+            ...existingShot,
+            presignedUrl,
+            hasError,
+            isLoading: !!presignedUrl && !hasError,
+          };
         });
-        
-        return newShots;
       });
     }
   }, [scene.videos, presignedUrls, loadPersistedState, initialPlaylist]);
@@ -387,32 +367,65 @@ export function ScenePlaylistPlayer({
   const currentShot = playlist[currentIndex];
   const currentVideoUrl = currentShot?.presignedUrl;
 
-  // 🔥 FIX: Auto-play when switching to next shot (only if autoPlayNext is enabled)
-  useEffect(() => {
-    if (autoPlayNext && isPlaying && currentVideoUrl && videoPlayerRef.current && !currentShot?.hasError) {
-      // Small delay to ensure video element is ready
-      const timer = setTimeout(() => {
-        videoPlayerRef.current?.play().catch((error) => {
-          if (error.name !== 'NotAllowedError') {
-            console.warn('[ScenePlaylistPlayer] Auto-play failed:', error);
-          }
-          setIsPlaying(false);
-        });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [currentIndex, currentVideoUrl, isPlaying, currentShot?.hasError, autoPlayNext]);
-
   // 🔥 FIX: Handle video end - play next only if autoPlayNext is enabled
+  // Use functional updates to avoid stale closure issues
   const handleVideoEnd = useCallback(() => {
-    if (autoPlayNext && currentIndex < playlist.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setIsPlaying(true);
-      // VideoPlayer will auto-play when src changes (if autoPlayNext is true)
-    } else {
+    if (!autoPlayNext) {
       setIsPlaying(false);
+      return;
     }
-  }, [currentIndex, playlist.length, autoPlayNext]);
+    
+    setCurrentIndex(prevIndex => {
+      if (prevIndex < playlist.length - 1) {
+        // Immediately move to next video - fast cut, no delay
+        const nextIndex = prevIndex + 1;
+        setIsPlaying(true);
+        return nextIndex;
+      } else {
+        // End of playlist
+        setIsPlaying(false);
+        return prevIndex;
+      }
+    });
+  }, [playlist.length, autoPlayNext]);
+
+  // 🔥 FIX: Auto-play when switching to next shot (immediate cut, no delay)
+  // This effect triggers when currentIndex or currentVideoUrl changes
+  useEffect(() => {
+    if (!autoPlayNext || !isPlaying || !currentVideoUrl || currentShot?.hasError || !videoPlayerRef.current) {
+      return;
+    }
+
+    // Use VideoPlayerRef's play method which handles trim points correctly
+    const attemptPlay = async () => {
+      if (!videoPlayerRef.current) return;
+
+      try {
+        // Seek to trimStart first (VideoPlayer will handle this, but we ensure it's done)
+        const trimStart = currentShot?.trimStart || 0;
+        if (trimStart > 0) {
+          videoPlayerRef.current.seekTo(trimStart);
+        }
+
+        // Play immediately - fast cut, no delay
+        // VideoPlayer's play() method already handles seeking to trimStart if needed
+        await videoPlayerRef.current.play();
+      } catch (error: any) {
+        if (error.name !== 'NotAllowedError') {
+          console.warn('[ScenePlaylistPlayer] Auto-play failed:', error);
+        }
+        setIsPlaying(false);
+      }
+    };
+
+    // Small delay to ensure video element is mounted and ready
+    // This is minimal (10ms) for immediate cuts while ensuring video is ready
+    const timer = setTimeout(() => {
+      attemptPlay();
+    }, 10);
+
+    return () => clearTimeout(timer);
+  }, [currentIndex, currentVideoUrl, isPlaying, currentShot?.hasError, currentShot?.trimStart, autoPlayNext]);
 
   // Note: Play/pause is handled by VideoPlayer's built-in controls
   // This function is kept for potential programmatic control if needed

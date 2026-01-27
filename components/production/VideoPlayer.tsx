@@ -524,9 +524,16 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       const video = videoRef.current;
       if (!video) return;
       
-      // If at trim end, seek to trim start
-      if (trimEnd && video.currentTime >= trimEnd) {
-        video.currentTime = trimStart;
+      // 🔥 FIX: Always seek to trimStart before playing (if trimStart is set)
+      // This ensures videos always start at the correct trim point, especially for autoplay
+      if (trimStart > 0) {
+        // Only seek if we're not already in the trimmed range
+        if (video.currentTime < trimStart || (trimEnd && video.currentTime >= trimEnd)) {
+          video.currentTime = trimStart;
+        }
+      } else if (trimEnd && video.currentTime >= trimEnd) {
+        // If no trimStart but we're past trimEnd, seek to beginning
+        video.currentTime = 0;
       }
       
       const playPromise = video.play();
