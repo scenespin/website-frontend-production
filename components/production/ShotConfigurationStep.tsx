@@ -561,7 +561,7 @@ export function ShotConfigurationStep({
     } finally {
       setIsUploadingFirstFrame(false);
     }
-  }, [screenplayId, getToken, shotSlot, actions, projectId, sceneAnalysisResult, shot, screenplay]);
+  }, [screenplayId, getToken, shotSlot, actions, projectId, sceneAnalysisResult, shot, scenes]);
   
   // Handle file input change
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
