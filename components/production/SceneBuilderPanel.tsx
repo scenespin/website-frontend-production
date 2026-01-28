@@ -527,6 +527,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const characterOutfits = contextState.characterOutfits;
   const selectedDialogueQualities = contextState.selectedDialogueQualities;
   const selectedDialogueWorkflows = contextState.selectedDialogueWorkflows;
+  const offFrameShotType = contextState.offFrameShotType;
+  const offFrameListenerCharacterId = contextState.offFrameListenerCharacterId;
+  const offFrameGroupCharacterIds = contextState.offFrameGroupCharacterIds;
+  const offFrameSceneContextPrompt = contextState.offFrameSceneContextPrompt;
   const voiceoverBaseWorkflows = contextState.voiceoverBaseWorkflows;
   const shotWorkflowOverrides = contextState.shotWorkflowOverrides;
   const dialogueWorkflowPrompts = contextState.dialogueWorkflowPrompts;
@@ -2888,6 +2892,27 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         characterOutfits: Object.keys(characterOutfits).length > 0 ? characterOutfits : undefined, // Per-shot, per-character outfit selection: { shotSlot: { characterId: outfitName } }
         selectedDialogueQualities: Object.keys(selectedDialogueQualities).length > 0 ? selectedDialogueQualities : undefined, // NEW: Per-shot dialogue quality selection (Premium vs Reliable): { shotSlot: 'premium' | 'reliable' }
         selectedDialogueWorkflows: Object.keys(selectedDialogueWorkflows).length > 0 ? selectedDialogueWorkflows : undefined, // Per-shot dialogue workflow selection: { shotSlot: workflowType }
+        // Feature 0209: Off-frame (Hidden Mouth) – send only for shots where workflow is off-frame-voiceover; never mix with lip-sync namespace
+        ...(enabledShots.some((slot) => selectedDialogueWorkflows[slot] === 'off-frame-voiceover')
+          ? {
+              offFrameShotType: enabledShots.reduce<Record<number, string>>((acc, slot) => {
+                if (selectedDialogueWorkflows[slot] === 'off-frame-voiceover' && offFrameShotType[slot]) acc[slot] = offFrameShotType[slot];
+                return acc;
+              }, {}),
+              offFrameListenerCharacterId: enabledShots.reduce<Record<number, string | null>>((acc, slot) => {
+                if (selectedDialogueWorkflows[slot] === 'off-frame-voiceover') acc[slot] = offFrameListenerCharacterId[slot] ?? null;
+                return acc;
+              }, {}),
+              offFrameGroupCharacterIds: enabledShots.reduce<Record<number, string[]>>((acc, slot) => {
+                if (selectedDialogueWorkflows[slot] === 'off-frame-voiceover') acc[slot] = offFrameGroupCharacterIds[slot] ?? [];
+                return acc;
+              }, {}),
+              offFrameSceneContextPrompt: enabledShots.reduce<Record<number, string>>((acc, slot) => {
+                if (selectedDialogueWorkflows[slot] === 'off-frame-voiceover') acc[slot] = (offFrameSceneContextPrompt[slot] ?? '').trim();
+                return acc;
+              }, {}),
+            }
+          : {}),
         selectedReferenceShotModels: Object.keys(selectedReferenceShotModels).length > 0 ? selectedReferenceShotModels : undefined, // Per-shot first frame provider selection: { shotSlot: 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k' }
         voiceoverBaseWorkflows: Object.keys(voiceoverBaseWorkflows).length > 0 ? voiceoverBaseWorkflows : undefined, // NEW: Per-shot voiceover base workflows (for Narrate Shot and Hidden Mouth Dialogue): { shotSlot: baseWorkflow }
         shotWorkflowOverrides: Object.keys(shotWorkflowOverrides).length > 0 ? shotWorkflowOverrides : undefined, // NEW: Per-shot workflow overrides (for action shots and dialogue shots): { shotSlot: workflow }

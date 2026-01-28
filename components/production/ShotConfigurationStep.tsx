@@ -321,6 +321,10 @@ export function ShotConfigurationStep({
   const finalSelectedDialogueQuality = state.selectedDialogueQualities[shotSlot];
   const finalSelectedDialogueWorkflow = state.selectedDialogueWorkflows[shotSlot];
   const finalDialogueWorkflowPrompt = state.dialogueWorkflowPrompts[shotSlot];
+  const finalOffFrameShotType = state.offFrameShotType[shotSlot];
+  const finalOffFrameListenerCharacterId = state.offFrameListenerCharacterId[shotSlot] ?? null;
+  const finalOffFrameGroupCharacterIds = state.offFrameGroupCharacterIds[shotSlot] ?? [];
+  const finalOffFrameSceneContextPrompt = state.offFrameSceneContextPrompt[shotSlot] ?? '';
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
@@ -677,17 +681,17 @@ export function ShotConfigurationStep({
     }
   }, [shotSlot, actions]);
   
-  // 🔥 FIX: Initialize default video type when shot is first accessed (for action/establishing shots)
+  // 🔥 FIX: Initialize default video type when shot is first accessed (for action/establishing shots, or Hidden Mouth)
   useEffect(() => {
-    // Only initialize for action/establishing shots that need video type selection
-    if ((shot.type === 'action' || shot.type === 'establishing') && onVideoTypeChange) {
+    const needsVideoType = (shot.type === 'action' || shot.type === 'establishing') ||
+      (shot.type === 'dialogue' && finalSelectedDialogueWorkflow === 'off-frame-voiceover');
+    if (needsVideoType && onVideoTypeChange) {
       const currentVideoType = selectedVideoTypes[shotSlot];
-      // If no video type is set, default to 'cinematic-visuals'
       if (!currentVideoType) {
         onVideoTypeChange(shotSlot, 'cinematic-visuals');
       }
     }
-  }, [shot.slot, shot.type, selectedVideoTypes, onVideoTypeChange]);
+  }, [shot.slot, shot.type, finalSelectedDialogueWorkflow, selectedVideoTypes, onVideoTypeChange]);
   
   // 🔥 NEW: Auto-select default dialogue quality (reliable/Wryda) when dialogue shot is first accessed
   useEffect(() => {
@@ -1101,8 +1105,10 @@ export function ShotConfigurationStep({
       }
     }
     
-    // 3. Validate video type selection (required for action/establishing shots)
-    if ((shot.type === 'action' || shot.type === 'establishing') && onVideoTypeChange) {
+    // 3. Validate video type selection (required for action/establishing shots, and for Hidden Mouth)
+    const needsVideoType = (shot.type === 'action' || shot.type === 'establishing') ||
+      (shot.type === 'dialogue' && finalSelectedDialogueWorkflow === 'off-frame-voiceover');
+    if (needsVideoType && onVideoTypeChange) {
       const currentVideoType = selectedVideoTypes[shotSlot];
       if (!currentVideoType) {
         validationErrors.push('Video model selection required. Please select Runway Gen4, Luma Ray2, or Veo 3.1 in the Video Model section.');
@@ -1333,6 +1339,14 @@ export function ShotConfigurationStep({
                   onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
                   dialogueWorkflowPrompt={dialogueWorkflowPrompt}
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+                  offFrameShotType={finalOffFrameShotType}
+                  offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
+                  offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
+                  offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
+                  onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
+                  onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
+                  onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
+                  onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
                   pronounExtrasPrompts={shotPronounExtrasPrompts}
                   onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
                   sceneProps={finalSceneProps}
@@ -1394,6 +1408,14 @@ export function ShotConfigurationStep({
                   onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
                   dialogueWorkflowPrompt={dialogueWorkflowPrompt}
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+                  offFrameShotType={finalOffFrameShotType}
+                  offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
+                  offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
+                  offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
+                  onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
+                  onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
+                  onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
+                  onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
                   pronounExtrasPrompts={shotPronounExtrasPrompts}
                   onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
                   sceneProps={finalSceneProps}
@@ -1455,6 +1477,14 @@ export function ShotConfigurationStep({
               onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
               dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
               onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+              offFrameShotType={finalOffFrameShotType}
+              offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
+              offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
+              offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
+              onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
+              onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
+              onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
+              onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
               pronounExtrasPrompts={shotPronounExtrasPrompts}
               onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
               sceneProps={finalSceneProps}

@@ -12,6 +12,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import { DialogueWorkflowType } from '@/components/production/UnifiedDialogueDropdown';
 import { SceneAnalysisResult } from '@/types/screenplay';
+import type { OffFrameShotType } from '@/types/offFrame';
 import { useCharacterReferences } from '@/components/production/hooks/useCharacterReferences';
 import { filterValidCharacterIds } from '@/components/production/utils/characterIdValidation';
 import { getCharactersFromActionShot } from '@/components/production/utils/sceneBuilderUtils';
@@ -101,6 +102,11 @@ export interface SceneBuilderState {
   selectedDialogueWorkflows: Record<number, DialogueWorkflowType>;
   voiceoverBaseWorkflows: Record<number, string>;
   dialogueWorkflowPrompts: Record<number, string>;
+  // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace; do not clear when switching workflow
+  offFrameShotType: Record<number, OffFrameShotType>;
+  offFrameListenerCharacterId: Record<number, string | null>;
+  offFrameGroupCharacterIds: Record<number, string[]>;
+  offFrameSceneContextPrompt: Record<number, string>;
   
   // Prompt Override State
   firstFramePromptOverrides: Record<number, string>;
@@ -184,6 +190,15 @@ export interface SceneBuilderActions {
   updateVoiceoverBaseWorkflow: (shotSlot: number, workflow: string) => void;
   setDialogueWorkflowPrompts: (prompts: Record<number, string>) => void;
   updateDialogueWorkflowPrompt: (shotSlot: number, prompt: string) => void;
+  // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace
+  setOffFrameShotType: (byShot: Record<number, OffFrameShotType>) => void;
+  updateOffFrameShotType: (shotSlot: number, shotType: OffFrameShotType) => void;
+  setOffFrameListenerCharacterId: (byShot: Record<number, string | null>) => void;
+  updateOffFrameListenerCharacterId: (shotSlot: number, characterId: string | null) => void;
+  setOffFrameGroupCharacterIds: (byShot: Record<number, string[]>) => void;
+  updateOffFrameGroupCharacterIds: (shotSlot: number, characterIds: string[]) => void;
+  setOffFrameSceneContextPrompt: (byShot: Record<number, string>) => void;
+  updateOffFrameSceneContextPrompt: (shotSlot: number, prompt: string) => void;
   
   // Prompt Override Actions
   setFirstFramePromptOverrides: (overrides: Record<number, string>) => void;
@@ -298,6 +313,11 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     selectedDialogueWorkflows: {},
     voiceoverBaseWorkflows: {},
     dialogueWorkflowPrompts: {},
+    // Feature 0209: Off-frame voiceover (Hidden Mouth)
+    offFrameShotType: {},
+    offFrameListenerCharacterId: {},
+    offFrameGroupCharacterIds: {},
+    offFrameSceneContextPrompt: {},
     
     // Prompt Override State
     firstFramePromptOverrides: {},
@@ -793,13 +813,20 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     }, []),
     
     updateDialogueWorkflow: useCallback((shotSlot, workflow) => {
-      setState(prev => ({
-        ...prev,
-        selectedDialogueWorkflows: {
-          ...prev.selectedDialogueWorkflows,
-          [shotSlot]: workflow
+      setState(prev => {
+        const next: typeof prev = {
+          ...prev,
+          selectedDialogueWorkflows: {
+            ...prev.selectedDialogueWorkflows,
+            [shotSlot]: workflow
+          }
+        };
+        // Feature 0209: When switching to Hidden Mouth, set default shot type if not already set (do not clear other namespace)
+        if (workflow === 'off-frame-voiceover' && prev.offFrameShotType[shotSlot] === undefined) {
+          next.offFrameShotType = { ...prev.offFrameShotType, [shotSlot]: 'back-facing' as OffFrameShotType };
         }
-      }));
+        return next;
+      });
     }, []),
     
     setVoiceoverBaseWorkflows: useCallback((workflows) => {
@@ -825,6 +852,61 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         ...prev,
         dialogueWorkflowPrompts: {
           ...prev.dialogueWorkflowPrompts,
+          [shotSlot]: prompt
+        }
+      }));
+    }, []),
+    
+    // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace; do not clear when switching workflow
+    setOffFrameShotType: useCallback((byShot) => {
+      setState(prev => ({ ...prev, offFrameShotType: byShot }));
+    }, []),
+    updateOffFrameShotType: useCallback((shotSlot, shotType) => {
+      setState(prev => {
+        const next = { ...prev, offFrameShotType: { ...prev.offFrameShotType, [shotSlot]: shotType } };
+        const isListener = shotType === 'over-shoulder-listener' || shotType === 'two-shot-speaker-from-behind';
+        const isGroup = shotType === 'speaker-to-group-from-behind' || shotType === 'speaker-to-group-crowd-pov';
+        if (!isListener && prev.offFrameListenerCharacterId[shotSlot] != null) {
+          next.offFrameListenerCharacterId = { ...prev.offFrameListenerCharacterId, [shotSlot]: null };
+        }
+        if (!isGroup && (prev.offFrameGroupCharacterIds[shotSlot]?.length ?? 0) > 0) {
+          next.offFrameGroupCharacterIds = { ...prev.offFrameGroupCharacterIds, [shotSlot]: [] };
+        }
+        return next;
+      });
+    }, []),
+    setOffFrameListenerCharacterId: useCallback((byShot) => {
+      setState(prev => ({ ...prev, offFrameListenerCharacterId: byShot }));
+    }, []),
+    updateOffFrameListenerCharacterId: useCallback((shotSlot, characterId) => {
+      setState(prev => ({
+        ...prev,
+        offFrameListenerCharacterId: {
+          ...prev.offFrameListenerCharacterId,
+          [shotSlot]: characterId
+        }
+      }));
+    }, []),
+    setOffFrameGroupCharacterIds: useCallback((byShot) => {
+      setState(prev => ({ ...prev, offFrameGroupCharacterIds: byShot }));
+    }, []),
+    updateOffFrameGroupCharacterIds: useCallback((shotSlot, characterIds) => {
+      setState(prev => ({
+        ...prev,
+        offFrameGroupCharacterIds: {
+          ...prev.offFrameGroupCharacterIds,
+          [shotSlot]: characterIds
+        }
+      }));
+    }, []),
+    setOffFrameSceneContextPrompt: useCallback((byShot) => {
+      setState(prev => ({ ...prev, offFrameSceneContextPrompt: byShot }));
+    }, []),
+    updateOffFrameSceneContextPrompt: useCallback((shotSlot, prompt) => {
+      setState(prev => ({
+        ...prev,
+        offFrameSceneContextPrompt: {
+          ...prev.offFrameSceneContextPrompt,
           [shotSlot]: prompt
         }
       }));

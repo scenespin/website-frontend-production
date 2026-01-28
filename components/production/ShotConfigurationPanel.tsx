@@ -11,111 +11,24 @@
  * - Character image display (right column)
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Check } from 'lucide-react';
 import { LocationAngleSelector } from './LocationAngleSelector';
 import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { findCharacterById, getCharacterSource } from './utils/sceneBuilderUtils';
 import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import {
+  type OffFrameShotType,
+  OFF_FRAME_SHOT_TYPE_OPTIONS,
+  isOffFrameListenerShotType,
+  isOffFrameGroupShotType,
+} from '@/types/offFrame';
 import { toast } from 'sonner';
 import { getAvailablePropImages } from './utils/propImageUtils';
 import { PropImageSelector } from './PropImageSelector';
 import { cn } from '@/lib/utils';
-
-// Base Workflow Selector Component (Custom DaisyUI Dropdown)
-function BaseWorkflowSelector({ 
-  value, 
-  workflows, 
-  getWorkflowLabel, 
-  shotWorkflowOverride,
-  onChange 
-}: { 
-  value: string; 
-  workflows: Array<{ value: string; label: string }>; 
-  getWorkflowLabel: (workflow: string) => string;
-  shotWorkflowOverride?: string;
-  onChange: (value: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const currentLabel = workflows.find(wf => wf.value === value)?.label || 'Action Line';
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [isOpen]);
-
-  return (
-    <div className="mt-4">
-      <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Base Workflow:</label>
-      <div ref={dropdownRef} className="relative">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            setIsOpen(!isOpen);
-          }}
-          className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-        >
-          <span>{currentLabel} {value === 'hollywood-standard' ? '(suggested)' : ''}</span>
-          <ChevronDown className={cn("w-4 h-4 transition-transform", isOpen && "rotate-180")} />
-        </button>
-        {isOpen && (
-          <ul
-            className="absolute top-full left-0 mt-1 w-full menu p-2 shadow-lg bg-[#1F1F1F] rounded-box border border-[#3F3F46] z-[9999] max-h-96 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            {workflows.map((wf) => (
-              <li key={wf.value}>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onChange(wf.value);
-                    setIsOpen(false);
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-sm",
-                    value === wf.value
-                      ? "bg-[#DC143C]/20 text-[#FFFFFF]"
-                      : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
-                  )}
-                >
-                  {wf.label} {wf.value === 'hollywood-standard' ? '(suggested)' : ''}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <div className="text-[10px] text-[#808080] mt-1">
-        This will generate a {getWorkflowLabel(value)} video and add voiceover audio to it.
-      </div>
-      {shotWorkflowOverride && (
-        <div className="text-[10px] text-[#DC143C] mt-1">
-          Override: Using selected workflow instead of auto-detected
-        </div>
-      )}
-    </div>
-  );
-}
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -181,6 +94,15 @@ interface ShotConfigurationPanelProps {
   // Note: Backend identifiers are 'off-frame-voiceover' and 'scene-voiceover'
   dialogueWorkflowPrompt?: string; // User-provided description of alternate action
   onDialogueWorkflowPromptChange?: (shotSlot: number, prompt: string) => void;
+  // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace
+  offFrameShotType?: OffFrameShotType;
+  offFrameListenerCharacterId?: string | null;
+  offFrameGroupCharacterIds?: string[];
+  offFrameSceneContextPrompt?: string;
+  onOffFrameShotTypeChange?: (shotSlot: number, shotType: OffFrameShotType) => void;
+  onOffFrameListenerCharacterIdChange?: (shotSlot: number, characterId: string | null) => void;
+  onOffFrameGroupCharacterIdsChange?: (shotSlot: number, characterIds: string[]) => void;
+  onOffFrameSceneContextPromptChange?: (shotSlot: number, prompt: string) => void;
   // Pronoun extras prompts (for skipped pronouns)
   pronounExtrasPrompts?: Record<string, string>; // { pronoun: prompt text }
   onPronounExtrasPromptChange?: (pronoun: string, prompt: string) => void;
@@ -253,6 +175,14 @@ export function ShotConfigurationPanel({
   onBaseWorkflowChange,
   dialogueWorkflowPrompt,
   onDialogueWorkflowPromptChange,
+  offFrameShotType,
+  offFrameListenerCharacterId,
+  offFrameGroupCharacterIds,
+  offFrameSceneContextPrompt,
+  onOffFrameShotTypeChange,
+  onOffFrameListenerCharacterIdChange,
+  onOffFrameGroupCharacterIdsChange,
+  onOffFrameSceneContextPromptChange,
   pronounExtrasPrompts = {},
   onPronounExtrasPromptChange,
   sceneProps = [],
@@ -480,100 +410,6 @@ export function ShotConfigurationPanel({
   
   // For dialogue shots, get the speaking character ID
   const speakingCharacterId = shot.type === 'dialogue' ? shot.characterId : undefined;
-
-  // Helper function to get workflow label
-  const getWorkflowLabel = (workflow: string) => {
-    const labels: Record<string, string> = {
-      'hollywood-standard': 'Hollywood Standard',
-      'action-director': 'Action Director',
-      'reality-to-toon': 'Reality to Toon',
-      'anime-master': 'Anime Master',
-      'cartoon-classic': 'Cartoon Classic',
-      '3d-character': '3D Character',
-      'vfx-elements': 'VFX Elements',
-      'fantasy-epic': 'Fantasy Epic',
-      'superhero-transform': 'Superhero Transform',
-      'animal-kingdom': 'Animal Kingdom',
-      'style-chameleon': 'Style Chameleon',
-      'broll-master': 'B-Roll Master',
-      'complete-scene': 'Complete Scene'
-    };
-    return labels[workflow] || workflow;
-  };
-
-  // All available workflows for override dropdown (action shots only)
-  const ACTION_WORKFLOWS = [
-    { 
-      value: 'hollywood-standard', 
-      label: 'Hollywood Standard',
-      description: 'Standard action shots with realistic motion and natural character movement. Best for everyday scenes, conversations, and straightforward actions.'
-    },
-    { 
-      value: 'action-director', 
-      label: 'Action Director',
-      description: 'Cinematic action sequences with dynamic camera work and dramatic pacing. Ideal for intense scenes, chase sequences, and high-energy moments.'
-    },
-    { 
-      value: 'reality-to-toon', 
-      label: 'Reality to Toon',
-      description: 'Transforms realistic scenes into cartoon-style animation. Perfect for comedic moments, animated sequences, or stylized storytelling.'
-    },
-    { 
-      value: 'anime-master', 
-      label: 'Anime Master',
-      description: 'Japanese anime-style animation with expressive characters and vibrant visuals. Great for dramatic scenes, emotional moments, and stylized action.'
-    },
-    { 
-      value: 'cartoon-classic', 
-      label: 'Cartoon Classic',
-      description: 'Classic cartoon animation style with exaggerated expressions and movements. Ideal for comedic scenes, children\'s content, and lighthearted moments.'
-    },
-    { 
-      value: '3d-character', 
-      label: '3D Character',
-      description: 'Three-dimensional character animation with depth and dimension. Best for scenes requiring realistic 3D character movement and interaction.'
-    },
-    { 
-      value: 'vfx-elements', 
-      label: 'VFX Elements',
-      description: 'Visual effects and special effects integration. Perfect for scenes with magic, sci-fi elements, explosions, or other visual effects.'
-    },
-    { 
-      value: 'fantasy-epic', 
-      label: 'Fantasy Epic',
-      description: 'Epic fantasy scenes with magical elements, mythical creatures, and grand scale. Ideal for fantasy stories, adventure sequences, and magical moments.'
-    },
-    { 
-      value: 'superhero-transform', 
-      label: 'Superhero Transform',
-      description: 'Superhero-style transformations and power displays. Great for transformation scenes, power demonstrations, and superhero action.'
-    },
-    { 
-      value: 'animal-kingdom', 
-      label: 'Animal Kingdom',
-      description: 'Animal-focused scenes with realistic or stylized animal characters. Perfect for nature scenes, animal interactions, and wildlife content.'
-    },
-    { 
-      value: 'style-chameleon', 
-      label: 'Style Chameleon',
-      description: 'Adaptive style that matches your scene\'s tone and mood. Versatile workflow that adjusts to different scene requirements.'
-    },
-    { 
-      value: 'broll-master', 
-      label: 'B-Roll Master',
-      description: 'B-roll and establishing shots with smooth camera movement. Ideal for location shots, transitions, and scene-setting footage.'
-    },
-    { 
-      value: 'complete-scene', 
-      label: 'Complete Scene',
-      description: 'Comprehensive scene generation with full context and detail. Best for complex scenes requiring multiple elements and interactions.'
-    },
-    { 
-      value: 'hollywood-standard', 
-      label: 'Hollywood Standard',
-      description: 'Professional Hollywood-style production with cinematic quality and polished visuals. Perfect for high-production-value scenes and dramatic storytelling.'
-    }
-  ];
 
   // Feature 0182: Conditional rendering based on active tab
   // For dialogue shots: Basic = LIP SYNC, Advanced = NON-LIP SYNC
@@ -1236,14 +1072,104 @@ export function ShotConfigurationPanel({
             </div>
           </div>
 
-          {/* Base Workflow Dropdown */}
-          <BaseWorkflowSelector
-            value={selectedBaseWorkflow || 'hollywood-standard'}
-            workflows={ACTION_WORKFLOWS}
-            getWorkflowLabel={getWorkflowLabel}
-            shotWorkflowOverride={shotWorkflowOverride}
-            onChange={(value) => onBaseWorkflowChange?.(shot.slot, value)}
-          />
+          {/* Feature 0209: Off-frame (Hidden Mouth) shot type, listener, group, scene context – only when Hidden Mouth selected */}
+          {/* Video model for off-frame = action selector (Runway, Luma, VEO) – shown in VideoGenerationSelector above when workflow is Hidden Mouth */}
+          {currentWorkflow === 'off-frame-voiceover' && (
+            <div className="mt-4 space-y-4 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+              <div className="text-xs font-medium text-[#FFFFFF] mb-2">Hidden Mouth options</div>
+              {/* Shot type dropdown (8 options from plan) */}
+              <div>
+                <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Shot type</label>
+                <select
+                  value={offFrameShotType || 'back-facing'}
+                  onChange={(e) => onOffFrameShotTypeChange?.(shot.slot, e.target.value as OffFrameShotType)}
+                  className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                >
+                  {OFF_FRAME_SHOT_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Listener dropdown – only for Over shoulder / Two-shot */}
+              {offFrameShotType && isOffFrameListenerShotType(offFrameShotType) && onOffFrameListenerCharacterIdChange && (
+                <div>
+                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Listener (single character in frame)</label>
+                  <select
+                    value={offFrameListenerCharacterId ?? ''}
+                    onChange={(e) => onOffFrameListenerCharacterIdChange(shot.slot, e.target.value || null)}
+                    className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                  >
+                    <option value="">— Select listener —</option>
+                    {allCharacters
+                      .filter((c: any) => c.id !== speakingCharacterId)
+                      .map((c: any) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name || c.id}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+              {/* Group checkboxes – only for Speaker to group variants */}
+              {offFrameShotType && isOffFrameGroupShotType(offFrameShotType) && onOffFrameGroupCharacterIdsChange && (
+                <div>
+                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Group (characters in frame)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {allCharacters
+                      .filter((c: any) => c.id !== speakingCharacterId)
+                      .map((c: any) => {
+                        const selected = (offFrameGroupCharacterIds || []).includes(c.id);
+                        return (
+                          <label
+                            key={c.id}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-xs cursor-pointer',
+                              selected
+                                ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                                : 'border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => {
+                                const current = offFrameGroupCharacterIds || [];
+                                const next = selected
+                                  ? current.filter((id) => id !== c.id)
+                                  : [...current, c.id];
+                                onOffFrameGroupCharacterIdsChange(shot.slot, next);
+                              }}
+                              className="sr-only"
+                            />
+                            <span>{c.name || c.id}</span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+              {/* Scene context (optional) – plan copy */}
+              {onOffFrameSceneContextPromptChange && (
+                <div>
+                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
+                    Scene context (optional)
+                  </label>
+                  <textarea
+                    value={offFrameSceneContextPrompt ?? ''}
+                    onChange={(e) => onOffFrameSceneContextPromptChange(shot.slot, e.target.value)}
+                    placeholder="e.g. in a crowded bar, at a window at night"
+                    rows={2}
+                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                  />
+                  <div className="text-[10px] text-[#808080] mt-1">
+                    Describe the setting or mood (e.g. &quot;in a crowded bar&quot;, &quot;tense standoff&quot;). You can use this alone for a generic look, together with listener/group for specific characters in that context, or leave it blank and only choose listener/group.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) */}
           {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
