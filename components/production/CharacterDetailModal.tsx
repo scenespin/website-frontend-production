@@ -42,13 +42,14 @@ import { UploadWardrobeTab } from './Coverage/UploadWardrobeTab';
 import { GenerateWardrobeTab } from './Coverage/GenerateWardrobeTab';
 
 /**
- * Get display label for provider ID
+ * Get display label for provider ID (all character/pose image models)
  */
 function getProviderLabel(providerId: string | undefined): string | null {
   if (!providerId) return null;
   
   const providerMap: Record<string, string> = {
     'nano-banana-pro': 'Nano Banana Pro',
+    'nano-banana-pro-2k': 'Nano Banana Pro 2K',
     'runway-gen4-image': 'Gen4',
     'luma-photon-1': 'Photon',
     'luma-photon-flash': 'Photon',
@@ -60,6 +61,16 @@ function getProviderLabel(providerId: string | undefined): string | null {
   };
   
   return providerMap[providerId] || null;
+}
+
+/** Resolution tag for provider (2K, 4K, or null) */
+function getResolutionLabel(providerId: string | undefined): string | null {
+  if (!providerId) return null;
+  const twoK = ['nano-banana-pro-2k', 'flux2-pro-2k', 'flux2-max-2k'];
+  const fourK = ['nano-banana-pro', 'flux2-max-4k-16:9', 'flux2-pro-4k'];
+  if (twoK.includes(providerId)) return '2K';
+  if (fourK.includes(providerId)) return '4K';
+  return null;
 }
 
 
@@ -2174,13 +2185,15 @@ export function CharacterDetailModal({
                                   }
                                 }}
                               />
-                              {/* Bottom-right label: Provider */}
+                              {/* Bottom-right label: Model name / 2K or 4K */}
                               {img.metadata?.providerId && (() => {
                                 const providerLabel = getProviderLabel(img.metadata.providerId);
+                                const resLabel = getResolutionLabel(img.metadata.providerId);
                                 if (!providerLabel) return null;
+                                const tagText = resLabel ? `${providerLabel} / ${resLabel}` : providerLabel;
                                 return (
                                   <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
-                                    {providerLabel}
+                                    {tagText}
                                   </div>
                                 );
                               })()}

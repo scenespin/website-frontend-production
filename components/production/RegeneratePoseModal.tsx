@@ -53,17 +53,12 @@ export function RegeneratePoseModal({
   const { getToken } = useAuth();
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
-  const [selectedQuality, setSelectedQuality] = useState<'standard' | 'high-quality'>(qualityTier);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
-  // 🔥 REMOVED: Clothing images and outfit override from individual regeneration
-  // Virtual try-on and outfit changes are only available in pose packages for organization
-  // Individual regeneration preserves original outfit and appearance
 
-  // Load available models
+  // Load unified model list (single dropdown)
   useEffect(() => {
     if (!isOpen) return;
-    
     async function loadModels() {
       setIsLoadingModels(true);
       try {
@@ -72,25 +67,15 @@ export function RegeneratePoseModal({
           toast.error('Authentication required');
           return;
         }
-
-        const response = await fetch(`/api/model-selection/characters/${selectedQuality}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch('/api/model-selection/characters', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to load models');
-        }
-
+        if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: Model) => m.enabled);
         setModels(enabledModels);
-        
-        // Auto-select first model if no model is selected (always set on first load or after quality change)
         if (enabledModels.length > 0) {
-          // Always auto-select when models load (handles quality change case)
           setSelectedModelId(prev => prev || enabledModels[0].id);
         }
       } catch (error: any) {
@@ -100,17 +85,8 @@ export function RegeneratePoseModal({
         setIsLoadingModels(false);
       }
     }
-
     loadModels();
-  }, [isOpen, selectedQuality, getToken]);
-
-  // Update models when quality changes - reset selection so auto-select happens
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedModelId(''); // Reset selection - will be auto-selected when models load
-      // 🔥 REMOVED: setClothingImages - clothing images removed from individual regeneration
-    }
-  }, [selectedQuality, isOpen]);
+  }, [isOpen, getToken]);
 
   // Use useMemo to ensure selectedModel updates reactively
   const selectedModel = useMemo(() => {
@@ -167,36 +143,6 @@ export function RegeneratePoseModal({
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          {/* Quality Tier Selection */}
-          <div>
-            <label className="block text-sm font-medium text-[#B3B3B3] mb-2">
-              Quality Tier
-            </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectedQuality('standard')}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedQuality === 'standard'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#141414] text-[#B3B3B3] border border-[#3F3F46] hover:border-[#DC143C]/50'
-                }`}
-              >
-                1080p (Standard)
-              </button>
-              <button
-                onClick={() => setSelectedQuality('high-quality')}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedQuality === 'high-quality'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#141414] text-[#B3B3B3] border border-[#3F3F46] hover:border-[#DC143C]/50'
-                }`}
-              >
-                4K (High Quality)
-              </button>
-            </div>
-          </div>
-
-          {/* Model Selection */}
           <div>
             <label className="block text-sm font-medium text-[#B3B3B3] mb-2">
               Select Model
@@ -207,7 +153,7 @@ export function RegeneratePoseModal({
               </div>
             ) : models.length === 0 ? (
               <div className="px-4 py-3 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#808080] text-sm">
-                No models available for this quality tier
+                No models available
               </div>
             ) : (
               <select

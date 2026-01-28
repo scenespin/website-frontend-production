@@ -1,15 +1,30 @@
 /**
  * Reference Shot Selector Component
- * 
+ *
  * Allows users to select the image model for first frame generation.
- * Models: All 6 available models (2K models prioritized)
+ * Model list is loaded from the unified model-selection API (single source of truth).
  */
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
-type ReferenceShotModel = 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k';
+export type ReferenceShotModel =
+  | 'nano-banana-pro'
+  | 'nano-banana-pro-2k'
+  | 'flux2-max-4k-16:9'
+  | 'flux2-max-2k'
+  | 'flux2-pro-4k'
+  | 'flux2-pro-2k';
+
+interface ApiModel {
+  id: string;
+  name: string;
+  referenceLimit: number;
+  quality: string;
+  enabled?: boolean;
+}
 
 interface ReferenceShotSelectorProps {
   shotSlot: number;
@@ -22,52 +37,61 @@ export function ReferenceShotSelector({
   selectedModel,
   onModelChange
 }: ReferenceShotSelectorProps) {
-  // 2K Models (prioritized)
-  // 4K Models
-  const models: Array<{ id: ReferenceShotModel; name: string; refs: number; resolution: string }> = [
-    // 2K Models (prioritized)
-    {
-      id: 'nano-banana-pro-2k' as const,
-      name: 'Nano Banana Pro (2K)',
-      refs: 14,
-      resolution: '2K'
-    },
-    {
-      id: 'flux2-max-2k' as const,
-      name: 'FLUX.2 [max] (2K)',
-      refs: 8,
-      resolution: '2K'
-    },
-    {
-      id: 'flux2-pro-2k' as const,
-      name: 'FLUX.2 [pro] (2K)',
-      refs: 10,
-      resolution: '2K'
-    },
-    // 4K Models
-    {
-      id: 'nano-banana-pro' as const,
-      name: 'Nano Banana Pro (4K)',
-      refs: 14,
-      resolution: '4K'
-    },
-    {
-      id: 'flux2-max-4k-16:9' as const,
-      name: 'FLUX.2 [max] (4K)',
-      refs: 8,
-      resolution: '4K'
-    },
-    {
-      id: 'flux2-pro-4k' as const,
-      name: 'FLUX.2 [pro] (4K)',
-      refs: 10,
-      resolution: '4K'
-    }
-  ];
+  const { getToken } = useAuth();
+  const [models, setModels] = useState<Array<{ id: ReferenceShotModel; name: string; refs: number; resolution: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const currentModel = models.find(m => m.id === selectedModel) || models[0];
-  // Ensure value is always a string (never undefined) to prevent React error #185
+  useEffect(() => {
+    let cancelled = false;
+    async function loadModels() {
+      setIsLoading(true);
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token || cancelled) return;
+        const response = await fetch('/api/model-selection/characters', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok || cancelled) return;
+        const data = await response.json();
+        const raw = (data.data?.models ?? data.models ?? []) as ApiModel[];
+        const enabled = raw.filter((m: ApiModel) => m.enabled !== false);
+        const mapped = enabled.map((m: ApiModel) => ({
+          id: m.id as ReferenceShotModel,
+          name: m.name,
+          refs: m.referenceLimit,
+          resolution: m.quality === '4K' ? '4K' : '2K'
+        }));
+        if (!cancelled) setModels(mapped);
+      } catch (_) {
+        if (!cancelled) setModels([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    loadModels();
+    return () => { cancelled = true; };
+  }, [getToken]);
+
+  const currentModel = models.find((m) => m.id === selectedModel) ?? models[0];
   const selectValue = selectedModel ?? 'nano-banana-pro-2k';
+
+  if (isLoading) {
+    return (
+      <div className="pb-3">
+        <div className="text-xs font-medium text-[#FFFFFF] mb-2">Reference Shot</div>
+        <div className="text-[10px] text-[#808080]">Loading models…</div>
+      </div>
+    );
+  }
+
+  if (models.length === 0) {
+    return (
+      <div className="pb-3">
+        <div className="text-xs font-medium text-[#FFFFFF] mb-2">Reference Shot</div>
+        <div className="text-[10px] text-[#808080]">No models available</div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-3">
@@ -93,4 +117,3 @@ export function ReferenceShotSelector({
     </div>
   );
 }
-

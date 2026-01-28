@@ -5,7 +5,7 @@
  * 
  * Similar to GenerateWardrobeTab, but for location angles and backgrounds
  * Steps:
- * Step 1: Quality & Model Selection
+ * Step 1: Model Selection (unified dropdown from API)
  * Step 2: Source Selection (for backgrounds - reference images vs angle variations)
  * Step 3: Package Selection (Angles vs Backgrounds)
  * Step 4: Optional - Lighting & Atmosphere (time of day, weather)
@@ -42,8 +42,7 @@ export function GenerateLocationTab({
 }: GenerateLocationTabProps) {
   const { getToken } = useAuth();
   
-  // Step 1: Quality/Model
-  const [quality, setQuality] = useState<'standard' | 'high-quality'>('high-quality');
+  // Step 1: Model (unified list from API, no quality tier)
   const [providerId, setProviderId] = useState<string>('');
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -260,12 +259,7 @@ export function GenerateLocationTab({
   
   const creditsPerImage = selectedModel?.credits || 20;
   
-  // Reset providerId when quality changes
-  useEffect(() => {
-    setProviderId('');
-  }, [quality]);
-  
-  // Load models when quality changes
+  // Load unified model list (single dropdown, no quality tier)
   useEffect(() => {
     async function loadModels() {
       setIsLoadingModels(true);
@@ -275,23 +269,14 @@ export function GenerateLocationTab({
           toast.error('Authentication required');
           return;
         }
-
-        const response = await fetch(`/api/model-selection/locations/${quality}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch('/api/model-selection/locations', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to load models');
-        }
-
+        if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         setModels(enabledModels);
-        
-        // Auto-select first model when models load
         if (enabledModels.length > 0 && !providerId) {
           setProviderId(enabledModels[0].id);
         }
@@ -302,9 +287,8 @@ export function GenerateLocationTab({
         setIsLoadingModels(false);
       }
     }
-
     loadModels();
-  }, [quality, getToken]);
+  }, [getToken]);
   
   // Auto-select first model when models are loaded
   useEffect(() => {
@@ -329,8 +313,7 @@ export function GenerateLocationTab({
         console.error('[GenerateLocationTab] providerId validation failed:', {
           providerId,
           modelsCount: models.length,
-          isLoadingModels,
-          quality
+          isLoadingModels
         });
         throw new Error('Please select a model before generating. If models are not loading, please refresh the page.');
       }
@@ -354,12 +337,13 @@ export function GenerateLocationTab({
           premium: [{ angle: 'front' }, { angle: 'corner' }, { angle: 'wide' }, { angle: 'low-angle' }, { angle: 'entrance' }, { angle: 'foreground-framing' }, { angle: 'aerial' }, { angle: 'pov' }, { angle: 'detail' }, { angle: 'atmospheric' }, { angle: 'golden-hour' }]
         };
         
+        const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
         const requestBody = {
           locationProfile: locationProfile,
           screenplayId: screenplayId, // Add screenplayId at top level for middleware
           projectId: screenplayId, // Legacy support
           packageId: selectedAnglePackageId,
-          quality: quality,
+          quality: derivedQuality,
           providerId: providerId,
           // 🔥 Feature 0190: Single angle selection
           selectedAngle: selectedAnglePackageId === 'single' ? selectedAngle : undefined,
@@ -413,9 +397,10 @@ export function GenerateLocationTab({
         // Generate backgrounds
         const apiUrl = `/api/location-bank/${locationId}/generate-backgrounds`;
         
+        const derivedQualityBg = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
         const requestBody = {
           packageId: selectedBackgroundPackageId,
-          quality: quality,
+          quality: derivedQualityBg,
           providerId: providerId,
           sourceType: sourceType,
           selectedAngleId: sourceType === 'angle-variations' && selectedAngleId ? selectedAngleId : undefined, // Backward compatibility
@@ -493,39 +478,11 @@ export function GenerateLocationTab({
   
   return (
     <div className="p-6 space-y-4">
-      {/* Step 1: Quality & Model Selection */}
+      {/* Step 1: Model Selection (unified dropdown) */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 1: Quality & Model Selection</h3>
+        <h3 className="text-sm font-semibold text-white mb-3">Step 1: Model Selection</h3>
         
         <div className="space-y-3">
-          {/* Quality Selection */}
-          <div>
-            <label className="block text-xs text-[#808080] mb-2">Quality</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="quality"
-                  checked={quality === 'standard'}
-                  onChange={() => setQuality('standard')}
-                  className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
-                />
-                <span className="text-sm text-white">Standard Quality - {creditsPerImage} credits</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="quality"
-                  checked={quality === 'high-quality'}
-                  onChange={() => setQuality('high-quality')}
-                  className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
-                />
-                <span className="text-sm text-white">High Quality - {creditsPerImage} credits</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Model Selection */}
           <div>
             <label className="block text-xs text-[#808080] mb-2">Model</label>
             {isLoadingModels ? (
@@ -534,7 +491,7 @@ export function GenerateLocationTab({
               </div>
             ) : models.length === 0 ? (
               <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080] text-sm">
-                No models available for this quality tier
+                No models available
               </div>
             ) : (
               <select

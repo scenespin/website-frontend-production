@@ -40,8 +40,7 @@ export default function LocationAngleGenerationModal({
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [selectedAngle, setSelectedAngle] = useState<string>('front'); // 🔥 Feature 0190: Single angle selection
-  const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard'); // 🔥 NEW: Quality tier
-  const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
+  const [providerId, setProviderId] = useState<string>('');
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>(''); // 🔥 NEW: Time of day
   const [weather, setWeather] = useState<'sunny' | 'cloudy' | 'rainy' | 'snowy' | ''>(''); // 🔥 NEW: Weather
   const [additionalPrompt, setAdditionalPrompt] = useState<string>(''); // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
@@ -57,10 +56,9 @@ export default function LocationAngleGenerationModal({
   // Note: Safety errors are now handled in job results (async pattern)
   // Frontend will check job status and show dialog when job completes with safety errors
 
-  // Load available models when quality changes
+  // Load unified model list (single dropdown)
   useEffect(() => {
     if (!isOpen) return;
-    
     async function loadModels() {
       setIsLoadingModels(true);
       try {
@@ -69,27 +67,17 @@ export default function LocationAngleGenerationModal({
           toast.error('Authentication required');
           return;
         }
-
-        const response = await fetch(`/api/model-selection/locations/${quality}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch('/api/model-selection/locations', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to load models');
-        }
-
+        if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         setModels(enabledModels);
-        
-        // 🔥 FIX: Always auto-select first model when models load (ensures providerId is set)
         if (enabledModels.length > 0) {
           setProviderId(enabledModels[0].id);
         } else {
-          // No models available - clear providerId
           setProviderId('');
         }
       } catch (error: any) {
@@ -99,17 +87,8 @@ export default function LocationAngleGenerationModal({
         setIsLoadingModels(false);
       }
     }
-
     loadModels();
-  }, [isOpen, quality, getToken]);
-
-  // 🔥 FIX: Reset providerId when quality changes (models will auto-select after loading)
-  // Note: Don't reset when modal opens - let the loadModels effect handle initial selection
-  useEffect(() => {
-    if (isOpen && quality) {
-      setProviderId(''); // Will be auto-selected when models load
-    }
-  }, [quality]); // Only reset on quality change, not on isOpen
+  }, [isOpen, getToken]);
   
   // Map package IDs to angle arrays
   const packageToAngles: Record<string, Array<{ angle: string }>> = {
@@ -170,12 +149,13 @@ export default function LocationAngleGenerationModal({
         ? (weather.trim() as 'sunny' | 'cloudy' | 'rainy' | 'snowy')
         : 'sunny'; // Default to sunny (clear)
 
-      // 🔥 Feature 0190: Handle single angle mode
+      const selectedModel = models.find(m => m.id === providerId);
+      const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
       const requestBody: any = {
         locationProfile: locationProfile,
         packageId: selectedPackageId,
-        quality: quality,
-        providerId: providerId, // Required - no fallback
+        quality: derivedQuality,
+        providerId: providerId,
         additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
         timeOfDay: defaultTimeOfDay,
         weather: defaultWeather,
@@ -196,7 +176,7 @@ export default function LocationAngleGenerationModal({
       }
       
       console.log('[LocationAngleGeneration] Request body:', {
-        quality,
+        quality: derivedQuality,
         providerId: providerId,
         hasProviderId: !!providerId,
         selectedPackageId,
@@ -270,7 +250,6 @@ export default function LocationAngleGenerationModal({
     setStep('package');
     setSelectedPackageId('standard');
     setSelectedAngle('front'); // 🔥 Feature 0190: Reset single angle selection
-    setQuality('standard'); // Reset quality
     setTimeOfDay(''); // Reset timeOfDay
     setWeather(''); // Reset weather
     setAdditionalPrompt(''); // 🔥 NEW: Reset additional prompt
@@ -328,51 +307,10 @@ export default function LocationAngleGenerationModal({
               {/* Step 1: Package Selection */}
               {step === 'package' && (
                 <div className="space-y-6">
-                  {/* Quality Selection - NEW */}
+                  {/* Model Selection (unified dropdown) */}
                   <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 1: Select Quality
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => setQuality('standard')}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          quality === 'standard'
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                            : 'border-base-content/20 hover:border-base-content/40'
-                        }`}
-                      >
-                        <div className="font-semibold text-base-content mb-1">Standard (1080p)</div>
-                        <div className="text-xs text-base-content/60 mb-2">
-                          20 credits per image
-                        </div>
-                        <div className="text-xs text-base-content/50">
-                          Fewer safety restrictions, more creative freedom. Perfect for most projects.
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setQuality('high-quality')}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          quality === 'high-quality'
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                            : 'border-base-content/20 hover:border-base-content/40'
-                        }`}
-                      >
-                        <div className="font-semibold text-base-content mb-1">High Quality (4K)</div>
-                        <div className="text-xs text-base-content/60 mb-2">
-                          40 credits per image
-                        </div>
-                        <div className="text-xs text-base-content/50">
-                          Maximum resolution and quality. Best for final production.
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Model Selection - NEW */}
-                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
-                    <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 2: Select Model
+                      Step 1: Select Model
                     </h3>
                     {isLoadingModels ? (
                       <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
@@ -380,7 +318,7 @@ export default function LocationAngleGenerationModal({
                       </div>
                     ) : models.length === 0 ? (
                       <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
-                        No models available for this quality tier
+                        No models available
                       </div>
                     ) : (
                       <select

@@ -5,7 +5,7 @@
  * 
  * Converted from PoseGenerationModal - reorganized steps:
  * Step 1: Create/Select Outfit (REQUIRED)
- * Step 2: Quality/Model Selection
+ * Step 2: Model Selection (unified dropdown from API)
  * Step 3: Clothing Images (Virtual Try-On)
  * Step 4: Style Template + Custom Prompt (Optional)
  * Step 5: Pose Package Selection
@@ -56,8 +56,7 @@ export function GenerateWardrobeTab({
   const [newOutfitName, setNewOutfitName] = useState<string>('');
   const [selectedExistingOutfit, setSelectedExistingOutfit] = useState<string>('');
   
-  // Step 2: Quality/Model
-  const [quality, setQuality] = useState<'standard' | 'high-quality'>('high-quality');
+  // Step 2: Model (unified list from API, no quality tier)
   const [providerId, setProviderId] = useState<string>('');
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean; supportsClothingImages?: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -140,13 +139,7 @@ export function GenerateWardrobeTab({
     return selectedModel.supportsClothingImages === true;
   }, [selectedModel, providerId]);
 
-  // Reset providerId and clothing images when quality changes
-  useEffect(() => {
-    setProviderId('');
-    setClothingImages([]);
-  }, [quality]);
-
-  // Load models when quality changes
+  // Load unified model list (single dropdown, no quality tier)
   useEffect(() => {
     async function loadModels() {
       setIsLoadingModels(true);
@@ -156,21 +149,13 @@ export function GenerateWardrobeTab({
           toast.error('Authentication required');
           return;
         }
-
-        const response = await fetch(`/api/model-selection/characters/${quality}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch('/api/model-selection/characters', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to load models');
-        }
-
+        if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: any) => m.enabled);
-        
         setModels(enabledModels);
       } catch (error: any) {
         console.error('[GenerateWardrobeTab] Failed to load models:', error);
@@ -179,9 +164,8 @@ export function GenerateWardrobeTab({
         setIsLoadingModels(false);
       }
     }
-
     loadModels();
-  }, [quality, getToken]);
+  }, [getToken]);
 
   // Auto-select first model when models are loaded and providerId is empty
   useEffect(() => {
@@ -308,10 +292,11 @@ export function GenerateWardrobeTab({
       }
 
       const apiUrl = `/api/projects/${screenplayId}/characters/${characterId}/generate-poses`;
+      const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
       const requestBody: any = {
         characterName, // Match original modal exactly (even if backend doesn't use it)
         packageId: selectedPackageId,
-        quality: quality,
+        quality: derivedQuality,
         providerId: providerId || undefined,
         headshotS3Key: baseReferenceS3Key || undefined,
         typicalClothing: finalOutfitName,
@@ -448,39 +433,11 @@ export function GenerateWardrobeTab({
         </div>
       </div>
 
-      {/* Step 2: Quality/Model Selection */}
+      {/* Step 2: Model Selection (unified dropdown) */}
       <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
-        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 2: Quality & Model Selection</h3>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>Step 2: Model Selection</h3>
         
         <div className="space-y-3">
-          {/* Quality Selection - Radio Buttons - Stack vertically on mobile */}
-          <div>
-            <label className={`block ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080] mb-2`}>Quality</label>
-            <div className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-4'}`}>
-              <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
-                <input
-                  type="radio"
-                  name="quality"
-                  checked={quality === 'standard'}
-                  onChange={() => setQuality('standard')}
-                  className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
-                />
-                <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>Standard (1080p) - 20 credits</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
-                <input
-                  type="radio"
-                  name="quality"
-                  checked={quality === 'high-quality'}
-                  onChange={() => setQuality('high-quality')}
-                  className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-[#DC143C] focus:ring-[#DC143C] focus:ring-2`}
-                />
-                <span className={`${isMobile ? 'text-base' : 'text-sm'} text-white`}>High Quality (4K) - 40 credits</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Model Selection */}
           <div>
             <label className={`block ${isMobile ? 'text-sm' : 'text-xs'} text-[#808080] mb-2`}>Model</label>
             {isLoadingModels ? (
@@ -489,7 +446,7 @@ export function GenerateWardrobeTab({
               </div>
             ) : models.length === 0 ? (
               <div className={`${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-2 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080]`}>
-                No models available for this quality tier
+                No models available
               </div>
             ) : (
               <select

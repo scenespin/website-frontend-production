@@ -64,7 +64,6 @@ export default function LocationBackgroundGenerationModal({
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [selectedBackgroundType, setSelectedBackgroundType] = useState<string>('window'); // 🔥 Feature 0190: Single background type selection
-  const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard');
   const [providerId, setProviderId] = useState<string>('');
   const [sourceType, setSourceType] = useState<'reference-images' | 'angle-variations'>('reference-images');
   const [selectedAngleId, setSelectedAngleId] = useState<string>('');
@@ -80,10 +79,9 @@ export default function LocationBackgroundGenerationModal({
   const [error, setError] = useState<string>('');
   const [jobId, setJobId] = useState<string | null>(null);
   
-  // Load available models when quality changes
+  // Load unified model list (single dropdown)
   useEffect(() => {
     if (!isOpen) return;
-    
     async function loadModels() {
       setIsLoadingModels(true);
       try {
@@ -92,23 +90,14 @@ export default function LocationBackgroundGenerationModal({
           toast.error('Authentication required');
           return;
         }
-
-        const response = await fetch(`/api/model-selection/locations/${quality}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch('/api/model-selection/locations', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to load models');
-        }
-
+        if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         setModels(enabledModels);
-        
-        // Auto-select first model when models load
         if (enabledModels.length > 0) {
           setProviderId(enabledModels[0].id);
         } else {
@@ -121,16 +110,8 @@ export default function LocationBackgroundGenerationModal({
         setIsLoadingModels(false);
       }
     }
-
     loadModels();
-  }, [isOpen, quality, getToken]);
-
-  // Reset providerId when quality changes
-  useEffect(() => {
-    if (isOpen && quality) {
-      setProviderId(''); // Will be auto-selected when models load
-    }
-  }, [quality]);
+  }, [isOpen, getToken]);
 
   // Get available angles for source selection
   const availableAngles = location?.angleVariations || [];
@@ -173,11 +154,10 @@ export default function LocationBackgroundGenerationModal({
         : 'sunny';
 
       const apiUrl = `/api/location-bank/${locationId}/generate-backgrounds`;
-      
-      // 🔥 Feature 0190: Handle single background type mode
+      const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
       const requestBody: any = {
         packageId: selectedPackageId,
-        quality: quality,
+        quality: derivedQuality,
         providerId: providerId,
         sourceType: sourceType,
         selectedAngleId: sourceType === 'angle-variations' && selectedAngleId ? selectedAngleId : undefined,
@@ -257,7 +237,6 @@ export default function LocationBackgroundGenerationModal({
     setStep('package');
     setSelectedPackageId('standard');
     setSelectedBackgroundType('window'); // 🔥 Feature 0190: Reset single background type selection
-    setQuality('standard');
     setSourceType('reference-images');
     setSelectedAngleId('');
     setTimeOfDay('');
@@ -316,51 +295,10 @@ export default function LocationBackgroundGenerationModal({
               {/* Step 1: Package Selection */}
               {step === 'package' && (
                 <div className="space-y-6">
-                  {/* Quality Selection */}
+                  {/* Model Selection (unified dropdown) */}
                   <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 1: Select Quality
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => setQuality('standard')}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          quality === 'standard'
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                            : 'border-base-content/20 hover:border-base-content/40'
-                        }`}
-                      >
-                        <div className="font-semibold text-base-content mb-1">Standard (1080p)</div>
-                        <div className="text-xs text-base-content/60 mb-2">
-                          {creditsPerImage} credits per image
-                        </div>
-                        <div className="text-xs text-base-content/50">
-                          Fewer safety restrictions, more creative freedom. Perfect for most projects.
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setQuality('high-quality')}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          quality === 'high-quality'
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                            : 'border-base-content/20 hover:border-base-content/40'
-                        }`}
-                      >
-                        <div className="font-semibold text-base-content mb-1">High Quality (4K)</div>
-                        <div className="text-xs text-base-content/60 mb-2">
-                          {creditsPerImage} credits per image
-                        </div>
-                        <div className="text-xs text-base-content/50">
-                          Maximum resolution and quality. Best for final production.
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Model Selection */}
-                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
-                    <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 2: Select Model
+                      Step 1: Select Model
                     </h3>
                     {isLoadingModels ? (
                       <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
@@ -368,7 +306,7 @@ export default function LocationBackgroundGenerationModal({
                       </div>
                     ) : models.length === 0 ? (
                       <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
-                        No models available for this quality tier
+                        No models available
                       </div>
                     ) : (
                       <>

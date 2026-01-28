@@ -5,7 +5,7 @@
  * 
  * Converted from AssetAngleGenerationModal to tab format
  * Steps:
- * Step 1: Quality & Model Selection
+ * Step 1: Model Selection (unified dropdown from API)
  * Step 2: Package Selection
  * Step 3: Additional Prompt (Optional)
  */
@@ -35,8 +35,7 @@ export function GenerateAssetTab({
 }: GenerateAssetTabProps) {
   const { getToken } = useAuth();
   
-  // Step 1: Quality/Model - Default to high-quality (matches locations/characters pattern)
-  const [quality, setQuality] = useState<'standard' | 'high-quality'>('high-quality');
+  // Step 1: Model (unified list from API, no quality tier)
   const [providerId, setProviderId] = useState<string>('');
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -59,12 +58,7 @@ export function GenerateAssetTab({
   
   const creditsPerImage = selectedModel?.credits || 20;
   
-  // Reset providerId when quality changes
-  useEffect(() => {
-    setProviderId('');
-  }, [quality]);
-  
-  // Load models when quality changes
+  // Load unified model list (single dropdown, no quality tier)
   useEffect(() => {
     async function loadModels() {
       setIsLoadingModels(true);
@@ -74,23 +68,14 @@ export function GenerateAssetTab({
           toast.error('Authentication required');
           return;
         }
-
-        const response = await fetch(`/api/model-selection/assets/${quality}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch('/api/model-selection/assets', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to load models');
-        }
-
+        if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         setModels(enabledModels);
-        
-        // Auto-select first model when models load
         if (enabledModels.length > 0 && !providerId) {
           setProviderId(enabledModels[0].id);
         }
@@ -101,9 +86,8 @@ export function GenerateAssetTab({
         setIsLoadingModels(false);
       }
     }
-
     loadModels();
-  }, [quality, getToken]);
+  }, [getToken]);
   
   // Auto-select first model when models are loaded
   useEffect(() => {
@@ -128,18 +112,18 @@ export function GenerateAssetTab({
         console.error('[GenerateAssetTab] providerId validation failed:', {
           providerId,
           modelsCount: models.length,
-          isLoadingModels,
-          quality
+          isLoadingModels
         });
         throw new Error('Please select a model before generating. If models are not loading, please refresh the page.');
       }
       
       const apiUrl = `/api/asset-bank/${assetId}/generate-angles`;
       
+      const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
       // 🔥 Feature 0190: Handle single angle mode
       const requestBody: any = {
         packageId: selectedPackageId,
-        quality: quality,
+        quality: derivedQuality,
         providerId: providerId,
         additionalPrompt: additionalPrompt.trim() || undefined,
         projectId: screenplayId, // 🔥 FIX: Include projectId for job creation (matches location angle generation pattern)
@@ -212,39 +196,11 @@ export function GenerateAssetTab({
   
   return (
     <div className="p-6 space-y-4">
-      {/* Step 1: Quality & Model Selection */}
+      {/* Step 1: Model Selection (unified dropdown) */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 1: Quality & Model Selection</h3>
+        <h3 className="text-sm font-semibold text-white mb-3">Step 1: Model Selection</h3>
         
         <div className="space-y-3">
-          {/* Quality Selection */}
-          <div>
-            <label className="block text-xs text-[#808080] mb-2">Quality</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="quality"
-                  checked={quality === 'standard'}
-                  onChange={() => setQuality('standard')}
-                  className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
-                />
-                <span className="text-sm text-white">Standard Quality - {creditsPerImage} credits</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="quality"
-                  checked={quality === 'high-quality'}
-                  onChange={() => setQuality('high-quality')}
-                  className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
-                />
-                <span className="text-sm text-white">High Quality - {creditsPerImage} credits</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Model Selection */}
           <div>
             <label className="block text-xs text-[#808080] mb-2">Model</label>
             {isLoadingModels ? (
@@ -253,7 +209,7 @@ export function GenerateAssetTab({
               </div>
             ) : models.length === 0 ? (
               <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#808080] text-sm">
-                No models available for this quality tier
+                No models available
               </div>
             ) : (
               <select
@@ -286,7 +242,7 @@ export function GenerateAssetTab({
           assetName={assetName}
           onSelectPackage={setSelectedPackageId}
           selectedPackageId={selectedPackageId}
-          quality={quality}
+          quality={selectedModel?.quality === '4K' ? 'high-quality' : 'standard'}
           creditsPerImage={creditsPerImage}
           compact={true}
           selectedAngle={selectedAngle}

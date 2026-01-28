@@ -1150,7 +1150,7 @@ export function ShotConfigurationPanel({
                   </div>
                 </div>
               )}
-              {/* Scene context (optional) – plan copy */}
+              {/* Scene context (optional) – setting/mood for first frame (image) only */}
               {onOffFrameSceneContextPromptChange && (
                 <div>
                   <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
@@ -1164,18 +1164,18 @@ export function ShotConfigurationPanel({
                     className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
                   />
                   <div className="text-[10px] text-[#808080] mt-1">
-                    Describe the setting or mood (e.g. &quot;in a crowded bar&quot;, &quot;tense standoff&quot;). You can use this alone for a generic look, together with listener/group for specific characters in that context, or leave it blank and only choose listener/group.
+                    Setting or mood for the <strong>image</strong> (first frame) only — e.g. &quot;in a crowded bar&quot;, &quot;tense standoff&quot;. Use alone, with listener/group, or leave blank. Not the same as &quot;Alternate action&quot; below (which is action/framing).
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* Prompt box for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) */}
+          {/* Prompt box for first frame (image): action/framing – Hidden Mouth and Narrate Shot */}
           {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
             <div className="mt-3">
               <label className="block text-[10px] text-[#808080] mb-1.5">
-                Describe the alternate action in the scene:
+                Describe the alternate action in the scene (first frame only):
               </label>
               <textarea
                 value={dialogueWorkflowPrompt || ''}
@@ -1184,14 +1184,14 @@ export function ShotConfigurationPanel({
                 }}
                 placeholder={
                   currentWorkflow === 'off-frame-voiceover'
-                    ? 'e.g., Character speaking from off-screen, back turned, or side profile...'
+                    ? 'e.g. back to camera, over shoulder of listener, side profile, speaking from off-screen'
                     : 'e.g., Narrator voice describing the scene. The narrator can appear in the scene or just narrate over it...'
                 }
                 rows={3}
                 className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
               />
               <div className="text-[10px] text-[#808080] italic mt-1">
-                This description will be used to generate the scene with the selected workflow.
+                Action or framing for the <strong>image</strong> (first frame). Video step uses a default motion style; a separate video prompt may be added later.
               </div>
             </div>
           )}
@@ -1391,8 +1391,8 @@ export function ShotConfigurationPanel({
               );
             })()}
 
-            {/* Additional Characters Section for Hidden Mouth Dialogue (off-frame-voiceover) and Narrate Shot (scene-voiceover) - placed below prompt box */}
-            {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && shot.type === 'dialogue' && onCharactersForShotChange && (
+            {/* Additional Characters Section – Narrate Shot only; Hidden Mouth uses Listener/Group in Hidden Mouth options above */}
+            {currentWorkflow === 'scene-voiceover' && shot.type === 'dialogue' && onCharactersForShotChange && (
               <div className="mt-4">
                 <div className="mb-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
                   {currentWorkflow === 'scene-voiceover' 

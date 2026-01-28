@@ -42,8 +42,7 @@ export default function PoseGenerationModal({
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [selectedPoseId, setSelectedPoseId] = useState<string>('front-facing'); // 🔥 Feature 0190: Single pose selection
-  const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard'); // 🔥 NEW: Quality tier
-  const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
+  const [providerId, setProviderId] = useState<string>(''); // Model selection (unified list)
   const [typicalClothing, setTypicalClothing] = useState<string | undefined>(undefined);
   const [characterDefaultOutfit, setCharacterDefaultOutfit] = useState<string | undefined>(undefined);
   const [clothingImages, setClothingImages] = useState<Array<{ file: File; preview: string; s3Key?: string; presignedUrl?: string }>>([]);
@@ -87,10 +86,9 @@ export default function PoseGenerationModal({
     }
   }, [isOpen, characterId, projectId, getToken]);
 
-  // Load available models when quality changes
+  // Load unified model list (single dropdown, no quality tier)
   useEffect(() => {
     if (!isOpen) return;
-    
     async function loadModels() {
       setIsLoadingModels(true);
       try {
@@ -99,40 +97,16 @@ export default function PoseGenerationModal({
           toast.error('Authentication required');
           return;
         }
-
-        const response = await fetch(`/api/model-selection/characters/${quality}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch('/api/model-selection/characters', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to load models');
-        }
-
+        if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         setModels(enabledModels);
-        
-        // Debug logging
-        console.log('[PoseGenerationModal] Loaded models:', enabledModels.map(m => ({
-          id: m.id,
-          name: m.name,
-          supportsClothing: m.supportsClothingImages
-        })));
-        
-        // Auto-select first model if providerId is empty (always set on first load or after quality change)
         if (enabledModels.length > 0) {
-          // Always auto-select when models load (handles quality change case)
-          // Use functional update to ensure we get the latest state
-          setProviderId(prev => {
-            if (!prev) {
-              console.log('[PoseGenerationModal] Auto-selecting model:', enabledModels[0].id, 'supportsClothing:', enabledModels[0].supportsClothingImages);
-              return enabledModels[0].id;
-            }
-            return prev;
-          });
+          setProviderId(prev => (prev ? prev : enabledModels[0].id));
         }
       } catch (error: any) {
         console.error('[PoseGenerationModal] Failed to load models:', error);
@@ -141,17 +115,8 @@ export default function PoseGenerationModal({
         setIsLoadingModels(false);
       }
     }
-
     loadModels();
-  }, [isOpen, quality, getToken]);
-
-  // Reset providerId when quality changes (but NOT when modal first opens - let auto-select handle that)
-  useEffect(() => {
-    if (isOpen) {
-      setProviderId(''); // Reset so auto-select will pick first model
-      setClothingImages([]);
-    }
-  }, [quality]); // Only reset when quality changes, not when modal opens
+  }, [isOpen, getToken]);
 
   // Get selected model for easier access (useMemo to ensure it updates when models/providerId changes)
   const selectedModel = useMemo(() => {
@@ -424,15 +389,13 @@ export default function PoseGenerationModal({
         }
       }
 
-      // 🔥 FIX: Ensure providerId is set - if empty string, use undefined to trigger quality-based fallback
       const finalProviderId = providerId && providerId.trim() !== '' ? providerId : undefined;
-      
-      // 🔥 Feature 0190: Handle single pose mode
+      const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
       const requestBody: any = {
         characterName,
         packageId: packageId,
-        quality: quality, // 🔥 NEW: Quality tier
-        providerId: finalProviderId, // 🔥 FIX: Only send if actually selected
+        quality: derivedQuality,
+        providerId: finalProviderId,
         headshotS3Key: baseReferenceS3Key || undefined,
         headshotUrl: headshotFile ? headshotPreview : undefined,
         screenplayContent: screenplayContent || undefined,
@@ -449,7 +412,7 @@ export default function PoseGenerationModal({
       
       console.log('[PoseGeneration] 🔥 Calling API:', apiUrl);
       console.log('[PoseGeneration] Request body:', {
-        quality,
+        quality: derivedQuality,
         providerId: finalProviderId,
         hasProviderId: !!finalProviderId,
         packageId
@@ -613,51 +576,10 @@ export default function PoseGenerationModal({
                     </p>
                   </div>
                   
-                  {/* Quality Selection - NEW */}
+                  {/* Model Selection (unified dropdown) */}
                   <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 2: Select Quality
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => setQuality('standard')}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          quality === 'standard'
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                            : 'border-base-content/20 hover:border-base-content/40'
-                        }`}
-                      >
-                        <div className="font-semibold text-base-content mb-1">Standard (1080p)</div>
-                        <div className="text-xs text-base-content/60 mb-2">
-                          20 credits per image
-                        </div>
-                        <div className="text-xs text-base-content/50">
-                          Fewer safety restrictions, more creative freedom. Perfect for most projects.
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setQuality('high-quality')}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          quality === 'high-quality'
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                            : 'border-base-content/20 hover:border-base-content/40'
-                        }`}
-                      >
-                        <div className="font-semibold text-base-content mb-1">High Quality (4K)</div>
-                        <div className="text-xs text-base-content/60 mb-2">
-                          40 credits per image
-                        </div>
-                        <div className="text-xs text-base-content/50">
-                          Maximum resolution and quality. Best for final production.
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Model Selection - NEW */}
-                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
-                    <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 3: Select Model
+                      Step 2: Select Model
                     </h3>
                     {isLoadingModels ? (
                       <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
@@ -665,7 +587,7 @@ export default function PoseGenerationModal({
                       </div>
                     ) : models.length === 0 ? (
                       <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
-                        No models available for this quality tier
+                        No models available
                       </div>
                     ) : (
                       <select

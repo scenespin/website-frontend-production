@@ -41,14 +41,14 @@ export function RegenerateAngleModal({
   const { getToken } = useAuth();
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
-  const [selectedQuality, setSelectedQuality] = useState<'standard' | 'high-quality'>(qualityTier);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-  // Load available models
+  const useCase = entityType === 'location' ? 'locations' : 'assets';
+
+  // Load unified model list (single dropdown)
   useEffect(() => {
     if (!isOpen) return;
-    
     async function loadModels() {
       setIsLoadingModels(true);
       try {
@@ -57,25 +57,16 @@ export function RegenerateAngleModal({
           toast.error('Authentication required');
           return;
         }
-
-        const useCase = entityType === 'location' ? 'locations' : 'assets';
-        const response = await fetch(`/api/model-selection/${useCase}/${selectedQuality}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await fetch(`/api/model-selection/${useCase}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to load models');
-        }
-
+        if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
-        setModels(availableModels.filter((m: Model) => m.enabled));
-        
-        // Auto-select first model
-        if (availableModels.length > 0 && !selectedModelId) {
-          setSelectedModelId(availableModels[0].id);
+        const enabled = availableModels.filter((m: Model) => m.enabled);
+        setModels(enabled);
+        if (enabled.length > 0 && !selectedModelId) {
+          setSelectedModelId(enabled[0].id);
         }
       } catch (error: any) {
         console.error('[RegenerateAngleModal] Failed to load models:', error);
@@ -84,16 +75,8 @@ export function RegenerateAngleModal({
         setIsLoadingModels(false);
       }
     }
-
     loadModels();
-  }, [isOpen, selectedQuality, entityType, getToken]);
-
-  // Update models when quality changes
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedModelId(''); // Reset selection
-    }
-  }, [selectedQuality, isOpen]);
+  }, [isOpen, useCase, getToken]);
 
   const selectedModel = models.find(m => m.id === selectedModelId);
 
@@ -102,10 +85,10 @@ export function RegenerateAngleModal({
       toast.error('Please select a model');
       return;
     }
-
+    const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
     setIsLoading(true);
     try {
-      await onRegenerate(selectedModelId, selectedQuality);
+      await onRegenerate(selectedModelId, derivedQuality);
       toast.success('Angle regeneration started');
       onClose();
     } catch (error: any) {
@@ -137,36 +120,6 @@ export function RegenerateAngleModal({
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          {/* Quality Tier Selection */}
-          <div>
-            <label className="block text-sm font-medium text-[#B3B3B3] mb-2">
-              Quality Tier
-            </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectedQuality('standard')}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedQuality === 'standard'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#141414] text-[#B3B3B3] border border-[#3F3F46] hover:border-[#DC143C]/50'
-                }`}
-              >
-                1080p (Standard)
-              </button>
-              <button
-                onClick={() => setSelectedQuality('high-quality')}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedQuality === 'high-quality'
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#141414] text-[#B3B3B3] border border-[#3F3F46] hover:border-[#DC143C]/50'
-                }`}
-              >
-                4K (High Quality)
-              </button>
-            </div>
-          </div>
-
-          {/* Model Selection */}
           <div>
             <label className="block text-sm font-medium text-[#B3B3B3] mb-2">
               Select Model
@@ -177,7 +130,7 @@ export function RegenerateAngleModal({
               </div>
             ) : models.length === 0 ? (
               <div className="px-4 py-3 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#808080] text-sm">
-                No models available for this quality tier
+                No models available
               </div>
             ) : (
               <select
