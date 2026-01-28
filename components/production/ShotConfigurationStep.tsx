@@ -958,13 +958,13 @@ export function ShotConfigurationStep({
       
       setIsLoadingPricing(true);
       try {
-        const referenceShotModel = selectedReferenceShotModels[shot.slot];
+        const referenceShotModel = selectedReferenceShotModels[shot.slot] || 'nano-banana-pro-2k'; // Default to match UI
         const videoType = selectedVideoTypes[shot.slot];
         const pricingResult = await SceneBuilderService.calculatePricing(
           [{ slot: shot.slot, credits: shot.credits }],
           shotDuration ? { [shot.slot]: shotDuration } : undefined,
           getToken,
-          referenceShotModel ? { [shot.slot]: referenceShotModel } : undefined,
+          { [shot.slot]: referenceShotModel }, // Always pass model (use default if not selected)
           videoType ? { [shot.slot]: videoType } : undefined
         );
         

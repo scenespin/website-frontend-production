@@ -210,11 +210,17 @@ export function SceneReviewStep({
       
       setIsLoadingPricing(true);
       try {
+        // Ensure all shots have a reference model (default to nano-banana-pro-2k if not selected)
+        const referenceShotModelsWithDefaults: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
+        selectedShots.forEach((shot: any) => {
+          referenceShotModelsWithDefaults[shot.slot] = selectedReferenceShotModels?.[shot.slot] || 'nano-banana-pro-2k';
+        });
+        
         const pricingResult = await SceneBuilderService.calculatePricing(
           selectedShots.map((shot: any) => ({ slot: shot.slot, credits: shot.credits || 0, type: shot.type })),
           shotDurations,
           getToken,
-          selectedReferenceShotModels,
+          referenceShotModelsWithDefaults,
           undefined, // videoTypes
           selectedDialogueQualities,
           selectedDialogueWorkflows,
