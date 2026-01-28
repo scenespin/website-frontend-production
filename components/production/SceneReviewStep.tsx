@@ -134,7 +134,7 @@ interface SceneReviewStepProps {
   propsToShots: Record<string, number[]>;
   shotProps: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
   // Reference Shot Models (First Frame)
-  selectedReferenceShotModels?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>;
+  selectedReferenceShotModels?: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>;
   // Actions
   onBack: () => void;
   onGenerate: () => void;
@@ -145,9 +145,12 @@ interface SceneReviewStepProps {
   selectedStyleProfile?: string | null;
   onStyleProfileChange?: (profileId: string | null) => void;
   // URL Maps for thumbnail display
-  characterThumbnailUrlsMap?: Map<string, string>;
-  locationThumbnailUrlsMap?: Map<string, string>;
-  propThumbnailUrlsMap?: Map<string, string>;
+  characterThumbnailS3KeyMap?: Map<string, string>; // Map of s3Key -> thumbnailS3Key
+  characterThumbnailUrlsMap?: Map<string, string>; // Map of thumbnailS3Key -> presigned URL
+  locationThumbnailS3KeyMap?: Map<string, string>; // Map of location s3Key -> thumbnailS3Key
+  locationThumbnailUrlsMap?: Map<string, string>; // Map of location thumbnailS3Key -> presigned URL
+  propThumbnailS3KeyMap?: Map<string, string>; // Map of prop s3Key -> thumbnailS3Key
+  propThumbnailUrlsMap?: Map<string, string>; // Map of prop thumbnailS3Key -> presigned URL
   // Uploaded first frames
   uploadedFirstFrames?: Record<number, string>;
 }
@@ -182,8 +185,11 @@ export function SceneReviewStep({
   styleProfiles = [],
   selectedStyleProfile = null,
   onStyleProfileChange,
+  characterThumbnailS3KeyMap,
   characterThumbnailUrlsMap,
+  locationThumbnailS3KeyMap,
   locationThumbnailUrlsMap,
+  propThumbnailS3KeyMap,
   propThumbnailUrlsMap,
   uploadedFirstFrames = {}
 }: SceneReviewStepProps) {
@@ -509,7 +515,14 @@ export function SceneReviewStep({
                           <div className="flex gap-2 flex-wrap">
                             {/* Character references */}
                             {Object.entries(shotCharacterRefs).map(([charId, ref]) => {
-                              const thumbnailUrl = ref.s3Key && characterThumbnailUrlsMap?.get(ref.s3Key);
+                              // Two-step lookup: s3Key -> thumbnailS3Key -> URL
+                              let thumbnailUrl: string | undefined;
+                              if (ref.s3Key) {
+                                const thumbnailS3Key = characterThumbnailS3KeyMap?.get(ref.s3Key);
+                                if (thumbnailS3Key) {
+                                  thumbnailUrl = characterThumbnailUrlsMap?.get(thumbnailS3Key);
+                                }
+                              }
                               return thumbnailUrl ? (
                                 <div key={charId} className="relative">
                                   <img 
@@ -529,7 +542,12 @@ export function SceneReviewStep({
                             })}
                             {/* Location reference */}
                             {shotLocation?.s3Key && (() => {
-                              const thumbnailUrl = locationThumbnailUrlsMap?.get(shotLocation.s3Key);
+                              // Two-step lookup: s3Key -> thumbnailS3Key -> URL
+                              let thumbnailUrl: string | undefined;
+                              const thumbnailS3Key = locationThumbnailS3KeyMap?.get(shotLocation.s3Key);
+                              if (thumbnailS3Key) {
+                                thumbnailUrl = locationThumbnailUrlsMap?.get(thumbnailS3Key);
+                              }
                               return thumbnailUrl ? (
                                 <div key="location" className="relative">
                                   <img 
@@ -550,8 +568,22 @@ export function SceneReviewStep({
                             {/* Prop references */}
                             {shotPropsForShot.map(prop => {
                               const config = shotPropsConfig[prop.id];
-                              const imageId = config?.selectedImageId;
-                              const thumbnailUrl = imageId && propThumbnailUrlsMap?.get(imageId);
+                              const selectedImageId = config?.selectedImageId;
+                              if (!selectedImageId) return null;
+                              
+                              // For props, selectedImageId might be the s3Key or an ID
+                              // Try two-step lookup first (s3Key -> thumbnailS3Key -> URL)
+                              let thumbnailUrl: string | undefined;
+                              if (propThumbnailS3KeyMap?.has(selectedImageId)) {
+                                const thumbnailS3Key = propThumbnailS3KeyMap.get(selectedImageId);
+                                if (thumbnailS3Key) {
+                                  thumbnailUrl = propThumbnailUrlsMap?.get(thumbnailS3Key);
+                                }
+                              } else {
+                                // Fallback: selectedImageId might be the thumbnailS3Key directly
+                                thumbnailUrl = propThumbnailUrlsMap?.get(selectedImageId);
+                              }
+                              
                               return thumbnailUrl ? (
                                 <div key={prop.id} className="relative">
                                   <img 

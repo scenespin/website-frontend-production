@@ -729,7 +729,7 @@ export class SceneBuilderService {
     shots: Array<{ slot: number; credits: number; type?: string }>,
     shotDurations?: Record<number, 'quick-cut' | 'extended-take'>,
     getTokenFn?: (options: { template: string }) => Promise<string | null>,
-    referenceShotModels?: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>,
+    referenceShotModels?: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>,
     videoTypes?: Record<number, VideoType>,
     dialogueQualities?: Record<number, 'premium' | 'reliable'>,
     dialogueWorkflows?: Record<number, string>,

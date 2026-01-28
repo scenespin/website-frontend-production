@@ -417,7 +417,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
   }, [contextState.shotDurations]);
   
-  const setSelectedReferenceShotModels = useCallback((updater: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'> | ((prev: Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>) => Record<number, 'nano-banana-pro' | 'flux2-max-4k-16:9'>)) => {
+  const setSelectedReferenceShotModels = useCallback((updater: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> | ((prev: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>) => Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>)) => {
     if (typeof updater === 'function') {
       const newValue = updater(contextState.selectedReferenceShotModels);
       contextActions.setSelectedReferenceShotModels(newValue);
@@ -2888,7 +2888,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         characterOutfits: Object.keys(characterOutfits).length > 0 ? characterOutfits : undefined, // Per-shot, per-character outfit selection: { shotSlot: { characterId: outfitName } }
         selectedDialogueQualities: Object.keys(selectedDialogueQualities).length > 0 ? selectedDialogueQualities : undefined, // NEW: Per-shot dialogue quality selection (Premium vs Reliable): { shotSlot: 'premium' | 'reliable' }
         selectedDialogueWorkflows: Object.keys(selectedDialogueWorkflows).length > 0 ? selectedDialogueWorkflows : undefined, // Per-shot dialogue workflow selection: { shotSlot: workflowType }
-        selectedReferenceShotModels: Object.keys(selectedReferenceShotModels).length > 0 ? selectedReferenceShotModels : undefined, // Per-shot first frame provider selection: { shotSlot: 'nano-banana-pro' | 'flux2-max-4k-16:9' }
+        selectedReferenceShotModels: Object.keys(selectedReferenceShotModels).length > 0 ? selectedReferenceShotModels : undefined, // Per-shot first frame provider selection: { shotSlot: 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k' }
         voiceoverBaseWorkflows: Object.keys(voiceoverBaseWorkflows).length > 0 ? voiceoverBaseWorkflows : undefined, // NEW: Per-shot voiceover base workflows (for Narrate Shot and Hidden Mouth Dialogue): { shotSlot: baseWorkflow }
         shotWorkflowOverrides: Object.keys(shotWorkflowOverrides).length > 0 ? shotWorkflowOverrides : undefined, // NEW: Per-shot workflow overrides (for action shots and dialogue shots): { shotSlot: workflow }
         dialogueWorkflowPrompts: Object.keys(contextState.dialogueWorkflowPrompts).length > 0 ? contextState.dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
@@ -4598,8 +4598,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 styleProfiles={styleProfiles}
                 selectedStyleProfile={selectedStyleProfile}
                 onStyleProfileChange={setSelectedStyleProfile}
+                characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
                 characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                locationThumbnailS3KeyMap={locationThumbnailS3KeyMap}
                 locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                propThumbnailS3KeyMap={propThumbnailS3KeyMap}
                 propThumbnailUrlsMap={propThumbnailUrlsMap}
                 uploadedFirstFrames={contextState.uploadedFirstFrames}
               />
