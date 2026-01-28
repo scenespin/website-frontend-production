@@ -53,6 +53,7 @@ function getProviderLabel(providerId: string | undefined): string | null {
     'luma-photon-1': 'Photon',
     'luma-photon-flash': 'Photon',
     'flux2-max-4k-16:9': 'FLUX.2 [max]',
+    'flux2-max-2k': 'FLUX.2 [max]',
     'flux2-pro-4k': 'FLUX.2 [pro]',
     'flux2-pro-2k': 'FLUX.2 [pro]',
     'flux2-flex': 'FLUX.2 [flex]',
