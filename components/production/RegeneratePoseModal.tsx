@@ -92,7 +92,10 @@ export function RegeneratePoseModal({
   const selectedModel = useMemo(() => {
     return models.find(m => m.id === selectedModelId);
   }, [models, selectedModelId]);
-  
+
+  // Quality derived from selected model (unified dropdown: no separate quality control)
+  const selectedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
+
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
