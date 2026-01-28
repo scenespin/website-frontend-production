@@ -531,6 +531,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const offFrameListenerCharacterId = contextState.offFrameListenerCharacterId;
   const offFrameGroupCharacterIds = contextState.offFrameGroupCharacterIds;
   const offFrameSceneContextPrompt = contextState.offFrameSceneContextPrompt;
+  const offFrameVideoPromptAdditive = contextState.offFrameVideoPromptAdditive;
   const voiceoverBaseWorkflows = contextState.voiceoverBaseWorkflows;
   const shotWorkflowOverrides = contextState.shotWorkflowOverrides;
   const dialogueWorkflowPrompts = contextState.dialogueWorkflowPrompts;
@@ -2121,7 +2122,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         frameSize = is4K ? '4096x4096' : '2048x2048'; // 4K or 2K
       }
       
-      // Generate first frame using image generation API
+      // Generate first frame using image generation API (Jobs Panel: projectId + entityType + entityId for job tracking)
       const response = await fetch('/api/image/generate', {
         method: 'POST',
         headers: {
@@ -2132,7 +2133,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           prompt: sceneDescription.trim(),
           size: frameSize,
           aspectRatio: aspectRatio, // 🔥 NEW: Pass aspect ratio
-          references: referenceImageUrls.length > 0 ? referenceImageUrls : undefined // 🔥 FIX: Include character references
+          references: referenceImageUrls.length > 0 ? referenceImageUrls : undefined, // 🔥 FIX: Include character references
+          ...(projectId && selectedSceneId
+            ? { projectId, entityType: 'scene' as const, entityId: selectedSceneId }
+            : {})
         })
       });
       
@@ -2917,6 +2921,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         voiceoverBaseWorkflows: Object.keys(voiceoverBaseWorkflows).length > 0 ? voiceoverBaseWorkflows : undefined, // NEW: Per-shot voiceover base workflows (for Narrate Shot and Hidden Mouth Dialogue): { shotSlot: baseWorkflow }
         shotWorkflowOverrides: Object.keys(shotWorkflowOverrides).length > 0 ? shotWorkflowOverrides : undefined, // NEW: Per-shot workflow overrides (for action shots and dialogue shots): { shotSlot: workflow }
         dialogueWorkflowPrompts: Object.keys(contextState.dialogueWorkflowPrompts).length > 0 ? contextState.dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
+        offFrameVideoPromptAdditive: Object.keys(contextState.offFrameVideoPromptAdditive).length > 0 ? contextState.offFrameVideoPromptAdditive : undefined, // Feature 0218: Per-shot additive video prompt for Hidden Mouth (add to default motion prompt)
         pronounExtrasPrompts: Object.keys(contextState.pronounExtrasPrompts).length > 0 ? contextState.pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
         firstFramePromptOverrides: Object.keys(contextState.firstFramePromptOverrides).length > 0 ? contextState.firstFramePromptOverrides : undefined, // 🔥 NEW: Per-shot first frame prompt overrides: { shotSlot: "custom prompt" }
         videoPromptOverrides: Object.keys(contextState.videoPromptOverrides).length > 0 ? contextState.videoPromptOverrides : undefined, // 🔥 NEW: Per-shot video prompt overrides: { shotSlot: "custom prompt" }

@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import ImageResultActions from '@/components/shared/ImageResultActions';
 import { CloudSavePrompt } from '@/components/CloudSavePrompt';
 
-export function ImageModePanel({ onInsert, imageEntityContext }) {
+export function ImageModePanel({ onInsert, imageEntityContext, projectId }) {
   const { state, addMessage } = useChatContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedModel, setSelectedModel] = useState('photon');
@@ -51,12 +51,18 @@ export function ImageModePanel({ onInsert, imageEntityContext }) {
         mode: 'image'
       });
       
-      // Call API
-      const response = await api.image.generate({
+      // Call API (projectId + entityType + entityId for Jobs Panel when in screenplay context)
+      const payload = {
         prompt: prompt.trim(),
         model: selectedModel,
         aspectRatio
-      });
+      };
+      if (projectId) {
+        payload.projectId = projectId;
+        payload.entityType = 'screenplay';
+        payload.entityId = projectId;
+      }
+      const response = await api.image.generate(payload);
       
       // Add success message with image and expiration warning
       const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days from now

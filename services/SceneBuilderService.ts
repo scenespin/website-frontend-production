@@ -681,27 +681,34 @@ export class SceneBuilderService {
   }
 
   /**
-   * Generate first frame image
+   * Generate first frame image.
+   * Optional projectId/entityType/entityId enable job tracking in Jobs Panel (same projectId as screenplay).
    */
   static async generateFirstFrame(
     prompt: string,
     referenceImageUrl: string,
-    getTokenFn: (options: { template: string }) => Promise<string | null>
+    getTokenFn: (options: { template: string }) => Promise<string | null>,
+    options?: { projectId?: string; entityType?: string; entityId?: string }
   ): Promise<{ imageUrl: string; s3Key: string }> {
     const token = await this.getToken(getTokenFn);
-    
+    const body: Record<string, unknown> = {
+      prompt,
+      referenceImageUrl,
+      aspectRatio: '16:9',
+      quality: 'high'
+    };
+    if (options?.projectId && options?.entityType && options?.entityId) {
+      body.projectId = options.projectId;
+      body.entityType = options.entityType;
+      body.entityId = options.entityId;
+    }
     const response = await fetch('/api/image/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({
-        prompt,
-        referenceImageUrl,
-        aspectRatio: '16:9',
-        quality: 'high'
-      })
+      body: JSON.stringify(body)
     });
     
     if (!response.ok) {

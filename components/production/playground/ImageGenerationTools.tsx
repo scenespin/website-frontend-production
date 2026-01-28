@@ -363,6 +363,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         quality: transparency ? 'high-quality' : 'standard',
         projectId: screenplayId,
         entityType: 'playground',
+        entityId: screenplayId, // Jobs Panel: backend requires entityId to create job
       };
 
       // Add reference images if available

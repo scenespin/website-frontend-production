@@ -426,7 +426,7 @@ function UnifiedChatPanelInner({
   const previousContextRef = useRef(null);
   const { startWorkflow } = useChatMode();
   const { getToken } = useAuth();
-  const { canUseAI } = useScreenplay();
+  const { canUseAI, screenplayId } = useScreenplay();
   const pathname = usePathname(); // Get current page path for default mode
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -823,6 +823,7 @@ function UnifiedChatPanelInner({
           <ImageModePanel
             {...commonProps}
             imageEntityContext={imageEntityContext || undefined}
+            projectId={screenplayId || undefined}
           />
         );
 
@@ -830,7 +831,7 @@ function UnifiedChatPanelInner({
         return <VideoModePanel {...commonProps} />;
 
       case 'audio':
-        return <AudioModePanel {...commonProps} />;
+        return <AudioModePanel {...commonProps} projectId={screenplayId || undefined} />;
 
       case 'try-on':
         return <TryOnModePanel {...commonProps} />;

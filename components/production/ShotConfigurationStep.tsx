@@ -325,6 +325,7 @@ export function ShotConfigurationStep({
   const finalOffFrameListenerCharacterId = state.offFrameListenerCharacterId[shotSlot] ?? null;
   const finalOffFrameGroupCharacterIds = state.offFrameGroupCharacterIds[shotSlot] ?? [];
   const finalOffFrameSceneContextPrompt = state.offFrameSceneContextPrompt[shotSlot] ?? '';
+  const finalOffFrameVideoPromptAdditive = state.offFrameVideoPromptAdditive[shotSlot] ?? '';
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
@@ -346,9 +347,7 @@ export function ShotConfigurationStep({
   const firstFrameOverrideEnabledFromContext = state.firstFrameOverrideEnabled[shotSlot] ?? false;
   const videoPromptOverrideEnabledFromContext = state.videoPromptOverrideEnabled[shotSlot] ?? false;
   
-  // 🔥 NEW: Check if this is a dialogue shot and if override is allowed
-  // Override is only allowed for scene-voiceover workflow (Narrate Shot)
-  // For action/establishing shots, override is always allowed
+  // 🔥 Feature 0218: Override section only for Narrate Shot (and non-dialogue). Hidden Mouth uses additive video prompt in panel, not overrides.
   const isDialogueShot = shot.type === 'dialogue';
   const isSceneVoiceover = finalSelectedDialogueWorkflow === 'scene-voiceover';
   const isOverrideAllowed = !isDialogueShot || isSceneVoiceover;
@@ -371,9 +370,8 @@ export function ShotConfigurationStep({
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Sync context state when override data exists (preserves state on navigation)
-  // Also clear overrides when switching away from scene-voiceover for dialogue shots
+  // Clear overrides when switching away from Narrate Shot (e.g. to Hidden Mouth or lip-sync)
   useEffect(() => {
-    // If this is a dialogue shot and workflow is NOT scene-voiceover, clear overrides
     if (isDialogueShot && !isSceneVoiceover) {
       if (firstFrameOverrideEnabledFromContext) {
         actions.updateFirstFrameOverrideEnabled(shotSlot, false);
@@ -1016,7 +1014,7 @@ export function ShotConfigurationStep({
       }
     }
     
-    // 🔥 NEW: Validation for dialogue workflows - prevent override when not allowed
+    // Feature 0218: Overrides only for Narrate Shot (and non-dialogue). Hidden Mouth uses additive prompt in panel.
     if (isDialogueShot && !isSceneVoiceover) {
       if (finalFirstFramePromptOverride || uploadedFirstFrameUrl) {
         validationErrors.push('First frame override is only available for "Narrate Shot (Scene Voiceover)" workflow. Please switch to that workflow or clear the override.');
@@ -1343,10 +1341,12 @@ export function ShotConfigurationStep({
                   offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
                   offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
                   offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
+                  onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
+                  offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
+                  onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
                   onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
                   onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
                   onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
-                  onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
                   pronounExtrasPrompts={shotPronounExtrasPrompts}
                   onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
                   sceneProps={finalSceneProps}
@@ -1412,10 +1412,12 @@ export function ShotConfigurationStep({
                   offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
                   offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
                   offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
+                  onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
+                  offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
+                  onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
                   onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
                   onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
                   onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
-                  onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
                   pronounExtrasPrompts={shotPronounExtrasPrompts}
                   onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
                   sceneProps={finalSceneProps}
@@ -1481,10 +1483,12 @@ export function ShotConfigurationStep({
               offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
               offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
               offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
+              onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
+              offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
+              onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
               onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
               onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
               onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
-              onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
               pronounExtrasPrompts={shotPronounExtrasPrompts}
               onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
               sceneProps={finalSceneProps}
@@ -1973,7 +1977,7 @@ export function ShotConfigurationStep({
               </div>
             )}
             
-            {/* Video Prompt Override Section */}
+            {/* Video Prompt Override Section – Narrate Shot and non-dialogue only (Feature 0218) */}
             {isVideoPromptOverrideEnabled && (
               <div className="space-y-3">
                 <div>

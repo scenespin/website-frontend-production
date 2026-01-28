@@ -107,6 +107,8 @@ export interface SceneBuilderState {
   offFrameListenerCharacterId: Record<number, string | null>;
   offFrameGroupCharacterIds: Record<number, string[]>;
   offFrameSceneContextPrompt: Record<number, string>;
+  /** Feature 0218: Additive video prompt for Hidden Mouth (add to default motion prompt). Not an override. */
+  offFrameVideoPromptAdditive: Record<number, string>;
   
   // Prompt Override State
   firstFramePromptOverrides: Record<number, string>;
@@ -199,6 +201,8 @@ export interface SceneBuilderActions {
   updateOffFrameGroupCharacterIds: (shotSlot: number, characterIds: string[]) => void;
   setOffFrameSceneContextPrompt: (byShot: Record<number, string>) => void;
   updateOffFrameSceneContextPrompt: (shotSlot: number, prompt: string) => void;
+  setOffFrameVideoPromptAdditive: (byShot: Record<number, string>) => void;
+  updateOffFrameVideoPromptAdditive: (shotSlot: number, prompt: string) => void;
   
   // Prompt Override Actions
   setFirstFramePromptOverrides: (overrides: Record<number, string>) => void;
@@ -318,6 +322,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     offFrameListenerCharacterId: {},
     offFrameGroupCharacterIds: {},
     offFrameSceneContextPrompt: {},
+    offFrameVideoPromptAdditive: {},
     
     // Prompt Override State
     firstFramePromptOverrides: {},
@@ -907,6 +912,18 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         ...prev,
         offFrameSceneContextPrompt: {
           ...prev.offFrameSceneContextPrompt,
+          [shotSlot]: prompt
+        }
+      }));
+    }, []),
+    setOffFrameVideoPromptAdditive: useCallback((byShot) => {
+      setState(prev => ({ ...prev, offFrameVideoPromptAdditive: byShot }));
+    }, []),
+    updateOffFrameVideoPromptAdditive: useCallback((shotSlot, prompt) => {
+      setState(prev => ({
+        ...prev,
+        offFrameVideoPromptAdditive: {
+          ...prev.offFrameVideoPromptAdditive,
           [shotSlot]: prompt
         }
       }));

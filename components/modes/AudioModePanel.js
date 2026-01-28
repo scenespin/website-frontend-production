@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import AudioResultActions from '@/components/shared/AudioResultActions';
 import { CloudSavePrompt } from '@/components/CloudSavePrompt';
 
-export function AudioModePanel({ onInsert }) {
+export function AudioModePanel({ onInsert, projectId }) {
   const { state, addMessage } = useChatContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [audioType, setAudioType] = useState('music'); // 'soundtrack', 'music', 'sfx'
@@ -89,12 +89,14 @@ export function AudioModePanel({ onInsert }) {
         mode: 'audio'
       });
       
-      // Call audio generation API
-      const response = await api.audio.generate({ 
+      // Call audio generation API (projectId for Jobs Panel when in screenplay context)
+      const payload = { 
         prompt: prompt.trim(), 
         type: audioType, 
         quality: selectedQuality 
-      });
+      };
+      if (projectId) payload.projectId = projectId;
+      const response = await api.audio.generate(payload);
       
       // Calculate expiration (7 days)
       const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000);
