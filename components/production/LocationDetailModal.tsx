@@ -2286,7 +2286,7 @@ export function LocationDetailModal({
                                           <Sparkles className="w-4 h-4 mr-2" /> {regeneratingS3Key === (background.s3Key || '').trim() ? 'Regenerating...' : 'Regenerate'}
                                         </DropdownMenuItem>
                                       )}
-                                      <DropdownMenuItem className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]" onClick={(e) => { e.stopPropagation(); handleDeleteBackground(background); }}>
+                                      <DropdownMenuItem className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]" onClick={(e) => { e.stopPropagation(); handleDeleteBackground(background as LocationBackground); }}>
                                         <Trash2 className="w-4 h-4 mr-2" /> Delete
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
