@@ -2211,7 +2211,7 @@ export function LocationDetailModal({
                           const backgroundTypeLabels: Record<string, string> = {
                             'window': 'Window', 'wall': 'Wall', 'doorway': 'Doorway', 'texture': 'Texture',
                             'corner-detail': 'Corner Detail', 'furniture': 'Furniture', 'architectural-feature': 'Architectural Feature',
-                            'custom': background.description || 'Custom Background', 'ecu-soft': 'ECU Soft'
+                            'custom': (background as LocationBackground).description || 'Custom Background', 'ecu-soft': 'ECU Soft'
                           };
                           const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
                           return (
