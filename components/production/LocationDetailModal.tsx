@@ -2247,7 +2247,7 @@ export function LocationDetailModal({
                                       <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onClick={(e) => { e.stopPropagation(); const imageIndex = allImages.findIndex(i => i.s3Key === background.s3Key || i.s3Key === img.s3Key || i.id === img.id); if (imageIndex >= 0) { setPreviewImageIndex(imageIndex); setPreviewGroupName(null); } }}>
                                         <Eye className="w-4 h-4 mr-2 text-[#808080]" /> View
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onClick={async (e) => { e.stopPropagation(); try { await downloadImageAsBlob(img.imageUrl, `${location.name}_ECU_${Date.now()}.jpg`, img.s3Key); } catch { toast.error('Failed to download image'); }}>
+                                      <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onClick={async (e) => { e.stopPropagation(); try { await downloadImageAsBlob(img.imageUrl, `${location.name}_ECU_${Date.now()}.jpg`, img.s3Key); } catch (_) { toast.error('Failed to download image'); } }}>
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" /> Download
                                       </DropdownMenuItem>
                                       {background.id && background.s3Key && background.generationMethod === 'ai-generated' && (
