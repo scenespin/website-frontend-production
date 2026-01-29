@@ -272,7 +272,12 @@ export default function MediaLibrary({
   } = useMediaFiles(
     projectId, 
     selectedFolderId && selectedStorageType === 's3' ? selectedFolderId : undefined,
-    !selectedFolderId || selectedStorageType === 's3' // Only load S3 files when S3 folder selected or no folder
+    !selectedFolderId || selectedStorageType === 's3', // Only load S3 files when S3 folder selected or no folder
+    false, // includeAllFolders
+    undefined, // entityType
+    undefined, // entityId
+    // Feature 0220: Archive direct-children-only – when browsing an S3 folder, show only direct children (no descendant files)
+    !!(selectedFolderId && selectedStorageType === 's3')
   );
   
   // 🔥 NEW: Load folder tree to display folders in main view

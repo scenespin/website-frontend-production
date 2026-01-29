@@ -51,6 +51,7 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
  * Feature 0128: Added optional folderId parameter for folder filtering
  * Feature: Added includeAllFolders parameter to show all files regardless of folder
  * Feature 0174: Added entityType and entityId parameters for efficient filtering
+ * Feature 0220: Added directChildrenOnly for Archive – when true and folderId set, return only direct children of that folder
  */
 export function useMediaFiles(
   screenplayId: string, 
@@ -58,12 +59,13 @@ export function useMediaFiles(
   enabled: boolean = true, 
   includeAllFolders: boolean = false,
   entityType?: 'character' | 'location' | 'asset' | 'scene',
-  entityId?: string
+  entityId?: string,
+  directChildrenOnly: boolean = false
 ) {
   const { getToken } = useAuth();
 
   return useQuery<MediaFile[], Error>({
-    queryKey: ['media', 'files', screenplayId, folderId || 'root', includeAllFolders ? 'all' : 'filtered', entityType, entityId],
+    queryKey: ['media', 'files', screenplayId, folderId || 'root', includeAllFolders ? 'all' : 'filtered', entityType, entityId, directChildrenOnly ? 'direct' : 'recursive'],
     queryFn: async () => {
       const token = await getAuthToken(getToken);
       if (!token) {
@@ -84,6 +86,9 @@ export function useMediaFiles(
       }
       if (entityId) {
         params.append('entityId', entityId);
+      }
+      if (directChildrenOnly && folderId) {
+        params.append('directChildrenOnly', 'true');
       }
 
       const response = await fetch(`/api/media/list?${params.toString()}`, {
