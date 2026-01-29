@@ -412,7 +412,8 @@ export function GenerateLocationTab({
           weather: defaultWeather,
           projectId: screenplayId,
           screenplayId: screenplayId,
-          forExtremeCloseUp: forExtremeCloseUp || undefined // Feature 0221
+          forExtremeCloseUp: forExtremeCloseUp || undefined, // Feature 0221
+          ecuAbstract: ecuAbstract || undefined // Feature 0222
         };
         
         const response = await fetch(apiUrl, {
@@ -780,20 +781,42 @@ export function GenerateLocationTab({
         )}
       </div>
 
-      {/* Feature 0221: For extreme close-up (backgrounds only) */}
+      {/* Feature 0221 / 0222: ECU modifiers - mutually exclusive (backgrounds only) */}
       {packageType === 'backgrounds' && (
-        <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+        <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4 space-y-3">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={forExtremeCloseUp}
-              onChange={(e) => setForExtremeCloseUp(e.target.checked)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setForExtremeCloseUp(checked);
+                if (checked) setEcuAbstract(false);
+              }}
               className="w-4 h-4 rounded border-[#3F3F46] text-[#DC143C] focus:ring-[#DC143C]"
             />
             <div>
               <span className="text-sm font-medium text-white">For extreme close-up (face/mouth)</span>
               <p className="text-xs text-[#808080] mt-1">
                 Generate soft, blurred backgrounds for extreme close-up dialogue shots. Same lighting and mood as location.
+              </p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={ecuAbstract}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setEcuAbstract(checked);
+                if (checked) setForExtremeCloseUp(false);
+              }}
+              className="w-4 h-4 rounded border-[#3F3F46] text-[#DC143C] focus:ring-[#DC143C]"
+            />
+            <div>
+              <span className="text-sm font-medium text-white">Abstract (colors &amp; lighting only)</span>
+              <p className="text-xs text-[#808080] mt-1">
+                Failsafe ECU background: only color and lighting, no location detail. Use when soft blur still looks too busy or inconsistent.
               </p>
             </div>
           </label>

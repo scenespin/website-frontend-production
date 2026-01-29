@@ -71,6 +71,7 @@ export default function LocationBackgroundGenerationModal({
   const [weather, setWeather] = useState<'sunny' | 'cloudy' | 'rainy' | 'snowy' | ''>('');
   const [additionalPrompt, setAdditionalPrompt] = useState<string>('');
   const [forExtremeCloseUp, setForExtremeCloseUp] = useState<boolean>(false); // Feature 0221: soft/blurred for ECU face/mouth
+  const [ecuAbstract, setEcuAbstract] = useState<boolean>(false); // Feature 0222: abstract (colors & lighting only) - mutually exclusive with forExtremeCloseUp
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
@@ -243,6 +244,7 @@ export default function LocationBackgroundGenerationModal({
     setWeather('');
     setAdditionalPrompt('');
     setForExtremeCloseUp(false); // Feature 0221
+    setEcuAbstract(false); // Feature 0222
     setGenerationResult(null);
     setError('');
     setIsGenerating(false);
@@ -420,13 +422,17 @@ export default function LocationBackgroundGenerationModal({
                     />
                   </div>
                   
-                  {/* Feature 0221: For extreme close-up (face/mouth) - soft/blurred backgrounds */}
-                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                  {/* Feature 0221 / 0222: ECU modifiers - mutually exclusive (at most one checked) */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10 space-y-3">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={forExtremeCloseUp}
-                        onChange={(e) => setForExtremeCloseUp(e.target.checked)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setForExtremeCloseUp(checked);
+                          if (checked) setEcuAbstract(false);
+                        }}
                         className="w-4 h-4 rounded border-base-content/30 text-[#8B5CF6] focus:ring-[#8B5CF6]"
                       />
                       <div>
@@ -436,8 +442,26 @@ export default function LocationBackgroundGenerationModal({
                         </p>
                       </div>
                     </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ecuAbstract}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEcuAbstract(checked);
+                          if (checked) setForExtremeCloseUp(false);
+                        }}
+                        className="w-4 h-4 rounded border-base-content/30 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-base-content">Abstract (colors &amp; lighting only)</span>
+                        <p className="text-xs text-base-content/60 mt-1">
+                          Failsafe ECU background: only color and lighting, no location detail. Use when soft blur still looks too busy or inconsistent.
+                        </p>
+                      </div>
+                    </label>
                   </div>
-                  
+
                   {/* Time of Day and Weather Selection */}
                   <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
                     <h3 className="text-sm font-semibold text-base-content mb-4">
