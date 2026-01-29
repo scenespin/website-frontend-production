@@ -492,27 +492,15 @@ export function UploadLocationImagesTab({
 
           {/* Create New */}
           {nameMode === 'create' && (
-            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
+            <div className="space-y-1">
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder={labels.placeholder}
-                className={`flex-1 ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
+                className={`w-full ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
               />
-              <button
-                onClick={() => {
-                  if (!newName.trim()) {
-                    toast.error(`Please enter a ${labels.name.toLowerCase()} name`);
-                    return;
-                  }
-                  toast.success(`${labels.name} "${newName.trim()}" is ready for images`);
-                }}
-                disabled={!newName.trim()}
-                className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-3 py-1.5 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors font-medium`}
-              >
-                Create
-              </button>
+              <p className="text-xs text-[#808080]">Enter a name or select one above to enable adding images.</p>
             </div>
           )}
 
@@ -554,7 +542,7 @@ export function UploadLocationImagesTab({
           <button
             onClick={() => {
               if (!isNameValid) {
-                toast.error(`Please create or select a ${labels.name.toLowerCase()} name first (Step 2)`);
+                toast.error(category === 'angles' ? 'Please enter a view name or select an existing view first.' : 'Please enter a background name or select an existing background first.');
                 return;
               }
               fileInputRef.current?.click();
@@ -576,7 +564,7 @@ export function UploadLocationImagesTab({
           <button
             onClick={() => {
               if (!isNameValid) {
-                toast.error(`Please create or select a ${labels.name.toLowerCase()} name first (Step 2)`);
+                toast.error(category === 'angles' ? 'Please enter a view name or select an existing view first.' : 'Please enter a background name or select an existing background first.');
                 return;
               }
               setShowMediaLibrary(!showMediaLibrary);

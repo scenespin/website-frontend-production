@@ -366,27 +366,15 @@ export function UploadAssetImagesTab({
 
           {/* Create New Angle */}
           {angleMode === 'create' && (
-            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
+            <div className="space-y-1">
               <input
                 type="text"
                 value={newAngleName}
                 onChange={(e) => setNewAngleName(e.target.value)}
                 placeholder="Enter angle name (e.g., Front, Side, Detail)"
-                className={`flex-1 ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
+                className={`w-full ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
               />
-              <button
-                onClick={() => {
-                  if (!newAngleName.trim()) {
-                    toast.error('Please enter an angle name');
-                    return;
-                  }
-                  toast.success(`Angle "${newAngleName.trim()}" is ready for images`);
-                }}
-                disabled={!newAngleName.trim()}
-                className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-3 py-1.5 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors font-medium`}
-              >
-                Create
-              </button>
+              <p className="text-xs text-[#808080]">Enter a name or select one above to enable adding images.</p>
             </div>
           )}
 
@@ -445,7 +433,7 @@ export function UploadAssetImagesTab({
           <button
             onClick={() => {
               if (!isAngleNameValid) {
-                toast.error('Please create or select an angle name first (Step 1)');
+                toast.error('Please enter an angle name or select an existing angle first.');
                 return;
               }
               setShowMediaLibrary(!showMediaLibrary);

@@ -1077,41 +1077,39 @@ export function ShotConfigurationPanel({
             </div>
           </div>
 
-          {/* Feature 0218: Who's in the scene – at top for Narrate Shot (Additional Characters). Hidden Mouth uses Listener/Group inside Hidden Mouth options below. */}
+          {/* Feature 0218: Who's in the scene – at top for Narrate Shot. Same visual pattern as Hidden Mouth (tags/pills). */}
           {currentWorkflow === 'scene-voiceover' && shot.type === 'dialogue' && onCharactersForShotChange && (
             <div className="mt-4">
-              <div className="mb-2 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                Add characters that will appear in the scene. The narrator can also appear in the scene if selected.
-              </div>
-              <div className="text-xs font-medium text-[#FFFFFF] mb-2">Additional Characters</div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="text-[10px] font-medium text-[#808080] mb-1.5">Additional Characters</div>
+              <p className="text-[10px] text-[#808080] mb-2">Add characters that will appear in the scene. The narrator can also appear if selected.</p>
+              <div className="flex flex-wrap gap-2">
                 {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => {
                   const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
                   return (
-                    <div key={char.id} className="flex items-center gap-2">
+                    <label
+                      key={char.id}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-xs cursor-pointer',
+                        isSelected
+                          ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                          : 'border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
+                      )}
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={(e) => {
-                          e.stopPropagation();
+                        onChange={() => {
                           if (!onCharactersForShotChange) return;
                           const current = selectedCharactersForShots[shot.slot] || [];
-                          const updated = e.target.checked
-                            ? [...current, char.id]
-                            : current.filter((id: string) => id !== char.id);
+                          const updated = isSelected
+                            ? current.filter((id: string) => id !== char.id)
+                            : [...current, char.id];
                           onCharactersForShotChange(shot.slot, updated);
                         }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-3.5 h-3.5 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                        disabled={!onCharactersForShotChange}
+                        className="sr-only"
                       />
-                      <span className="text-xs text-[#FFFFFF] flex-1">
-                        {char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}
-                      </span>
-                      {isSelected && (
-                        <span className="text-[10px] text-[#DC143C]">✓</span>
-                      )}
-                    </div>
+                      <span>{char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}</span>
+                    </label>
                   );
                 })}
               </div>
@@ -1213,11 +1211,13 @@ export function ShotConfigurationPanel({
                   </div>
                 </div>
               )}
-              {/* Scene context (optional) – setting/mood for first frame (image) only */}
+              {/* First frame (image): Scene context then Alternate action – sequential, then Video */}
+              <div className="text-[10px] font-semibold text-[#808080] mt-3 mb-1.5 uppercase tracking-wide">First frame (image)</div>
+              <p className="text-[10px] text-[#808080] mb-2">These two fields affect only the generated image. Order: setting/mood, then pose/framing.</p>
               {onOffFrameSceneContextPromptChange && (
-                <div>
+                <div className="mb-3">
                   <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
-                    Scene context (optional)
+                    1. Scene context (optional)
                   </label>
                   <textarea
                     value={offFrameSceneContextPrompt ?? ''}
@@ -1227,12 +1227,29 @@ export function ShotConfigurationPanel({
                     className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
                   />
                   <div className="text-[10px] text-[#808080] mt-1 space-y-1">
-                    <p><strong>What to enter:</strong> Where the scene takes place or the mood — <strong>for the image (first frame) only</strong>. Short phrases work best.</p>
-                    <p><strong>Good examples:</strong> &quot;in a crowded bar&quot;, &quot;at a window at night&quot;, &quot;tense standoff&quot;, &quot;sunlit kitchen&quot;, &quot;dim interrogation room&quot;.</p>
-                    <p><strong>Not for:</strong> Character poses or actions (use &quot;Describe the alternate action&quot; below). You can use this alone, with listener/group, or leave blank.</p>
+                    <p>Where the scene takes place or the mood. Short phrases work best.</p>
                   </div>
                 </div>
               )}
+              {onDialogueWorkflowPromptChange && (
+                <div className="mb-3">
+                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
+                    2. Describe the alternate action (first frame only)
+                  </label>
+                  <textarea
+                    value={dialogueWorkflowPrompt || ''}
+                    onChange={(e) => onDialogueWorkflowPromptChange(shot.slot, e.target.value)}
+                    placeholder="e.g. character with back to camera, over shoulder of listener, side profile, speaking from off-screen"
+                    rows={2}
+                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                  />
+                  <div className="text-[10px] text-[#808080] mt-1">
+                    How the speaker is shown — pose, angle, or framing. Not for location/mood (use Scene context above).
+                  </div>
+                </div>
+              )}
+              <div className="text-[10px] font-semibold text-[#808080] mt-3 mb-1.5 uppercase tracking-wide">Video</div>
+              <p className="text-[10px] text-[#808080] mb-2">Add to the default motion for the video step only.</p>
               {/* Feature 0218: Additive video prompt (add to default motion prompt). Not an override. */}
               {onOffFrameVideoPromptAdditiveChange && (
                 <div>
@@ -1246,16 +1263,13 @@ export function ShotConfigurationPanel({
                     rows={2}
                     className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
                   />
-                  <div className="text-[10px] text-[#808080] mt-1">
-                    Add to the default motion prompt for the video step (Runway/Luma/VEO). Short phrases work best.
-                  </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* Prompt box for first frame (image): action/framing – Hidden Mouth and Narrate Shot */}
-          {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && onDialogueWorkflowPromptChange && (
+          {/* Prompt box for first frame (image): Narrate Shot only – "Describe the alternate action" lives inside Hidden Mouth block above */}
+          {currentWorkflow === 'scene-voiceover' && onDialogueWorkflowPromptChange && (
             <div className="mt-3">
               <label className="block text-[10px] text-[#808080] mb-1.5">
                 Describe the alternate action in the scene (first frame only)
@@ -1265,27 +1279,13 @@ export function ShotConfigurationPanel({
                 onChange={(e) => {
                   onDialogueWorkflowPromptChange(shot.slot, e.target.value);
                 }}
-                placeholder={
-                  currentWorkflow === 'off-frame-voiceover'
-                    ? 'e.g. character with back to camera, over shoulder of listener, side profile, speaking from off-screen'
-                    : 'e.g. narrator visible in scene describing the action, or narrator voice over wide shot'
-                }
+                placeholder="e.g. narrator visible in scene describing the action, or narrator voice over wide shot"
                 rows={3}
                 className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
               />
               <div className="text-[10px] text-[#808080] mt-1 space-y-1">
-                {currentWorkflow === 'off-frame-voiceover' ? (
-                  <>
-                    <p><strong>What to enter:</strong> How the speaker is shown or what they&apos;re doing in the <strong>image (first frame) only</strong> — pose, angle, or framing. Short phrases work best.</p>
-                    <p><strong>Good examples:</strong> &quot;back to camera&quot;, &quot;over shoulder of listener&quot;, &quot;side profile&quot;, &quot;speaking from off-screen&quot;, &quot;head turned away from camera&quot;, &quot;two-shot from behind speaker&quot;.</p>
-                    <p><strong>Not for:</strong> Location or mood (use &quot;Scene context&quot; above). Use &quot;Video motion prompt (optional)&quot; in Hidden Mouth options to add to the default motion.</p>
-                  </>
-                ) : (
-                  <>
-                    <p><strong>What to enter:</strong> How the narrator appears or what the shot shows in the <strong>image (first frame) only</strong>.</p>
-                    <p><strong>Good examples:</strong> &quot;narrator visible in scene describing the action&quot;, &quot;voice over wide shot of location&quot;, &quot;narrator at desk, speaking to camera&quot;.</p>
-                  </>
-                )}
+                <p><strong>What to enter:</strong> How the narrator appears or what the shot shows in the <strong>image (first frame) only</strong>.</p>
+                <p><strong>Good examples:</strong> &quot;narrator visible in scene describing the action&quot;, &quot;voice over wide shot of location&quot;, &quot;narrator at desk, speaking to camera&quot;.</p>
               </div>
             </div>
           )}

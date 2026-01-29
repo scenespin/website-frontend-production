@@ -81,18 +81,6 @@ export function GenerateWardrobeTab({
   const [error, setError] = useState<string>('');
   const [showPosePackageDetails, setShowPosePackageDetails] = useState(false);
 
-  // Auto-generate outfit name helper
-  const generateOutfitName = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    return `Outfit_${year}${month}${day}_${hours}${minutes}${seconds}`;
-  };
-
   // Extract existing outfit names
   const existingOutfits = useMemo(() => {
     const outfits = new Set<string>();
@@ -105,13 +93,12 @@ export function GenerateWardrobeTab({
     return Array.from(outfits).sort();
   }, [existingReferences]);
 
-  // Get final outfit name
+  // Get final outfit name (no auto-generated name; require user input or selection)
   const finalOutfitName = useMemo(() => {
     if (outfitMode === 'create') {
-      return newOutfitName.trim() || generateOutfitName();
-    } else {
-      return selectedExistingOutfit || generateOutfitName();
+      return newOutfitName.trim() || '';
     }
+    return selectedExistingOutfit || '';
   }, [outfitMode, newOutfitName, selectedExistingOutfit]);
 
   // Get selected model
@@ -259,7 +246,7 @@ export function GenerateWardrobeTab({
   // Handle generation
   const handleGenerate = async () => {
     if (!finalOutfitName || finalOutfitName.trim() === '') {
-      toast.error('Please create or select an outfit');
+      toast.error('Please enter an outfit name or select an existing outfit.');
       return;
     }
 
@@ -388,25 +375,15 @@ export function GenerateWardrobeTab({
           </div>
 
           {outfitMode === 'create' && (
-            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
+            <div className="space-y-1">
               <input
                 type="text"
                 value={newOutfitName}
                 onChange={(e) => setNewOutfitName(e.target.value)}
                 placeholder="Enter outfit name (e.g., Casual, Formal)"
-                className={`flex-1 ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
+                className={`w-full ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
               />
-              <button
-                onClick={() => {
-                  if (!newOutfitName.trim()) {
-                    const autoName = generateOutfitName();
-                    setNewOutfitName(autoName);
-                  }
-                }}
-                className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-3 py-1.5 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 text-white rounded transition-colors font-medium`}
-              >
-                Create
-              </button>
+              <p className="text-xs text-[#808080]">Enter a name or select an outfit before generating.</p>
             </div>
           )}
 

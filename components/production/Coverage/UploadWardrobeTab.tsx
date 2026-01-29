@@ -68,18 +68,6 @@ export function UploadWardrobeTab({
     return Array.from(outfits).sort();
   }, [existingReferences]);
 
-  // Auto-generate outfit name helper
-  const generateOutfitName = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    return `Outfit_${year}${month}${day}_${hours}${minutes}${seconds}`;
-  };
-
   // Get final outfit name
   const finalOutfitName = useMemo(() => {
     if (outfitMode === 'create') {
@@ -360,28 +348,15 @@ export function UploadWardrobeTab({
 
           {/* Create New Outfit */}
           {outfitMode === 'create' && (
-            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
+            <div className="space-y-1">
               <input
                 type="text"
                 value={newOutfitName}
                 onChange={(e) => setNewOutfitName(e.target.value)}
                 placeholder="Enter outfit name (e.g., Casual, Formal)"
-                className={`flex-1 ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
+                className={`w-full ${isMobile ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
               />
-              <button
-                onClick={() => {
-                  if (!newOutfitName.trim()) {
-                    toast.error('Please enter an outfit name');
-                    return;
-                  }
-                  // Outfit name is already set in state, no need to do anything else
-                  toast.success(`Outfit "${newOutfitName.trim()}" is ready for images`);
-                }}
-                disabled={!newOutfitName.trim()}
-                className={`${isMobile ? 'w-full px-4 py-3 text-base min-h-[48px]' : 'px-3 py-1.5 text-sm'} bg-[#DC143C] hover:bg-[#DC143C]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors font-medium`}
-              >
-                Create
-              </button>
+              <p className="text-xs text-[#808080]">Enter a name or select one above to enable adding images.</p>
             </div>
           )}
 
@@ -419,7 +394,7 @@ export function UploadWardrobeTab({
             onClick={() => {
               // 🔥 FIX: Check outfit name before allowing file selection
               if (!isOutfitNameValid) {
-                toast.error('Please create or select an outfit name first (Step 1)');
+                toast.error('Please enter an outfit name or select an existing outfit first.');
                 return;
               }
               fileInputRef.current?.click();
@@ -442,7 +417,7 @@ export function UploadWardrobeTab({
             onClick={() => {
               // 🔥 FIX: Check outfit name before allowing browse
               if (!isOutfitNameValid) {
-                toast.error('Please create or select an outfit name first (Step 1)');
+                toast.error('Please enter an outfit name or select an existing outfit first.');
                 return;
               }
               setShowMediaLibrary(!showMediaLibrary);
