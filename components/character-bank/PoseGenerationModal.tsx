@@ -449,6 +449,7 @@ export default function PoseGenerationModal({
       if (result.jobId) {
         setJobId(result.jobId);
         console.log('[PoseGeneration] Job created:', result.jobId);
+        window.dispatchEvent(new CustomEvent('wryda:job-created'));
       }
       
       // Reset state first to ensure clean state for next use

@@ -162,7 +162,7 @@ export function GenerateAssetTab({
         // Note: Credits are deducted asynchronously as each angle generates, not when job is created
         // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
         console.log('[GenerateAssetTab] ✅ Job created:', result.jobId);
-        
+        window.dispatchEvent(new CustomEvent('wryda:job-created'));
         // Toast notification handled by parent (AssetDetailModal) in onComplete callback
         if (onComplete) {
           onComplete({ jobId: result.jobId, type: 'angles' });

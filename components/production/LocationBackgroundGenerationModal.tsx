@@ -195,7 +195,8 @@ export default function LocationBackgroundGenerationModal({
       if (result.jobId) {
         setJobId(result.jobId);
         console.log('[LocationBackgroundGeneration] Job started:', result.jobId);
-        
+        // Trigger Jobs panel refetch after delay (DynamoDB GSI eventual consistency)
+        window.dispatchEvent(new CustomEvent('wryda:job-created'));
         // Close modal immediately - job runs in background
         handleReset();
         onClose();

@@ -718,25 +718,49 @@ export function LocationDetailModal({
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from location prop)
   // 🔥 Feature 0200: Filter out fallback images with empty imageUrl (expired files)
+  // 🔥 Group by mediator: Creation first, then Angles (by timeOfDay/weather), then Backgrounds (by backgroundType)
+  //    so the image viewer shows an organized order instead of "everything together"
   const allImages = useMemo(() => {
     // Filter fallback images to only include those with valid URLs
     const validFallbackImages = fallbackImages.filter(img => !!img.imageUrl && img.imageUrl.length > 0);
     const combined = [...enrichedMediaLibraryImages, ...validFallbackImages];
     
+    // Sort by mediator: Creation (0) → Angles (1) → Backgrounds (2); within each, sub-sort for consistency
+    const typeOrder = (img: typeof combined[0]) => {
+      if (img.isBase || (!img.isAngle && !img.isBackground)) return 0;
+      if (img.isAngle) return 1;
+      return 2;
+    };
+    const sorted = [...combined].sort((a, b) => {
+      const orderA = typeOrder(a);
+      const orderB = typeOrder(b);
+      if (orderA !== orderB) return orderA - orderB;
+      if (orderA === 1) {
+        // Angles: by timeOfDay then weather
+        const keyA = [a.timeOfDay ?? '', a.weather ?? ''].join('|');
+        const keyB = [b.timeOfDay ?? '', b.weather ?? ''].join('|');
+        return keyA.localeCompare(keyB) || (a.index - b.index);
+      }
+      if (orderA === 2) {
+        // Backgrounds: by backgroundType then timeOfDay/weather
+        const keyA = [a.backgroundType ?? 'custom', a.timeOfDay ?? '', a.weather ?? ''].join('|');
+        const keyB = [b.backgroundType ?? 'custom', b.timeOfDay ?? '', b.weather ?? ''].join('|');
+        return keyA.localeCompare(keyB) || (a.index - b.index);
+      }
+      return a.index - b.index;
+    });
+    
     // 🔥 DEBUG: Log allImages composition
-    console.log('[LocationDetailModal] 🖼️ ALL IMAGES COMPOSITION:', {
+    console.log('[LocationDetailModal] 🖼️ ALL IMAGES COMPOSITION (sorted by mediator):', {
       enrichedMediaLibraryCount: enrichedMediaLibraryImages.length,
       fallbackImagesCount: fallbackImages.length,
       validFallbackImagesCount: validFallbackImages.length,
-      totalAllImagesCount: combined.length,
-      enrichedMediaLibraryS3Keys: enrichedMediaLibraryImages.map(i => i.s3Key).slice(0, 5),
-      fallbackImagesS3Keys: fallbackImages.map(i => i.s3Key).slice(0, 5),
-      allImagesBackgroundCount: combined.filter(i => i.isBackground).length,
-      allImagesAngleCount: combined.filter(i => i.isAngle).length,
-      // Note: latestLocation.backgrounds/angleVariations no longer affect allImages (fallback removed)
+      totalAllImagesCount: sorted.length,
+      allImagesBackgroundCount: sorted.filter(i => i.isBackground).length,
+      allImagesAngleCount: sorted.filter(i => i.isAngle).length,
     });
     
-    return combined;
+    return sorted;
   }, [enrichedMediaLibraryImages, fallbackImages]);
   
   // 🔥 FIX: Create allCreationImages as separate variable (used in JSX for Creation section display)

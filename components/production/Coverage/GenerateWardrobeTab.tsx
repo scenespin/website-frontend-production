@@ -330,6 +330,7 @@ export function GenerateWardrobeTab({
       // Note: Credits are deducted asynchronously as each pose generates, not when job is created
       // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
       console.log('[GenerateWardrobeTab] ✅ Job created:', result.jobId);
+      window.dispatchEvent(new CustomEvent('wryda:job-created'));
       
       toast.dismiss('wardrobe-gen-start');
       toast.success('Wardrobe generation started!', {

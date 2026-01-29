@@ -384,8 +384,7 @@ export function GenerateLocationTab({
           // Note: Credits are deducted asynchronously as each pose generates, not when job is created
           // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
           console.log('[GenerateLocationTab] ✅ Job created:', result.jobId);
-          
-          // Toast notification handled by parent (LocationDetailModal) in onComplete callback
+          window.dispatchEvent(new CustomEvent('wryda:job-created'));
           if (onComplete) {
             onComplete({ jobId: result.jobId, type: 'angles' });
           }
@@ -434,8 +433,8 @@ export function GenerateLocationTab({
           // Note: Credits are deducted asynchronously as each background generates, not when job is created
           // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
           console.log('[GenerateLocationTab] ✅ Background job created:', result.jobId);
-          
-          // Toast notification handled by parent (LocationDetailModal) in onComplete callback
+          // Trigger Jobs panel refetch after delay (DynamoDB GSI eventual consistency)
+          window.dispatchEvent(new CustomEvent('wryda:job-created'));
           if (onComplete) {
             onComplete({ jobId: result.jobId, type: 'backgrounds' });
           }
