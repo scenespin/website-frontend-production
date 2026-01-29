@@ -52,6 +52,7 @@ const ALL_POSES = [
   { id: 'low-angle', name: 'Low Angle', category: 'camera', description: 'Shot from below' },
   { id: 'close-up', name: 'Close-Up', category: 'camera', description: 'Face and shoulders' },
   { id: 'extreme-close-up', name: 'Extreme Close-Up', category: 'camera', description: 'Face only, tight framing' },
+  { id: 'extreme-close-up-mouth', name: 'Extreme Close-Up Mouth', category: 'camera', description: 'Mouth and chin only, extreme close-up (for dramatic lip sync focus)' },
   // Dialogue
   { id: 'close-up-three-quarter', name: 'Close-Up 3/4', category: 'camera', description: 'Face and shoulders, 3/4 angle' },
   { id: 'close-up-profile', name: 'Close-Up Profile', category: 'camera', description: 'Face and shoulders, side profile' },
