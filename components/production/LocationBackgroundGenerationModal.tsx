@@ -70,6 +70,7 @@ export default function LocationBackgroundGenerationModal({
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>('');
   const [weather, setWeather] = useState<'sunny' | 'cloudy' | 'rainy' | 'snowy' | ''>('');
   const [additionalPrompt, setAdditionalPrompt] = useState<string>('');
+  const [forExtremeCloseUp, setForExtremeCloseUp] = useState<boolean>(false); // Feature 0221: soft/blurred for ECU face/mouth
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
@@ -243,6 +244,7 @@ export default function LocationBackgroundGenerationModal({
     setTimeOfDay('');
     setWeather('');
     setAdditionalPrompt('');
+    setForExtremeCloseUp(false); // Feature 0221
     setGenerationResult(null);
     setError('');
     setIsGenerating(false);
@@ -418,6 +420,24 @@ export default function LocationBackgroundGenerationModal({
                       selectedBackgroundType={selectedBackgroundType}
                       onSelectedBackgroundTypeChange={setSelectedBackgroundType}
                     />
+                  </div>
+                  
+                  {/* Feature 0221: For extreme close-up (face/mouth) - soft/blurred backgrounds */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={forExtremeCloseUp}
+                        onChange={(e) => setForExtremeCloseUp(e.target.checked)}
+                        className="w-4 h-4 rounded border-base-content/30 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-base-content">For extreme close-up (face/mouth)</span>
+                        <p className="text-xs text-base-content/60 mt-1">
+                          Generate soft, blurred backgrounds suitable for extreme close-up dialogue shots. Same lighting and mood as location.
+                        </p>
+                      </div>
+                    </label>
                   </div>
                   
                   {/* Time of Day and Weather Selection */}

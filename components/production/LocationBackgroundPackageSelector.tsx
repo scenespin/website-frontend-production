@@ -23,7 +23,7 @@ interface LocationBackgroundPackage {
   discount: number;
 }
 
-// All available background types for single selection
+// All available background types for single selection. Feature 0221: ecu-soft for extreme close-up face/mouth.
 const ALL_BACKGROUND_TYPES = [
   { id: 'window', name: 'Window', description: 'View through or near a window' },
   { id: 'wall', name: 'Wall', description: 'Plain or decorated wall surface' },
@@ -32,7 +32,8 @@ const ALL_BACKGROUND_TYPES = [
   { id: 'corner-detail', name: 'Corner Detail', description: 'Architectural corner elements' },
   { id: 'furniture', name: 'Furniture', description: 'Furniture or fixture background' },
   { id: 'architectural-feature', name: 'Architectural Feature', description: 'Unique architectural elements' },
-  { id: 'custom', name: 'Custom', description: 'Custom background with description prompt' }
+  { id: 'custom', name: 'Custom', description: 'Custom background with description prompt' },
+  { id: 'ecu-soft', name: 'ECU Soft', description: 'Soft blur for extreme close-up face/mouth' }
 ];
 
 interface LocationBackgroundPackageSelectorProps {
@@ -113,11 +114,11 @@ export default function LocationBackgroundPackageSelector({
     {
       id: 'premium',
       name: 'Premium Package',
-      backgroundTypes: ['window', 'wall', 'doorway', 'texture', 'corner-detail', 'furniture', 'architectural-feature', 'custom', 'custom'],
-      credits: calculatePackageCredits(9), // 9 backgrounds × creditsPerImage
+      backgroundTypes: ['window', 'wall', 'doorway', 'texture', 'corner-detail', 'furniture', 'architectural-feature', 'custom', 'custom', 'ecu-soft'], // Feature 0221: ecu-soft for extreme close-up
+      credits: calculatePackageCredits(10), // 10 backgrounds × creditsPerImage
       consistencyRating: 92,
-      description: '9 backgrounds including custom options for professional productions',
-      bestFor: ['Professional films', 'Complex dialogue', 'Detailed close-ups'],
+      description: '10 backgrounds including ECU soft and custom options for professional productions',
+      bestFor: ['Professional films', 'Complex dialogue', 'Extreme close-ups', 'Detailed close-ups'],
       discount: 0
     }
   ]);

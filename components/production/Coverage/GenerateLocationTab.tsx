@@ -384,7 +384,6 @@ export function GenerateLocationTab({
           // Note: Credits are deducted asynchronously as each pose generates, not when job is created
           // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
           console.log('[GenerateLocationTab] ✅ Job created:', result.jobId);
-          window.dispatchEvent(new CustomEvent('wryda:job-created'));
           if (onComplete) {
             onComplete({ jobId: result.jobId, type: 'angles' });
           }
@@ -410,7 +409,8 @@ export function GenerateLocationTab({
           timeOfDay: defaultTimeOfDay,
           weather: defaultWeather,
           projectId: screenplayId,
-          screenplayId: screenplayId
+          screenplayId: screenplayId,
+          forExtremeCloseUp: forExtremeCloseUp || undefined // Feature 0221
         };
         
         const response = await fetch(apiUrl, {
@@ -466,7 +466,7 @@ export function GenerateLocationTab({
     single: 1,
     basic: 3,
     standard: 6,
-    premium: 9
+    premium: 10 // Feature 0221: includes ecu-soft
   };
   
   const selectedPackageId = packageType === 'angles' ? selectedAnglePackageId : selectedBackgroundPackageId;
@@ -779,6 +779,26 @@ export function GenerateLocationTab({
           />
         )}
       </div>
+
+      {/* Feature 0221: For extreme close-up (backgrounds only) */}
+      {packageType === 'backgrounds' && (
+        <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={forExtremeCloseUp}
+              onChange={(e) => setForExtremeCloseUp(e.target.checked)}
+              className="w-4 h-4 rounded border-[#3F3F46] text-[#DC143C] focus:ring-[#DC143C]"
+            />
+            <div>
+              <span className="text-sm font-medium text-white">For extreme close-up (face/mouth)</span>
+              <p className="text-xs text-[#808080] mt-1">
+                Generate soft, blurred backgrounds for extreme close-up dialogue shots. Same lighting and mood as location.
+              </p>
+            </div>
+          </label>
+        </div>
+      )}
 
       {/* Step 4: Optional - Lighting & Atmosphere */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
