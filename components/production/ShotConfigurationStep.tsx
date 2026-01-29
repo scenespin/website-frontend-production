@@ -1005,12 +1005,11 @@ export function ShotConfigurationStep({
       }
     }
     
-    // Video prompt override validation: Must have video prompt
-    // Only validate if override is allowed for this workflow
-    if (isVideoPromptOverrideEnabled && isOverrideAllowed) {
+    // Video prompt: required for Narrate Shot (primary field); for action shots required when override enabled
+    if (isOverrideAllowed && (isVideoPromptOverrideEnabled || isSceneVoiceover)) {
       const hasVideoPrompt = finalVideoPromptOverride?.trim() !== '';
       if (!hasVideoPrompt) {
-        validationErrors.push('Video prompt is required when "Override Video Prompt" is enabled.');
+        validationErrors.push(isSceneVoiceover ? 'Video prompt is required for Narrate Shot.' : 'Video prompt is required when "Override Video Prompt" is enabled.');
       }
     }
     
@@ -1712,60 +1711,89 @@ export function ShotConfigurationStep({
             </>
           )}
 
-          {/* 🔥 NEW: Separate Prompt Override Section - Two Independent Checkboxes */}
-          {/* Only show override section if override is allowed for this workflow */}
+          {/* Feature 0224: Narrate Shot = primary video prompt + optional Override first frame. Action shots = two checkboxes. */}
           {isOverrideAllowed && (
             <div className="mt-4 pt-3 border-t border-[#3F3F46]">
-              {/* First Frame Override Checkbox */}
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="checkbox"
-                  id={`first-frame-override-${shotSlot}`}
-                  checked={isFirstFrameOverrideEnabled}
-                  onChange={(e) => {
-                    const isChecked = e.target.checked;
-                    actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
-                    if (!isChecked) {
-                      // Clear first frame override when unchecked (but keep uploaded first frame if it exists)
-                      actions.updateFirstFramePromptOverride(shotSlot, '');
-                      // Don't clear uploaded first frame - user might want to keep it
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                />
-                <label 
-                  htmlFor={`first-frame-override-${shotSlot}`}
-                  className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
-                >
-                  Override First Frame
-                </label>
-              </div>
-              
-              {/* Video Prompt Override Checkbox */}
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="checkbox"
-                  id={`video-prompt-override-${shotSlot}`}
-                  checked={isVideoPromptOverrideEnabled}
-                  onChange={(e) => {
-                    const isChecked = e.target.checked;
-                    actions.updateVideoPromptOverrideEnabled(shotSlot, isChecked);
-                    if (!isChecked) {
-                      // Clear video prompt override when unchecked
-                      actions.updateVideoPromptOverride(shotSlot, '');
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                />
-                <label 
-                  htmlFor={`video-prompt-override-${shotSlot}`}
-                  className="text-xs font-medium text-[#FFFFFF] cursor-pointer"
-                >
-                  Override Video Prompt
-                </label>
-              </div>
-            
-              {/* First Frame Override Section */}
+              {isSceneVoiceover ? (
+                /* Narrate Shot: primary video prompt (no checkbox) + optional Override first frame checkbox only */
+                <>
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
+                      Video prompt for this shot
+                    </label>
+                    <textarea
+                      value={finalVideoPromptOverride || ''}
+                      onChange={(e) => finalOnVideoPromptOverrideChange(shotSlot, e.target.value)}
+                      placeholder="Describe the video you want for this shot (e.g. wide shot of location, narrator at desk, voice over montage). The video model will use this plus the voiceover."
+                      rows={3}
+                      className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                    />
+                    <div className="text-[10px] text-[#808080] italic mt-1">
+                      Required for Narrate Shot. The video model uses this prompt and overlays the scene voiceover.
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      id={`first-frame-override-${shotSlot}`}
+                      checked={isFirstFrameOverrideEnabled}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
+                        if (!isChecked) {
+                          actions.updateFirstFramePromptOverride(shotSlot, '');
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                    />
+                    <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">
+                      Override first frame (optional)
+                    </label>
+                  </div>
+                </>
+              ) : (
+                /* Action shots: two checkboxes (Override First Frame, Override Video Prompt) */
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      id={`first-frame-override-${shotSlot}`}
+                      checked={isFirstFrameOverrideEnabled}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
+                        if (!isChecked) {
+                          actions.updateFirstFramePromptOverride(shotSlot, '');
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                    />
+                    <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">
+                      Override First Frame
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      id={`video-prompt-override-${shotSlot}`}
+                      checked={isVideoPromptOverrideEnabled}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        actions.updateVideoPromptOverrideEnabled(shotSlot, isChecked);
+                        if (!isChecked) {
+                          actions.updateVideoPromptOverride(shotSlot, '');
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                    />
+                    <label htmlFor={`video-prompt-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">
+                      Override Video Prompt
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* First Frame Override Section (shared: Narrate Shot when checkbox checked, action when checkbox checked) */}
               {isFirstFrameOverrideEnabled && (
               <div className="space-y-3">
                 {/* Available Variables Display - Only show when generating first frame (not when uploading) */}
@@ -1977,8 +2005,8 @@ export function ShotConfigurationStep({
               </div>
             )}
             
-            {/* Video Prompt Override Section – Narrate Shot and non-dialogue only (Feature 0218) */}
-            {isVideoPromptOverrideEnabled && (
+            {/* Video Prompt Override Section – action shots only (Narrate Shot has primary video prompt above) */}
+            {!isSceneVoiceover && isVideoPromptOverrideEnabled && (
               <div className="space-y-3">
                 <div>
                   <label className="block text-[10px] text-[#808080] mb-1.5">
