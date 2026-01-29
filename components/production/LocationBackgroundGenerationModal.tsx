@@ -477,15 +477,18 @@ export default function LocationBackgroundGenerationModal({
                   
                   {/* Additional Prompt */}
                   <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
-                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                    <label htmlFor="location-background-modal-additional-prompt" className="text-sm font-semibold text-base-content mb-4 block">
                       Step 6: Additional Prompt (Optional)
-                    </h3>
+                    </label>
                     <textarea
+                      id="location-background-modal-additional-prompt"
+                      name="additionalPrompt"
                       value={additionalPrompt}
                       onChange={(e) => setAdditionalPrompt(e.target.value)}
                       placeholder="Add any specific details, color codes, or grounding search keywords..."
                       rows={3}
                       className="w-full px-3 py-2 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:border-[#DC143C] resize-none"
+                      aria-label="Additional prompt for background generation"
                     />
                     <p className="text-xs text-base-content/50 mt-2">
                       Supports color hex codes (e.g., #FF0000) and grounding search keywords

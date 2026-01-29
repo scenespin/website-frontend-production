@@ -23,7 +23,7 @@ interface LocationBackgroundPackage {
   discount: number;
 }
 
-// All available background types for single selection. Feature 0221: ecu-soft for extreme close-up face/mouth.
+// All available background types for single selection. ECU-style is via "For extreme close-up" checkbox only; ecu-soft remains in Premium package.
 const ALL_BACKGROUND_TYPES = [
   { id: 'window', name: 'Window', description: 'View through or near a window' },
   { id: 'wall', name: 'Wall', description: 'Plain or decorated wall surface' },
@@ -32,8 +32,7 @@ const ALL_BACKGROUND_TYPES = [
   { id: 'corner-detail', name: 'Corner Detail', description: 'Architectural corner elements' },
   { id: 'furniture', name: 'Furniture', description: 'Furniture or fixture background' },
   { id: 'architectural-feature', name: 'Architectural Feature', description: 'Unique architectural elements' },
-  { id: 'custom', name: 'Custom', description: 'Custom background with description prompt' },
-  { id: 'ecu-soft', name: 'ECU Soft', description: 'Soft blur for extreme close-up face/mouth' }
+  { id: 'custom', name: 'Custom', description: 'Custom background with description prompt' }
 ];
 
 interface LocationBackgroundPackageSelectorProps {
@@ -134,17 +133,25 @@ export default function LocationBackgroundPackageSelector({
     })));
   }, [creditsPerImage]);
   
-  // 🔥 FIX: Normalize selectedBackgroundType to always be a string (never undefined)
-  const normalizedSelectedBackgroundType = selectedBackgroundType || 'window';
-  
+  // 🔥 FIX: Normalize selectedBackgroundType to always be a string (never undefined). ECU for single is checkbox only—ecu-soft removed from dropdown.
+  const singleTypeIds = ALL_BACKGROUND_TYPES.map((t) => t.id);
+  const normalizedSelectedBackgroundType =
+    selectedBackgroundType && singleTypeIds.includes(selectedBackgroundType) ? selectedBackgroundType : 'window';
+
   // 🔥 FIX: Only auto-select when package FIRST becomes 'single', not on every render
   const hasInitializedRef = useRef<string>('');
-  
+  // When single is selected and stored type was ecu-soft (no longer in dropdown), sync parent to window
+  useEffect(() => {
+    if (selectedPackageId === 'single' && selectedBackgroundType === 'ecu-soft' && onSelectedBackgroundTypeChange) {
+      onSelectedBackgroundTypeChange('window');
+    }
+  }, [selectedPackageId, selectedBackgroundType, onSelectedBackgroundTypeChange]);
+
   // 🔥 Feature 0190: Auto-select first background type when single package is selected
   useEffect(() => {
-    if (selectedPackageId === 'single' && 
-        hasInitializedRef.current !== selectedPackageId && 
-        !selectedBackgroundType && 
+    if (selectedPackageId === 'single' &&
+        hasInitializedRef.current !== selectedPackageId &&
+        !selectedBackgroundType &&
         onSelectedBackgroundTypeChange) {
       onSelectedBackgroundTypeChange('window'); // Default to window
       hasInitializedRef.current = selectedPackageId;

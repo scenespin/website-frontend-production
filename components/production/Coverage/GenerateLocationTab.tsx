@@ -848,13 +848,18 @@ export function GenerateLocationTab({
 
       {/* Step 5: Optional - Additional Prompt */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 5: Additional Prompt (Optional)</h3>
+        <label htmlFor="generate-location-additional-prompt" className="text-sm font-semibold text-white mb-3 block">
+          Step 5: Additional Prompt (Optional)
+        </label>
         <textarea
+          id="generate-location-additional-prompt"
+          name="additionalPrompt"
           value={additionalPrompt}
           onChange={(e) => setAdditionalPrompt(e.target.value)}
           placeholder="Add any specific details, color codes, or grounding search keywords..."
           rows={3}
           className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C] resize-none"
+          aria-label="Additional prompt for generation"
         />
         <p className="mt-2 text-xs text-[#808080]">
           Supports color hex codes (e.g., #FF0000) and grounding search keywords
