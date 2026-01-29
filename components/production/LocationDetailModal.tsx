@@ -2282,7 +2282,7 @@ export function LocationDetailModal({
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" /> Download
                                       </DropdownMenuItem>
                                       {background.id && background.s3Key && background.generationMethod === 'ai-generated' && (
-                                        <DropdownMenuItem className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed" onClick={(e) => { e.stopPropagation(); if (!isRegenerating) setRegenerateBackground({ backgroundId: background.id, s3Key: (background.s3Key || '').trim(), backgroundType: background.backgroundType, background }); }} disabled={isRegenerating}>
+                                        <DropdownMenuItem className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed" onClick={(e) => { e.stopPropagation(); if (!isRegenerating) setRegenerateBackground({ backgroundId: background.id, s3Key: (background.s3Key || '').trim(), backgroundType: background.backgroundType, background: background as LocationBackground }); }} disabled={isRegenerating}>
                                           <Sparkles className="w-4 h-4 mr-2" /> {regeneratingS3Key === (background.s3Key || '').trim() ? 'Regenerating...' : 'Regenerate'}
                                         </DropdownMenuItem>
                                       )}
