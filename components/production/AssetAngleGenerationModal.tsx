@@ -154,7 +154,6 @@ export default function AssetAngleGenerationModal({
       if (result.jobId) {
         setJobId(result.jobId);
         console.log('[AssetAngleGeneration] Job started:', result.jobId);
-        window.dispatchEvent(new CustomEvent('wryda:job-created'));
         // Close modal immediately - job runs in background
         handleReset();
         onClose();

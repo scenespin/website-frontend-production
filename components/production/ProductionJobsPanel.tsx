@@ -690,24 +690,6 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenplayId, statusFilter]); // loadJobs is stable, but we want to reload when filters change
 
-  /**
-   * Refetch jobs when a new job is created elsewhere (e.g. location backgrounds, nano-banana-pro-2k).
-   * DynamoDB GSI can be eventually consistent; a short delay helps the new job appear in the list.
-   */
-  const jobCreatedRefetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    const listener = () => {
-      if (jobCreatedRefetchTimeoutRef.current) clearTimeout(jobCreatedRefetchTimeoutRef.current);
-      jobCreatedRefetchTimeoutRef.current = setTimeout(() => loadJobs(false), 2000);
-    };
-    window.addEventListener('wryda:job-created', listener);
-    return () => {
-      window.removeEventListener('wryda:job-created', listener);
-      if (jobCreatedRefetchTimeoutRef.current) clearTimeout(jobCreatedRefetchTimeoutRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Use ref to track latest jobs state without causing re-renders
   const jobsRef = useRef<WorkflowJob[]>([]);
   useEffect(() => {
