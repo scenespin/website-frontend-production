@@ -1460,8 +1460,8 @@ export function LocationDetailModal({
                                 </div>
                               </div>
                               
-                              {/* Angles Section - Feature 0223: sub-grouped by angle name */}
-                              {variations.length > 0 && (() => {
+                              {/* Angles + Backgrounds: sub-grouped by angle; backgrounds under derived angle (sourceAngleId) */}
+                              {(variations.length > 0 || backgrounds.length > 0) && (() => {
                                 const byAngle: Record<string, any[]> = {};
                                 variations.forEach((v: any) => {
                                   const k = (v.angle || 'other').toLowerCase();
@@ -1469,13 +1469,38 @@ export function LocationDetailModal({
                                   byAngle[k].push(v);
                                 });
                                 const sortedAngleNames = Object.keys(byAngle).sort((a, b) => a.localeCompare(b));
+                                // Align backgrounds under the angle they were derived from (sourceAngleId)
+                                const byAngleWithBackgrounds = sortedAngleNames.map((angleName) => {
+                                  const angleVariations = byAngle[angleName];
+                                  const angleIds = angleVariations.map((v: any) => v.id).filter(Boolean);
+                                  const derivedBackgrounds = angleIds.length === 0 ? [] : backgrounds.filter((bg: any) => {
+                                    const sourceIds = (bg.sourceAngleId || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+                                    return sourceIds.some((sid: string) => angleIds.includes(sid));
+                                  });
+                                  return { angleName, angleVariations, derivedBackgrounds };
+                                });
+                                const usedBackgroundS3Keys = new Set(byAngleWithBackgrounds.flatMap((x: { derivedBackgrounds: any[] }) => x.derivedBackgrounds.map((b: any) => b.s3Key)));
+                                const otherBackgrounds = backgrounds.filter((bg: any) => !usedBackgroundS3Keys.has(bg.s3Key));
+                                type Row = { type: 'angle'; angleName: string; angleVariations: any[] } | { type: 'backgrounds'; label: string; backgrounds: any[] };
+                                const rows: Row[] = [];
+                                byAngleWithBackgrounds.forEach(({ angleName, angleVariations, derivedBackgrounds }) => {
+                                  rows.push({ type: 'angle', angleName, angleVariations });
+                                  if (derivedBackgrounds.length > 0) {
+                                    const displayAngle = angleName.charAt(0).toUpperCase() + angleName.slice(1);
+                                    rows.push({ type: 'backgrounds', label: `Backgrounds (from ${displayAngle})`, backgrounds: derivedBackgrounds });
+                                  }
+                                });
+                                if (otherBackgrounds.length > 0) {
+                                  rows.push({ type: 'backgrounds', label: variations.length > 0 ? 'Other backgrounds' : 'Backgrounds', backgrounds: otherBackgrounds });
+                                }
                                 return (
                                   <div className="space-y-4">
-                                    {sortedAngleNames.map((angleName) => {
-                                      const angleVariations = byAngle[angleName];
-                                      const displayAngle = angleName.charAt(0).toUpperCase() + angleName.slice(1);
-                                      return (
-                                        <div key={angleName} className="space-y-2">
+                                    {rows.map((row, rowIndex) => {
+                                      if (row.type === 'angle') {
+                                        const { angleName, angleVariations } = row;
+                                        const displayAngle = angleName.charAt(0).toUpperCase() + angleName.slice(1);
+                                        return (
+                                        <div key={`angle-${angleName}`} className="space-y-2">
                                           <p className="text-xs text-[#808080] uppercase tracking-wide">{displayAngle} ({angleVariations.length})</p>
                                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
                                             {angleVariations.map((variation: any) => {
@@ -1831,21 +1856,15 @@ export function LocationDetailModal({
                         })}
                                           </div>
                                         </div>
-                                      );
-                                    })}
-                                  </div>
-                                );
-                              })()}
-                              
-                              {/* Backgrounds Section */}
-                              {backgrounds.length > 0 && (
-                                <div className="space-y-2">
-                                  {variations.length > 0 && (
-                                    <p className="text-xs text-[#808080] uppercase tracking-wide">Backgrounds</p>
-                                  )}
-                                  {/* 🔥 FIX: Use more columns for smaller thumbnails (match ModernGallery) */}
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                                    {backgrounds.map((background: LocationBackground) => {
+                                        );
+                                      }
+                                      if (row.type === 'backgrounds') {
+                                        const sectionBackgrounds = row.backgrounds;
+                                        return (
+                                        <div key={`bg-${rowIndex}`} className="space-y-2">
+                                          <p className="text-xs text-[#808080] uppercase tracking-wide">{row.label}</p>
+                                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+                                            {sectionBackgrounds.map((background: LocationBackground) => {
                                       const img = allImages.find(i => i.s3Key === background.s3Key && !i.isBase);
                                       if (!img) return null;
                                       const imgId = img.id || `bg_${background.s3Key}`;
@@ -2182,7 +2201,13 @@ export function LocationDetailModal({
                                     })}
                                   </div>
                                 </div>
-                              )}
+                                        );
+                                      }
+                                      return null;
+                                    })}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           );
                         })}
