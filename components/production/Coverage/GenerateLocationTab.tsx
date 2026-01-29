@@ -785,6 +785,8 @@ export function GenerateLocationTab({
       {/* Feature 0221 / 0222: ECU modifiers - mutually exclusive (backgrounds only) */}
       {packageType === 'backgrounds' && (
         <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-white mb-2">Extreme close-ups</h3>
+          <p className="text-xs text-[#808080] mb-3">Choose one if you need backgrounds for ECU face or mouth shots.</p>
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"

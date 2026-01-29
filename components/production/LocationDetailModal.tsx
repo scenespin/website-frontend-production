@@ -819,9 +819,19 @@ export function LocationDetailModal({
     
     return result;
   }, [allImages]);
+
+  // Feature 0223: Split ECU vs non-ECU backgrounds; main block shows only non-ECU
+  const ecuBackgrounds = useMemo(() =>
+    backgrounds.filter((b: any) => b.metadata?.useCase === 'extreme-closeup'),
+    [backgrounds]
+  );
+  const nonEcuBackgrounds = useMemo(() =>
+    backgrounds.filter((b: any) => b.metadata?.useCase !== 'extreme-closeup'),
+    [backgrounds]
+  );
   
-  // 🔥 IMPROVED: Organize angles and backgrounds by metadata combinations (timeOfDay + weather) for better visual grouping
-  // Group all angles and backgrounds by their metadata combinations - no tag-based filtering, just visual organization
+  // 🔥 IMPROVED: Organize angles and non-ECU backgrounds by metadata combinations (timeOfDay + weather)
+  // Feature 0223: Only non-ECU backgrounds go into main grouping; ECU have their own section
   const imagesByMetadata: Record<string, { angles: any[]; backgrounds: any[] }> = useMemo(() => {
     const grouped: Record<string, { angles: any[]; backgrounds: any[] }> = {};
     
@@ -842,8 +852,8 @@ export function LocationDetailModal({
       grouped[key].angles.push(variation);
     });
     
-    // Group backgrounds from allImages
-    backgrounds.forEach((background: any) => {
+    // Group only non-ECU backgrounds
+    nonEcuBackgrounds.forEach((background: any) => {
       const metadataParts = [
         background.timeOfDay ? background.timeOfDay : null,
         background.weather ? background.weather : null
@@ -860,7 +870,7 @@ export function LocationDetailModal({
     });
     
     return grouped;
-  }, [angleVariations, backgrounds]);
+  }, [angleVariations, nonEcuBackgrounds]);
   
   // Sort groups: "No Metadata" last, then alphabetically
   const sortedMetadataKeys = useMemo(() => {
@@ -1385,13 +1395,13 @@ export function LocationDetailModal({
                     </div>
                   )}
                   
-                  {/* 🔥 SEPARATION: Production Hub Images - Angle Variations & Backgrounds (Editable/Deletable) */}
-                  {(angleVariations.length > 0 || backgrounds.length > 0) && (
+                  {/* 🔥 SEPARATION: Production Hub Images - Angle Variations & non-ECU Backgrounds (Feature 0223: ECU in separate section) */}
+                  {(angleVariations.length > 0 || nonEcuBackgrounds.length > 0) && (
                     <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
                       <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
                         <div>
                           <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
-                            Production Hub Images ({angleVariations.length + backgrounds.length})
+                            Production Hub Images ({angleVariations.length + nonEcuBackgrounds.length})
                           </h3>
                           <p className="text-xs text-[#6B7280]">AI-generated angles and backgrounds - can be edited/deleted here</p>
                         </div>
@@ -1419,14 +1429,25 @@ export function LocationDetailModal({
                                 </div>
                               </div>
                               
-                              {/* Angles Section */}
-                              {variations.length > 0 && (
-                                <div className="space-y-2">
-                                  {backgrounds.length > 0 && (
-                                    <p className="text-xs text-[#808080] uppercase tracking-wide">Angles</p>
-                                  )}
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                                    {variations.map((variation: any) => {
+                              {/* Angles Section - Feature 0223: sub-grouped by angle name */}
+                              {variations.length > 0 && (() => {
+                                const byAngle: Record<string, any[]> = {};
+                                variations.forEach((v: any) => {
+                                  const k = (v.angle || 'other').toLowerCase();
+                                  if (!byAngle[k]) byAngle[k] = [];
+                                  byAngle[k].push(v);
+                                });
+                                const sortedAngleNames = Object.keys(byAngle).sort((a, b) => a.localeCompare(b));
+                                return (
+                                  <div className="space-y-4">
+                                    {sortedAngleNames.map((angleName) => {
+                                      const angleVariations = byAngle[angleName];
+                                      const displayAngle = angleName.charAt(0).toUpperCase() + angleName.slice(1);
+                                      return (
+                                        <div key={angleName} className="space-y-2">
+                                          <p className="text-xs text-[#808080] uppercase tracking-wide">{displayAngle} ({angleVariations.length})</p>
+                                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+                                            {angleVariations.map((variation: any) => {
                           const img = allImages.find(i => i.s3Key === variation.s3Key && !i.isBase);
                           if (!img) return null;
                           const imgId = img.id || `ref_${variation.s3Key}`;
@@ -1777,9 +1798,13 @@ export function LocationDetailModal({
                             </div>
                           );
                         })}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                </div>
-                              )}
+                                );
+                              })()}
                               
                               {/* Backgrounds Section */}
                               {backgrounds.length > 0 && (
@@ -2125,6 +2150,116 @@ export function LocationDetailModal({
                                       );
                                     })}
                                   </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Feature 0223: Extreme close-up backgrounds - separate section */}
+                  {ecuBackgrounds.length > 0 && (
+                    <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30 mt-6">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
+                        <div>
+                          <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
+                            Extreme close-up backgrounds ({ecuBackgrounds.length})
+                          </h3>
+                          <p className="text-xs text-[#6B7280]">Soft or abstract backgrounds for ECU face/mouth shots.</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+                        {ecuBackgrounds.map((background: LocationBackground) => {
+                          const img = allImages.find(i => i.s3Key === background.s3Key && !i.isBase);
+                          if (!img) return null;
+                          const imgId = img.id || `bg_${background.s3Key}`;
+                          const isSelected = selectedImageIds.has(imgId);
+                          const displayUrl = referenceThumbnailMap.get(imgId) || img.imageUrl;
+                          const backgroundTypeLabels: Record<string, string> = {
+                            'window': 'Window', 'wall': 'Wall', 'doorway': 'Doorway', 'texture': 'Texture',
+                            'corner-detail': 'Corner Detail', 'furniture': 'Furniture', 'architectural-feature': 'Architectural Feature',
+                            'custom': background.description || 'Custom Background', 'ecu-soft': 'ECU Soft'
+                          };
+                          const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
+                          return (
+                            <div
+                              key={imgId}
+                              className={`relative group aspect-video bg-[#141414] border rounded-lg overflow-hidden transition-colors cursor-pointer ${
+                                selectionMode ? (isSelected ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50' : 'border-[#3F3F46] hover:border-[#DC143C]/50') : 'border-[#3F3F46] hover:border-[#DC143C]'
+                              }`}
+                            >
+                              {selectionMode && (
+                                <div className="absolute top-2 left-2 z-10">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const newSelection = new Set(selectedImageIds);
+                                      if (isSelected) newSelection.delete(imgId); else newSelection.add(imgId);
+                                      setSelectedImageIds(newSelection);
+                                    }}
+                                    className={`p-1.5 rounded-lg transition-colors ${isSelected ? 'bg-[#DC143C] text-white' : 'bg-[#0A0A0A]/80 text-[#808080] hover:bg-[#1F1F1F]'}`}
+                                  >
+                                    {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                  </button>
+                                </div>
+                              )}
+                              <img
+                                src={displayUrl}
+                                alt={img.label}
+                                className="w-full h-full object-cover cursor-pointer"
+                                style={{ imageRendering: displayUrl !== img.imageUrl ? 'crisp-edges' : 'auto', maxWidth: '640px', maxHeight: '360px' }}
+                                loading="lazy"
+                                onError={(e) => { if (displayUrl !== img.imageUrl) (e.target as HTMLImageElement).src = img.imageUrl; }}
+                                onClick={(e) => {
+                                  if (!selectionMode) {
+                                    const imageIndex = allImages.findIndex(i => i.s3Key === background.s3Key || i.s3Key === img.s3Key || i.id === img.id);
+                                    if (imageIndex >= 0) { setPreviewImageIndex(imageIndex); setPreviewGroupName(null); }
+                                  }
+                                }}
+                              />
+                              <div className="absolute top-1 left-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-[#10B981]">ECU</div>
+                              {(() => {
+                                const providerId = (img as any).metadata?.providerId || background.metadata?.providerId;
+                                if (!providerId) return null;
+                                const providerLabel = getProviderLabel(providerId);
+                                const resLabel = getResolutionLabel(providerId);
+                                if (!providerLabel) return null;
+                                return (
+                                  <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
+                                    {resLabel ? `${providerLabel} / ${resLabel}` : providerLabel}
+                                  </div>
+                                );
+                              })()}
+                              {!selectionMode && (
+                                <div className="absolute top-2 right-2 pointer-events-auto z-20">
+                                  <DropdownMenu
+                                    open={openDropdownId === imgId}
+                                    onOpenChange={(open) => { if (open) setOpenDropdownId(imgId); else setOpenDropdownId(null); }}
+                                  >
+                                    <DropdownMenuTrigger asChild>
+                                      <button className={`${isMobile ? 'p-1.5 bg-[#DC143C]' : 'p-2 bg-[#DC143C]/90 hover:bg-[#DC143C]'} rounded-lg transition-colors ${isMobile ? 'min-w-[32px] min-h-[32px]' : 'min-w-[36px] min-h-[36px]'} flex items-center justify-center shadow-lg`} onClick={(e) => { e.stopPropagation(); if (openDropdownId !== imgId) setOpenDropdownId(imgId); }}>
+                                        <MoreVertical className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white`} />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none" style={{ backgroundColor: '#0A0A0A' }}>
+                                      <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onClick={(e) => { e.stopPropagation(); const imageIndex = allImages.findIndex(i => i.s3Key === background.s3Key || i.s3Key === img.s3Key || i.id === img.id); if (imageIndex >= 0) { setPreviewImageIndex(imageIndex); setPreviewGroupName(null); } }}>
+                                        <Eye className="w-4 h-4 mr-2 text-[#808080]" /> View
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onClick={async (e) => { e.stopPropagation(); try { await downloadImageAsBlob(img.imageUrl, `${location.name}_ECU_${Date.now()}.jpg`, img.s3Key); } catch { toast.error('Failed to download image'); }}>
+                                        <Download className="w-4 h-4 mr-2 text-[#808080]" /> Download
+                                      </DropdownMenuItem>
+                                      {background.id && background.s3Key && background.generationMethod === 'ai-generated' && (
+                                        <DropdownMenuItem className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed" onClick={(e) => { e.stopPropagation(); if (!isRegenerating) setRegenerateBackground({ backgroundId: background.id, s3Key: (background.s3Key || '').trim(), backgroundType: background.backgroundType, background }); }} disabled={isRegenerating}>
+                                          <Sparkles className="w-4 h-4 mr-2" /> {regeneratingS3Key === (background.s3Key || '').trim() ? 'Regenerating...' : 'Regenerate'}
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]" onClick={async (e) => { e.stopPropagation(); if (!confirm('Delete this background image? This action cannot be undone.')) return; try { const token = await getToken({ template: 'wryda-backend' }); const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'; await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ s3Key: background.s3Key }) }); } catch { /* non-fatal */ } const updatedBackgrounds = backgrounds.filter((b: LocationBackground) => b.s3Key !== background.s3Key); await onUpdate(location.locationId, { backgrounds: updatedBackgrounds }); queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }); queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }); queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false }); queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false }); setTimeout(() => { queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'], type: 'active' }); queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false }); queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false }); }, 2000); toast.success('Background image deleted'); } catch (err: any) { toast.error(`Failed to delete image: ${err.message}`); } }}>
+                                        <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               )}
                             </div>

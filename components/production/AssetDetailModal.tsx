@@ -589,6 +589,31 @@ export default function AssetDetailModal({
   const angleImageObjects = useMemo(() => {
     return allImages.filter(img => img.isAngleReference || img.isProductionHubUpload);
   }, [allImages]);
+
+  // Feature 0223: Group by prompt variant (custom first, main last), then by angle
+  const productionHubGroups = useMemo(() => {
+    const byPrompt: Record<string, typeof angleImageObjects> = {};
+    angleImageObjects.forEach((img: any) => {
+      const raw = img.metadata?.userPrompt;
+      const prompt = (typeof raw === 'string' && raw.trim() !== '') ? raw.trim() : '__main__';
+      if (!byPrompt[prompt]) byPrompt[prompt] = [];
+      byPrompt[prompt].push(img);
+    });
+    const customKeys = Object.keys(byPrompt).filter(k => k !== '__main__').sort((a, b) => a.localeCompare(b));
+    const mainList = byPrompt['__main__'] || [];
+    const result: Array<{ label: string; key: string; images: typeof angleImageObjects }> = [];
+    customKeys.forEach(key => {
+      result.push({
+        label: key.length > 50 ? key.slice(0, 50) + '…' : key,
+        key,
+        images: byPrompt[key]
+      });
+    });
+    if (mainList.length > 0) {
+      result.push({ label: '', key: '__main__', images: mainList });
+    }
+    return result;
+  }, [angleImageObjects]);
   
   // 🔥 DERIVED: Get angleReferences for backward compatibility
   const angleReferences = useMemo(() => {
@@ -1190,7 +1215,7 @@ export default function AssetDetailModal({
                     </div>
                   )}
                   
-                  {/* 🔥 SEPARATION: Production Hub Images - Angle References (Editable/Deletable) */}
+                  {/* Feature 0223: Production Hub Images - grouped by prompt variant (custom first, main last), then by angle */}
                   {angleImageObjects.length > 0 && (
                     <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
                       <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
@@ -1201,8 +1226,25 @@ export default function AssetDetailModal({
                           <p className="text-xs text-[#6B7280]">AI-generated angle variations - can be edited/deleted here</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                        {angleImageObjects.map((img) => {
+                      <div className="space-y-6">
+                        {productionHubGroups.map((group) => (
+                          <div key={group.key} className="space-y-4">
+                            {group.key !== '__main__' && group.label && (
+                              <h4 className="text-sm font-semibold text-[#8B5CF6] capitalize">{group.label}</h4>
+                            )}
+                            {(() => {
+                              const byAngle: Record<string, any[]> = {};
+                              group.images.forEach((img: any) => {
+                                const a = (img.angle || img.metadata?.angle || 'other').toLowerCase();
+                                if (!byAngle[a]) byAngle[a] = [];
+                                byAngle[a].push(img);
+                              });
+                              const sortedAngleNames = Object.keys(byAngle).sort((a, b) => a.localeCompare(b));
+                              return sortedAngleNames.map((angleName) => (
+                                <div key={angleName} className="space-y-2">
+                                  <p className="text-xs text-[#808080] uppercase tracking-wide">{angleName.charAt(0).toUpperCase() + angleName.slice(1)} ({byAngle[angleName].length})</p>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+                                    {byAngle[angleName].map((img: any) => {
                           // All angleImages are Production Hub images (editable/deletable)
                           const isSelected = selectedImageIds.has(img.id);
                           // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
@@ -1524,9 +1566,18 @@ export default function AssetDetailModal({
                             </div>
                           </div>
                       );
-                        })}
-                      </div>
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                        </div>
+                      ))}
                     </div>
+                  </div>
                   )}
                   
                   {/* 🔥 SEPARATION: Creation Section Images - User Uploaded (Read-Only) */}

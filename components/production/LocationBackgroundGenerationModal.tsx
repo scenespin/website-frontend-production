@@ -424,6 +424,8 @@ export default function LocationBackgroundGenerationModal({
                   
                   {/* Feature 0221 / 0222: ECU modifiers - mutually exclusive (at most one checked) */}
                   <div className="bg-base-300 rounded-lg p-4 border border-base-content/10 space-y-3">
+                    <h3 className="text-sm font-semibold text-base-content mb-2">Extreme close-ups</h3>
+                    <p className="text-xs text-base-content/60 mb-3">Choose one if you need backgrounds for ECU face or mouth shots.</p>
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
