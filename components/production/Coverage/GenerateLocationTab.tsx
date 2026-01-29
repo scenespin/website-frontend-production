@@ -59,9 +59,10 @@ export function GenerateLocationTab({
   
   // 🔥 Feature 0190: Single background type selection for background packages
   const [selectedBackgroundType, setSelectedBackgroundType] = useState<string>('window');
-  // Feature 0221: For extreme close-up (face/mouth) - soft/blurred backgrounds
+  // Feature 0221 / 0222: ECU modifiers - mutually exclusive (at most one checked)
   const [forExtremeCloseUp, setForExtremeCloseUp] = useState<boolean>(false);
-  
+  const [ecuAbstract, setEcuAbstract] = useState<boolean>(false);
+
   // Step 2b: Background Source Selection (only for backgrounds)
   const [sourceType, setSourceType] = useState<'reference-images' | 'angle-variations'>('reference-images');
   const [selectedAngleId, setSelectedAngleId] = useState<string>(''); // For backward compatibility (single select)
