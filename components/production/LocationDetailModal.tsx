@@ -468,7 +468,7 @@ export function LocationDetailModal({
       } catch {
         /* non-fatal */
       }
-      const updatedBackgrounds = backgrounds.filter((b) => b.s3Key !== background.s3Key);
+      const updatedBackgrounds = backgrounds.filter((b) => b.s3Key !== background.s3Key) as LocationBackground[];
       await onUpdate(location.locationId, { backgrounds: updatedBackgrounds });
       queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
