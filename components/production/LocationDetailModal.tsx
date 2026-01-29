@@ -2202,7 +2202,7 @@ export function LocationDetailModal({
                         </div>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                        {ecuBackgrounds.map((background: LocationBackground) => {
+                        {ecuBackgrounds.map((background) => {
                           const img = allImages.find(i => i.s3Key === background.s3Key && !i.isBase);
                           if (!img) return null;
                           const imgId = img.id || `bg_${background.s3Key}`;
