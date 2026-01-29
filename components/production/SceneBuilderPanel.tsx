@@ -3016,34 +3016,28 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       return; // Exit early on error
     }
         
-    // Wait 1.5 seconds for simple animation, then reset scene builder (moved outside try-catch)
-    // 🔥 REMOVED: Auto-opening jobs drawer - users will check storyboard when job completes
-        setTimeout(() => {
-          // Reset scene builder to initial state (fresh start)
-          setCurrentStep(1);
-          setWizardStep('analysis');
-          setSceneAnalysisResult(null);
-          setSelectedSceneId(null);
-          setHasConfirmedSceneSelection(false);
-          setCurrentShotIndex(0);
-          setIsGenerating(false);
-          setWorkflowExecutionId(null);
-          setWorkflowStatus(null);
-          
-      // 🔥 FIX: Clear localStorage when workflow completes - no recovery needed
-      // Scene builder workflows are quick/instant, so recovery isn't necessary
-      // User can check the Storyboard for results
+    // Reset wizard after short delay so user can start another job immediately (concurrent jobs).
+    // Job keeps running in backend (workflowRequest.screenplayId was set); Jobs panel loads from
+    // /api/workflows/executions?screenplayId=... so the job appears there with progress. We open
+    // the Jobs drawer below so the user sees it.
+    setTimeout(() => {
+      setCurrentStep(1);
+      setWizardStep('analysis');
+      setSceneAnalysisResult(null);
+      setSelectedSceneId(null);
+      setHasConfirmedSceneSelection(false);
+      setCurrentShotIndex(0);
+      setIsGenerating(false);
+      setWorkflowExecutionId(null);
+      setWorkflowStatus(null);
       localStorage.removeItem(`scene-builder-execution-${projectId}`);
-          
-          // Clear context state for fresh start
-          setEnabledShots([]);
-          contextActions.setSelectedCharacterReferences({});
-          contextActions.setSelectedLocationReferences({});
-          contextActions.setSelectedVideoTypes({});
-          
-          // Scroll to top
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 1500); // 1.5 second simple animation
+      setEnabledShots([]);
+      contextActions.setSelectedCharacterReferences({});
+      contextActions.setSelectedLocationReferences({});
+      contextActions.setSelectedVideoTypes({});
+      setIsJobsDrawerOpen(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 1500);
   }
   
   /**
@@ -3314,7 +3308,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       }, 2000);
     }
     
-    // Reset form
+    // Reset form (wizard reset happens on 1.5s delay when user starts job; completion may be seen in Jobs panel)
     setSceneDescription('');
     setReferenceImages([null, null, null]);
     setWorkflowExecutionId(null);
