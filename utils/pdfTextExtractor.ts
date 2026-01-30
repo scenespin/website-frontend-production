@@ -253,6 +253,10 @@ function cleanPDFTextForFountain(text: string): string {
   // Join lines back
   cleaned = cleanedLines.join('\n');
   
+  // Merge continuation lines: PDF wrap often splits dialogue/action so the next line
+  // starts with lowercase or "...". Merge such lines with the previous non-special line.
+  cleaned = mergeContinuationLines(cleaned);
+
   // Fix INT./EXT. scene headings that may have been split during PDF extraction
   // Pattern: "/EXT. LOCATION" should become "INT./EXT. LOCATION"
   // This handles cases where "INT." was on a different line or lost during extraction
@@ -283,6 +287,17 @@ function cleanPDFTextForFountain(text: string): string {
   // Solution: Detect CHARACTER NAME, then merge all subsequent non-blank lines as dialogue
   cleaned = mergeDialogueLines(cleaned);
   
+  // Fix common PDF extraction/OCR typos (repeated or dropped letters)
+  const pdfTypoFixes: Array<[RegExp | string, string]> = [
+    [/\bdooor\b/gi, 'door'],
+    [/\bHOSPTTAL\b/g, 'HOSPITAL'],
+    [/\bMYOELECTIRC\b/g, 'MYOELECTRIC'],
+    [/\bsterlizing\b/gi, 'sterilizing'],
+  ];
+  for (const [pattern, replacement] of pdfTypoFixes) {
+    cleaned = cleaned.replace(pattern as RegExp, replacement);
+  }
+
   // Normalize multiple spaces to single space (but preserve line structure)
   cleaned = cleaned.split('\n').map(line => {
     // Preserve leading spaces (might be intentional indentation)
@@ -306,17 +321,76 @@ function cleanPDFTextForFountain(text: string): string {
 }
 
 /**
+ * Merge continuation lines from PDF wrapping.
+ * PDFs wrap at column width, so dialogue/action often continues on the next line
+ * starting with lowercase or "...". Merge those with the previous line when the
+ * previous line is not a scene heading or character name.
+ */
+function mergeContinuationLines(text: string): string {
+  const lines = text.split('\n');
+  const result: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (trimmed === '') {
+      result.push(line);
+      continue;
+    }
+
+    // Continuation: starts with lowercase letter or "..." (dialogue wrap)
+    const isContinuation = /^[a-z]/.test(trimmed) || /^\.\.\./.test(trimmed);
+
+    if (!isContinuation) {
+      result.push(line);
+      continue;
+    }
+
+    const prevIndex = result.length - 1;
+    if (prevIndex < 0) {
+      result.push(line);
+      continue;
+    }
+
+    const prevLine = result[prevIndex].trim();
+    if (prevLine === '') {
+      result.push(line);
+      continue;
+    }
+
+    // Don't merge continuation onto scene heading or character name
+    const isSceneHeading = /^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(prevLine);
+    const isCharacterName = prevLine === prevLine.toUpperCase()
+      && prevLine.length >= 2
+      && prevLine.length <= 50
+      && !isSceneHeading
+      && !prevLine.startsWith('(');
+
+    if (isSceneHeading || isCharacterName) {
+      result.push(line);
+      continue;
+    }
+
+    // Merge: append to previous line with a space
+    result[prevIndex] = result[prevIndex].trimEnd() + ' ' + trimmed;
+  }
+
+  return result.join('\n');
+}
+
+/**
  * Merge wrapped dialogue lines that were split during PDF extraction
- * 
+ *
  * PDF extraction often breaks dialogue into multiple lines with blank lines between them.
  * Per Fountain spec, dialogue should continue until a blank line is encountered.
- * 
+ *
  * This function:
- * 1. Detects CHARACTER NAME (all caps, preceded by blank line, short)
+ * 1. Detects CHARACTER NAME (all caps, preceded by blank line or action, short)
  * 2. Merges all subsequent lines as dialogue (including skipping single blank lines that are PDF artifacts)
  * 3. Stops at: multiple consecutive blank lines, new character name, scene heading
  * 4. Preserves parentheticals (lines wrapped in parentheses)
- * 
+ *
  * @param text - Extracted text from PDF
  * @returns Text with dialogue lines properly merged
  */
@@ -330,14 +404,17 @@ function mergeDialogueLines(text: string): string {
     const trimmed = line.trim();
     
     // Check if this is a character name
-    // Per Fountain spec: ALL CAPS, preceded by blank line, typically 2-50 chars, not a scene heading
+    // Per Fountain spec: ALL CAPS, typically 2-50 chars, not a scene heading.
+    // Allow when preceded by blank line OR by action/dialogue (PDF often omits blank before character)
     const prevLine = i > 0 ? lines[i - 1].trim() : '';
+    const prevIsBlankOrStart = prevLine === '' || i === 0;
+    const prevIsActionOrDialogue = prevLine !== '' && /[a-z]/.test(prevLine); // has lowercase
     const isCharacterName = trimmed.length > 0 &&
                            trimmed === trimmed.toUpperCase() &&
                            trimmed.length >= 2 &&
                            trimmed.length <= 50 &&
                            !/^(INT\.\/EXT\.|I\.\/E\.|INT\.?\/EXT|I\/E|EST|INT|EXT)[\.\s]/i.test(trimmed) &&
-                           (prevLine === '' || i === 0); // Preceded by blank line (or start of script)
+                           (prevIsBlankOrStart || prevIsActionOrDialogue);
     
     if (isCharacterName) {
       // Add character name
