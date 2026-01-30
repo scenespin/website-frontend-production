@@ -434,9 +434,9 @@ export function ShotConfigurationPanel({
 
   return (
     <div className="mt-3 space-y-4">
-      {/* Standard configuration - Always show for action shots, show in Basic tab for dialogue shots */}
+      {/* Standard configuration - Always show for action shots, show in Basic tab for dialogue shots, and on Advanced tab when Hidden Mouth (so speaker image selection is visible) */}
       {/* Props section - Show in both tabs for dialogue shots (they persist in state) */}
-      {(!isDialogueShot || isDialogueBasicTab) && (
+      {(!isDialogueShot || isDialogueBasicTab || (isDialogueShot && showAdvancedContent && currentWorkflow === 'off-frame-voiceover')) && (
         <>
       {/* 🔥 REORDERED: Character(s) Section - First */}
       {explicitCharacters.length > 0 && (() => {
@@ -1155,60 +1155,90 @@ export function ShotConfigurationPanel({
               </div>
               {/* Listener dropdown – only for Over shoulder / Two-shot */}
               {offFrameShotType && isOffFrameListenerShotType(offFrameShotType) && onOffFrameListenerCharacterIdChange && (
-                <div>
-                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Listener (single character in frame)</label>
-                  <select
-                    value={offFrameListenerCharacterId ?? ''}
-                    onChange={(e) => onOffFrameListenerCharacterIdChange(shot.slot, e.target.value || null)}
-                    className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-                  >
-                    <option value="">— Select listener —</option>
-                    {allCharacters
-                      .filter((c: any) => c.id !== speakingCharacterId)
-                      .map((c: any) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name || c.id}
-                        </option>
-                      ))}
-                  </select>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Listener (single character in frame)</label>
+                    <select
+                      value={offFrameListenerCharacterId ?? ''}
+                      onChange={(e) => onOffFrameListenerCharacterIdChange(shot.slot, e.target.value || null)}
+                      className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                    >
+                      <option value="">— Select listener —</option>
+                      {allCharacters
+                        .filter((c: any) => c.id !== speakingCharacterId)
+                        .map((c: any) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name || c.id}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  {/* Listener image selection – same pattern as Narrate Shot Additional Characters: select by name, then show image grid */}
+                  {offFrameListenerCharacterId && (
+                    <div className="pt-2 border-t border-[#3F3F46]">
+                      <div className="text-[10px] font-medium text-[#808080] mb-1.5">Listener image (first frame)</div>
+                      {renderCharacterImagesOnly(offFrameListenerCharacterId, shot.slot)}
+                    </div>
+                  )}
                 </div>
               )}
-              {/* Group checkboxes – only for Speaker to group variants */}
+              {/* Group checkboxes – only for Speaker to group variants. Same pattern as Narrate Shot: pills then image selection per character. */}
               {offFrameShotType && isOffFrameGroupShotType(offFrameShotType) && onOffFrameGroupCharacterIdsChange && (
-                <div>
-                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Group (characters in frame)</label>
-                  <div className="flex flex-wrap gap-2">
-                    {allCharacters
-                      .filter((c: any) => c.id !== speakingCharacterId)
-                      .map((c: any) => {
-                        const selected = (offFrameGroupCharacterIds || []).includes(c.id);
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Group (characters in frame)</label>
+                    <div className="flex flex-wrap gap-2">
+                      {allCharacters
+                        .filter((c: any) => c.id !== speakingCharacterId)
+                        .map((c: any) => {
+                          const selected = (offFrameGroupCharacterIds || []).includes(c.id);
+                          return (
+                            <label
+                              key={c.id}
+                              className={cn(
+                                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-xs cursor-pointer',
+                                selected
+                                  ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                                  : 'border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => {
+                                  const current = offFrameGroupCharacterIds || [];
+                                  const next = selected
+                                    ? current.filter((id) => id !== c.id)
+                                    : [...current, c.id];
+                                  onOffFrameGroupCharacterIdsChange(shot.slot, next);
+                                }}
+                                className="sr-only"
+                              />
+                              <span>{c.name || c.id}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                  {/* Group character image selection – same pattern as Narrate Shot Additional Characters: for each selected, show controls + image grid */}
+                  {(offFrameGroupCharacterIds?.length ?? 0) > 0 && (
+                    <div className="pt-2 border-t border-[#3F3F46] space-y-4">
+                      <div className="text-[10px] font-medium text-[#808080] mb-1.5">Group character images (first frame)</div>
+                      {(offFrameGroupCharacterIds || []).map((charId: string, index: number) => {
+                        const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
+                        if (!char) return null;
+                        const isLast = index === (offFrameGroupCharacterIds?.length ?? 0) - 1;
                         return (
-                          <label
-                            key={c.id}
-                            className={cn(
-                              'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-xs cursor-pointer',
-                              selected
-                                ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                                : 'border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              onChange={() => {
-                                const current = offFrameGroupCharacterIds || [];
-                                const next = selected
-                                  ? current.filter((id) => id !== c.id)
-                                  : [...current, c.id];
-                                onOffFrameGroupCharacterIdsChange(shot.slot, next);
-                              }}
-                              className="sr-only"
-                            />
-                            <span>{c.name || c.id}</span>
-                          </label>
+                          <div key={charId} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
+                            <div className="space-y-3">
+                              {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                              {renderCharacterImagesOnly(charId, shot.slot)}
+                            </div>
+                          </div>
                         );
                       })}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
               {/* First frame (image): Scene context then Alternate action – sequential, then Video */}

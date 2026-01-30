@@ -172,7 +172,7 @@ export default function HelpCenter() {
             Our support team is here to help you succeed.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link href="mailto:support@wryda.ai" className="btn bg-[#DC143C] hover:bg-[#8B0000] text-[#FFFFFF] border-none">
+            <Link href="/help/contact" className="btn bg-[#DC143C] hover:bg-[#8B0000] text-[#FFFFFF] border-none">
               Contact Support
             </Link>
             <Link href="/dashboard" className="btn btn-ghost text-[#B3B3B3] hover:text-[#FFFFFF] border-white/10">

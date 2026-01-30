@@ -297,8 +297,142 @@ export async function sendRevocationConfirmation(email, name, profilesDeleted) {
   }
 }
 
+/**
+ * Send contact form submission to support@wryda.ai (internal notification).
+ * @param {{ type: 'inquiry'|'support', [key: string]: string }} payload - type + form fields
+ * @returns {Promise<boolean>}
+ */
+export async function sendContactToSupport(payload) {
+  try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    if (!RESEND_API_KEY) {
+      console.warn('[Email] RESEND_API_KEY not configured - contact not sent');
+      return false;
+    }
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@wryda.ai';
+    const fromEmail = process.env.EMAIL_FROM || 'Wryda.ai <noreply@wryda.ai>';
+    const prefix = payload.type === 'inquiry' ? '[Inquiry]' : '[Support]';
+    const subject = payload.subject
+      ? `${prefix} ${payload.subject}`
+      : `${prefix} Contact form: ${payload.inquiryType || payload.category || 'General'}`;
+    const lines = [];
+    if (payload.type === 'inquiry') {
+      lines.push(`Name: ${payload.name || '—'}`);
+      lines.push(`Email: ${payload.email}`);
+      if (payload.company) lines.push(`Company: ${payload.company}`);
+      lines.push(`Inquiry type: ${payload.inquiryType || 'General'}`);
+    } else {
+      lines.push(`Email: ${payload.email}`);
+      lines.push(`Category: ${payload.category || '—'}`);
+      if (payload.subject) lines.push(`Subject: ${payload.subject}`);
+    }
+    lines.push('');
+    lines.push('Message:');
+    lines.push(payload.message || '—');
+    const text = lines.join('\n');
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px;">
+        <p><strong>${prefix}</strong></p>
+        <pre style="background: #f5f5f5; padding: 16px; border-radius: 8px; white-space: pre-wrap;">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+      </div>
+    `;
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [supportEmail],
+        replyTo: payload.email,
+        subject,
+        html,
+        text,
+      }),
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      console.error('[Email] Contact to support failed:', err);
+      return false;
+    }
+    const result = await response.json();
+    console.log('[Email] Contact sent to support:', result.id);
+    return true;
+  } catch (error) {
+    console.error('[Email] Error sending contact to support:', error);
+    return false;
+  }
+}
+
+/**
+ * Send industry-standard auto-reply to contact form submitter.
+ * Includes: confirmation, expected response time, business hours, and (for support) link to Help/FAQ.
+ * @param {{ type: 'inquiry'|'support', email: string, name?: string }} payload
+ * @returns {Promise<boolean>}
+ */
+export async function sendContactAutoReply(payload) {
+  try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    if (!RESEND_API_KEY) {
+      console.warn('[Email] RESEND_API_KEY not configured - auto-reply not sent');
+      return false;
+    }
+    const fromEmail = process.env.EMAIL_FROM || 'Wryda.ai <noreply@wryda.ai>';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://wryda.ai';
+    const helpUrl = `${siteUrl}/help`;
+    const faqUrl = `${siteUrl}/help/faq`;
+    const isSupport = payload.type === 'support';
+    const greeting = payload.name ? `Hi ${payload.name},` : 'Hi,';
+    const supportBlock = isSupport
+      ? `<p>In the meantime, you may find answers in our <a href="${helpUrl}">Help Center</a> or <a href="${faqUrl}">FAQ</a>.</p>`
+      : '';
+    const subject = "We've received your message – Wryda.ai";
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <p>${greeting}</p>
+        <p>Thank you for reaching out. We've received your message and will get back to you within <strong>1–2 business days</strong>.</p>
+        <p>Our support hours are Monday–Friday, 9am–5pm ET.</p>
+        ${supportBlock}
+        <p>If your request is urgent, you can reply to this email and we'll do our best to prioritize it.</p>
+        <p>— The Wryda.ai Team</p>
+      </body>
+      </html>
+    `;
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [payload.email],
+        subject,
+        html,
+      }),
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      console.error('[Email] Contact auto-reply failed:', err);
+      return false;
+    }
+    const result = await response.json();
+    console.log('[Email] Contact auto-reply sent to', payload.email, result.id);
+    return true;
+  } catch (error) {
+    console.error('[Email] Error sending contact auto-reply:', error);
+    return false;
+  }
+}
+
 export default {
   sendExpirationWarning,
   sendRevocationConfirmation,
+  sendContactToSupport,
+  sendContactAutoReply,
 };
 

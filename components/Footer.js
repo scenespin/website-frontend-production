@@ -78,6 +78,11 @@ export default function Footer() {
                   Help Center
                 </Link>
               </li>
+              <li>
+                <Link href="/help/contact" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Contact
+                </Link>
+              </li>
             </ul>
           </div>
 
