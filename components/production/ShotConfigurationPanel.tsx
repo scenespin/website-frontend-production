@@ -94,6 +94,9 @@ interface ShotConfigurationPanelProps {
   // Note: Backend identifiers are 'off-frame-voiceover' and 'scene-voiceover'
   dialogueWorkflowPrompt?: string; // User-provided description of alternate action
   onDialogueWorkflowPromptChange?: (shotSlot: number, prompt: string) => void;
+  /** Narrate Shot: what the narrator says (required for scene-voiceover). */
+  narrationOverride?: string;
+  onNarrationOverrideChange?: (shotSlot: number, text: string) => void;
   // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace
   offFrameShotType?: OffFrameShotType;
   offFrameListenerCharacterId?: string | null;
@@ -178,6 +181,8 @@ export function ShotConfigurationPanel({
   onBaseWorkflowChange,
   dialogueWorkflowPrompt,
   onDialogueWorkflowPromptChange,
+  narrationOverride,
+  onNarrationOverrideChange,
   offFrameShotType,
   offFrameListenerCharacterId,
   offFrameGroupCharacterIds,
@@ -1298,7 +1303,25 @@ export function ShotConfigurationPanel({
             </div>
           )}
 
-          {/* Prompt box for first frame (image): Narrate Shot only – "Describe the alternate action" lives inside Hidden Mouth block above */}
+          {/* Narrate Shot: What the narrator says (required for scene-voiceover). */}
+          {currentWorkflow === 'scene-voiceover' && onNarrationOverrideChange && (
+            <div className="mt-3">
+              <label className="block text-[10px] text-[#808080] mb-1.5">
+                What the narrator says <span className="text-[#DC143C]">*</span>
+              </label>
+              <textarea
+                value={narrationOverride ?? ''}
+                onChange={(e) => onNarrationOverrideChange(shot.slot, e.target.value)}
+                placeholder="e.g. We open on a quiet street. The sun is setting. Sarah has no idea what's about to happen."
+                rows={4}
+                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+              />
+              <div className="text-[10px] text-[#808080] mt-1">
+                <p>The words the narrator will speak in this shot. The selected narrator character&apos;s voice will be used (narrator is not visible in frame).</p>
+              </div>
+            </div>
+          )}
+          {/* Prompt box for first frame (image): Narrate Shot only – describe what the image shows */}
           {currentWorkflow === 'scene-voiceover' && onDialogueWorkflowPromptChange && (
             <div className="mt-3">
               <label className="block text-[10px] text-[#808080] mb-1.5">

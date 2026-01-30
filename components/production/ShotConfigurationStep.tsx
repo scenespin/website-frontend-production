@@ -330,6 +330,7 @@ export function ShotConfigurationStep({
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
   const uploadedFirstFrameUrl = state.uploadedFirstFrames[shotSlot];
+  const finalNarrationOverride = state.narrationOverrides[shotSlot] ?? '';
   
   // 🔥 DEBUG: Log current dialogue state when it changes (for testing reliable workflow selection)
   useEffect(() => {
@@ -1013,6 +1014,14 @@ export function ShotConfigurationStep({
       }
     }
     
+    // Narrate Shot: narration (what the narrator says) is required
+    if (isSceneVoiceover) {
+      const hasNarration = finalNarrationOverride?.trim() !== '';
+      if (!hasNarration) {
+        validationErrors.push('What the narrator says is required for Narrate Shot. Please enter the narration text.');
+      }
+    }
+    
     // Feature 0218: Overrides only for Narrate Shot (and non-dialogue). Hidden Mouth uses additive prompt in panel.
     if (isDialogueShot && !isSceneVoiceover) {
       if (finalFirstFramePromptOverride || uploadedFirstFrameUrl) {
@@ -1336,6 +1345,8 @@ export function ShotConfigurationStep({
                   onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
                   dialogueWorkflowPrompt={dialogueWorkflowPrompt}
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+                  narrationOverride={finalNarrationOverride}
+                  onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
                   offFrameShotType={finalOffFrameShotType}
                   offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
                   offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
@@ -1476,28 +1487,30 @@ export function ShotConfigurationStep({
               selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
               onDialogueQualityChange={finalOnDialogueQualityChange}
               onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
-              dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
-              onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
-              offFrameShotType={finalOffFrameShotType}
-              offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
-              offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
-              offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
-              onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
-              offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
-              onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
-              onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
-              onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
-              onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
-              pronounExtrasPrompts={shotPronounExtrasPrompts}
-              onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
-              sceneProps={finalSceneProps}
-              propsToShots={finalPropsToShots}
-              onPropsToShotsChange={finalOnPropsToShotsChange}
-              shotProps={finalShotProps}
-              onPropDescriptionChange={finalOnPropDescriptionChange}
-              onPropImageChange={finalOnPropImageChange}
-              shotWorkflowOverride={finalShotWorkflowOverride}
-              onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
+                  dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
+                  onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+                  narrationOverride={finalNarrationOverride}
+                  onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
+                  offFrameShotType={finalOffFrameShotType}
+                  offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
+                  offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
+                  offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
+                  onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
+                  offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
+                  onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
+                  onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
+                  onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
+                  onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
+                  pronounExtrasPrompts={shotPronounExtrasPrompts}
+                  onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
+                  sceneProps={finalSceneProps}
+                  propsToShots={finalPropsToShots}
+                  onPropsToShotsChange={finalOnPropsToShotsChange}
+                  shotProps={finalShotProps}
+                  onPropDescriptionChange={finalOnPropDescriptionChange}
+                  onPropImageChange={finalOnPropImageChange}
+                  shotWorkflowOverride={finalShotWorkflowOverride}
+                  onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                 />
               )}

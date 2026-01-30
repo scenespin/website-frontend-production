@@ -102,6 +102,8 @@ export interface SceneBuilderState {
   selectedDialogueWorkflows: Record<number, DialogueWorkflowType>;
   voiceoverBaseWorkflows: Record<number, string>;
   dialogueWorkflowPrompts: Record<number, string>;
+  /** Narrate Shot: what the narrator says (per-shot). Required for scene-voiceover. */
+  narrationOverrides: Record<number, string>;
   // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace; do not clear when switching workflow
   offFrameShotType: Record<number, OffFrameShotType>;
   offFrameListenerCharacterId: Record<number, string | null>;
@@ -192,6 +194,8 @@ export interface SceneBuilderActions {
   updateVoiceoverBaseWorkflow: (shotSlot: number, workflow: string) => void;
   setDialogueWorkflowPrompts: (prompts: Record<number, string>) => void;
   updateDialogueWorkflowPrompt: (shotSlot: number, prompt: string) => void;
+  setNarrationOverrides: (overrides: Record<number, string>) => void;
+  updateNarrationOverride: (shotSlot: number, text: string) => void;
   // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace
   setOffFrameShotType: (byShot: Record<number, OffFrameShotType>) => void;
   updateOffFrameShotType: (shotSlot: number, shotType: OffFrameShotType) => void;
@@ -317,6 +321,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     selectedDialogueWorkflows: {},
     voiceoverBaseWorkflows: {},
     dialogueWorkflowPrompts: {},
+    narrationOverrides: {},
     // Feature 0209: Off-frame voiceover (Hidden Mouth)
     offFrameShotType: {},
     offFrameListenerCharacterId: {},
@@ -858,6 +863,19 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         dialogueWorkflowPrompts: {
           ...prev.dialogueWorkflowPrompts,
           [shotSlot]: prompt
+        }
+      }));
+    }, []),
+    
+    setNarrationOverrides: useCallback((overrides) => {
+      setState(prev => ({ ...prev, narrationOverrides: overrides }));
+    }, []),
+    updateNarrationOverride: useCallback((shotSlot, text) => {
+      setState(prev => ({
+        ...prev,
+        narrationOverrides: {
+          ...prev.narrationOverrides,
+          [shotSlot]: text
         }
       }));
     }, []),
