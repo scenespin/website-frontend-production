@@ -31,6 +31,8 @@ import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
 import { resolveLocationImageUrl } from './utils/imageUrlResolver';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { isOffFrameListenerShotType, isOffFrameGroupShotType } from '@/types/offFrame';
+import type { OffFrameShotType } from '@/types/offFrame';
 
 // Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
 function AspectRatioSelector({ value, onChange }: { value: string; onChange: (value: '16:9' | '9:16' | '1:1') => void }) {
@@ -1538,6 +1540,22 @@ export function ShotConfigurationStep({
                 // Add additional characters
                 (finalSelectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
                 
+                // When workflow is off-frame-voiceover, adjust character set for reference list
+                if (finalSelectedDialogueWorkflow === 'off-frame-voiceover') {
+                  // Off-frame: speaker is not in frame, remove from reference list
+                  if (finalOffFrameShotType === 'off-frame') {
+                    allShotCharacters.delete(shot.characterId);
+                  }
+                  // Listener shot types: add listener character
+                  if (finalOffFrameListenerCharacterId && finalOffFrameShotType && isOffFrameListenerShotType(finalOffFrameShotType as OffFrameShotType)) {
+                    allShotCharacters.add(finalOffFrameListenerCharacterId);
+                  }
+                  // Group shot types: add group character IDs
+                  if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) {
+                    finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
+                  }
+                }
+                
                 // Collect references for all characters
                 allShotCharacters.forEach(charId => {
                   const char = allCharacters.find(c => c.id === charId);
@@ -1790,6 +1808,18 @@ export function ShotConfigurationStep({
                     }
                   });
                   (finalSelectedCharactersForShots[shotSlot] || []).forEach(charId => allShotCharacters.add(charId));
+                  // When workflow is off-frame-voiceover, adjust character set (same as Reference Preview)
+                  if (finalSelectedDialogueWorkflow === 'off-frame-voiceover') {
+                    if (finalOffFrameShotType === 'off-frame') {
+                      allShotCharacters.delete(shot.characterId);
+                    }
+                    if (finalOffFrameListenerCharacterId && finalOffFrameShotType && isOffFrameListenerShotType(finalOffFrameShotType as OffFrameShotType)) {
+                      allShotCharacters.add(finalOffFrameListenerCharacterId);
+                    }
+                    if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) {
+                      finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
+                    }
+                  }
                   
                   // Convert to array and filter to only those with references
                   const charactersWithRefs = Array.from(allShotCharacters).filter(charId => 
