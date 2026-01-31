@@ -33,6 +33,7 @@ import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 import { useThumbnailMapping, type GalleryImage } from '@/hooks/useThumbnailMapping';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { formatProviderTag } from '@/utils/providerLabels';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { VoiceAssignmentTab } from './VoiceAssignmentTab';
 import { VoiceBrowserModal } from './VoiceBrowserModal';
@@ -41,39 +42,6 @@ import { CharacterPoseCropModal } from './CharacterPoseCropModal';
 import { ModernGallery } from './Gallery/ModernGallery';
 import { UploadWardrobeTab } from './Coverage/UploadWardrobeTab';
 import { GenerateWardrobeTab } from './Coverage/GenerateWardrobeTab';
-
-/**
- * Get display label for provider ID (all character/pose image models)
- */
-function getProviderLabel(providerId: string | undefined): string | null {
-  if (!providerId) return null;
-  
-  const providerMap: Record<string, string> = {
-    'nano-banana-pro': 'Nano Banana Pro',
-    'nano-banana-pro-2k': 'Nano Banana Pro 2K',
-    'runway-gen4-image': 'Gen4',
-    'luma-photon-1': 'Photon',
-    'luma-photon-flash': 'Photon',
-    'flux2-max-4k-16:9': 'FLUX.2 [max]',
-    'flux2-max-2k': 'FLUX.2 [max]',
-    'flux2-pro-4k': 'FLUX.2 [pro]',
-    'flux2-pro-2k': 'FLUX.2 [pro]',
-    'flux2-flex': 'FLUX.2 [flex]',
-  };
-  
-  return providerMap[providerId] || null;
-}
-
-/** Resolution tag for provider (2K, 4K, or null) */
-function getResolutionLabel(providerId: string | undefined): string | null {
-  if (!providerId) return null;
-  const twoK = ['nano-banana-pro-2k', 'flux2-pro-2k', 'flux2-max-2k'];
-  const fourK = ['nano-banana-pro', 'flux2-max-4k-16:9', 'flux2-pro-4k'];
-  if (twoK.includes(providerId)) return '2K';
-  if (fourK.includes(providerId)) return '4K';
-  return null;
-}
-
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
@@ -2200,10 +2168,8 @@ export function CharacterDetailModal({
                               />
                               {/* Bottom-right label: Model name / 2K or 4K */}
                               {img.metadata?.providerId && (() => {
-                                const providerLabel = getProviderLabel(img.metadata.providerId);
-                                const resLabel = getResolutionLabel(img.metadata.providerId);
-                                if (!providerLabel) return null;
-                                const tagText = resLabel ? `${providerLabel} / ${resLabel}` : providerLabel;
+                                const tagText = formatProviderTag(img.metadata.providerId);
+                                if (!tagText) return null;
                                 return (
                                   <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
                                     {tagText}

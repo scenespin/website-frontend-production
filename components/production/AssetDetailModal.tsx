@@ -37,42 +37,7 @@ import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
 import { ModernGallery } from './Gallery/ModernGallery';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAssets } from '@/hooks/useAssetBank';
-
-/**
- * Get display label for provider ID (all asset angle image models)
- */
-function getProviderLabel(providerId: string | undefined): string | null {
-  if (!providerId) return null;
-  
-  const providerMap: Record<string, string> = {
-    'nano-banana-pro': 'Nano Banana Pro',
-    'nano-banana-pro-2k': 'Nano Banana Pro 2K',
-    'runway-gen4-image': 'Gen4',
-    'luma-photon-1': 'Photon',
-    'luma-photon-flash': 'Photon',
-    'flux2-max-4k-16:9': 'FLUX.2 [max]',
-    'flux2-max-2k': 'FLUX.2 [max]',
-    'flux2-pro-4k': 'FLUX.2 [pro]',
-    'flux2-pro-2k': 'FLUX.2 [pro]',
-    'flux2-flex': 'FLUX.2 [flex]',
-    'imagen-3-fast': 'Imagen 3 Fast',
-    'imagen-4-fast': 'Imagen 4 Fast',
-    'imagen-3': 'Imagen 3',
-    'imagen-4': 'Imagen 4',
-  };
-  
-  return providerMap[providerId] || null;
-}
-
-/** Resolution tag for provider (2K, 4K, or null) */
-function getResolutionLabel(providerId: string | undefined): string | null {
-  if (!providerId) return null;
-  const twoK = ['nano-banana-pro-2k', 'flux2-pro-2k', 'flux2-max-2k'];
-  const fourK = ['nano-banana-pro', 'flux2-max-4k-16:9', 'flux2-pro-4k'];
-  if (twoK.includes(providerId)) return '2K';
-  if (fourK.includes(providerId)) return '4K';
-  return null;
-}
+import { formatProviderTag } from '@/utils/providerLabels';
 
 interface AssetDetailModalProps {
   isOpen: boolean;
@@ -1360,11 +1325,8 @@ export default function AssetDetailModal({
                               {(() => {
                                 const providerId = (img.metadata as any)?.providerId 
                                   || (img.metadata as any)?.generationMetadata?.providerId;
-                                if (!providerId) return null;
-                                const providerLabel = getProviderLabel(providerId);
-                                const resLabel = getResolutionLabel(providerId);
-                                if (!providerLabel) return null;
-                                const tagText = resLabel ? `${providerLabel} / ${resLabel}` : providerLabel;
+                                const tagText = formatProviderTag(providerId);
+                                if (!tagText) return null;
                                 return (
                                   <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
                                     {tagText}
