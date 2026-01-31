@@ -893,7 +893,7 @@ export default function AssetDetailModal({
                         {activeTab === 'references' ? (
                           <>
                             <Box className="w-4 h-4" />
-                            <span>References ({allImages.length})</span>
+                            <span>References ({angleImageObjects.length})</span>
                           </>
                         ) : activeTab === 'generate' ? (
                           <>
@@ -961,7 +961,7 @@ export default function AssetDetailModal({
                       }`}
                     >
                       <Box className="w-4 h-4" />
-                      <span>References ({allImages.length})</span>
+                      <span>References ({angleImageObjects.length})</span>
                       {!coverageTab && activeTab === 'references' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
                       )}
@@ -1015,7 +1015,7 @@ export default function AssetDetailModal({
                     }`}
                   >
                     <Box className="w-4 h-4 inline mr-2" />
-                    References ({allImages.length})
+                    References ({angleImageObjects.length})
                   </button>
                   
                   {/* Right side: Coverage buttons */}
