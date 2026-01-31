@@ -1567,7 +1567,7 @@ export function ShotConfigurationPanel({
             selectedBaseWorkflow={selectedBaseWorkflow}
             characterIds={[
               ...(shot.characterId ? [shot.characterId] : []),
-              ...(selectedCharactersForShots[shot.slot] || [])
+              ...(explicitCharacters || []).filter((id: string) => id !== shot.characterId)
             ]}
             onQualityChange={(quality) => onDialogueQualityChange?.(shot.slot, quality)}
             onWorkflowChange={(workflow) => onDialogueWorkflowChange(shot.slot, workflow)}

@@ -1687,31 +1687,6 @@ export function ShotConfigurationStep({
           {/* Show for action shots OR dialogue non-lip-sync shots */}
           {onVideoTypeChange && (
             <>
-              <VideoGenerationSelector
-                shotSlot={shot.slot}
-                shotType={shot.type}
-                selectedVideoType={selectedVideoTypes[shot.slot]}
-                onVideoTypeChange={finalOnVideoTypeChange}
-                shotCameraAngle={shotCameraAngle}
-                onCameraAngleChange={finalOnCameraAngleChange}
-                shotDuration={shotDuration}
-                onDurationChange={finalOnDurationChange}
-                isLipSyncWorkflow={(() => {
-                  // Default to 'first-frame-lipsync' if no workflow is selected (basic tab defaults to lip-sync)
-                  const effectiveWorkflow = finalSelectedDialogueWorkflow || (shot.type === 'dialogue' && activeTab === 'basic' ? 'first-frame-lipsync' : undefined);
-                  return shot.type === 'dialogue' && (effectiveWorkflow === 'first-frame-lipsync' || effectiveWorkflow === 'extreme-closeup' || effectiveWorkflow === 'extreme-closeup-mouth');
-                })()}
-              />
-              {/* Aspect Ratio Selector */}
-              {onAspectRatioChange && (
-                <AspectRatioSelector
-                  value={shotAspectRatio || '16:9'}
-                  onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
-                />
-              )}
-            </>
-          )}
-
           {/* Feature 0224: Narrate Shot = primary video prompt + optional Override first frame. Action shots = two checkboxes. */}
           {isOverrideAllowed && (
             <div className="mt-4 pt-3 border-t border-[#3F3F46]">
@@ -2028,6 +2003,31 @@ export function ShotConfigurationStep({
             )}
             </div>
           )}
+              <VideoGenerationSelector
+                shotSlot={shot.slot}
+                shotType={shot.type}
+                selectedVideoType={selectedVideoTypes[shot.slot]}
+                onVideoTypeChange={finalOnVideoTypeChange}
+                shotCameraAngle={shotCameraAngle}
+                onCameraAngleChange={finalOnCameraAngleChange}
+                shotDuration={shotDuration}
+                onDurationChange={finalOnDurationChange}
+                isLipSyncWorkflow={(() => {
+                  // Default to 'first-frame-lipsync' if no workflow is selected (basic tab defaults to lip-sync)
+                  const effectiveWorkflow = finalSelectedDialogueWorkflow || (shot.type === 'dialogue' && activeTab === 'basic' ? 'first-frame-lipsync' : undefined);
+                  return shot.type === 'dialogue' && (effectiveWorkflow === 'first-frame-lipsync' || effectiveWorkflow === 'extreme-closeup' || effectiveWorkflow === 'extreme-closeup-mouth');
+                })()}
+              />
+              {/* Aspect Ratio Selector */}
+              {onAspectRatioChange && (
+                <AspectRatioSelector
+                  value={shotAspectRatio || '16:9'}
+                  onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
+                />
+              )}
+            </>
+          )}
+
 
           {/* Cost Calculator - Prices from backend (margins hidden) - Moved after Video Generation */}
           {pricing && (
