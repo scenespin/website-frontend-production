@@ -26,7 +26,8 @@ interface UseCharacterReferencesOptions {
   enabled?: boolean;
 }
 
-interface UseCharacterReferencesReturn {
+/** Public return type – keep in sync with SceneBuilderContext destructuring (including dropboxUrlMap). */
+export interface UseCharacterReferencesReturn {
   characterHeadshots: Record<string, CharacterHeadshot[]>;
   characterThumbnailS3KeyMap: Map<string, string>;
   thumbnailUrlsMap: Map<string, string>;

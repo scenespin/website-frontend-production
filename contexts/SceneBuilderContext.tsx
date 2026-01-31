@@ -13,7 +13,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { DialogueWorkflowType } from '@/components/production/UnifiedDialogueDropdown';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import type { OffFrameShotType } from '@/types/offFrame';
-import { useCharacterReferences } from '@/components/production/hooks/useCharacterReferences';
+import { useCharacterReferences, type UseCharacterReferencesReturn } from '@/components/production/hooks/useCharacterReferences';
 import { filterValidCharacterIds } from '@/components/production/utils/characterIdValidation';
 import { getCharactersFromActionShot } from '@/components/production/utils/sceneBuilderUtils';
 import { useCharacters } from '@/hooks/useCharacterBank';
@@ -454,7 +454,8 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
   // Media Library Hook (Character References)
   // ============================================================================
   
-  // Call hook in provider - updates context directly (no sync needed)
+  // Call hook in provider - updates context directly (no sync needed).
+  // Typed so dropboxUrlMap stays in sync with UseCharacterReferencesReturn (fixes build if hook contract changes).
   const {
     characterHeadshots: characterHeadshotsFromHook,
     characterThumbnailS3KeyMap: hookThumbnailS3KeyMap,
@@ -462,7 +463,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     fullImageUrlsMap: hookFullImageUrlsMap,
     dropboxUrlMap: hookDropboxUrlMap,
     loading: loadingCharacterHeadshots
-  } = useCharacterReferences({
+  }: UseCharacterReferencesReturn = useCharacterReferences({
     projectId,
     characterIds: characterIdsForMediaLibrary,
     enabled: characterIdsForMediaLibrary.length > 0
