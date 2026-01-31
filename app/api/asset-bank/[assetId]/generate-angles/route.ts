@@ -44,30 +44,40 @@ export async function POST(
       );
     }
 
-    // Get request body
+    // Get request body (Feature 0226: include packageType, projectId, screenplayId for vehicle-interior)
     const body = await request.json();
-    const { packageId, selectedAngle, quality, providerId, additionalPrompt } = body; // 🔥 Feature 0190: Include selectedAngle
+    const { packageId, packageType, selectedAngle, quality, providerId, additionalPrompt, projectId, screenplayId } = body;
 
     if (!packageId) {
       return NextResponse.json(
-        { error: 'packageId is required (single, basic, standard, or premium)' },
+        { error: 'packageId is required' },
         { status: 400 }
       );
     }
 
-    if (!['single', 'basic', 'standard', 'premium'].includes(packageId)) {
-      return NextResponse.json(
-        { error: 'packageId must be one of: single, basic, standard, premium' },
-        { status: 400 }
-      );
-    }
-    
-    // 🔥 Feature 0190: Validate selectedAngle for single mode
-    if (packageId === 'single' && !selectedAngle) {
-      return NextResponse.json(
-        { error: 'selectedAngle is required when packageId is "single"' },
-        { status: 400 }
-      );
+    const isVehicleInterior = packageType === 'vehicle-interior';
+
+    if (isVehicleInterior) {
+      // Backend is source of truth for valid vehicle-interior packageIds; only require non-empty string here
+      if (typeof packageId !== 'string' || !packageId.trim()) {
+        return NextResponse.json(
+          { error: 'packageId is required when packageType is vehicle-interior' },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (!['single', 'basic', 'standard', 'premium'].includes(packageId)) {
+        return NextResponse.json(
+          { error: 'packageId must be one of: single, basic, standard, premium' },
+          { status: 400 }
+        );
+      }
+      if (packageId === 'single' && !selectedAngle) {
+        return NextResponse.json(
+          { error: 'selectedAngle is required when packageId is "single"' },
+          { status: 400 }
+        );
+      }
     }
 
     // Next.js 15: params is now a Promise
@@ -77,13 +87,14 @@ export async function POST(
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
     const url = `${backendUrl}/api/asset-bank/${assetId}/generate-angles`;
 
-    console.log('[Asset Bank Generate Angles] Forwarding to backend:', { 
-      url, 
+    console.log('[Asset Bank Generate Angles] Forwarding to backend:', {
+      url,
       assetId,
       packageId,
-      selectedAngle, // 🔥 Feature 0190: Log selectedAngle
+      packageType: packageType || 'standard',
+      selectedAngle,
       quality,
-      providerId // 🔥 FIX: Log providerId
+      providerId,
     });
 
     const headers: Record<string, string> = {
@@ -91,15 +102,18 @@ export async function POST(
       'Content-Type': 'application/json',
     };
 
-    // 🔥 Feature 0190: Build request body with selectedAngle for single mode
     const requestBody: any = {
       packageId,
       quality: quality || 'standard',
-      providerId, // 🔥 FIX: Forward providerId to backend
-      additionalPrompt // 🔥 FIX: Forward additionalPrompt to backend
+      providerId,
+      additionalPrompt,
+      projectId: projectId || screenplayId,
+      screenplayId: screenplayId || projectId,
     };
-    
-    if (packageId === 'single' && selectedAngle) {
+    if (isVehicleInterior) {
+      requestBody.packageType = 'vehicle-interior';
+    }
+    if (selectedAngle) {
       requestBody.selectedAngle = selectedAngle;
     }
 
