@@ -97,6 +97,9 @@ interface ShotConfigurationPanelProps {
   /** Narrate Shot: what the narrator says (required for scene-voiceover). */
   narrationOverride?: string;
   onNarrationOverrideChange?: (shotSlot: number, text: string) => void;
+  /** Narrate Shot: which character is the narrator (defaults to speaking character when unset). */
+  narratorCharacterId?: string;
+  onNarrationNarratorChange?: (shotSlot: number, characterId: string) => void;
   // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace
   offFrameShotType?: OffFrameShotType;
   offFrameListenerCharacterId?: string | null;
@@ -183,6 +186,8 @@ export function ShotConfigurationPanel({
   onDialogueWorkflowPromptChange,
   narrationOverride,
   onNarrationOverrideChange,
+  narratorCharacterId,
+  onNarrationNarratorChange,
   offFrameShotType,
   offFrameListenerCharacterId,
   offFrameGroupCharacterIds,
@@ -1303,6 +1308,24 @@ export function ShotConfigurationPanel({
             </div>
           )}
 
+          {/* Narrate Shot: Choose narrator (default = speaking character) and what they say. */}
+          {currentWorkflow === 'scene-voiceover' && onNarrationNarratorChange && (
+            <div className="mt-3">
+              <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Narrator</label>
+              <select
+                value={narratorCharacterId ?? speakingCharacterId ?? ''}
+                onChange={(e) => onNarrationNarratorChange(shot.slot, e.target.value)}
+                className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+              >
+                {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => (
+                  <option key={char.id} value={char.id}>
+                    {char.name}{char.id === speakingCharacterId ? ' (speaking character)' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-[#808080] mt-1">Voice used for the narration. Defaults to the speaking character for this shot.</p>
+            </div>
+          )}
           {/* Narrate Shot: What the narrator says (required for scene-voiceover). */}
           {currentWorkflow === 'scene-voiceover' && onNarrationOverrideChange && (
             <div className="mt-3">

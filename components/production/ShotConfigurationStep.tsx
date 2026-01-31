@@ -331,6 +331,7 @@ export function ShotConfigurationStep({
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
   const uploadedFirstFrameUrl = state.uploadedFirstFrames[shotSlot];
   const finalNarrationOverride = state.narrationOverrides[shotSlot] ?? '';
+  const finalNarratorCharacterId = state.narrationNarratorCharacterId[shotSlot] ?? (shot.type === 'dialogue' ? shot.characterId : undefined);
   
   // 🔥 DEBUG: Log current dialogue state when it changes (for testing reliable workflow selection)
   useEffect(() => {
@@ -1328,6 +1329,8 @@ export function ShotConfigurationStep({
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
                   narrationOverride={finalNarrationOverride}
                   onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
+                  narratorCharacterId={finalNarratorCharacterId}
+                  onNarrationNarratorChange={(_, characterId) => actions.updateNarrationNarratorCharacterId(shotSlot, characterId)}
                   offFrameShotType={finalOffFrameShotType}
                   offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
                   offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
@@ -1401,6 +1404,8 @@ export function ShotConfigurationStep({
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
                   narrationOverride={finalNarrationOverride}
                   onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
+                  narratorCharacterId={finalNarratorCharacterId}
+                  onNarrationNarratorChange={(_, characterId) => actions.updateNarrationNarratorCharacterId(shotSlot, characterId)}
                   offFrameShotType={finalOffFrameShotType}
                   offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
                   offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}

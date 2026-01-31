@@ -551,6 +551,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 PERFORMANCE: characterFullImageUrlsMap is no longer populated upfront (only thumbnails are fetched)
   // Full images are fetched on-demand for selected references only
   const characterFullImageUrlsMap = contextState.characterFullImageUrlsMap;
+  const characterDropboxUrlMap = contextState.characterDropboxUrlMap;
   
   // 🔥 FIX: Create stable signature from selectedCharacterReferences to track changes
   // Only track references that need URLs (have s3Key but no valid imageUrl)
@@ -2922,6 +2923,18 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         shotWorkflowOverrides: Object.keys(shotWorkflowOverrides).length > 0 ? shotWorkflowOverrides : undefined, // NEW: Per-shot workflow overrides (for action shots and dialogue shots): { shotSlot: workflow }
         dialogueWorkflowPrompts: Object.keys(contextState.dialogueWorkflowPrompts).length > 0 ? contextState.dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
         narrationOverrides: Object.keys(contextState.narrationOverrides).length > 0 ? contextState.narrationOverrides : undefined, // Narrate Shot: what the narrator says per shot (required for scene-voiceover)
+        // Narrate Shot: which character is the narrator per shot (defaults to speaking character when unset)
+        ...(enabledShots.some((slot) => selectedDialogueWorkflows[slot] === 'scene-voiceover')
+          ? {
+              narrationNarratorCharacterId: enabledShots
+                .filter((slot) => selectedDialogueWorkflows[slot] === 'scene-voiceover')
+                .reduce<Record<number, string>>((acc, slot) => {
+                  const shot = sceneAnalysisResult?.shotBreakdown?.shots?.find((s: { slot: number }) => s.slot === slot) as { characterId?: string } | undefined;
+                  acc[slot] = contextState.narrationNarratorCharacterId[slot] ?? shot?.characterId ?? '';
+                  return acc;
+                }, {}),
+            }
+          : {}),
         offFrameVideoPromptAdditive: Object.keys(contextState.offFrameVideoPromptAdditive).length > 0 ? contextState.offFrameVideoPromptAdditive : undefined, // Feature 0218: Per-shot additive video prompt for Hidden Mouth (add to default motion prompt)
         pronounExtrasPrompts: Object.keys(contextState.pronounExtrasPrompts).length > 0 ? contextState.pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
         firstFramePromptOverrides: Object.keys(contextState.firstFramePromptOverrides).length > 0 ? contextState.firstFramePromptOverrides : undefined, // 🔥 NEW: Per-shot first frame prompt overrides: { shotSlot: "custom prompt" }
@@ -4000,15 +4013,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                               (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
                             );
                             
-                            // 🔥 FIX: Use standardized URL resolution utility
-                            const displayUrl = resolveCharacterHeadshotUrl(
-                              headshot,
-                              {
-                                thumbnailS3KeyMap: characterThumbnailS3KeyMap,
-                                thumbnailUrlsMap: characterThumbnailUrlsMap,
-                                fullImageUrlsMap: visibleHeadshotFullImageUrlsMap
-                              }
-                            ) || '';
+                            // 🔥 FIX: Prefer Dropbox temp URL when available; else use standardized resolver (S3/CloudFront)
+                            const displayUrl = (headshot.fileId && characterDropboxUrlMap?.get(headshot.fileId))
+                              || resolveCharacterHeadshotUrl(
+                                  headshot,
+                                  {
+                                    thumbnailS3KeyMap: characterThumbnailS3KeyMap,
+                                    thumbnailUrlsMap: characterThumbnailUrlsMap,
+                                    fullImageUrlsMap: visibleHeadshotFullImageUrlsMap
+                                  }
+                                ) || '';
                             
                             // 🔥 DIAGNOSTIC: Log URL resolution for first few headshots
                             if (idx < 3 && charId) {

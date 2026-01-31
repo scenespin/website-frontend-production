@@ -104,6 +104,8 @@ export interface SceneBuilderState {
   dialogueWorkflowPrompts: Record<number, string>;
   /** Narrate Shot: what the narrator says (per-shot). Required for scene-voiceover. */
   narrationOverrides: Record<number, string>;
+  /** Narrate Shot: which character is the narrator (per-shot). When unset, speaking character is used. */
+  narrationNarratorCharacterId: Record<number, string>;
   // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace; do not clear when switching workflow
   offFrameShotType: Record<number, OffFrameShotType>;
   offFrameListenerCharacterId: Record<number, string | null>;
@@ -145,6 +147,7 @@ export interface SceneBuilderState {
   characterThumbnailS3KeyMap: Map<string, string>;
   characterThumbnailUrlsMap: Map<string, string>;
   characterFullImageUrlsMap: Map<string, string>;
+  characterDropboxUrlMap: Map<string, string>;
   propThumbnailS3KeyMap: Map<string, string>;
   propThumbnailUrlsMap: Map<string, string>;
   locationThumbnailS3KeyMap: Map<string, string>;
@@ -196,6 +199,8 @@ export interface SceneBuilderActions {
   updateDialogueWorkflowPrompt: (shotSlot: number, prompt: string) => void;
   setNarrationOverrides: (overrides: Record<number, string>) => void;
   updateNarrationOverride: (shotSlot: number, text: string) => void;
+  setNarrationNarratorCharacterIds: (byShot: Record<number, string>) => void;
+  updateNarrationNarratorCharacterId: (shotSlot: number, characterId: string) => void;
   // Feature 0209: Off-frame voiceover (Hidden Mouth) – separate namespace
   setOffFrameShotType: (byShot: Record<number, OffFrameShotType>) => void;
   updateOffFrameShotType: (shotSlot: number, shotType: OffFrameShotType) => void;
@@ -322,6 +327,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     voiceoverBaseWorkflows: {},
     dialogueWorkflowPrompts: {},
     narrationOverrides: {},
+    narrationNarratorCharacterId: {},
     // Feature 0209: Off-frame voiceover (Hidden Mouth)
     offFrameShotType: {},
     offFrameListenerCharacterId: {},
@@ -362,6 +368,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     characterThumbnailS3KeyMap: new Map(),
     characterThumbnailUrlsMap: new Map(),
     characterFullImageUrlsMap: new Map(),
+    characterDropboxUrlMap: new Map(),
     propThumbnailS3KeyMap: new Map(),
     propThumbnailUrlsMap: new Map(),
     locationThumbnailS3KeyMap: new Map(),
@@ -453,6 +460,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     characterThumbnailS3KeyMap: hookThumbnailS3KeyMap,
     thumbnailUrlsMap: hookThumbnailUrlsMap,
     fullImageUrlsMap: hookFullImageUrlsMap,
+    dropboxUrlMap: hookDropboxUrlMap,
     loading: loadingCharacterHeadshots
   } = useCharacterReferences({
     projectId,
@@ -484,6 +492,14 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       .map(([key, value]) => `${key}:${value}`)
       .join('|');
   }, [hookFullImageUrlsMap]);
+
+  const dropboxUrlMapSignature = useMemo(() => {
+    if (!hookDropboxUrlMap || hookDropboxUrlMap.size === 0) return '';
+    return Array.from(hookDropboxUrlMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${value?.substring(0, 80)}`)
+      .join('|');
+  }, [hookDropboxUrlMap]);
   
   // 🔥 FIX: Create stable signature for characterHeadshotsFromHook to prevent infinite loops
   const characterHeadshotsSignature = useMemo(() => {
@@ -543,7 +559,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
   // Use stable signatures to prevent infinite loops
   const lastMapsSignatureRef = useRef<string>('');
   useEffect(() => {
-    const combinedSignature = `${thumbnailS3KeyMapSignature}|${thumbnailUrlsMapSignature}|${fullImageUrlsMapSignature}`;
+    const combinedSignature = `${thumbnailS3KeyMapSignature}|${thumbnailUrlsMapSignature}|${fullImageUrlsMapSignature}|${dropboxUrlMapSignature}`;
     
     // Only update if signature actually changed
     if (combinedSignature === lastMapsSignatureRef.current) {
@@ -556,9 +572,10 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       ...prev, 
       characterThumbnailS3KeyMap: hookThumbnailS3KeyMap,
       characterThumbnailUrlsMap: hookThumbnailUrlsMap,
-      characterFullImageUrlsMap: hookFullImageUrlsMap
+      characterFullImageUrlsMap: hookFullImageUrlsMap,
+      characterDropboxUrlMap: hookDropboxUrlMap
     }));
-  }, [thumbnailS3KeyMapSignature, thumbnailUrlsMapSignature, fullImageUrlsMapSignature, hookThumbnailS3KeyMap, hookThumbnailUrlsMap, hookFullImageUrlsMap]);
+  }, [thumbnailS3KeyMapSignature, thumbnailUrlsMapSignature, fullImageUrlsMapSignature, dropboxUrlMapSignature, hookThumbnailS3KeyMap, hookThumbnailUrlsMap, hookFullImageUrlsMap, hookDropboxUrlMap]);
 
   // ============================================================================
   // Action Creators (using useCallback for performance)
@@ -876,6 +893,18 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         narrationOverrides: {
           ...prev.narrationOverrides,
           [shotSlot]: text
+        }
+      }));
+    }, []),
+    setNarrationNarratorCharacterIds: useCallback((byShot) => {
+      setState(prev => ({ ...prev, narrationNarratorCharacterId: byShot }));
+    }, []),
+    updateNarrationNarratorCharacterId: useCallback((shotSlot, characterId) => {
+      setState(prev => ({
+        ...prev,
+        narrationNarratorCharacterId: {
+          ...prev.narrationNarratorCharacterId,
+          [shotSlot]: characterId
         }
       }));
     }, []),
