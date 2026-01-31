@@ -39,6 +39,24 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAssets } from '@/hooks/useAssetBank';
 import { formatProviderTag } from '@/utils/providerLabels';
 
+/**
+ * Returns only Creation-section images (excludes Production Hub / angle-generated).
+ * Used when sending PUT from Production Hub so we never write angle refs into asset.images.
+ * Excludes only entries we know are Production Hub; keeps all others (including legacy/unknown).
+ */
+function getCreationOnlyImages(images: Array<{ metadata?: { source?: string; createdIn?: string }; [key: string]: unknown }>): typeof images {
+  if (!Array.isArray(images) || images.length === 0) return images;
+  return images.filter((img) => {
+    const source = img.metadata?.source;
+    const createdIn = img.metadata?.createdIn;
+    const isProductionHub =
+      source === 'angle-generation' ||
+      createdIn === 'production-hub' ||
+      (img as { source?: string }).source === 'angle-generation';
+    return !isProductionHub;
+  });
+}
+
 interface AssetDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -1478,18 +1496,20 @@ export default function AssetDetailModal({
                                               return imgS3Key !== img.s3Key;
                                             }
                                           );
+                                          // 🔥 FIX: Send only Creation images in PUT so angle refs are never written to asset.images
+                                          const imagesForPut = getCreationOnlyImages(updatedImages);
                                           
                                           // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
                                           queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
                                             if (!old) return old;
                                             return old.map(a => 
                                               a.id === latestAsset.id
-                                                ? { ...a, angleReferences: updatedAngleReferences, images: updatedImages }
+                                                ? { ...a, angleReferences: updatedAngleReferences, images: imagesForPut }
                                                 : a
                                             );
                                           });
                                           
-                                          // 🔥 ONE-WAY SYNC: Update Production Hub backend with both arrays
+                                          // 🔥 ONE-WAY SYNC: Update Production Hub backend with both arrays (images = Creation-only)
                                           const response = await fetch(`/api/asset-bank/${latestAsset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                                             method: 'PUT',
                                             headers: {
@@ -1498,7 +1518,7 @@ export default function AssetDetailModal({
                                             },
                                             body: JSON.stringify({
                                               angleReferences: updatedAngleReferences,
-                                              images: updatedImages
+                                              images: imagesForPut
                                             }),
                                           });
                                           
@@ -1785,18 +1805,20 @@ export default function AssetDetailModal({
                     const imgS3Key = imgRef.s3Key || imgRef.metadata?.s3Key;
                     return !s3KeysToDelete.has(imgS3Key);
                   });
+                  // 🔥 FIX: Send only Creation images in PUT so angle refs are never written to asset.images
+                  const imagesForPut = getCreationOnlyImages(updatedImages);
                   
                   // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
                   queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
                     if (!old) return old;
                     return old.map(a => 
                       a.id === latestAsset.id
-                        ? { ...a, angleReferences: updatedAngleReferences, images: updatedImages }
+                        ? { ...a, angleReferences: updatedAngleReferences, images: imagesForPut }
                         : a
                     );
                   });
                   
-                  // Make API call to update asset with both arrays
+                  // Make API call to update asset with both arrays (images = Creation-only)
                   const response = await fetch(`/api/asset-bank/${latestAsset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                     method: 'PUT',
                     headers: {
@@ -1805,7 +1827,7 @@ export default function AssetDetailModal({
                     },
                     body: JSON.stringify({
                       angleReferences: updatedAngleReferences,
-                      images: updatedImages
+                      images: imagesForPut
                     }),
                   });
                   
@@ -1840,7 +1862,7 @@ export default function AssetDetailModal({
                     onAssetUpdate({
                       ...latestAsset,
                       angleReferences: updatedAngleReferences,
-                      images: updatedImages
+                      images: imagesForPut
                     });
                   }
                   
