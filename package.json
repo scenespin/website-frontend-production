@@ -8,7 +8,9 @@
     "postbuild": "next-sitemap",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npm_config_platform=linux npm_config_arch=x64 npm rebuild sharp"
+    "postinstall": "npm_config_platform=linux npm_config_arch=x64 npm rebuild sharp",
+    "test:newsletter": "node tests/newsletter-test.js",
+    "test:newsletter:api": "node scripts/newsletter-api-test.js"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.7.4",
