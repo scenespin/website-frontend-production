@@ -16,9 +16,9 @@ import { toast } from 'sonner';
 
 // Feature 0226: Vehicle/aircraft interior package definitions for UI (angleIds match backend)
 const VEHICLE_INTERIOR_PACKAGES_UI: Record<string, { id: string; name: string; angleIds: string[]; angleLabels: string[] }> = {
-  car: { id: 'car', name: 'Car (sedan)', angleIds: ['driver', 'passenger', 'back_seat', 'trunk'], angleLabels: ['Driver', 'Passenger', 'Back seat', 'Trunk'] },
-  truck: { id: 'truck', name: 'Truck (pickup)', angleIds: ['driver', 'passenger', 'back_seat', 'bed'], angleLabels: ['Driver', 'Passenger', 'Back seat', 'Bed'] },
-  suv: { id: 'suv', name: 'SUV', angleIds: ['driver', 'passenger', 'back_seat', 'cargo'], angleLabels: ['Driver', 'Passenger', 'Back seat', 'Cargo'] },
+  car: { id: 'car', name: 'Car (sedan)', angleIds: ['driver', 'passenger', 'back_seat', 'front_looking_back', 'back_left', 'back_right', 'trunk'], angleLabels: ['Driver', 'Passenger', 'Back (through console)', 'Front (through console, looking back)', 'Back left', 'Back right', 'Trunk'] },
+  truck: { id: 'truck', name: 'Truck (pickup)', angleIds: ['driver', 'passenger', 'back_seat', 'front_looking_back', 'back_left', 'back_right', 'bed'], angleLabels: ['Driver', 'Passenger', 'Back (through console)', 'Front (through console, looking back)', 'Back left', 'Back right', 'Bed'] },
+  suv: { id: 'suv', name: 'SUV', angleIds: ['driver', 'passenger', 'back_seat', 'front_looking_back', 'back_left', 'back_right', 'cargo'], angleLabels: ['Driver', 'Passenger', 'Back (through console)', 'Front (through console, looking back)', 'Back left', 'Back right', 'Cargo'] },
   van: { id: 'van', name: 'Van', angleIds: ['driver', 'passenger', 'rear_cargo'], angleLabels: ['Driver', 'Passenger', 'Rear cargo'] },
   semi: { id: 'semi', name: 'Semi (tractor-trailer cab)', angleIds: ['driver', 'passenger', 'sleeper', 'dashboard'], angleLabels: ['Driver', 'Passenger', 'Sleeper', 'Dashboard'] },
   helicopter: { id: 'helicopter', name: 'Helicopter', angleIds: ['pilot', 'passenger', 'rear_door'], angleLabels: ['Pilot', 'Passenger', 'Rear door'] },
@@ -353,9 +353,9 @@ export default function AssetAngleGenerationModal({
     basic: 3,
     standard: 6,
     premium: 10,
-    car: 4,
-    truck: 4,
-    suv: 4,
+    car: 7,
+    truck: 7,
+    suv: 7,
     van: 3,
     semi: 4,
     helicopter: 3,
