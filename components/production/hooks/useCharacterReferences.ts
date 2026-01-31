@@ -170,12 +170,12 @@ export function useCharacterReferences({
     // Convert to sorted array for stable reference
     const keys = Array.from(keysSet).sort();
     
-    // 🔍 DIAGNOSTIC: Log thumbnail keys being requested
+    // 🔍 DIAGNOSTIC: Log thumbnail keys being requested (use characterHeadshotsRaw to avoid TDZ – characterHeadshots is defined later)
     console.log('[useCharacterReferences] 🔑 Thumbnail S3 keys to fetch:', {
       keysCount: keys.length,
-      headshotsCount: Object.values(characterHeadshots).reduce((sum, h) => sum + h.length, 0),
-      headshotsWithS3Key: Object.values(characterHeadshots).reduce((sum, h) => sum + h.filter(x => x.s3Key).length, 0),
-      headshotsInMap: Object.values(characterHeadshots).reduce((sum, h) => sum + h.filter(x => x.s3Key && characterThumbnailS3KeyMap.has(x.s3Key)).length, 0),
+      headshotsCount: Object.values(characterHeadshotsRaw).reduce((sum, h) => sum + h.length, 0),
+      headshotsWithS3Key: Object.values(characterHeadshotsRaw).reduce((sum, h) => sum + h.filter(x => x.s3Key).length, 0),
+      headshotsInMap: Object.values(characterHeadshotsRaw).reduce((sum, h) => sum + h.filter(x => x.s3Key && characterThumbnailS3KeyMap.has(x.s3Key)).length, 0),
       sample: keys.slice(0, 2).map(k => k.substring(0, 40) + '...')
     });
     
