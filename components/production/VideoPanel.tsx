@@ -5,12 +5,14 @@
  * 
  * Displays videos from Playground and manual uploads.
  * Scene-generated videos are shown in the "Scenes" tab.
+ * Uses getMediaFileDisplayUrl for S3/CloudFront, Google Drive, and Dropbox.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Video, Upload, Info } from 'lucide-react';
-import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 
 interface VideoPanelProps {
   className?: string;
@@ -37,6 +39,21 @@ export function VideoPanel({ className = '' }: VideoPanelProps) {
       return !isSceneVideo;
     });
   }, [mediaFiles]);
+
+  const videoS3Keys = useMemo(() =>
+    standaloneVideos.map(f => f.s3Key).filter((k): k is string => !!k),
+    [standaloneVideos]
+  );
+  const { data: presignedUrls = new Map() } = useBulkPresignedUrls(
+    videoS3Keys,
+    !!screenplayId && videoS3Keys.length > 0
+  );
+  const dropboxUrlMap = useDropboxPreviewUrls(standaloneVideos, !!screenplayId && standaloneVideos.length > 0);
+  const presignedMaps = useMemo(() => ({
+    fullImageUrlsMap: presignedUrls,
+    thumbnailS3KeyMap: null as Map<string, string> | null,
+    thumbnailUrlsMap: null as Map<string, string> | null,
+  }), [presignedUrls]);
 
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
@@ -81,13 +98,15 @@ export function VideoPanel({ className = '' }: VideoPanelProps) {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {standaloneVideos.map((video) => (
+              {standaloneVideos.map((video) => {
+                const displayUrl = getMediaFileDisplayUrl(video, presignedMaps, dropboxUrlMap);
+                return (
                 <div
                   key={video.id}
                   className="relative aspect-video bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden group hover:border-[#DC143C]/50 transition-colors"
                 >
                   <video
-                    src={video.s3Key ? `https://${process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-media'}.s3.amazonaws.com/${video.s3Key}` : undefined}
+                    src={displayUrl ?? undefined}
                     className="w-full h-full object-cover"
                     preload="metadata"
                   />
@@ -104,7 +123,7 @@ export function VideoPanel({ className = '' }: VideoPanelProps) {
                     </div>
                   </div>
                 </div>
-              ))}
+              ); })}
             </div>
           </div>
         </div>

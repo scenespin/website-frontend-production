@@ -18,22 +18,24 @@ import React, { useState, useMemo } from 'react';
 import { FolderOpen, Check, Loader2, Folder, ChevronRight, ChevronDown, HardDrive, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import type { MediaFile } from '@/types/media';
-import { useMediaFiles, usePresignedUrl, useMediaFolderTree } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls, useMediaFolderTree } from '@/hooks/useMediaLibrary';
 import type { FolderTreeNode } from '@/types/media';
+import { getMediaFileDisplayUrl } from '@/components/production/utils/imageUrlResolver';
 
-// Separate component for image thumbnail (to use hooks correctly)
+// Thumbnail component: receives display URL from parent (S3/Drive/Dropbox resolved)
 function MediaLibraryImageThumbnail({
   file,
+  displayUrl,
+  urlLoading,
   isSelected,
   onToggle
 }: {
   file: MediaFile;
+  displayUrl: string | null;
+  urlLoading: boolean;
   isSelected: boolean;
   onToggle: () => void;
 }) {
-  const { data: presignedData, isLoading } = usePresignedUrl(file.s3Key, true);
-  const imageUrl = presignedData?.downloadUrl;
-
   return (
     <button
       onClick={onToggle}
@@ -44,13 +46,13 @@ function MediaLibraryImageThumbnail({
       }`}
     >
       {/* Thumbnail */}
-      {isLoading ? (
+      {urlLoading ? (
         <div className="w-full h-full bg-[#1F1F1F] flex items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-[#808080]" />
         </div>
-      ) : imageUrl ? (
+      ) : displayUrl ? (
         <img
-          src={imageUrl}
+          src={displayUrl}
           alt={file.fileName}
           className="w-full h-full object-cover"
         />
@@ -122,6 +124,30 @@ export function MediaLibraryBrowser({
   const imageFiles = useMemo(() => {
     return mediaFiles.filter(file => file.fileType === 'image');
   }, [mediaFiles]);
+
+  const imageS3Keys = useMemo(() =>
+    imageFiles.map(f => f.s3Key).filter((k): k is string => !!k),
+    [imageFiles]
+  );
+  const { data: presignedUrls = new Map(), isLoading: presignedLoading } = useBulkPresignedUrls(
+    imageS3Keys,
+    !!screenplayId && imageFiles.length > 0
+  );
+  const dropboxUrlMap = useDropboxPreviewUrls(imageFiles, !!screenplayId && imageFiles.length > 0);
+  const presignedMaps = useMemo(() => ({
+    fullImageUrlsMap: presignedUrls,
+    thumbnailS3KeyMap: null as Map<string, string> | null,
+    thumbnailUrlsMap: null as Map<string, string> | null,
+  }), [presignedUrls]);
+  const displayUrlMap = useMemo(() => {
+    const m = new Map<string, string>();
+    imageFiles.forEach(f => {
+      const url = getMediaFileDisplayUrl(f, presignedMaps, dropboxUrlMap);
+      if (url) m.set(f.id, url);
+    });
+    return m;
+  }, [imageFiles, presignedMaps, dropboxUrlMap]);
+  const urlLoading = presignedLoading;
 
   const handleImageToggle = (fileId: string) => {
     setSelectedImages(prev => {
@@ -335,6 +361,8 @@ export function MediaLibraryBrowser({
                 <MediaLibraryImageThumbnail
                   key={file.id}
                   file={file}
+                  displayUrl={displayUrlMap.get(file.id) ?? null}
+                  urlLoading={urlLoading}
                   isSelected={selectedImages.has(file.id)}
                   onToggle={() => handleImageToggle(file.id)}
                 />

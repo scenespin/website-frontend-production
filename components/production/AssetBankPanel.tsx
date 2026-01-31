@@ -19,7 +19,8 @@ import { toast } from 'sonner';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssets } from '@/hooks/useAssetBank';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
+import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 
 interface AssetBankPanelProps {
   className?: string;
@@ -109,6 +110,19 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
     allAssetS3Keys,
     !!screenplayId && allAssetS3Keys.length > 0
   );
+  const dropboxUrlMap = useDropboxPreviewUrls(allAssetMediaFiles, !!screenplayId && allAssetMediaFiles.length > 0);
+  const assetMediaFileMap = useMemo(() => {
+    const map = new Map<string, any>();
+    allAssetMediaFiles.forEach((file: any) => {
+      if (file.s3Key && !file.s3Key.startsWith('thumbnails/')) map.set(file.s3Key, file);
+    });
+    return map;
+  }, [allAssetMediaFiles]);
+  const presignedMapsForDisplay = useMemo(() => ({
+    fullImageUrlsMap: assetPresignedUrls,
+    thumbnailS3KeyMap: null as Map<string, string> | null,
+    thumbnailUrlsMap: null as Map<string, string> | null,
+  }), [assetPresignedUrls]);
 
   const isLoading = queryLoading;
 
@@ -300,11 +314,16 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
               if (mediaLibraryImages) {
                 // Add creation images (user-uploaded, from Creation section) with valid presigned URLs
                 mediaLibraryImages.creationImages.forEach((img) => {
-                  const imageUrl = assetPresignedUrls.get(img.s3Key);
+                  const file = assetMediaFileMap.get(img.s3Key);
+                  const imageUrl = getMediaFileDisplayUrl(
+                    file ?? { id: img.s3Key, storageType: 'local', s3Key: img.s3Key } as any,
+                    presignedMapsForDisplay,
+                    dropboxUrlMap
+                  );
                   if (imageUrl) {
                     allReferences.push({
                       id: img.s3Key,
-                      imageUrl: imageUrl,
+                      imageUrl,
                       label: `${asset.name} - ${img.label || 'Image'}`
                     });
                   }
@@ -312,11 +331,16 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
                 
                 // Add angle references with valid presigned URLs
                 mediaLibraryImages.angleReferences.forEach((ref) => {
-                  const imageUrl = assetPresignedUrls.get(ref.s3Key);
+                  const file = assetMediaFileMap.get(ref.s3Key);
+                  const imageUrl = getMediaFileDisplayUrl(
+                    file ?? { id: ref.s3Key, storageType: 'local', s3Key: ref.s3Key } as any,
+                    presignedMapsForDisplay,
+                    dropboxUrlMap
+                  );
                   if (imageUrl) {
                     allReferences.push({
                       id: ref.s3Key,
-                      imageUrl: imageUrl,
+                      imageUrl,
                       label: `${asset.name} - ${ref.angle || ref.label || 'angle'} view`
                     });
                   }

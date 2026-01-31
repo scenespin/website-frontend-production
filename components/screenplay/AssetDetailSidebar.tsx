@@ -14,6 +14,8 @@ import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary'
+import { getMediaFileDisplayUrl } from '@/components/production/utils/imageUrlResolver'
 
 interface AssetDetailSidebarProps {
   asset?: Asset | null
@@ -208,6 +210,49 @@ export default function AssetDetailSidebar({
     
     regenerateUrls();
   }, [asset?.id, asset?.images, getToken]);
+
+  // 🔥 Feature 0200: Media Library as source of truth for asset images (same pattern as CharacterDetailSidebar)
+  const { data: assetMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    !!screenplayId && !!asset?.id,
+    true,
+    'asset',
+    asset?.id
+  );
+  const assetMediaS3Keys = useMemo(() => {
+    return assetMediaFiles
+      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
+      .map((file: any) => file.s3Key);
+  }, [assetMediaFiles]);
+  const { data: assetPresignedUrlsSidebar = new Map() } = useBulkPresignedUrls(
+    assetMediaS3Keys,
+    assetMediaS3Keys.length > 0
+  );
+  const dropboxUrlMap = useDropboxPreviewUrls(assetMediaFiles, assetMediaFiles.length > 0);
+  const presignedMapsForDisplay = useMemo(() => ({
+    fullImageUrlsMap: assetPresignedUrlsSidebar,
+    thumbnailS3KeyMap: null as Map<string, string> | null,
+    thumbnailUrlsMap: null as Map<string, string> | null,
+  }), [assetPresignedUrlsSidebar]);
+  const assetMediaLibraryImages = useMemo(() => {
+    return assetMediaFiles
+      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
+      .map((file: any) => {
+        const displayUrl = getMediaFileDisplayUrl(file, presignedMapsForDisplay, dropboxUrlMap);
+        return {
+          id: file.id,
+          imageUrl: displayUrl || '',
+          createdAt: file.uploadedAt || new Date().toISOString(),
+          metadata: {
+            s3Key: file.s3Key,
+            source: file.metadata?.source || 'user-upload',
+            ...file.metadata,
+          },
+        };
+      })
+      .filter((img: any) => !!img.imageUrl);
+  }, [assetMediaFiles, presignedMapsForDisplay, dropboxUrlMap]);
 
   // 🔥 FIX: Refetch asset data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest asset data, including newly uploaded images
@@ -1076,8 +1121,9 @@ export default function AssetDetailSidebar({
               <div className="space-y-3">
                 {/* Upload Buttons */}
                 {(() => {
-                  // Calculate user-uploaded image count for the upload button
-                  const currentImages = asset?.images || [];
+                  const currentImages = assetMediaLibraryImages.length > 0
+                    ? assetMediaLibraryImages
+                    : (asset?.images || []);
                   const userUploadedCount = currentImages.filter((img: any) => {
                     const source = img.metadata?.source;
                     return !source || source === 'user-upload';
@@ -1110,30 +1156,25 @@ export default function AssetDetailSidebar({
                 })()}
                 
                 {/* Image Gallery */}
-                {asset && formData.images && formData.images.length > 0 && (() => {
-                  // 🔥 FIX: Use formData.images (local state) instead of asset.images (prop)
-                  // This ensures immediate display after upload without waiting for parent re-render
-                  // Filter images by source (same pattern as CharacterDetailSidebar)
-                  const allImages = formData.images.map((img, idx) => {
-                    // Use regenerated URL if available, otherwise use original URL
-                    const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
-                      ? regeneratedImageUrls[img.s3Key] 
-                      : img.url;
-                    
-                    return {
-                      id: `asset-img-${idx}`,
-                      imageUrl: imageUrl,
-                      createdAt: img.uploadedAt,
-                      metadata: {
-                        ...(img.s3Key ? { s3Key: img.s3Key } : {}),
-                        ...(img.metadata || {}), // Preserve all metadata (source, angle, etc.)
-                        source: img.metadata?.source || (img.s3Key ? undefined : 'user-upload')
-                      }
-                    };
-                  });
+                {asset && (formData.images?.length > 0 || assetMediaLibraryImages.length > 0) && (() => {
+                  // 🔥 Feature 0200: Prefer Media Library with resolved URLs (S3/Drive/Dropbox); fallback to formData.images
+                  const allImages = assetMediaLibraryImages.length > 0
+                    ? assetMediaLibraryImages
+                    : formData.images!.map((img: any, idx: number) => {
+                        const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] ? regeneratedImageUrls[img.s3Key] : img.url;
+                        return {
+                          id: `asset-img-${idx}`,
+                          imageUrl,
+                          createdAt: img.uploadedAt,
+                          metadata: {
+                            ...(img.s3Key ? { s3Key: img.s3Key } : {}),
+                            ...(img.metadata || {}),
+                            source: img.metadata?.source || (img.s3Key ? undefined : 'user-upload'),
+                          },
+                        };
+                      });
                   
-                  // Filter: User-uploaded images (Creation section can delete these)
-                  const userUploadedImages = allImages.filter(img => {
+                  const userUploadedImages = allImages.filter((img: any) => {
                     const source = (img.metadata as any)?.source;
                     // Show images with no source, 'user-upload', or undefined source (defaults to user-upload)
                     return !source || source === 'user-upload';

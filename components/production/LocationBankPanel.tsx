@@ -7,7 +7,7 @@
  * Reduced from ~358 lines to ~200 lines using React Query
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -17,7 +17,8 @@ import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import { useLocations, type LocationProfile } from '@/hooks/useLocationBank';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
+import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 
 interface LocationBankPanelProps {
   className?: string;
@@ -130,23 +131,41 @@ export function LocationBankPanel({
     allLocationS3Keys,
     !!screenplayId && allLocationS3Keys.length > 0
   );
+  const dropboxUrlMap = useDropboxPreviewUrls(allLocationMediaFiles, !!screenplayId && allLocationMediaFiles.length > 0);
+  const locationMediaFileMap = useMemo(() => {
+    const map = new Map<string, any>();
+    allLocationMediaFiles.forEach((file: any) => {
+      if (file.s3Key && !file.s3Key.startsWith('thumbnails/')) map.set(file.s3Key, file);
+    });
+    return map;
+  }, [allLocationMediaFiles]);
+  const presignedMapsForDisplay = useMemo(() => ({
+    fullImageUrlsMap: locationPresignedUrls,
+    thumbnailS3KeyMap: null as Map<string, string> | null,
+    thumbnailUrlsMap: null as Map<string, string> | null,
+  }), [locationPresignedUrls]);
+
+  const getLocationImageDisplayUrl = useCallback((s3Key: string) => {
+    const file = locationMediaFileMap.get(s3Key);
+    return getMediaFileDisplayUrl(
+      file ?? { id: s3Key, storageType: 'local', s3Key } as any,
+      presignedMapsForDisplay,
+      dropboxUrlMap
+    );
+  }, [locationMediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
 
   // 🔥 FIX: Calculate backgrounds count per location from Media Library (source of truth)
   const backgroundsCountByLocation = useMemo(() => {
     const counts: Record<string, number> = {};
     
     Object.entries(locationImagesFromMediaLibrary).forEach(([entityId, loc]) => {
-      // Only count backgrounds that have valid presigned URLs
-      const validBackgrounds = loc.backgrounds.filter(bg => 
-        locationPresignedUrls.has(bg.s3Key) && locationPresignedUrls.get(bg.s3Key)
-      );
+      const validBackgrounds = loc.backgrounds.filter(bg => !!getLocationImageDisplayUrl(bg.s3Key));
       if (validBackgrounds.length > 0) {
         counts[entityId] = validBackgrounds.length;
       }
     });
-    
     return counts;
-  }, [locationImagesFromMediaLibrary, locationPresignedUrls]);
+  }, [locationImagesFromMediaLibrary, getLocationImageDisplayUrl]);
 
   const isLoading = queryLoading || propsIsLoading;
 
@@ -328,27 +347,26 @@ export function LocationBankPanel({
                 if (mediaLibraryImages) {
                   // Add angle variations with valid presigned URLs
                   mediaLibraryImages.angles.forEach((angle) => {
-                    if (addedS3Keys.has(angle.s3Key)) return; // Skip duplicates
-                    const imageUrl = locationPresignedUrls.get(angle.s3Key);
+                    if (addedS3Keys.has(angle.s3Key)) return;
+                    const imageUrl = getLocationImageDisplayUrl(angle.s3Key);
                     if (imageUrl) {
                       addedS3Keys.add(angle.s3Key);
                       allReferences.push({
                         id: angle.s3Key,
-                        imageUrl: imageUrl,
+                        imageUrl,
                         label: `${location.name} - ${angle.angle || angle.label || 'angle'} view`
                       });
                     }
                   });
                   
-                  // Add backgrounds with valid presigned URLs
                   mediaLibraryImages.backgrounds.forEach((bg) => {
-                    if (addedS3Keys.has(bg.s3Key)) return; // Skip duplicates
-                    const imageUrl = locationPresignedUrls.get(bg.s3Key);
+                    if (addedS3Keys.has(bg.s3Key)) return;
+                    const imageUrl = getLocationImageDisplayUrl(bg.s3Key);
                     if (imageUrl) {
                       addedS3Keys.add(bg.s3Key);
                       allReferences.push({
                         id: bg.s3Key,
-                        imageUrl: imageUrl,
+                        imageUrl,
                         label: `${location.name} - ${bg.backgroundType || 'Background'}`
                       });
                     }
@@ -373,7 +391,7 @@ export function LocationBankPanel({
                 // Build metadata string with angles and backgrounds count
                 // 🔥 Feature 0200: Use Media Library counts (source of truth) - matches detail modal
                 const angleCount = mediaLibraryImages 
-                  ? mediaLibraryImages.angles.filter(a => locationPresignedUrls.has(a.s3Key) && locationPresignedUrls.get(a.s3Key)).length
+                  ? mediaLibraryImages.angles.filter(a => !!getLocationImageDisplayUrl(a.s3Key)).length
                   : (location.angleVariations || []).filter((v: any) => v.imageUrl).length;
                 const backgroundCount = backgroundsCountByLocation[location.locationId] || 0;
                 

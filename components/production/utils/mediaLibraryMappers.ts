@@ -37,6 +37,8 @@ export interface CharacterHeadshot {
   label?: string;
   priority?: number;
   outfitName?: string;
+  /** MediaFile id for Dropbox preview URL lookup */
+  fileId?: string;
 }
 
 export interface PropAngleReference {
@@ -44,11 +46,15 @@ export interface PropAngleReference {
   s3Key: string;
   imageUrl: string;
   label?: string;
+  /** MediaFile id for Dropbox preview URL lookup */
+  fileId?: string;
 }
 
 export interface PropImage {
   url: string;
   s3Key?: string;
+  /** MediaFile id for Dropbox preview URL lookup */
+  fileId?: string;
 }
 
 /**
@@ -122,7 +128,8 @@ export function mapMediaFilesToHeadshots(
       label,
       priority: 0, // No prioritization - all images are equal
       // 🔥 NEW: Assign "Creation" as outfit name for creation images so they can be selected as an outfit option
-      outfitName: isCreationImage ? 'Creation' : (file.metadata?.outfitName || undefined)
+      outfitName: isCreationImage ? 'Creation' : (file.metadata?.outfitName || undefined),
+      fileId: (file as { id?: string }).id
     };
   });
   
@@ -179,14 +186,16 @@ export function mapMediaFilesToPropStructure(
           // 🔥 FIX: Media Library files don't have s3Url - presigned URLs are fetched separately
       // Set imageUrl to null (not empty string) - will be resolved via URL maps
       imageUrl: null as any, // Will be resolved via thumbnailUrlsMap or fullImageUrlsMap // Will be replaced with presigned URL if needed
-          label: file.metadata?.angle
+          label: file.metadata?.angle,
+          fileId: (file as { id?: string }).id
         });
       } else {
         // Creation image -> images[]
         // Use s3Key as URL for backend workflow compatibility (backend matches img.url === selectedImageId)
         images.push({
           url: file.s3Key!, // Use s3Key as URL for backend compatibility
-          s3Key: file.s3Key
+          s3Key: file.s3Key,
+          fileId: (file as { id?: string }).id
         });
       }
     }

@@ -7,8 +7,9 @@
 
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
+import { getDropboxPath } from '@/components/production/utils/imageUrlResolver';
 import type { 
   MediaFile, 
   PresignedUrlRequest, 
@@ -132,8 +133,8 @@ export function useMediaFiles(
       }
       
       // Map backend format to frontend MediaFile format
-      // Backend returns: { fileId, fileName, fileType (MIME), mediaFileType, fileSize, s3Key, folderId, folderPath, createdAt, metadata, entityType?, entityId? }
-      // Frontend expects: { id, fileName, s3Key, fileType (enum), mediaFileType, fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key }
+      // Backend returns: { fileId, fileName, fileType (MIME), mediaFileType, fileSize, s3Key, folderId, folderPath, createdAt, metadata, storageType?, entityType?, entityId? }
+      // Frontend expects: { id, fileName, s3Key, fileType (enum), mediaFileType, fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key, metadata (incl. cloudFileId/cloudFilePath) }
       return backendFiles.map((file: any) => ({
         id: file.fileId,
         fileName: file.fileName,
@@ -141,13 +142,13 @@ export function useMediaFiles(
         fileType: detectFileType(file.fileType),
         mediaFileType: file.mediaFileType, // 🔥 FIX: Preserve mediaFileType from backend (required for video filtering)
         fileSize: file.fileSize,
-        storageType: 'local' as const, // S3 files are 'local' storage type
+        storageType: (file.storageType || 'local') as 'local' | 'google-drive' | 'dropbox' | 'wryda-temp', // Pass through; cloud-synced files have 'google-drive' | 'dropbox'
         uploadedAt: file.createdAt,
         expiresAt: undefined,
         thumbnailUrl: undefined, // Deprecated - use thumbnailS3Key with presigned URL instead
         folderId: file.folderId, // Feature 0128: S3 folder support
         folderPath: file.folderPath, // Feature 0128: Breadcrumb path
-        metadata: file.metadata, // Feature 0170: Include metadata for scene organization
+        metadata: file.metadata, // Feature 0170: Include metadata (cloudFileId, cloudFilePath for Dropbox, etc.)
         thumbnailS3Key: file.metadata?.thumbnailS3Key || file.thumbnailS3Key, // Feature 0174: Thumbnail S3 key (if exists)
         // Preserve top-level entityType/entityId from GSI (backend stores them at top level for efficient querying)
         entityType: file.entityType,
@@ -288,6 +289,43 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
+}
+
+/**
+ * Fetches temporary preview URLs for Dropbox files in the list.
+ * Returns Map<fileId, downloadUrl> for use with getMediaFileDisplayUrl.
+ */
+export function useDropboxPreviewUrls(files: MediaFile[], enabled: boolean = true): Map<string, string> {
+  const { getToken } = useAuth();
+  const dropboxFiles = files.filter((f): f is MediaFile => f.storageType === 'dropbox');
+  const fileIds = dropboxFiles.map((f) => f.id);
+  const paths = dropboxFiles.map((f) => getDropboxPath(f));
+
+  const results = useQueries({
+    queries: paths.map((path, i) => ({
+      queryKey: ['storage', 'preview-url', 'dropbox', path],
+      queryFn: async (): Promise<string> => {
+        const token = await getAuthToken(getToken);
+        if (!token) throw new Error('Not authenticated');
+        const res = await fetch(
+          `/api/storage/preview-url/dropbox?path=${encodeURIComponent(path)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok) throw new Error(`Preview URL failed: ${res.status}`);
+        const data = await res.json();
+        return data.downloadUrl ?? '';
+      },
+      enabled: enabled && !!path,
+      staleTime: 4 * 60 * 60 * 1000 - 60 * 1000, // ~4h - 1min (Dropbox link valid 4h)
+      gcTime: 4 * 60 * 60 * 1000,
+    })),
+  });
+
+  const map = new Map<string, string>();
+  results.forEach((result, i) => {
+    if (result.data && fileIds[i]) map.set(fileIds[i], result.data);
+  });
+  return map;
 }
 
 /**

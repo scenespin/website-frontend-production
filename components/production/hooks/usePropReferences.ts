@@ -6,7 +6,7 @@
  */
 
 import { useMemo, useEffect } from 'react';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
 import { mapMediaFilesToPropStructure } from '../utils/mediaLibraryMappers';
 
 export interface PropType {
@@ -29,6 +29,7 @@ interface UsePropReferencesReturn {
   enrichedProps: PropType[];
   propThumbnailS3KeyMap: Map<string, string>;
   propThumbnailUrlsMap: Map<string, string>;
+  dropboxUrlMap: Map<string, string>;
   loading: boolean;
 }
 
@@ -292,10 +293,29 @@ export function usePropReferences(
     propThumbnailS3Keys.length > 0
   );
 
+  const dropboxUrlMap = useDropboxPreviewUrls(propMediaFiles, enabled && propMediaFiles.length > 0);
+
+  // Enrich angleReferences and images with Dropbox temp URL when available
+  const enrichedPropsWithDropbox = useMemo(() =>
+    enrichedProps.map(prop => ({
+      ...prop,
+      angleReferences: prop.angleReferences?.map(ref => ({
+        ...ref,
+        imageUrl: (ref.fileId && dropboxUrlMap.get(ref.fileId)) || ref.imageUrl
+      })) ?? [],
+      images: prop.images?.map(img => ({
+        ...img,
+        url: (img.fileId && dropboxUrlMap.get(img.fileId)) || img.url
+      })) ?? []
+    })),
+    [enrichedProps, dropboxUrlMap]
+  );
+
   return {
-    enrichedProps,
+    enrichedProps: enrichedPropsWithDropbox,
     propThumbnailS3KeyMap,
     propThumbnailUrlsMap,
+    dropboxUrlMap,
     loading: isLoadingFiles
   };
 }

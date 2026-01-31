@@ -5,12 +5,14 @@
  * 
  * Displays images from Playground and manual uploads.
  * Character/Location/Asset Bank images and Scene first frames are shown in their respective tabs.
+ * Uses getMediaFileDisplayUrl for S3/CloudFront, Google Drive, and Dropbox.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Image as ImageIcon, Upload, Info } from 'lucide-react';
-import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 
 interface ImagesPanelProps {
   className?: string;
@@ -58,6 +60,21 @@ export function ImagesPanel({ className = '' }: ImagesPanelProps) {
     });
   }, [mediaFiles]);
 
+  const imageS3Keys = useMemo(() =>
+    standaloneImages.map(f => f.s3Key).filter((k): k is string => !!k),
+    [standaloneImages]
+  );
+  const { data: presignedUrls = new Map() } = useBulkPresignedUrls(
+    imageS3Keys,
+    !!screenplayId && imageS3Keys.length > 0
+  );
+  const dropboxUrlMap = useDropboxPreviewUrls(standaloneImages, !!screenplayId && standaloneImages.length > 0);
+  const presignedMaps = useMemo(() => ({
+    fullImageUrlsMap: presignedUrls,
+    thumbnailS3KeyMap: null as Map<string, string> | null,
+    thumbnailUrlsMap: null as Map<string, string> | null,
+  }), [presignedUrls]);
+
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
       {/* Info Banner */}
@@ -101,13 +118,15 @@ export function ImagesPanel({ className = '' }: ImagesPanelProps) {
               </p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {standaloneImages.map((image) => (
+              {standaloneImages.map((image) => {
+                const displayUrl = getMediaFileDisplayUrl(image, presignedMaps, dropboxUrlMap);
+                return (
                 <div
                   key={image.id}
                   className="relative aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden group hover:border-[#DC143C]/50 transition-colors"
                 >
                   <img
-                    src={image.s3Key ? `https://${process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-media'}.s3.amazonaws.com/${image.s3Key}` : undefined}
+                    src={displayUrl ?? undefined}
                     alt={image.fileName || 'Untitled Image'}
                     className="w-full h-full object-cover"
                   />
@@ -124,7 +143,7 @@ export function ImagesPanel({ className = '' }: ImagesPanelProps) {
                     </div>
                   </div>
                 </div>
-              ))}
+              ); })}
             </div>
           </div>
         </div>

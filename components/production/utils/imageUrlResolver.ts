@@ -1,9 +1,11 @@
 /**
  * Image URL Resolution Utility
- * 
+ *
  * Standardized utility for resolving image URLs from various sources.
- * Handles thumbnails, full images, and fallback chains consistently.
+ * Handles thumbnails, full images, fallback chains, and cloud storage (Drive/Dropbox).
  */
+
+import type { MediaFile } from '@/types/media';
 
 /**
  * Resolves the best available image URL from multiple sources.
@@ -169,4 +171,46 @@ export function resolvePropImageUrl(
     fullImageUrlsMap: maps.fullImageUrlsMap,
     fallbackImageUrl: propImage.imageUrl
   });
+}
+
+/** Presigned/S3 URL maps used by getMediaFileDisplayUrl */
+export interface MediaFilePresignedMaps {
+  thumbnailS3KeyMap?: Map<string, string> | null;
+  thumbnailUrlsMap?: Map<string, string> | null;
+  fullImageUrlsMap?: Map<string, string> | null;
+}
+
+/**
+ * Resolves display URL for a MediaFile by storage type.
+ * Use for local/wryda-temp (S3), google-drive, and dropbox (with dropboxUrlMap).
+ * Call from components that display media; pair with useDropboxPreviewUrls for Dropbox.
+ */
+export function getMediaFileDisplayUrl(
+  file: MediaFile,
+  presignedMaps?: MediaFilePresignedMaps | null,
+  dropboxUrlMap?: Map<string, string> | null
+): string | null {
+  const st = file.storageType || 'local';
+  if (st === 'google-drive') {
+    const cloudFileId = file.metadata?.cloudFileId ?? file.id;
+    if (!cloudFileId) return null;
+    return `https://drive.google.com/uc?export=view&id=${cloudFileId}`;
+  }
+  if (st === 'dropbox') {
+    return dropboxUrlMap?.get(file.id) ?? null;
+  }
+  if (st === 'local' || st === 'wryda-temp') {
+    return resolveImageUrl({
+      s3Key: file.s3Key ?? null,
+      thumbnailS3KeyMap: presignedMaps?.thumbnailS3KeyMap ?? undefined,
+      thumbnailUrlsMap: presignedMaps?.thumbnailUrlsMap ?? undefined,
+      fullImageUrlsMap: presignedMaps?.fullImageUrlsMap ?? undefined,
+    });
+  }
+  return null;
+}
+
+/** Get Dropbox path for a file (for preview-url API). */
+export function getDropboxPath(file: MediaFile): string {
+  return file.metadata?.cloudFilePath ?? (file as { path?: string }).path ?? file.id;
 }

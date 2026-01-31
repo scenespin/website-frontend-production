@@ -32,6 +32,7 @@ import {
   Music
 } from 'lucide-react';
 import type { MediaFile } from '@/types/media';
+import { getDropboxPath } from './utils/imageUrlResolver';
 import ScreenplayReadingModal from '../modals/ScreenplayReadingModal';
 
 interface ReadingsPanelProps {
@@ -261,24 +262,42 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
         // No fallback URL needed - we'll use s3Key to get presigned URL
         downloadUrl = undefined;
       } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
-        // For cloud storage files, get download URL from backend
         const token = await getToken({ template: 'wryda-backend' });
         if (!token) {
           toast.error('Not authenticated');
           return;
         }
-        
-        const response = await fetch(`${BACKEND_API_URL}/api/storage/download/${file.storageType}/${file.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
+        if (file.storageType === 'dropbox') {
+          const path = getDropboxPath(file);
+          const res = await fetch(
+            `${BACKEND_API_URL}/api/storage/preview-url/dropbox?path=${encodeURIComponent(path)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (!res.ok) {
+            toast.error('Failed to get Dropbox download URL');
+            return;
+          }
+          const data = await res.json();
           downloadUrl = data.downloadUrl;
         } else {
-          toast.error('Failed to get download URL');
+          const res = await fetch(
+            `${BACKEND_API_URL}/api/storage/download/${file.storageType}/${file.id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (!res.ok) {
+            toast.error('Failed to get download URL');
+            return;
+          }
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = file.fileName || 'download.mp3';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+          downloadingFiles.current.delete(file.id);
           return;
         }
       } else {
@@ -680,7 +699,6 @@ function ReadingCard({
             return;
           }
         } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
-          // For cloud storage files, get download URL from backend
           const token = await getToken({ template: 'wryda-backend' });
           if (!token) {
             console.error('[ReadingCard] Not authenticated');
@@ -688,23 +706,32 @@ function ReadingCard({
             setIsLoadingAudio(false);
             return;
           }
-          
-          const response = await fetch(`${BACKEND_API_URL}/api/storage/download/${file.storageType}/${file.id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
+          if (file.storageType === 'dropbox') {
+            const path = getDropboxPath(file);
+            const res = await fetch(
+              `${BACKEND_API_URL}/api/storage/preview-url/dropbox?path=${encodeURIComponent(path)}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!res.ok) {
+              console.error('[ReadingCard] Failed to get Dropbox preview URL');
+              toast.error('Failed to load audio', { description: `Server returned ${res.status}` });
+              setIsLoadingAudio(false);
+              return;
+            }
+            const data = await res.json();
             downloadUrl = data.downloadUrl;
           } else {
-            console.error('[ReadingCard] Failed to get cloud storage download URL');
-            toast.error('Failed to load audio', { 
-              description: `Server returned ${response.status}` 
-            });
-            setIsLoadingAudio(false);
-            return;
+            const res = await fetch(
+              `${BACKEND_API_URL}/api/storage/download/${file.storageType}/${file.id}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!res.ok) {
+              toast.error('Failed to load audio', { description: `Server returned ${res.status}` });
+              setIsLoadingAudio(false);
+              return;
+            }
+            const blob = await res.blob();
+            downloadUrl = URL.createObjectURL(blob);
           }
         } else {
           console.error('[ReadingCard] Unsupported storage type:', file.storageType);
@@ -1098,7 +1125,6 @@ function SceneAudioPlayer({
             return;
           }
         } else if (sceneFile.storageType === 'google-drive' || sceneFile.storageType === 'dropbox') {
-          // For cloud storage files, get download URL from backend
           const token = await getToken({ template: 'wryda-backend' });
           if (!token) {
             console.error('[SceneAudioPlayer] Not authenticated');
@@ -1106,23 +1132,31 @@ function SceneAudioPlayer({
             setIsLoadingAudio(false);
             return;
           }
-          
-          const response = await fetch(`${BACKEND_API_URL}/api/storage/download/${sceneFile.storageType}/${sceneFile.id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
+          if (sceneFile.storageType === 'dropbox') {
+            const path = getDropboxPath(sceneFile);
+            const res = await fetch(
+              `${BACKEND_API_URL}/api/storage/preview-url/dropbox?path=${encodeURIComponent(path)}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!res.ok) {
+              toast.error('Failed to load audio', { description: `Server returned ${res.status}` });
+              setIsLoadingAudio(false);
+              return;
+            }
+            const data = await res.json();
             downloadUrl = data.downloadUrl;
           } else {
-            console.error('[SceneAudioPlayer] Failed to get cloud storage download URL');
-            toast.error('Failed to load audio', { 
-              description: `Server returned ${response.status}` 
-            });
-            setIsLoadingAudio(false);
-            return;
+            const res = await fetch(
+              `${BACKEND_API_URL}/api/storage/download/${sceneFile.storageType}/${sceneFile.id}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!res.ok) {
+              toast.error('Failed to load audio', { description: `Server returned ${res.status}` });
+              setIsLoadingAudio(false);
+              return;
+            }
+            const blob = await res.blob();
+            downloadUrl = URL.createObjectURL(blob);
           }
         } else {
           console.error('[SceneAudioPlayer] Unsupported storage type:', sceneFile.storageType);

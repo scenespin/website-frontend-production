@@ -31,7 +31,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
+import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
 import { ModernGallery } from './Gallery/ModernGallery';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -340,6 +341,14 @@ export default function AssetDetailModal({
     return [...entityMediaFiles, ...filtered];
   }, [entityMediaFiles, allMediaFiles, latestAsset.id, isOpen]);
   
+  const mediaFileMap = useMemo(() => {
+    const map = new Map<string, any>();
+    mediaFiles.forEach((file: any) => {
+      if (file.s3Key && !file.s3Key.startsWith('thumbnails/')) map.set(file.s3Key, file);
+    });
+    return map;
+  }, [mediaFiles]);
+  
   // Create metadata maps from asset prop (DynamoDB) for enrichment
   const dynamoDBMetadataMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -473,21 +482,34 @@ export default function AssetDetailModal({
     mediaLibraryS3Keys.length > 0 ? mediaLibraryS3Keys : [],
     isOpen && mediaLibraryS3Keys.length > 0
   );
+  const dropboxUrlMap = useDropboxPreviewUrls(mediaFiles, isOpen && mediaFiles.length > 0);
+  const thumbnailS3KeyMapForDisplay = useMemo(() => {
+    const map = new Map<string, string>();
+    mediaFiles.forEach((file: any) => {
+      if (file.s3Key && file.thumbnailS3Key) map.set(file.s3Key, file.thumbnailS3Key);
+    });
+    return map;
+  }, [mediaFiles]);
+  const presignedMapsForDisplay = useMemo(() => ({
+    fullImageUrlsMap: mediaLibraryUrls,
+    thumbnailS3KeyMap: thumbnailS3KeyMapForDisplay,
+    thumbnailUrlsMap: new Map<string, string>(),
+  }), [mediaLibraryUrls, thumbnailS3KeyMapForDisplay]);
   
-  // Enrich Media Library images with presigned URLs
-  // 🔥 Feature 0200: Filter out images with expired/broken presigned URLs
+  // Enrich Media Library images with display URLs (S3 presigned, Drive view URL, or Dropbox temporary link)
   const enrichedMediaLibraryImages = useMemo(() => {
     return imagesFromMediaLibrary
-      .map(img => ({
-        ...img,
-        imageUrl: mediaLibraryUrls.get(img.s3Key) || img.imageUrl || ''
-      }))
-      .filter(img => {
-        // Only include images with valid URLs (non-empty string)
-        // This prevents broken images from appearing in the UI
-        return !!img.imageUrl && img.imageUrl.length > 0;
-      });
-  }, [imagesFromMediaLibrary, mediaLibraryUrls]);
+      .map(img => {
+        const file = mediaFileMap.get(img.s3Key);
+        const displayUrl = getMediaFileDisplayUrl(
+          file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
+          presignedMapsForDisplay,
+          dropboxUrlMap
+        );
+        return { ...img, imageUrl: displayUrl || img.imageUrl || '' };
+      })
+      .filter(img => !!img.imageUrl && img.imageUrl.length > 0);
+  }, [imagesFromMediaLibrary, presignedMapsForDisplay, dropboxUrlMap, mediaFileMap]);
   
   // 🔥 FALLBACK: Use asset prop images if not in Media Library (for backward compatibility)
   const fallbackImages = useMemo(() => {

@@ -1179,13 +1179,17 @@ export default function MediaLibrary({
               }
             }
           } else if (file.storageType === 'dropbox') {
-            // Dropbox: Get download URL from backend
+            // Dropbox: Get temporary preview link from backend (JSON endpoint)
+            const dropboxPath = file.metadata?.cloudFilePath ?? (file as { path?: string }).path ?? file.id;
             try {
-              const response = await fetch(`/api/storage/download/dropbox/${file.id}`, {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                },
-              });
+              const response = await fetch(
+                `/api/storage/preview-url/dropbox?path=${encodeURIComponent(dropboxPath)}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                  },
+                }
+              );
               if (response.ok) {
                 const data = await response.json();
                 previewUrl = data.downloadUrl || file.thumbnailUrl;
@@ -1193,7 +1197,7 @@ export default function MediaLibrary({
                 previewUrl = file.thumbnailUrl;
               }
             } catch (error) {
-              console.warn('[MediaLibrary] Failed to get Dropbox download URL');
+              console.warn('[MediaLibrary] Failed to get Dropbox preview URL');
               previewUrl = file.thumbnailUrl;
             }
           }
@@ -1303,18 +1307,33 @@ export default function MediaLibrary({
           toast.error('Not authenticated');
           return;
         }
-        
-        const response = await fetch(`/api/storage/download/${file.storageType}/${file.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          downloadUrl = data.downloadUrl;
+        if (file.storageType === 'dropbox') {
+          // Dropbox: use preview-url endpoint (returns JSON { downloadUrl }); download endpoint streams binary
+          const dropboxPath = file.metadata?.cloudFilePath ?? (file as { path?: string }).path ?? file.id;
+          const response = await fetch(
+            `/api/storage/preview-url/dropbox?path=${encodeURIComponent(dropboxPath)}`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            downloadUrl = data.downloadUrl;
+          } else {
+            toast.error('Failed to get Dropbox download URL');
+            return;
+          }
         } else {
-          toast.error('Failed to get download URL');
+          // Google Drive: download endpoint streams binary
+          const response = await fetch(`/api/storage/download/${file.storageType}/${file.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (!response.ok) {
+            toast.error('Failed to get download URL');
+            return;
+          }
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          downloadFileAsBlob(blobUrl, file.fileName);
+          URL.revokeObjectURL(blobUrl);
           return;
         }
       } else {
@@ -1539,11 +1558,15 @@ export default function MediaLibrary({
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to get auth URL: ${response.status}`);
-      }
+      const data = await response.json().catch(() => ({}));
 
-      const data = await response.json();
+      if (!response.ok) {
+        const message = data?.message || data?.error || `Failed to get auth URL: ${response.status}`;
+        if (response.status === 403) {
+          toast.error('Cannot connect cloud storage', { description: message });
+        }
+        throw new Error(message);
+      }
       
       // Open OAuth flow in popup
       const popup = window.open(data.authUrl, '_blank', 'width=600,height=700');

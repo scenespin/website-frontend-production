@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
 import { isBackgroundFile, isAngleFile } from '../utils/mediaLibraryMappers';
 
 export interface LocationAngle {
@@ -17,6 +17,8 @@ export interface LocationAngle {
   label?: string;
   timeOfDay?: string;
   weather?: string;
+  /** MediaFile id for Dropbox preview URL lookup */
+  fileId?: string;
 }
 
 export interface LocationBackground {
@@ -32,6 +34,8 @@ export interface LocationBackground {
   };
   timeOfDay?: string;
   weather?: string;
+  /** MediaFile id for Dropbox preview URL lookup */
+  fileId?: string;
 }
 
 interface UseLocationReferencesOptions {
@@ -46,6 +50,7 @@ interface UseLocationReferencesReturn {
   locationThumbnailS3KeyMap: Map<string, string>;
   locationThumbnailUrlsMap: Map<string, string>;
   locationFullImageUrlsMap: Map<string, string>; // 🔥 NEW: Full image URLs for files without thumbnails
+  dropboxUrlMap: Map<string, string>;
   loading: boolean;
 }
 
@@ -266,7 +271,8 @@ export function useLocationReferences({
               quality: file.metadata?.quality
             },
             timeOfDay: file.metadata?.timeOfDay,
-            weather: file.metadata?.weather
+            weather: file.metadata?.weather,
+            fileId: file.id
           });
         } else if (hasAngleMetadata || !isBackground) {
           // Angle variation - prioritize files with angle metadata or files that aren't backgrounds
@@ -282,7 +288,8 @@ export function useLocationReferences({
             imageUrl: file.s3Url || null,
             label: file.metadata?.angle,
             timeOfDay: file.metadata?.timeOfDay,
-            weather: file.metadata?.weather
+            weather: file.metadata?.weather,
+            fileId: file.id
           });
         }
         // 🔥 FIX: If file doesn't match angle or background criteria, skip it (don't add to either array)
@@ -379,10 +386,23 @@ export function useLocationReferences({
     fullImageS3KeysCount: locationFullImageS3Keys.length
   });
 
-  // Note: angleVariations and backgrounds keep their original imageUrl (from Media Library s3Url)
-  // which can be used as fallback, but thumbnails are preferred for display
-  const enrichedAngleVariations = angleVariations;
-  const enrichedBackgrounds = backgrounds;
+  const dropboxUrlMap = useDropboxPreviewUrls(locationMediaFiles, enabled && locationMediaFiles.length > 0);
+
+  // Enrich with Dropbox temp URL when available so panels can display without extra lookup
+  const enrichedAngleVariations = useMemo(() =>
+    angleVariations.map(a => ({
+      ...a,
+      imageUrl: (a.fileId && dropboxUrlMap.get(a.fileId)) || a.imageUrl
+    })),
+    [angleVariations, dropboxUrlMap]
+  );
+  const enrichedBackgrounds = useMemo(() =>
+    backgrounds.map(b => ({
+      ...b,
+      imageUrl: (b.fileId && dropboxUrlMap.get(b.fileId)) || b.imageUrl
+    })),
+    [backgrounds, dropboxUrlMap]
+  );
 
   return {
     angleVariations: enrichedAngleVariations,
@@ -390,6 +410,7 @@ export function useLocationReferences({
     locationThumbnailS3KeyMap,
     locationThumbnailUrlsMap,
     locationFullImageUrlsMap, // 🔥 NEW: Return full image URLs map
+    dropboxUrlMap,
     loading: isLoadingFiles
   };
 }

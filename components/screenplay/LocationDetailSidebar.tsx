@@ -14,6 +14,8 @@ import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary'
+import { getMediaFileDisplayUrl } from '@/components/production/utils/imageUrlResolver'
 
 interface LocationDetailSidebarProps {
   location?: Location | null
@@ -150,7 +152,50 @@ export default function LocationDetailSidebar({
     }
   }, [locations, location?.id, location?.images]) // Watch locations array, location.id, and location.images
 
-  // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
+  // 🔥 Feature 0200: Media Library as source of truth for location images (same pattern as CharacterDetailSidebar)
+  const { data: locationMediaFiles = [] } = useMediaFiles(
+    screenplayId || '',
+    undefined,
+    !!screenplayId && !!location?.id,
+    true,
+    'location',
+    location?.id
+  );
+  const locationMediaS3Keys = useMemo(() => {
+    return locationMediaFiles
+      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
+      .map((file: any) => file.s3Key);
+  }, [locationMediaFiles]);
+  const { data: locationPresignedUrls = new Map() } = useBulkPresignedUrls(
+    locationMediaS3Keys,
+    locationMediaS3Keys.length > 0
+  );
+  const dropboxUrlMap = useDropboxPreviewUrls(locationMediaFiles, locationMediaFiles.length > 0);
+  const presignedMapsForDisplay = useMemo(() => ({
+    fullImageUrlsMap: locationPresignedUrls,
+    thumbnailS3KeyMap: null as Map<string, string> | null,
+    thumbnailUrlsMap: null as Map<string, string> | null,
+  }), [locationPresignedUrls]);
+  const locationMediaLibraryImages = useMemo(() => {
+    return locationMediaFiles
+      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
+      .map((file: any) => {
+        const displayUrl = getMediaFileDisplayUrl(file, presignedMapsForDisplay, dropboxUrlMap);
+        return {
+          id: file.id,
+          imageUrl: displayUrl || '',
+          metadata: {
+            s3Key: file.s3Key,
+            source: file.metadata?.source || 'upload',
+            ...file.metadata,
+          },
+          createdAt: file.uploadedAt || new Date().toISOString(),
+        };
+      })
+      .filter((img: any) => !!img.imageUrl);
+  }, [locationMediaFiles, presignedMapsForDisplay, dropboxUrlMap]);
+
+  // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key (legacy when Media Library empty)
   useEffect(() => {
     if (!location || !location.images || location.images.length === 0) return;
     
@@ -257,9 +302,11 @@ export default function LocationDetailSidebar({
     // Support multiple files - process all selected files
     const fileArray = Array.from(files);
 
-    // 🔥 NEW: Validate 5-image limit (1 base + 4 additional)
-    const currentImages = location ? getEntityImages('location', location.id) : [];
-    const currentCount = currentImages.filter(img => {
+    // 🔥 NEW: Validate 5-image limit (1 base + 4 additional). Prefer Media Library count when available.
+    const currentImages = (location && locationMediaLibraryImages.length > 0)
+      ? locationMediaLibraryImages
+      : (location ? getEntityImages('location', location.id) : []);
+    const currentCount = currentImages.filter((img: any) => {
       const source = (img.metadata as any)?.source;
       return !source || source === 'user-upload';
     }).length;
@@ -720,19 +767,15 @@ export default function LocationDetailSidebar({
             </label>
           </div>
           {(() => {
-            const images = location ? getEntityImages('location', location.id) : []
-            // 🔥 FIX: Use regenerated URLs when available (for expired presigned URLs)
-            const allImages = location ? images.map(img => {
+            // 🔥 Feature 0200: Prefer Media Library with resolved URLs (S3/Drive/Dropbox); fallback to context getEntityImages
+            const images = (location && locationMediaLibraryImages.length > 0)
+              ? locationMediaLibraryImages
+              : (location ? getEntityImages('location', location.id) : []);
+            const allImages = location ? (locationMediaLibraryImages.length > 0 ? locationMediaLibraryImages : images.map((img: any) => {
               const s3Key = img.metadata?.s3Key;
-              const imageUrl = s3Key && regeneratedImageUrls[s3Key] 
-                ? regeneratedImageUrls[s3Key] 
-                : img.imageUrl;
-              
-              return {
-                ...img,
-                imageUrl
-              };
-            }) : pendingImages.map((img, idx) => ({
+              const imageUrl = s3Key && regeneratedImageUrls[s3Key] ? regeneratedImageUrls[s3Key] : img.imageUrl;
+              return { ...img, imageUrl };
+            })) : pendingImages.map((img, idx) => ({
               id: `pending-${idx}`,
               imageUrl: img.imageUrl,
               metadata: { 

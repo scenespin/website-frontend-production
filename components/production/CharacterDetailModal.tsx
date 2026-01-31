@@ -28,7 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
+import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 import { useThumbnailMapping, type GalleryImage } from '@/hooks/useThumbnailMapping';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -713,21 +714,33 @@ export function CharacterDetailModal({
     mediaLibraryS3Keys.length > 0 ? mediaLibraryS3Keys : [],
     isOpen && mediaLibraryS3Keys.length > 0
   );
+  const dropboxUrlMap = useDropboxPreviewUrls(mediaFiles, isOpen && mediaFiles.length > 0);
+  const presignedMapsForDisplay = useMemo(() => ({
+    fullImageUrlsMap: mediaLibraryUrls,
+    thumbnailS3KeyMap,
+    thumbnailUrlsMap: new Map<string, string>(),
+  }), [mediaLibraryUrls, thumbnailS3KeyMap]);
   
-  // Enrich Media Library images with presigned URLs
+  // Enrich Media Library images with display URLs (S3 presigned, Drive view URL, or Dropbox temporary link)
   // 🔥 Feature 0200: Filter out images with expired/broken presigned URLs
   const enrichedMediaLibraryImages = useMemo(() => {
     return imagesFromMediaLibrary
-      .map(img => ({
-        ...img,
-        imageUrl: mediaLibraryUrls.get(img.s3Key) || img.imageUrl || '' // Use Media Library URL, fallback to empty
-      }))
+      .map(img => {
+        const file = mediaFileMap.get(img.s3Key);
+        const displayUrl = getMediaFileDisplayUrl(
+          file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
+          presignedMapsForDisplay,
+          dropboxUrlMap
+        );
+        return {
+          ...img,
+          imageUrl: displayUrl || img.imageUrl || '',
+        };
+      })
       .filter(img => {
-        // Only include images with valid URLs (non-empty string)
-        // This prevents broken images from appearing in the UI
         return !!img.imageUrl && img.imageUrl.length > 0;
       });
-  }, [imagesFromMediaLibrary, mediaLibraryUrls]);
+  }, [imagesFromMediaLibrary, mediaLibraryUrls, presignedMapsForDisplay, dropboxUrlMap, mediaFileMap]);
   
   // 🔥 FALLBACK: Use character prop images if not in Media Library (for backward compatibility)
   // 🔥 NEW: Also check unified images array from backend (includes all images with proper metadata)

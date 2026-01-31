@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
 import { mapMediaFilesToHeadshots } from '../utils/mediaLibraryMappers';
 
 export interface CharacterHeadshot {
@@ -16,6 +16,8 @@ export interface CharacterHeadshot {
   label?: string;
   priority?: number;
   outfitName?: string;
+  /** MediaFile id for Dropbox preview URL lookup */
+  fileId?: string;
 }
 
 interface UseCharacterReferencesOptions {
@@ -29,6 +31,7 @@ interface UseCharacterReferencesReturn {
   characterThumbnailS3KeyMap: Map<string, string>;
   thumbnailUrlsMap: Map<string, string>;
   fullImageUrlsMap: Map<string, string>;
+  dropboxUrlMap: Map<string, string>;
   loading: boolean;
 }
 
@@ -128,7 +131,7 @@ export function useCharacterReferences({
   }, [characterMediaFiles]);
 
   // Map Media Library files to character headshot structure
-  const characterHeadshots = useMemo(() => {
+  const characterHeadshotsRaw = useMemo(() => {
     const headshots: Record<string, CharacterHeadshot[]> = {};
     
     characterIds.forEach(characterId => {
@@ -152,7 +155,7 @@ export function useCharacterReferences({
   // This prevents React Query from refetching when array order changes
   const headshotThumbnailS3Keys = useMemo(() => {
     const keysSet = new Set<string>();
-    Object.values(characterHeadshots).forEach(headshots => {
+    Object.values(characterHeadshotsRaw).forEach(headshots => {
       headshots.forEach(headshot => {
         if (headshot.s3Key && characterThumbnailS3KeyMap.has(headshot.s3Key)) {
           const thumbnailS3Key = characterThumbnailS3KeyMap.get(headshot.s3Key);
@@ -176,7 +179,7 @@ export function useCharacterReferences({
     });
     
     return keys;
-  }, [characterHeadshots, characterThumbnailS3KeyMap]);
+  }, [characterHeadshotsRaw, characterThumbnailS3KeyMap]);
 
   // 🔥 PERFORMANCE FIX: Only fetch thumbnails upfront (for grid display)
   // Full images will be fetched lazily when needed (e.g., when selected for generation)
@@ -204,11 +207,27 @@ export function useCharacterReferences({
   // This prevents loading hundreds of full-size images that may never be used
   const fullImageUrlsMap = new Map<string, string>();
 
+  // Dropbox temporary preview URLs for getMediaFileDisplayUrl / panel display
+  const dropboxUrlMap = useDropboxPreviewUrls(characterMediaFiles, enabled && characterMediaFiles.length > 0);
+
+  // Enrich headshots with Dropbox URL when available so selected refs have imageUrl set
+  const characterHeadshots = useMemo(() => {
+    const result: Record<string, CharacterHeadshot[]> = {};
+    for (const [charId, headshots] of Object.entries(characterHeadshotsRaw)) {
+      result[charId] = headshots.map(h => ({
+        ...h,
+        imageUrl: (h.fileId && dropboxUrlMap.get(h.fileId)) || h.imageUrl
+      }));
+    }
+    return result;
+  }, [characterHeadshotsRaw, dropboxUrlMap]);
+
   return {
     characterHeadshots,
     characterThumbnailS3KeyMap,
     thumbnailUrlsMap,
     fullImageUrlsMap,
+    dropboxUrlMap,
     loading: isLoadingFiles
   };
 }

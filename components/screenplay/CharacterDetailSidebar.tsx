@@ -14,7 +14,8 @@ import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary'
+import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary'
+import { getMediaFileDisplayUrl } from '@/components/production/utils/imageUrlResolver'
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -67,15 +68,21 @@ export default function CharacterDetailSidebar({
     characterMediaS3Keys,
     characterMediaS3Keys.length > 0
   );
+  const dropboxUrlMap = useDropboxPreviewUrls(characterMediaFiles, characterMediaFiles.length > 0);
+  const presignedMapsForDisplay = useMemo(() => ({
+    fullImageUrlsMap: characterPresignedUrls,
+    thumbnailS3KeyMap: null as Map<string, string> | null,
+    thumbnailUrlsMap: null as Map<string, string> | null,
+  }), [characterPresignedUrls]);
   
-  // 🔥 Feature 0200: Build enriched images from Media Library with valid presigned URLs
+  // 🔥 Feature 0200: Build enriched images from Media Library with display URLs (S3 presigned, Drive view URL, or Dropbox temporary link)
   const mediaLibraryImages = useMemo(() => {
     return characterMediaFiles
       .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
       .map((file: any) => {
-        const presignedUrl = characterPresignedUrls.get(file.s3Key);
+        const displayUrl = getMediaFileDisplayUrl(file, presignedMapsForDisplay, dropboxUrlMap);
         return {
-          imageUrl: presignedUrl || '',
+          imageUrl: displayUrl || '',
           metadata: {
             s3Key: file.s3Key,
             source: file.metadata?.source || 'upload',
@@ -87,8 +94,8 @@ export default function CharacterDetailSidebar({
           createdAt: file.createdAt || new Date().toISOString()
         };
       })
-      .filter((img: any) => !!img.imageUrl); // Only include images with valid presigned URLs
-  }, [characterMediaFiles, characterPresignedUrls]);
+      .filter((img: any) => !!img.imageUrl);
+  }, [characterMediaFiles, characterPresignedUrls, presignedMapsForDisplay, dropboxUrlMap]);
   
   // Check if character is in script (if editing existing character) - memoized to prevent render loops
   const isInScript = useMemo(() => {
