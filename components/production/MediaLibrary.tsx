@@ -1571,8 +1571,12 @@ export default function MediaLibrary({
       // Open OAuth flow in popup
       const popup = window.open(data.authUrl, '_blank', 'width=600,height=700');
       
-      // Poll for connection status
+      // Poll for connection status; stop as soon as the user closes the popup
       const pollInterval = setInterval(async () => {
+        if (popup && popup.closed) {
+          clearInterval(pollInterval);
+          return;
+        }
         try {
           const statusResponse = await fetch(`/api/auth/${storageType === 'google-drive' ? 'google' : 'dropbox'}/status`, {
             headers: {
@@ -1592,8 +1596,11 @@ export default function MediaLibrary({
               alert(`${storageType === 'google-drive' ? 'Google Drive' : 'Dropbox'} connected successfully!`);
             }
           }
+          // 401 while polling is expected when not yet connected; don't log to avoid console noise
         } catch (error) {
-          console.error('[MediaLibrary] Status poll error:', error);
+          if (popup && !popup.closed) {
+            console.error('[MediaLibrary] Status poll error:', error);
+          }
         }
       }, 2000); // Poll every 2 seconds
       
