@@ -18,7 +18,7 @@ import React from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
+import { Asset, AssetCategory, AssetImage, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { GenerateAssetTab } from './Coverage/GenerateAssetTab';
