@@ -1554,6 +1554,10 @@ export function ShotConfigurationStep({
                   if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) {
                     finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
                   }
+                } else {
+                  // Lip sync or scene-voiceover: do not show off-frame-only characters (listener/group) in reference list
+                  if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
+                  (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
                 }
                 
                 // Collect references for all characters
@@ -1819,6 +1823,9 @@ export function ShotConfigurationStep({
                     if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) {
                       finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
                     }
+                  } else {
+                    if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
+                    (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
                   }
                   
                   // Convert to array and filter to only those with references

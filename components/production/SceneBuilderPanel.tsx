@@ -83,6 +83,8 @@ import { SceneAnalysisStep } from './SceneAnalysisStep';
 import { SceneReviewStep } from './SceneReviewStep';
 import { isValidCharacterId, filterValidCharacterIds } from './utils/characterIdValidation';
 import { categorizeCharacters } from './utils/characterCategorization';
+import { isOffFrameListenerShotType, isOffFrameGroupShotType } from '@/types/offFrame';
+import type { OffFrameShotType } from '@/types/offFrame';
 import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
 import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
@@ -2877,22 +2879,53 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         selectedLocationReferences: Object.keys(selectedLocationReferences).length > 0 ? selectedLocationReferences : undefined, // Phase 2: Per-shot location angle selection
         locationOptOuts: Object.keys(locationOptOuts).length > 0 ? locationOptOuts : undefined, // Per-shot location opt-out state
         locationDescriptions: Object.keys(locationDescriptions).length > 0 ? locationDescriptions : undefined, // Per-shot location descriptions when opted out
-        // 🔥 FIX: Populate selectedCharactersForShots from selectedCharacterReferences if array is empty
-        // This ensures action shots with character references but empty arrays still work correctly
+        // Workflow-aware character set per shot: payload matches UI and backend (no extra refs when switching to lip sync)
         selectedCharactersForShots: (() => {
           const normalized = { ...selectedCharactersForShots };
-          // For each shot that has character references but empty array, populate from reference keys
+          // Backfill from ref keys when array empty (action shots / fallback)
           Object.keys(selectedCharacterReferences).forEach(shotSlotStr => {
             const shotSlot = parseInt(shotSlotStr, 10);
             const charRefs = selectedCharacterReferences[shotSlot];
             const charIds = Object.keys(charRefs || {});
-            // If array is empty/missing but references exist, populate from reference keys
             if (charIds.length > 0 && (!normalized[shotSlot] || normalized[shotSlot].length === 0)) {
               normalized[shotSlot] = charIds;
             }
           });
+          // Dialogue shots: set character list by workflow so backend receives same set as UI
+          const shots = sceneAnalysisResult?.shotBreakdown?.shots;
+          if (shots && enabledShots.length > 0) {
+            enabledShots.forEach((slot) => {
+              const shot = shots.find((s: any) => s.slot === slot);
+              if (!shot || shot.type !== 'dialogue') return;
+              const workflow = selectedDialogueWorkflows[slot];
+              const shotMappings = pronounMappingsForShots[slot] || {};
+              const { explicitCharacters, singularPronounCharacters, pluralPronounCharacters } = categorizeCharacters(
+                shot,
+                shotMappings,
+                (s: any) => getCharactersFromActionShot(s, sceneAnalysisResult),
+                (s: any) => getCharacterForShot(s, sceneAnalysisResult)
+              );
+              const dialogueCharIds = [...new Set([...explicitCharacters, ...singularPronounCharacters, ...pluralPronounCharacters])];
+              if (workflow === 'off-frame-voiceover') {
+                const base = [...new Set([...dialogueCharIds, ...(normalized[slot] || [])])];
+                const set = new Set(base);
+                if (offFrameShotType[slot] === 'off-frame') set.delete(shot.characterId);
+                if (offFrameListenerCharacterId[slot] && offFrameShotType[slot] && isOffFrameListenerShotType(offFrameShotType[slot] as OffFrameShotType)) {
+                  set.add(offFrameListenerCharacterId[slot]!);
+                }
+                (offFrameGroupCharacterIds[slot] || []).forEach((id: string) => set.add(id));
+                normalized[slot] = Array.from(set);
+              } else if (workflow === 'scene-voiceover') {
+                const narratorId = contextState.narrationNarratorCharacterId[slot] ?? shot.characterId ?? '';
+                normalized[slot] = [...new Set([narratorId, ...(selectedCharactersForShots[slot] || [])].filter(Boolean))];
+              } else {
+                // Lip sync or undefined: dialogue-only (no listener/group)
+                normalized[slot] = dialogueCharIds;
+              }
+            });
+          }
           return Object.keys(normalized).length > 0 ? normalized : undefined;
-        })(), // Pronoun Detection: Multi-character selection per shot (normalized from references if needed)
+        })(), // Pronoun Detection: Multi-character selection per shot (workflow-aware for dialogue)
         pronounMappingsForShots: Object.keys(pronounMappingsForShots).length > 0 ? pronounMappingsForShots : undefined, // Pronoun-to-character mappings: { shotSlot: { pronoun: characterId } }
         characterOutfits: Object.keys(characterOutfits).length > 0 ? characterOutfits : undefined, // Per-shot, per-character outfit selection: { shotSlot: { characterId: outfitName } }
         selectedDialogueQualities: Object.keys(selectedDialogueQualities).length > 0 ? selectedDialogueQualities : undefined, // NEW: Per-shot dialogue quality selection (Premium vs Reliable): { shotSlot: 'premium' | 'reliable' }
