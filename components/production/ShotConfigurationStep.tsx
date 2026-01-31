@@ -913,37 +913,11 @@ export function ShotConfigurationStep({
   const [activeTab, setActiveTab] = useState<string>('basic');
   const firstFrameTextareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // 🔥 NEW: Clear character references when switching to non-lip-sync tab or workflow
-  // Non-lip-sync workflows generate their own first frame, so they don't need character references from lip-sync
-  // 🔥 FIX: Use ref to track last state to prevent infinite loops
-  const lastTabWorkflowRef = React.useRef<{ tab: string; workflow?: string }>({ tab: 'basic' });
-  React.useEffect(() => {
-    if (!isDialogueShot || !onCharacterReferenceChange) return;
-    
-    const isNonLipSyncTab = activeTab === 'advanced';
-    const isNonLipSyncWorkflow = finalSelectedDialogueWorkflow === 'scene-voiceover' || finalSelectedDialogueWorkflow === 'off-frame-voiceover';
-    const currentState = { tab: activeTab, workflow: finalSelectedDialogueWorkflow };
-    const lastState = lastTabWorkflowRef.current;
-    
-    // Only clear if we're switching TO non-lip-sync (not if we're already there)
-    const wasNonLipSync = lastState.tab === 'advanced' || lastState.workflow === 'scene-voiceover' || lastState.workflow === 'off-frame-voiceover';
-    const isNowNonLipSync = isNonLipSyncTab || isNonLipSyncWorkflow;
-    
-    // Only clear if we just switched to non-lip-sync (not if we're already there)
-    if (isNowNonLipSync && !wasNonLipSync) {
-      const shotRefs = selectedCharacterReferences[shot.slot];
-      if (shotRefs && Object.keys(shotRefs).length > 0) {
-        // Clear all character references for this shot
-        Object.keys(shotRefs).forEach(characterId => {
-          onCharacterReferenceChange(shot.slot, characterId, undefined);
-        });
-      }
-    }
-    
-    // Update ref to track current state
-    lastTabWorkflowRef.current = currentState;
-  }, [activeTab, finalSelectedDialogueWorkflow, isDialogueShot, shot.slot, onCharacterReferenceChange]);
-  
+  // NOTE: We do NOT clear character references when switching to non-lip-sync. Hidden Mouth (off-frame)
+  // needs the speaker's character image for voice and first-frame reference; Narrate Shot uses the
+  // narrator's voice (characterId). Clearing refs would break Hidden Mouth and lose user selections
+  // if they switch back to lip-sync.
+
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
     const scrollContainer = document.querySelector('.h-full.overflow-auto');
@@ -1289,7 +1263,14 @@ export function ShotConfigurationStep({
               {/* Conditional rendering: Tabs for dialogue shots, single screen for action shots */}
               {isDialogueShot ? (
                 /* Dialogue shots: Show tabs (LIP SYNC OPTIONS / NON-LIP SYNC OPTIONS) */
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <Tabs
+                  value={activeTab}
+                  onValueChange={(value) => {
+                    setActiveTab(value);
+                    scrollToTop();
+                  }}
+                  className="w-full"
+                >
                   <TabsList className="grid w-full grid-cols-2 bg-[#1F1F1F] border border-[#3F3F46]">
                     <TabsTrigger value="basic" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
                       LIP SYNC OPTIONS
@@ -1343,7 +1324,7 @@ export function ShotConfigurationStep({
                   selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
                   onDialogueQualityChange={finalOnDialogueQualityChange}
                   onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
-                  dialogueWorkflowPrompt={dialogueWorkflowPrompt}
+                  dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
                   narrationOverride={finalNarrationOverride}
                   onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
@@ -1416,8 +1397,10 @@ export function ShotConfigurationStep({
                   selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
                   onDialogueQualityChange={finalOnDialogueQualityChange}
                   onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
-                  dialogueWorkflowPrompt={dialogueWorkflowPrompt}
+                  dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+                  narrationOverride={finalNarrationOverride}
+                  onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
                   offFrameShotType={finalOffFrameShotType}
                   offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
                   offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}

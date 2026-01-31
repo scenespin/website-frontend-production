@@ -488,7 +488,7 @@ export function ShotConfigurationPanel({
           {/* Show message for Hidden Mouth Dialogue (off-frame-voiceover) */}
           {currentWorkflow === 'off-frame-voiceover' && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-              Character will not be visible (speaking off-screen). Character images are still needed for voice generation.
+              Character will not be visible (speaking off-screen). Select a character image below for voice and for first-frame reference.
             </div>
           )}
           <div className="space-y-4">
@@ -1343,8 +1343,11 @@ export function ShotConfigurationPanel({
             </div>
           )}
             
-            {/* 🔥 NEW: Location Selection for non-lip-sync workflows */}
-            {(currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover') && sceneAnalysisResult?.location && shouldShowLocation && (
+            {/* Location and Props for non-lip-sync: only show here when NOT off-frame-voiceover (they appear in standard block above for Hidden Mouth to avoid duplication) */}
+            {currentWorkflow !== 'off-frame-voiceover' && (
+              <>
+            {/* Location for Narrate Shot only (Hidden Mouth has Location in standard block above) */}
+            {currentWorkflow === 'scene-voiceover' && sceneAnalysisResult?.location && shouldShowLocation && (
               <div className="mt-4 pb-3 border-b border-[#3F3F46]">
                 <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
                 <LocationAngleSelector
@@ -1538,6 +1541,8 @@ export function ShotConfigurationPanel({
               );
             })()}
 
+              </>
+            )}
         </div>
       )}
 
