@@ -44,15 +44,14 @@ import { formatProviderTag } from '@/utils/providerLabels';
  * Used when sending PUT from Production Hub so we never write angle refs into asset.images.
  * Excludes only entries we know are Production Hub; keeps all others (including legacy/unknown).
  */
-function getCreationOnlyImages(images: Array<{ metadata?: { source?: string; createdIn?: string }; [key: string]: unknown }>): typeof images {
+function getCreationOnlyImages(images: AssetImage[]): AssetImage[] {
   if (!Array.isArray(images) || images.length === 0) return images;
   return images.filter((img) => {
     const source = img.metadata?.source;
     const createdIn = img.metadata?.createdIn;
     const isProductionHub =
       source === 'angle-generation' ||
-      createdIn === 'production-hub' ||
-      (img as { source?: string }).source === 'angle-generation';
+      createdIn === 'production-hub';
     return !isProductionHub;
   });
 }

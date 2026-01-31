@@ -197,6 +197,10 @@ export function usePresignedUrl(s3Key: string | null, enabled: boolean = false) 
         body: JSON.stringify(requestBody),
       });
 
+      // 404/500 = file missing or unavailable (e.g. deleted) — return empty so UI doesn't throw
+      if (!response.ok && (response.status === 404 || response.status === 500)) {
+        return { downloadUrl: '', expiresAt: 0 };
+      }
       if (!response.ok) {
         throw new Error(`Failed to generate presigned URL: ${response.status} ${response.statusText}`);
       }
