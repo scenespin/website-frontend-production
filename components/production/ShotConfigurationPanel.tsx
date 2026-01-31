@@ -533,7 +533,7 @@ export function ShotConfigurationPanel({
                         }}
                         className="sr-only"
                       />
-                      <span>{char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}</span>
+                      <span>{char.name}{char.id === (narratorCharacterId ?? speakingCharacterId) ? ' (narrator)' : ''}</span>
                     </label>
                   );
                 })}
@@ -1050,7 +1050,8 @@ export function ShotConfigurationPanel({
           <div className="space-y-4">
             {explicitCharacters.map((charId, index) => {
               // Grey out narrator when Narrate Shot (scene-voiceover) is selected (they're the narrator)
-              const isNarrator = currentWorkflow === 'scene-voiceover' && charId === speakingCharacterId;
+              const effectiveNarratorId = narratorCharacterId ?? speakingCharacterId;
+              const isNarrator = currentWorkflow === 'scene-voiceover' && charId === effectiveNarratorId;
               // Check if narrator is also manually selected (will show normally in that section)
               const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
               // Check if this character is already rendered in pronoun sections
