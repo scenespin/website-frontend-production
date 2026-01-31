@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Loader2, Package, Car, Plane } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -29,6 +30,19 @@ const VEHICLE_INTERIOR_PACKAGES_UI: Record<string, { id: string; name: string; a
 };
 const GROUND_PACKAGE_IDS = ['car', 'truck', 'suv', 'van', 'semi'];
 const AIRCRAFT_PACKAGE_IDS = ['helicopter', 'small_plane', 'passenger_cabin'];
+
+// Match Standard Props compact card: consistency rating for interior packages (3-angle ≈ 85%, 4-angle ≈ 88%)
+const INTERIOR_CONSISTENCY: Record<string, number> = {
+  single: 50,
+  car: 88, truck: 88, suv: 88, van: 85, semi: 88,
+  helicopter: 85, small_plane: 85, passenger_cabin: 88,
+};
+// Gradient colors for icon box (match Standard Props style: single=emerald, rest by category)
+const INTERIOR_COLORS: Record<string, string> = {
+  single: 'from-emerald-500 to-emerald-600',
+  car: 'from-amber-500 to-amber-600', truck: 'from-amber-500 to-amber-600', suv: 'from-amber-500 to-amber-600', van: 'from-amber-500 to-amber-600', semi: 'from-amber-500 to-amber-600',
+  helicopter: 'from-sky-500 to-sky-600', small_plane: 'from-sky-500 to-sky-600', passenger_cabin: 'from-sky-500 to-sky-600',
+};
 
 function VehicleInteriorPackageCards({
   category,
@@ -55,84 +69,143 @@ function VehicleInteriorPackageCards({
   const pkgForAngles = VEHICLE_INTERIOR_PACKAGES_UI[interiorPackageId];
   const angleOptions = pkgForAngles ? pkgForAngles.angleIds.map((id, i) => ({ id, label: pkgForAngles.angleLabels[i] ?? id })) : [];
 
+  const cardClass = (selected: boolean) =>
+    `relative rounded-lg border-2 p-3 cursor-pointer transition-all text-left ${
+      selected ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
+    }`;
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        <button
-          type="button"
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        {/* Single Angle card - same structure as Standard Props compact */}
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={cardClass(isSingle)}
           onClick={() => {
             onSelectPackage('single');
             onSelectedInteriorPackageIdChange?.(category === 'ground' ? 'car' : 'helicopter');
             onSelectedAngleChange?.(category === 'ground' ? 'driver' : 'pilot');
           }}
-          className={`rounded-lg border-2 p-3 text-left transition-all ${
-            isSingle ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
-          }`}
         >
-          <div className="flex items-center gap-2 mb-1">
-            <Package className="w-4 h-4 text-[#808080]" />
-            <span className="font-medium text-sm text-white">Single Angle</span>
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`p-1.5 rounded bg-gradient-to-br ${INTERIOR_COLORS.single}`}>
+              <Package className="w-3.5 h-3.5 text-white" />
+            </div>
+            <h3 className="text-xs font-semibold text-white truncate">Single Angle</h3>
           </div>
-          <div className="text-xs text-[#808080]">1 angle · {creditsPerImage} credits</div>
-          {isSingle && <div className="text-xs text-[#DC143C] mt-1">✓ Selected</div>}
-        </button>
+          <div className="text-sm font-bold text-white mb-1.5">
+            {creditsPerImage} <span className="text-[10px] font-normal text-[#808080]">credits</span>
+          </div>
+          <div className="space-y-1 mb-2">
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-[#808080]">Consistency</span>
+              <span className="text-white font-semibold">{INTERIOR_CONSISTENCY.single}%</span>
+            </div>
+            <div className="w-full bg-[#3F3F46] rounded-full h-1">
+              <div className="h-1 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600" style={{ width: '50%' }} />
+            </div>
+            <div className="text-[10px] text-[#808080]">1 angle</div>
+            <div className="text-[9px] text-[#808080] mt-1">
+              <div className="flex flex-wrap gap-1">
+                <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">Pick one</span>
+              </div>
+            </div>
+          </div>
+          {isSingle && (
+            <div className="mt-2 py-1 bg-[#DC143C] text-white text-center rounded text-[10px] font-semibold">✓ Selected</div>
+          )}
+        </motion.div>
+
         {ids.map((id) => {
           const pkg = VEHICLE_INTERIOR_PACKAGES_UI[id];
           if (!pkg) return null;
           const credits = pkg.angleIds.length * creditsPerImage;
           const isSelected = selectedPackageId === id;
+          const consistency = INTERIOR_CONSISTENCY[id] ?? 85;
+          const Icon = category === 'ground' ? Car : Plane;
           return (
-            <button
+            <motion.div
               key={id}
-              type="button"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={cardClass(isSelected)}
               onClick={() => onSelectPackage(id)}
-              className={`rounded-lg border-2 p-3 text-left transition-all ${
-                isSelected ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
-              }`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                {category === 'ground' ? <Car className="w-4 h-4 text-[#808080]" /> : <Plane className="w-4 h-4 text-[#808080]" />}
-                <span className="font-medium text-sm text-white">{pkg.name}</span>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`p-1.5 rounded bg-gradient-to-br ${INTERIOR_COLORS[id] ?? 'from-[#3F3F46] to-[#2A2A2A]'}`}>
+                  <Icon className="w-3.5 h-3.5 text-white" />
+                </div>
+                <h3 className="text-xs font-semibold text-white truncate">{pkg.name}</h3>
               </div>
-              <div className="text-xs text-[#808080]">{pkg.angleIds.length} angles · {credits} credits</div>
-              {isSelected && <div className="text-xs text-[#DC143C] mt-1">✓ Selected</div>}
-            </button>
+              <div className="text-sm font-bold text-white mb-1.5">
+                {credits} <span className="text-[10px] font-normal text-[#808080]">credits</span>
+              </div>
+              <div className="space-y-1 mb-2">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-[#808080]">Consistency</span>
+                  <span className="text-white font-semibold">{consistency}%</span>
+                </div>
+                <div className="w-full bg-[#3F3F46] rounded-full h-1">
+                  <div
+                    className={`h-1 rounded-full bg-gradient-to-r ${INTERIOR_COLORS[id] ?? 'from-[#3F3F46] to-[#2A2A2A]'}`}
+                    style={{ width: `${consistency}%` }}
+                  />
+                </div>
+                <div className="text-[10px] text-[#808080]">{pkg.angleIds.length} angles</div>
+                <div className="text-[9px] text-[#808080] mt-1">
+                  <div className="flex flex-wrap gap-1">
+                    {pkg.angleLabels.map((label) => (
+                      <span key={label} className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {isSelected && (
+                <div className="mt-2 py-1 bg-[#DC143C] text-white text-center rounded text-[10px] font-semibold">✓ Selected</div>
+              )}
+            </motion.div>
           );
         })}
       </div>
       {isSingle && (
-        <div className="rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-[#808080] mb-2">{category === 'ground' ? 'Vehicle' : 'Aircraft'}</label>
-            <select
-              value={interiorPackageId}
-              onChange={(e) => {
-                const nextId = e.target.value;
-                onSelectedInteriorPackageIdChange?.(nextId);
-                const nextPkg = VEHICLE_INTERIOR_PACKAGES_UI[nextId];
-                onSelectedAngleChange?.(nextPkg?.angleIds[0] ?? '');
-              }}
-              className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-            >
-              {(category === 'ground' ? GROUND_PACKAGE_IDS : AIRCRAFT_PACKAGE_IDS).map((id) => {
-                const p = VEHICLE_INTERIOR_PACKAGES_UI[id];
-                return p ? <option key={id} value={id} className="bg-[#1A1A1A]">{p.name}</option> : null;
-              })}
-            </select>
+        <div className="mt-4 p-4 bg-[#1A1A1A] border border-[#3F3F46] rounded-lg">
+          <label className="block text-xs font-medium text-white mb-2">Select Angle:</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] text-[#808080] mb-1">{category === 'ground' ? 'Vehicle' : 'Aircraft'}</label>
+              <select
+                value={interiorPackageId}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  onSelectedInteriorPackageIdChange?.(nextId);
+                  const nextPkg = VEHICLE_INTERIOR_PACKAGES_UI[nextId];
+                  onSelectedAngleChange?.(nextPkg?.angleIds[0] ?? '');
+                }}
+                className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+              >
+                {(category === 'ground' ? GROUND_PACKAGE_IDS : AIRCRAFT_PACKAGE_IDS).map((id) => {
+                  const p = VEHICLE_INTERIOR_PACKAGES_UI[id];
+                  return p ? <option key={id} value={id} className="bg-[#1A1A1A]">{p.name}</option> : null;
+                })}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] text-[#808080] mb-1">Angle</label>
+              <select
+                value={selectedAngle && angleOptions.some((o) => o.id === selectedAngle) ? selectedAngle : (angleOptions[0]?.id ?? '')}
+                onChange={(e) => onSelectedAngleChange?.(e.target.value)}
+                className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+              >
+                {angleOptions.map((o) => (
+                  <option key={o.id} value={o.id} className="bg-[#1A1A1A]">{o.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-[#808080] mb-2">Angle</label>
-            <select
-              value={selectedAngle && angleOptions.some((o) => o.id === selectedAngle) ? selectedAngle : (angleOptions[0]?.id ?? '')}
-              onChange={(e) => onSelectedAngleChange?.(e.target.value)}
-              className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-            >
-              {angleOptions.map((o) => (
-                <option key={o.id} value={o.id} className="bg-[#1A1A1A]">{o.label}</option>
-              ))}
-            </select>
-          </div>
-          <p className="text-xs text-[#808080]">Generate one interior angle.</p>
+          <p className="mt-2 text-xs text-[#808080]">Generate one interior angle.</p>
         </div>
       )}
     </div>
