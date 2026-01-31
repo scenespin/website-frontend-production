@@ -444,6 +444,557 @@ export function ShotConfigurationPanel({
 
   return (
     <div className="mt-3 space-y-4">
+      {/* Feature 0182: NON-LIP SYNC OPTIONS – first on Advanced tab so workflow choice is at top */}
+      {isDialogueAdvancedTab && shot.type === 'dialogue' && onDialogueWorkflowChange && (
+        <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">NON-LIP SYNC OPTIONS</div>
+          
+          {/* Radio buttons for Narrate Shot / Hidden Mouth Dialogue */}
+          <div className="space-y-3">
+            <div 
+              className={`p-3 border rounded cursor-pointer transition-colors ${
+                currentWorkflow === 'scene-voiceover' 
+                  ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                  : 'border-[#3F3F46] hover:border-[#808080]'
+              }`}
+              onClick={() => onDialogueWorkflowChange(shot.slot, 'scene-voiceover')}
+            >
+              <div className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name={`dialogue-workflow-${shot.slot}`}
+                  checked={currentWorkflow === 'scene-voiceover'}
+                  onChange={() => onDialogueWorkflowChange(shot.slot, 'scene-voiceover')}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="text-xs font-medium text-[#FFFFFF] mb-1">Narrate Shot (Scene Voiceover)</div>
+                  <div className="text-[10px] text-[#808080]">
+                    Create any shot type + add voiceover. The narrator can appear in the scene or just narrate over it.
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div 
+              className={`p-3 border rounded cursor-pointer transition-colors ${
+                currentWorkflow === 'off-frame-voiceover' 
+                  ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                  : 'border-[#3F3F46] hover:border-[#808080]'
+              }`}
+              onClick={() => onDialogueWorkflowChange(shot.slot, 'off-frame-voiceover')}
+            >
+              <div className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name={`dialogue-workflow-${shot.slot}`}
+                  checked={currentWorkflow === 'off-frame-voiceover'}
+                  onChange={() => onDialogueWorkflowChange(shot.slot, 'off-frame-voiceover')}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="text-xs font-medium text-[#FFFFFF] mb-1">Hidden Mouth Dialogue (Off-Frame Voiceover)</div>
+                  <div className="text-[10px] text-[#808080]">
+                    Character speaking off-screen, back turned, or side profile. Create any shot type + add voiceover.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 0218: Who's in the scene – at top for Narrate Shot. Same visual pattern as Hidden Mouth (tags/pills). */}
+          {currentWorkflow === 'scene-voiceover' && shot.type === 'dialogue' && onCharactersForShotChange && (
+            <div className="mt-4">
+              <div className="text-[10px] font-medium text-[#808080] mb-1.5">Additional Characters</div>
+              <p className="text-[10px] text-[#808080] mb-2">Add characters that will appear in the scene. The narrator can also appear if selected.</p>
+              <div className="flex flex-wrap gap-2">
+                {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => {
+                  const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
+                  return (
+                    <label
+                      key={char.id}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-xs cursor-pointer',
+                        isSelected
+                          ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                          : 'border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {
+                          if (!onCharactersForShotChange) return;
+                          const current = selectedCharactersForShots[shot.slot] || [];
+                          const updated = isSelected
+                            ? current.filter((id: string) => id !== char.id)
+                            : [...current, char.id];
+                          onCharactersForShotChange(shot.slot, updated);
+                        }}
+                        className="sr-only"
+                      />
+                      <span>{char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
+                <div className="mt-4 space-y-4">
+                  {selectedCharactersForShots[shot.slot].map((charId: string, index: number) => {
+                    const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
+                    if (!char) return null;
+                    const isLast = index === selectedCharactersForShots[shot.slot].length - 1;
+                    return (
+                      <div key={charId} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
+                        <div className="space-y-3">
+                          {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                          {renderCharacterImagesOnly(charId, shot.slot)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Feature 0209: Off-frame (Hidden Mouth) shot type, listener, group, scene context – only when Hidden Mouth selected */}
+          {/* Video model for off-frame = action selector (Runway, Luma, VEO) – shown in VideoGenerationSelector above when workflow is Hidden Mouth */}
+          {currentWorkflow === 'off-frame-voiceover' && (
+            <div className="mt-4 space-y-4 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+              <div className="text-xs font-medium text-[#FFFFFF] mb-2">Hidden Mouth options</div>
+              {/* Shot type dropdown (8 options from plan) */}
+              <div>
+                <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Shot type</label>
+                <select
+                  value={offFrameShotType || 'back-facing'}
+                  onChange={(e) => onOffFrameShotTypeChange?.(shot.slot, e.target.value as OffFrameShotType)}
+                  className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                >
+                  {OFF_FRAME_SHOT_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Off-frame (character not in frame): speaker is configured in Character(s) section below */}
+              {offFrameShotType === 'off-frame' && (
+                <p className="text-[10px] text-[#808080] mt-1.5 p-2 bg-[#1F1F1F] rounded border border-[#3F3F46]">
+                  Speaker is not in frame. Use the Character(s) section below to choose their image for voice and first-frame reference.
+                </p>
+              )}
+              {/* Listener dropdown – only for Over shoulder / Two-shot */}
+              {offFrameShotType && isOffFrameListenerShotType(offFrameShotType) && onOffFrameListenerCharacterIdChange && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Listener (single character in frame)</label>
+                    <select
+                      value={offFrameListenerCharacterId ?? ''}
+                      onChange={(e) => onOffFrameListenerCharacterIdChange(shot.slot, e.target.value || null)}
+                      className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                    >
+                      <option value="">— Select listener —</option>
+                      {allCharacters
+                        .filter((c: any) => c.id !== speakingCharacterId)
+                        .map((c: any) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name || c.id}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  {/* Listener image selection – outfit + image grid (same pattern as Group and Character(s)) */}
+                  {offFrameListenerCharacterId && (
+                    <div className="pt-2 border-t border-[#3F3F46]">
+                      <div className="text-[10px] font-medium text-[#808080] mb-1.5">Listener image (first frame)</div>
+                      <div className="space-y-3">
+                        {renderCharacterControlsOnly(offFrameListenerCharacterId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                        {renderCharacterImagesOnly(offFrameListenerCharacterId, shot.slot)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Group checkboxes – only for Speaker to group variants. Same pattern as Narrate Shot: pills then image selection per character. */}
+              {offFrameShotType && isOffFrameGroupShotType(offFrameShotType) && onOffFrameGroupCharacterIdsChange && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Group (characters in frame)</label>
+                    <div className="flex flex-wrap gap-2">
+                      {allCharacters
+                        .filter((c: any) => c.id !== speakingCharacterId)
+                        .map((c: any) => {
+                          const selected = (offFrameGroupCharacterIds || []).includes(c.id);
+                          return (
+                            <label
+                              key={c.id}
+                              className={cn(
+                                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-xs cursor-pointer',
+                                selected
+                                  ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                                  : 'border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => {
+                                  const current = offFrameGroupCharacterIds || [];
+                                  const next = selected
+                                    ? current.filter((id) => id !== c.id)
+                                    : [...current, c.id];
+                                  onOffFrameGroupCharacterIdsChange(shot.slot, next);
+                                }}
+                                className="sr-only"
+                              />
+                              <span>{c.name || c.id}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                  {/* Group character image selection – same pattern as Narrate Shot Additional Characters: for each selected, show controls + image grid. overflowAnchor: none to avoid scroll jump when block expands. */}
+                  {(offFrameGroupCharacterIds?.length ?? 0) > 0 && (
+                    <div className="pt-2 border-t border-[#3F3F46] space-y-4" style={{ overflowAnchor: 'none' }}>
+                      <div className="text-[10px] font-medium text-[#808080] mb-1.5">Group character images (first frame)</div>
+                      {(offFrameGroupCharacterIds || []).map((charId: string, index: number) => {
+                        const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
+                        if (!char) return null;
+                        const isLast = index === (offFrameGroupCharacterIds?.length ?? 0) - 1;
+                        return (
+                          <div key={charId} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
+                            <div className="space-y-3">
+                              {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                              {renderCharacterImagesOnly(charId, shot.slot)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* First frame (image): Scene context then Alternate action – sequential, then Video */}
+              <div className="text-[10px] font-semibold text-[#808080] mt-3 mb-1.5 uppercase tracking-wide">First frame (image)</div>
+              <p className="text-[10px] text-[#808080] mb-2">These two fields affect only the generated image. Order: setting/mood, then pose/framing.</p>
+              {onOffFrameSceneContextPromptChange && (
+                <div className="mb-3">
+                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
+                    1. Scene context (optional)
+                  </label>
+                  <textarea
+                    value={offFrameSceneContextPrompt ?? ''}
+                    onChange={(e) => onOffFrameSceneContextPromptChange(shot.slot, e.target.value)}
+                    placeholder="e.g. in a crowded bar, at a window at night, tense standoff"
+                    rows={2}
+                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                  />
+                  <div className="text-[10px] text-[#808080] mt-1 space-y-1">
+                    <p>Where the scene takes place or the mood. Short phrases work best.</p>
+                  </div>
+                </div>
+              )}
+              {onDialogueWorkflowPromptChange && (
+                <div className="mb-3">
+                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
+                    2. Describe the alternate action (first frame only)
+                  </label>
+                  <textarea
+                    value={dialogueWorkflowPrompt || ''}
+                    onChange={(e) => onDialogueWorkflowPromptChange(shot.slot, e.target.value)}
+                    placeholder="e.g. character with back to camera, over shoulder of listener, side profile, speaking from off-screen"
+                    rows={2}
+                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                  />
+                  <div className="text-[10px] text-[#808080] mt-1">
+                    How the speaker is shown — pose, angle, or framing. Not for location/mood (use Scene context above).
+                  </div>
+                </div>
+              )}
+              <div className="text-[10px] font-semibold text-[#808080] mt-3 mb-1.5 uppercase tracking-wide">Video</div>
+              <p className="text-[10px] text-[#808080] mb-2">Add to the default motion for the video step only.</p>
+              {/* Feature 0218: Additive video prompt (add to default motion prompt). Not an override. */}
+              {onOffFrameVideoPromptAdditiveChange && (
+                <div>
+                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
+                    Video motion prompt (optional)
+                  </label>
+                  <textarea
+                    value={offFrameVideoPromptAdditive ?? ''}
+                    onChange={(e) => onOffFrameVideoPromptAdditiveChange(shot.slot, e.target.value)}
+                    placeholder="e.g. subtle camera drift, minimal movement, slight motion"
+                    rows={2}
+                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Narrate Shot: Choose narrator (default = speaking character) and what they say. */}
+          {currentWorkflow === 'scene-voiceover' && onNarrationNarratorChange && (
+            <div className="mt-3">
+              <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Narrator</label>
+              <select
+                value={narratorCharacterId ?? speakingCharacterId ?? ''}
+                onChange={(e) => onNarrationNarratorChange(shot.slot, e.target.value)}
+                className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+              >
+                {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => (
+                  <option key={char.id} value={char.id}>
+                    {char.name}{char.id === speakingCharacterId ? ' (speaking character)' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-[#808080] mt-1">Voice used for the narration. Defaults to the speaking character for this shot.</p>
+            </div>
+          )}
+          {/* Narrate Shot: What the narrator says (required for scene-voiceover). */}
+          {currentWorkflow === 'scene-voiceover' && onNarrationOverrideChange && (
+            <div className="mt-3">
+              <label className="block text-[10px] text-[#808080] mb-1.5">
+                What the narrator says <span className="text-[#DC143C]">*</span>
+              </label>
+              <textarea
+                value={narrationOverride ?? ''}
+                onChange={(e) => onNarrationOverrideChange(shot.slot, e.target.value)}
+                placeholder="e.g. We open on a quiet street. The sun is setting. Sarah has no idea what's about to happen."
+                rows={4}
+                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+              />
+              <div className="text-[10px] text-[#808080] mt-1">
+                <p>The words the narrator will speak in this shot. The selected narrator character&apos;s voice will be used (narrator is not visible in frame).</p>
+              </div>
+            </div>
+          )}
+          {/* Prompt box for first frame (image): Narrate Shot only – describe what the image shows */}
+          {currentWorkflow === 'scene-voiceover' && onDialogueWorkflowPromptChange && (
+            <div className="mt-3">
+              <label className="block text-[10px] text-[#808080] mb-1.5">
+                Describe the alternate action in the scene (first frame only)
+              </label>
+              <textarea
+                value={dialogueWorkflowPrompt || ''}
+                onChange={(e) => {
+                  onDialogueWorkflowPromptChange(shot.slot, e.target.value);
+                }}
+                placeholder="e.g. narrator visible in scene describing the action, or narrator voice over wide shot"
+                rows={3}
+                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+              />
+              <div className="text-[10px] text-[#808080] mt-1 space-y-1">
+                <p><strong>What to enter:</strong> How the narrator appears or what the shot shows in the <strong>image (first frame) only</strong>.</p>
+                <p><strong>Good examples:</strong> &quot;narrator visible in scene describing the action&quot;, &quot;voice over wide shot of location&quot;, &quot;narrator at desk, speaking to camera&quot;.</p>
+              </div>
+            </div>
+          )}
+            
+            {/* Location and Props for non-lip-sync: only show here when NOT off-frame-voiceover (they appear in standard block above for Hidden Mouth to avoid duplication) */}
+            {currentWorkflow !== 'off-frame-voiceover' && (
+              <>
+            {/* Location for Narrate Shot only (Hidden Mouth has Location in standard block above) */}
+            {currentWorkflow === 'scene-voiceover' && sceneAnalysisResult?.location && shouldShowLocation && (
+              <div className="mt-4 pb-3 border-b border-[#3F3F46]">
+                <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
+                <LocationAngleSelector
+                  locationId={sceneAnalysisResult.location.id}
+                  locationName={sceneAnalysisResult.location.name || 'Location'}
+                  angleVariations={sceneAnalysisResult.location.angleVariations || []}
+                  backgrounds={sceneAnalysisResult.location.backgrounds || []}
+                  baseReference={sceneAnalysisResult.location.baseReference}
+                  selectedAngle={selectedLocationReferences[shot.slot]}
+                  selectedLocationReference={selectedLocationReferences[shot.slot] ? {
+                    type: (selectedLocationReferences[shot.slot] as any).type || 'angle',
+                    angleId: selectedLocationReferences[shot.slot].angleId,
+                    backgroundId: (selectedLocationReferences[shot.slot] as any).backgroundId,
+                    s3Key: selectedLocationReferences[shot.slot].s3Key,
+                    imageUrl: selectedLocationReferences[shot.slot].imageUrl
+                  } : undefined}
+                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 FIX: Pass location URL maps
+                  locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                  locationFullImageUrlsMap={locationFullImageUrlsMap}
+                  onAngleChange={(locationId, angle) => {
+                    onLocationAngleChange?.(shot.slot, locationId, angle);
+                  }}
+                  onLocationReferenceChange={(locationId, reference) => {
+                    if (onLocationAngleChange) {
+                      onLocationAngleChange(shot.slot, locationId, reference ? {
+                        angleId: reference.angleId,
+                        backgroundId: reference.backgroundId as any,
+                        s3Key: reference.s3Key,
+                        imageUrl: reference.imageUrl,
+                        type: reference.type as any
+                      } as any : undefined);
+                    }
+                  }}
+                  isRequired={isLocationAngleRequired(shot)}
+                  recommended={sceneAnalysisResult.location.recommended}
+                  optOut={locationOptOuts[shot.slot] || false}
+                  onOptOutChange={(optOut) => {
+                    onLocationOptOutChange?.(shot.slot, optOut);
+                  }}
+                  locationDescription={locationDescriptions[shot.slot] || ''}
+                  onLocationDescriptionChange={(description) => {
+                    onLocationDescriptionChange?.(shot.slot, description);
+                  }}
+                  splitLayout={false}
+                />
+              </div>
+            )}
+
+            {/* 🔥 NEW: Props Section - Show in Advanced tab for dialogue shots (props persist in state) */}
+            {(() => {
+              // Get props assigned to this shot (same logic as basic tab)
+              const assignedProps = sceneProps.filter(prop => 
+                propsToShots[prop.id]?.includes(shot.slot)
+              );
+              
+              if (assignedProps.length === 0) {
+                return null;
+              }
+              
+              return (
+                <div className="mt-4 pb-3 border-b border-[#3F3F46]">
+                  <div className="text-xs font-medium text-[#FFFFFF] mb-2">Props</div>
+                  <div className="space-y-3">
+                    {assignedProps.map((prop) => {
+                      const propConfig = shotProps[shot.slot]?.[prop.id] || {};
+                      const fullProp = prop as typeof prop & {
+                        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+                        images?: Array<{ url: string; s3Key?: string }>;
+                        baseReference?: { s3Key?: string; imageUrl?: string };
+                      };
+                      
+                      return (
+                        <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-1">
+                              {(() => {
+                                const availableImages = getAvailablePropImages(fullProp);
+                                const selectedImageId = propConfig.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                                const selectedImage = selectedImageId 
+                                  ? availableImages.find(img => img.id === selectedImageId)
+                                  : availableImages[0];
+                                
+                                let imageS3Key: string | null = null;
+                                if (selectedImage) {
+                                  if (fullProp.angleReferences) {
+                                    const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id);
+                                    if (ref?.s3Key) imageS3Key = ref.s3Key;
+                                  }
+                                  if (!imageS3Key && fullProp.images) {
+                                    const imgData = fullProp.images.find(i => i.url === selectedImage.id);
+                                    if (imgData?.s3Key) imageS3Key = imgData.s3Key;
+                                  }
+                                  if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image') {
+                                    imageS3Key = fullProp.baseReference.s3Key;
+                                  }
+                                }
+                                
+                                let thumbnailKey: string | null = null;
+                                if (imageS3Key && propThumbnailS3KeyMap?.has(imageS3Key)) {
+                                  thumbnailKey = propThumbnailS3KeyMap.get(imageS3Key) || null;
+                                }
+                                
+                                const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
+                                const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
+                                const displayUrl = thumbnailUrl || fullImageUrl;
+                                
+                                return displayUrl ? (
+                                  <img 
+                                    src={displayUrl} 
+                                    alt={prop.name}
+                                    className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      const imgElement = e.target as HTMLImageElement;
+                                      if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
+                                        imgElement.src = fullImageUrl;
+                                      } else {
+                                        imgElement.style.display = 'none';
+                                      }
+                                    }}
+                                  />
+                                ) : null;
+                              })()}
+                              <span className="text-xs font-medium text-[#FFFFFF]">{prop.name}</span>
+                            </div>
+                            {onPropsToShotsChange && (
+                              <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={false}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      const updatedPropsToShots = { ...propsToShots };
+                                      if (updatedPropsToShots[prop.id]) {
+                                        updatedPropsToShots[prop.id] = updatedPropsToShots[prop.id].filter(slot => slot !== shot.slot);
+                                        if (updatedPropsToShots[prop.id].length === 0) {
+                                          delete updatedPropsToShots[prop.id];
+                                        }
+                                      }
+                                      onPropsToShotsChange(updatedPropsToShots);
+                                    }
+                                  }}
+                                  className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                                />
+                                <span>Remove from shot</span>
+                              </label>
+                            )}
+                          </div>
+                          
+                          {onPropImageChange && (
+                            <div className="mt-3">
+                              <label className="block text-[10px] text-[#808080] mb-2">
+                                Select prop image for this shot:
+                              </label>
+                              <PropImageSelector
+                                propId={prop.id}
+                                propName={prop.name}
+                                prop={fullProp}
+                                selectedImageId={propConfig.selectedImageId}
+                                onImageChange={(propId, imageId) => {
+                                  onPropImageChange(shot.slot, propId, imageId);
+                                }}
+                                propThumbnailS3KeyMap={propThumbnailS3KeyMap}
+                                propThumbnailUrlsMap={propThumbnailUrlsMap}
+                                propFullImageUrlsMap={propFullImageUrlsMap}
+                              />
+                            </div>
+                          )}
+                          
+                          {onPropDescriptionChange && (
+                            <div className="mt-3">
+                              <label className="block text-[10px] text-[#808080] mb-1.5">
+                                Describe how "{prop.name}" is used in this shot:
+                              </label>
+                              <textarea
+                                value={propConfig.usageDescription || ''}
+                                onChange={(e) => {
+                                  onPropDescriptionChange(shot.slot, prop.id, e.target.value);
+                                }}
+                                placeholder={`e.g., Character picks up ${prop.name} and examines it...`}
+                                rows={2}
+                                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+              </>
+            )}
+        </div>
+      )}
+
+
+
       {/* Standard configuration - Always show for action shots, show in Basic tab for dialogue shots, and on Advanced tab when Hidden Mouth (so speaker image selection is visible) */}
       {/* Props section - Show in both tabs for dialogue shots (they persist in state) */}
       {(!isDialogueShot || isDialogueBasicTab || (isDialogueShot && showAdvancedContent && currentWorkflow === 'off-frame-voiceover')) && (
@@ -493,7 +1044,7 @@ export function ShotConfigurationPanel({
           {/* Show message for Hidden Mouth Dialogue (off-frame-voiceover) */}
           {currentWorkflow === 'off-frame-voiceover' && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-              Character will not be visible (speaking off-screen). Select a character image below for voice and for first-frame reference.
+              Character&apos;s face or mouth won&apos;t be visible (e.g. off-screen, back turned, side profile). Select a character image below for voice and for first-frame reference.
             </div>
           )}
           <div className="space-y-4">
@@ -1028,547 +1579,6 @@ export function ShotConfigurationPanel({
           />
         </div>
       )}
-
-      {/* Feature 0182: NON-LIP SYNC OPTIONS - Show in Advanced tab for dialogue shots */}
-      {isDialogueAdvancedTab && shot.type === 'dialogue' && onDialogueWorkflowChange && (
-        <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
-          <div className="text-xs font-medium text-[#FFFFFF] mb-2">NON-LIP SYNC OPTIONS</div>
-          
-          {/* Radio buttons for Narrate Shot / Hidden Mouth Dialogue */}
-          <div className="space-y-3">
-            <div 
-              className={`p-3 border rounded cursor-pointer transition-colors ${
-                currentWorkflow === 'scene-voiceover' 
-                  ? 'border-[#DC143C] bg-[#DC143C]/10' 
-                  : 'border-[#3F3F46] hover:border-[#808080]'
-              }`}
-              onClick={() => onDialogueWorkflowChange(shot.slot, 'scene-voiceover')}
-            >
-              <div className="flex items-start gap-2">
-                <input
-                  type="radio"
-                  name={`dialogue-workflow-${shot.slot}`}
-                  checked={currentWorkflow === 'scene-voiceover'}
-                  onChange={() => onDialogueWorkflowChange(shot.slot, 'scene-voiceover')}
-                  className="mt-0.5"
-                />
-                <div className="flex-1">
-                  <div className="text-xs font-medium text-[#FFFFFF] mb-1">Narrate Shot (Scene Voiceover)</div>
-                  <div className="text-[10px] text-[#808080]">
-                    Create any shot type + add voiceover. The narrator can appear in the scene or just narrate over it.
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div 
-              className={`p-3 border rounded cursor-pointer transition-colors ${
-                currentWorkflow === 'off-frame-voiceover' 
-                  ? 'border-[#DC143C] bg-[#DC143C]/10' 
-                  : 'border-[#3F3F46] hover:border-[#808080]'
-              }`}
-              onClick={() => onDialogueWorkflowChange(shot.slot, 'off-frame-voiceover')}
-            >
-              <div className="flex items-start gap-2">
-                <input
-                  type="radio"
-                  name={`dialogue-workflow-${shot.slot}`}
-                  checked={currentWorkflow === 'off-frame-voiceover'}
-                  onChange={() => onDialogueWorkflowChange(shot.slot, 'off-frame-voiceover')}
-                  className="mt-0.5"
-                />
-                <div className="flex-1">
-                  <div className="text-xs font-medium text-[#FFFFFF] mb-1">Hidden Mouth Dialogue (Off-Frame Voiceover)</div>
-                  <div className="text-[10px] text-[#808080]">
-                    Character speaking off-screen, back turned, or side profile. Create any shot type + add voiceover.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Feature 0218: Who's in the scene – at top for Narrate Shot. Same visual pattern as Hidden Mouth (tags/pills). */}
-          {currentWorkflow === 'scene-voiceover' && shot.type === 'dialogue' && onCharactersForShotChange && (
-            <div className="mt-4">
-              <div className="text-[10px] font-medium text-[#808080] mb-1.5">Additional Characters</div>
-              <p className="text-[10px] text-[#808080] mb-2">Add characters that will appear in the scene. The narrator can also appear if selected.</p>
-              <div className="flex flex-wrap gap-2">
-                {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => {
-                  const isSelected = selectedCharactersForShots[shot.slot]?.includes(char.id) || false;
-                  return (
-                    <label
-                      key={char.id}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-xs cursor-pointer',
-                        isSelected
-                          ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                          : 'border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {
-                          if (!onCharactersForShotChange) return;
-                          const current = selectedCharactersForShots[shot.slot] || [];
-                          const updated = isSelected
-                            ? current.filter((id: string) => id !== char.id)
-                            : [...current, char.id];
-                          onCharactersForShotChange(shot.slot, updated);
-                        }}
-                        className="sr-only"
-                      />
-                      <span>{char.name}{char.id === speakingCharacterId ? ' (narrator)' : ''}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              {selectedCharactersForShots[shot.slot] && selectedCharactersForShots[shot.slot].length > 0 && (
-                <div className="mt-4 space-y-4">
-                  {selectedCharactersForShots[shot.slot].map((charId: string, index: number) => {
-                    const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
-                    if (!char) return null;
-                    const isLast = index === selectedCharactersForShots[shot.slot].length - 1;
-                    return (
-                      <div key={charId} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
-                        <div className="space-y-3">
-                          {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                          {renderCharacterImagesOnly(charId, shot.slot)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Feature 0209: Off-frame (Hidden Mouth) shot type, listener, group, scene context – only when Hidden Mouth selected */}
-          {/* Video model for off-frame = action selector (Runway, Luma, VEO) – shown in VideoGenerationSelector above when workflow is Hidden Mouth */}
-          {currentWorkflow === 'off-frame-voiceover' && (
-            <div className="mt-4 space-y-4 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
-              <div className="text-xs font-medium text-[#FFFFFF] mb-2">Hidden Mouth options</div>
-              {/* Shot type dropdown (8 options from plan) */}
-              <div>
-                <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Shot type</label>
-                <select
-                  value={offFrameShotType || 'back-facing'}
-                  onChange={(e) => onOffFrameShotTypeChange?.(shot.slot, e.target.value as OffFrameShotType)}
-                  className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-                >
-                  {OFF_FRAME_SHOT_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {/* Listener dropdown – only for Over shoulder / Two-shot */}
-              {offFrameShotType && isOffFrameListenerShotType(offFrameShotType) && onOffFrameListenerCharacterIdChange && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Listener (single character in frame)</label>
-                    <select
-                      value={offFrameListenerCharacterId ?? ''}
-                      onChange={(e) => onOffFrameListenerCharacterIdChange(shot.slot, e.target.value || null)}
-                      className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-                    >
-                      <option value="">— Select listener —</option>
-                      {allCharacters
-                        .filter((c: any) => c.id !== speakingCharacterId)
-                        .map((c: any) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name || c.id}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                  {/* Listener image selection – same pattern as Narrate Shot Additional Characters: select by name, then show image grid */}
-                  {offFrameListenerCharacterId && (
-                    <div className="pt-2 border-t border-[#3F3F46]">
-                      <div className="text-[10px] font-medium text-[#808080] mb-1.5">Listener image (first frame)</div>
-                      {renderCharacterImagesOnly(offFrameListenerCharacterId, shot.slot)}
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* Group checkboxes – only for Speaker to group variants. Same pattern as Narrate Shot: pills then image selection per character. */}
-              {offFrameShotType && isOffFrameGroupShotType(offFrameShotType) && onOffFrameGroupCharacterIdsChange && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Group (characters in frame)</label>
-                    <div className="flex flex-wrap gap-2">
-                      {allCharacters
-                        .filter((c: any) => c.id !== speakingCharacterId)
-                        .map((c: any) => {
-                          const selected = (offFrameGroupCharacterIds || []).includes(c.id);
-                          return (
-                            <label
-                              key={c.id}
-                              className={cn(
-                                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border text-xs cursor-pointer',
-                                selected
-                                  ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                                  : 'border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#808080] hover:text-[#FFFFFF]'
-                              )}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={() => {
-                                  const current = offFrameGroupCharacterIds || [];
-                                  const next = selected
-                                    ? current.filter((id) => id !== c.id)
-                                    : [...current, c.id];
-                                  onOffFrameGroupCharacterIdsChange(shot.slot, next);
-                                }}
-                                className="sr-only"
-                              />
-                              <span>{c.name || c.id}</span>
-                            </label>
-                          );
-                        })}
-                    </div>
-                  </div>
-                  {/* Group character image selection – same pattern as Narrate Shot Additional Characters: for each selected, show controls + image grid */}
-                  {(offFrameGroupCharacterIds?.length ?? 0) > 0 && (
-                    <div className="pt-2 border-t border-[#3F3F46] space-y-4">
-                      <div className="text-[10px] font-medium text-[#808080] mb-1.5">Group character images (first frame)</div>
-                      {(offFrameGroupCharacterIds || []).map((charId: string, index: number) => {
-                        const char = findCharacterById(charId, allCharacters, sceneAnalysisResult);
-                        if (!char) return null;
-                        const isLast = index === (offFrameGroupCharacterIds?.length ?? 0) - 1;
-                        return (
-                          <div key={charId} className={`pb-3 ${isLast ? '' : 'border-b border-[#3F3F46]'}`}>
-                            <div className="space-y-3">
-                              {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                              {renderCharacterImagesOnly(charId, shot.slot)}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* First frame (image): Scene context then Alternate action – sequential, then Video */}
-              <div className="text-[10px] font-semibold text-[#808080] mt-3 mb-1.5 uppercase tracking-wide">First frame (image)</div>
-              <p className="text-[10px] text-[#808080] mb-2">These two fields affect only the generated image. Order: setting/mood, then pose/framing.</p>
-              {onOffFrameSceneContextPromptChange && (
-                <div className="mb-3">
-                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
-                    1. Scene context (optional)
-                  </label>
-                  <textarea
-                    value={offFrameSceneContextPrompt ?? ''}
-                    onChange={(e) => onOffFrameSceneContextPromptChange(shot.slot, e.target.value)}
-                    placeholder="e.g. in a crowded bar, at a window at night, tense standoff"
-                    rows={2}
-                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-                  />
-                  <div className="text-[10px] text-[#808080] mt-1 space-y-1">
-                    <p>Where the scene takes place or the mood. Short phrases work best.</p>
-                  </div>
-                </div>
-              )}
-              {onDialogueWorkflowPromptChange && (
-                <div className="mb-3">
-                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
-                    2. Describe the alternate action (first frame only)
-                  </label>
-                  <textarea
-                    value={dialogueWorkflowPrompt || ''}
-                    onChange={(e) => onDialogueWorkflowPromptChange(shot.slot, e.target.value)}
-                    placeholder="e.g. character with back to camera, over shoulder of listener, side profile, speaking from off-screen"
-                    rows={2}
-                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-                  />
-                  <div className="text-[10px] text-[#808080] mt-1">
-                    How the speaker is shown — pose, angle, or framing. Not for location/mood (use Scene context above).
-                  </div>
-                </div>
-              )}
-              <div className="text-[10px] font-semibold text-[#808080] mt-3 mb-1.5 uppercase tracking-wide">Video</div>
-              <p className="text-[10px] text-[#808080] mb-2">Add to the default motion for the video step only.</p>
-              {/* Feature 0218: Additive video prompt (add to default motion prompt). Not an override. */}
-              {onOffFrameVideoPromptAdditiveChange && (
-                <div>
-                  <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
-                    Video motion prompt (optional)
-                  </label>
-                  <textarea
-                    value={offFrameVideoPromptAdditive ?? ''}
-                    onChange={(e) => onOffFrameVideoPromptAdditiveChange(shot.slot, e.target.value)}
-                    placeholder="e.g. subtle camera drift, minimal movement, slight motion"
-                    rows={2}
-                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Narrate Shot: Choose narrator (default = speaking character) and what they say. */}
-          {currentWorkflow === 'scene-voiceover' && onNarrationNarratorChange && (
-            <div className="mt-3">
-              <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Narrator</label>
-              <select
-                value={narratorCharacterId ?? speakingCharacterId ?? ''}
-                onChange={(e) => onNarrationNarratorChange(shot.slot, e.target.value)}
-                className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-              >
-                {getCharacterSource(allCharacters, sceneAnalysisResult).map((char: any) => (
-                  <option key={char.id} value={char.id}>
-                    {char.name}{char.id === speakingCharacterId ? ' (speaking character)' : ''}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[10px] text-[#808080] mt-1">Voice used for the narration. Defaults to the speaking character for this shot.</p>
-            </div>
-          )}
-          {/* Narrate Shot: What the narrator says (required for scene-voiceover). */}
-          {currentWorkflow === 'scene-voiceover' && onNarrationOverrideChange && (
-            <div className="mt-3">
-              <label className="block text-[10px] text-[#808080] mb-1.5">
-                What the narrator says <span className="text-[#DC143C]">*</span>
-              </label>
-              <textarea
-                value={narrationOverride ?? ''}
-                onChange={(e) => onNarrationOverrideChange(shot.slot, e.target.value)}
-                placeholder="e.g. We open on a quiet street. The sun is setting. Sarah has no idea what's about to happen."
-                rows={4}
-                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-              />
-              <div className="text-[10px] text-[#808080] mt-1">
-                <p>The words the narrator will speak in this shot. The selected narrator character&apos;s voice will be used (narrator is not visible in frame).</p>
-              </div>
-            </div>
-          )}
-          {/* Prompt box for first frame (image): Narrate Shot only – describe what the image shows */}
-          {currentWorkflow === 'scene-voiceover' && onDialogueWorkflowPromptChange && (
-            <div className="mt-3">
-              <label className="block text-[10px] text-[#808080] mb-1.5">
-                Describe the alternate action in the scene (first frame only)
-              </label>
-              <textarea
-                value={dialogueWorkflowPrompt || ''}
-                onChange={(e) => {
-                  onDialogueWorkflowPromptChange(shot.slot, e.target.value);
-                }}
-                placeholder="e.g. narrator visible in scene describing the action, or narrator voice over wide shot"
-                rows={3}
-                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-              />
-              <div className="text-[10px] text-[#808080] mt-1 space-y-1">
-                <p><strong>What to enter:</strong> How the narrator appears or what the shot shows in the <strong>image (first frame) only</strong>.</p>
-                <p><strong>Good examples:</strong> &quot;narrator visible in scene describing the action&quot;, &quot;voice over wide shot of location&quot;, &quot;narrator at desk, speaking to camera&quot;.</p>
-              </div>
-            </div>
-          )}
-            
-            {/* Location and Props for non-lip-sync: only show here when NOT off-frame-voiceover (they appear in standard block above for Hidden Mouth to avoid duplication) */}
-            {currentWorkflow !== 'off-frame-voiceover' && (
-              <>
-            {/* Location for Narrate Shot only (Hidden Mouth has Location in standard block above) */}
-            {currentWorkflow === 'scene-voiceover' && sceneAnalysisResult?.location && shouldShowLocation && (
-              <div className="mt-4 pb-3 border-b border-[#3F3F46]">
-                <div className="text-xs font-medium text-[#FFFFFF] mb-2">Location</div>
-                <LocationAngleSelector
-                  locationId={sceneAnalysisResult.location.id}
-                  locationName={sceneAnalysisResult.location.name || 'Location'}
-                  angleVariations={sceneAnalysisResult.location.angleVariations || []}
-                  backgrounds={sceneAnalysisResult.location.backgrounds || []}
-                  baseReference={sceneAnalysisResult.location.baseReference}
-                  selectedAngle={selectedLocationReferences[shot.slot]}
-                  selectedLocationReference={selectedLocationReferences[shot.slot] ? {
-                    type: (selectedLocationReferences[shot.slot] as any).type || 'angle',
-                    angleId: selectedLocationReferences[shot.slot].angleId,
-                    backgroundId: (selectedLocationReferences[shot.slot] as any).backgroundId,
-                    s3Key: selectedLocationReferences[shot.slot].s3Key,
-                    imageUrl: selectedLocationReferences[shot.slot].imageUrl
-                  } : undefined}
-                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 FIX: Pass location URL maps
-                  locationThumbnailUrlsMap={locationThumbnailUrlsMap}
-                  locationFullImageUrlsMap={locationFullImageUrlsMap}
-                  onAngleChange={(locationId, angle) => {
-                    onLocationAngleChange?.(shot.slot, locationId, angle);
-                  }}
-                  onLocationReferenceChange={(locationId, reference) => {
-                    if (onLocationAngleChange) {
-                      onLocationAngleChange(shot.slot, locationId, reference ? {
-                        angleId: reference.angleId,
-                        backgroundId: reference.backgroundId as any,
-                        s3Key: reference.s3Key,
-                        imageUrl: reference.imageUrl,
-                        type: reference.type as any
-                      } as any : undefined);
-                    }
-                  }}
-                  isRequired={isLocationAngleRequired(shot)}
-                  recommended={sceneAnalysisResult.location.recommended}
-                  optOut={locationOptOuts[shot.slot] || false}
-                  onOptOutChange={(optOut) => {
-                    onLocationOptOutChange?.(shot.slot, optOut);
-                  }}
-                  locationDescription={locationDescriptions[shot.slot] || ''}
-                  onLocationDescriptionChange={(description) => {
-                    onLocationDescriptionChange?.(shot.slot, description);
-                  }}
-                  splitLayout={false}
-                />
-              </div>
-            )}
-
-            {/* 🔥 NEW: Props Section - Show in Advanced tab for dialogue shots (props persist in state) */}
-            {(() => {
-              // Get props assigned to this shot (same logic as basic tab)
-              const assignedProps = sceneProps.filter(prop => 
-                propsToShots[prop.id]?.includes(shot.slot)
-              );
-              
-              if (assignedProps.length === 0) {
-                return null;
-              }
-              
-              return (
-                <div className="mt-4 pb-3 border-b border-[#3F3F46]">
-                  <div className="text-xs font-medium text-[#FFFFFF] mb-2">Props</div>
-                  <div className="space-y-3">
-                    {assignedProps.map((prop) => {
-                      const propConfig = shotProps[shot.slot]?.[prop.id] || {};
-                      const fullProp = prop as typeof prop & {
-                        angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
-                        images?: Array<{ url: string; s3Key?: string }>;
-                        baseReference?: { s3Key?: string; imageUrl?: string };
-                      };
-                      
-                      return (
-                        <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 flex-1">
-                              {(() => {
-                                const availableImages = getAvailablePropImages(fullProp);
-                                const selectedImageId = propConfig.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
-                                const selectedImage = selectedImageId 
-                                  ? availableImages.find(img => img.id === selectedImageId)
-                                  : availableImages[0];
-                                
-                                let imageS3Key: string | null = null;
-                                if (selectedImage) {
-                                  if (fullProp.angleReferences) {
-                                    const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id);
-                                    if (ref?.s3Key) imageS3Key = ref.s3Key;
-                                  }
-                                  if (!imageS3Key && fullProp.images) {
-                                    const imgData = fullProp.images.find(i => i.url === selectedImage.id);
-                                    if (imgData?.s3Key) imageS3Key = imgData.s3Key;
-                                  }
-                                  if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image') {
-                                    imageS3Key = fullProp.baseReference.s3Key;
-                                  }
-                                }
-                                
-                                let thumbnailKey: string | null = null;
-                                if (imageS3Key && propThumbnailS3KeyMap?.has(imageS3Key)) {
-                                  thumbnailKey = propThumbnailS3KeyMap.get(imageS3Key) || null;
-                                }
-                                
-                                const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
-                                const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
-                                const displayUrl = thumbnailUrl || fullImageUrl;
-                                
-                                return displayUrl ? (
-                                  <img 
-                                    src={displayUrl} 
-                                    alt={prop.name}
-                                    className="w-12 h-12 object-cover rounded border border-[#3F3F46]"
-                                    loading="lazy"
-                                    onError={(e) => {
-                                      const imgElement = e.target as HTMLImageElement;
-                                      if (thumbnailUrl && displayUrl === thumbnailUrl && fullImageUrl && imgElement.src !== fullImageUrl) {
-                                        imgElement.src = fullImageUrl;
-                                      } else {
-                                        imgElement.style.display = 'none';
-                                      }
-                                    }}
-                                  />
-                                ) : null;
-                              })()}
-                              <span className="text-xs font-medium text-[#FFFFFF]">{prop.name}</span>
-                            </div>
-                            {onPropsToShotsChange && (
-                              <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors">
-                                <input
-                                  type="checkbox"
-                                  checked={false}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      const updatedPropsToShots = { ...propsToShots };
-                                      if (updatedPropsToShots[prop.id]) {
-                                        updatedPropsToShots[prop.id] = updatedPropsToShots[prop.id].filter(slot => slot !== shot.slot);
-                                        if (updatedPropsToShots[prop.id].length === 0) {
-                                          delete updatedPropsToShots[prop.id];
-                                        }
-                                      }
-                                      onPropsToShotsChange(updatedPropsToShots);
-                                    }
-                                  }}
-                                  className="w-3 h-3 text-[#DC143C] rounded border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                                />
-                                <span>Remove from shot</span>
-                              </label>
-                            )}
-                          </div>
-                          
-                          {onPropImageChange && (
-                            <div className="mt-3">
-                              <label className="block text-[10px] text-[#808080] mb-2">
-                                Select prop image for this shot:
-                              </label>
-                              <PropImageSelector
-                                propId={prop.id}
-                                propName={prop.name}
-                                prop={fullProp}
-                                selectedImageId={propConfig.selectedImageId}
-                                onImageChange={(propId, imageId) => {
-                                  onPropImageChange(shot.slot, propId, imageId);
-                                }}
-                                propThumbnailS3KeyMap={propThumbnailS3KeyMap}
-                                propThumbnailUrlsMap={propThumbnailUrlsMap}
-                                propFullImageUrlsMap={propFullImageUrlsMap}
-                              />
-                            </div>
-                          )}
-                          
-                          {onPropDescriptionChange && (
-                            <div className="mt-3">
-                              <label className="block text-[10px] text-[#808080] mb-1.5">
-                                Describe how "{prop.name}" is used in this shot:
-                              </label>
-                              <textarea
-                                value={propConfig.usageDescription || ''}
-                                onChange={(e) => {
-                                  onPropDescriptionChange(shot.slot, prop.id, e.target.value);
-                                }}
-                                placeholder={`e.g., Character picks up ${prop.name} and examines it...`}
-                                rows={2}
-                                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-
-              </>
-            )}
-        </div>
-      )}
-
 
     </div>
   );
