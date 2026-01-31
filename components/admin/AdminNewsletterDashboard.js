@@ -7,9 +7,9 @@ import toast from 'react-hot-toast';
 const ONBOARDING_STEPS = [
   { step: 1, subject: "You're in – here's your first step" },
   { step: 2, subject: "Your first win: one scene on the page" },
-  { step: 3, subject: "You don't have to write alone – 5 AI agents + Production" },
-  { step: 4, subject: "Add one character and one location" },
-  { step: 5, subject: "Generate your first video" },
+  { step: 3, subject: "You don't have to write alone – 5 AI agents, then Produce" },
+  { step: 4, subject: "Add one character and one location in Produce" },
+  { step: 5, subject: "Generate your first video in Direct" },
   { step: 6, subject: "You're ready – review your shots and what's next" },
 ];
 
