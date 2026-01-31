@@ -6,15 +6,138 @@
  * Converted from AssetAngleGenerationModal to tab format
  * Steps:
  * Step 1: Model Selection (unified dropdown from API)
- * Step 2: Package Selection
+ * Step 2: Package Selection (Standard Props | Ground Vehicles | Aircraft)
  * Step 3: Additional Prompt (Optional)
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Package, Car, Plane } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import AssetAnglePackageSelector from '../AssetAnglePackageSelector';
+
+// Feature 0226: Vehicle/aircraft interior package definitions (match backend angleIds)
+const VEHICLE_INTERIOR_PACKAGES_UI: Record<string, { id: string; name: string; angleIds: string[]; angleLabels: string[] }> = {
+  car: { id: 'car', name: 'Car (sedan)', angleIds: ['driver', 'passenger', 'back_seat', 'trunk'], angleLabels: ['Driver', 'Passenger', 'Back seat', 'Trunk'] },
+  truck: { id: 'truck', name: 'Truck (pickup)', angleIds: ['driver', 'passenger', 'back_seat', 'bed'], angleLabels: ['Driver', 'Passenger', 'Back seat', 'Bed'] },
+  suv: { id: 'suv', name: 'SUV', angleIds: ['driver', 'passenger', 'back_seat', 'cargo'], angleLabels: ['Driver', 'Passenger', 'Back seat', 'Cargo'] },
+  van: { id: 'van', name: 'Van', angleIds: ['driver', 'passenger', 'rear_cargo'], angleLabels: ['Driver', 'Passenger', 'Rear cargo'] },
+  semi: { id: 'semi', name: 'Semi (tractor-trailer cab)', angleIds: ['driver', 'passenger', 'sleeper', 'dashboard'], angleLabels: ['Driver', 'Passenger', 'Sleeper', 'Dashboard'] },
+  helicopter: { id: 'helicopter', name: 'Helicopter', angleIds: ['pilot', 'passenger', 'rear_door'], angleLabels: ['Pilot', 'Passenger', 'Rear door'] },
+  small_plane: { id: 'small_plane', name: 'Small plane (cockpit)', angleIds: ['pilot', 'co_pilot', 'rear_cabin'], angleLabels: ['Pilot', 'Co-pilot', 'Rear cabin'] },
+  passenger_cabin: { id: 'passenger_cabin', name: 'Passenger plane cabin', angleIds: ['aisle', 'window_seat', 'galley', 'cabin_wide'], angleLabels: ['Aisle', 'Window seat', 'Galley', 'Cabin wide'] },
+};
+const GROUND_PACKAGE_IDS = ['car', 'truck', 'suv', 'van', 'semi'];
+const AIRCRAFT_PACKAGE_IDS = ['helicopter', 'small_plane', 'passenger_cabin'];
+
+function VehicleInteriorPackageCards({
+  category,
+  selectedPackageId,
+  onSelectPackage,
+  creditsPerImage,
+  selectedAngle,
+  onSelectedAngleChange,
+  selectedInteriorPackageId,
+  onSelectedInteriorPackageIdChange,
+}: {
+  category: 'ground' | 'aircraft';
+  selectedPackageId: string;
+  onSelectPackage: (id: string) => void;
+  creditsPerImage: number;
+  selectedAngle?: string;
+  onSelectedAngleChange?: (angleId: string) => void;
+  selectedInteriorPackageId?: string;
+  onSelectedInteriorPackageIdChange?: (packageId: string) => void;
+}) {
+  const ids = category === 'ground' ? GROUND_PACKAGE_IDS : AIRCRAFT_PACKAGE_IDS;
+  const isSingle = selectedPackageId === 'single';
+  const interiorPackageId = selectedInteriorPackageId || (category === 'ground' ? 'car' : 'helicopter');
+  const pkgForAngles = VEHICLE_INTERIOR_PACKAGES_UI[interiorPackageId];
+  const angleOptions = pkgForAngles ? pkgForAngles.angleIds.map((id, i) => ({ id, label: pkgForAngles.angleLabels[i] ?? id })) : [];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            onSelectPackage('single');
+            onSelectedInteriorPackageIdChange?.(category === 'ground' ? 'car' : 'helicopter');
+            onSelectedAngleChange?.(category === 'ground' ? 'driver' : 'pilot');
+          }}
+          className={`rounded-lg border-2 p-3 text-left transition-all ${
+            isSingle ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Package className="w-4 h-4 text-[#808080]" />
+            <span className="font-medium text-sm text-white">Single Angle</span>
+          </div>
+          <div className="text-xs text-[#808080]">1 angle · {creditsPerImage} credits</div>
+          {isSingle && <div className="text-xs text-[#DC143C] mt-1">✓ Selected</div>}
+        </button>
+        {ids.map((id) => {
+          const pkg = VEHICLE_INTERIOR_PACKAGES_UI[id];
+          if (!pkg) return null;
+          const credits = pkg.angleIds.length * creditsPerImage;
+          const isSelected = selectedPackageId === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onSelectPackage(id)}
+              className={`rounded-lg border-2 p-3 text-left transition-all ${
+                isSelected ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                {category === 'ground' ? <Car className="w-4 h-4 text-[#808080]" /> : <Plane className="w-4 h-4 text-[#808080]" />}
+                <span className="font-medium text-sm text-white">{pkg.name}</span>
+              </div>
+              <div className="text-xs text-[#808080]">{pkg.angleIds.length} angles · {credits} credits</div>
+              {isSelected && <div className="text-xs text-[#DC143C] mt-1">✓ Selected</div>}
+            </button>
+          );
+        })}
+      </div>
+      {isSingle && (
+        <div className="rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-[#808080] mb-2">{category === 'ground' ? 'Vehicle' : 'Aircraft'}</label>
+            <select
+              value={interiorPackageId}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                onSelectedInteriorPackageIdChange?.(nextId);
+                const nextPkg = VEHICLE_INTERIOR_PACKAGES_UI[nextId];
+                onSelectedAngleChange?.(nextPkg?.angleIds[0] ?? '');
+              }}
+              className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+            >
+              {(category === 'ground' ? GROUND_PACKAGE_IDS : AIRCRAFT_PACKAGE_IDS).map((id) => {
+                const p = VEHICLE_INTERIOR_PACKAGES_UI[id];
+                return p ? <option key={id} value={id} className="bg-[#1A1A1A]">{p.name}</option> : null;
+              })}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#808080] mb-2">Angle</label>
+            <select
+              value={selectedAngle && angleOptions.some((o) => o.id === selectedAngle) ? selectedAngle : (angleOptions[0]?.id ?? '')}
+              onChange={(e) => onSelectedAngleChange?.(e.target.value)}
+              className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+            >
+              {angleOptions.map((o) => (
+                <option key={o.id} value={o.id} className="bg-[#1A1A1A]">{o.label}</option>
+              ))}
+            </select>
+          </div>
+          <p className="text-xs text-[#808080]">Generate one interior angle.</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface GenerateAssetTabProps {
   assetId: string;
@@ -40,9 +163,11 @@ export function GenerateAssetTab({
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
-  // Step 2: Package Selection
+  // Step 2: Package Selection (Feature 0226: Standard | Ground | Aircraft tabs)
+  const [packageCategoryTab, setPackageCategoryTab] = useState<'standard' | 'ground' | 'aircraft'>('standard');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
-  const [selectedAngle, setSelectedAngle] = useState<string>('front'); // 🔥 Feature 0190: Single angle selection
+  const [selectedAngle, setSelectedAngle] = useState<string>('front'); // Feature 0190: Single angle selection
+  const [selectedInteriorPackageId, setSelectedInteriorPackageId] = useState<string>('car'); // Feature 0226: vehicle/aircraft when single angle
   
   // Step 3: Optional - Additional Prompt
   const [additionalPrompt, setAdditionalPrompt] = useState<string>('');
@@ -120,18 +245,19 @@ export function GenerateAssetTab({
       const apiUrl = `/api/asset-bank/${assetId}/generate-angles`;
       
       const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
-      // 🔥 Feature 0190: Handle single angle mode
+      const isInteriorSingle = (packageCategoryTab === 'ground' || packageCategoryTab === 'aircraft') && selectedPackageId === 'single';
       const requestBody: any = {
-        packageId: selectedPackageId,
+        packageId: isInteriorSingle ? selectedInteriorPackageId : selectedPackageId,
         quality: derivedQuality,
         providerId: providerId,
         additionalPrompt: additionalPrompt.trim() || undefined,
-        projectId: screenplayId, // 🔥 FIX: Include projectId for job creation (matches location angle generation pattern)
-        screenplayId: screenplayId, // Legacy support
+        projectId: screenplayId,
+        screenplayId: screenplayId,
       };
-      
-      // Add selectedAngle for single mode
-      if (selectedPackageId === 'single') {
+      if (packageCategoryTab === 'ground' || packageCategoryTab === 'aircraft') {
+        requestBody.packageType = 'vehicle-interior';
+      }
+      if (selectedPackageId === 'single' || isInteriorSingle) {
         requestBody.selectedAngle = selectedAngle;
       }
       
@@ -181,16 +307,22 @@ export function GenerateAssetTab({
     }
   };
   
-  // Calculate total credits
+  // Calculate total credits (Feature 0226: vehicle interior counts)
   const packageAngleCounts: Record<string, number> = {
     single: 1,
     basic: 3,
     standard: 6,
-    premium: 10
+    premium: 10,
+    car: 4,
+    truck: 4,
+    suv: 4,
+    van: 3,
+    semi: 4,
+    helicopter: 3,
+    small_plane: 3,
+    passenger_cabin: 4,
   };
-  
-  // 🔥 FIX: Ensure single package always calculates as 1 angle
-  const angleCount = selectedPackageId === 'single' ? 1 : (packageAngleCounts[selectedPackageId] || 6);
+  const angleCount = selectedPackageId === 'single' ? 1 : (packageAngleCounts[selectedPackageId] ?? 6);
   const totalCredits = angleCount * creditsPerImage;
   
   return (
@@ -232,21 +364,72 @@ export function GenerateAssetTab({
         </div>
       </div>
 
-      {/* Step 2: Package Selection */}
+      {/* Step 2: Package Selection (Standard Props | Ground Vehicles | Aircraft) */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-4">
-          Step 2: Package Selection
-        </h3>
-        <AssetAnglePackageSelector
-          assetName={assetName}
-          onSelectPackage={setSelectedPackageId}
-          selectedPackageId={selectedPackageId}
-          quality={selectedModel?.quality === '4K' ? 'high-quality' : 'standard'}
-          creditsPerImage={creditsPerImage}
-          compact={true}
-          selectedAngle={selectedAngle}
-          onSelectedAngleChange={setSelectedAngle}
-        />
+        <h3 className="text-sm font-semibold text-white mb-3">Step 2: Package Selection</h3>
+        <p className="text-xs text-[#808080] mb-3">More angles = better consistency</p>
+        <div className="flex gap-1 p-1 bg-[#0A0A0A] rounded-lg mb-4 border border-[#3F3F46]">
+          {(['standard', 'ground', 'aircraft'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => {
+                setPackageCategoryTab(tab);
+                if (tab === 'standard') setSelectedPackageId('standard');
+                else if (tab === 'ground') {
+                  setSelectedPackageId('car');
+                  setSelectedInteriorPackageId('car');
+                  setSelectedAngle('driver');
+                } else {
+                  setSelectedPackageId('helicopter');
+                  setSelectedInteriorPackageId('helicopter');
+                  setSelectedAngle('pilot');
+                }
+              }}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                packageCategoryTab === tab ? 'bg-[#DC143C] text-white' : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+              }`}
+            >
+              {tab === 'standard' ? 'Standard Props' : tab === 'ground' ? 'Ground Vehicles' : 'Aircraft'}
+            </button>
+          ))}
+        </div>
+        {packageCategoryTab === 'standard' && (
+          <AssetAnglePackageSelector
+            assetName={assetName}
+            onSelectPackage={setSelectedPackageId}
+            selectedPackageId={selectedPackageId}
+            quality={selectedModel?.quality === '4K' ? 'high-quality' : 'standard'}
+            creditsPerImage={creditsPerImage}
+            compact={true}
+            selectedAngle={selectedAngle}
+            onSelectedAngleChange={setSelectedAngle}
+          />
+        )}
+        {packageCategoryTab === 'ground' && (
+          <VehicleInteriorPackageCards
+            category="ground"
+            selectedPackageId={selectedPackageId}
+            onSelectPackage={setSelectedPackageId}
+            creditsPerImage={creditsPerImage}
+            selectedAngle={selectedAngle}
+            onSelectedAngleChange={setSelectedAngle}
+            selectedInteriorPackageId={selectedInteriorPackageId}
+            onSelectedInteriorPackageIdChange={setSelectedInteriorPackageId}
+          />
+        )}
+        {packageCategoryTab === 'aircraft' && (
+          <VehicleInteriorPackageCards
+            category="aircraft"
+            selectedPackageId={selectedPackageId}
+            onSelectPackage={setSelectedPackageId}
+            creditsPerImage={creditsPerImage}
+            selectedAngle={selectedAngle}
+            onSelectedAngleChange={setSelectedAngle}
+            selectedInteriorPackageId={selectedInteriorPackageId}
+            onSelectedInteriorPackageIdChange={setSelectedInteriorPackageId}
+          />
+        )}
       </div>
 
       {/* Step 3: Optional - Additional Prompt */}
@@ -294,7 +477,7 @@ export function GenerateAssetTab({
         </button>
         <button
           onClick={handleGenerate}
-          disabled={isGenerating || isLoadingModels || !providerId || !selectedPackageId || (selectedPackageId === 'single' && !selectedAngle)}
+          disabled={isGenerating || isLoadingModels || !providerId || !selectedPackageId || (selectedPackageId === 'single' && !selectedAngle) || (packageCategoryTab !== 'standard' && selectedPackageId === 'single' && (!selectedInteriorPackageId || !selectedAngle))}
           className="flex-1 px-4 py-3 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
         >
           {isGenerating ? (
