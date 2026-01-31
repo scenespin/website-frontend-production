@@ -11,7 +11,8 @@ import {
   Home,
   TrendingUp,
   Coins,
-  AlertTriangle
+  AlertTriangle,
+  Mail
 } from 'lucide-react';
 
 export default function AdminNav() {
@@ -25,6 +26,7 @@ export default function AdminNav() {
     { href: '/admin/affiliates', icon: DollarSign, label: 'Affiliate Program' },
     { href: '/admin/abuse', icon: AlertTriangle, label: 'Abuse Management' },
     { href: '/admin/voice-consents', icon: Shield, label: 'Voice Consents' },
+    { href: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
     { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
   ];

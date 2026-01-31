@@ -41,6 +41,7 @@ export async function POST(req) {
 
     const now = new Date();
 
+    // Safeguard: process at most 100 per run to avoid Vercel timeout and Resend rate limits
     const due = await NewsletterSubscriber.find({
       onboarding_enrolled_at: { $ne: null },
       onboarding_step: { $gte: 1, $lt: MAX_ONBOARDING_STEP },
@@ -48,7 +49,9 @@ export async function POST(req) {
       unsubscribed_at: null,
       bounced_at: null,
       complaint_at: null,
-    }).lean();
+    })
+      .limit(100)
+      .lean();
 
     console.log(`[Onboarding-drip] Found ${due.length} subscribers due for next email`);
 

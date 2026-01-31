@@ -1,14 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/cron/voice-retention",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/voice-retention-warnings",
-      "schedule": "0 9 * * *"
-    },
-    {
       "path": "/api/cron/onboarding-drip",
       "schedule": "0 * * * *"
     }

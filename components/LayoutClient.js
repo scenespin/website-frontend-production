@@ -18,6 +18,37 @@ import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
 // Temporarily disabled - Mobile Debug Panel (bug drawer on mobile)
 // import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
 
+// Newsletter sync: when a signed-in Clerk user loads the app, subscribe them to newsletter/onboarding once per session
+const NewsletterSync = () => {
+  const { user, isLoaded } = useUser();
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !isLoaded || !user) return;
+
+    const key = "newsletter_sync_done";
+    if (sessionStorage.getItem(key)) return;
+
+    const email = user.primaryEmailAddress?.emailAddress;
+    if (!email) return;
+
+    sessionStorage.setItem(key, "1");
+
+    fetch("/api/newsletter/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        name: user.fullName || null,
+        user_id: user.id,
+        source: "signup",
+        enrollOnboarding: true,
+      }),
+    }).catch((err) => console.warn("[NewsletterSync] subscribe failed:", err?.message || err));
+  }, [isLoaded, user]);
+
+  return null;
+};
+
 // Auth Initializer: Sets up Clerk token getter for API calls
 // This MUST run before any API calls are made
 const AuthInitializer = () => {
@@ -252,6 +283,9 @@ const ClientLayout = ({ children }) => {
           
           {/* Initialize auth token getter before any API calls */}
           <AuthInitializer />
+
+          {/* Sync signed-in user to newsletter/onboarding once per session */}
+          <NewsletterSync />
 
           {/* Show a progress bar at the top when navigating between pages */}
           <NextTopLoader color={config.colors.main} showSpinner={false} />

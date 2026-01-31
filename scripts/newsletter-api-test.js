@@ -7,9 +7,16 @@
  * - Server running (e.g. npm run dev) at BASE_URL
  * - Env: NEWSLETTER_UNSUBSCRIBE_SECRET (same as server), CRON_SECRET (same as server)
  *
- * Run from repo root:
- *   NEWSLETTER_UNSUBSCRIBE_SECRET=your-secret CRON_SECRET=your-cron node scripts/newsletter-api-test.js
+ * Run from website-frontend-production:
+ *   npm run test:newsletter:api
  *   BASE_URL=http://localhost:3000 NEWSLETTER_UNSUBSCRIBE_SECRET=... CRON_SECRET=... node scripts/newsletter-api-test.js
+ *
+ * Subscribe-only (test email delivery to Resend):
+ *   SUBSCRIBE_ONLY=1 BASE_URL=https://wryda.ai NEWSLETTER_TEST_EMAIL=delivered@resend.dev node scripts/newsletter-api-test.js
+ * Then check Resend dashboard for the welcome email to delivered@resend.dev.
+ *
+ * Backend validation tests only (no subscribe/unsub/cron that need DB):
+ *   VALIDATION_ONLY=1 BASE_URL=http://localhost:3000 node scripts/newsletter-api-test.js
  */
 
 const crypto = require("crypto");
@@ -17,6 +24,8 @@ const crypto = require("crypto");
 const BASE_URL = (process.env.BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 const SECRET = process.env.NEWSLETTER_UNSUBSCRIBE_SECRET;
 const CRON_SECRET = process.env.CRON_SECRET;
+const SUBSCRIBE_ONLY = process.env.SUBSCRIBE_ONLY === "1" || process.env.SUBSCRIBE_ONLY === "true";
+const VALIDATION_ONLY = process.env.VALIDATION_ONLY === "1" || process.env.VALIDATION_ONLY === "true";
 
 function createUnsubscribeToken(email) {
   if (!SECRET) throw new Error("NEWSLETTER_UNSUBSCRIBE_SECRET is required");
@@ -30,9 +39,70 @@ async function main() {
   console.log("Newsletter API test");
   console.log("  BASE_URL:", BASE_URL);
   console.log("  TEST_EMAIL:", TEST_EMAIL);
-  console.log("  NEWSLETTER_SEND_DISABLED on server = no real send\n");
+  console.log("  SUBSCRIBE_ONLY:", SUBSCRIBE_ONLY);
+  console.log("  VALIDATION_ONLY:", VALIDATION_ONLY);
+  console.log("  (Server NEWSLETTER_SEND_DISABLED = no real send; use delivered@resend.dev to test sends)\n");
 
   let failed = 0;
+
+  // --- Subscribe validation: invalid email → 400 ---
+  try {
+    const res = await fetch(`${BASE_URL}/api/newsletter/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "not-an-email", source: "manual" }),
+    });
+    const json = await res.json();
+    if (res.status !== 400 || !json.error) {
+      console.error("❌ Subscribe invalid email should 400:", res.status, json);
+      failed++;
+    } else {
+      console.log("✅ Subscribe invalid email 400", json.error?.slice?.(0, 40) + "...");
+    }
+  } catch (e) {
+    console.error("❌ Subscribe invalid email request failed:", e.message);
+    failed++;
+  }
+
+  // --- Subscribe validation: missing source → 400 ---
+  try {
+    const res = await fetch(`${BASE_URL}/api/newsletter/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "valid@example.com" }),
+    });
+    const json = await res.json();
+    if (res.status !== 400 || !json.error) {
+      console.error("❌ Subscribe missing source should 400:", res.status, json);
+      failed++;
+    } else {
+      console.log("✅ Subscribe missing source 400", json.error?.slice?.(0, 40) + "...");
+    }
+  } catch (e) {
+    console.error("❌ Subscribe missing source request failed:", e.message);
+    failed++;
+  }
+
+  // --- Unsubscribe invalid token → 400 (redirect=0 for JSON) ---
+  try {
+    const unsubUrl = `${BASE_URL}/api/unsubscribe?email=${encodeURIComponent("nobody@example.com")}&token=invalidhex&redirect=0`;
+    const res = await fetch(unsubUrl, { method: "GET", redirect: "manual" });
+    const json = res.status === 200 ? await res.json() : null;
+    if (res.status !== 400) {
+      console.error("❌ Unsubscribe invalid token should 400, got:", res.status, json);
+      failed++;
+    } else {
+      console.log("✅ Unsubscribe invalid token 400");
+    }
+  } catch (e) {
+    console.error("❌ Unsubscribe invalid token request failed:", e.message);
+    failed++;
+  }
+
+  if (VALIDATION_ONLY) {
+    console.log("\n" + (failed ? `Failed: ${failed}` : "All validation tests passed"));
+    process.exit(failed ? 1 : 0);
+  }
 
   // --- Subscribe ---
   try {
@@ -51,10 +121,20 @@ async function main() {
       failed++;
     } else {
       console.log("✅ Subscribe 200", subJson);
+      if (SUBSCRIBE_ONLY) {
+        console.log("\n📧 If sends are enabled, check Resend dashboard for welcome email to", TEST_EMAIL);
+        console.log("   (delivered@resend.dev accepts sends but does not deliver to a real mailbox.)");
+        process.exit(0);
+      }
     }
   } catch (e) {
     console.error("❌ Subscribe request failed:", e.message);
     failed++;
+  }
+
+  if (SUBSCRIBE_ONLY) {
+    console.log("\n" + (failed ? `Failed: ${failed}` : "Done"));
+    process.exit(failed ? 1 : 0);
   }
 
   // --- Unsubscribe (need same secret as server) ---
@@ -78,9 +158,23 @@ async function main() {
     }
   }
 
-  // --- Cron ---
+  // --- Cron: without auth should 401 ---
+  try {
+    const cronNoAuth = await fetch(`${BASE_URL}/api/cron/onboarding-drip`, { method: "POST" });
+    if (cronNoAuth.status !== 401) {
+      console.error("❌ Cron without auth should 401, got:", cronNoAuth.status);
+      failed++;
+    } else {
+      console.log("✅ Cron without auth 401 (correct)");
+    }
+  } catch (e) {
+    console.error("❌ Cron (no auth) request failed:", e.message);
+    failed++;
+  }
+
+  // --- Cron with secret ---
   if (!CRON_SECRET) {
-    console.log("⏭ Skip cron (CRON_SECRET not set)");
+    console.log("⏭ Skip cron with auth (CRON_SECRET not set)");
   } else {
     try {
       const cronRes = await fetch(`${BASE_URL}/api/cron/onboarding-drip`, {
