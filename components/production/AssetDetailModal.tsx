@@ -37,6 +37,7 @@ import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
 import { ModernGallery } from './Gallery/ModernGallery';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAssets } from '@/hooks/useAssetBank';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { formatProviderTag } from '@/utils/providerLabels';
 
 /**
@@ -76,9 +77,10 @@ export default function AssetDetailModal({
   const { getToken } = useAuth();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
   const isMobile = useIsMobile();
-  // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
-  // 🔥 FIX: Use screenplayId (primary) with projectId fallback for backward compatibility
+  const screenplay = useScreenplay();
+  // Asset's screenplay for data (useAssets). Job creation uses context only so jobs always show in Jobs Panel.
   const screenplayId = asset?.screenplayId || asset?.projectId;
+  const screenplayIdForJobs = screenplay?.screenplayId ?? '';
   
   // 🔥 FIX: Use React Query hook directly to get latest assets (same as CharacterDetailModal/LocationDetailModal)
   const { data: queryAssets = [] } = useAssets(
@@ -1676,7 +1678,7 @@ export default function AssetDetailModal({
                 <GenerateAssetTab
                   assetId={latestAsset.id}
                   assetName={latestAsset.name}
-                  screenplayId={screenplayId || ''}
+                  screenplayId={screenplayIdForJobs}
                   asset={latestAsset}
                   onClose={() => setCoverageTab(null)}
                   onComplete={async (result) => {
