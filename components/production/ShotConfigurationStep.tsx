@@ -1540,8 +1540,9 @@ export function ShotConfigurationStep({
                 // Add additional characters
                 (finalSelectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
                 
-                // When workflow is off-frame-voiceover, adjust character set for reference list
-                if (finalSelectedDialogueWorkflow === 'off-frame-voiceover') {
+                // Tab-aware: on Basic tab show lip sync ref set; on Advanced use stored workflow (plan 0227)
+                const isOffFrameForDisplay = finalSelectedDialogueWorkflow === 'off-frame-voiceover' && activeTab === 'advanced';
+                if (isOffFrameForDisplay) {
                   // Off-frame: speaker is not in frame, remove from reference list
                   if (finalOffFrameShotType === 'off-frame') {
                     allShotCharacters.delete(shot.characterId);
@@ -1555,7 +1556,7 @@ export function ShotConfigurationStep({
                     finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
                   }
                 } else {
-                  // Lip sync or scene-voiceover: do not show off-frame-only characters (listener/group) in reference list
+                  // Basic tab or non–off-frame: do not show off-frame-only characters (listener/group) in reference list
                   if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
                   (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
                 }
@@ -1812,8 +1813,9 @@ export function ShotConfigurationStep({
                     }
                   });
                   (finalSelectedCharactersForShots[shotSlot] || []).forEach(charId => allShotCharacters.add(charId));
-                  // When workflow is off-frame-voiceover, adjust character set (same as Reference Preview)
-                  if (finalSelectedDialogueWorkflow === 'off-frame-voiceover') {
+                  // Tab-aware: same as Reference Preview (plan 0227)
+                  const isOffFrameForDisplay = finalSelectedDialogueWorkflow === 'off-frame-voiceover' && activeTab === 'advanced';
+                  if (isOffFrameForDisplay) {
                     if (finalOffFrameShotType === 'off-frame') {
                       allShotCharacters.delete(shot.characterId);
                     }
