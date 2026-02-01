@@ -316,6 +316,7 @@ export function ProductionHub({}: ProductionHubProps) {
           autoOpen={false}
           compact={isMobile}
           jobCount={activeJobs}
+          screenplayIdFromHub={screenplayId}
         />
       </div>
     );
@@ -389,6 +390,7 @@ export function ProductionHub({}: ProductionHubProps) {
         autoOpen={false}
         compact={isMobile}
         jobCount={activeJobs}
+        screenplayIdFromHub={screenplayId}
         onNavigateToEntity={(entityType, entityId) => {
           // Switch to appropriate tab
           const targetTab: ProductionTab = entityType === 'character' ? 'characters' : entityType === 'location' ? 'locations' : 'assets';

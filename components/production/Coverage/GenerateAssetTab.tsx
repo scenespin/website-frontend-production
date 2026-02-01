@@ -375,20 +375,7 @@ export function GenerateAssetTab({
       
       if (result.jobId) {
         // Note: Credits are deducted asynchronously as each angle generates, not when job is created
-        // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
         console.log('[GenerateAssetTab] ✅ Job created:', result.jobId);
-        // Optimistic update: show job in Jobs Drawer immediately (avoids GSI eventual consistency / multi-task 0-result)
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
-            detail: {
-              jobId: result.jobId,
-              screenplayId: projectIdForJob,
-              workflowId: 'image-generation',
-              workflowName: 'Asset angles',
-              jobType: 'image-generation',
-            },
-          }));
-        }
         // Toast notification handled by parent (AssetDetailModal) in onComplete callback
         if (onComplete) {
           onComplete({ jobId: result.jobId, type: 'angles' });

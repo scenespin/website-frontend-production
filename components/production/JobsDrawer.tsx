@@ -168,6 +168,8 @@ interface JobsDrawerProps {
   autoOpen?: boolean; // Auto-open when jobs are running
   compact?: boolean; // Compact mode for smaller screens
   jobCount?: number; // Number of active jobs for tab badge
+  /** When provided (e.g. from ProductionHub), use this screenplayId so drawer and Hub query the same project (URL-first, then context). */
+  screenplayIdFromHub?: string;
   onNavigateToEntity?: (entityType: 'character' | 'location' | 'asset', entityId: string) => void; // Callback to navigate to entity modal
 }
 
@@ -264,10 +266,11 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
   );
 }
 
-export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0, onNavigateToEntity }: JobsDrawerProps) {
+export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0, screenplayIdFromHub, onNavigateToEntity }: JobsDrawerProps) {
   const router = useRouter();
   const screenplay = useScreenplay();
-  const screenplayId = screenplay.screenplayId;
+  // Use Hub's screenplayId when provided (URL-first, then context) so drawer and badge query the same project
+  const screenplayId = (screenplayIdFromHub?.trim() || screenplay.screenplayId || '').trim() || '';
   const { getToken, userId, isSignedIn } = useAuth();
   const queryClient = useQueryClient();
   const { isDrawerOpen: isChatDrawerOpen } = useDrawer(); // Check if chat drawer is open
@@ -350,33 +353,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const [isLoading, setIsLoading] = useState(true);
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-  
-  // Optimistic job: show newly created job immediately (avoids DynamoDB GSI eventual consistency / list returning 0 on other task)
-  useEffect(() => {
-    const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; workflowId: string; workflowName: string; jobType?: string }>) => {
-      const { jobId, screenplayId: eventScreenplayId, workflowId, workflowName, jobType } = e.detail || {};
-      if (!jobId || !eventScreenplayId || eventScreenplayId !== screenplayId) return;
-      setJobs(prev => {
-        if (prev.some(j => j.jobId === jobId)) return prev;
-        const placeholder: WorkflowJob = {
-          jobId,
-          workflowId: workflowId || 'image-generation',
-          workflowName: workflowName || 'Asset angles',
-          jobType: (jobType as WorkflowJob['jobType']) || 'image-generation',
-          status: 'running',
-          progress: 0,
-          createdAt: new Date().toISOString(),
-          creditsUsed: 0,
-        };
-        return [placeholder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      });
-    };
-    window.addEventListener('wryda:optimistic-job', handler as EventListener);
-    return () => window.removeEventListener('wryda:optimistic-job', handler as EventListener);
-  }, [screenplayId]);
-  
-  // Smooth progress animation - CSS transitions handle the animation automatically
-  // The transition-all duration-[2000ms] on the progress bar creates a smooth 0% -> 50% transition
   
   // Track which jobs we've already processed for credit refresh (avoid duplicates)
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
@@ -600,81 +576,32 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
   };
 
-  // Use ref to track latest jobs state without causing re-renders
-  const jobsRef = useRef<WorkflowJob[]>([]);
-  useEffect(() => {
-    jobsRef.current = jobs;
-  }, [jobs]);
-
   /**
-   * Load jobs when drawer opens OR when screenplayId changes
-   * 🔥 SCALABILITY: Only poll when there are running jobs (reduces API calls by 90%+)
-   * Background polling only happens if user has active jobs
-   * 🔥 FIX: Removed jobs from dependencies to prevent infinite loop - use ref instead
+   * Load jobs when drawer opens or screenplayId changes (one-time load).
+   * Hub polls for badge when drawer is closed; we only poll list when drawer is open.
    */
   useEffect(() => {
     if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
-    
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
-    
-    // 🔥 SCALABILITY FIX: Only poll in background if there are running/queued jobs
-    // This reduces API calls from 100% of users to ~5-10% (only those with active jobs)
-    // Use ref to check for active jobs without causing re-renders
-    if (!isOpen) {
-      // Only poll when drawer is closed - check for active jobs inside the callback
-    const interval = setInterval(() => {
-      // Use ref to get current jobs state (always up-to-date)
-      const hasActiveJobs = jobsRef.current.some(j => j.status === 'running' || j.status === 'queued');
-      if (hasActiveJobs) {
-        console.log('[JobsDrawer] Background polling: active jobs detected, refreshing...');
-        loadJobs(false); // Silent refresh when drawer is closed
-      }
-    }, 15000); // Poll every 15 seconds when closed (reduced from 10s for scalability)
-      
-      return () => clearInterval(interval);
-    }
-  }, [screenplayId, isOpen, hasLoadedOnce]); // 🔥 FIX: Removed jobs from dependencies
+  }, [screenplayId, isOpen, hasLoadedOnce]);
 
   /**
-   * Adaptive polling: poll frequently when jobs are running, less when idle
-   * 🔥 SCALABILITY: Only poll when there are running jobs (reduces API calls significantly)
-   * NOTE: This only runs when drawer is open - background polling is handled above
-   * 🔥 FIX: Removed visibleJobs from dependencies to prevent infinite loop - use ref instead
+   * When drawer is open: poll list API every 5s so jobs (including new/running) stay in sync.
+   * No gating on "has running jobs" — we always poll when open so new jobs appear after API returns them.
    */
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
       setIsPolling(false);
       return;
     }
-    
     setIsPolling(true);
-    const pollInterval = 5000; // Poll every 5 seconds when drawer is open
-    
-    const interval = setInterval(() => {
-      // Use ref to get current jobs state (always up-to-date, no stale closure)
-      const currentJobs = jobsRef.current;
-      const hasRunningJobs = currentJobs.some(job => 
-        job.status === 'running' || job.status === 'queued'
-      );
-      
-      // Only poll if there are running jobs
-      if (hasRunningJobs) {
-        console.log('[JobsDrawer] Active polling: running jobs detected, refreshing...', {
-          runningCount: currentJobs.filter(j => j.status === 'running' || j.status === 'queued').length
-        });
-        loadJobs(false);
-      } else {
-        console.log('[JobsDrawer] Active polling: no running jobs, stopping poll');
-        setIsPolling(false);
-      }
-    }, pollInterval);
-
+    const interval = setInterval(() => loadJobs(false), 5000);
     return () => {
       clearInterval(interval);
       setIsPolling(false);
     };
-  }, [isOpen, screenplayId]); // 🔥 FIX: Only depend on isOpen and screenplayId, not jobs
+  }, [isOpen, screenplayId]);
 
   /**
    * Watch for completed jobs and refresh related data
