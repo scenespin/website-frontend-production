@@ -197,12 +197,12 @@ export async function createScreenplay(
   });
   
   if (!data.data) {
-    console.error('[screenplayStorage] ❌ Response missing data.data:', data);
+    console.log('[screenplayStorage] ❌ Response missing data.data:', data);
     throw new Error('Invalid response format - missing screenplay data');
   }
   
   if (!data.data.screenplay_id) {
-    console.error('[screenplayStorage] ❌ Response missing screenplay_id:', data.data);
+    console.log('[screenplayStorage] ❌ Response missing screenplay_id:', data.data);
     throw new Error('Invalid response format - missing screenplay_id');
   }
   
@@ -415,7 +415,7 @@ export async function listScreenplays(
   
   // Backend returns { success: true, data: { screenplays: [...] } }
   if (!data.success || !data.data || !Array.isArray(data.data.screenplays)) {
-    console.error('[screenplayStorage] Invalid response structure:', data);
+    console.log('[screenplayStorage] Invalid response structure:', data);
     return [];
   }
   
@@ -460,7 +460,7 @@ export async function listCharacters(
 ): Promise<Character[]> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  console.error('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/characters?context=' + context);
+  console.log('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/characters?context=' + context);
   
   const response = await fetch(`/api/screenplays/${screenplayId}/characters?context=${context}`, {
     headers: {
@@ -471,7 +471,7 @@ export async function listCharacters(
     cache: 'no-store' // 🔥 FIX: Prevent browser caching of API responses
   });
 
-  console.error('[screenplayStorage] Characters response status:', response.status);
+  console.log('[screenplayStorage] Characters response status:', response.status);
 
   if (!response.ok) {
     const error = await response.json();
@@ -480,9 +480,9 @@ export async function listCharacters(
   }
 
   const data = await response.json();
-  console.error('[screenplayStorage] Characters data:', data);
-  console.error('[screenplayStorage] Characters data.data:', data.data);
-  console.error('[screenplayStorage] Characters array:', data.data.characters);
+  console.log('[screenplayStorage] Characters data:', data);
+  console.log('[screenplayStorage] Characters data.data:', data.data);
+  console.log('[screenplayStorage] Characters array:', data.data.characters);
   return data.data.characters;
 }
 

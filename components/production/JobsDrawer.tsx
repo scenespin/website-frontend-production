@@ -215,6 +215,12 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
         });
 
         if (!response.ok) {
+          if (response.status === 404) {
+            console.warn('[JobsDrawer] Thumbnail not found (404), using fallback:', s3Key);
+            setIsLoading(false);
+            if (fallbackUrl) setImageUrl(fallbackUrl);
+            return;
+          }
           throw new Error(`Failed to get presigned URL: ${response.status}`);
         }
 
@@ -260,7 +266,11 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
       alt={alt}
       className="w-full h-full object-cover"
       onError={(e) => {
-        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+        const img = e.target as HTMLImageElement;
+        if (img.src && !img.src.startsWith('data:')) {
+          console.warn('[JobsDrawer] Thumbnail failed to load (e.g. 404), using placeholder:', s3Key);
+        }
+        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
       }}
     />
   );
@@ -529,8 +539,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         return;
       }
 
-      // Load all jobs for this session (no filtering)
-      const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=15`;
+      // Load all jobs for this session (no filtering). Limit 50 so newest jobs aren't cut off.
+      const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=50`;
       
       const response = await fetch(url, {
         headers: {
@@ -545,6 +555,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       if (data.success) {
         const workflowJobs = data.data?.jobs || data.jobs || [];
         jobList.push(...workflowJobs);
+      }
+
+      // Diagnostic: when UI doesn't update, check console to see what the API actually returned (dev only)
+      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+        const summary = jobList.slice(0, 20).map(j => `${j.jobId.slice(-8)}:${j.status}:${j.progress}%`);
+        console.log('[JobsDrawer] loadJobs', {
+          screenplayId: screenplayId.slice(0, 20) + '…',
+          count: jobList.length,
+          jobs: summary,
+          runningCount: jobList.filter(j => j.status === 'running' || j.status === 'queued').length,
+        });
       }
       
       setJobs(prevJobs => {

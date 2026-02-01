@@ -34,11 +34,18 @@ export class ProductionErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error(`[ProductionErrorBoundary] Error in ${this.props.componentName || 'component'}:`, {
+    const name = this.props.componentName || 'component';
+    console.error(`[ProductionErrorBoundary] Error in ${name}:`, {
       error,
       errorInfo,
       componentStack: errorInfo.componentStack
     });
+    // In dev, log full unminified message/stack for debugging (e.g. React #419)
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[ProductionErrorBoundary] FULL ERROR (dev) message:`, error?.message);
+      console.error(`[ProductionErrorBoundary] FULL ERROR (dev) stack:`, error?.stack);
+      console.error(`[ProductionErrorBoundary] FULL ERROR (dev) componentStack:`, errorInfo?.componentStack);
+    }
   }
 
   render() {
