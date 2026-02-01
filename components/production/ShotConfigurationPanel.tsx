@@ -12,7 +12,6 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Check } from 'lucide-react';
 import { LocationAngleSelector } from './LocationAngleSelector';
 import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
@@ -420,7 +419,25 @@ export function ShotConfigurationPanel({
       }
     }
   }, [selectedDialogueWorkflow, detectedWorkflowType, shot.slot, selectedCharactersForShots, onCharactersForShotChange]);
-  
+
+  // Off-frame speaker: auto-set character reference when none exists so pipeline has a ref for voice/first-frame (no image picker shown)
+  React.useEffect(() => {
+    const workflow = selectedDialogueWorkflow || detectedWorkflowType || 'first-frame-lipsync';
+    const isOffFrameSpeakerMode = workflow === 'off-frame-voiceover' && offFrameShotType === 'off-frame' && shot.type === 'dialogue' && shot.characterId;
+    if (!isOffFrameSpeakerMode || !onCharacterReferenceChange) return;
+    const charId = shot.characterId;
+    const existingRef = selectedCharacterReferences[shot.slot]?.[charId];
+    if (existingRef) return;
+    const headshots = characterHeadshots[charId] || [];
+    if (loadingHeadshots[charId] === true || headshots.length === 0) return;
+    const first = headshots[0];
+    onCharacterReferenceChange(shot.slot, charId, {
+      poseId: first.poseId,
+      s3Key: first.s3Key,
+      imageUrl: first.imageUrl || ''
+    });
+  }, [selectedDialogueWorkflow, detectedWorkflowType, offFrameShotType, shot.slot, shot.type, shot.characterId, selectedCharacterReferences, characterHeadshots, loadingHeadshots, onCharacterReferenceChange]);
+
   // Use selected workflow if available, otherwise use detected
   const currentWorkflow = selectedDialogueWorkflow || detectedWorkflowType || 'first-frame-lipsync';
   
@@ -1066,74 +1083,14 @@ export function ShotConfigurationPanel({
               const isLastExplicit = index === explicitCharacters.length - 1;
               
               return (
-                <div key={charId} className={`pb-3 ${isLastExplicit ? '' : 'border-b border-[#3F3F46]'} ${isNarrator ? 'opacity-50' : ''}`}>
+                <div key={`char-explicit-${charId}-${index}`} className={`pb-3 ${isLastExplicit ? '' : 'border-b border-[#3F3F46]'} ${isNarrator ? 'opacity-50' : ''}`}>
                   <div className="space-y-3">
                     {isOffFrameSpeaker ? (
                       <>
                         <div className="text-xs font-medium text-[#FFFFFF]">{speakerChar?.name ?? 'Speaker'}</div>
                         <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                          Image used for voice and first-frame reference only. Character will not appear in frame.
+                          Your character&apos;s voice will be used for this shot only because they&apos;re not in frame.
                         </div>
-                        {(() => {
-                          const isLoading = loadingHeadshots[charId] === true;
-                          const allHeadshots = characterHeadshots[charId] || [];
-                          const selectedHeadshot = selectedCharacterReferences[shot.slot]?.[charId];
-                          if (isLoading) {
-                            return <div className="text-[10px] text-[#808080]">Loading headshots...</div>;
-                          }
-                          if (allHeadshots.length === 0) {
-                            return <div className="text-[10px] text-[#808080]">No character images available.</div>;
-                          }
-                          return (
-                            <div className="flex flex-wrap gap-2">
-                              {allHeadshots.map((headshot: any, idx: number) => {
-                                const uniqueKey = headshot.s3Key || headshot.imageUrl || `${headshot.poseId || 'unknown'}-${idx}`;
-                                const isSelected = selectedHeadshot && (
-                                  (headshot.s3Key && selectedHeadshot.s3Key === headshot.s3Key) ||
-                                  (headshot.imageUrl && selectedHeadshot.imageUrl === headshot.imageUrl) ||
-                                  (!headshot.s3Key && !headshot.imageUrl && headshot.poseId && selectedHeadshot.poseId === headshot.poseId)
-                                );
-                                const displayUrl = resolveCharacterHeadshotUrl(
-                                  headshot,
-                                  {
-                                    thumbnailS3KeyMap: characterThumbnailS3KeyMap ?? undefined,
-                                    thumbnailUrlsMap: characterThumbnailUrlsMap ?? undefined,
-                                    fullImageUrlsMap: visibleHeadshotFullImageUrlsMap ?? undefined
-                                  }
-                                ) || '';
-                                return (
-                                  <button
-                                    key={uniqueKey}
-                                    type="button"
-                                    onClick={() => {
-                                      const newRef = isSelected ? undefined : {
-                                        poseId: headshot.poseId,
-                                        s3Key: headshot.s3Key,
-                                        imageUrl: headshot.imageUrl || ''
-                                      };
-                                      onCharacterReferenceChange(shot.slot, charId, newRef);
-                                    }}
-                                    className={cn(
-                                      'relative w-14 h-14 rounded border-2 overflow-hidden flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-1 focus:ring-offset-[#0A0A0A]',
-                                      isSelected ? 'border-[#DC143C]' : 'border-[#3F3F46] hover:border-[#808080]'
-                                    )}
-                                  >
-                                    {displayUrl ? (
-                                      <img src={displayUrl} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080]">?</div>
-                                    )}
-                                    {isSelected && (
-                                      <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20">
-                                        <Check className="w-5 h-5 text-[#DC143C]" />
-                                      </div>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
                       </>
                     ) : (
                       <>
