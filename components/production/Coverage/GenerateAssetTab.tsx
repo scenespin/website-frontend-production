@@ -376,6 +376,17 @@ export function GenerateAssetTab({
       if (result.jobId) {
         // Note: Credits are deducted asynchronously as each angle generates, not when job is created
         console.log('[GenerateAssetTab] ✅ Job created:', result.jobId);
+        // So Jobs panel shows the job immediately; polling replaces with real status (handles GSI delay)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+            detail: {
+              jobId: result.jobId,
+              screenplayId: projectIdForJob,
+              jobType: 'image-generation',
+              assetName: asset?.name,
+            },
+          }));
+        }
         // Toast notification handled by parent (AssetDetailModal) in onComplete callback
         if (onComplete) {
           onComplete({ jobId: result.jobId, type: 'angles' });
