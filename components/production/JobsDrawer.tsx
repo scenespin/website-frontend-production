@@ -966,8 +966,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Content - min-h-0 so flex item can shrink and show scroll */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {isLoading && jobs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
@@ -1531,9 +1531,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         />
       )}
 
-      {/* Desktop Drawer - Slides in from right - EXACT same as AgentDrawer */}
+      {/* Desktop Drawer - Slides in from right; flex column so content area scrolls */}
       <div
-        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
+        className={`fixed top-0 right-0 h-full flex flex-col bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ width: compact ? '100vw' : '400px', maxWidth: '90vw' }}
