@@ -944,9 +944,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
   // Render drawer content (reused for both mobile and desktop)
   const renderDrawerContent = () => (
-    <>
+    <div className="flex flex-col flex-1 min-h-0 h-full">
       {/* Header - Matches AgentDrawer style (hidden on mobile, shown on desktop) */}
-      <div className="hidden md:flex h-14 items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
+      <div className="hidden md:flex flex-shrink-0 h-14 items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
           <h3 className="text-base font-semibold text-[#E5E7EB]">Jobs</h3>
@@ -966,8 +966,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         </button>
       </div>
 
-      {/* Content - min-h-0 so flex item can shrink and show scroll */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* Content - flex-1 min-h-0 so this area gets remaining height and scrolls */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         {isLoading && jobs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
@@ -1388,7 +1388,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 
   // MOBILE RENDER - EXACT same pattern as AgentDrawer
