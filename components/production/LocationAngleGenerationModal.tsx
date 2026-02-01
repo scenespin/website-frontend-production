@@ -12,6 +12,7 @@ import { X, Loader2, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
 import LocationAnglePackageSelector from './LocationAnglePackageSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
+import { hasLocationReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 // Safety errors are handled in job result monitoring (async pattern)
 
 interface LocationAngleGenerationModalProps {
@@ -121,6 +122,10 @@ export default function LocationAngleGenerationModal({
   };
   
   const handleGenerate = async () => {
+    if (!hasLocationReference(locationProfile)) {
+      showReferenceRequired(toast, setError);
+      return;
+    }
     setIsGenerating(true);
     setError('');
     setJobId(null);

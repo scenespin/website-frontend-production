@@ -16,6 +16,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { hasLocationReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import LocationAnglePackageSelector from '../LocationAnglePackageSelector';
 import LocationBackgroundPackageSelector from '../LocationBackgroundPackageSelector';
 
@@ -301,6 +302,15 @@ export function GenerateLocationTab({
   }, [models, providerId, isLoadingModels]);
   
   const handleGenerate = async () => {
+    const loc = location ?? locationProfile;
+    if (packageType === 'angles' && !hasLocationReference(loc)) {
+      showReferenceRequired(toast, setError);
+      return;
+    }
+    if (packageType === 'backgrounds' && sourceType === 'reference-images' && !hasLocationReference(loc)) {
+      showReferenceRequired(toast, setError);
+      return;
+    }
     setIsGenerating(true);
     setError('');
     

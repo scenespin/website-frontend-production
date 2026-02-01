@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import { Loader2, Package, Car, Plane } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { hasAssetReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import AssetAnglePackageSelector from '../AssetAnglePackageSelector';
 
 // Feature 0226: Vehicle/aircraft interior package definitions (match backend angleIds)
@@ -295,6 +296,10 @@ export function GenerateAssetTab({
   }, [models, providerId, isLoadingModels]);
   
   const handleGenerate = async () => {
+    if (!hasAssetReference(asset)) {
+      showReferenceRequired(toast, setError);
+      return;
+    }
     setIsGenerating(true);
     setError('');
     

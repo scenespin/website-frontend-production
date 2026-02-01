@@ -12,6 +12,7 @@ import { X, Loader2, CheckCircle2, AlertCircle, Package, Car, Plane } from 'luci
 import AssetAnglePackageSelector from './AssetAnglePackageSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
+import { hasAssetReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 // Safety errors are handled in job result monitoring (async pattern)
 
 // Feature 0226: Vehicle/aircraft interior package definitions for UI (angleIds match backend)
@@ -230,6 +231,10 @@ export default function AssetAngleGenerationModal({
   }, [isOpen, getToken]);
   
   const handleGenerate = async () => {
+    if (!hasAssetReference(asset)) {
+      showReferenceRequired(toast, setError);
+      return;
+    }
     setIsGenerating(true);
     setError('');
     setJobId(null);

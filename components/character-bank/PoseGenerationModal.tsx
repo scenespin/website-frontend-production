@@ -14,6 +14,7 @@ import { OutfitSelector } from '../production/OutfitSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { hasCharacterReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 
 interface PoseGenerationModalProps {
   isOpen: boolean;
@@ -344,6 +345,10 @@ export default function PoseGenerationModal({
   };
   
   const handleGenerateWithPackage = async (packageId: string) => {
+    if (!hasCharacterReference({ baseReferenceS3Key, headshotFile, headshotPreview })) {
+      showReferenceRequired(toast, setError);
+      return;
+    }
     setIsGenerating(true);
     setError('');
     setJobId(null);

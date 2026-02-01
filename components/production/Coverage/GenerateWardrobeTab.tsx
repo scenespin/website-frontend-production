@@ -17,6 +17,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Upload, Loader2, X, Plus, Wand2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { hasCharacterReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import PosePackageSelector from '../../character-bank/PosePackageSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -247,6 +248,10 @@ export function GenerateWardrobeTab({
   const handleGenerate = async () => {
     if (!finalOutfitName || finalOutfitName.trim() === '') {
       toast.error('Please enter an outfit name or select an existing outfit.');
+      return;
+    }
+    if (!hasCharacterReference({ baseReferenceS3Key })) {
+      showReferenceRequired(toast, setError);
       return;
     }
 
