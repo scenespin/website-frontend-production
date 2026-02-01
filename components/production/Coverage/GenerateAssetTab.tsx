@@ -333,7 +333,10 @@ export function GenerateAssetTab({
       if (selectedPackageId === 'single' || isInteriorSingle) {
         requestBody.selectedAngle = selectedAngle;
       }
-      
+      console.log('[GenerateAssetTab] Request:', { apiUrl, projectId: requestBody.projectId, screenplayId: requestBody.screenplayId, providerId: requestBody.providerId });
+      if (providerId === 'nano-banana-pro-2k') {
+        console.log('[GenerateAssetTab] NANO_BANANA_2K_JOBS_PANEL_DEBUG', { projectId: requestBody.projectId, screenplayId: requestBody.screenplayId, message: 'Jobs Panel queries by screenplayId; this must match.' });
+      }
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {

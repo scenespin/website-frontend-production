@@ -95,7 +95,16 @@ export async function POST(
       selectedAngle,
       quality,
       providerId,
+      projectId: projectId || screenplayId,
+      screenplayId: screenplayId || projectId,
     });
+    if (providerId === 'nano-banana-pro-2k') {
+      console.log('[Asset Bank Generate Angles] NANO_BANANA_2K_PROXY_DEBUG', {
+        projectId: projectId || screenplayId,
+        screenplayId: screenplayId || projectId,
+        message: '2K request: projectId/screenplayId must match Jobs Panel screenplayId',
+      });
+    }
 
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
