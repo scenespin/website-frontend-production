@@ -70,6 +70,10 @@ export function useAssets(screenplayId: string, context: 'creation' | 'productio
           console.log('[useAssets] 404 - returning empty array');
           return [];
         }
+        if (response.status === 503) {
+          console.warn('[useAssets] 503 Service Unavailable – backend may be unhealthy or overloaded. Check backend health.');
+          throw new Error('Service temporarily unavailable (503). Please try again in a moment.');
+        }
         const errorText = await response.text().catch(() => 'Unknown error');
         console.error('[useAssets] ❌ Fetch failed:', response.status, response.statusText, errorText);
         throw new Error(`Failed to fetch assets: ${response.status} ${response.statusText}`);

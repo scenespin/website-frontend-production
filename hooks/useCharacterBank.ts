@@ -65,6 +65,10 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
           console.log('[useCharacters] 404 - returning empty array');
           return [];
         }
+        if (response.status === 503) {
+          console.warn('[useCharacters] 503 Service Unavailable – backend may be unhealthy or overloaded. Check backend health.');
+          throw new Error('Service temporarily unavailable (503). Please try again in a moment.');
+        }
         const errorText = await response.text().catch(() => 'Unknown error');
         console.error('[useCharacters] ❌ Fetch failed:', response.status, response.statusText, errorText);
         throw new Error(`Failed to fetch characters: ${response.status} ${response.statusText}`);

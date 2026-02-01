@@ -137,31 +137,34 @@ const GlobalErrorHandler = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Capture unhandled errors
+    // Capture unhandled errors (including plain objects thrown instead of Error)
     const handleError = (event) => {
       const error = event.error || event.reason;
       if (error) {
-        console.error('🔴 [GlobalErrorHandler] Unhandled Error:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-          componentStack: error.componentStack,
-          // Try to get source map info
-          fileName: error.fileName,
-          lineNumber: error.lineNumber,
-          columnNumber: error.columnNumber
-        });
+        const isErrorInstance = error instanceof Error;
+        const payload = isErrorInstance
+          ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+              componentStack: error.componentStack,
+              fileName: error.fileName,
+              lineNumber: error.lineNumber,
+              columnNumber: error.columnNumber
+            }
+          : { message: '(non-Error thrown)', value: JSON.stringify(error) };
+        console.error('🔴 [GlobalErrorHandler] Unhandled Error:', payload);
       }
     };
     
-    // Capture unhandled promise rejections
+    // Capture unhandled promise rejections (including plain objects)
     const handleUnhandledRejection = (event) => {
       const error = event.reason;
-      console.error('🔴 [GlobalErrorHandler] Unhandled Promise Rejection:', {
-        reason: error,
-        message: error?.message,
-        stack: error?.stack
-      });
+      const isErrorInstance = error instanceof Error;
+      const payload = isErrorInstance
+        ? { message: error?.message, stack: error?.stack }
+        : { message: '(non-Error rejected)', value: JSON.stringify(error) };
+      console.error('🔴 [GlobalErrorHandler] Unhandled Promise Rejection:', payload);
     };
     
     // Override console.error to capture React errors with full stack
