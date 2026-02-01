@@ -324,13 +324,21 @@ export function GenerateAssetTab({
       
       const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
       const isInteriorSingle = (packageCategoryTab === 'ground' || packageCategoryTab === 'aircraft') && selectedPackageId === 'single';
+      // Jobs Panel lists by screenplayId; use context screenplay, fallback to asset's so job is queryable
+      const projectIdForJob = screenplayId?.trim() || asset?.screenplayId || asset?.projectId || '';
+      if (!projectIdForJob) {
+        throw new Error('Project context is missing. Please select a screenplay in the sidebar so the job appears in the Jobs panel.');
+      }
+      if (!screenplayId?.trim() && (asset?.screenplayId || asset?.projectId)) {
+        console.warn('[GenerateAssetTab] screenplayId empty; using asset screenplay so job shows in Jobs Panel', { assetScreenplayId: asset?.screenplayId, assetProjectId: asset?.projectId });
+      }
       const requestBody: any = {
         packageId: isInteriorSingle ? selectedInteriorPackageId : selectedPackageId,
         quality: derivedQuality,
         providerId: providerId,
         additionalPrompt: additionalPrompt.trim() || undefined,
-        projectId: screenplayId,
-        screenplayId: screenplayId,
+        projectId: projectIdForJob,
+        screenplayId: projectIdForJob,
       };
       if (packageCategoryTab === 'ground' || packageCategoryTab === 'aircraft') {
         requestBody.packageType = 'vehicle-interior';
