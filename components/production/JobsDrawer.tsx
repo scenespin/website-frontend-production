@@ -370,6 +370,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const previousJobsHash = useRef<string>('');
   // GSI eventual consistency: allow one retry when initial load returns 0 jobs
   const retriedEmptyOnceRef = useRef(false);
+  // GSI: allow one retry when list returned but optimistic placeholder(s) not in list (e.g. third job - executionCount stayed 91)
+  const retriedPlaceholderOnceRef = useRef(false);
 
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -579,6 +581,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           const dateB = new Date(b.createdAt).getTime();
           return dateB - dateA;
         });
+        // GSI: if we have optimistic placeholder(s) that weren't in this list response, retry once after 2s (logs showed executionCount stayed 91 for third job)
+        const placeholdersMissing = prevJobs.filter(j => j.workflowId === '' && !jobList.some(api => api.jobId === j.jobId));
+        if (placeholdersMissing.length > 0 && !retriedPlaceholderOnceRef.current && isOpen) {
+          retriedPlaceholderOnceRef.current = true;
+          setTimeout(() => loadJobs(false), 2000);
+        }
         return mergedJobs;
       });
 
@@ -637,7 +645,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
    */
   useEffect(() => {
     if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
-    if (isOpen) retriedEmptyOnceRef.current = false; // allow one retry per open (GSI eventual consistency)
+    if (isOpen) {
+      retriedEmptyOnceRef.current = false;
+      retriedPlaceholderOnceRef.current = false;
+    } // allow one retry per open (GSI eventual consistency)
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
   }, [screenplayId, isOpen, hasLoadedOnce]);
