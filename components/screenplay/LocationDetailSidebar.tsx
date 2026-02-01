@@ -786,17 +786,35 @@ export default function LocationDetailSidebar({
               createdAt: new Date().toISOString()
             }))
             
+            // 🔥 Fix (1): Creation refs from context (API) — show them even if Media Library tagged as production-hub
+            const contextCreationImages = location ? getEntityImages('location', location.id) : [];
+            const creationS3KeysFromContext = new Set(
+              contextCreationImages
+                .filter((img: any) => {
+                  const source = (img.metadata as any)?.source;
+                  const createdIn = (img.metadata as any)?.createdIn;
+                  return source !== 'angle-generation' &&
+                         source !== 'image-generation' &&
+                         createdIn !== 'production-hub' &&
+                         (!source || source === 'user-upload');
+                })
+                .map((img: any) => img.metadata?.s3Key)
+                .filter((k): k is string => !!k)
+            );
+            
             // 🔥 FIX: Filter out Production Hub angle-generated images from Creation section
-            // Creation section should only show user-uploaded images, not AI-generated Production Hub images
+            // Also include any image whose s3Key is in context creation refs (so re-uploads from Production Hub still show)
             const userUploadedImages = allImages.filter(img => {
               const source = (img.metadata as any)?.source;
               const createdIn = (img.metadata as any)?.createdIn;
-              // Show images with no source, 'user-upload', or undefined source (defaults to user-upload)
-              // Exclude angle-generation and production-hub images
-              return source !== 'angle-generation' && 
-                     source !== 'image-generation' && 
-                     createdIn !== 'production-hub' &&
-                     (!source || source === 'user-upload');
+              const passesCreationFilter =
+                source !== 'angle-generation' &&
+                source !== 'image-generation' &&
+                createdIn !== 'production-hub' &&
+                (!source || source === 'user-upload');
+              const s3KeyInContextCreation =
+                (img.metadata as any)?.s3Key && creationS3KeysFromContext.has((img.metadata as any).s3Key);
+              return passesCreationFilter || s3KeyInContextCreation;
             });
             
             return (
