@@ -1021,6 +1021,32 @@ export function ShotConfigurationPanel({
         <>
       {/* 🔥 REORDERED: Character(s) Section - First */}
       {explicitCharacters.length > 0 && (() => {
+        // Off-frame (character not in frame): single speaker block only – never render dropdown/image (plan 0228).
+        // This avoids dropdown visibility bugs and duplicate rows when toggling shot type; no map, no renderCharacterControlsOnly.
+        // Backend contract unchanged: selectedCharacterReferences[shot.slot][speakerId] is still set by the useEffect below
+        // (auto-first-headshot) and sent in the payload; worker uses it for voice/first-frame ref.
+        if (isOffFrameMode && speakingCharacterId) {
+          const speakerChar = (sceneAnalysisResult?.characters || allCharacters).find((c: any) => c.id === speakingCharacterId);
+          return (
+            <div className="pb-3 border-b border-[#3F3F46]">
+              <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
+              <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                Character&apos;s face or mouth won&apos;t be visible (e.g. off-screen, back turned, side profile). Their voice will be used for this shot.
+              </div>
+              <div className="space-y-4">
+                <div key={`char-offframe-${speakingCharacterId}`} className="pb-3">
+                  <div className="space-y-3">
+                    <div className="text-xs font-medium text-[#FFFFFF]">{speakerChar?.name ?? 'Speaker'}</div>
+                    <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
+                      Your character&apos;s voice will be used for this shot only because they&apos;re not in frame.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
         // Defense in depth: dedupe so we never render duplicate character rows (plan 0228)
         const charsToRender = [...new Set(explicitCharacters)];
         // Track rendered characters globally across all sections (explicit, singular, plural)
@@ -1063,8 +1089,8 @@ export function ShotConfigurationPanel({
               Narrator voice will overlay the scene. The narrator (speaking character) is greyed out below. To add the narrator to the scene, select them in the "Additional Characters" section below.
             </div>
           )}
-          {/* Show message for Hidden Mouth Dialogue (off-frame-voiceover) */}
-          {currentWorkflow === 'off-frame-voiceover' && (
+          {/* Show message for Hidden Mouth Dialogue (off-frame-voiceover) – only when NOT pure off-frame (that branch is above) */}
+          {currentWorkflow === 'off-frame-voiceover' && !isOffFrameMode && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
               Character&apos;s face or mouth won&apos;t be visible (e.g. off-screen, back turned, side profile). Select a character image below for voice and for first-frame reference.
             </div>
@@ -1078,33 +1104,21 @@ export function ShotConfigurationPanel({
               const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
               // Check if this character is already rendered in pronoun sections
               const alreadyRenderedInPronouns = allRenderedCharacters.has(charId);
-              // Off-frame (speaker not in frame): show simplified UI – character name + message only, never dropdown (plan 0227/0228)
-              const isOffFrameSpeaker = currentWorkflow === 'off-frame-voiceover' && offFrameShotType === 'off-frame';
-              const speakerChar = isOffFrameSpeaker ? (sceneAnalysisResult?.characters || allCharacters).find((c: any) => c.id === charId) : null;
               
               const isLastExplicit = index === charsToRender.length - 1;
               
               return (
                 <div key={`char-explicit-${charId}-${index}`} className={`pb-3 ${isLastExplicit ? '' : 'border-b border-[#3F3F46]'} ${isNarrator ? 'opacity-50' : ''}`}>
                   <div className="space-y-3">
-                    {isOffFrameSpeaker ? (
-                      <>
-                        <div className="text-xs font-medium text-[#FFFFFF]">{speakerChar?.name ?? 'Speaker'}</div>
+                    <>
+                      {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                      {isNarrator && (
                         <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                          Your character&apos;s voice will be used for this shot only because they&apos;re not in frame.
+                          Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        {renderCharacterControlsOnly(charId, shot.slot, shotMappings, hasPronouns, 'explicit')}
-                        {isNarrator && (
-                          <div className="p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
-                            Narrator (voice only). {isAlsoManuallySelected ? 'Also selected to appear in scene below.' : 'Select in "Additional Characters" to add to scene.'}
-                          </div>
-                        )}
-                        {renderCharacterImagesOnly(charId, shot.slot)}
-                      </>
-                    )}
+                      )}
+                      {renderCharacterImagesOnly(charId, shot.slot)}
+                    </>
                   </div>
                 </div>
               );
