@@ -622,7 +622,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           status: 'running',
           progress: 0,
           createdAt: new Date().toISOString(),
-          executionTime: 0,
           creditsUsed: 0,
         };
         return [placeholder, ...prev];
