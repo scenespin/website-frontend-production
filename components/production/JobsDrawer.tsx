@@ -351,7 +351,31 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   
-  // 🔥 NEW: Smooth progress animation - CSS transitions handle the animation automatically
+  // Optimistic job: show newly created job immediately (avoids DynamoDB GSI eventual consistency / list returning 0 on other task)
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; workflowId: string; workflowName: string; jobType?: string }>) => {
+      const { jobId, screenplayId: eventScreenplayId, workflowId, workflowName, jobType } = e.detail || {};
+      if (!jobId || !eventScreenplayId || eventScreenplayId !== screenplayId) return;
+      setJobs(prev => {
+        if (prev.some(j => j.jobId === jobId)) return prev;
+        const placeholder: WorkflowJob = {
+          jobId,
+          workflowId: workflowId || 'image-generation',
+          workflowName: workflowName || 'Asset angles',
+          jobType: (jobType as WorkflowJob['jobType']) || 'image-generation',
+          status: 'running',
+          progress: 0,
+          createdAt: new Date().toISOString(),
+          creditsUsed: 0,
+        };
+        return [placeholder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      });
+    };
+    window.addEventListener('wryda:optimistic-job', handler as EventListener);
+    return () => window.removeEventListener('wryda:optimistic-job', handler as EventListener);
+  }, [screenplayId]);
+  
+  // Smooth progress animation - CSS transitions handle the animation automatically
   // The transition-all duration-[2000ms] on the progress bar creates a smooth 0% -> 50% transition
   
   // Track which jobs we've already processed for credit refresh (avoid duplicates)
@@ -920,9 +944,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
   // Render drawer content (reused for both mobile and desktop)
   const renderDrawerContent = () => (
-    <>
+    <div className="flex flex-col flex-1 min-h-0 h-full">
       {/* Header - Matches AgentDrawer style (hidden on mobile, shown on desktop) */}
-      <div className="hidden md:flex h-14 items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
+      <div className="hidden md:flex flex-shrink-0 h-14 items-center justify-between px-4 bg-[#1F1F1F] border-b border-[#3F3F46]">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
           <h3 className="text-base font-semibold text-[#E5E7EB]">Jobs</h3>
@@ -942,8 +966,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Content - flex-1 min-h-0 so this area gets remaining height and scrolls */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         {isLoading && jobs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
@@ -1364,7 +1388,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 
   // MOBILE RENDER - EXACT same pattern as AgentDrawer
@@ -1509,7 +1533,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
       {/* Desktop Drawer - Slides in from right - EXACT same as AgentDrawer */}
       <div
-        className={`fixed top-0 right-0 h-full bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
+        className={`fixed top-0 right-0 h-full flex flex-col bg-[#0A0A0A] border-l border-[#3F3F46] shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ width: compact ? '100vw' : '400px', maxWidth: '90vw' }}
