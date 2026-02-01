@@ -368,7 +368,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
   // Track previous jobs state to prevent infinite loops
   const previousJobsHash = useRef<string>('');
-  
+  // GSI eventual consistency: allow one retry when initial load returns 0 jobs
+  const retriedEmptyOnceRef = useRef(false);
+
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<{
@@ -579,7 +581,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         });
         return mergedJobs;
       });
-      
+
+      // GSI eventual consistency: if initial load returned 0, retry once after 2s (backend research showed same query can return 0 or 70 depending on task/replica)
+      if (jobList.length === 0 && !retriedEmptyOnceRef.current && isOpen) {
+        retriedEmptyOnceRef.current = true;
+        setTimeout(() => loadJobs(false), 2000);
+      }
+
       if (!hasLoadedOnce) {
         setHasLoadedOnce(true);
       }
@@ -596,18 +604,49 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   /**
+   * Optimistic job: when a job is started (e.g. GenerateAssetTab), show it in the list immediately.
+   * Polling replaces this with real status; avoids relying on GSI eventual consistency for first paint.
+   */
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; jobType?: string; assetName?: string }>) => {
+      const { jobId, screenplayId: eventScreenplayId, jobType = 'image-generation', assetName } = e.detail || {};
+      if (!jobId || !eventScreenplayId?.trim()) return;
+      if (eventScreenplayId.trim() !== screenplayId?.trim()) return;
+      setJobs(prev => {
+        if (prev.some(j => j.jobId === jobId)) return prev;
+        const placeholder: WorkflowJob = {
+          jobId,
+          workflowId: '',
+          workflowName: assetName ? `Image Generation - ${assetName}` : 'Image Generation',
+          jobType: jobType as WorkflowJob['jobType'],
+          status: 'running',
+          progress: 0,
+          createdAt: new Date().toISOString(),
+          totalCreditsUsed: 0,
+          executionTime: 0,
+          creditsUsed: 0,
+        };
+        return [placeholder, ...prev];
+      });
+    };
+    window.addEventListener('wryda:optimistic-job', handler as EventListener);
+    return () => window.removeEventListener('wryda:optimistic-job', handler as EventListener);
+  }, [screenplayId]);
+
+  /**
    * Load jobs when drawer opens or screenplayId changes (one-time load).
    * Hub polls for badge when drawer is closed; we only poll list when drawer is open.
    */
   useEffect(() => {
     if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
+    if (isOpen) retriedEmptyOnceRef.current = false; // allow one retry per open (GSI eventual consistency)
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
   }, [screenplayId, isOpen, hasLoadedOnce]);
 
   /**
-   * When drawer is open: poll list API every 5s so jobs (including new/running) stay in sync.
-   * No gating on "has running jobs" — we always poll when open so new jobs appear after API returns them.
+   * When drawer is open: poll list API so jobs (including new/running) stay in sync.
+   * First 10s: poll at 2s and 5s (GSI eventual consistency); then every 5s.
    */
   useEffect(() => {
     if (!isOpen || !screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
@@ -615,8 +654,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       return;
     }
     setIsPolling(true);
+    const t2 = setTimeout(() => loadJobs(false), 2000);
+    const t5 = setTimeout(() => loadJobs(false), 5000);
     const interval = setInterval(() => loadJobs(false), 5000);
     return () => {
+      clearTimeout(t2);
+      clearTimeout(t5);
       clearInterval(interval);
       setIsPolling(false);
     };
