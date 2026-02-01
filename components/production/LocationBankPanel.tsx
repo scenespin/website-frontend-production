@@ -99,10 +99,15 @@ export function LocationBankPanel({
           angle: file.metadata?.angle,
           label: file.metadata?.angle
         });
-      } else if (file.metadata?.isBase || file.metadata?.source === 'user-upload') {
-        // 🔥 FIX: Push to array instead of overwriting (matches AssetBankPanel pattern)
-        // This ensures ALL creation images are displayed, not just the last one
-        const isBase = file.metadata?.isBase === true;
+      } else if (
+        file.metadata?.isBase === true ||
+        file.metadata?.source === 'user-upload' ||
+        file.metadata?.createdIn === 'creation' ||
+        file.metadata?.referenceType === 'base' ||
+        file.metadata?.referenceType === 'additional'
+      ) {
+        // Creation/reference images: backend stores referenceType, createdIn, uploadMethod (not always isBase)
+        const isBase = file.metadata?.isBase === true || file.metadata?.referenceType === 'base';
         locationMap[entityId].creationImages.push({
           s3Key: file.s3Key,
           label: file.fileName?.replace(/\.[^/.]+$/, '') || 'Image',
@@ -186,6 +191,37 @@ export function LocationBankPanel({
       }
     }
   }, [entityToOpen, locations, showLocationDetail, onEntityOpened]);
+
+  // 🔧 DEBUG: One-time log for troubleshooting location card image (paste console output for support)
+  useEffect(() => {
+    if (locations.length === 0 || !allLocationMediaFiles.length) return;
+    const newsOffice = locations.find((l: any) => l.name === 'NEWS OFFICE');
+    if (!newsOffice) return;
+    const ml = locationImagesFromMediaLibrary[newsOffice.locationId];
+    const mediaFilesForLocation = allLocationMediaFiles.filter(
+      (f: any) => (f.metadata?.entityId || f.entityId) === newsOffice.locationId
+    );
+    const firstCreationFile = mediaFilesForLocation.find(
+      (f: any) =>
+        f.metadata?.createdIn === 'creation' ||
+        f.metadata?.referenceType === 'base' ||
+        f.metadata?.referenceType === 'additional' ||
+        f.metadata?.isBase
+    );
+    console.log('[LocationBankPanel] DEBUG – paste this for troubleshooting:', {
+      locationId: newsOffice.locationId,
+      'location.images count': newsOffice.images?.length ?? 0,
+      'location.images[0] metadata keys': newsOffice.images?.[0]?.metadata ? Object.keys(newsOffice.images[0].metadata) : [],
+      'location.baseReference': newsOffice.baseReference ? { hasS3Key: !!newsOffice.baseReference.s3Key, hasImageUrl: !!newsOffice.baseReference.imageUrl } : null,
+      'Media Library creationImages count': ml?.creationImages?.length ?? 0,
+      'Media Library angles count': ml?.angles?.length ?? 0,
+      'Media Library backgrounds count': ml?.backgrounds?.length ?? 0,
+      'first creation file metadata keys': firstCreationFile?.metadata ? Object.keys(firstCreationFile.metadata) : [],
+      'first creation file createdIn/referenceType': firstCreationFile?.metadata
+        ? { createdIn: firstCreationFile.metadata.createdIn, referenceType: firstCreationFile.metadata.referenceType, isBase: firstCreationFile.metadata.isBase }
+        : null,
+    });
+  }, [locations, allLocationMediaFiles, locationImagesFromMediaLibrary]);
 
   // Early return after all hooks
   if (!screenplayId) {
