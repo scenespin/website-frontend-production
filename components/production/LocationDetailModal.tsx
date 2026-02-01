@@ -2413,7 +2413,7 @@ export function LocationDetailModal({
                   locationName={location.name}
                   screenplayId={screenplayId || ''}
                   locationProfile={location}
-                  location={location}
+                  location={{ ...location, angleVariations: angleVariations.length > 0 ? angleVariations : (location.angleVariations || []) }}
                   onClose={() => setCoverageTab(null)}
                   onComplete={async (result) => {
                     // Job started - tab will close, job runs in background

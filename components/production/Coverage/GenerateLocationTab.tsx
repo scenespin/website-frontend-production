@@ -86,7 +86,9 @@ export function GenerateLocationTab({
   
   // Get available angles for source selection
   const availableAngles = location?.angleVariations || [];
-  
+  // Stable id for selection/API: backend matches by id or s3Key; use s3Key when present so selection survives Media Library vs API shape
+  const getAngleSelectionId = (angle: any) => angle?.s3Key || angle?.angleId || angle?.id || '';
+
   // Filter angles by metadata (for visual selector)
   const filteredAngles = useMemo(() => {
     if (sourceType !== 'angle-variations' || availableAngles.length === 0) {
@@ -100,9 +102,9 @@ export function GenerateLocationTab({
     });
   }, [availableAngles, sourceType, filterTimeOfDay, filterWeather]);
   
-  // Get selected angles with full data
+  // Get selected angles with full data (match by stable selection id)
   const selectedAngles = useMemo(() => {
-    return availableAngles.filter((a: any) => selectedAngleIds.includes(a.id));
+    return availableAngles.filter((a: any) => selectedAngleIds.includes(getAngleSelectionId(a)));
   }, [availableAngles, selectedAngleIds]);
   
   // Check if angle can be selected (must match existing selections' metadata)
@@ -156,25 +158,22 @@ export function GenerateLocationTab({
   
   // Toggle angle selection (multi-select) with validation
   const toggleAngleSelection = (angleId: string) => {
-    const angle = availableAngles.find((a: any) => a.id === angleId);
+    const angle = availableAngles.find((a: any) => getAngleSelectionId(a) === angleId);
     if (!angle) return;
-    
+
     if (selectedAngleIds.includes(angleId)) {
       // Deselecting - always allowed
       setSelectedAngleIds(prev => prev.filter(id => id !== angleId));
       if (selectedAngleIds.length === 1) {
-        setSelectedAngleId(''); // Clear single select if last one
+        setSelectedAngleId('');
       }
     } else {
-      // Selecting - check if allowed
       const validation = canSelectAngle(angle);
       if (!validation.canSelect) {
         toast.error(validation.reason || 'Cannot select this angle');
         return;
       }
-      
       setSelectedAngleIds(prev => [...prev, angleId]);
-      // Also update single select for backward compatibility
       setSelectedAngleId(angleId);
     }
   };
@@ -194,7 +193,7 @@ export function GenerateLocationTab({
       return;
     }
     
-    const allIds = filteredAngles.map((a: any) => a.id).filter(Boolean);
+    const allIds = filteredAngles.map((a: any) => getAngleSelectionId(a)).filter(Boolean);
     setSelectedAngleIds(allIds);
     if (allIds.length > 0) {
       setSelectedAngleId(allIds[0]); // For backward compatibility
@@ -666,16 +665,17 @@ export function GenerateLocationTab({
                     {filteredAngles.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-64 overflow-y-auto p-2 bg-[#0A0A0A] rounded border border-[#3F3F46]">
                         {filteredAngles.map((angle: any) => {
-                          const isSelected = selectedAngleIds.includes(angle.id);
+                          const angleSelId = getAngleSelectionId(angle);
+                          const isSelected = selectedAngleIds.includes(angleSelId);
                           const validation = canSelectAngle(angle);
                           const hasMetadata = (angle.generationMethod === 'ai-generated' || angle.generationMethod === 'angle-variation') &&
                             (angle.timeOfDay || angle.weather);
-                          
+
                           return (
                             <button
-                              key={angle.id}
+                              key={angleSelId || angle.angle || 'angle'}
                               type="button"
-                              onClick={() => toggleAngleSelection(angle.id)}
+                              onClick={() => toggleAngleSelection(angleSelId)}
                               disabled={!validation.canSelect && !isSelected}
                               className={`relative aspect-square rounded border-2 transition-all ${
                                 isSelected
