@@ -1078,8 +1078,8 @@ export function ShotConfigurationPanel({
               const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
               // Check if this character is already rendered in pronoun sections
               const alreadyRenderedInPronouns = allRenderedCharacters.has(charId);
-              // Off-frame (speaker not in frame): show simplified UI – character name + message only (plan 0227)
-              const isOffFrameSpeaker = currentWorkflow === 'off-frame-voiceover' && offFrameShotType === 'off-frame' && charId === speakingCharacterId;
+              // Off-frame (speaker not in frame): show simplified UI – character name + message only, never dropdown (plan 0227/0228)
+              const isOffFrameSpeaker = currentWorkflow === 'off-frame-voiceover' && offFrameShotType === 'off-frame';
               const speakerChar = isOffFrameSpeaker ? (sceneAnalysisResult?.characters || allCharacters).find((c: any) => c.id === charId) : null;
               
               const isLastExplicit = index === charsToRender.length - 1;
