@@ -458,7 +458,9 @@ export function ShotConfigurationPanel({
   
   // For action shots: Single screen (no tabs), always show basic content
   const isActionShot = !isDialogueShot;
-  
+
+  // When Hidden Mouth + "Off-frame (character not in frame)", show Character(s) only on Advanced tab to avoid duplicate sections (plan 0228)
+  const isOffFrameMode = currentWorkflow === 'off-frame-voiceover' && offFrameShotType === 'off-frame';
 
   return (
     <div className="mt-3 space-y-4">
@@ -1014,12 +1016,13 @@ export function ShotConfigurationPanel({
 
 
 
-      {/* Standard configuration - Always show for action shots, show in Basic tab for dialogue shots, and on Advanced tab when Hidden Mouth (so speaker image selection is visible) */}
-      {/* Props section - Show in both tabs for dialogue shots (they persist in state) */}
-      {(!isDialogueShot || isDialogueBasicTab || (isDialogueShot && showAdvancedContent && currentWorkflow === 'off-frame-voiceover')) && (
+      {/* Standard configuration - Action: always show. Dialogue: Basic tab unless Off-frame mode; Advanced tab when Hidden Mouth. Off-frame mode = only Advanced (plan 0228). */}
+      {(!isDialogueShot || (isDialogueShot && isDialogueBasicTab && !isOffFrameMode) || (isDialogueShot && showAdvancedContent && currentWorkflow === 'off-frame-voiceover')) && (
         <>
       {/* 🔥 REORDERED: Character(s) Section - First */}
       {explicitCharacters.length > 0 && (() => {
+        // Defense in depth: dedupe so we never render duplicate character rows (plan 0228)
+        const charsToRender = [...new Set(explicitCharacters)];
         // Track rendered characters globally across all sections (explicit, singular, plural)
         const allRenderedCharacters = new Set<string>();
         
@@ -1067,7 +1070,7 @@ export function ShotConfigurationPanel({
             </div>
           )}
           <div className="space-y-4">
-            {explicitCharacters.map((charId, index) => {
+            {charsToRender.map((charId, index) => {
               // Grey out narrator when Narrate Shot (scene-voiceover) is selected (they're the narrator)
               const effectiveNarratorId = narratorCharacterId ?? speakingCharacterId;
               const isNarrator = currentWorkflow === 'scene-voiceover' && charId === effectiveNarratorId;
@@ -1075,12 +1078,11 @@ export function ShotConfigurationPanel({
               const isAlsoManuallySelected = isNarrator && selectedCharactersForShots[shot.slot]?.includes(charId);
               // Check if this character is already rendered in pronoun sections
               const alreadyRenderedInPronouns = allRenderedCharacters.has(charId);
-              // Off-frame (speaker not in frame): show simplified UI – character name + single reference only (plan 0227)
+              // Off-frame (speaker not in frame): show simplified UI – character name + message only (plan 0227)
               const isOffFrameSpeaker = currentWorkflow === 'off-frame-voiceover' && offFrameShotType === 'off-frame' && charId === speakingCharacterId;
               const speakerChar = isOffFrameSpeaker ? (sceneAnalysisResult?.characters || allCharacters).find((c: any) => c.id === charId) : null;
               
-              // 🔥 FIX: Wrap explicit character controls + images with separator
-              const isLastExplicit = index === explicitCharacters.length - 1;
+              const isLastExplicit = index === charsToRender.length - 1;
               
               return (
                 <div key={`char-explicit-${charId}-${index}`} className={`pb-3 ${isLastExplicit ? '' : 'border-b border-[#3F3F46]'} ${isNarrator ? 'opacity-50' : ''}`}>
