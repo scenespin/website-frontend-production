@@ -312,40 +312,69 @@ export function LocationBankPanel({
               {locations.map((location) => {
                 const allReferences: CinemaCardImage[] = [];
                 const addedS3Keys = new Set<string>(); // Track to avoid duplicates
-                
-                // 🔥 MATCH CharacterBankPanel: Check location.images FIRST (primary source)
-                // This is the unified images array stored in the entity (DynamoDB)
-                if (location.images && Array.isArray(location.images) && location.images.length > 0) {
+                const mediaLibraryImages = locationImagesFromMediaLibrary[location.locationId];
+
+                // 🔥 FIX: Prefer creation/reference image for the card's main display.
+                // Add creation images FIRST so allReferences[0] is the reference image, not angle generation.
+                // 1) Creation images from Media Library (source of truth; has presigned URLs)
+                if (mediaLibraryImages && mediaLibraryImages.creationImages.length > 0) {
+                  mediaLibraryImages.creationImages.forEach((img) => {
+                    if (addedS3Keys.has(img.s3Key)) return;
+                    const imageUrl = getLocationImageDisplayUrl(img.s3Key);
+                    if (imageUrl) {
+                      addedS3Keys.add(img.s3Key);
+                      allReferences.push({
+                        id: img.s3Key,
+                        imageUrl,
+                        label: img.isBase ? `${location.name} - Base Reference` : `${location.name} - ${img.label || 'Image'}`
+                      });
+                    }
+                  });
+                }
+                // 2) Creation images from location.images (API) not already added
+                if (location.images && Array.isArray(location.images)) {
                   location.images.forEach((img: any) => {
-                    const imageUrl = img.imageUrl || img.url;
                     const s3Key = img.s3Key || img.id;
+                    const isCreation = img.metadata?.isBase === true || img.metadata?.createdIn === 'creation';
+                    if (!isCreation || addedS3Keys.has(s3Key)) return;
+                    const imageUrl = img.imageUrl || img.url;
                     if (imageUrl && s3Key) {
                       addedS3Keys.add(s3Key);
                       allReferences.push({
                         id: s3Key,
-                        imageUrl: imageUrl,
-                        label: img.metadata?.isBase 
-                          ? `${location.name} - Base Reference`
-                          : `${location.name} - ${img.label || 'Image'}`
+                        imageUrl,
+                        label: img.metadata?.isBase ? `${location.name} - Base Reference` : `${location.name} - ${img.label || 'Image'}`
                       });
                     }
                   });
-                } else if (location.baseReference && location.baseReference.imageUrl) {
-                  // Legacy fallback for single baseReference
-                  if (location.baseReference.s3Key) addedS3Keys.add(location.baseReference.s3Key);
+                }
+                // Legacy: single baseReference if still no creation image
+                if (allReferences.length === 0 && location.baseReference?.imageUrl && location.baseReference.s3Key && !addedS3Keys.has(location.baseReference.s3Key)) {
+                  addedS3Keys.add(location.baseReference.s3Key);
                   allReferences.push({
                     id: location.baseReference.id || location.baseReference.s3Key,
                     imageUrl: location.baseReference.imageUrl,
                     label: `${location.name} - Base Reference`
                   });
                 }
-                
-                // 🔥 Feature 0200: Add Production Hub images from Media Library (angles, backgrounds)
-                // Only add images not already added from entity.images
-                const mediaLibraryImages = locationImagesFromMediaLibrary[location.locationId];
-                
+                // 3) Rest of location.images (angles, backgrounds from API)
+                if (location.images && Array.isArray(location.images)) {
+                  location.images.forEach((img: any) => {
+                    const imageUrl = img.imageUrl || img.url;
+                    const s3Key = img.s3Key || img.id;
+                    if (imageUrl && s3Key && !addedS3Keys.has(s3Key)) {
+                      addedS3Keys.add(s3Key);
+                      allReferences.push({
+                        id: s3Key,
+                        imageUrl,
+                        label: img.metadata?.isBase ? `${location.name} - Base Reference` : `${location.name} - ${img.label || 'Image'}`
+                      });
+                    }
+                  });
+                }
+
+                // 4) Production Hub images from Media Library (angles, then backgrounds)
                 if (mediaLibraryImages) {
-                  // Add angle variations with valid presigned URLs
                   mediaLibraryImages.angles.forEach((angle) => {
                     if (addedS3Keys.has(angle.s3Key)) return;
                     const imageUrl = getLocationImageDisplayUrl(angle.s3Key);
@@ -358,7 +387,6 @@ export function LocationBankPanel({
                       });
                     }
                   });
-                  
                   mediaLibraryImages.backgrounds.forEach((bg) => {
                     if (addedS3Keys.has(bg.s3Key)) return;
                     const imageUrl = getLocationImageDisplayUrl(bg.s3Key);
@@ -372,7 +400,7 @@ export function LocationBankPanel({
                     }
                   });
                 }
-                
+
                 // Legacy fallback: angle variations from entity
                 (location.angleVariations || [])
                   .filter((variation: any) => variation.imageUrl && !addedS3Keys.has(variation.s3Key || variation.id))
