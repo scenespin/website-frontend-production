@@ -351,6 +351,30 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   
+  // Optimistic job: show newly created job immediately (avoids DynamoDB GSI eventual consistency / list returning 0 on other task)
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; workflowId: string; workflowName: string; jobType?: string }>) => {
+      const { jobId, screenplayId: eventScreenplayId, workflowId, workflowName, jobType } = e.detail || {};
+      if (!jobId || !eventScreenplayId || eventScreenplayId !== screenplayId) return;
+      setJobs(prev => {
+        if (prev.some(j => j.jobId === jobId)) return prev;
+        const placeholder: WorkflowJob = {
+          jobId,
+          workflowId: workflowId || 'image-generation',
+          workflowName: workflowName || 'Asset angles',
+          jobType: (jobType as WorkflowJob['jobType']) || 'image-generation',
+          status: 'running',
+          progress: 0,
+          createdAt: new Date().toISOString(),
+          creditsUsed: 0,
+        };
+        return [placeholder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      });
+    };
+    window.addEventListener('wryda:optimistic-job', handler as EventListener);
+    return () => window.removeEventListener('wryda:optimistic-job', handler as EventListener);
+  }, [screenplayId]);
+  
   // 🔥 NEW: Smooth progress animation - CSS transitions handle the animation automatically
   // The transition-all duration-[2000ms] on the progress bar creates a smooth 0% -> 50% transition
   
