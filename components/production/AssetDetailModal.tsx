@@ -64,6 +64,8 @@ interface AssetDetailModalProps {
   onUpdate: () => void;
   onDelete?: () => void; // 🔥 Made optional - delete removed from Production Hub
   onAssetUpdate?: (updatedAsset: Asset) => void; // 🔥 NEW: Callback to update asset in parent
+  /** Same ID the Jobs panel uses (from Hub: URL-first, then context). When set, job creation uses this so new jobs show in the Jobs panel. */
+  screenplayIdForJobs?: string;
 }
 
 export default function AssetDetailModal({ 
@@ -72,15 +74,17 @@ export default function AssetDetailModal({
   asset, 
   onUpdate,
   onDelete,
-  onAssetUpdate
+  onAssetUpdate,
+  screenplayIdForJobs: screenplayIdForJobsProp
 }: AssetDetailModalProps) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
   const isMobile = useIsMobile();
   const screenplay = useScreenplay();
-  // Asset's screenplay for data (useAssets). Job creation uses context only so jobs always show in Jobs Panel.
+  // Asset's screenplay for data (useAssets).
   const screenplayId = asset?.screenplayId || asset?.projectId;
-  const screenplayIdForJobs = screenplay?.screenplayId ?? '';
+  // Job creation: use Hub's ID when provided so new jobs show in Jobs panel (same query param as list); else context.
+  const screenplayIdForJobs = ((screenplayIdForJobsProp?.trim() || screenplay?.screenplayId) ?? '').trim() || '';
   
   // 🔥 FIX: Use React Query hook directly to get latest assets (same as CharacterDetailModal/LocationDetailModal)
   const { data: queryAssets = [] } = useAssets(

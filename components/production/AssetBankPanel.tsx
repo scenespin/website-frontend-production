@@ -25,11 +25,13 @@ import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 interface AssetBankPanelProps {
   className?: string;
   isMobile?: boolean;
+  /** Same ID the Jobs panel uses (URL-first, then context). When set, job creation uses this so new jobs show in the Jobs panel. */
+  screenplayIdForJobs?: string;
   entityToOpen?: string | null; // Asset ID to open modal for
   onEntityOpened?: () => void; // Callback when entity modal is opened
 }
 
-export default function AssetBankPanel({ className = '', isMobile = false, entityToOpen, onEntityOpened }: AssetBankPanelProps) {
+export default function AssetBankPanel({ className = '', isMobile = false, screenplayIdForJobs: screenplayIdForJobsProp, entityToOpen, onEntityOpened }: AssetBankPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId; // 🔥 MATCH MODALS: Use context directly (same as AssetDetailModal)
   const editorContext = useEditorContext();
@@ -419,6 +421,7 @@ export default function AssetBankPanel({ className = '', isMobile = false, entit
               setSelectedAssetId(null);
             }}
             asset={selectedAsset}
+            screenplayIdForJobs={screenplayIdForJobsProp}
             onUpdate={() => {
               // 🔥 FIX: Use same aggressive pattern as AssetDetailModal
               queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });

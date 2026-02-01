@@ -557,16 +557,14 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         jobList.push(...workflowJobs);
       }
 
-      // Diagnostic: when UI doesn't update, check console to see what the API actually returned (dev only)
-      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
-        const summary = jobList.slice(0, 20).map(j => `${j.jobId.slice(-8)}:${j.status}:${j.progress}%`);
-        console.log('[JobsDrawer] loadJobs', {
-          screenplayId: screenplayId.slice(0, 20) + '…',
-          count: jobList.length,
-          jobs: summary,
-          runningCount: jobList.filter(j => j.status === 'running' || j.status === 'queued').length,
-        });
-      }
+      // Diagnostic: log what we queried and what we got (always, so production can confirm ID + count)
+      const summary = jobList.slice(0, 20).map(j => `${j.jobId.slice(-8)}:${j.status}:${j.progress}%`);
+      console.log('[JobsDrawer] loadJobs', {
+        screenplayId: screenplayId.slice(0, 24) + (screenplayId.length > 24 ? '…' : ''),
+        count: jobList.length,
+        jobs: summary,
+        runningCount: jobList.filter(j => j.status === 'running' || j.status === 'queued').length,
+      });
       
       setJobs(prevJobs => {
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));

@@ -293,7 +293,7 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'assets' && (
             <div className="h-full overflow-y-auto">
               <ProductionErrorBoundary componentName="Asset Bank">
-                <AssetBankPanel className="h-full" />
+                <AssetBankPanel className="h-full" screenplayIdForJobs={screenplayId} />
               </ProductionErrorBoundary>
             </div>
           )}
@@ -365,6 +365,7 @@ export function ProductionHub({}: ProductionHubProps) {
             <ProductionErrorBoundary componentName="Asset Bank">
               <AssetBankPanel 
                 className="h-full"
+                screenplayIdForJobs={screenplayId}
                 entityToOpen={entityToOpen?.type === 'asset' ? entityToOpen.id : null}
                 onEntityOpened={() => setEntityToOpen(null)}
               />
