@@ -411,30 +411,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
   }, [isSignedIn]);
 
-  // Optimistic job: show newly created job immediately so drawer keeps polling until real job appears
-  useEffect(() => {
-    const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; workflowId: string; workflowName: string; jobType?: string }>) => {
-      const { jobId, screenplayId: eventScreenplayId, workflowId, workflowName, jobType } = e.detail || {};
-      if (!jobId || !eventScreenplayId || eventScreenplayId !== screenplayId) return;
-      setJobs(prev => {
-        if (prev.some(j => j.jobId === jobId)) return prev;
-        const placeholder: WorkflowJob = {
-          jobId,
-          workflowId: workflowId || 'image-generation',
-          workflowName: workflowName || 'Pose Package',
-          jobType: (jobType as WorkflowJob['jobType']) || 'pose-generation',
-          status: 'running',
-          progress: 0,
-          createdAt: new Date().toISOString(),
-          creditsUsed: 0,
-        };
-        return [placeholder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      });
-    };
-    window.addEventListener('wryda:optimistic-job', handler as EventListener);
-    return () => window.removeEventListener('wryda:optimistic-job', handler as EventListener);
-  }, [screenplayId]);
-
   /**
    * Filter jobs to show:
    * 1. All running/queued jobs (regardless of age)
