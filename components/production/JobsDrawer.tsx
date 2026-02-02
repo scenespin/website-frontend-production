@@ -368,6 +368,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
   // Track previous jobs state to prevent infinite loops
   const previousJobsHash = useRef<string>('');
+  // GSI eventual consistency: retry counter when initial load returns 0 jobs (max 3 retries with exponential backoff)
+  const emptyRetryCountRef = useRef(0);
+  // GSI: retry counter when list returned but optimistic placeholder(s) not in list (max 3 retries with exponential backoff: 2s, 4s, 8s)
+  const placeholderRetryCountRef = useRef(0);
+  // Prevent duplicate direct fetch when multiple loadJobs runs hit "retries exhausted" (only one in-flight fetch per id)
+  const directFetchInProgressRef = useRef<Set<string>>(new Set());
+  // Jobs we merged via direct fetch: keep in ref so a later loadJobs setState (with stale prev) doesn't drop them
+  const directFetchedJobsRef = useRef<Map<string, WorkflowJob>>(new Map());
+  const MAX_GSI_RETRIES = 3;
+  const GSI_RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff for GSI eventual consistency
 
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -518,11 +528,109 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   /**
-   * Load jobs from API (simple polling - no optimistic updates)
+   * Direct fetch: Fetch a single job by ID using primary key lookup (bypasses GSI)
+   * Used as fallback when GSI list doesn't return the job after max retries
+   */
+  const fetchJobDirectly = async (jobId: string): Promise<WorkflowJob | null> => {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return null;
+
+      const response = await fetch(`/api/workflows/${jobId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        console.warn('[JobsDrawer] Direct fetch failed', { jobId: jobId.slice(-12), status: response.status });
+        return null;
+      }
+      
+      const data = await response.json();
+      if (!data.success || !data.data?.execution) {
+        console.warn('[JobsDrawer] Direct fetch returned no execution', { jobId: jobId.slice(-12) });
+        return null;
+      }
+      
+      const exec = data.data.execution;
+      // Transform execution response to WorkflowJob format
+      const job: WorkflowJob = {
+        jobId: exec.executionId,
+        workflowId: exec.workflowId || 'image-generation',
+        workflowName: exec.workflowName || 'Image Generation',
+        jobType: exec.jobType || 'image-generation',
+        status: exec.status,
+        progress: exec.progress || Math.round((exec.currentStep / exec.totalSteps) * 100) || 0,
+        createdAt: exec.startedAt || new Date().toISOString(),
+        creditsUsed: exec.totalCreditsUsed || 0,
+        results: exec.finalOutputs,
+        metadata: exec.metadata,
+      };
+      
+      console.log('[JobsDrawer] Direct fetch SUCCESS', { 
+        jobId: jobId.slice(-12), 
+        status: job.status, 
+        projectId: exec.projectId?.slice(0, 24),
+        storedProjectId: exec.projectId,
+        queriedScreenplayId: screenplayId,
+        match: exec.projectId === screenplayId
+      });
+      
+      return job;
+    } catch (error: any) {
+      console.error('[JobsDrawer] Direct fetch error', { jobId: jobId.slice(-12), error: error.message });
+      return null;
+    }
+  };
+
+  /**
+   * Fallback: Fetch missing placeholders directly by ID (bypasses GSI projectId filter)
+   */
+  const fetchMissingPlaceholdersDirectly = async (missingJobIds: string[]) => {
+    if (missingJobIds.length === 0) return;
+    const idsSet = new Set(missingJobIds);
+    const alreadyFetching = missingJobIds.some(id => directFetchInProgressRef.current.has(id));
+    if (alreadyFetching) {
+      return;
+    }
+    missingJobIds.forEach(id => directFetchInProgressRef.current.add(id));
+    try {
+      console.log('[JobsDrawer] Direct fetch fallback for missing placeholders', {
+        count: missingJobIds.length,
+        jobIds: missingJobIds.map(id => id.slice(-12)),
+      });
+      const fetchedJobs: WorkflowJob[] = [];
+      for (const jobId of missingJobIds) {
+        const job = await fetchJobDirectly(jobId);
+        if (job) fetchedJobs.push(job);
+      }
+      if (fetchedJobs.length > 0) {
+        // Store in ref so a later loadJobs setState (with stale prev) won't overwrite and drop these jobs
+        fetchedJobs.forEach(job => directFetchedJobsRef.current.set(job.jobId, job));
+        setJobs(prevJobs => {
+          const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
+          fetchedJobs.forEach((job, index) => {
+            const placeholderId = missingJobIds[index];
+            if (placeholderId) jobMap.delete(placeholderId);
+            jobMap.set(job.jobId, job);
+          });
+          const mergedJobs = Array.from(jobMap.values());
+          mergedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          return mergedJobs;
+        });
+        console.log('[JobsDrawer] Direct fetch replaced placeholders', { count: fetchedJobs.length });
+      }
+    } finally {
+      idsSet.forEach(id => directFetchInProgressRef.current.delete(id));
+    }
+  };
+
+  /**
+   * Load jobs from API
    */
   const loadJobs = async (showLoading: boolean = false) => {
     try {
       if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
+        console.log('[JobsDrawer] Skipping load - invalid screenplayId:', screenplayId);
         return;
       }
       
@@ -538,17 +646,82 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         return;
       }
 
+      // Load all jobs for this session (no filtering). Limit 50 so newest jobs aren't cut off.
       const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=50`;
+      
       const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       const data = await response.json();
 
+      const jobList: WorkflowJob[] = [];
+
+      // Add workflow jobs
       if (data.success) {
-        const jobList: WorkflowJob[] = data.data?.jobs || data.jobs || [];
-        // Sort by creation date (newest first)
-        jobList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setJobs(jobList);
+        const workflowJobs = data.data?.jobs || data.jobs || [];
+        jobList.push(...workflowJobs);
+      }
+
+      // Diagnostic: log what we queried and what we got (always, so production can confirm ID + count)
+      const summary = jobList.slice(0, 20).map(j => `${j.jobId.slice(-8)}:${j.status}:${j.progress}%`);
+      console.log('[JobsDrawer] loadJobs', {
+        screenplayId: screenplayId.slice(0, 24) + (screenplayId.length > 24 ? '…' : ''),
+        count: jobList.length,
+        jobs: summary,
+        runningCount: jobList.filter(j => j.status === 'running' || j.status === 'queued').length,
+      });
+      
+      const apiJobIds = new Set(jobList.map((j: WorkflowJob) => j.jobId));
+      setJobs(prevJobs => {
+        const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
+        jobList.forEach((newJob: WorkflowJob) => {
+          jobMap.set(newJob.jobId, newJob);
+        });
+        // Re-insert any direct-fetched jobs that aren't in this API response, so a stale prev doesn't drop them
+        directFetchedJobsRef.current.forEach((job, id) => {
+          if (!apiJobIds.has(id)) jobMap.set(id, job);
+          else directFetchedJobsRef.current.delete(id); // GSI caught up, stop preserving
+        });
+        const mergedJobs = Array.from(jobMap.values());
+        mergedJobs.sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+        // GSI: if we have optimistic placeholder(s) that weren't in this list response, retry with exponential backoff
+        // DynamoDB GSI eventual consistency can take 5-10+ seconds in some cases
+        const placeholdersMissing = prevJobs.filter(j => j.workflowId === '' && !jobList.some((api: WorkflowJob) => api.jobId === j.jobId));
+        if (placeholdersMissing.length > 0 && placeholderRetryCountRef.current < MAX_GSI_RETRIES && isOpen) {
+          const retryDelay = GSI_RETRY_DELAYS[placeholderRetryCountRef.current] || 8000;
+          console.log('[JobsDrawer] GSI placeholder retry', {
+            missingPlaceholders: placeholdersMissing.map(j => j.jobId.slice(-12)),
+            retryCount: placeholderRetryCountRef.current + 1,
+            maxRetries: MAX_GSI_RETRIES,
+            nextRetryMs: retryDelay,
+          });
+          placeholderRetryCountRef.current += 1;
+          setTimeout(() => loadJobs(false), retryDelay);
+        } else if (placeholdersMissing.length > 0 && placeholderRetryCountRef.current >= MAX_GSI_RETRIES && isOpen) {
+          // GSI retries exhausted - try direct fetch by job ID (bypasses projectId filter)
+          // This handles projectId mismatch between job creation and list query
+          const missingJobIds = placeholdersMissing.map(j => j.jobId);
+          fetchMissingPlaceholdersDirectly(missingJobIds);
+        }
+        return mergedJobs;
+      });
+
+      // GSI eventual consistency: if initial load returned 0, retry with exponential backoff
+      if (jobList.length === 0 && emptyRetryCountRef.current < MAX_GSI_RETRIES && isOpen) {
+        const retryDelay = GSI_RETRY_DELAYS[emptyRetryCountRef.current] || 8000;
+        console.log('[JobsDrawer] GSI empty result retry', {
+          retryCount: emptyRetryCountRef.current + 1,
+          maxRetries: MAX_GSI_RETRIES,
+          nextRetryMs: retryDelay,
+        });
+        emptyRetryCountRef.current += 1;
+        setTimeout(() => loadJobs(false), retryDelay);
       }
 
       if (!hasLoadedOnce) {
@@ -567,16 +740,54 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   /**
-   * Load jobs when drawer opens or screenplayId changes
+   * Optimistic job: when a job is started (e.g. GenerateAssetTab), show it in the list immediately.
+   * Polling replaces this with real status; avoids relying on GSI eventual consistency for first paint.
+   */
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; jobType?: string; assetName?: string }>) => {
+      const { jobId, screenplayId: eventScreenplayId, jobType = 'image-generation', assetName } = e.detail || {};
+      if (!jobId || !eventScreenplayId?.trim()) return;
+      if (eventScreenplayId.trim() !== screenplayId?.trim()) return;
+      // Reset GSI placeholder retry counter when a new optimistic job is added (fresh retries for new job)
+      placeholderRetryCountRef.current = 0;
+      console.log('[JobsDrawer] Optimistic job added', { jobId: jobId.slice(-12), jobType, assetName });
+      setJobs(prev => {
+        if (prev.some(j => j.jobId === jobId)) return prev;
+        const placeholder: WorkflowJob = {
+          jobId,
+          workflowId: '',
+          workflowName: assetName ? `Image Generation - ${assetName}` : 'Image Generation',
+          jobType: jobType as WorkflowJob['jobType'],
+          status: 'running',
+          progress: 0,
+          createdAt: new Date().toISOString(),
+          creditsUsed: 0,
+        };
+        return [placeholder, ...prev];
+      });
+    };
+    window.addEventListener('wryda:optimistic-job', handler as EventListener);
+    return () => window.removeEventListener('wryda:optimistic-job', handler as EventListener);
+  }, [screenplayId]);
+
+  /**
+   * Load jobs when drawer opens or screenplayId changes (one-time load).
+   * Hub polls for badge when drawer is closed; we only poll list when drawer is open.
    */
   useEffect(() => {
     if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
+    if (isOpen) {
+      // Reset GSI retry counters when drawer opens (allow fresh retries for new jobs)
+      emptyRetryCountRef.current = 0;
+      placeholderRetryCountRef.current = 0;
+    }
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
   }, [screenplayId, isOpen, hasLoadedOnce]);
 
   /**
-   * Poll for jobs every 3 seconds when drawer is open
+   * When drawer is open: poll list API so jobs (including new/running) stay in sync.
+   * First 10s: poll at 2s and 5s (GSI eventual consistency); then every 5s.
    */
   useEffect(() => {
     if (!isOpen || !screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
@@ -584,8 +795,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       return;
     }
     setIsPolling(true);
-    const interval = setInterval(() => loadJobs(false), 3000);
+    const t2 = setTimeout(() => loadJobs(false), 2000);
+    const t5 = setTimeout(() => loadJobs(false), 5000);
+    const interval = setInterval(() => loadJobs(false), 5000);
     return () => {
+      clearTimeout(t2);
+      clearTimeout(t5);
       clearInterval(interval);
       setIsPolling(false);
     };
