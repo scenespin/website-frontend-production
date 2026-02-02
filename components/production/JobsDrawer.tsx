@@ -751,6 +751,26 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
               }
             }
             // else keep existing (don't overwrite with list's stale running/queued)
+          } else if (existing && existing.workflowId === '' && (newJob.status === 'completed' || newJob.status === 'failed')) {
+            // Placeholder (optimistic job): list returned this job as completed/failed but often without results.
+            // Do NOT overwrite the placeholder — keep it so poll-by-ID keeps polling until we get full job with results.
+            const hasNewResults = newJob.results && (
+              (newJob.results.poses?.length) ||
+              (newJob.results.angleReferences?.length) ||
+              (newJob.results.backgroundReferences?.length) ||
+              (newJob.results.images?.length) ||
+              (newJob.results.videos?.length) ||
+              (newJob.results.screenplayReading) ||
+              (newJob.results.videoSoundscape)
+            );
+            if (!hasNewResults) {
+              console.log('[JobsDrawer] Keeping placeholder for poll-by-ID (list returned completed without results)', {
+                jobId: newJob.jobId.slice(-12),
+              });
+              // Keep existing placeholder — pollRunningJobsById will fetch by ID and replace with full job
+              return;
+            }
+            jobMap.set(newJob.jobId, newJob);
           } else {
             jobMap.set(newJob.jobId, newJob);
           }
