@@ -389,6 +389,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const resultsBackfillFetchedRef = useRef<Set<string>>(new Set());
   const MAX_GSI_RETRIES = 3;
   const GSI_RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff for GSI eventual consistency
+  // When we add an optimistic job, fetch by ID soon so we get full job/results before list can overwrite with completed (no results)
+  const OPTIMISTIC_POLL_DELAY_MS = 800;
+  const optimisticFetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -833,6 +836,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   /**
    * Optimistic job: when a job is started (e.g. GenerateAssetTab), show it in the list immediately.
    * Polling replaces this with real status; avoids relying on GSI eventual consistency for first paint.
+   * Trigger an immediate direct fetch by ID so we get full job/results before list can overwrite with completed (no results).
    */
   useEffect(() => {
     const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; jobType?: string; assetName?: string }>) => {
@@ -856,9 +860,38 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         };
         return [placeholder, ...prev];
       });
+      // Fetch by ID soon so we get full job (and results if already completed) before list/GSI overwrites with completed (no results)
+      if (optimisticFetchTimeoutRef.current) clearTimeout(optimisticFetchTimeoutRef.current);
+      optimisticFetchTimeoutRef.current = setTimeout(() => {
+        optimisticFetchTimeoutRef.current = null;
+        if (directFetchInProgressRef.current.has(jobId)) return;
+        directFetchInProgressRef.current.add(jobId);
+        fetchJobDirectly(jobId, { silent: true }).then((full) => {
+          try {
+            if (!full) return;
+            directFetchedJobsRef.current.set(full.jobId, full);
+            directFetchCompletedAtRef.current = Date.now();
+            setJobs(prev => {
+              const map = new Map(prev.map((j) => [j.jobId, j]));
+              map.set(full.jobId, full);
+              const merged = Array.from(map.values());
+              merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              return merged;
+            });
+          } finally {
+            directFetchInProgressRef.current.delete(jobId);
+          }
+        });
+      }, OPTIMISTIC_POLL_DELAY_MS);
     };
     window.addEventListener('wryda:optimistic-job', handler as EventListener);
-    return () => window.removeEventListener('wryda:optimistic-job', handler as EventListener);
+    return () => {
+      window.removeEventListener('wryda:optimistic-job', handler as EventListener);
+      if (optimisticFetchTimeoutRef.current) {
+        clearTimeout(optimisticFetchTimeoutRef.current);
+        optimisticFetchTimeoutRef.current = null;
+      }
+    };
   }, [screenplayId]);
 
   /**
