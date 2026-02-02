@@ -713,10 +713,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         
         // Re-insert any direct-fetched jobs that aren't in this API response
         // This prevents stale React state from dropping jobs we fetched directly
+        const refSize = directFetchedJobsRef.current.size;
+        if (refSize > 0) {
+          console.log('[JobsDrawer] Checking directFetchedJobsRef', {
+            refSize,
+            refJobIds: Array.from(directFetchedJobsRef.current.keys()).map(id => id.slice(-12)),
+          });
+        }
         directFetchedJobsRef.current.forEach((job, id) => {
           if (!apiJobIds.has(id)) {
+            console.log('[JobsDrawer] Re-inserting job from ref (not in API yet)', {
+              jobId: id.slice(-12),
+              status: job.status,
+            });
             jobMap.set(id, job); // Keep the job - GSI hasn't caught up yet
           } else {
+            console.log('[JobsDrawer] GSI caught up, removing from ref', { jobId: id.slice(-12) });
             directFetchedJobsRef.current.delete(id); // GSI caught up, stop preserving
           }
         });
