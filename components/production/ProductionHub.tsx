@@ -351,7 +351,6 @@ export function ProductionHub({}: ProductionHubProps) {
             <ProductionErrorBoundary componentName="Location Bank">
               <LocationBankPanel 
                 className="h-full"
-                screenplayIdForJobs={screenplayId}
                 entityToOpen={entityToOpen?.type === 'location' ? entityToOpen.id : null}
                 onEntityOpened={() => setEntityToOpen(null)}
               />
