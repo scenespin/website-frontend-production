@@ -34,7 +34,7 @@ interface WorkflowJob {
   jobId: string;
   workflowId: string;
   workflowName: string;
-  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading';
+  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading' | 'video-soundscape';
   status: 'queued' | 'running' | 'completed' | 'failed' | 'awaiting_input';
   progress: number;
   requiresAction?: {
@@ -482,6 +482,9 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   
   // Track which jobs we've already processed for credit refresh (avoid duplicates)
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
+  // Poll-by-ID until completion: same constants as JobsDrawer for consistency
+  const POLL_BY_ID_INTERVAL_MS = 4000;
+  const MAX_POLL_PER_TICK = 20;
   
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -621,20 +624,26 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
         // But also check for direct jobs property for backwards compatibility
         const jobList = data.data?.jobs || data.jobs || [];
         
-        // Merge jobs instead of replacing to prevent flashing
-        // Update existing jobs and add new ones
-        // 🔥 FIX: Sort by creation date (newest first) so new jobs appear at top
+        // Merge jobs instead of replacing to prevent flashing.
+        // Merge rule (plan 0231): do not overwrite completed/failed with list's running/queued (GSI eventual consistency).
         setJobs(prevJobs => {
           const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
           jobList.forEach((newJob: WorkflowJob) => {
-            jobMap.set(newJob.jobId, newJob);
+            const existing = jobMap.get(newJob.jobId);
+            if (existing && (existing.status === 'completed' || existing.status === 'failed')) {
+              if (newJob.status === 'completed' || newJob.status === 'failed') {
+                jobMap.set(newJob.jobId, newJob);
+              }
+              // else keep existing (don't overwrite with list's stale running/queued)
+            } else {
+              jobMap.set(newJob.jobId, newJob);
+            }
           });
           const mergedJobs = Array.from(jobMap.values());
-          // Sort by createdAt (newest first)
           mergedJobs.sort((a, b) => {
             const dateA = new Date(a.createdAt).getTime();
             const dateB = new Date(b.createdAt).getTime();
-            return dateB - dateA; // Descending (newest first)
+            return dateB - dateA;
           });
           return mergedJobs;
         });
@@ -690,47 +699,120 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenplayId, statusFilter]); // loadJobs is stable, but we want to reload when filters change
 
-  // Use ref to track latest jobs state without causing re-renders
+  // Use ref to track latest jobs state for poll-by-ID callback (avoids stale closure)
   const jobsRef = useRef<WorkflowJob[]>([]);
   useEffect(() => {
     jobsRef.current = jobs;
   }, [jobs]);
 
   /**
-   * Poll running jobs every 3 seconds (more aggressive for immediate updates)
-   * 🔥 FIX: Removed jobs.length from dependencies to prevent infinite loop
-   * Use ref to check for running jobs inside the callback
+   * Direct fetch: GET /api/workflows/:executionId — bypasses GSI for accurate status.
+   * Used for poll-by-ID until completion (plan 0231).
+   */
+  const fetchJobDirectly = async (jobId: string, options?: { silent?: boolean }): Promise<WorkflowJob | null> => {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return null;
+
+      const response = await fetch(`/api/workflows/${jobId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        if (!options?.silent) {
+          console.warn('[ProductionJobsPanel] Direct fetch failed', { jobId: jobId.slice(-12), status: response.status });
+        }
+        return null;
+      }
+
+      const data = await response.json();
+      if (!data.success || !data.data?.execution) {
+        if (!options?.silent) {
+          console.warn('[ProductionJobsPanel] Direct fetch returned no execution', { jobId: jobId.slice(-12) });
+        }
+        return null;
+      }
+
+      const exec = data.data.execution;
+      const job: WorkflowJob = {
+        jobId: exec.executionId,
+        workflowId: exec.workflowId || 'image-generation',
+        workflowName: exec.workflowName || 'Image Generation',
+        jobType: exec.jobType || 'image-generation',
+        status: exec.status,
+        progress: exec.progress ?? (exec.currentStep != null && exec.totalSteps != null ? Math.round((exec.currentStep / exec.totalSteps) * 100) : 0),
+        createdAt: exec.startedAt || new Date().toISOString(),
+        creditsUsed: exec.totalCreditsUsed || 0,
+        results: exec.finalOutputs,
+        metadata: exec.metadata,
+        inputs: exec.metadata?.inputs ?? exec.inputs,
+        error: exec.error,
+        requiresAction: exec.requiresAction,
+        establishingShotFirstFrameUrl: exec.establishingShotFirstFrameUrl,
+      };
+
+      if (!options?.silent) {
+        console.log('[ProductionJobsPanel] Direct fetch OK', { jobId: jobId.slice(-12), status: job.status });
+      }
+      return job;
+    } catch (error: unknown) {
+      if (!options?.silent) {
+        console.error('[ProductionJobsPanel] Direct fetch error', { jobId: jobId.slice(-12), error: error instanceof Error ? error.message : String(error) });
+      }
+      return null;
+    }
+  };
+
+  /**
+   * Poll-by-ID until completion: for every running/queued job with a jobId,
+   * poll GET /api/workflows/:id every N seconds until completed/failed. Update state and stop polling.
+   * List polling (10s) continues for discovery; merge rule prevents list from overwriting terminal state.
    */
   useEffect(() => {
-    // Only poll if we have a valid screenplayId
     if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
       setIsPolling(false);
       return;
     }
-    
-    setIsPolling(true);
-    const interval = setInterval(() => {
-      // Use ref to get current jobs state (always up-to-date, no stale closure)
-      const currentJobs = jobsRef.current;
-      const hasRunningJobs = currentJobs.some(job => job.status === 'running' || job.status === 'queued');
-      
-      // Only poll if there are running jobs, otherwise stop polling
-      if (hasRunningJobs) {
-        console.log('[ProductionJobsPanel] Polling: running jobs detected, refreshing...', {
-          runningCount: currentJobs.filter(j => j.status === 'running' || j.status === 'queued').length
-        });
-        loadJobs(false); // Don't show loading spinner on polling
-      } else {
-        console.log('[ProductionJobsPanel] Polling: no running jobs, stopping poll');
-        setIsPolling(false);
-      }
-    }, 3000); // Poll every 3 seconds for faster updates
 
+    let cancelled = false;
+    setIsPolling(true);
+
+    const pollRunningJobsById = async () => {
+      if (cancelled) return;
+      const currentJobs = jobsRef.current;
+      const toPoll = currentJobs
+        .filter((j) => (j.status === 'running' || j.status === 'queued') && !!j.jobId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, MAX_POLL_PER_TICK);
+      if (toPoll.length === 0) return;
+
+      const updates: WorkflowJob[] = [];
+      for (const job of toPoll) {
+        if (cancelled) break;
+        const updated = await fetchJobDirectly(job.jobId, { silent: true });
+        if (!updated || cancelled) continue;
+        const isTerminal = updated.status === 'completed' || updated.status === 'failed';
+        const changed = updated.status !== job.status || (updated.results != null && !job.results);
+        if (isTerminal || changed) updates.push(updated);
+      }
+
+      if (cancelled || updates.length === 0) return;
+      setJobs((prev) => {
+        const map = new Map(prev.map((j) => [j.jobId, j]));
+        updates.forEach((u) => map.set(u.jobId, u));
+        const merged = Array.from(map.values());
+        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return merged;
+      });
+    };
+
+    const interval = setInterval(pollRunningJobsById, POLL_BY_ID_INTERVAL_MS);
     return () => {
+      cancelled = true;
       clearInterval(interval);
       setIsPolling(false);
     };
-  }, [screenplayId]); // 🔥 FIX: Only depend on screenplayId, not jobs.length
+  }, [screenplayId]);
   
   /**
    * Watch for completed pose generation jobs and refresh character data
@@ -1408,22 +1490,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                     </div>
                   )}
 
-                  {/* 🔥 FIX: Display angleReferences for location/asset angle generation jobs - ALWAYS show when present */}
-                  {/* Debug logging */}
-                  {job.jobType === 'image-generation' && (() => {
-                    console.log('[ProductionJobsPanel] Image generation job results:', {
-                      jobId: job.jobId,
-                      hasResults: !!job.results,
-                      hasAngleReferences: !!job.results?.angleReferences,
-                      angleReferencesCount: job.results?.angleReferences?.length || 0,
-                      hasBackgroundReferences: !!job.results?.backgroundReferences,
-                      backgroundReferencesCount: job.results?.backgroundReferences?.length || 0,
-                      backgroundReferences: job.results?.backgroundReferences,
-                      angleReferences: job.results?.angleReferences,
-                      allResultsKeys: job.results ? Object.keys(job.results) : []
-                    });
-                    return null;
-                  })()}
+                  {/* Angle references for location/asset angle generation jobs */}
                   {job.jobType === 'image-generation' && job.results?.angleReferences && job.results.angleReferences.length > 0 && (
                     <div className="grid grid-cols-6 gap-1.5 mt-3">
                       {job.results.angleReferences.map((angleRef, index) => (

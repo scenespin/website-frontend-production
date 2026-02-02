@@ -375,6 +375,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   // Track when direct fetch completed - pause polling briefly to prevent race condition overwrite
   const directFetchCompletedAtRef = useRef<number>(0);
   const DIRECT_FETCH_PAUSE_MS = 10000; // Pause polling for 10s after direct fetch to let GSI catch up
+  // Keep latest jobs in ref for interval callback (avoids stale closure)
+  const jobsRef = useRef<WorkflowJob[]>([]);
+  jobsRef.current = jobs;
+  // Poll-by-ID until completion: interval and cap for scalability (industry-standard pattern)
+  const POLL_BY_ID_INTERVAL_MS = 4000; // 4s — balance between responsiveness and API load
+  const MAX_POLL_PER_TICK = 20; // Cap running jobs we poll per tick so we don't hammer the API
   // Prevent duplicate direct fetch when multiple loadJobs runs hit "retries exhausted" (only one in-flight fetch per id)
   const directFetchInProgressRef = useRef<Set<string>>(new Set());
   // Jobs we merged via direct fetch: keep in ref so a later loadJobs setState (with stale prev) doesn't drop them
@@ -532,9 +538,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
   /**
    * Direct fetch: Fetch a single job by ID using primary key lookup (bypasses GSI)
-   * Used as fallback when GSI list doesn't return the job after max retries
+   * Used as fallback when GSI list doesn't return the job after max retries, and for poll-by-ID until completion.
    */
-  const fetchJobDirectly = async (jobId: string): Promise<WorkflowJob | null> => {
+  const fetchJobDirectly = async (jobId: string, options?: { silent?: boolean }): Promise<WorkflowJob | null> => {
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) return null;
@@ -569,14 +575,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         metadata: exec.metadata,
       };
       
-      console.log('[JobsDrawer] Direct fetch SUCCESS', { 
-        jobId: jobId.slice(-12), 
-        status: job.status, 
-        projectId: exec.projectId?.slice(0, 24),
-        storedProjectId: exec.projectId,
-        queriedScreenplayId: screenplayId,
-        match: exec.projectId === screenplayId
-      });
+      if (!options?.silent) {
+        console.log('[JobsDrawer] Direct fetch SUCCESS', { 
+          jobId: jobId.slice(-12), 
+          status: job.status, 
+          projectId: exec.projectId?.slice(0, 24),
+          storedProjectId: exec.projectId,
+          queriedScreenplayId: screenplayId,
+          match: exec.projectId === screenplayId
+        });
+      }
       
       return job;
     } catch (error: any) {
@@ -708,7 +716,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       setJobs(prevJobs => {
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
         jobList.forEach((newJob: WorkflowJob) => {
-          jobMap.set(newJob.jobId, newJob);
+          const existing = jobMap.get(newJob.jobId);
+          // Don't overwrite completed/failed with stale list data (GSI can return "running" after we direct-fetched "completed")
+          if (existing && (existing.status === 'completed' || existing.status === 'failed')) {
+            if (newJob.status === 'completed' || newJob.status === 'failed') {
+              jobMap.set(newJob.jobId, newJob); // list caught up, use it
+            }
+            // else keep existing (don't overwrite with list's stale running/queued)
+          } else {
+            jobMap.set(newJob.jobId, newJob);
+          }
         });
         
         // Re-insert any direct-fetched jobs that aren't in this API response
@@ -855,6 +872,52 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       clearTimeout(t5);
       clearInterval(interval);
       setIsPolling(false);
+    };
+  }, [isOpen, screenplayId]);
+
+  /**
+   * Poll-by-ID until completion (industry-standard): for every running/queued job we have,
+   * poll GET /api/workflows/:id until status is completed or failed. No dependency on list/GSI.
+   * Scalable: cap at MAX_POLL_PER_TICK per tick; robust: cleanup on unmount, sequential fetches.
+   */
+  useEffect(() => {
+    if (!isOpen || !screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
+
+    let cancelled = false;
+
+    const pollRunningJobsById = async () => {
+      if (cancelled) return;
+      const currentJobs = jobsRef.current;
+      const toPoll = currentJobs
+        .filter((j) => (j.status === 'running' || j.status === 'queued') && j.jobId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, MAX_POLL_PER_TICK);
+      if (toPoll.length === 0) return;
+
+      const updates: WorkflowJob[] = [];
+      for (const job of toPoll) {
+        if (cancelled) break;
+        const updated = await fetchJobDirectly(job.jobId, { silent: true });
+        if (!updated || cancelled) continue;
+        const isTerminal = updated.status === 'completed' || updated.status === 'failed';
+        const changed = updated.status !== job.status || (updated.results && !job.results);
+        if (isTerminal || changed) updates.push(updated);
+      }
+
+      if (cancelled || updates.length === 0) return;
+      setJobs((prev) => {
+        const map = new Map(prev.map((j) => [j.jobId, j]));
+        updates.forEach((u) => map.set(u.jobId, u));
+        const merged = Array.from(map.values());
+        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return merged;
+      });
+    };
+
+    const interval = setInterval(pollRunningJobsById, POLL_BY_ID_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
     };
   }, [isOpen, screenplayId]);
 
