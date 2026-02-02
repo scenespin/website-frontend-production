@@ -120,6 +120,22 @@ interface WorkflowJob {
       backgroundType: string;
       error: string;
     }>;
+    videoSoundscape?: {
+      analysisId: string;
+      videoUrl: string;
+      videoDuration: number;
+      detectedCues?: Array<{
+        timestamp: number;
+        type: string;
+        description: string;
+        confidence: number;
+      }>;
+      moodProfile?: {
+        primaryMood: string;
+        intensity: number;
+        tempo: string;
+      };
+    };
   };
   error?: string;
   createdAt: string;
