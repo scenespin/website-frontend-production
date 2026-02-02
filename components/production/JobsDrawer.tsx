@@ -368,10 +368,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
   // Track previous jobs state to prevent infinite loops
   const previousJobsHash = useRef<string>('');
-  // GSI eventual consistency: allow one retry when initial load returns 0 jobs
-  const retriedEmptyOnceRef = useRef(false);
-  // GSI: allow one retry when list returned but optimistic placeholder(s) not in list (e.g. third job - executionCount stayed 91)
-  const retriedPlaceholderOnceRef = useRef(false);
+  // GSI eventual consistency: retry counter when initial load returns 0 jobs (max 3 retries with exponential backoff)
+  const emptyRetryCountRef = useRef(0);
+  // GSI: retry counter when list returned but optimistic placeholder(s) not in list (max 3 retries with exponential backoff: 2s, 4s, 8s)
+  const placeholderRetryCountRef = useRef(0);
+  const MAX_GSI_RETRIES = 3;
+  const GSI_RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff for GSI eventual consistency
 
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -581,19 +583,33 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           const dateB = new Date(b.createdAt).getTime();
           return dateB - dateA;
         });
-        // GSI: if we have optimistic placeholder(s) that weren't in this list response, retry once after 2s (logs showed executionCount stayed 91 for third job)
+        // GSI: if we have optimistic placeholder(s) that weren't in this list response, retry with exponential backoff
+        // DynamoDB GSI eventual consistency can take 5-10+ seconds in some cases
         const placeholdersMissing = prevJobs.filter(j => j.workflowId === '' && !jobList.some(api => api.jobId === j.jobId));
-        if (placeholdersMissing.length > 0 && !retriedPlaceholderOnceRef.current && isOpen) {
-          retriedPlaceholderOnceRef.current = true;
-          setTimeout(() => loadJobs(false), 2000);
+        if (placeholdersMissing.length > 0 && placeholderRetryCountRef.current < MAX_GSI_RETRIES && isOpen) {
+          const retryDelay = GSI_RETRY_DELAYS[placeholderRetryCountRef.current] || 8000;
+          console.log('[JobsDrawer] GSI placeholder retry', {
+            missingPlaceholders: placeholdersMissing.map(j => j.jobId.slice(-12)),
+            retryCount: placeholderRetryCountRef.current + 1,
+            maxRetries: MAX_GSI_RETRIES,
+            nextRetryMs: retryDelay,
+          });
+          placeholderRetryCountRef.current += 1;
+          setTimeout(() => loadJobs(false), retryDelay);
         }
         return mergedJobs;
       });
 
-      // GSI eventual consistency: if initial load returned 0, retry once after 2s (backend research showed same query can return 0 or 70 depending on task/replica)
-      if (jobList.length === 0 && !retriedEmptyOnceRef.current && isOpen) {
-        retriedEmptyOnceRef.current = true;
-        setTimeout(() => loadJobs(false), 2000);
+      // GSI eventual consistency: if initial load returned 0, retry with exponential backoff
+      if (jobList.length === 0 && emptyRetryCountRef.current < MAX_GSI_RETRIES && isOpen) {
+        const retryDelay = GSI_RETRY_DELAYS[emptyRetryCountRef.current] || 8000;
+        console.log('[JobsDrawer] GSI empty result retry', {
+          retryCount: emptyRetryCountRef.current + 1,
+          maxRetries: MAX_GSI_RETRIES,
+          nextRetryMs: retryDelay,
+        });
+        emptyRetryCountRef.current += 1;
+        setTimeout(() => loadJobs(false), retryDelay);
       }
 
       if (!hasLoadedOnce) {
@@ -620,6 +636,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       const { jobId, screenplayId: eventScreenplayId, jobType = 'image-generation', assetName } = e.detail || {};
       if (!jobId || !eventScreenplayId?.trim()) return;
       if (eventScreenplayId.trim() !== screenplayId?.trim()) return;
+      // Reset GSI placeholder retry counter when a new optimistic job is added (fresh retries for new job)
+      placeholderRetryCountRef.current = 0;
+      console.log('[JobsDrawer] Optimistic job added', { jobId: jobId.slice(-12), jobType, assetName });
       setJobs(prev => {
         if (prev.some(j => j.jobId === jobId)) return prev;
         const placeholder: WorkflowJob = {
@@ -646,9 +665,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   useEffect(() => {
     if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
     if (isOpen) {
-      retriedEmptyOnceRef.current = false;
-      retriedPlaceholderOnceRef.current = false;
-    } // allow one retry per open (GSI eventual consistency)
+      // Reset GSI retry counters when drawer opens (allow fresh retries for new jobs)
+      emptyRetryCountRef.current = 0;
+      placeholderRetryCountRef.current = 0;
+    }
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
   }, [screenplayId, isOpen, hasLoadedOnce]);
