@@ -2,14 +2,15 @@
 
 /**
  * GenerateLocationTab - Generate Location Packages tab for Location Detail Modal
- * 
- * Similar to GenerateWardrobeTab, but for location angles and backgrounds
+ *
  * Steps:
  * Step 1: Model Selection (unified dropdown from API)
- * Step 2: Source Selection (for backgrounds - reference images vs angle variations)
- * Step 3: Package Selection (Angles vs Backgrounds)
+ * Step 2: Package Type (Angle Packages | Background Packages | Extreme Close-ups) — tabbed
+ * Step 3: Package / Source / ECU package selection as appropriate
  * Step 4: Optional - Lighting & Atmosphere (time of day, weather)
  * Step 5: Optional - Additional Prompt
+ *
+ * Feature 0232: Three tabs; ECU tab has source (reference / angles / backgrounds), image selector, ECU package (Essentials, Standard, Premium).
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -20,17 +21,24 @@ import { hasLocationReference, showReferenceRequired } from '@/utils/referenceIm
 import LocationAnglePackageSelector from '../LocationAnglePackageSelector';
 import LocationBackgroundPackageSelector from '../LocationBackgroundPackageSelector';
 
+/** ECU package display (Feature 0232). One ECU image per selected source; package defines variation style per image. */
+const ECU_PACKAGES_UI: Record<string, { id: string; name: string; variationCount: number }> = {
+  essentials: { id: 'essentials', name: 'Essentials', variationCount: 3 },
+  standard: { id: 'standard', name: 'Standard', variationCount: 5 },
+  premium: { id: 'premium', name: 'Premium', variationCount: 8 },
+};
+
 interface GenerateLocationTabProps {
   locationId: string;
   locationName: string;
   screenplayId: string;
   locationProfile: any;
-  location?: any; // Full location object with angleVariations
+  location?: any; // Full location object with angleVariations, backgrounds, images
   onClose: () => void;
   onComplete?: (result: any) => void;
 }
 
-type PackageType = 'angles' | 'backgrounds';
+type PackageType = 'angles' | 'backgrounds' | 'extreme-closeups';
 
 export function GenerateLocationTab({
   locationId,
@@ -60,9 +68,6 @@ export function GenerateLocationTab({
   
   // 🔥 Feature 0190: Single background type selection for background packages
   const [selectedBackgroundType, setSelectedBackgroundType] = useState<string>('window');
-  // Feature 0221 / 0222: ECU modifiers - mutually exclusive (at most one checked)
-  const [forExtremeCloseUp, setForExtremeCloseUp] = useState<boolean>(false);
-  const [ecuAbstract, setEcuAbstract] = useState<boolean>(false);
 
   // Step 2b: Background Source Selection (only for backgrounds)
   const [sourceType, setSourceType] = useState<'reference-images' | 'angle-variations'>('reference-images');
@@ -79,7 +84,12 @@ export function GenerateLocationTab({
   
   // Step 5: Optional - Additional Prompt
   const [additionalPrompt, setAdditionalPrompt] = useState<string>('');
-  
+
+  // Extreme Close-ups tab (Feature 0232): source type, selected source ids, ECU package
+  const [ecuSourceType, setEcuSourceType] = useState<'reference-images' | 'angle-variations' | 'backgrounds'>('reference-images');
+  const [selectedECUSourceIds, setSelectedECUSourceIds] = useState<string[]>([]);
+  const [ecuPackageId, setEcuPackageId] = useState<string>('essentials');
+
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>('');
@@ -88,6 +98,43 @@ export function GenerateLocationTab({
   const availableAngles = location?.angleVariations || [];
   // Stable id for selection/API: backend matches by id or s3Key; use s3Key when present so selection survives Media Library vs API shape
   const getAngleSelectionId = (angle: any) => angle?.s3Key || angle?.angleId || angle?.id || '';
+
+  // ECU tab: source list and stable id per source (Feature 0232)
+  const ecuSourceList = useMemo(() => {
+    const loc = location ?? locationProfile;
+    if (ecuSourceType === 'reference-images') {
+      const base = loc?.baseReference;
+      const fromImages = loc?.images?.filter((img: any) => img?.metadata?.isBase || img?.metadata?.source === 'user-upload' || img?.metadata?.createdIn === 'creation') ?? [];
+      if (fromImages.length > 0) {
+        return fromImages.map((img: any) => ({
+          id: img.s3Key || img.metadata?.s3Key || img.id || '',
+          imageUrl: img.imageUrl,
+          label: img.metadata?.isBase ? 'Base reference' : 'Reference',
+        })).filter((x: any) => x.id);
+      }
+      if (base?.s3Key) return [{ id: base.s3Key, imageUrl: base.imageUrl, label: 'Base reference' }];
+      return [];
+    }
+    if (ecuSourceType === 'angle-variations') {
+      return (loc?.angleVariations || []).map((a: any) => ({
+        id: getAngleSelectionId(a),
+        imageUrl: a.imageUrl,
+        label: a.angle || 'Angle',
+      }));
+    }
+    if (ecuSourceType === 'backgrounds') {
+      return (loc?.backgrounds || []).map((b: any) => ({
+        id: b.s3Key || b.id,
+        imageUrl: b.imageUrl,
+        label: b.backgroundType || 'Background',
+      }));
+    }
+    return [];
+  }, [location, locationProfile, ecuSourceType]);
+  const getECUSourceId = (item: { id: string }) => item.id;
+  const toggleECUSource = (id: string) => {
+    setSelectedECUSourceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
   // Filter angles by metadata (for visual selector)
   const filteredAngles = useMemo(() => {
@@ -310,6 +357,22 @@ export function GenerateLocationTab({
       showReferenceRequired(toast, setError);
       return;
     }
+    if (packageType === 'extreme-closeups') {
+      if (selectedECUSourceIds.length === 0) {
+        toast.error('Select at least one source image for ECU generation.');
+        setError('Select at least one source image.');
+        return;
+      }
+      if (ecuSourceType === 'reference-images' && !hasLocationReference(loc)) {
+        showReferenceRequired(toast, setError);
+        return;
+      }
+      if (ecuSourceType === 'backgrounds' && (!loc?.backgrounds || loc.backgrounds.length === 0)) {
+        toast.error('Generate location backgrounds first.');
+        setError('No backgrounds available.');
+        return;
+      }
+    }
     setIsGenerating(true);
     setError('');
     
@@ -320,17 +383,11 @@ export function GenerateLocationTab({
         throw new Error('Failed to get backend token. Please try refreshing the page.');
       }
       
-      // Validate providerId - this should never happen if button is properly disabled
       if (!providerId || providerId.trim() === '') {
-        console.error('[GenerateLocationTab] providerId validation failed:', {
-          providerId,
-          modelsCount: models.length,
-          isLoadingModels
-        });
+        console.error('[GenerateLocationTab] providerId validation failed:', { providerId, modelsCount: models.length, isLoadingModels });
         throw new Error('Please select a model before generating. If models are not loading, please refresh the page.');
       }
       
-      // Default values
       const defaultTimeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' = timeOfDay && timeOfDay.trim() !== '' 
         ? (timeOfDay.trim() as 'morning' | 'afternoon' | 'evening' | 'night')
         : 'afternoon';
@@ -338,6 +395,42 @@ export function GenerateLocationTab({
       const defaultWeather: 'sunny' | 'cloudy' | 'rainy' | 'snowy' = weather && weather.trim() !== ''
         ? (weather.trim() as 'sunny' | 'cloudy' | 'rainy' | 'snowy')
         : 'sunny';
+      
+      if (packageType === 'extreme-closeups') {
+        const apiUrl = `/api/location-bank/${locationId}/generate-ecu-backgrounds`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            ecuPackageId,
+            sourceType: ecuSourceType,
+            selectedSourceIds: selectedECUSourceIds,
+            providerId,
+            quality: selectedModel?.quality === '4K' ? 'high-quality' : 'standard',
+            screenplayId,
+            projectId: screenplayId,
+            timeOfDay: defaultTimeOfDay,
+            weather: defaultWeather,
+          }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to start ECU generation' }));
+          throw new Error(errorData.error?.message || errorData.error || 'Failed to start ECU generation');
+        }
+        const result = await response.json();
+        if (result.jobId) {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+              detail: { jobId: result.jobId, screenplayId, jobType: 'image-generation', assetName: locationName },
+            }));
+          }
+          if (onComplete) onComplete({ jobId: result.jobId, type: 'ecu-backgrounds' });
+          onClose();
+        } else {
+          throw new Error('No job ID returned from server');
+        }
+        return;
+      }
       
       if (packageType === 'angles') {
         // Generate angles
@@ -434,9 +527,7 @@ export function GenerateLocationTab({
           timeOfDay: defaultTimeOfDay,
           weather: defaultWeather,
           projectId: screenplayId,
-          screenplayId: screenplayId,
-          forExtremeCloseUp: forExtremeCloseUp || undefined, // Feature 0221
-          ecuAbstract: ecuAbstract || undefined // Feature 0222
+          screenplayId: screenplayId
         };
         
         const response = await fetch(apiUrl, {
@@ -507,9 +598,11 @@ export function GenerateLocationTab({
   };
   
   const selectedPackageId = packageType === 'angles' ? selectedAnglePackageId : selectedBackgroundPackageId;
-  const itemCount = packageType === 'angles' 
-    ? angleCounts[selectedPackageId] || 6
-    : backgroundCounts[selectedPackageId] || 6;
+  const itemCount = packageType === 'extreme-closeups'
+    ? selectedECUSourceIds.length
+    : packageType === 'angles'
+      ? angleCounts[selectedPackageId] || 6
+      : backgroundCounts[selectedPackageId] || 6;
   const totalCredits = itemCount * creditsPerImage;
   
   return (
@@ -551,30 +644,22 @@ export function GenerateLocationTab({
         </div>
       </div>
 
-      {/* Step 2: Package Type Selection */}
+      {/* Step 2: Package Type (three tabs — Feature 0232) */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
         <h3 className="text-sm font-semibold text-white mb-3">Step 2: Select Package Type</h3>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="packageType"
-              checked={packageType === 'angles'}
-              onChange={() => setPackageType('angles')}
-              className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
-            />
-            <span className="text-sm text-white">Angle Packages</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="packageType"
-              checked={packageType === 'backgrounds'}
-              onChange={() => setPackageType('backgrounds')}
-              className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
-            />
-            <span className="text-sm text-white">Background Packages</span>
-          </label>
+        <div className="flex gap-1 p-1 bg-[#0A0A0A] rounded-lg mb-0 border border-[#3F3F46]">
+          {(['angles', 'backgrounds', 'extreme-closeups'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setPackageType(tab)}
+              className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                packageType === tab ? 'bg-[#DC143C] text-white' : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+              }`}
+            >
+              {tab === 'angles' ? 'Angle Packages' : tab === 'backgrounds' ? 'Background Packages' : 'Extreme Close-ups'}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -788,77 +873,115 @@ export function GenerateLocationTab({
         </div>
       )}
 
-      {/* Step 3: Package Selection */}
-      <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-4">
-          Step 3: {packageType === 'angles' ? 'Angle' : 'Background'} Package Selection
-        </h3>
-        {packageType === 'angles' ? (
-          <LocationAnglePackageSelector
-            locationName={locationName}
-            onSelectPackage={setSelectedAnglePackageId}
-            selectedPackageId={selectedAnglePackageId}
-            creditsPerImage={creditsPerImage}
-            compact={true}
-            // 🔥 Feature 0190: Single angle selection
-            selectedAngle={selectedAngle}
-            onSelectedAngleChange={setSelectedAngle}
-          />
-        ) : (
-          <LocationBackgroundPackageSelector
-            locationName={locationName}
-            onSelectPackage={setSelectedBackgroundPackageId}
-            selectedPackageId={selectedBackgroundPackageId}
-            creditsPerImage={creditsPerImage}
-            compact={true}
-            // 🔥 Feature 0190: Single background type selection
-            selectedBackgroundType={selectedBackgroundType}
-            onSelectedBackgroundTypeChange={setSelectedBackgroundType}
-          />
-        )}
-      </div>
+      {/* Step 3: Package Selection (angles or backgrounds only) */}
+      {packageType !== 'extreme-closeups' && (
+        <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-white mb-4">
+            Step 3: {packageType === 'angles' ? 'Angle' : 'Background'} Package Selection
+          </h3>
+          {packageType === 'angles' ? (
+            <LocationAnglePackageSelector
+              locationName={locationName}
+              onSelectPackage={setSelectedAnglePackageId}
+              selectedPackageId={selectedAnglePackageId}
+              creditsPerImage={creditsPerImage}
+              compact={true}
+              selectedAngle={selectedAngle}
+              onSelectedAngleChange={setSelectedAngle}
+            />
+          ) : (
+            <LocationBackgroundPackageSelector
+              locationName={locationName}
+              onSelectPackage={setSelectedBackgroundPackageId}
+              selectedPackageId={selectedBackgroundPackageId}
+              creditsPerImage={creditsPerImage}
+              compact={true}
+              selectedBackgroundType={selectedBackgroundType}
+              onSelectedBackgroundTypeChange={setSelectedBackgroundType}
+            />
+          )}
+        </div>
+      )}
 
-      {/* Feature 0221 / 0222: ECU modifiers - mutually exclusive (backgrounds only) */}
-      {packageType === 'backgrounds' && (
-        <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-white mb-2">Extreme close-ups</h3>
-          <p className="text-xs text-[#808080] mb-3">Choose one if you need backgrounds for ECU face or mouth shots.</p>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={forExtremeCloseUp}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setForExtremeCloseUp(checked);
-                if (checked) setEcuAbstract(false);
-              }}
-              className="w-4 h-4 rounded border-[#3F3F46] text-[#DC143C] focus:ring-[#DC143C]"
-            />
-            <div>
-              <span className="text-sm font-medium text-white">For extreme close-up (face/mouth)</span>
-              <p className="text-xs text-[#808080] mt-1">
-                Generate soft, blurred backgrounds for extreme close-up dialogue shots. Same lighting and mood as location.
-              </p>
+      {/* Extreme Close-ups tab: source, image selection, ECU package (Feature 0232) */}
+      {packageType === 'extreme-closeups' && (
+        <div className="space-y-4">
+          <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Step 3a: Generate From</h3>
+            <div className="space-y-2">
+              {(['reference-images', 'angle-variations', 'backgrounds'] as const).map((src) => (
+                <label key={src} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="ecuSource"
+                    checked={ecuSourceType === src}
+                    onChange={() => { setEcuSourceType(src); setSelectedECUSourceIds([]); }}
+                    className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C]"
+                  />
+                  <span className="text-sm text-white">
+                    {src === 'reference-images' ? 'Reference images (original)' : src === 'angle-variations' ? 'Angle variations' : 'Backgrounds'}
+                  </span>
+                </label>
+              ))}
             </div>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={ecuAbstract}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setEcuAbstract(checked);
-                if (checked) setForExtremeCloseUp(false);
-              }}
-              className="w-4 h-4 rounded border-[#3F3F46] text-[#DC143C] focus:ring-[#DC143C]"
-            />
-            <div>
-              <span className="text-sm font-medium text-white">Abstract (colors &amp; lighting only)</span>
-              <p className="text-xs text-[#808080] mt-1">
-                Failsafe ECU background: only color and lighting, no location detail. Use when soft blur still looks too busy or inconsistent.
+            {ecuSourceType === 'backgrounds' && (!location?.backgrounds || location.backgrounds.length === 0) && (
+              <p className="mt-2 text-xs text-amber-400">Generate location backgrounds first.</p>
+            )}
+          </div>
+          <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Step 3b: Select source image(s)</h3>
+            <p className="text-xs text-[#808080] mb-2">One ECU image will be generated per selected image.</p>
+            {ecuSourceList.length === 0 ? (
+              <p className="text-sm text-[#808080]">
+                {ecuSourceType === 'reference-images' ? 'No reference images.' : ecuSourceType === 'angle-variations' ? 'No angle variations. Generate angles first.' : 'No backgrounds. Generate backgrounds first.'}
               </p>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                {ecuSourceList.map((item) => {
+                  const id = getECUSourceId(item);
+                  const isSelected = selectedECUSourceIds.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => toggleECUSource(id)}
+                      className={`relative aspect-square rounded border-2 transition-all ${
+                        isSelected ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50' : 'border-[#3F3F46] hover:border-[#808080]'
+                      }`}
+                    >
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt="" className="w-full h-full object-cover rounded" />
+                      ) : (
+                        <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] rounded">{item.label}</div>
+                      )}
+                      {isSelected && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20 rounded">
+                          <svg className="w-5 h-5 text-[#DC143C]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Step 3c: ECU package</h3>
+            <div className="flex gap-2 flex-wrap">
+              {Object.values(ECU_PACKAGES_UI).map((pkg) => (
+                <button
+                  key={pkg.id}
+                  type="button"
+                  onClick={() => setEcuPackageId(pkg.id)}
+                  className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                    ecuPackageId === pkg.id ? 'border-[#DC143C] bg-[#DC143C]/10 text-white' : 'border-[#3F3F46] text-[#808080] hover:border-[#DC143C]/50'
+                  }`}
+                >
+                  {pkg.name} ({pkg.variationCount} styles)
+                </button>
+              ))}
             </div>
-          </label>
+          </div>
         </div>
       )}
 
@@ -935,7 +1058,7 @@ export function GenerateLocationTab({
             <div className="text-sm text-[#808080]">Total Cost</div>
             <div className="text-2xl font-bold text-white">{totalCredits} credits</div>
             <div className="text-xs text-[#808080] mt-1">
-              {itemCount} {packageType === 'angles' ? 'angles' : 'backgrounds'} × {creditsPerImage} credits
+              {itemCount} {packageType === 'angles' ? 'angles' : packageType === 'extreme-closeups' ? 'ECU images' : 'backgrounds'} × {creditsPerImage} credits
             </div>
           </div>
         </div>
@@ -958,7 +1081,13 @@ export function GenerateLocationTab({
         </button>
         <button
           onClick={handleGenerate}
-          disabled={isGenerating || isLoadingModels || !providerId || !selectedPackageId}
+          disabled={
+            isGenerating ||
+            isLoadingModels ||
+            !providerId ||
+            (packageType !== 'extreme-closeups' && !selectedPackageId) ||
+            (packageType === 'extreme-closeups' && (selectedECUSourceIds.length === 0 || (ecuSourceType === 'backgrounds' && (!location?.backgrounds || location.backgrounds.length === 0))))
+          }
           className="flex-1 px-4 py-3 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
         >
           {isGenerating ? (
@@ -967,7 +1096,7 @@ export function GenerateLocationTab({
               Generating...
             </>
           ) : (
-            `Generate ${packageType === 'angles' ? 'Angles' : 'Backgrounds'}`
+            `Generate ${packageType === 'angles' ? 'Angles' : packageType === 'extreme-closeups' ? 'ECU Images' : 'Backgrounds'}`
           )}
         </button>
       </div>
