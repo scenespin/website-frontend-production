@@ -372,10 +372,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const emptyRetryCountRef = useRef(0);
   // GSI: retry counter when list returned but optimistic placeholder(s) not in list (max 3 retries with exponential backoff: 2s, 4s, 8s)
   const placeholderRetryCountRef = useRef(0);
-  // Prevent duplicate direct fetch when multiple loadJobs runs hit "retries exhausted" (only one in-flight fetch per id)
-  const directFetchInProgressRef = useRef<Set<string>>(new Set());
-  // Jobs we merged via direct fetch: keep in ref so a later loadJobs setState (with stale prev) doesn't drop them
-  const directFetchedJobsRef = useRef<Map<string, WorkflowJob>>(new Map());
   const MAX_GSI_RETRIES = 3;
   const GSI_RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff for GSI eventual consistency
 
@@ -587,40 +583,27 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
    */
   const fetchMissingPlaceholdersDirectly = async (missingJobIds: string[]) => {
     if (missingJobIds.length === 0) return;
-    const idsSet = new Set(missingJobIds);
-    const alreadyFetching = missingJobIds.some(id => directFetchInProgressRef.current.has(id));
-    if (alreadyFetching) {
-      return;
+    
+    console.log('[JobsDrawer] Direct fetch fallback for missing placeholders', {
+      count: missingJobIds.length,
+      jobIds: missingJobIds.map(id => id.slice(-12)),
+    });
+    
+    const fetchedJobs: WorkflowJob[] = [];
+    for (const jobId of missingJobIds) {
+      const job = await fetchJobDirectly(jobId);
+      if (job) fetchedJobs.push(job);
     }
-    missingJobIds.forEach(id => directFetchInProgressRef.current.add(id));
-    try {
-      console.log('[JobsDrawer] Direct fetch fallback for missing placeholders', {
-        count: missingJobIds.length,
-        jobIds: missingJobIds.map(id => id.slice(-12)),
+    
+    if (fetchedJobs.length > 0) {
+      setJobs(prevJobs => {
+        const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
+        fetchedJobs.forEach(job => jobMap.set(job.jobId, job));
+        const mergedJobs = Array.from(jobMap.values());
+        mergedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return mergedJobs;
       });
-      const fetchedJobs: WorkflowJob[] = [];
-      for (const jobId of missingJobIds) {
-        const job = await fetchJobDirectly(jobId);
-        if (job) fetchedJobs.push(job);
-      }
-      if (fetchedJobs.length > 0) {
-        // Store in ref so a later loadJobs setState (with stale prev) won't overwrite and drop these jobs
-        fetchedJobs.forEach(job => directFetchedJobsRef.current.set(job.jobId, job));
-        setJobs(prevJobs => {
-          const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
-          fetchedJobs.forEach((job, index) => {
-            const placeholderId = missingJobIds[index];
-            if (placeholderId) jobMap.delete(placeholderId);
-            jobMap.set(job.jobId, job);
-          });
-          const mergedJobs = Array.from(jobMap.values());
-          mergedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          return mergedJobs;
-        });
-        console.log('[JobsDrawer] Direct fetch replaced placeholders', { count: fetchedJobs.length });
-      }
-    } finally {
-      idsSet.forEach(id => directFetchInProgressRef.current.delete(id));
+      console.log('[JobsDrawer] Direct fetch replaced placeholders', { count: fetchedJobs.length });
     }
   };
 
@@ -673,16 +656,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         runningCount: jobList.filter(j => j.status === 'running' || j.status === 'queued').length,
       });
       
-      const apiJobIds = new Set(jobList.map((j: WorkflowJob) => j.jobId));
       setJobs(prevJobs => {
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
         jobList.forEach((newJob: WorkflowJob) => {
           jobMap.set(newJob.jobId, newJob);
-        });
-        // Re-insert any direct-fetched jobs that aren't in this API response, so a stale prev doesn't drop them
-        directFetchedJobsRef.current.forEach((job, id) => {
-          if (!apiJobIds.has(id)) jobMap.set(id, job);
-          else directFetchedJobsRef.current.delete(id); // GSI caught up, stop preserving
         });
         const mergedJobs = Array.from(jobMap.values());
         mergedJobs.sort((a, b) => {
@@ -692,7 +669,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         });
         // GSI: if we have optimistic placeholder(s) that weren't in this list response, retry with exponential backoff
         // DynamoDB GSI eventual consistency can take 5-10+ seconds in some cases
-        const placeholdersMissing = prevJobs.filter(j => j.workflowId === '' && !jobList.some((api: WorkflowJob) => api.jobId === j.jobId));
+        const placeholdersMissing = prevJobs.filter(j => j.workflowId === '' && !jobList.some(api => api.jobId === j.jobId));
         if (placeholdersMissing.length > 0 && placeholderRetryCountRef.current < MAX_GSI_RETRIES && isOpen) {
           const retryDelay = GSI_RETRY_DELAYS[placeholderRetryCountRef.current] || 8000;
           console.log('[JobsDrawer] GSI placeholder retry', {
