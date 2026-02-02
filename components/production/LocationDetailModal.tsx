@@ -112,7 +112,8 @@ interface LocationDetailModalProps {
   onClose: () => void;
   onUpdate: (locationId: string, updates: Partial<LocationProfile>) => void;
   onDelete?: (locationId: string) => void;
-  // Removed projectId prop - screenplayId comes from ScreenplayContext
+  /** When provided (e.g. from ProductionHub), use for job creation so Jobs panel shows location jobs. */
+  screenplayIdForJobs?: string;
   onUploadImage?: (locationId: string, file: File) => Promise<void>;
   onGenerateAngles?: (locationId: string) => Promise<void>;
 }
@@ -123,12 +124,13 @@ export function LocationDetailModal({
   onClose,
   onUpdate,
   onDelete,
+  screenplayIdForJobs,
   onUploadImage,
   onGenerateAngles
 }: LocationDetailModalProps) {
-  // 🔥 FIX: Get screenplayId from context instead of props
+  // Use Hub's screenplayId when provided so Jobs panel shows location background/angle jobs
   const screenplay = useScreenplay();
-  const screenplayId = screenplay.screenplayId;
+  const screenplayId = (screenplayIdForJobs?.trim() || screenplay.screenplayId || '').trim() || '';
   
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub

@@ -25,6 +25,8 @@ interface LocationBankPanelProps {
   locations?: LocationProfile[];
   isLoading?: boolean;
   onLocationsUpdate?: () => void;
+  /** When provided (e.g. from ProductionHub), use this for job creation so Jobs panel shows location jobs. */
+  screenplayIdForJobs?: string;
   entityToOpen?: string | null; // Location ID to open modal for
   onEntityOpened?: () => void; // Callback when entity modal is opened
 }
@@ -34,6 +36,7 @@ export function LocationBankPanel({
   locations: propsLocations = [],
   isLoading: propsIsLoading = false,
   onLocationsUpdate,
+  screenplayIdForJobs,
   entityToOpen,
   onEntityOpened
 }: LocationBankPanelProps) {
@@ -504,6 +507,7 @@ export function LocationBankPanel({
             setSelectedLocationId(null);
           }}
           onUpdate={updateLocation}
+          screenplayIdForJobs={screenplayIdForJobs}
           onUploadImage={async (locationId, file) => {
             toast.info('Location image upload coming soon');
           }}
