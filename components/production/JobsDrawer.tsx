@@ -970,11 +970,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     if (completedWithoutResults.length === 0) return;
 
     const jobToBackfill = completedWithoutResults[0];
-    resultsBackfillFetchedRef.current.add(jobToBackfill.jobId);
 
     let cancelled = false;
     fetchJobDirectly(jobToBackfill.jobId, { silent: true }).then((full) => {
-      if (cancelled || !full) return;
+      if (cancelled) return;
+      // On fetch failure (null), don't mark as attempted so transient errors can retry
+      if (!full) return;
+      resultsBackfillFetchedRef.current.add(full.jobId);
       const hasResults = full.results && (
         (full.results.poses?.length) ||
         (full.results.angleReferences?.length) ||
