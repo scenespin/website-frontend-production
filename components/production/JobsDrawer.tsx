@@ -372,6 +372,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const emptyRetryCountRef = useRef(0);
   // GSI: retry counter when list returned but optimistic placeholder(s) not in list (max 3 retries with exponential backoff: 2s, 4s, 8s)
   const placeholderRetryCountRef = useRef(0);
+  // Prevent duplicate direct fetch when multiple loadJobs runs hit "retries exhausted" (only one in-flight fetch per id)
+  const directFetchInProgressRef = useRef<Set<string>>(new Set());
   const MAX_GSI_RETRIES = 3;
   const GSI_RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff for GSI eventual consistency
 
@@ -583,27 +585,38 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
    */
   const fetchMissingPlaceholdersDirectly = async (missingJobIds: string[]) => {
     if (missingJobIds.length === 0) return;
-    
-    console.log('[JobsDrawer] Direct fetch fallback for missing placeholders', {
-      count: missingJobIds.length,
-      jobIds: missingJobIds.map(id => id.slice(-12)),
-    });
-    
-    const fetchedJobs: WorkflowJob[] = [];
-    for (const jobId of missingJobIds) {
-      const job = await fetchJobDirectly(jobId);
-      if (job) fetchedJobs.push(job);
+    const idsSet = new Set(missingJobIds);
+    const alreadyFetching = missingJobIds.some(id => directFetchInProgressRef.current.has(id));
+    if (alreadyFetching) {
+      return;
     }
-    
-    if (fetchedJobs.length > 0) {
-      setJobs(prevJobs => {
-        const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
-        fetchedJobs.forEach(job => jobMap.set(job.jobId, job));
-        const mergedJobs = Array.from(jobMap.values());
-        mergedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        return mergedJobs;
+    missingJobIds.forEach(id => directFetchInProgressRef.current.add(id));
+    try {
+      console.log('[JobsDrawer] Direct fetch fallback for missing placeholders', {
+        count: missingJobIds.length,
+        jobIds: missingJobIds.map(id => id.slice(-12)),
       });
-      console.log('[JobsDrawer] Direct fetch replaced placeholders', { count: fetchedJobs.length });
+      const fetchedJobs: WorkflowJob[] = [];
+      for (const jobId of missingJobIds) {
+        const job = await fetchJobDirectly(jobId);
+        if (job) fetchedJobs.push(job);
+      }
+      if (fetchedJobs.length > 0) {
+        setJobs(prevJobs => {
+          const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
+          fetchedJobs.forEach((job, index) => {
+            const placeholderId = missingJobIds[index];
+            if (placeholderId) jobMap.delete(placeholderId);
+            jobMap.set(job.jobId, job);
+          });
+          const mergedJobs = Array.from(jobMap.values());
+          mergedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          return mergedJobs;
+        });
+        console.log('[JobsDrawer] Direct fetch replaced placeholders', { count: fetchedJobs.length });
+      }
+    } finally {
+      idsSet.forEach(id => directFetchInProgressRef.current.delete(id));
     }
   };
 
