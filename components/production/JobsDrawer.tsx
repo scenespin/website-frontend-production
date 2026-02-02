@@ -385,6 +385,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const directFetchInProgressRef = useRef<Set<string>>(new Set());
   // Jobs we merged via direct fetch: keep in ref so a later loadJobs setState (with stale prev) doesn't drop them
   const directFetchedJobsRef = useRef<Map<string, WorkflowJob>>(new Map());
+  // One-time backfill of results for completed jobs that came from list API without finalOutputs
+  const resultsBackfillFetchedRef = useRef<Set<string>>(new Set());
   const MAX_GSI_RETRIES = 3;
   const GSI_RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff for GSI eventual consistency
 
@@ -720,7 +722,30 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           // Don't overwrite completed/failed with stale list data (GSI can return "running" after we direct-fetched "completed")
           if (existing && (existing.status === 'completed' || existing.status === 'failed')) {
             if (newJob.status === 'completed' || newJob.status === 'failed') {
-              jobMap.set(newJob.jobId, newJob); // list caught up, use it
+              // List API often omits finalOutputs/results; never overwrite our full results with empty
+              const hasExistingResults = existing.results && (
+                (existing.results.poses?.length) ||
+                (existing.results.angleReferences?.length) ||
+                (existing.results.backgroundReferences?.length) ||
+                (existing.results.images?.length) ||
+                (existing.results.videos?.length) ||
+                (existing.results.screenplayReading) ||
+                (existing.results.videoSoundscape)
+              );
+              const hasNewResults = newJob.results && (
+                (newJob.results.poses?.length) ||
+                (newJob.results.angleReferences?.length) ||
+                (newJob.results.backgroundReferences?.length) ||
+                (newJob.results.images?.length) ||
+                (newJob.results.videos?.length) ||
+                (newJob.results.screenplayReading) ||
+                (newJob.results.videoSoundscape)
+              );
+              if (hasExistingResults && !hasNewResults) {
+                jobMap.set(newJob.jobId, { ...newJob, results: existing.results });
+              } else {
+                jobMap.set(newJob.jobId, newJob);
+              }
             }
             // else keep existing (don't overwrite with list's stale running/queued)
           } else {
@@ -920,6 +945,57 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       clearInterval(interval);
     };
   }, [isOpen, screenplayId]);
+
+  /**
+   * Backfill results for completed jobs that have no results (list API often omits finalOutputs).
+   * One-time direct fetch per job so "Done" cards show thumbnails.
+   */
+  useEffect(() => {
+    if (!isOpen || !screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
+
+    const completedWithoutResults = jobs.filter((j) => {
+      if (j.status !== 'completed' || !j.jobId) return false;
+      if (resultsBackfillFetchedRef.current.has(j.jobId)) return false;
+      const hasResults = j.results && (
+        (j.results.poses?.length) ||
+        (j.results.angleReferences?.length) ||
+        (j.results.backgroundReferences?.length) ||
+        (j.results.images?.length) ||
+        (j.results.videos?.length) ||
+        (j.results.screenplayReading) ||
+        (j.results.videoSoundscape)
+      );
+      return !hasResults;
+    });
+    if (completedWithoutResults.length === 0) return;
+
+    const jobToBackfill = completedWithoutResults[0];
+    resultsBackfillFetchedRef.current.add(jobToBackfill.jobId);
+
+    let cancelled = false;
+    fetchJobDirectly(jobToBackfill.jobId, { silent: true }).then((full) => {
+      if (cancelled || !full) return;
+      const hasResults = full.results && (
+        (full.results.poses?.length) ||
+        (full.results.angleReferences?.length) ||
+        (full.results.backgroundReferences?.length) ||
+        (full.results.images?.length) ||
+        (full.results.videos?.length) ||
+        (full.results.screenplayReading) ||
+        (full.results.videoSoundscape)
+      );
+      if (!hasResults) return;
+      setJobs((prev) => {
+        const map = new Map(prev.map((j) => [j.jobId, j]));
+        map.set(full.jobId, full);
+        const merged = Array.from(map.values());
+        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return merged;
+      });
+    });
+
+    return () => { cancelled = true; };
+  }, [isOpen, screenplayId, jobs]);
 
   /**
    * Watch for completed jobs and refresh related data

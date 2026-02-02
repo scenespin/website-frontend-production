@@ -632,7 +632,30 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
             const existing = jobMap.get(newJob.jobId);
             if (existing && (existing.status === 'completed' || existing.status === 'failed')) {
               if (newJob.status === 'completed' || newJob.status === 'failed') {
-                jobMap.set(newJob.jobId, newJob);
+                // List API often omits finalOutputs/results; never overwrite our full results with empty
+                const hasExistingResults = existing.results && (
+                  (existing.results.poses?.length) ||
+                  (existing.results.angleReferences?.length) ||
+                  (existing.results.backgroundReferences?.length) ||
+                  (existing.results.images?.length) ||
+                  (existing.results.videos?.length) ||
+                  (existing.results.screenplayReading) ||
+                  (existing.results.videoSoundscape)
+                );
+                const hasNewResults = newJob.results && (
+                  (newJob.results.poses?.length) ||
+                  (newJob.results.angleReferences?.length) ||
+                  (newJob.results.backgroundReferences?.length) ||
+                  (newJob.results.images?.length) ||
+                  (newJob.results.videos?.length) ||
+                  (newJob.results.screenplayReading) ||
+                  (newJob.results.videoSoundscape)
+                );
+                if (hasExistingResults && !hasNewResults) {
+                  jobMap.set(newJob.jobId, { ...newJob, results: existing.results });
+                } else {
+                  jobMap.set(newJob.jobId, newJob);
+                }
               }
               // else keep existing (don't overwrite with list's stale running/queued)
             } else {
