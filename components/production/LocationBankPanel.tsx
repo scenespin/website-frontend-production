@@ -41,7 +41,8 @@ export function LocationBankPanel({
   onEntityOpened
 }: LocationBankPanelProps) {
   const screenplay = useScreenplay();
-  const screenplayId = screenplay.screenplayId;
+  // Use Hub's screenplayId when provided so locations + job creation use same project the Jobs panel queries
+  const screenplayId = (screenplayIdForJobs?.trim() || screenplay.screenplayId || '').trim() || '';
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
 
