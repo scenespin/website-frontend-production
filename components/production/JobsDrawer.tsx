@@ -524,6 +524,90 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   /**
+   * Direct fetch: Fetch a single job by ID using primary key lookup (bypasses GSI)
+   * Used as fallback when GSI list doesn't return the job after max retries
+   */
+  const fetchJobDirectly = async (jobId: string): Promise<WorkflowJob | null> => {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return null;
+
+      const response = await fetch(`/api/workflows/${jobId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        console.warn('[JobsDrawer] Direct fetch failed', { jobId: jobId.slice(-12), status: response.status });
+        return null;
+      }
+      
+      const data = await response.json();
+      if (!data.success || !data.data?.execution) {
+        console.warn('[JobsDrawer] Direct fetch returned no execution', { jobId: jobId.slice(-12) });
+        return null;
+      }
+      
+      const exec = data.data.execution;
+      // Transform execution response to WorkflowJob format
+      const job: WorkflowJob = {
+        jobId: exec.executionId,
+        workflowId: exec.workflowId || 'image-generation',
+        workflowName: exec.workflowName || 'Image Generation',
+        jobType: exec.jobType || 'image-generation',
+        status: exec.status,
+        progress: exec.progress || Math.round((exec.currentStep / exec.totalSteps) * 100) || 0,
+        createdAt: exec.startedAt || new Date().toISOString(),
+        creditsUsed: exec.totalCreditsUsed || 0,
+        results: exec.finalOutputs,
+        metadata: exec.metadata,
+      };
+      
+      console.log('[JobsDrawer] Direct fetch SUCCESS', { 
+        jobId: jobId.slice(-12), 
+        status: job.status, 
+        projectId: exec.projectId?.slice(0, 24),
+        storedProjectId: exec.projectId,
+        queriedScreenplayId: screenplayId,
+        match: exec.projectId === screenplayId
+      });
+      
+      return job;
+    } catch (error: any) {
+      console.error('[JobsDrawer] Direct fetch error', { jobId: jobId.slice(-12), error: error.message });
+      return null;
+    }
+  };
+
+  /**
+   * Fallback: Fetch missing placeholders directly by ID (bypasses GSI projectId filter)
+   */
+  const fetchMissingPlaceholdersDirectly = async (missingJobIds: string[]) => {
+    if (missingJobIds.length === 0) return;
+    
+    console.log('[JobsDrawer] Direct fetch fallback for missing placeholders', {
+      count: missingJobIds.length,
+      jobIds: missingJobIds.map(id => id.slice(-12)),
+    });
+    
+    const fetchedJobs: WorkflowJob[] = [];
+    for (const jobId of missingJobIds) {
+      const job = await fetchJobDirectly(jobId);
+      if (job) fetchedJobs.push(job);
+    }
+    
+    if (fetchedJobs.length > 0) {
+      setJobs(prevJobs => {
+        const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
+        fetchedJobs.forEach(job => jobMap.set(job.jobId, job));
+        const mergedJobs = Array.from(jobMap.values());
+        mergedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return mergedJobs;
+      });
+      console.log('[JobsDrawer] Direct fetch replaced placeholders', { count: fetchedJobs.length });
+    }
+  };
+
+  /**
    * Load jobs from API
    */
   const loadJobs = async (showLoading: boolean = false) => {
@@ -596,6 +680,11 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           });
           placeholderRetryCountRef.current += 1;
           setTimeout(() => loadJobs(false), retryDelay);
+        } else if (placeholdersMissing.length > 0 && placeholderRetryCountRef.current >= MAX_GSI_RETRIES && isOpen) {
+          // GSI retries exhausted - try direct fetch by job ID (bypasses projectId filter)
+          // This handles projectId mismatch between job creation and list query
+          const missingJobIds = placeholdersMissing.map(j => j.jobId);
+          fetchMissingPlaceholdersDirectly(missingJobIds);
         }
         return mergedJobs;
       });
