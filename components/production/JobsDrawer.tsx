@@ -889,6 +889,23 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         fetchJobDirectly(jobId, { silent: true }).then((full) => {
           try {
             if (!full) return;
+            const isTerminal = full.status === 'completed' || full.status === 'failed';
+            const hasResults = full.results && (
+              (full.results.poses?.length) ||
+              (full.results.angleReferences?.length) ||
+              (full.results.backgroundReferences?.length) ||
+              (full.results.images?.length) ||
+              (full.results.videos?.length) ||
+              (full.results.screenplayReading) ||
+              (full.results.videoSoundscape)
+            );
+            // If job finished but backend hasn't written results yet, keep placeholder so poll-by-ID keeps polling
+            if (isTerminal && !hasResults) {
+              console.log('[JobsDrawer] Optimistic direct fetch returned completed without results, keeping placeholder for poll-by-ID', {
+                jobId: full.jobId.slice(-12),
+              });
+              return;
+            }
             directFetchedJobsRef.current.set(full.jobId, full);
             directFetchCompletedAtRef.current = Date.now();
             setJobs(prev => {
