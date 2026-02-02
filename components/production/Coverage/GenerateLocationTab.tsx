@@ -396,6 +396,19 @@ export function GenerateLocationTab({
           // Note: Credits are deducted asynchronously as each pose generates, not when job is created
           // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
           console.log('[GenerateLocationTab] ✅ Job created:', result.jobId);
+          
+          // 🔥 FIX: Notify Jobs panel so it shows placeholder immediately (matches GenerateAssetTab pattern)
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+              detail: {
+                jobId: result.jobId,
+                screenplayId: screenplayId,
+                jobType: 'image-generation',
+                assetName: locationName,
+              },
+            }));
+          }
+          
           if (onComplete) {
             onComplete({ jobId: result.jobId, type: 'angles' });
           }
@@ -446,6 +459,19 @@ export function GenerateLocationTab({
           // Note: Credits are deducted asynchronously as each background generates, not when job is created
           // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
           console.log('[GenerateLocationTab] ✅ Background job created:', result.jobId);
+          
+          // 🔥 FIX: Notify Jobs panel so it shows placeholder immediately (matches GenerateAssetTab pattern)
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+              detail: {
+                jobId: result.jobId,
+                screenplayId: screenplayId,
+                jobType: 'image-generation',
+                assetName: locationName,
+              },
+            }));
+          }
+          
           if (onComplete) {
             onComplete({ jobId: result.jobId, type: 'backgrounds' });
           }

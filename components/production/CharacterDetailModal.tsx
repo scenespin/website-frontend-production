@@ -73,7 +73,8 @@ export function CharacterDetailModal({
 }: CharacterDetailModalProps) {
   const { getToken } = useAuth();
   const screenplay = useScreenplay();
-  const screenplayId = screenplay.screenplayId;
+  // 🔥 FIX: Trim screenplayId to match Jobs panel query (Hub uses trimmed value)
+  const screenplayId = (screenplay.screenplayId || '').trim() || '';
   const { updateCharacter, characters: contextCharacters, isEntityInScript } = screenplay; // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
   const { state: editorState } = useEditor();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache

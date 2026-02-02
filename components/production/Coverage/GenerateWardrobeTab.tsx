@@ -323,6 +323,18 @@ export function GenerateWardrobeTab({
       // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
       console.log('[GenerateWardrobeTab] ✅ Job created:', result.jobId);
       
+      // 🔥 FIX: Notify Jobs panel so it shows placeholder immediately (matches GenerateAssetTab pattern)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+          detail: {
+            jobId: result.jobId,
+            screenplayId: screenplayId,
+            jobType: 'pose-generation',
+            assetName: characterName,
+          },
+        }));
+      }
+      
       toast.dismiss('wardrobe-gen-start');
       toast.success('Wardrobe generation started!', {
         description: 'View in Jobs tab to track progress.',
