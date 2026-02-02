@@ -89,11 +89,9 @@ export function ProductionHub({}: ProductionHubProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // 🔥 FIX: Get screenplayId from URL first (for new projects), then context, then Clerk metadata
-  // This matches Navigation.js pattern: URL > Context > Clerk metadata
-  const urlScreenplayId = searchParams?.get('project');
-  const contextScreenplayId = screenplay.screenplayId;
-  const screenplayId = urlScreenplayId || contextScreenplayId;
+  // Use ScreenplayContext as the single source of truth for "current project" on the Produce page.
+  // Jobs panel, Location panel, and all child components use the same screenplayId — no URL vs context mismatch.
+  const screenplayId = (screenplay.screenplayId || '').trim() || '';
   
   // State - sync with URL params (ALL HOOKS MUST BE CALLED BEFORE EARLY RETURN)
   // 🔥 FIX: Initialize with default, then sync from URL in useEffect to prevent React error #300
@@ -285,7 +283,7 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'locations' && (
             <div className="h-full overflow-y-auto">
               <ProductionErrorBoundary componentName="Location Bank">
-                <LocationBankPanel className="h-full" screenplayIdForJobs={screenplayId} />
+                <LocationBankPanel className="h-full" />
               </ProductionErrorBoundary>
             </div>
           )}
