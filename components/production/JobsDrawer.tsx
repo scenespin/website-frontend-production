@@ -372,6 +372,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const emptyRetryCountRef = useRef(0);
   // GSI: retry counter when list returned but optimistic placeholder(s) not in list (max 3 retries with exponential backoff: 2s, 4s, 8s)
   const placeholderRetryCountRef = useRef(0);
+  // Track when direct fetch completed - pause polling briefly to prevent race condition overwrite
+  const directFetchCompletedAtRef = useRef<number>(0);
+  const DIRECT_FETCH_PAUSE_MS = 10000; // Pause polling for 10s after direct fetch to let GSI catch up
   const MAX_GSI_RETRIES = 3;
   const GSI_RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff for GSI eventual consistency
 
@@ -596,6 +599,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
     
     if (fetchedJobs.length > 0) {
+      // Mark that we just did a direct fetch - pause polling to prevent race condition overwrite
+      directFetchCompletedAtRef.current = Date.now();
+      console.log('[JobsDrawer] Direct fetch pausing polling for', DIRECT_FETCH_PAUSE_MS, 'ms to let GSI catch up');
+      
       setJobs(prevJobs => {
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
         fetchedJobs.forEach(job => jobMap.set(job.jobId, job));
@@ -614,6 +621,15 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     try {
       if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
         console.log('[JobsDrawer] Skipping load - invalid screenplayId:', screenplayId);
+        return;
+      }
+      
+      // Skip polling if direct fetch just completed - prevents race condition where loadJobs overwrites direct-fetched job
+      const timeSinceDirectFetch = Date.now() - directFetchCompletedAtRef.current;
+      if (directFetchCompletedAtRef.current > 0 && timeSinceDirectFetch < DIRECT_FETCH_PAUSE_MS) {
+        console.log('[JobsDrawer] Skipping loadJobs - direct fetch pause active', {
+          remainingMs: DIRECT_FETCH_PAUSE_MS - timeSinceDirectFetch,
+        });
         return;
       }
       
@@ -757,6 +773,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       // Reset GSI retry counters when drawer opens (allow fresh retries for new jobs)
       emptyRetryCountRef.current = 0;
       placeholderRetryCountRef.current = 0;
+      directFetchCompletedAtRef.current = 0; // Clear any stale pause
     }
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
