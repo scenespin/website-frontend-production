@@ -612,6 +612,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const motionDirectionPrompt = contextState.motionDirectionPrompt;
   const sceneAnalysisResult = contextState.sceneAnalysisResult;
   
+  // 🔥 FIX: First frame override validation state (for completedShots calculation)
+  const firstFrameOverrideEnabled = contextState.firstFrameOverrideEnabled;
+  const firstFramePromptOverrides = contextState.firstFramePromptOverrides;
+  const uploadedFirstFrames = contextState.uploadedFirstFrames;
+  
   // UI State: Collapsible sections (local, not in context)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   /** Per-shot display credits for list (first-frame-only when dialogue video not opted in). */
@@ -4295,6 +4300,21 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                     if (unmappedPronouns.length > 0) {
                       isComplete = false;
                     }
+                  }
+                }
+                
+                // 🔥 FIX Issue 2: Check first frame override validation
+                // For action shots and Narrate Shot (scene-voiceover), if override checkbox is enabled,
+                // require either a prompt or an uploaded first frame
+                const isDialogueShotForValidation = s.type === 'dialogue';
+                const isSceneVoiceoverForValidation = selectedDialogueWorkflows[s.slot] === 'scene-voiceover';
+                const isOverrideAllowedForValidation = !isDialogueShotForValidation || isSceneVoiceoverForValidation;
+                
+                if (isOverrideAllowedForValidation && firstFrameOverrideEnabled[s.slot]) {
+                  const hasPrompt = firstFramePromptOverrides[s.slot]?.trim() !== '';
+                  const hasUploadedFirstFrame = !!uploadedFirstFrames[s.slot];
+                  if (!hasPrompt && !hasUploadedFirstFrame) {
+                    isComplete = false;
                   }
                 }
                 

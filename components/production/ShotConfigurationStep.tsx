@@ -382,6 +382,14 @@ export function ShotConfigurationStep({
   const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // 🔥 FIX Issue 1: Track checkbox state synchronously to avoid React batching issues
+  // This ref is updated immediately when the checkbox is clicked, before React re-renders
+  const firstFrameOverrideCheckboxRef = useRef<boolean>(firstFrameOverrideEnabledFromContext);
+  // Keep ref in sync with context state
+  useEffect(() => {
+    firstFrameOverrideCheckboxRef.current = firstFrameOverrideEnabledFromContext;
+  }, [firstFrameOverrideEnabledFromContext]);
+  
   // Sync context state when override data exists (preserves state on navigation)
   // Clear overrides when switching away from Narrate Shot (e.g. to Hidden Mouth or lip-sync)
   useEffect(() => {
@@ -703,17 +711,18 @@ export function ShotConfigurationStep({
     }
   }, [shot.slot, shot.type, videoOptInForThisShot, selectedVideoTypes, onVideoTypeChange]);
   
-  // 🔥 NEW: Auto-select default dialogue quality (reliable/Wryda) when dialogue shot is first accessed
+  // 🔥 NEW: Auto-select default dialogue quality (reliable/Wryda) when dialogue shot has video opt-in
+  // 🔥 FIX Issue 3: Only set quality when video is opted in - otherwise it affects cost calculation
   useEffect(() => {
-    // Only initialize for dialogue shots that need quality selection
-    if (shot.type === 'dialogue' && onDialogueQualityChange) {
+    // Only initialize for dialogue shots that have video opt-in and need quality selection
+    if (shot.type === 'dialogue' && videoOptInForThisShot && onDialogueQualityChange) {
       const currentQuality = finalSelectedDialogueQuality;
       // If no quality is set, default to 'reliable' (Wryda)
       if (!currentQuality) {
         onDialogueQualityChange(shotSlot, 'reliable');
       }
     }
-  }, [shot.slot, shot.type, finalSelectedDialogueQuality, onDialogueQualityChange]);
+  }, [shot.slot, shot.type, videoOptInForThisShot, finalSelectedDialogueQuality, onDialogueQualityChange]);
   
   // 🔥 NEW: Fetch presigned URLs for prop images (for references section)
   // Collect all prop image S3 keys for this shot
@@ -982,7 +991,9 @@ export function ShotConfigurationStep({
     
     // 1. Validate prompt override requirements (if overrides are enabled)
     // First frame override validation: when checkbox is on, must have prompt or uploaded image (Plan 0233: applies to both dialogue and action)
-    const firstFrameOverrideChecked = firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride;
+    // 🔥 FIX Issue 1: Use ref for synchronous check to avoid React batching issues
+    // The ref is updated immediately when checkbox is clicked, before React re-renders
+    const firstFrameOverrideChecked = firstFrameOverrideCheckboxRef.current || firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride;
     if (firstFrameOverrideChecked) {
       const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
       const hasUploadedFirstFrame = !!uploadedFirstFrameUrl;
@@ -1583,6 +1594,8 @@ export function ShotConfigurationStep({
                   checked={firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride}
                   onChange={(e) => {
                     const isChecked = e.target.checked;
+                    // 🔥 FIX Issue 1: Update ref synchronously before async context update
+                    firstFrameOverrideCheckboxRef.current = isChecked;
                     actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
                     if (!isChecked) actions.updateFirstFramePromptOverride(shotSlot, '');
                   }}
