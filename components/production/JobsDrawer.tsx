@@ -392,6 +392,18 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const lastScreenplayIdRef = useRef<string>('');
   // Placeholders stored here so loadJobs can re-inject them when prevJobs is stale (React batching race).
   const optimisticPlaceholdersRef = useRef<Map<string, WorkflowJob>>(new Map());
+  // Diagnostic: job IDs to log (recently added optimistically). Max 10; cleared with tracked.
+  const diagnosticJobIdsRef = useRef<Set<string>>(new Set());
+  const MAX_DIAGNOSTIC_JOBS = 10;
+  const hasResultsForLog = (j: WorkflowJob) => j?.results && (
+    (j.results.poses?.length) ||
+    (j.results.angleReferences?.length) ||
+    (j.results.backgroundReferences?.length) ||
+    (j.results.images?.length) ||
+    (j.results.videos?.length) ||
+    (j.results.screenplayReading) ||
+    (j.results.videoSoundscape)
+  );
 
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -441,6 +453,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       setHasLoadedOnce(false);
       trackedJobIdsRef.current.clear();
       optimisticPlaceholdersRef.current.clear();
+      diagnosticJobIdsRef.current.clear();
     }
   }, [isSignedIn]);
 
@@ -469,6 +482,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
   // Filter out deleted jobs and apply 7-day filter - calculate early so it can be used in useEffects
   const visibleJobs = getVisibleJobs();
+
+  // Diagnostic: log what state has for recently added job IDs (so we can compare list vs get-by-ID vs UI)
+  useEffect(() => {
+    const diagnostic = diagnosticJobIdsRef.current;
+    if (diagnostic.size === 0) return;
+    jobs.forEach((j) => {
+      if (!diagnostic.has(j.jobId)) return;
+      const firstKey = (j.results?.poses?.[0]?.s3Key) ?? (j.results?.images?.[0]?.s3Key) ?? (j.results?.angleReferences?.[0]?.s3Key) ?? (j.results?.backgroundReferences?.[0]?.s3Key) ?? 'none';
+      console.log('[JobsDrawer] [DEBUG] state', {
+        jobId: j.jobId.slice(-12),
+        status: j.status,
+        hasResults: hasResultsForLog(j),
+        thumbnailKey: firstKey === 'none' ? 'none' : firstKey.slice(-40),
+      });
+    });
+  }, [jobs]);
 
   // Auto-open when jobs are running
   useEffect(() => {
@@ -589,7 +618,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           match: exec.projectId === screenplayId
         });
       }
-      
+      if (options?.silent && diagnosticJobIdsRef.current.has(jobId)) {
+        console.log('[JobsDrawer] [DEBUG] direct_fetch', {
+          jobId: jobId.slice(-12),
+          status: job.status,
+          hasResults: hasResultsForLog(job),
+        });
+      }
       return job;
     } catch (error: any) {
       console.error('[JobsDrawer] Direct fetch error', { jobId: jobId.slice(-12), error: error.message });
@@ -718,7 +753,26 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         );
         jobList.forEach((newJob: WorkflowJob) => {
           if (tracked.has(newJob.jobId)) {
-            // Single source of truth: tracked jobs are updated only via get-by-ID. Never overwrite with list.
+            // Don't overwrite tracked with list when list has no results (poll/get-by-ID is source of truth).
+            // Do accept list when it has results and we don't (e.g. thumbnail) so UI can update without waiting for poll.
+            const existing = jobMap.get(newJob.jobId);
+            const listHasRes = hasResults(newJob);
+            const existingHasRes = existing && hasResults(existing);
+            const accepted = !!(existing && listHasRes && !existingHasRes);
+            if (accepted) {
+              jobMap.set(newJob.jobId, newJob);
+              optimisticPlaceholdersRef.current.delete(newJob.jobId);
+            }
+            if (diagnosticJobIdsRef.current.has(newJob.jobId)) {
+              console.log('[JobsDrawer] [DEBUG] merge list (tracked)', {
+                jobId: newJob.jobId.slice(-12),
+                action: accepted ? 'accepted_list_had_results' : 'skipped_tracked',
+                listStatus: newJob.status,
+                listHasResults: listHasRes,
+                existingStatus: existing?.status,
+                existingHasResults: existingHasRes,
+              });
+            }
             return;
           }
           const existing = jobMap.get(newJob.jobId);
@@ -740,7 +794,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         tracked.forEach((id) => {
           if (!jobMap.has(id)) {
             const place = optimisticPlaceholdersRef.current.get(id);
-            if (place) jobMap.set(id, place);
+            if (place) {
+              jobMap.set(id, place);
+              if (diagnosticJobIdsRef.current.has(id)) {
+                console.log('[JobsDrawer] [DEBUG] reinject placeholder', { jobId: id.slice(-12) });
+              }
+            }
           }
         });
         
@@ -811,6 +870,11 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       if (eventScreenplayId.trim() !== screenplayId?.trim()) return;
       placeholderRetryCountRef.current = 0;
       trackedJobIdsRef.current.add(jobId);
+      if (diagnosticJobIdsRef.current.size >= MAX_DIAGNOSTIC_JOBS) {
+        const first = diagnosticJobIdsRef.current.values().next().value;
+        if (first) diagnosticJobIdsRef.current.delete(first);
+      }
+      diagnosticJobIdsRef.current.add(jobId);
       console.log('[JobsDrawer] Optimistic job added', { jobId: jobId.slice(-12), jobType, assetName });
       const placeholder: WorkflowJob = {
         jobId,
@@ -835,7 +899,20 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         directFetchInProgressRef.current.add(jobId);
         fetchJobDirectly(jobId, { silent: true }).then((full) => {
           try {
-            if (!full) return;
+            if (!full) {
+              if (diagnosticJobIdsRef.current.has(jobId)) {
+                console.log('[JobsDrawer] [DEBUG] optimistic_800ms', { jobId: jobId.slice(-12), result: 'null' });
+              }
+              return;
+            }
+            if (diagnosticJobIdsRef.current.has(full.jobId)) {
+              console.log('[JobsDrawer] [DEBUG] optimistic_800ms', {
+                jobId: full.jobId.slice(-12),
+                status: full.status,
+                hasResults: hasResultsForLog(full),
+                merged: true,
+              });
+            }
             optimisticPlaceholdersRef.current.delete(full.jobId);
             trackedJobIdsRef.current.add(full.jobId);
             directFetchedJobsRef.current.set(full.jobId, full);
@@ -877,6 +954,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         lastScreenplayIdRef.current = screenplayId;
         trackedJobIdsRef.current.clear();
         optimisticPlaceholdersRef.current.clear();
+        diagnosticJobIdsRef.current.clear();
       }
     }
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
@@ -927,6 +1005,14 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         if (cancelled) break;
         const updated = await fetchJobDirectly(job.jobId, { silent: true });
         if (!updated || cancelled) continue;
+        if (diagnosticJobIdsRef.current.has(updated.jobId)) {
+          console.log('[JobsDrawer] [DEBUG] poll_by_id', {
+            jobId: updated.jobId.slice(-12),
+            status: updated.status,
+            hasResults: hasResultsForLog(updated),
+            merged: true,
+          });
+        }
         optimisticPlaceholdersRef.current.delete(updated.jobId);
         trackedJobIdsRef.current.add(updated.jobId);
         const isTerminal = updated.status === 'completed' || updated.status === 'failed';
@@ -944,6 +1030,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       });
     };
 
+    pollRunningJobsById(); // run once immediately so new placeholders get polled without waiting for first interval
     const interval = setInterval(pollRunningJobsById, POLL_BY_ID_INTERVAL_MS);
     return () => {
       cancelled = true;
