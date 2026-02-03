@@ -21,6 +21,8 @@ interface ShotNavigatorListProps {
   isMobile?: boolean;
   completedShots?: Set<number>; // Shots that are completely filled out
   enabledShots?: number[]; // All enabled shots (for determining "next" shot)
+  /** Per-shot display credits (e.g. first-frame-only when dialogue video not opted in). When set, overrides shot.credits. */
+  shotDisplayCredits?: Record<number, number>;
   // Feature 0182: Continuation (REMOVED - deferred to post-launch)
 }
 
@@ -31,7 +33,8 @@ export function ShotNavigatorList({
   className = '',
   isMobile = false,
   completedShots = new Set(),
-  enabledShots = []
+  enabledShots = [],
+  shotDisplayCredits
 }: ShotNavigatorListProps) {
   if (!shots || shots.length === 0) {
     return (
@@ -88,7 +91,7 @@ export function ShotNavigatorList({
         {sortedShots.map((shot) => {
           const isSelected = shot.slot === currentShotSlot;
           const shotType = shot.type === 'dialogue' ? 'Dialogue' : 'Action';
-          const credits = shot.credits || 0;
+          const credits = (shotDisplayCredits != null && shotDisplayCredits[shot.slot] != null) ? shotDisplayCredits[shot.slot] : (shot.credits || 0);
           const isComplete = completedShots.has(shot.slot);
           const isNavigableShot = isNavigable(shot.slot);
           const isNextShot = shot.slot === nextShotSlot;

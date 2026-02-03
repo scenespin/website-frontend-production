@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Film, Check, ChevronDown, ChevronUp, Upload, X, Loader2, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Film, Check, ChevronDown, Upload, X, Loader2 } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { ShotNavigatorList } from './ShotNavigatorList';
@@ -214,6 +214,8 @@ interface ShotConfigurationStepProps {
   onShotSelect?: (shotSlot: number) => void;
   enabledShots?: number[];
   completedShots?: Set<number>; // Shots that are completely filled out
+  /** Per-shot display credits (first-frame-only for dialogue when video not opted in). When set, overrides shot.credits in list. */
+  shotDisplayCredits?: Record<number, number>;
   isMobile?: boolean;
 }
 
@@ -291,6 +293,7 @@ export function ShotConfigurationStep({
   onShotSelect,
   enabledShots = [],
   completedShots = new Set(),
+  shotDisplayCredits,
   isMobile = false,
   projectId
 }: ShotConfigurationStepProps) {
@@ -974,9 +977,9 @@ export function ShotConfigurationStep({
     const validationErrors: string[] = [];
     
     // 1. Validate prompt override requirements (if overrides are enabled)
-    // First frame override validation: Must have either prompt OR uploaded image
-    // Only validate if override is allowed for this workflow
-    if (isFirstFrameOverrideEnabled && isOverrideAllowed) {
+    // First frame override validation: when checkbox is on, must have prompt or uploaded image (Plan 0233: applies to both dialogue and action)
+    const firstFrameOverrideChecked = firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride;
+    if (firstFrameOverrideChecked) {
       const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
       const hasUploadedFirstFrame = !!uploadedFirstFrameUrl;
       if (!hasFirstFramePrompt && !hasUploadedFirstFrame) {
@@ -1000,15 +1003,7 @@ export function ShotConfigurationStep({
       }
     }
     
-    // Feature 0218: Overrides only for Narrate Shot (and non-dialogue). Hidden Mouth uses additive prompt in panel.
-    if (isDialogueShot && !isSceneVoiceover) {
-      if (finalFirstFramePromptOverride || uploadedFirstFrameUrl) {
-        validationErrors.push('First frame override is only available for "Narrate Shot (Scene Voiceover)" workflow. Please switch to that workflow or clear the override.');
-      }
-      if (finalVideoPromptOverride) {
-        validationErrors.push('Video prompt override is only available for "Narrate Shot (Scene Voiceover)" workflow. Please switch to that workflow or clear the override.');
-      }
-    }
+    // Plan 0233: First frame override is allowed for all shots (dialogue and action). No non–lip-sync / video-override validation here.
     
     // 2. Validate location requirement (skip if first frame is uploaded)
     if (!uploadedFirstFrameUrl && isLocationAngleRequired(shot) && needsLocationAngle(shot)) {
@@ -1188,6 +1183,7 @@ export function ShotConfigurationStep({
           <ShotNavigatorList
             shots={enabledShotsList}
             currentShotSlot={shot.slot}
+            shotDisplayCredits={shotDisplayCredits}
             onShotSelect={(shotSlot) => {
               // Only allow navigation if shot is navigable (will be checked in navigator)
               // Scroll to top immediately
@@ -1263,34 +1259,11 @@ export function ShotConfigurationStep({
           {/* 🔥 NEW: Hide reference selection UI when first frame is uploaded (references not needed) */}
           {!uploadedFirstFrameUrl && (
             <>
-              {/* Conditional rendering: Tabs for dialogue shots, single screen for action shots. Dialogue: ref selection (in panel) → Reference Shot model + preview (renderAfterReferenceSelection) → video options (in panel). Action: config then Reference Shot at bottom. */}
+              {/* Dialogue: ref selection → Reference Shot (model + preview) → Pricing (first frame only) → expand area (LIP SYNC + pricing with dialogue). Action: config then Reference Shot at bottom. */}
               {isDialogueShot ? (
-                /* Feature 0233: Dialogue shots – "+ Add Dialogue Video" collapsible. When expanded: LIP SYNC OPTIONS only. NON-LIP SYNC hidden for launch. */
-                <div className="space-y-4">
-                  {!videoOptInForThisShot ? (
-                    <div className="py-3 border-b border-[#3F3F46]">
-                      <button
-                        type="button"
-                        onClick={() => actions.updateGenerateVideoForShot(shotSlot, true)}
-                        className="flex items-center gap-2 text-xs font-medium text-[#DC143C] hover:text-[#E83555] transition-colors"
-                      >
-                        <Plus className="w-4 h-4" /> Add Dialogue Video
-                      </button>
-                      <p className="text-[10px] text-[#808080] mt-1">First frame only by default. Expand to add lip-sync video for this shot.</p>
-                    </div>
-                  ) : (
-                    <div className="pb-3 border-b border-[#3F3F46]">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-medium text-[#FFFFFF]">Dialogue Video (LIP SYNC OPTIONS)</span>
-                        <button
-                          type="button"
-                          onClick={() => actions.updateGenerateVideoForShot(shotSlot, false)}
-                          className="flex items-center gap-1 text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors"
-                        >
-                          <ChevronUp className="w-3 h-3" /> Collapse
-                        </button>
-                      </div>
-                      <ShotConfigurationPanel
+                /* Feature 0233: Always show ref selection + Reference Shot; expand area contains only LIP SYNC + video pricing. */
+                <div className="pb-3 border-b border-[#3F3F46]">
+                  <ShotConfigurationPanel
                   activeTab="basic"
                   isDialogueShot={isDialogueShot}
                   shot={shot}
@@ -1360,6 +1333,9 @@ export function ShotConfigurationStep({
                   onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                   propThumbnailUrlsMap={propThumbnailUrlsMap}
+                  showDialogueWorkflowSection={videoOptInForThisShot}
+                  onAddDialogueVideoClick={() => actions.updateGenerateVideoForShot(shotSlot, true)}
+                  onCollapseDialogueVideo={() => actions.updateGenerateVideoForShot(shotSlot, false)}
                   renderAfterReferenceSelection={onReferenceShotModelChange ? (
                     <>
                       <ReferenceShotSelector shotSlot={shot.slot} selectedModel={selectedReferenceShotModels[shot.slot]} onModelChange={finalOnReferenceShotModelChange} />
@@ -1433,8 +1409,6 @@ export function ShotConfigurationStep({
                     </>
                   ) : undefined}
                 />
-                    </div>
-                  )}
                 </div>
               ) : (
                 /* Action/Establishing shots: Single screen, no tabs */
@@ -1592,344 +1566,43 @@ export function ShotConfigurationStep({
             </>
           )}
 
-          {/* Video Generation Selection - Feature 0233: Only when dialogue shot has video opt-in. Action/establishing are first-frame-only. */}
-          {onVideoTypeChange && isDialogueShot && videoOptInForThisShot && (
-            <>
-          {/* Feature 0224: Narrate Shot = primary video prompt + optional Override first frame. */}
-          {isOverrideAllowed && (
+          {/* Override First Frame – below Reference Shot. Plan 0233: first-frame-only for action; dialogue has Add Dialogue Video. No non–lip-sync / video-override UI here. */}
+          {!uploadedFirstFrameUrl && (
             <div className="mt-4 pt-3 border-t border-[#3F3F46]">
-              {isSceneVoiceover ? (
-                /* Narrate Shot: primary video prompt (no checkbox) + optional Override first frame checkbox only */
-                <>
-                  <div className="mb-4">
-                    <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
-                      Video prompt for this shot
-                    </label>
-                    <textarea
-                      value={finalVideoPromptOverride || ''}
-                      onChange={(e) => finalOnVideoPromptOverrideChange(shotSlot, e.target.value)}
-                      placeholder="Describe the video you want for this shot (e.g. wide shot of location, narrator at desk, voice over montage). The video model will use this plus the voiceover."
-                      rows={3}
-                      className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
-                    />
-                    <div className="text-[10px] text-[#808080] italic mt-1">
-                      Required for Narrate Shot. The video model uses this prompt and overlays the scene voiceover.
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <input
-                      type="checkbox"
-                      id={`first-frame-override-${shotSlot}`}
-                      checked={isFirstFrameOverrideEnabled}
-                      onChange={(e) => {
-                        const isChecked = e.target.checked;
-                        actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
-                        if (!isChecked) {
-                          actions.updateFirstFramePromptOverride(shotSlot, '');
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                    />
-                    <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">
-                      Override first frame (optional)
-                    </label>
-                  </div>
-                </>
-              ) : (
-                /* Action shots: two checkboxes (Override First Frame, Override Video Prompt) */
-                <>
-                  <div className="flex items-center gap-2 mb-3">
-                    <input
-                      type="checkbox"
-                      id={`first-frame-override-${shotSlot}`}
-                      checked={isFirstFrameOverrideEnabled}
-                      onChange={(e) => {
-                        const isChecked = e.target.checked;
-                        actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
-                        if (!isChecked) {
-                          actions.updateFirstFramePromptOverride(shotSlot, '');
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                    />
-                    <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">
-                      Override First Frame
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <input
-                      type="checkbox"
-                      id={`video-prompt-override-${shotSlot}`}
-                      checked={isVideoPromptOverrideEnabled}
-                      onChange={(e) => {
-                        const isChecked = e.target.checked;
-                        actions.updateVideoPromptOverrideEnabled(shotSlot, isChecked);
-                        if (!isChecked) {
-                          actions.updateVideoPromptOverride(shotSlot, '');
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                    />
-                    <label htmlFor={`video-prompt-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">
-                      Override Video Prompt
-                    </label>
-                  </div>
-                </>
-              )}
-
-              {/* First Frame Override Section (shared: Narrate Shot when checkbox checked, action when checkbox checked) */}
-              {isFirstFrameOverrideEnabled && (
-              <div className="space-y-3">
-                {/* Available Variables Display - Only show when generating first frame (not when uploading) */}
-                {firstFrameMode === 'generate' && (() => {
-                  // Collect available references for this shot (reuse same logic)
-                  const availableVariables: Array<{ label: string; variable: string; type: 'character' | 'location' | 'prop' }> = [];
-                  
-                  // Character references (need to get all characters for this shot, including explicit and pronoun-mapped)
-                  const allShotCharacters = new Set<string>();
-                  explicitCharacters.forEach(charId => allShotCharacters.add(charId));
-                  Object.values(shotMappings || {}).forEach(mapping => {
-                    if (mapping && mapping !== '__ignore__') {
-                      if (Array.isArray(mapping)) {
-                        mapping.forEach(charId => allShotCharacters.add(charId));
-                      } else {
-                        allShotCharacters.add(mapping);
-                      }
-                    }
-                  });
-                  (finalSelectedCharactersForShots[shotSlot] || []).forEach(charId => allShotCharacters.add(charId));
-                  // Tab-aware: same as Reference Preview (plan 0227)
-                  const isOffFrameForDisplay = finalSelectedDialogueWorkflow === 'off-frame-voiceover' && activeTab === 'advanced';
-                  if (isOffFrameForDisplay) {
-                    if (finalOffFrameShotType === 'off-frame') {
-                      allShotCharacters.delete(shot.characterId);
-                    }
-                    if (finalOffFrameListenerCharacterId && finalOffFrameShotType && isOffFrameListenerShotType(finalOffFrameShotType as OffFrameShotType)) {
-                      allShotCharacters.add(finalOffFrameListenerCharacterId);
-                    }
-                    if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) {
-                      finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
-                    }
-                  } else {
-                    if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
-                    (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
-                  }
-                  
-                  // Convert to array and filter to only those with references
-                  const charactersWithRefs = Array.from(allShotCharacters).filter(charId => 
-                    finalSelectedCharacterReferences[shotSlot]?.[charId]
-                  );
-                  
-                  charactersWithRefs.forEach((charId, index) => {
-                    const char = allCharacters.find(c => c.id === charId);
-                    if (char) {
-                      availableVariables.push({
-                        label: char.name || `Character ${index + 1}`,
-                        variable: `{{character${index + 1}}}`,
-                        type: 'character'
-                      });
-                    }
-                  });
-                  
-                  // Location reference
-                  if (finalSelectedLocationReferences[shotSlot]) {
-                    const location = finalSceneProps.find(loc => loc.id === shot.locationId);
-                    availableVariables.push({
-                      label: location?.name || 'Location',
-                      variable: '{{location}}',
-                      type: 'location'
-                    });
-                  }
-                  
-                  // Prop references
-                  const shotPropsForThisShot = finalSceneProps.filter(prop => 
-                    finalPropsToShots[prop.id]?.includes(shotSlot)
-                  );
-                  shotPropsForThisShot.forEach((prop, index) => {
-                    if (finalShotProps[shotSlot]?.[prop.id]?.selectedImageId) {
-                      availableVariables.push({
-                        label: prop.name || `Prop ${index + 1}`,
-                        variable: `{{prop${index + 1}}}`,
-                        type: 'prop'
-                      });
-                    }
-                  });
-                  
-                  return availableVariables.length > 0 ? (
-                    <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
-                      <label className="block text-[10px] text-[#808080] mb-2 font-medium">
-                        Available Variables (from selected references):
-                      </label>
-                      <div className="space-y-1.5">
-                        {availableVariables.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-2 text-xs"
-                          >
-                            <code className="px-2 py-0.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-[#DC143C] font-mono text-[11px]">
-                              {item.variable}
-                            </code>
-                            <span className="text-[#FFFFFF]">=</span>
-                            <span className="text-[#808080]">{item.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="text-[9px] text-[#808080] italic mt-2">
-                        Use these variables in your prompt. Only references with variables will be included.
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
-                      <div className="text-[10px] text-[#808080] italic">
-                        No references selected. Select characters, location, or props above to create variables.
-                      </div>
-                    </div>
-                  );
-                })()}
-                
-                {/* First Frame Mode Selection - Feature 0233: Only for dialogue shots. Action/establishing are generate-only. */}
-                {isDialogueShot && (
-                <div className="mb-3">
-                  <label className="block text-[10px] text-[#808080] mb-2 font-medium">
-                    First Frame Source:
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`first-frame-mode-${shotSlot}`}
-                        value="generate"
-                        checked={firstFrameMode === 'generate'}
-                        onChange={() => handleFirstFrameModeChange('generate')}
-                        className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className="text-xs text-[#FFFFFF]">Generate First Frame</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`first-frame-mode-${shotSlot}`}
-                        value="upload"
-                        checked={firstFrameMode === 'upload'}
-                        onChange={() => handleFirstFrameModeChange('upload')}
-                        className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className="text-xs text-[#FFFFFF]">Upload First Frame</span>
-                    </label>
-                  </div>
-                </div>
-                )}
-                
-                {/* First Frame Upload UI (when mode is 'upload') - dialogue only; action/establishing are generate-only */}
-                {isDialogueShot && firstFrameMode === 'upload' && (
-                  <div className="mb-3">
-                    <label className="block text-[10px] text-[#808080] mb-1.5">
-                      Upload First Frame Image:
-                    </label>
-                    {uploadedFirstFrameUrl ? (
-                      <div className="relative">
-                        <img
-                          src={uploadedFirstFrameUrl}
-                          alt="Uploaded first frame"
-                          className="w-full h-32 object-cover rounded border border-[#3F3F46]"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRemoveUploadedFirstFrame}
-                          className="absolute top-2 right-2 p-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
-                          title="Remove uploaded first frame"
-                        >
-                          <X className="w-4 h-4 text-[#FFFFFF]" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-[#3F3F46] rounded bg-[#0A0A0A] p-4">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileInputChange}
-                          className="hidden"
-                          disabled={isUploadingFirstFrame}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isUploadingFirstFrame}
-                          className={cn(
-                            "w-full flex flex-col items-center justify-center gap-2 py-4 px-4 rounded transition-colors",
-                            isUploadingFirstFrame
-                              ? "bg-[#1A1A1A] border border-[#3F3F46] cursor-not-allowed"
-                              : "bg-[#1A1A1A] border border-[#3F3F46] hover:bg-[#2A2A2A] hover:border-[#DC143C] cursor-pointer"
-                          )}
-                        >
-                          {isUploadingFirstFrame ? (
-                            <>
-                              <Loader2 className="w-5 h-5 text-[#DC143C] animate-spin" />
-                              <span className="text-xs text-[#808080]">Uploading...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-5 h-5 text-[#808080]" />
-                              <span className="text-xs text-[#FFFFFF]">Choose Image</span>
-                              <span className="text-[10px] text-[#808080]">Any size (auto-compressed if needed)</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
-                    <div className="text-[10px] text-[#808080] italic mt-1">
-                      Upload your own first frame image. The video will animate from this image using the scene's dialogue/action lines from your screenplay. Make sure your uploaded image matches the scene context, or override the video prompt to customize the animation.
-                    </div>
-                  </div>
-                )}
-                
-              {/* First Frame Prompt Override (when generate: dialogue or always for action/establishing) */}
-              {(firstFrameMode === 'generate' || !isDialogueShot) && (
-                <div>
-                  <label className="block text-[10px] text-[#808080] mb-1.5">
-                    First Frame Prompt (Image Model):
-                  </label>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  id={`first-frame-override-${shotSlot}`}
+                  checked={firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
+                    if (!isChecked) actions.updateFirstFramePromptOverride(shotSlot, '');
+                  }}
+                  className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                />
+                <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">Override First Frame</label>
+              </div>
+              {(firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride) && (
+                <div className="space-y-3 mt-3">
+                  <label className="block text-[10px] text-[#808080] mb-1.5">First Frame Prompt (Image Model)</label>
                   <textarea
                     ref={firstFrameTextareaRef}
                     value={finalFirstFramePromptOverride || ''}
                     onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
-                      placeholder="Enter custom prompt for first frame generation (image model)... Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
-                      rows={3}
-                      className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
-                    />
-                    <div className="text-[10px] text-[#808080] italic mt-1">
-                      This prompt will be used instead of the auto-generated prompt. Only references with variables (e.g., {'{{character1}}'}) will be included.
-                    </div>
-                  </div>
-                )}
-                
-              </div>
-            )}
-            
-            {/* Video Prompt Override Section – action shots only (Narrate Shot has primary video prompt above) */}
-            {!isSceneVoiceover && isVideoPromptOverrideEnabled && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-[10px] text-[#808080] mb-1.5">
-                    Video Prompt (Video Model):
-                  </label>
-                  <textarea
-                    value={finalVideoPromptOverride || ''}
-                    onChange={(e) => finalOnVideoPromptOverrideChange(shotSlot, e.target.value)}
-                    placeholder="Enter custom prompt for video generation (video model)..."
+                    placeholder="Enter custom prompt for first frame generation. Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
                     rows={3}
-                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
                   />
-                  <div className="text-[10px] text-[#808080] italic mt-1">
-                    This prompt will be used instead of the auto-generated prompt for video generation.
-                  </div>
+                  <div className="text-[10px] text-[#808080] italic">This prompt will be used instead of the auto-generated prompt. Only references with variables will be included.</div>
                 </div>
-              </div>
-            )}
+              )}
             </div>
           )}
-              {/* Feature 0233: Only show video model/duration when dialogue shot has video opt-in. Action/establishing are first-frame-only. */}
+
+          {/* Video Generation Selection – only when dialogue shot has video opt-in. */}
+          {onVideoTypeChange && isDialogueShot && videoOptInForThisShot && (
+            <>
               {isDialogueShot && videoOptInForThisShot && onVideoTypeChange && (
                 <VideoGenerationSelector
                   shotSlot={shot.slot}
@@ -1943,16 +1616,19 @@ export function ShotConfigurationStep({
                   isLipSyncWorkflow={true}
                 />
               )}
-              {/* Aspect Ratio Selector */}
-              {onAspectRatioChange && (
-                <AspectRatioSelector
-                  value={shotAspectRatio || '16:9'}
-                  onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
-                />
-              )}
             </>
           )}
 
+          {/* Aspect ratio – shown for all shots when available (image & video output size) */}
+          {onAspectRatioChange && (
+            <div className="pt-2 border-t border-[#3F3F46]">
+              <label className="block text-[10px] text-[#808080] mb-1.5">Output aspect ratio (image &amp; video)</label>
+              <AspectRatioSelector
+                value={shotAspectRatio || '16:9'}
+                onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
+              />
+            </div>
+          )}
 
           {/* Cost Calculator - Feature 0233: First frame only when collapsed; first frame + video when expanded (dialogue) or action (first frame only) */}
           {pricing && (

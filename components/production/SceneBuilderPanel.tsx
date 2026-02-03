@@ -611,6 +611,62 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // UI State: Collapsible sections (local, not in context)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  /** Per-shot display credits for list (first-frame-only when dialogue video not opted in). */
+  const [shotDisplayCredits, setShotDisplayCredits] = useState<Record<number, number> | null>(null);
+  
+  // Fetch per-shot display credits for shot list (first-frame-only for dialogue when video not opted in)
+  useEffect(() => {
+    if (currentStep !== 2 || wizardStep !== 'shot-config' || !sceneAnalysisResult?.shotBreakdown?.shots?.length || !enabledShots.length || !getToken) {
+      setShotDisplayCredits(null);
+      return;
+    }
+    const shots = sceneAnalysisResult.shotBreakdown.shots.filter((s: any) => enabledShots.includes(s.slot));
+    if (shots.length === 0) {
+      setShotDisplayCredits(null);
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const referenceShotModels: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
+        shots.forEach((s: any) => {
+          referenceShotModels[s.slot] = selectedReferenceShotModels[s.slot] || 'nano-banana-pro-2k';
+        });
+        const videoTypes: Record<number, string> = {};
+        shots.forEach((s: any) => {
+          if (s.type === 'dialogue' && generateVideoForShot[s.slot] && selectedVideoTypes[s.slot]) {
+            videoTypes[s.slot] = selectedVideoTypes[s.slot];
+          }
+        });
+        const pricingResult = await SceneBuilderService.calculatePricing(
+          shots.map((s: any) => ({ slot: s.slot, credits: s.credits || 0, type: s.type })),
+          shotDurations,
+          getToken,
+          referenceShotModels,
+          Object.keys(videoTypes).length > 0 ? videoTypes : undefined
+        );
+        if (cancelled) return;
+        const displayCredits: Record<number, number> = {};
+        const shotBySlot = Object.fromEntries(shots.map((s: any) => [s.slot, s]));
+        (pricingResult.shots || []).forEach((p: { shotSlot: number; firstFramePrice: number; hdPrice: number }) => {
+          const shot = shotBySlot[p.shotSlot];
+          if (!shot) return;
+          if (shot.type === 'dialogue' && generateVideoForShot[p.shotSlot]) {
+            displayCredits[p.shotSlot] = p.firstFramePrice + p.hdPrice;
+          } else if (shot.type === 'dialogue') {
+            displayCredits[p.shotSlot] = p.firstFramePrice;
+          } else {
+            displayCredits[p.shotSlot] = shot.credits || 0;
+          }
+        });
+        setShotDisplayCredits(displayCredits);
+      } catch {
+        if (!cancelled) setShotDisplayCredits(null);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, getToken]);
   
   // 🔥 NEW: Map Media Library files to character headshot structure
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
@@ -4677,6 +4733,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   onShotSelect={handleShotSelect}
                   enabledShots={enabledShots}
                   completedShots={completedShots}
+                  shotDisplayCredits={shotDisplayCredits ?? undefined}
                   isMobile={isMobile}
                 />
               );
