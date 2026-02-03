@@ -259,16 +259,14 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
   }, [allFiles]);
 
   // Fetch presigned URLs for all S3 keys
+  // useBulkPresignedUrls already returns Map<string, string>
   const { data: presignedUrlsData, isLoading: presignedUrlsLoading } = useBulkPresignedUrls(
     allS3Keys,
     allS3Keys.length > 0
   );
 
-  // Convert presigned URLs to Map
-  const presignedUrls = React.useMemo(() => {
-    if (!presignedUrlsData) return new Map<string, string>();
-    return new Map(Object.entries(presignedUrlsData));
-  }, [presignedUrlsData]);
+  // Use presigned URLs directly (already a Map from useBulkPresignedUrls)
+  const presignedUrls = presignedUrlsData ?? new Map<string, string>();
 
   return {
     scenes,
