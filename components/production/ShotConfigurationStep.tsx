@@ -1625,9 +1625,10 @@ export function ShotConfigurationStep({
                     // Location reference (label from scene props/location list when available, else shot or fallback)
                     if (finalSelectedLocationReferences[shotSlot]) {
                       const locationItem = finalSceneProps?.find((loc: any) => loc.id === shot.locationId);
-                      const shotData = sceneAnalysisResult?.shotBreakdown?.shots?.find((s: any) => s.slot === shotSlot) as { locationDescription?: string } | undefined;
+                      const shotData = sceneAnalysisResult?.shotBreakdown?.shots?.find((s: any) => s.slot === shotSlot);
+                      const locationLabel = (shotData as { locationDescription?: string } | undefined)?.locationDescription;
                       availableVariables.push({
-                        label: locationItem?.name || shotData?.locationDescription || 'Location',
+                        label: locationItem?.name || locationLabel || 'Location',
                         variable: '{{location}}',
                         type: 'location'
                       });
