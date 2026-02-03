@@ -154,7 +154,8 @@ interface WorkflowStatus {
   totalSteps: number;
   stepResults: any[];
   totalCreditsUsed: number;
-  finalOutputs: any[];
+  /** Array of video outputs, or object shape { additionalVideos, additionalVideoS3Keys } from backend */
+  finalOutputs: any[] | { additionalVideos?: string[]; additionalVideoS3Keys?: string[] };
   videos?: string[];  // Optional: URLs of generated videos
   metadata?: any;
 }
