@@ -370,28 +370,26 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const previousJobsHash = useRef<string>('');
   // GSI eventual consistency: retry counter when initial load returns 0 jobs (max 3 retries with exponential backoff)
   const emptyRetryCountRef = useRef(0);
-  // GSI: retry counter when list returned but optimistic placeholder(s) not in list (max 3 retries with exponential backoff: 2s, 4s, 8s)
+  // GSI: retry counter when list returned but optimistic placeholder(s) not in list (max 3 retries)
   const placeholderRetryCountRef = useRef(0);
-  // Track when direct fetch completed - pause polling briefly to prevent race condition overwrite
-  const directFetchCompletedAtRef = useRef<number>(0);
-  const DIRECT_FETCH_PAUSE_MS = 10000; // Pause polling for 10s after direct fetch to let GSI catch up
+  // Single source of truth for tracked jobs: we never overwrite these with list API data (list often omits results).
+  // Tracked = added optimistically or updated via get-by-ID. Only get-by-ID updates these jobs until they have results.
+  const trackedJobIdsRef = useRef<Set<string>>(new Set());
   // Keep latest jobs in ref for interval callback (avoids stale closure)
   const jobsRef = useRef<WorkflowJob[]>([]);
   jobsRef.current = jobs;
-  // Poll-by-ID until completion: interval and cap for scalability (industry-standard pattern)
-  const POLL_BY_ID_INTERVAL_MS = 4000; // 4s — balance between responsiveness and API load
-  const MAX_POLL_PER_TICK = 20; // Cap running jobs we poll per tick so we don't hammer the API
-  // Prevent duplicate direct fetch when multiple loadJobs runs hit "retries exhausted" (only one in-flight fetch per id)
+  // Poll-by-ID until completion (industry-standard pattern)
+  const POLL_BY_ID_INTERVAL_MS = 4000;
+  const MAX_POLL_PER_TICK = 20;
   const directFetchInProgressRef = useRef<Set<string>>(new Set());
-  // Jobs we merged via direct fetch: keep in ref so a later loadJobs setState (with stale prev) doesn't drop them
+  // Direct-fetched jobs: re-insert in merge if list didn't include them (stale state edge case)
   const directFetchedJobsRef = useRef<Map<string, WorkflowJob>>(new Map());
-  // One-time backfill of results for completed jobs that came from list API without finalOutputs
   const resultsBackfillFetchedRef = useRef<Set<string>>(new Set());
   const MAX_GSI_RETRIES = 3;
-  const GSI_RETRY_DELAYS = [2000, 4000, 8000]; // Exponential backoff for GSI eventual consistency
-  // When we add an optimistic job, fetch by ID soon so we get full job/results before list can overwrite with completed (no results)
+  const GSI_RETRY_DELAYS = [2000, 4000, 8000];
   const OPTIMISTIC_POLL_DELAY_MS = 800;
   const optimisticFetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScreenplayIdRef = useRef<string>('');
 
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -433,15 +431,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
   }, [deletedJobIds]);
 
-  // Clear sessionStorage on logout
   useEffect(() => {
     if (typeof window !== 'undefined' && isSignedIn === false) {
-      // User logged out - clear sessionStorage
       sessionStorage.removeItem('deletedJobIds');
       setDeletedJobIds(new Set());
-      // Also clear jobs state to start fresh
       setJobs([]);
       setHasLoadedOnce(false);
+      trackedJobIdsRef.current.clear();
     }
   }, [isSignedIn]);
 
@@ -630,19 +626,14 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       }
       
       if (fetchedJobs.length > 0) {
-        // Store in ref so loadJobs won't drop these jobs even with stale prev state
-        fetchedJobs.forEach(job => directFetchedJobsRef.current.set(job.jobId, job));
-        
-        // Mark that we just did a direct fetch - pause polling to prevent race condition overwrite
-        directFetchCompletedAtRef.current = Date.now();
-        console.log('[JobsDrawer] Direct fetch pausing polling for', DIRECT_FETCH_PAUSE_MS, 'ms to let GSI catch up');
-        
+        fetchedJobs.forEach(job => {
+          directFetchedJobsRef.current.set(job.jobId, job);
+          trackedJobIdsRef.current.add(job.jobId);
+        });
         setJobs(prevJobs => {
           const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
-          // Remove placeholders and add real jobs
-          fetchedJobs.forEach((job, index) => {
-            const placeholderId = missingJobIds[index];
-            if (placeholderId) jobMap.delete(placeholderId);
+          fetchedJobs.forEach((job) => {
+            jobMap.delete(job.jobId);
             jobMap.set(job.jobId, job);
           });
           const mergedJobs = Array.from(jobMap.values());
@@ -664,15 +655,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     try {
       if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
         console.log('[JobsDrawer] Skipping load - invalid screenplayId:', screenplayId);
-        return;
-      }
-      
-      // Skip polling if direct fetch just completed - prevents race condition where loadJobs overwrites direct-fetched job
-      const timeSinceDirectFetch = Date.now() - directFetchCompletedAtRef.current;
-      if (directFetchCompletedAtRef.current > 0 && timeSinceDirectFetch < DIRECT_FETCH_PAUSE_MS) {
-        console.log('[JobsDrawer] Skipping loadJobs - direct fetch pause active', {
-          remainingMs: DIRECT_FETCH_PAUSE_MS - timeSinceDirectFetch,
-        });
         return;
       }
       
@@ -715,87 +697,40 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         runningCount: jobList.filter(j => j.status === 'running' || j.status === 'queued').length,
       });
       
-      // Track which jobs came from API (to know when GSI catches up)
       const apiJobIds = new Set(jobList.map((j: WorkflowJob) => j.jobId));
-      
+
       setJobs(prevJobs => {
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
+        const tracked = trackedJobIdsRef.current;
+        // Single source of truth: tracked jobs are updated only via get-by-ID. List is for discovery; never overwrite tracked.
+        const hasResults = (j: WorkflowJob) => j.results && (
+          (j.results.poses?.length) ||
+          (j.results.angleReferences?.length) ||
+          (j.results.backgroundReferences?.length) ||
+          (j.results.images?.length) ||
+          (j.results.videos?.length) ||
+          (j.results.screenplayReading) ||
+          (j.results.videoSoundscape)
+        );
         jobList.forEach((newJob: WorkflowJob) => {
+          if (tracked.has(newJob.jobId)) {
+            // Single source of truth: tracked jobs are updated only via get-by-ID. Never overwrite with list.
+            return;
+          }
           const existing = jobMap.get(newJob.jobId);
-          // Don't overwrite completed/failed with stale list data (GSI can return "running" after we direct-fetched "completed")
-          if (existing && (existing.status === 'completed' || existing.status === 'failed')) {
-            if (newJob.status === 'completed' || newJob.status === 'failed') {
-              // List API often omits finalOutputs/results; never overwrite our full results with empty
-              const hasExistingResults = existing.results && (
-                (existing.results.poses?.length) ||
-                (existing.results.angleReferences?.length) ||
-                (existing.results.backgroundReferences?.length) ||
-                (existing.results.images?.length) ||
-                (existing.results.videos?.length) ||
-                (existing.results.screenplayReading) ||
-                (existing.results.videoSoundscape)
-              );
-              const hasNewResults = newJob.results && (
-                (newJob.results.poses?.length) ||
-                (newJob.results.angleReferences?.length) ||
-                (newJob.results.backgroundReferences?.length) ||
-                (newJob.results.images?.length) ||
-                (newJob.results.videos?.length) ||
-                (newJob.results.screenplayReading) ||
-                (newJob.results.videoSoundscape)
-              );
-              if (hasExistingResults && !hasNewResults) {
-                jobMap.set(newJob.jobId, { ...newJob, results: existing.results });
-              } else {
-                jobMap.set(newJob.jobId, newJob);
-              }
+          if (existing && (existing.status === 'completed' || existing.status === 'failed') && (newJob.status === 'completed' || newJob.status === 'failed')) {
+            if (hasResults(existing) && !hasResults(newJob)) {
+              jobMap.set(newJob.jobId, { ...newJob, results: existing.results });
+            } else {
+              jobMap.set(newJob.jobId, newJob);
             }
-            // else keep existing (don't overwrite with list's stale running/queued)
-          } else if (existing && existing.workflowId === '' && (newJob.status === 'completed' || newJob.status === 'failed')) {
-            // Placeholder (optimistic job): list returned this job as completed/failed but often without results.
-            // Do NOT overwrite the placeholder — keep it so poll-by-ID keeps polling until we get full job with results.
-            const hasNewResults = newJob.results && (
-              (newJob.results.poses?.length) ||
-              (newJob.results.angleReferences?.length) ||
-              (newJob.results.backgroundReferences?.length) ||
-              (newJob.results.images?.length) ||
-              (newJob.results.videos?.length) ||
-              (newJob.results.screenplayReading) ||
-              (newJob.results.videoSoundscape)
-            );
-            if (!hasNewResults) {
-              console.log('[JobsDrawer] Keeping placeholder for poll-by-ID (list returned completed without results)', {
-                jobId: newJob.jobId.slice(-12),
-              });
-              // Keep existing placeholder — pollRunningJobsById will fetch by ID and replace with full job
-              return;
-            }
-            jobMap.set(newJob.jobId, newJob);
           } else {
             jobMap.set(newJob.jobId, newJob);
           }
         });
-        
-        // Re-insert any direct-fetched jobs that aren't in this API response
-        // This prevents stale React state from dropping jobs we fetched directly
-        const refSize = directFetchedJobsRef.current.size;
-        if (refSize > 0) {
-          console.log('[JobsDrawer] Checking directFetchedJobsRef', {
-            refSize,
-            refJobIds: Array.from(directFetchedJobsRef.current.keys()).map(id => id.slice(-12)),
-          });
-        }
         directFetchedJobsRef.current.forEach((job, id) => {
-          if (!apiJobIds.has(id)) {
-            console.log('[JobsDrawer] Re-inserting job from ref (not in API yet)', {
-              jobId: id.slice(-12),
-              status: job.status,
-            });
-            jobMap.set(id, job); // Keep the job - GSI hasn't caught up yet
-          } else {
-            console.log('[JobsDrawer] GSI caught up, removing from ref', { jobId: id.slice(-12) });
-            directFetchedJobsRef.current.delete(id); // GSI caught up, stop preserving
-          }
+          if (!apiJobIds.has(id)) jobMap.set(id, job);
+          else directFetchedJobsRef.current.delete(id);
         });
         
         const mergedJobs = Array.from(jobMap.values());
@@ -863,8 +798,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       const { jobId, screenplayId: eventScreenplayId, jobType = 'image-generation', assetName } = e.detail || {};
       if (!jobId || !eventScreenplayId?.trim()) return;
       if (eventScreenplayId.trim() !== screenplayId?.trim()) return;
-      // Reset GSI placeholder retry counter when a new optimistic job is added (fresh retries for new job)
       placeholderRetryCountRef.current = 0;
+      trackedJobIdsRef.current.add(jobId);
       console.log('[JobsDrawer] Optimistic job added', { jobId: jobId.slice(-12), jobType, assetName });
       setJobs(prev => {
         if (prev.some(j => j.jobId === jobId)) return prev;
@@ -889,25 +824,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         fetchJobDirectly(jobId, { silent: true }).then((full) => {
           try {
             if (!full) return;
-            const isTerminal = full.status === 'completed' || full.status === 'failed';
-            const hasResults = full.results && (
-              (full.results.poses?.length) ||
-              (full.results.angleReferences?.length) ||
-              (full.results.backgroundReferences?.length) ||
-              (full.results.images?.length) ||
-              (full.results.videos?.length) ||
-              (full.results.screenplayReading) ||
-              (full.results.videoSoundscape)
-            );
-            // If job finished but backend hasn't written results yet, keep placeholder so poll-by-ID keeps polling
-            if (isTerminal && !hasResults) {
-              console.log('[JobsDrawer] Optimistic direct fetch returned completed without results, keeping placeholder for poll-by-ID', {
-                jobId: full.jobId.slice(-12),
-              });
-              return;
-            }
+            trackedJobIdsRef.current.add(full.jobId);
             directFetchedJobsRef.current.set(full.jobId, full);
-            directFetchCompletedAtRef.current = Date.now();
             setJobs(prev => {
               const map = new Map(prev.map((j) => [j.jobId, j]));
               map.set(full.jobId, full);
@@ -938,12 +856,14 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   useEffect(() => {
     if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
     if (isOpen) {
-      // Reset GSI retry counters when drawer opens (allow fresh retries for new jobs)
       emptyRetryCountRef.current = 0;
       placeholderRetryCountRef.current = 0;
-      directFetchCompletedAtRef.current = 0; // Clear any stale pause
-      directFetchInProgressRef.current.clear(); // Clear any stale in-progress tracking
-      directFetchedJobsRef.current.clear(); // Clear any stale preserved jobs
+      directFetchInProgressRef.current.clear();
+      directFetchedJobsRef.current.clear();
+      if (screenplayId && screenplayId !== lastScreenplayIdRef.current) {
+        lastScreenplayIdRef.current = screenplayId;
+        trackedJobIdsRef.current.clear();
+      }
     }
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
     loadJobs(shouldShowLoading);
@@ -971,9 +891,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   }, [isOpen, screenplayId]);
 
   /**
-   * Poll-by-ID until completion (industry-standard): for every running/queued job we have,
-   * poll GET /api/workflows/:id until status is completed or failed. No dependency on list/GSI.
-   * Scalable: cap at MAX_POLL_PER_TICK per tick; robust: cleanup on unmount, sequential fetches.
+   * Poll-by-ID: for every running/queued job, poll GET /api/workflows/:id until completed/failed.
+   * Tracked jobs are updated only from this (and 800ms optimistic fetch); list never overwrites them.
    */
   useEffect(() => {
     if (!isOpen || !screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
@@ -994,6 +913,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         if (cancelled) break;
         const updated = await fetchJobDirectly(job.jobId, { silent: true });
         if (!updated || cancelled) continue;
+        trackedJobIdsRef.current.add(updated.jobId);
         const isTerminal = updated.status === 'completed' || updated.status === 'failed';
         const changed = updated.status !== job.status || (updated.results && !job.results);
         if (isTerminal || changed) updates.push(updated);
@@ -1017,8 +937,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   }, [isOpen, screenplayId]);
 
   /**
-   * Backfill results for completed jobs that have no results (list API often omits finalOutputs).
-   * One-time direct fetch per job so "Done" cards show thumbnails.
+   * Backfill: completed jobs without results (e.g. from list only) get one direct fetch so "Done" cards show thumbnails.
    */
   useEffect(() => {
     if (!isOpen || !screenplayId || screenplayId === 'default' || screenplayId.trim() === '') return;
@@ -1047,6 +966,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       // On fetch failure (null), don't mark as attempted so transient errors can retry
       if (!full) return;
       resultsBackfillFetchedRef.current.add(full.jobId);
+      trackedJobIdsRef.current.add(full.jobId);
       const hasResults = full.results && (
         (full.results.poses?.length) ||
         (full.results.angleReferences?.length) ||
