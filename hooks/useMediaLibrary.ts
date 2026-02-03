@@ -117,13 +117,24 @@ export function useMediaFiles(
       const data: MediaFileListResponse = await response.json();
       const backendFiles = data.files || [];
       
+      // 🔥 FIX: Filter out archived/expired files before processing
+      // Backend marks expired files with isArchived: true (Feature 0200)
+      const activeFiles = backendFiles.filter((file: any) => {
+        // Filter out archived files (expired/deleted)
+        if (file.isArchived === true || file.metadata?.isArchived === true) {
+          return false;
+        }
+        return true;
+      });
+      
       // Debug logging for thumbnail verification
-      const filesWithThumbnails = backendFiles.filter((f: any) => f.metadata?.thumbnailS3Key || f.thumbnailS3Key);
+      const filesWithThumbnails = activeFiles.filter((f: any) => f.metadata?.thumbnailS3Key || f.thumbnailS3Key);
       if (entityType && entityId) {
         console.log('[useMediaFiles] Entity query results:', {
           entityType,
           entityId,
-          filesFound: backendFiles.length,
+          filesFound: activeFiles.length,
+          filesFiltered: backendFiles.length - activeFiles.length,
           filesWithThumbnails: filesWithThumbnails.length,
           sampleFiles: filesWithThumbnails.slice(0, 2).map((f: any) => ({
             s3Key: f.s3Key?.substring(0, 50) + '...',
@@ -135,7 +146,7 @@ export function useMediaFiles(
       // Map backend format to frontend MediaFile format
       // Backend returns: { fileId, fileName, fileType (MIME), mediaFileType, fileSize, s3Key, folderId, folderPath, createdAt, metadata, storageType?, entityType?, entityId? }
       // Frontend expects: { id, fileName, s3Key, fileType (enum), mediaFileType, fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key, metadata (incl. cloudFileId/cloudFilePath) }
-      return backendFiles.map((file: any) => ({
+      return activeFiles.map((file: any) => ({
         id: file.fileId,
         fileName: file.fileName,
         s3Key: file.s3Key, // Required - used for on-demand presigned URL generation

@@ -868,16 +868,30 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       const updatedShotRefs = { ...shotRefs };
       
       Object.entries(shotRefs).forEach(([charId, charRef]) => {
-        // If imageUrl is empty or is an s3Key (not a full URL), try to get presigned URL
+        // 🔥 FIX: Filter out expired references - if presigned URL generation failed (empty), remove the reference
         if (charRef?.s3Key && (!charRef.imageUrl || (!charRef.imageUrl.startsWith('http') && !charRef.imageUrl.startsWith('data:')))) {
           const presignedUrl = selectedReferenceFullImageUrlsMap.get(charRef.s3Key);
-          if (presignedUrl && presignedUrl !== charRef.imageUrl) {
+          if (presignedUrl && presignedUrl !== charRef.imageUrl && presignedUrl.length > 0) {
+            // Valid presigned URL - update it
             updatedShotRefs[charId] = {
               ...charRef,
               imageUrl: presignedUrl
             };
             needsUpdate = true;
+          } else if (!presignedUrl || presignedUrl.length === 0) {
+            // 🔥 FIX: Presigned URL generation failed (expired/deleted file) - remove the reference
+            console.warn('[SceneBuilderPanel] Removing expired character reference:', {
+              characterId: charId,
+              shotSlot,
+              s3Key: charRef.s3Key?.substring(0, 50) + '...',
+              reason: 'Presigned URL generation failed (file likely expired/deleted)'
+            });
+            // Don't add to updatedShotRefs - effectively removes it
+            needsUpdate = true;
           }
+        } else if (charRef?.imageUrl && charRef.imageUrl.length > 0) {
+          // Keep existing valid reference
+          updatedShotRefs[charId] = charRef;
         }
       });
       
@@ -905,6 +919,43 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, []);
+
+  // 🔥 FIX: Cleanup queries on unmount and reset stale queries on remount
+  useEffect(() => {
+    // On mount: Check if Media Library queries are stale (older than 30 seconds) and reset them
+    // This ensures fresh data when navigating back to Scene Builder
+    const mediaQueryKey = ['media', 'files', projectId || ''];
+    const mediaQueryState = queryClient.getQueryState(mediaQueryKey);
+    
+    if (mediaQueryState && mediaQueryState.dataUpdatedAt) {
+      const age = Date.now() - mediaQueryState.dataUpdatedAt;
+      const STALE_THRESHOLD = 30 * 1000; // 30 seconds - shorter threshold for Scene Builder freshness
+      
+      if (age > STALE_THRESHOLD) {
+        console.log('[SceneBuilderPanel] Resetting stale Media Library queries on remount', {
+          age: `${Math.round(age / 1000)}s`,
+          threshold: `${STALE_THRESHOLD / 1000}s`
+        });
+        queryClient.resetQueries({ queryKey: mediaQueryKey, exact: false });
+        // Also invalidate character references cache to force fresh fetch
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId || ''], exact: false });
+      }
+    } else if (!mediaQueryState) {
+      // No cached data - ensure fresh fetch on mount
+      console.log('[SceneBuilderPanel] No cached Media Library data - will fetch fresh on mount');
+    }
+    
+    // Cleanup function: Cancel pending queries on unmount
+    return () => {
+      console.log('[SceneBuilderPanel] Cleaning up: Cancelling pending queries on unmount');
+      // Cancel Scene Builder specific queries to prevent state updates after unmount
+      // This prevents queries from completing after component unmounts, which causes loading state issues
+      queryClient.cancelQueries({ queryKey: ['media', 'files', projectId || ''], exact: false });
+      queryClient.cancelQueries({ queryKey: ['characters', projectId || ''], exact: false });
+      queryClient.cancelQueries({ queryKey: ['locations', projectId || ''], exact: false });
+      queryClient.cancelQueries({ queryKey: ['assets', projectId || ''], exact: false });
+    };
+  }, [projectId, queryClient]);
 
   // Scroll to top when navigating between shots or steps
   useEffect(() => {
@@ -4090,12 +4141,30 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 const selectedOutfit = characterOutfits[shotSlot]?.[charId];
                 
                 // 🔥 FIX: Only filter by outfit if headshots are loaded (not loading)
-                const headshots = !isLoading && selectedOutfit && selectedOutfit !== 'default' 
+                let headshots = !isLoading && selectedOutfit && selectedOutfit !== 'default' 
                   ? allHeadshots.filter((h: any) => {
                       const headshotOutfit = h.outfitName || h.metadata?.outfitName;
                       return headshotOutfit === selectedOutfit;
                     })
                   : allHeadshots;
+                
+                // 🔥 FIX: Filter out expired headshots (no valid URL available)
+                // This prevents showing placeholders for expired/deleted images
+                if (!isLoading && headshots.length > 0) {
+                  headshots = headshots.filter((h: any) => {
+                    // Check if we have a valid URL for this headshot
+                    const hasDropboxUrl = h.fileId && characterDropboxUrlMap?.get(h.fileId);
+                    const thumbnailS3Key = h.s3Key && characterThumbnailS3KeyMap?.has(h.s3Key) 
+                      ? characterThumbnailS3KeyMap.get(h.s3Key) 
+                      : null;
+                    const hasThumbnailUrl = thumbnailS3Key && characterThumbnailUrlsMap?.has(thumbnailS3Key);
+                    const hasFullImageUrl = h.s3Key && visibleHeadshotFullImageUrlsMap?.has(h.s3Key);
+                    const hasImageUrl = h.imageUrl && (h.imageUrl.startsWith('http') || h.imageUrl.startsWith('data:'));
+                    
+                    // Keep headshot if it has at least one valid URL source
+                    return !!(hasDropboxUrl || hasThumbnailUrl || hasFullImageUrl || hasImageUrl);
+                  });
+                }
                 
                 return (
                   <div key={charId} className="space-y-2">
