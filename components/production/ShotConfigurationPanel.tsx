@@ -144,6 +144,10 @@ interface ShotConfigurationPanelProps {
   showDialogueWorkflowSection?: boolean;
   onAddDialogueVideoClick?: () => void;
   onCollapseDialogueVideo?: () => void;
+  /** Feature 0234: Additive motion direction for lip-sync dialogue. Shown above "+ Add Dialogue Video" when true. */
+  motionDirectionPrompt?: string;
+  onMotionDirectionChange?: (value: string) => void;
+  showMotionDirection?: boolean;
   // Feature 0182: Continuation (REMOVED - deferred to post-launch)
 }
 
@@ -222,7 +226,10 @@ export function ShotConfigurationPanel({
   renderAfterReferenceSelection,
   showDialogueWorkflowSection = false,
   onAddDialogueVideoClick,
-  onCollapseDialogueVideo
+  onCollapseDialogueVideo,
+  motionDirectionPrompt = '',
+  onMotionDirectionChange,
+  showMotionDirection = false
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -1615,8 +1622,27 @@ export function ShotConfigurationPanel({
         </>
       )}
 
-      {/* Reference Shot (model + preview) slot: after ref selection. Flow: ref selection → model dropdown → reference preview → expand area (LIP SYNC only). */}
+      {/* Reference Shot (model + preview) slot: after ref selection. Flow: ref selection → model dropdown → reference preview → Motion Direction (if lip-sync) → expand area (LIP SYNC only). */}
       {renderAfterReferenceSelection}
+
+      {/* Feature 0234: Motion Direction – above "+ Add Dialogue Video" per plan. Lip-sync dialogue only. */}
+      {showMotionDirection && (
+        <div className="py-3 border-b border-[#3F3F46]">
+          <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
+            Motion Direction (optional)
+          </label>
+          <textarea
+            value={motionDirectionPrompt}
+            onChange={(e) => onMotionDirectionChange?.(e.target.value)}
+            placeholder="Add expressions or motion cues (e.g., 'tilts head', 'rolls eyes', 'smirks', 'leans forward')"
+            rows={2}
+            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+          />
+          <div className="text-[10px] text-[#808080] italic mt-1">
+            This will be added to the auto-generated first frame prompt, not replace it.
+          </div>
+        </div>
+      )}
 
       {/* Expand area for video: when collapsed show "Add Dialogue Video"; when expanded show Collapse + LIP SYNC. Pricing (first frame only) is outside this area in Step. */}
       {isDialogueBasicTab && shot.type === 'dialogue' && (

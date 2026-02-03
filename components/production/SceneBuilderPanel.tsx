@@ -608,6 +608,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const selectedReferenceShotModels = contextState.selectedReferenceShotModels;
   const selectedVideoTypes = contextState.selectedVideoTypes;
   const generateVideoForShot = contextState.generateVideoForShot;
+  const motionDirectionPrompt = contextState.motionDirectionPrompt;
   const sceneAnalysisResult = contextState.sceneAnalysisResult;
   
   // UI State: Collapsible sections (local, not in context)
@@ -3055,6 +3056,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         shotProps: Object.keys(shotProps).length > 0 ? shotProps : undefined, // Per-shot prop configurations: { shotSlot: { propId: { usageDescription, selectedImageId } } }
         selectedVideoTypes: Object.keys(selectedVideoTypes).length > 0 ? selectedVideoTypes : undefined, // 🔥 NEW: Per-shot video model selection: { [shotSlot]: 'cinematic-visuals' | 'natural-motion' }
         generateVideoForShot: Object.keys(generateVideoForShot).length > 0 ? generateVideoForShot : undefined, // Feature 0233: Per-shot video opt-in. When false/absent, shot is first-frame-only.
+        motionDirectionPrompt: Object.keys(motionDirectionPrompt).length > 0 ? motionDirectionPrompt : undefined, // Feature 0234: Additive motion direction for lip-sync dialogue (appended to auto-prompt).
         // Note: Video quality (1080p/4K) is set globally in Review Step via globalResolution, not per-shot
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
@@ -4793,6 +4795,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 propThumbnailS3KeyMap={propThumbnailS3KeyMap}
                 propThumbnailUrlsMap={propThumbnailUrlsMap}
                 uploadedFirstFrames={contextState.uploadedFirstFrames}
+                generateVideoForShot={generateVideoForShot}
               />
             )}
 

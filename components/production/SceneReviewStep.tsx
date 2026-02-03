@@ -153,6 +153,8 @@ interface SceneReviewStepProps {
   propThumbnailUrlsMap?: Map<string, string>; // Map of prop thumbnailS3Key -> presigned URL
   // Uploaded first frames
   uploadedFirstFrames?: Record<number, string>;
+  // Feature 0234: Per-shot video opt-in state
+  generateVideoForShot?: Record<number, boolean>;
 }
 
 export function SceneReviewStep({
@@ -191,7 +193,8 @@ export function SceneReviewStep({
   locationThumbnailUrlsMap,
   propThumbnailS3KeyMap,
   propThumbnailUrlsMap,
-  uploadedFirstFrames = {}
+  uploadedFirstFrames = {},
+  generateVideoForShot = {}
 }: SceneReviewStepProps) {
   const { getToken } = useAuth();
   const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
@@ -309,17 +312,26 @@ export function SceneReviewStep({
     { value: 'complete-scene', label: 'Complete Scene', category: 'action' }
   ];
 
-  // Calculate total duration
+  // Feature 0234: Calculate total duration - only count shots with video opt-in
   const totalDuration = selectedShots.reduce((total: number, shot: any) => {
-    const duration = shotDurations[shot.slot] || 'quick-cut';
-    const seconds = duration === 'extended-take' ? 10 : 5;
-    return total + seconds;
+    // Only dialogue shots with video opt-in contribute to duration
+    if (shot.type === 'dialogue' && generateVideoForShot[shot.slot]) {
+      const duration = shotDurations[shot.slot] || 'quick-cut';
+      const seconds = duration === 'extended-take' ? 10 : 5;
+      return total + seconds;
+    }
+    // Action/establishing shots and dialogue without video opt-in are first-frame-only (no duration)
+    return total;
   }, 0);
+  
+  const hasAnyVideo = totalDuration > 0;
   const minutes = Math.floor(totalDuration / 60);
   const seconds = totalDuration % 60;
-  const durationText = minutes > 0 
-    ? `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}${seconds > 0 ? ` ${seconds} ${seconds === 1 ? 'second' : 'seconds'}` : ''}`
-    : `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
+  const durationText = hasAnyVideo
+    ? (minutes > 0 
+        ? `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}${seconds > 0 ? ` ${seconds} ${seconds === 1 ? 'second' : 'seconds'}` : ''}`
+        : `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`)
+    : 'First frames only';
 
   return (
     <div className="space-y-4">
@@ -358,7 +370,12 @@ export function SceneReviewStep({
               
               <div className="pt-3 border-t border-[#3F3F46]">
                 <p className="text-xs text-[#FFFFFF] leading-relaxed mb-2">
-                  You're about to generate <span className="text-[#DC143C] font-medium">{selectedShots.length} {selectedShots.length === 1 ? 'shot' : 'shots'}</span> totaling <span className="text-[#DC143C] font-medium">{durationText}</span> of professional video content.
+                  You're about to generate <span className="text-[#DC143C] font-medium">{selectedShots.length} {selectedShots.length === 1 ? 'shot' : 'shots'}</span>
+                  {hasAnyVideo ? (
+                    <> totaling <span className="text-[#DC143C] font-medium">{durationText}</span> of professional video content.</>
+                  ) : (
+                    <> as first frame images (no video).</>
+                  )}
                 </p>
                 <p className="text-xs text-[#808080] leading-relaxed">
                   Each shot has been carefully configured with your selected characters, locations, props, and creative direction. Our AI will bring your vision to life with cinematic quality and precision.

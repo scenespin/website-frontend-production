@@ -135,6 +135,8 @@ export interface SceneBuilderState {
   selectedVideoTypes: Record<number, VideoType>;
   /** Feature 0233: Per-shot video opt-in. When false/absent, shot is first-frame-only. */
   generateVideoForShot: Record<number, boolean>;
+  /** Feature 0234: Additive motion direction for lip-sync dialogue (e.g., "tilts head", "rolls eyes"). */
+  motionDirectionPrompt: Record<number, string>;
   
   // Global Settings
   globalResolution: Resolution;
@@ -249,6 +251,9 @@ export interface SceneBuilderActions {
   /** Feature 0233: Per-shot video opt-in. Expand "Add Dialogue Video" sets true. */
   setGenerateVideoForShot: (byShot: Record<number, boolean>) => void;
   updateGenerateVideoForShot: (shotSlot: number, enabled: boolean) => void;
+  /** Feature 0234: Additive motion direction for lip-sync dialogue. */
+  setMotionDirectionPrompt: (byShot: Record<number, string>) => void;
+  updateMotionDirectionPrompt: (shotSlot: number, prompt: string) => void;
   
   // Global Settings Actions
   setGlobalResolution: (resolution: Resolution) => void;
@@ -360,6 +365,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     selectedReferenceShotModels: {},
     selectedVideoTypes: {},
     generateVideoForShot: {},
+    motionDirectionPrompt: {},
     
     // Global Settings
     globalResolution: '4k',
@@ -1227,6 +1233,21 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         generateVideoForShot: {
           ...prev.generateVideoForShot,
           [shotSlot]: enabled
+        }
+      }));
+    }, []),
+    
+    // Feature 0234: Additive motion direction for lip-sync dialogue
+    setMotionDirectionPrompt: useCallback((byShot) => {
+      setState(prev => ({ ...prev, motionDirectionPrompt: byShot }));
+    }, []),
+    
+    updateMotionDirectionPrompt: useCallback((shotSlot, prompt) => {
+      setState(prev => ({
+        ...prev,
+        motionDirectionPrompt: {
+          ...prev.motionDirectionPrompt,
+          [shotSlot]: prompt
         }
       }));
     }, []),

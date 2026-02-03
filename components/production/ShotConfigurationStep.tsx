@@ -1336,6 +1336,9 @@ export function ShotConfigurationStep({
                   showDialogueWorkflowSection={videoOptInForThisShot}
                   onAddDialogueVideoClick={() => actions.updateGenerateVideoForShot(shotSlot, true)}
                   onCollapseDialogueVideo={() => actions.updateGenerateVideoForShot(shotSlot, false)}
+                  motionDirectionPrompt={state.motionDirectionPrompt[shotSlot] || ''}
+                  onMotionDirectionChange={(value) => actions.updateMotionDirectionPrompt(shotSlot, value)}
+                  showMotionDirection={isDialogueShot && !isSceneVoiceover}
                   renderAfterReferenceSelection={onReferenceShotModelChange ? (
                     <>
                       <ReferenceShotSelector shotSlot={shot.slot} selectedModel={selectedReferenceShotModels[shot.slot]} onModelChange={finalOnReferenceShotModelChange} />
@@ -1566,8 +1569,8 @@ export function ShotConfigurationStep({
             </>
           )}
 
-          {/* Override First Frame – below Reference Shot. Plan 0233: first-frame-only for action; dialogue has Add Dialogue Video. No non–lip-sync / video-override UI here. */}
-          {!uploadedFirstFrameUrl && (
+          {/* Override First Frame – for action shots and Narrate Shot only. Plan 0234: HIDDEN for lip-sync dialogue (use Motion Direction instead). */}
+          {!uploadedFirstFrameUrl && isOverrideAllowed && (
             <div className="mt-4 pt-3 border-t border-[#3F3F46]">
               <div className="flex items-center gap-2 mb-3">
                 <input
@@ -1585,6 +1588,93 @@ export function ShotConfigurationStep({
               </div>
               {(firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride) && (
                 <div className="space-y-3 mt-3">
+                  {/* Feature 0234: Variable Chips - show available variables from selected references */}
+                  {(() => {
+                    const availableVariables: Array<{ label: string; variable: string; type: 'character' | 'location' | 'prop' }> = [];
+                    
+                    // Character references - get all characters for this shot
+                    const allShotCharacters = new Set<string>();
+                    explicitCharacters.forEach(charId => allShotCharacters.add(charId));
+                    Object.values(shotMappings || {}).forEach(mapping => {
+                      if (mapping && mapping !== '__ignore__') {
+                        if (Array.isArray(mapping)) {
+                          mapping.forEach(charId => allShotCharacters.add(charId));
+                        } else {
+                          allShotCharacters.add(mapping);
+                        }
+                      }
+                    });
+                    (finalSelectedCharactersForShots[shotSlot] || []).forEach((charId: string) => allShotCharacters.add(charId));
+                    
+                    // Filter to only those with selected references
+                    const charactersWithRefs = Array.from(allShotCharacters).filter(charId => 
+                      finalSelectedCharacterReferences[shotSlot]?.[charId]
+                    );
+                    
+                    charactersWithRefs.forEach((charId, index) => {
+                      const char = allCharacters.find((c: any) => c.id === charId);
+                      if (char) {
+                        availableVariables.push({
+                          label: char.name || `Character ${index + 1}`,
+                          variable: `{{character${index + 1}}}`,
+                          type: 'character'
+                        });
+                      }
+                    });
+                    
+                    // Location reference (label from scene props/location list when available, else shot or fallback)
+                    if (finalSelectedLocationReferences[shotSlot]) {
+                      const locationItem = finalSceneProps?.find((loc: any) => loc.id === shot.locationId);
+                      const shotData = sceneAnalysisResult?.shotBreakdown?.shots?.find((s: any) => s.slot === shotSlot);
+                      availableVariables.push({
+                        label: locationItem?.name || shotData?.locationDescription || 'Location',
+                        variable: '{{location}}',
+                        type: 'location'
+                      });
+                    }
+                    
+                    // Prop references
+                    const shotPropsForThisShot = (finalSceneProps || []).filter((prop: any) => 
+                      finalPropsToShots[prop.id]?.includes(shotSlot)
+                    );
+                    shotPropsForThisShot.forEach((prop: any, index: number) => {
+                      if (finalShotProps[shotSlot]?.[prop.id]?.selectedImageId) {
+                        availableVariables.push({
+                          label: prop.name || `Prop ${index + 1}`,
+                          variable: `{{prop${index + 1}}}`,
+                          type: 'prop'
+                        });
+                      }
+                    });
+                    
+                    return availableVariables.length > 0 ? (
+                      <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                        <label className="block text-[10px] text-[#808080] mb-2 font-medium">
+                          Available Variables (from selected references):
+                        </label>
+                        <div className="space-y-1.5">
+                          {availableVariables.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-xs">
+                              <code className="px-2 py-0.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-[#DC143C] font-mono text-[11px]">
+                                {item.variable}
+                              </code>
+                              <span className="text-[#FFFFFF]">=</span>
+                              <span className="text-[#808080]">{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-[9px] text-[#808080] italic mt-2">
+                          Use these variables in your prompt. Only references with variables will be included.
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                        <div className="text-[10px] text-[#808080] italic">
+                          No references selected. Select characters, location, or props above to create variables.
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <label className="block text-[10px] text-[#808080] mb-1.5">First Frame Prompt (Image Model)</label>
                   <textarea
                     ref={firstFrameTextareaRef}
