@@ -4688,6 +4688,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   enabledShots={enabledShots}
                   completedShots={completedShots}
                   shotDisplayCredits={shotDisplayCredits ?? undefined}
+                  shotAspectRatio={currentShot != null ? (shotAspectRatios[currentShot.slot] ?? '16:9') : '16:9'}
+                  onAspectRatioChange={(shotSlot, aspectRatio) => setShotAspectRatios(prev => ({ ...prev, [shotSlot]: aspectRatio }))}
                   isMobile={isMobile}
                 />
               );
