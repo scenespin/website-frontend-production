@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Film, RefreshCw, Loader2, ChevronLeft, ChevronRight, Play, X, Clapperboard } from 'lucide-react';
+import { Film, RefreshCw, Loader2, ChevronLeft, ChevronRight, Play, Clapperboard, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -45,7 +45,7 @@ function ShotCell({
   
   if (!currentVariation) {
     return (
-      <div className="relative flex-shrink-0 w-28 h-28 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] flex items-center justify-center">
+      <div className="relative flex-shrink-0 w-40 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] flex items-center justify-center aspect-video">
         <span className="text-[10px] text-[#808080]">No data</span>
       </div>
     );
@@ -72,15 +72,37 @@ function ShotCell({
     }
   };
 
+  const handleDownloadFirstFrame = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!firstFrameUrl) return;
+    const link = document.createElement('a');
+    link.href = firstFrameUrl;
+    link.download = currentVariation.firstFrame.fileName || `shot-${shot.shotNumber}-first-frame.jpg`;
+    link.rel = 'noopener noreferrer';
+    link.target = '_blank';
+    link.click();
+  };
+
+  const handleDownloadVideo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!videoUrl) return;
+    const link = document.createElement('a');
+    link.href = videoUrl;
+    link.download = currentVariation.video?.fileName || `shot-${shot.shotNumber}-video.mp4`;
+    link.rel = 'noopener noreferrer';
+    link.target = '_blank';
+    link.click();
+  };
+
   return (
-    <div className="relative flex-shrink-0 w-28 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group">
-      {/* First Frame Image */}
-      <div className="relative w-full h-28">
+    <div className="relative flex-shrink-0 w-40 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group">
+      {/* First Frame Image (16:9 standard, object-contain so image is not cropped) */}
+      <div className="relative w-full aspect-video bg-[#0A0A0A]">
         {firstFrameUrl ? (
           <img
             src={firstFrameUrl}
             alt={`Shot ${shot.shotNumber}`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-[#0A0A0A]">
@@ -139,6 +161,33 @@ function ShotCell({
           </button>
         </div>
       )}
+
+      {/* Toolbar: Download first frame & video (extensible for more actions later) */}
+      <div className="flex items-center gap-1 px-1 py-1 bg-[#141414] border-t border-[#3F3F46]">
+        <button
+          type="button"
+          onClick={handleDownloadFirstFrame}
+          disabled={!firstFrameUrl}
+          className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title="Download first frame"
+          aria-label="Download first frame"
+        >
+          <Download className="w-3 h-3" />
+          Frame
+        </button>
+        {hasVideo && (
+          <button
+            type="button"
+            onClick={handleDownloadVideo}
+            className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded transition-colors"
+            title="Download video"
+            aria-label="Download video"
+          >
+            <Download className="w-3 h-3" />
+            Video
+          </button>
+        )}
+      </div>
     </div>
   );
 }
