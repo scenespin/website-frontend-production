@@ -632,7 +632,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         shots.forEach((s: any) => {
           referenceShotModels[s.slot] = selectedReferenceShotModels[s.slot] || 'nano-banana-pro-2k';
         });
-        const videoTypes: Record<number, string> = {};
+        const videoTypes: Record<number, VideoType> = {};
         shots.forEach((s: any) => {
           if (s.type === 'dialogue' && generateVideoForShot[s.slot] && selectedVideoTypes[s.slot]) {
             videoTypes[s.slot] = selectedVideoTypes[s.slot];
