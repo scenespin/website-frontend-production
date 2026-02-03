@@ -19,89 +19,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Film, ArrowLeft, Play, ChevronDown } from 'lucide-react';
+import { Check, Film, ArrowLeft, Play } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 import type { Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
-import { cn } from '@/lib/utils';
 
-// Resolution Selector Component (Custom DaisyUI Dropdown)
-function ResolutionSelector({ value, onChange }: { value: Resolution; onChange: (value: Resolution) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const resolutions = [
-    { value: '1080p' as const, label: 'HD' },
-    { value: '4k' as const, label: '4K' }
-  ];
-
-  const currentLabel = resolutions.find(r => r.value === value)?.label || 'HD';
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [isOpen]);
-
-  return (
-    <div ref={dropdownRef} className="relative">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          setIsOpen(!isOpen);
-        }}
-        className="w-[100px] h-8 text-xs px-3 py-1.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] flex items-center justify-between hover:bg-[#2A2A2A] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-      >
-        <span>{currentLabel}</span>
-        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
-      </button>
-      {isOpen && (
-        <ul
-          className="absolute top-full left-0 mt-1 w-[100px] menu p-2 shadow-lg bg-[#1F1F1F] rounded-box border border-[#3F3F46] z-[9999] max-h-96 overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          {resolutions.map((res) => (
-            <li key={res.value}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange(res.value);
-                  setIsOpen(false);
-                }}
-                className={cn(
-                  "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs",
-                  value === res.value
-                    ? "bg-[#DC143C]/20 text-[#FFFFFF]"
-                    : "text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]"
-                )}
-              >
-                {res.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
+// Honest resolution (0237): No resolution selector. Output is 720p (Reliable/LongCat) or 1080p (Premium/VEO) by workflow.
 
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
@@ -360,10 +286,8 @@ export function SceneReviewStep({
                 {pricing && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#808080]">Estimated Cost:</span>
-                    <span className={`text-sm font-medium ${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
-                      {globalResolution === '4k' 
-                        ? pricing.totalFirstFramePrice + pricing.totalK4Price 
-                        : pricing.totalFirstFramePrice + pricing.totalHdPrice} credits
+                    <span className="text-sm font-medium text-[#FFFFFF]">
+                      {pricing.totalFirstFramePrice + pricing.totalHdPrice} credits
                     </span>
                   </div>
                 )}
@@ -637,19 +561,8 @@ export function SceneReviewStep({
             </div>
           </div>
 
-          {/* Resolution Selection and Cost Calculator (above buttons) */}
+          {/* Cost Calculator (0237: honest resolution — single cost, no resolution selector) */}
           <div className="pt-3 border-t border-[#3F3F46] space-y-3 pb-3">
-            <div className="flex items-center justify-end gap-2">
-              <label className="text-xs text-[#808080] whitespace-nowrap">
-                Resolution:
-              </label>
-              <ResolutionSelector
-                value={globalResolution}
-                onChange={(value) => onGlobalResolutionChange(value as Resolution)}
-              />
-            </div>
-            
-            {/* Cost Calculator - Prices from backend (margins hidden); hide HD/4K lines when first frames only */}
             {pricing && (
               <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-3 space-y-2">
                 <div className="text-sm font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
@@ -662,37 +575,23 @@ export function SceneReviewStep({
                   </span>
                 </div>
                 {hasAnyVideo && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#808080]">HD Video:</span>
-                      <span className={`text-sm font-medium ${globalResolution === '1080p' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
-                        {pricing.totalHdPrice} credits
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#808080]">4K Video:</span>
-                      <span className={`text-sm font-medium ${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
-                        {pricing.totalK4Price} credits
-                      </span>
-                    </div>
-                  </>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#808080]">Video (720p or 1080p by workflow):</span>
+                    <span className="text-sm font-medium text-[#FFFFFF]">
+                      {pricing.totalHdPrice} credits
+                    </span>
+                  </div>
                 )}
                 <div className="pt-2 border-t border-[#3F3F46]">
                   <div className="flex items-center justify-between text-sm font-medium">
-                    <span className="text-[#FFFFFF]">HD Total:</span>
-                    <span className={`${globalResolution === '1080p' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
+                    <span className="text-[#FFFFFF]">Total:</span>
+                    <span className="text-[#DC143C]">
                       {pricing.totalFirstFramePrice + pricing.totalHdPrice} credits
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm font-medium mt-1">
-                    <span className="text-[#FFFFFF]">4K Total:</span>
-                    <span className={`${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
-                      {pricing.totalFirstFramePrice + pricing.totalK4Price} credits
                     </span>
                   </div>
                 </div>
                 <div className="text-[10px] text-[#808080] italic mt-2 pt-2 border-t border-[#3F3F46]">
-                  Selected: {globalResolution === '4k' ? '4K' : 'HD'} ({globalResolution === '4k' ? pricing.totalFirstFramePrice + pricing.totalK4Price : pricing.totalFirstFramePrice + pricing.totalHdPrice} credits)
+                  Reliable (Wryda) = 720p · Premium (VEO) = 1080p
                 </div>
               </div>
             )}

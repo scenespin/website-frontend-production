@@ -35,15 +35,19 @@ import { isOffFrameListenerShotType, isOffFrameGroupShotType } from '@/types/off
 import type { OffFrameShotType } from '@/types/offFrame';
 
 // Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
-function AspectRatioSelector({ value, onChange }: { value: string; onChange: (value: '16:9' | '9:16' | '1:1') => void }) {
+const ASPECT_RATIO_OPTIONS = [
+  { value: '16:9' as const, label: '16:9 (Horizontal)' },
+  { value: '9:16' as const, label: '9:16 (Vertical)' },
+  { value: '1:1' as const, label: '1:1 (Square)' },
+  { value: '21:9' as const, label: '21:9 (Ultrawide)' },
+  { value: '9:21' as const, label: '9:21 (Vertical ultrawide)' }
+] as const;
+
+function AspectRatioSelector({ value, onChange }: { value: string; onChange: (value: '16:9' | '9:16' | '1:1' | '21:9' | '9:21') => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const aspectRatios = useMemo(() => [
-    { value: '16:9' as const, label: '16:9 (Horizontal)' },
-    { value: '9:16' as const, label: '9:16 (Vertical)' },
-    { value: '1:1' as const, label: '1:1 (Square)' }
-  ], []);
+  const aspectRatios = useMemo(() => ASPECT_RATIO_OPTIONS, []);
 
   const currentLabel = aspectRatios.find(ar => ar.value === value)?.label || '16:9 (Horizontal)';
 
@@ -205,8 +209,8 @@ interface ShotConfigurationStepProps {
   selectedVideoType?: Record<number, VideoType>;
   onVideoTypeChange?: (shotSlot: number, videoType: VideoType) => void;
   // Aspect Ratio (per-shot)
-  shotAspectRatio?: '16:9' | '9:16' | '1:1';
-  onAspectRatioChange?: (shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1') => void;
+  shotAspectRatio?: '16:9' | '9:16' | '1:1' | '21:9' | '9:21';
+  onAspectRatioChange?: (shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1' | '21:9' | '9:21') => void;
   // Navigation
   onPrevious: () => void;
   onNext: () => void;
@@ -910,7 +914,7 @@ export function ShotConfigurationStep({
     actions.updateVideoType(shotSlot, videoType);
   }, [actions]);
   
-  const finalOnAspectRatioChange = useCallback((shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1') => {
+  const finalOnAspectRatioChange = useCallback((shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1' | '21:9' | '9:21') => {
     actions.updateShotAspectRatio(shotSlot, aspectRatio);
   }, [actions]);
   
@@ -1716,7 +1720,7 @@ export function ShotConfigurationStep({
               <label className="block text-[10px] text-[#808080] mb-1.5">Output aspect ratio (image &amp; video)</label>
               <AspectRatioSelector
                 value={shotAspectRatio || '16:9'}
-                onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1')}
+                onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1' | '21:9' | '9:21')}
               />
             </div>
           )}

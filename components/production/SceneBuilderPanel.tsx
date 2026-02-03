@@ -87,7 +87,7 @@ import { isValidCharacterId, filterValidCharacterIds } from './utils/characterId
 import { categorizeCharacters } from './utils/characterCategorization';
 import { isOffFrameListenerShotType, isOffFrameGroupShotType } from '@/types/offFrame';
 import type { OffFrameShotType } from '@/types/offFrame';
-import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType } from '@/contexts/SceneBuilderContext';
+import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType, type AspectRatio } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
 import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
 import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_STYLE } from './utils/imageConstants';
@@ -397,7 +397,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
   }, []);
   
-  const setShotAspectRatios = useCallback((updater: Record<number, '16:9' | '9:16' | '1:1'> | ((prev: Record<number, '16:9' | '9:16' | '1:1'>) => Record<number, '16:9' | '9:16' | '1:1'>)) => {
+  const setShotAspectRatios = useCallback((updater: Record<number, AspectRatio> | ((prev: Record<number, AspectRatio>) => Record<number, AspectRatio>)) => {
     if (typeof updater === 'function') {
       const newValue = updater(contextState.shotAspectRatios);
       contextActions.setShotAspectRatios(newValue);
@@ -2589,7 +2589,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         sceneId: sceneId, // Required: Backend uses hash system's extractSceneContent() (single source of truth, no fallbacks)
         sceneDescription: sceneDescription.trim(), // For establishing shot prompt
         qualityTier: qualityTier || 'premium', // Quality tier for establishing shot
-        aspectRatio: shotAspectRatios[0] || '16:9' // 🔥 NEW: Use per-shot aspect ratio (default to 16:9 for dialogue)
+        aspectRatio: (enabledShots?.[0] != null && shotAspectRatios[enabledShots[0]]) || Object.values(shotAspectRatios)[0] || '16:9' // 16:9 horizontal, 9:16 vertical for social
       };
       
       // Only include characterImageUrl if it's actually set (service can fetch from Character Bank if not provided)
