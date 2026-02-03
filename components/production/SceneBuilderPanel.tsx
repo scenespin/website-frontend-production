@@ -645,7 +645,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           shotDurations,
           getToken,
           referenceShotModels,
-          Object.keys(videoTypes).length > 0 ? videoTypes : undefined
+          Object.keys(videoTypes).length > 0 ? videoTypes : undefined,
+          selectedDialogueQualities,
+          selectedDialogueWorkflows,
+          voiceoverBaseWorkflows,
+          generateVideoForShot
         );
         if (cancelled) return;
         const displayCredits: Record<number, number> = {};
@@ -668,7 +672,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     run();
     return () => { cancelled = true; };
-  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, getToken]);
+  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, getToken]);
   
   // 🔥 NEW: Map Media Library files to character headshot structure
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error

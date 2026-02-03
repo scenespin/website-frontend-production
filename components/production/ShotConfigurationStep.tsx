@@ -983,7 +983,7 @@ export function ShotConfigurationStep({
       const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
       const hasUploadedFirstFrame = !!uploadedFirstFrameUrl;
       if (!hasFirstFramePrompt && !hasUploadedFirstFrame) {
-        validationErrors.push('First frame: Enter a prompt OR upload a first frame image when "Override First Frame" is enabled.');
+        validationErrors.push('First frame: Enter a prompt when "Override First Frame" is enabled.');
       }
     }
     

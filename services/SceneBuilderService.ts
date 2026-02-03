@@ -740,7 +740,8 @@ export class SceneBuilderService {
     videoTypes?: Record<number, VideoType>,
     dialogueQualities?: Record<number, 'premium' | 'reliable'>,
     dialogueWorkflows?: Record<number, string>,
-    voiceoverBaseWorkflows?: Record<number, string>
+    voiceoverBaseWorkflows?: Record<number, string>,
+    generateVideoForShot?: Record<number, boolean>
   ): Promise<ScenePricingResult> {
     if (!getTokenFn) {
       throw new Error('getToken function is required');
@@ -761,7 +762,8 @@ export class SceneBuilderService {
         videoTypes,
         dialogueQualities,
         dialogueWorkflows,
-        voiceoverBaseWorkflows
+        voiceoverBaseWorkflows,
+        generateVideoForShot
       })
     });
     

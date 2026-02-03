@@ -224,10 +224,11 @@ export function SceneReviewStep({
           shotDurations,
           getToken,
           referenceShotModelsWithDefaults,
-          undefined, // videoTypes
+          undefined, // videoTypes (Review step uses generateVideoForShot for dialogue; action shots use shot.credits fallback)
           selectedDialogueQualities,
           selectedDialogueWorkflows,
-          voiceoverBaseWorkflows
+          voiceoverBaseWorkflows,
+          generateVideoForShot
         );
         
         setPricing({
@@ -244,7 +245,7 @@ export function SceneReviewStep({
     };
     
     fetchPricing();
-  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, getToken]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, getToken]);
   
   if (!sceneAnalysisResult) {
     return (
@@ -448,15 +449,17 @@ export function SceneReviewStep({
                       </div>
                     )}
 
-                    {/* Workflow - Display only (no override in review step) */}
-                    <div className="text-[10px] text-[#808080]">
-                      Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'hollywood-standard')}</span>
-                      {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
-                        <span className="text-[#DC143C] ml-2">
-                          (Override: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])})
-                        </span>
-                      )}
-                    </div>
+                    {/* Workflow - Display only when video is opted-in (hide for first-frame-only dialogue) */}
+                    {(shot.type !== 'dialogue' || generateVideoForShot[shot.slot]) && (
+                      <div className="text-[10px] text-[#808080]">
+                        Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'hollywood-standard')}</span>
+                        {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
+                          <span className="text-[#DC143C] ml-2">
+                            (Override: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])})
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Dialogue Workflow (for display only - override is above) */}
                     {shotDialogueWorkflow && (
@@ -646,7 +649,7 @@ export function SceneReviewStep({
               />
             </div>
             
-            {/* Cost Calculator - Prices from backend (margins hidden) */}
+            {/* Cost Calculator - Prices from backend (margins hidden); hide HD/4K lines when first frames only */}
             {pricing && (
               <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-3 space-y-2">
                 <div className="text-sm font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
@@ -658,18 +661,22 @@ export function SceneReviewStep({
                     {pricing.totalFirstFramePrice} credits
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#808080]">HD Video:</span>
-                  <span className={`text-sm font-medium ${globalResolution === '1080p' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
-                    {pricing.totalHdPrice} credits
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#808080]">4K Video:</span>
-                  <span className={`text-sm font-medium ${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
-                    {pricing.totalK4Price} credits
-                  </span>
-                </div>
+                {hasAnyVideo && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[#808080]">HD Video:</span>
+                      <span className={`text-sm font-medium ${globalResolution === '1080p' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
+                        {pricing.totalHdPrice} credits
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[#808080]">4K Video:</span>
+                      <span className={`text-sm font-medium ${globalResolution === '4k' ? 'text-[#DC143C]' : 'text-[#FFFFFF]'}`}>
+                        {pricing.totalK4Price} credits
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="pt-2 border-t border-[#3F3F46]">
                   <div className="flex items-center justify-between text-sm font-medium">
                     <span className="text-[#FFFFFF]">HD Total:</span>
