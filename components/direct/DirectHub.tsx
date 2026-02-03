@@ -13,7 +13,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
-import { ShotBoardPanel } from '@/components/production/ShotBoardPanel';
+import { ShotBoardView } from '@/components/production/ShotBoardView';
 import { StyleProfilesPanel } from '@/components/production/StyleProfilesPanel';
 import { VideoSoundscapePanel } from '@/components/production/VideoSoundscapePanel';
 import { ProductionErrorBoundary } from '@/components/production/ProductionErrorBoundary';
@@ -89,7 +89,7 @@ export function DirectHub() {
 
         {activeTab === 'storyboard' && (
           <div className="h-full overflow-y-auto">
-            <ShotBoardPanel
+            <ShotBoardView
               className="h-full"
               onNavigateToSceneBuilder={() => handleTabChange('scene-builder')}
             />

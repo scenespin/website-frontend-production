@@ -34,13 +34,26 @@ interface VideoModel {
 interface VideoGenerationToolsProps {
   className?: string;
   screenplayId?: string;
+  /** Pre-fill starting frame from Shot Board (presigned URL) */
+  initialStartImageUrl?: string;
+  /** Optional: scene/shot context for job placement and labeling */
+  sceneId?: string;
+  sceneName?: string;
+  shotNumber?: number;
 }
 
 type VideoMode = 'starting-frame' | 'frame-to-frame';
 
 const DEFAULT_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '21:9', '9:21', '4:3', '3:4'];
 
-export function VideoGenerationTools({ className = '', screenplayId: propScreenplayId }: VideoGenerationToolsProps) {
+export function VideoGenerationTools({
+  className = '',
+  screenplayId: propScreenplayId,
+  initialStartImageUrl,
+  sceneId: propSceneId,
+  sceneName: propSceneName,
+  shotNumber: propShotNumber,
+}: VideoGenerationToolsProps) {
   const screenplay = useScreenplay();
   const screenplayId = propScreenplayId || screenplay.screenplayId;
   const { getToken } = useAuth();
@@ -57,9 +70,18 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
 
-  // Starting Frame mode
+  // Starting Frame mode: either uploaded (file + s3Key) or from prop (URL only)
   const [startImage, setStartImage] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
+  const [startImageUrlFromProp, setStartImageUrlFromProp] = useState<string | null>(null);
   const startImageInputRef = useRef<HTMLInputElement>(null);
+
+  // When initialStartImageUrl is provided (e.g. from Shot Board), pre-fill starting frame
+  useEffect(() => {
+    if (initialStartImageUrl?.trim()) {
+      setStartImageUrlFromProp(initialStartImageUrl);
+      setStartImage(null);
+    }
+  }, [initialStartImageUrl]);
 
   // Frame to Frame mode
   const [frame1, setFrame1] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
@@ -230,6 +252,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
     }
 
     setIsUploading(true);
+    setStartImageUrlFromProp(null); // Clear any pre-filled URL when user uploads
     try {
       const preview = URL.createObjectURL(file);
       const s3Key = await uploadImage(file);
@@ -249,7 +272,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
       return;
     }
 
-    if (activeMode === 'starting-frame' && !startImage?.s3Key) {
+    if (activeMode === 'starting-frame' && !startImage?.s3Key && !startImageUrlFromProp) {
       toast.error('Please upload a starting frame image');
       return;
     }
@@ -283,7 +306,6 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         finalPrompt = angleText + finalPrompt;
       }
 
-      // Build request body
       const requestBody: any = {
         prompt: finalPrompt,
         videoMode: activeMode === 'starting-frame' ? 'image-start' : 'image-interpolation',
@@ -291,14 +313,18 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         duration: `${selectedDuration}s`,
         aspectRatio: aspectRatio,
         cameraMotion: selectedCameraAngle ? cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText || 'none' : 'none',
-        sceneId: `playground_${Date.now()}`,
-        sceneName: `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
+        sceneId: propSceneId ?? `playground_${Date.now()}`,
+        sceneName: propSceneName ?? `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
       };
       if (selectedModel) requestBody.preferredProvider = selectedModel;
+      if (propShotNumber != null) requestBody.shotNumber = propShotNumber;
 
-      // Add image URLs based on mode
-      if (activeMode === 'starting-frame' && startImage?.s3Key) {
-        requestBody.startImageUrl = startImage.s3Key;
+      if (activeMode === 'starting-frame') {
+        if (startImage?.s3Key) {
+          requestBody.startImageUrl = startImage.s3Key;
+        } else if (startImageUrlFromProp) {
+          requestBody.startImageUrl = startImageUrlFromProp;
+        }
       }
 
       if (activeMode === 'frame-to-frame' && frame1?.s3Key && frame2?.s3Key) {
@@ -349,6 +375,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
       if (activeMode === 'starting-frame') {
         if (startImage?.preview) URL.revokeObjectURL(startImage.preview);
         setStartImage(null);
+        setStartImageUrlFromProp(null);
       } else {
         if (frame1?.preview) URL.revokeObjectURL(frame1.preview);
         if (frame2?.preview) URL.revokeObjectURL(frame2.preview);
@@ -439,7 +466,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
               className="hidden"
               disabled={isUploading || isGenerating}
             />
-            {!startImage ? (
+            {!startImage && !startImageUrlFromProp ? (
               <button
                 type="button"
                 onClick={() => startImageInputRef.current?.click()}
@@ -467,17 +494,19 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
             ) : (
               <div className="relative">
                 <img
-                  src={startImage.preview}
+                  src={startImage ? startImage.preview : startImageUrlFromProp ?? ''}
                   alt="Starting frame"
                   className="w-full h-48 object-cover rounded-lg border border-[#3F3F46]"
                 />
                 <button
                   type="button"
                   onClick={() => {
-                    URL.revokeObjectURL(startImage.preview);
+                    if (startImage?.preview) URL.revokeObjectURL(startImage.preview);
                     setStartImage(null);
+                    setStartImageUrlFromProp(null);
                   }}
                   className="absolute top-2 right-2 w-8 h-8 bg-cinema-red rounded-full flex items-center justify-center"
+                  aria-label="Clear starting frame"
                 >
                   <X className="w-4 h-4 text-white" />
                 </button>
@@ -747,7 +776,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           <button
             onClick={handleGenerate}
             disabled={!prompt.trim() || isGenerating || models.length === 0 || !selectedModel ||
-              (activeMode === 'starting-frame' && !startImage) ||
+              (activeMode === 'starting-frame' && !startImage && !startImageUrlFromProp) ||
               (activeMode === 'frame-to-frame' && (!frame1 || !frame2))}
             className={cn(
               "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",

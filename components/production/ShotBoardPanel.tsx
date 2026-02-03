@@ -1,48 +1,56 @@
 'use client';
 
 /**
- * Shot Board Panel
- * 
- * Displays all shots organized by scene with per-shot variation cycling.
- * Each shot shows its first frame with optional video playback.
- * Users can cycle through multiple variations (generations) of each shot.
- * 
- * Replaces the old ScenesPanel/Storyboard view.
+ * Shot Board Panel (First frames sub-tab)
+ *
+ * Displays first frames only, organized by scene with per-shot variation cycling.
+ * Toolbar: Download first frame, Generate video (opens VideoGenerationTools modal).
+ * Video playback and download live in the Videos sub-tab.
  */
 
 import React, { useState, useCallback } from 'react';
-import { Film, RefreshCw, Loader2, ChevronLeft, ChevronRight, Play, Clapperboard, Download } from 'lucide-react';
+import { Film, RefreshCw, Loader2, ChevronLeft, ChevronRight, Clapperboard, Download, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShotBoard, type ShotBoardScene, type ShotBoardShot, getTotalShotCount } from '@/hooks/useShotBoard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { VideoGenerationTools } from '@/components/production/playground/VideoGenerationTools';
 
 interface ShotBoardPanelProps {
   className?: string;
   onNavigateToSceneBuilder?: () => void;
 }
 
+/** Context passed when opening Generate video modal */
+export interface GenerateVideoContext {
+  firstFrameUrl: string;
+  sceneId: string;
+  shotNumber: number;
+  sceneHeading: string;
+}
+
 /**
- * Individual shot cell with variation cycling
+ * Individual shot cell with variation cycling (first frames only)
  */
 function ShotCell({
   shot,
+  sceneHeading,
   presignedUrls,
-  onPlayVideo
+  onGenerateVideo,
 }: {
   shot: ShotBoardShot;
+  sceneHeading: string;
   presignedUrls: Map<string, string>;
-  onPlayVideo: (videoUrl: string) => void;
+  onGenerateVideo: (context: GenerateVideoContext) => void;
 }) {
   const [variationIndex, setVariationIndex] = useState(0);
   const variations = shot.variations;
   const hasMultipleVariations = variations.length > 1;
-  
-  // Ensure index is valid
+
   const currentIndex = Math.min(variationIndex, variations.length - 1);
   const currentVariation = variations[currentIndex];
-  
+
   if (!currentVariation) {
     return (
       <div className="relative flex-shrink-0 w-40 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] flex items-center justify-center aspect-video">
@@ -52,24 +60,15 @@ function ShotCell({
   }
 
   const firstFrameUrl = presignedUrls.get(currentVariation.firstFrame.s3Key);
-  const videoUrl = currentVariation.video ? presignedUrls.get(currentVariation.video.s3Key) : undefined;
-  const hasVideo = !!currentVariation.video && !!videoUrl;
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setVariationIndex(i => Math.max(0, i - 1));
+    setVariationIndex((i) => Math.max(0, i - 1));
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setVariationIndex(i => Math.min(variations.length - 1, i + 1));
-  };
-
-  const handlePlayClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (videoUrl) {
-      onPlayVideo(videoUrl);
-    }
+    setVariationIndex((i) => Math.min(variations.length - 1, i + 1));
   };
 
   const handleDownloadFirstFrame = (e: React.MouseEvent) => {
@@ -83,20 +82,19 @@ function ShotCell({
     link.click();
   };
 
-  const handleDownloadVideo = (e: React.MouseEvent) => {
+  const handleGenerateVideo = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!videoUrl) return;
-    const link = document.createElement('a');
-    link.href = videoUrl;
-    link.download = currentVariation.video?.fileName || `shot-${shot.shotNumber}-video.mp4`;
-    link.rel = 'noopener noreferrer';
-    link.target = '_blank';
-    link.click();
+    if (!firstFrameUrl) return;
+    onGenerateVideo({
+      firstFrameUrl,
+      sceneId: shot.sceneId,
+      shotNumber: shot.shotNumber,
+      sceneHeading,
+    });
   };
 
   return (
     <div className="relative flex-shrink-0 w-40 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group">
-      {/* First Frame Image (16:9 standard, object-contain so image is not cropped) */}
       <div className="relative w-full aspect-video bg-[#0A0A0A]">
         {firstFrameUrl ? (
           <img
@@ -109,33 +107,11 @@ function ShotCell({
             <Film className="w-6 h-6 text-[#808080]" />
           </div>
         )}
-
-        {/* Play button overlay (only when video exists) */}
-        {hasVideo && (
-          <button
-            type="button"
-            onClick={handlePlayClick}
-            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none"
-            aria-label="Play video"
-          >
-            <Play className="w-10 h-10 text-white drop-shadow" fill="currentColor" />
-          </button>
-        )}
-
-        {/* Shot number badge */}
         <div className="absolute top-1 left-1 bg-[#DC143C] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
           #{shot.shotNumber}
         </div>
-
-        {/* Video indicator badge */}
-        {hasVideo && (
-          <div className="absolute top-1 right-1 bg-black/70 text-white text-[8px] px-1 py-0.5 rounded flex items-center gap-0.5">
-            <Film className="w-2.5 h-2.5" />
-          </div>
-        )}
       </div>
 
-      {/* Variation navigation (only when multiple variations) */}
       {hasMultipleVariations && (
         <div className="flex items-center justify-between px-1 py-1 bg-[#141414] border-t border-[#3F3F46]">
           <button
@@ -162,7 +138,6 @@ function ShotCell({
         </div>
       )}
 
-      {/* Toolbar: Download first frame & video (extensible for more actions later) */}
       <div className="flex items-center gap-1 px-1 py-1 bg-[#141414] border-t border-[#3F3F46]">
         <button
           type="button"
@@ -175,38 +150,36 @@ function ShotCell({
           <Download className="w-3 h-3" />
           Frame
         </button>
-        {hasVideo && (
-          <button
-            type="button"
-            onClick={handleDownloadVideo}
-            className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded transition-colors"
-            title="Download video"
-            aria-label="Download video"
-          >
-            <Download className="w-3 h-3" />
-            Video
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={handleGenerateVideo}
+          disabled={!firstFrameUrl}
+          className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title="Generate video from this frame"
+          aria-label="Generate video"
+        >
+          <Video className="w-3 h-3" />
+          Video
+        </button>
       </div>
     </div>
   );
 }
 
 /**
- * Scene row with horizontal strip of shots
+ * Scene row with horizontal strip of shot cells
  */
 function SceneRow({
   scene,
   presignedUrls,
-  onPlayVideo
+  onGenerateVideo,
 }: {
   scene: ShotBoardScene;
   presignedUrls: Map<string, string>;
-  onPlayVideo: (videoUrl: string) => void;
+  onGenerateVideo: (context: GenerateVideoContext) => void;
 }) {
   return (
     <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
-      {/* Scene Header */}
       <div className="px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded bg-[#DC143C] flex items-center justify-center text-white text-sm font-semibold">
@@ -220,16 +193,15 @@ function SceneRow({
           </div>
         </div>
       </div>
-
-      {/* Shots Strip */}
       <div className="p-4">
         <div className="flex gap-3 overflow-x-auto pb-2">
           {scene.shots.map((shot) => (
             <ShotCell
               key={`${scene.sceneId}-${shot.shotNumber}`}
               shot={shot}
+              sceneHeading={scene.sceneHeading}
               presignedUrls={presignedUrls}
-              onPlayVideo={onPlayVideo}
+              onGenerateVideo={onGenerateVideo}
             />
           ))}
         </div>
@@ -256,10 +228,9 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: Sho
     presignedUrlsLoading
   } = useShotBoard(screenplayId || '', !!screenplayId);
 
-  // Video playback modal state
-  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+  const [generateVideoModalOpen, setGenerateVideoModalOpen] = useState(false);
+  const [generateVideoContext, setGenerateVideoContext] = useState<GenerateVideoContext | null>(null);
 
-  // Handle refresh
   const handleRefresh = useCallback(() => {
     if (screenplayId) {
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
@@ -268,9 +239,14 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: Sho
     }
   }, [screenplayId, queryClient, refetch]);
 
-  // Handle play video
-  const handlePlayVideo = useCallback((videoUrl: string) => {
-    setPlayingVideoUrl(videoUrl);
+  const handleOpenGenerateVideo = useCallback((context: GenerateVideoContext) => {
+    setGenerateVideoContext(context);
+    setGenerateVideoModalOpen(true);
+  }, []);
+
+  const handleCloseGenerateVideoModal = useCallback(() => {
+    setGenerateVideoModalOpen(false);
+    setGenerateVideoContext(null);
   }, []);
 
   // Loading state
@@ -352,30 +328,31 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: Sho
                 key={scene.sceneId}
                 scene={scene}
                 presignedUrls={presignedUrls}
-                onPlayVideo={handlePlayVideo}
+                onGenerateVideo={handleOpenGenerateVideo}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* Video Playback Modal */}
-      <Dialog open={!!playingVideoUrl} onOpenChange={(open) => !open && setPlayingVideoUrl(null)}>
-        <DialogContent className="max-w-4xl bg-[#141414] border-[#3F3F46] p-0 overflow-hidden">
+      {/* Generate video modal */}
+      <Dialog open={generateVideoModalOpen} onOpenChange={(open) => !open && handleCloseGenerateVideoModal()}>
+        <DialogContent className="max-w-7xl h-[90vh] bg-[#0A0A0A] border-[#3F3F46] p-0 overflow-hidden flex flex-col">
           <DialogHeader className="sr-only">
-            <DialogTitle>Play video</DialogTitle>
+            <DialogTitle>Generate video</DialogTitle>
           </DialogHeader>
-          {playingVideoUrl && (
-            <div className="relative aspect-video w-full">
-              <video
-                src={playingVideoUrl}
-                controls
-                autoPlay
-                className="w-full h-full object-contain"
-                onEnded={() => setPlayingVideoUrl(null)}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {generateVideoContext && screenplayId && (
+              <VideoGenerationTools
+                className="h-full"
+                screenplayId={screenplayId}
+                initialStartImageUrl={generateVideoContext.firstFrameUrl}
+                sceneId={generateVideoContext.sceneId}
+                sceneName={generateVideoContext.sceneHeading}
+                shotNumber={generateVideoContext.shotNumber}
               />
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
