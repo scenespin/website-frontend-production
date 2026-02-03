@@ -29,7 +29,6 @@ import { toast } from 'sonner';
 import { getAvailablePropImages } from './utils/propImageUtils';
 import { PropImageSelector } from './PropImageSelector';
 import { cn } from '@/lib/utils';
-import { Plus, ChevronUp } from 'lucide-react';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -1648,27 +1647,31 @@ export function ShotConfigurationPanel({
       {isDialogueBasicTab && shot.type === 'dialogue' && (
         <>
           {!showDialogueWorkflowSection ? (
-            <div className="py-3 border-b border-[#3F3F46]">
-              <button
-                type="button"
-                onClick={onAddDialogueVideoClick}
-                className="flex items-center gap-2 text-xs font-medium text-[#DC143C] hover:text-[#E83555] transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Add Dialogue Video
-              </button>
-              <p className="text-[10px] text-[#808080] mt-1">First frame only by default. Expand to add lip-sync video for this shot.</p>
+            <div className="py-3">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  onChange={() => onAddDialogueVideoClick?.()}
+                  className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="text-xs font-medium text-[#FFFFFF] group-hover:text-[#E5E7EB]">Add lip-sync video for this shot</span>
+              </label>
+              <p className="text-[10px] text-[#808080] mt-1 ml-6">First frame only by default. Check to include video and see cost.</p>
             </div>
           ) : (
             <>
               <div className="flex items-center justify-between mb-3 pt-2">
                 <span className="text-xs font-medium text-[#FFFFFF]">Dialogue Video (LIP SYNC OPTIONS)</span>
-                <button
-                  type="button"
-                  onClick={onCollapseDialogueVideo}
-                  className="flex items-center gap-1 text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors"
-                >
-                  <ChevronUp className="w-3 h-3" /> Collapse
-                </button>
+                <label className="flex items-center gap-1 cursor-pointer text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={true}
+                    onChange={() => onCollapseDialogueVideo?.()}
+                    className="w-3.5 h-3.5 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] cursor-pointer"
+                  />
+                  <span>Uncheck to remove video (first frame only)</span>
+                </label>
               </div>
               {onDialogueWorkflowChange && (
                 <div className="space-y-3 pb-3 border-b border-[#3F3F46]">

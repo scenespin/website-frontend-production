@@ -1714,71 +1714,63 @@ export function ShotConfigurationStep({
             </>
           )}
 
-          {/* Aspect ratio – shown for all shots when available (image & video output size) */}
-          {onAspectRatioChange && (
-            <div className="pt-2 border-t border-[#3F3F46]">
-              <label className="block text-[10px] text-[#808080] mb-1.5">Output aspect ratio (image &amp; video)</label>
-              <AspectRatioSelector
-                value={shotAspectRatio || '16:9'}
-                onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1' | '21:9' | '9:21')}
-              />
-            </div>
-          )}
+          {/* Single separator then Aspect ratio + Estimated Cost (fewer lines under Add Dialogue Video) */}
+          <div className="border-t border-[#3F3F46]">
+            {onAspectRatioChange && (
+              <div className="pt-2">
+                <label className="block text-[10px] text-[#808080] mb-1.5">Output aspect ratio (image &amp; video)</label>
+                <AspectRatioSelector
+                  value={shotAspectRatio || '16:9'}
+                  onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1' | '21:9' | '9:21')}
+                />
+              </div>
+            )}
 
-          {/* Cost Calculator - Feature 0233: First frame only when collapsed; first frame + video when expanded (dialogue) or action (first frame only) */}
-          {pricing && (
-            <div className="pt-3 border-t border-[#3F3F46]">
-              <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#808080]">Reference Shot (first frame):</span>
-                  <span className="text-[#FFFFFF] font-medium">{pricing.firstFramePrice} credits</span>
-                </div>
-                {(isDialogueShot && videoOptInForThisShot) && (
-                  <>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#808080]">HD Video:</span>
-                      <span className="text-[#FFFFFF] font-medium">{pricing.hdPrice} credits</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#808080]">4K Video:</span>
-                      <span className="text-[#FFFFFF] font-medium">{pricing.k4Price} credits</span>
-                    </div>
+            {/* Cost Calculator - Explicit: first frame only vs first frame + video */}
+            {pricing && (
+              <div className="pt-3">
+                <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#808080]">Reference Shot (first frame):</span>
+                    <span className="text-[#FFFFFF] font-medium">{pricing.firstFramePrice} credits</span>
+                  </div>
+                  {(isDialogueShot && videoOptInForThisShot) && (
+                    <>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[#808080]">Video (720p or 1080p by workflow):</span>
+                        <span className="text-[#FFFFFF] font-medium">{pricing.hdPrice} credits</span>
+                      </div>
+                      <div className="pt-2 border-t border-[#3F3F46]">
+                        <div className="flex items-center justify-between text-xs font-medium">
+                          <span className="text-[#FFFFFF]">Charged: First frame + video</span>
+                          <span className="text-[#FFFFFF]">
+                            {pricing.firstFramePrice + pricing.hdPrice} credits
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {(!isDialogueShot || !videoOptInForThisShot) && (
                     <div className="pt-2 border-t border-[#3F3F46]">
                       <div className="flex items-center justify-between text-xs font-medium">
-                        <span className="text-[#FFFFFF]">HD Total:</span>
-                        <span className="text-[#FFFFFF]">
-                          {pricing.firstFramePrice + pricing.hdPrice} credits
-                        </span>
+                        <span className="text-[#FFFFFF]">Charged: First frame only</span>
+                        <span className="text-[#FFFFFF]">{pricing.firstFramePrice} credits</span>
                       </div>
-                      <div className="flex items-center justify-between text-xs font-medium mt-1">
-                        <span className="text-[#FFFFFF]">4K Total:</span>
-                        <span className="text-[#FFFFFF]">
-                          {pricing.firstFramePrice + pricing.k4Price} credits
-                        </span>
-                      </div>
+                      {isDialogueShot && (
+                        <div className="text-[10px] text-[#808080] italic mt-1">
+                          Check &quot;Add lip-sync video&quot; above to include video cost
+                        </div>
+                      )}
                     </div>
-                  </>
-                )}
-                {(!isDialogueShot || !videoOptInForThisShot) && (
-                  <div className="pt-2 border-t border-[#3F3F46]">
-                    <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="text-[#FFFFFF]">Total (first frame only):</span>
-                      <span className="text-[#FFFFFF]">{pricing.firstFramePrice} credits</span>
-                    </div>
-                    {isDialogueShot && (
-                      <div className="text-[10px] text-[#808080] italic mt-1">
-                        Expand &quot;Add Dialogue Video&quot; to include video cost
-                      </div>
-                    )}
+                  )}
+                  <div className="text-[10px] text-[#808080] italic mt-1">
+                    Final resolution selected on review page
                   </div>
-                )}
-                <div className="text-[10px] text-[#808080] italic mt-1">
-                  Final resolution selected on review page
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
           {isLoadingPricing && (
             <div className="pt-3 border-t border-[#3F3F46]">
               <div className="text-xs text-[#808080]">Loading pricing...</div>

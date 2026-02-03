@@ -373,8 +373,8 @@ export function SceneReviewStep({
                       </div>
                     )}
 
-                    {/* Workflow - Display only when video is opted-in (hide for first-frame-only dialogue) */}
-                    {(shot.type !== 'dialogue' || generateVideoForShot[shot.slot]) && (
+                    {/* Workflow - Display only for dialogue shots when video is opted-in (hidden for action/establishing and first-frame-only dialogue) */}
+                    {shot.type === 'dialogue' && generateVideoForShot[shot.slot] && (
                       <div className="text-[10px] text-[#808080]">
                         Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'hollywood-standard')}</span>
                         {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
