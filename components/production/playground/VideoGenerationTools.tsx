@@ -2,11 +2,10 @@
 
 /**
  * Video Generation Tools
- * 
- * Basic video generation options that don't interfere with workflows:
- * - Starting Frame: Generate video from a single image
- * - Frame to Frame: Generate video from two images
- * - Basic video workflows
+ *
+ * Generate video with model selection, aspect ratio, and quality. Uses GET /api/video/models.
+ * Only models that generate from scratch are shown (Runway Aleph is excluded – it needs a
+ * source video and is used in "modify video" flows). Sends preferredProvider for the chosen model.
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -19,6 +18,19 @@ import { useAuth } from '@clerk/nextjs';
 import { GenerationPreview } from './GenerationPreview';
 import { ExamplesSection } from './ExamplesSection';
 
+interface VideoModel {
+  id: string;
+  label: string;
+  description?: string;
+  provider: string;
+  durations: number[];
+  creditsMap: Record<number, number>;
+  aspectRatios?: string[];
+  resolutions?: string[];
+  requiresSourceVideo?: boolean;
+  recommended?: boolean;
+}
+
 interface VideoGenerationToolsProps {
   className?: string;
   screenplayId?: string;
@@ -26,15 +38,21 @@ interface VideoGenerationToolsProps {
 
 type VideoMode = 'starting-frame' | 'frame-to-frame';
 
+const DEFAULT_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '21:9', '9:21', '4:3', '3:4'];
+
 export function VideoGenerationTools({ className = '', screenplayId: propScreenplayId }: VideoGenerationToolsProps) {
   const screenplay = useScreenplay();
   const screenplayId = propScreenplayId || screenplay.screenplayId;
   const { getToken } = useAuth();
-  
+
   const [activeMode, setActiveMode] = useState<VideoMode>('starting-frame');
   const [prompt, setPrompt] = useState('');
   const [selectedDuration, setSelectedDuration] = useState<number>(5);
-  const [qualityTier, setQualityTier] = useState<'professional' | 'premium'>('professional');
+  const [selectedResolution, setSelectedResolution] = useState<string>('1080p');
+  const [aspectRatio, setAspectRatio] = useState<string>('16:9');
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [models, setModels] = useState<VideoModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
@@ -53,10 +71,73 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
 
-  // Simple credits calculation based on quality tier and duration
+  // Fetch video models (exclude requiresSourceVideo for "generate from scratch")
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        setIsLoadingModels(true);
+        const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
+        setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+        const response = await apiModule.video.getModels();
+        const list = response?.data?.models ?? response?.data?.data?.models ?? [];
+        // Only models that generate from scratch (no Runway Aleph – that one needs a source video and is used in "modify video" flows)
+        const filtered = (Array.isArray(list) ? list : []).filter(
+          (m: VideoModel) => !m.requiresSourceVideo
+        );
+        const sorted = [...filtered].sort((a: VideoModel, b: VideoModel) =>
+          (a.label || a.id).localeCompare(b.label || b.id)
+        );
+        setModels(sorted);
+        if (sorted.length > 0) {
+          setSelectedModel((prev) => {
+            const stillValid = prev && sorted.some((m: VideoModel) => m.id === prev);
+            return stillValid ? prev : sorted[0].id;
+          });
+        } else {
+          setSelectedModel('');
+        }
+      } catch (e) {
+        console.error('Failed to load video models', e);
+        toast.error('Failed to load video models');
+        setModels([]);
+        setSelectedModel('');
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+    fetchModels();
+  }, [getToken]);
+
+  const selectedModelInfo = selectedModel ? models.find((m) => m.id === selectedModel) : null;
+  const aspectRatioOptions = selectedModelInfo?.aspectRatios?.length
+    ? selectedModelInfo.aspectRatios
+    : DEFAULT_ASPECT_RATIOS;
+  const durationOptions = selectedModelInfo?.durations?.length
+    ? selectedModelInfo.durations
+    : [5, 10];
+  const resolutionOptions = selectedModelInfo?.resolutions?.length
+    ? selectedModelInfo.resolutions
+    : ['1080p'];
+
+  // When model changes, clamp duration, aspect ratio, and resolution to model's supported values
+  useEffect(() => {
+    if (!selectedModel) return;
+    const info = models.find((m) => m.id === selectedModel);
+    if (info?.durations?.length && !info.durations.includes(selectedDuration)) {
+      setSelectedDuration(info.durations[0]);
+    }
+    if (info?.aspectRatios?.length && !info.aspectRatios.includes(aspectRatio)) {
+      setAspectRatio(info.aspectRatios[0]);
+    }
+    if (info?.resolutions?.length && !info.resolutions.includes(selectedResolution)) {
+      setSelectedResolution(info.resolutions[0]);
+    }
+  }, [selectedModel]);
+
+  // Credits: use selected model's creditsMap when available, else fallback by duration
   const getTotalCredits = (): number => {
-    if (qualityTier === 'premium') {
-      return selectedDuration === 5 ? 75 : 150;
+    if (selectedModelInfo?.creditsMap && typeof selectedModelInfo.creditsMap[selectedDuration] === 'number') {
+      return selectedModelInfo.creditsMap[selectedDuration];
     }
     return selectedDuration === 5 ? 50 : 100;
   };
@@ -206,13 +287,14 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
       const requestBody: any = {
         prompt: finalPrompt,
         videoMode: activeMode === 'starting-frame' ? 'image-start' : 'image-interpolation',
-        qualityTier: qualityTier, // 'professional' | 'premium'
+        resolution: selectedResolution,
         duration: `${selectedDuration}s`,
-        aspectRatio: '16:9',
+        aspectRatio: aspectRatio,
         cameraMotion: selectedCameraAngle ? cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText || 'none' : 'none',
         sceneId: `playground_${Date.now()}`,
         sceneName: `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
       };
+      if (selectedModel) requestBody.preferredProvider = selectedModel;
 
       // Add image URLs based on mode
       if (activeMode === 'starting-frame' && startImage?.s3Key) {
@@ -225,21 +307,10 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         requestBody.prompt = `Transition from first frame to second frame: ${finalPrompt}`;
       }
 
-      const response = await fetch('/api/video/generate-async', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Failed to generate video' }));
-        throw new Error(error.message || 'Failed to generate video');
-      }
-
-      const result = await response.json();
+      const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
+      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      const response = await apiModule.video.generateAsync(requestBody);
+      const result = response?.data ?? response;
       
       // Calculate generation time
       const elapsed = (Date.now() - startTime) / 1000;
@@ -267,15 +338,9 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         }
       }
       
-      // Backend handles upscaling automatically for premium tier
-      if (qualityTier === 'premium') {
-        if (!videoUrl && !result.data?.jobId) {
-          toast.success('Premium 4K video generation started! Check your Media Library.');
-        }
-      } else {
-        if (!videoUrl && !result.data?.jobId) {
-          toast.success('Professional video generation started! Check your Media Library.');
-        }
+      // Show toast if no immediate video URL
+      if (!videoUrl && !result.data?.jobId && !result.jobId) {
+        toast.success(`Video generation started (${selectedResolution})! Check your Media Library.`);
       }
       
       // Reset form (but keep generated video visible if available)
@@ -581,51 +646,21 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           />
         </div>
 
-        {/* Quality Tier Selection */}
+        {/* Resolution Selection */}
         <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
-            Video Quality
+            Resolution
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setQualityTier('professional')}
-              disabled={isGenerating}
-              className={cn(
-                "px-4 py-4 rounded-lg border-2 font-medium text-sm transition-colors text-left",
-                qualityTier === 'professional'
-                  ? "border-cinema-red bg-cinema-red/10 text-white"
-                  : "border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#4A4A4A] hover:text-white"
-              )}
-            >
-              <div className="font-semibold mb-1">🎬 Professional</div>
-              <div className="text-xs opacity-80">
-                1080p HD
-              </div>
-              <div className="text-xs opacity-80 mt-1">
-                {selectedDuration === 5 ? '50' : '100'} credits
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setQualityTier('premium')}
-              disabled={isGenerating}
-              className={cn(
-                "px-4 py-4 rounded-lg border-2 font-medium text-sm transition-colors text-left",
-                qualityTier === 'premium'
-                  ? "border-cinema-red bg-cinema-red/10 text-white"
-                  : "border-[#3F3F46] bg-[#1F1F1F] text-[#808080] hover:border-[#4A4A4A] hover:text-white"
-              )}
-            >
-              <div className="font-semibold mb-1">🎥 Premium 4K</div>
-              <div className="text-xs opacity-80">
-                4K upscaled
-              </div>
-              <div className="text-xs opacity-80 mt-1">
-                {selectedDuration === 5 ? '75' : '150'} credits
-              </div>
-            </button>
-          </div>
+          <select
+            value={resolutionOptions.includes(selectedResolution) ? selectedResolution : resolutionOptions[0] ?? '1080p'}
+            onChange={(e) => setSelectedResolution(e.target.value)}
+            className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+            disabled={isGenerating}
+          >
+            {resolutionOptions.map((res) => (
+              <option key={res} value={res}>{res === '4k' ? '4K' : res}</option>
+            ))}
+          </select>
           <p className="mt-2 text-xs text-[#808080]">
             Total cost: <strong className="text-white">{getTotalCredits()} credits</strong>
           </p>
@@ -634,19 +669,74 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
           </p>
         </div>
 
+        {/* Model Selection – generate-from-scratch only (Runway Aleph is in "modify video" flows) */}
+        <div className="flex-shrink-0">
+          <label className="block text-sm font-medium text-white mb-2">
+            Video Model
+          </label>
+          {isLoadingModels ? (
+            <div className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#808080] flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Loading models...</span>
+            </div>
+          ) : models.length === 0 ? (
+            <div className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#808080]">
+              No video models available. Check your connection and try again.
+            </div>
+          ) : (
+            <>
+              <select
+                value={selectedModel || (models[0]?.id ?? '')}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+                disabled={isGenerating}
+              >
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              {selectedModel && selectedModelInfo && (
+                <p className="mt-1.5 text-xs text-[#808080]">
+                  {selectedModelInfo.description || selectedModelInfo.provider} • {getTotalCredits()} credits
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Aspect Ratio */}
+        <div className="flex-shrink-0">
+          <label className="block text-sm font-medium text-white mb-2">
+            Aspect Ratio
+          </label>
+          <select
+            value={aspectRatio}
+            onChange={(e) => setAspectRatio(e.target.value)}
+            className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+            disabled={isGenerating}
+          >
+            {aspectRatioOptions.map((ar) => (
+              <option key={ar} value={ar}>{ar}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Duration Selection */}
         <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
             Duration (seconds)
           </label>
           <select
-            value={selectedDuration}
+            value={durationOptions.includes(selectedDuration) ? selectedDuration : durationOptions[0] ?? 5}
             onChange={(e) => setSelectedDuration(Number(e.target.value))}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
             disabled={isGenerating}
           >
-            <option value={5}>5 seconds</option>
-            <option value={10}>10 seconds</option>
+            {durationOptions.map((d) => (
+              <option key={d} value={d}>{d} seconds</option>
+            ))}
           </select>
         </div>
         </div>
@@ -656,7 +746,7 @@ export function VideoGenerationTools({ className = '', screenplayId: propScreenp
         <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
           <button
             onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating || 
+            disabled={!prompt.trim() || isGenerating || models.length === 0 || !selectedModel ||
               (activeMode === 'starting-frame' && !startImage) ||
               (activeMode === 'frame-to-frame' && (!frame1 || !frame2))}
             className={cn(
