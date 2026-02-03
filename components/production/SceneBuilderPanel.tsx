@@ -3295,11 +3295,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // Feature 0233: Support both array and object finalOutputs (backend may send { additionalVideos, additionalVideoS3Keys })
     const rawOutputs = Array.isArray(execution.finalOutputs)
       ? execution.finalOutputs
-      : (execution.finalOutputs?.additionalVideos || []).map((url: string, i: number) => ({
-          videoUrl: url,
-          thumbnailUrl: url,
-          ...(execution.finalOutputs?.additionalVideoS3Keys?.[i] && { s3Key: execution.finalOutputs.additionalVideoS3Keys[i] })
-        }));
+      : (() => {
+          const obj = execution.finalOutputs as { additionalVideos?: string[]; additionalVideoS3Keys?: string[] };
+          return (obj?.additionalVideos || []).map((url: string, i: number) => ({
+            videoUrl: url,
+            thumbnailUrl: url,
+            ...(obj?.additionalVideoS3Keys?.[i] != null && { s3Key: obj.additionalVideoS3Keys![i] })
+          }));
+        })();
     
     const outputs = rawOutputs.map((output: any) => ({
       id: output.id || `output-${Date.now()}-${Math.random().toString(36).slice(2)}`,
