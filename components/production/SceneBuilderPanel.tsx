@@ -608,6 +608,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const selectedReferenceShotModels = contextState.selectedReferenceShotModels;
   const selectedVideoTypes = contextState.selectedVideoTypes;
   const generateVideoForShot = contextState.generateVideoForShot;
+  const sceneAnalysisResult = contextState.sceneAnalysisResult;
   
   // UI State: Collapsible sections (local, not in context)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -1076,8 +1077,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const [visualAnnotations, setVisualAnnotations] = useState<any>(null);
   const [showAnnotationPanel, setShowAnnotationPanel] = useState(false);
   
-  // Use context state
-  const sceneAnalysisResult = contextState.sceneAnalysisResult;
+  // Use context state (sceneAnalysisResult already extracted above)
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [characterReferenceUrls, setCharacterReferenceUrls] = useState<string[]>([]); // Pre-populated from analysis
