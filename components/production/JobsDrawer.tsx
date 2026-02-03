@@ -390,6 +390,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const OPTIMISTIC_POLL_DELAY_MS = 800;
   const optimisticFetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScreenplayIdRef = useRef<string>('');
+  // Placeholders stored here so loadJobs can re-inject them when prevJobs is stale (React batching race).
+  const optimisticPlaceholdersRef = useRef<Map<string, WorkflowJob>>(new Map());
 
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -438,6 +440,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       setJobs([]);
       setHasLoadedOnce(false);
       trackedJobIdsRef.current.clear();
+      optimisticPlaceholdersRef.current.clear();
     }
   }, [isSignedIn]);
 
@@ -627,6 +630,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       
       if (fetchedJobs.length > 0) {
         fetchedJobs.forEach(job => {
+          optimisticPlaceholdersRef.current.delete(job.jobId);
           directFetchedJobsRef.current.set(job.jobId, job);
           trackedJobIdsRef.current.add(job.jobId);
         });
@@ -732,6 +736,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           if (!apiJobIds.has(id)) jobMap.set(id, job);
           else directFetchedJobsRef.current.delete(id);
         });
+        // Re-inject optimistic placeholders when prevJobs was stale (React batching race: loadJobs setJobs ran before optimistic setJobs committed).
+        tracked.forEach((id) => {
+          if (!jobMap.has(id)) {
+            const place = optimisticPlaceholdersRef.current.get(id);
+            if (place) jobMap.set(id, place);
+          }
+        });
         
         const mergedJobs = Array.from(jobMap.values());
         mergedJobs.sort((a, b) => {
@@ -801,18 +812,19 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       placeholderRetryCountRef.current = 0;
       trackedJobIdsRef.current.add(jobId);
       console.log('[JobsDrawer] Optimistic job added', { jobId: jobId.slice(-12), jobType, assetName });
+      const placeholder: WorkflowJob = {
+        jobId,
+        workflowId: '',
+        workflowName: assetName ? `Image Generation - ${assetName}` : 'Image Generation',
+        jobType: jobType as WorkflowJob['jobType'],
+        status: 'running',
+        progress: 0,
+        createdAt: new Date().toISOString(),
+        creditsUsed: 0,
+      };
+      optimisticPlaceholdersRef.current.set(jobId, placeholder);
       setJobs(prev => {
         if (prev.some(j => j.jobId === jobId)) return prev;
-        const placeholder: WorkflowJob = {
-          jobId,
-          workflowId: '',
-          workflowName: assetName ? `Image Generation - ${assetName}` : 'Image Generation',
-          jobType: jobType as WorkflowJob['jobType'],
-          status: 'running',
-          progress: 0,
-          createdAt: new Date().toISOString(),
-          creditsUsed: 0,
-        };
         return [placeholder, ...prev];
       });
       // Fetch by ID soon so we get full job (and results if already completed) before list/GSI overwrites with completed (no results)
@@ -824,6 +836,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         fetchJobDirectly(jobId, { silent: true }).then((full) => {
           try {
             if (!full) return;
+            optimisticPlaceholdersRef.current.delete(full.jobId);
             trackedJobIdsRef.current.add(full.jobId);
             directFetchedJobsRef.current.set(full.jobId, full);
             setJobs(prev => {
@@ -863,6 +876,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       if (screenplayId && screenplayId !== lastScreenplayIdRef.current) {
         lastScreenplayIdRef.current = screenplayId;
         trackedJobIdsRef.current.clear();
+        optimisticPlaceholdersRef.current.clear();
       }
     }
     const shouldShowLoading = isOpen && jobs.length === 0 && !hasLoadedOnce;
@@ -913,6 +927,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         if (cancelled) break;
         const updated = await fetchJobDirectly(job.jobId, { silent: true });
         if (!updated || cancelled) continue;
+        optimisticPlaceholdersRef.current.delete(updated.jobId);
         trackedJobIdsRef.current.add(updated.jobId);
         const isTerminal = updated.status === 'completed' || updated.status === 'failed';
         const changed = updated.status !== job.status || (updated.results && !job.results);

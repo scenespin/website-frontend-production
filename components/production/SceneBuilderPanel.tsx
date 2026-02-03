@@ -37,6 +37,7 @@ import {
   Save,
   Loader2,
   ChevronRight,
+  ChevronLeft,
   Check,
   MapPin,
   Users,
@@ -48,6 +49,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -127,6 +129,9 @@ interface GeneratedVideo {
   duration: number;
 }
 
+/** Feature 0233: shot-ordered list for storyboard strip (first frame per shot + video when opted-in) */
+export type ShotOrderedEntry = { shotSlot: number; firstFrameUrl?: string; videoUrl?: string; videoS3Key?: string };
+
 interface GenerationHistoryItem {
   id: string;
   sceneDescription: string;
@@ -138,6 +143,8 @@ interface GenerationHistoryItem {
   workflowExecutionId: string;
   outputs: GeneratedVideo[];
   totalCredits: number;
+  /** Feature 0233: Shot-ordered list for storyboard (first frame per shot; videoUrl when dialogue video opted-in) */
+  shotOrderedList?: ShotOrderedEntry[];
 }
 
 interface WorkflowStatus {
@@ -599,6 +606,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const shotDurations = contextState.shotDurations;
   const selectedReferenceShotModels = contextState.selectedReferenceShotModels;
   const selectedVideoTypes = contextState.selectedVideoTypes;
+  const generateVideoForShot = contextState.generateVideoForShot;
   
   // UI State: Collapsible sections (local, not in context)
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -1657,6 +1665,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // History state
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(true);
+  /** Feature 0233: Video playback modal for storyboard strip play button */
+  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+  /** Feature 0233: Which run's storyboard to show in unified strip (0 = most recent); cycle with arrows */
+  const [storyboardRunIndex, setStoryboardRunIndex] = useState(0);
   
   // Storage modal state (Feature 0066)
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -1846,7 +1858,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           totalSteps: execution.totalSteps || 5,
           stepResults: execution.stepResults || [],
           totalCreditsUsed: execution.totalCreditsUsed || 0,
-          finalOutputs: execution.finalOutputs || []
+          finalOutputs: execution.finalOutputs || [],
+          metadata: execution.metadata // Feature 0233: Required for storyboard (firstFrames, videoShotMapping)
         });
         
         // Check if awaiting user decision
@@ -1863,7 +1876,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           totalSteps: execution.totalSteps || 5,
           stepResults: execution.stepResults || [],
           totalCreditsUsed: execution.totalCreditsUsed || 0,
-          finalOutputs: execution.finalOutputs || []
+          finalOutputs: execution.finalOutputs || [],
+          metadata: execution.metadata // Feature 0233: Required for storyboard (firstFrames, videoShotMapping)
         };
         
         // Check if partial delivery (Premium tier - dialog rejected)
@@ -2983,6 +2997,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         propsToShots: Object.keys(propsToShots).length > 0 ? propsToShots : undefined, // Props-to-shots assignment: { propId: [shotSlot1, shotSlot2] }
         shotProps: Object.keys(shotProps).length > 0 ? shotProps : undefined, // Per-shot prop configurations: { shotSlot: { propId: { usageDescription, selectedImageId } } }
         selectedVideoTypes: Object.keys(selectedVideoTypes).length > 0 ? selectedVideoTypes : undefined, // 🔥 NEW: Per-shot video model selection: { [shotSlot]: 'cinematic-visuals' | 'natural-motion' }
+        generateVideoForShot: Object.keys(generateVideoForShot).length > 0 ? generateVideoForShot : undefined, // Feature 0233: Per-shot video opt-in. When false/absent, shot is first-frame-only.
         // Note: Video quality (1080p/4K) is set globally in Review Step via globalResolution, not per-shot
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
@@ -3276,33 +3291,73 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   function handleGenerationComplete(execution: WorkflowStatus) {
     setIsGenerating(false);
     
-    // Create history item
+    // Feature 0233: Support both array and object finalOutputs (backend may send { additionalVideos, additionalVideoS3Keys })
+    const rawOutputs = Array.isArray(execution.finalOutputs)
+      ? execution.finalOutputs
+      : (execution.finalOutputs?.additionalVideos || []).map((url: string, i: number) => ({
+          videoUrl: url,
+          thumbnailUrl: url,
+          ...(execution.finalOutputs?.additionalVideoS3Keys?.[i] && { s3Key: execution.finalOutputs.additionalVideoS3Keys[i] })
+        }));
+    
+    const outputs = rawOutputs.map((output: any) => ({
+      id: output.id || `output-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      url: output.videoUrl || output.url,
+      thumbnailUrl: output.thumbnailUrl || output.videoUrl || output.url,
+      clipType: output.clipType || 'unknown',
+      creditsUsed: output.creditsUsed || 0,
+      duration: output.duration || 5
+    }));
+    
+    // Feature 0233: Build shot-ordered list for storyboard (first frame per shot + video when opted-in)
+    const firstFrames = execution.metadata?.firstFrames || [];
+    const videoShotMapping = execution.metadata?.videoShotMapping || [];
+    const additionalVideos = Array.isArray(execution.finalOutputs) ? execution.finalOutputs : (execution.finalOutputs?.additionalVideos || []);
+    const additionalVideoS3Keys = Array.isArray(execution.finalOutputs) ? [] : (execution.finalOutputs?.additionalVideoS3Keys || []);
+    const shotOrderedList: Array<{ shotSlot: number; firstFrameUrl?: string; videoUrl?: string; videoS3Key?: string }> = [];
+    const shotSlotsSeen = new Set<number>();
+    firstFrames.forEach((f: any) => {
+      const slot = f.shotSlot ?? f.shotNumber ?? shotOrderedList.length + 1;
+      if (!shotSlotsSeen.has(slot)) {
+        shotSlotsSeen.add(slot);
+        const mapping = videoShotMapping.find((m: any) => m.shotSlot === slot || m.shotNumber === slot);
+        const videoUrl = mapping?.hasVideo && mapping?.videoIndex !== undefined ? additionalVideos[mapping.videoIndex] : undefined;
+        const videoS3Key = mapping?.hasVideo && mapping?.videoIndex !== undefined ? additionalVideoS3Keys[mapping.videoIndex] : undefined;
+        shotOrderedList.push({
+          shotSlot: slot,
+          firstFrameUrl: f.firstFrameUrl,
+          videoUrl,
+          videoS3Key
+        });
+      }
+    });
+    shotOrderedList.sort((a, b) => a.shotSlot - b.shotSlot);
+    
     const historyItem: GenerationHistoryItem = {
       id: execution.id,
       sceneDescription,
       characterReferences: referenceImages.filter(img => img !== null).map((_, i) => `char-${i}`),
       qualityTier,
-      // Note: enableSound removed - sound is handled separately via audio workflows
       createdAt: new Date().toISOString(),
       status: 'completed',
       workflowExecutionId: execution.id,
-      outputs: execution.finalOutputs.map((output: any) => ({
-        id: output.id || `output-${Date.now()}`,
-        url: output.videoUrl,
-        thumbnailUrl: output.thumbnailUrl || output.videoUrl,
-        clipType: output.clipType || 'unknown',
-        creditsUsed: output.creditsUsed || 0,
-        duration: output.duration || 5
-      })),
-      totalCredits: execution.totalCreditsUsed
-    };
+      outputs,
+      totalCredits: execution.totalCreditsUsed,
+      ...(shotOrderedList.length > 0 && { shotOrderedList })
+    } as GenerationHistoryItem;
     
     saveHistory(historyItem);
+    setStoryboardRunIndex(0); // Show the new run's storyboard by default
     
-    // Show success with multiple action options
+    const firstFrameCount = firstFrames.length;
+    const videoCount = outputs.length;
     toast.success(`Scene Builder complete! 🎉`, {
-      description: `${execution.finalOutputs.length} videos generated (${execution.totalCreditsUsed} credits)`,
-      duration: 15000 // Show for 15 seconds
+      description: firstFrameCount > 0 && videoCount > 0
+        ? `${firstFrameCount} first frame${firstFrameCount !== 1 ? 's' : ''}, ${videoCount} dialogue video${videoCount !== 1 ? 's' : ''} (${execution.totalCreditsUsed} credits)`
+        : firstFrameCount > 0
+          ? `${firstFrameCount} first frame${firstFrameCount !== 1 ? 's' : ''} (${execution.totalCreditsUsed} credits)`
+          : `${videoCount} video${videoCount !== 1 ? 's' : ''} generated (${execution.totalCreditsUsed} credits)`,
+      duration: 15000
     });
     
     // 🔥 Refresh credits immediately after generation completes
@@ -4706,23 +4761,133 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               </Button>
             </div>
             
-            {showHistory && (
-              <div className="space-y-3">
+            {showHistory && (() => {
+              const runsWithStoryboard = history.filter((item) => item.shotOrderedList && item.shotOrderedList.length > 0);
+              const currentRunIndex = Math.min(storyboardRunIndex, Math.max(0, runsWithStoryboard.length - 1));
+              const currentRun = runsWithStoryboard[currentRunIndex];
+              return (
+              <div className="space-y-4">
+                {/* Unified storyboard: most recent by default, arrows to cycle through all runs */}
+                {runsWithStoryboard.length > 0 && (
+                  <div className="pb-4 border-b border-[#3F3F46]">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-xs font-medium text-[#808080]">Storyboard</span>
+                      {runsWithStoryboard.length > 1 ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-[#808080] hover:text-[#FFFFFF] disabled:opacity-40"
+                            onClick={() => setStoryboardRunIndex((i) => Math.max(0, i - 1))}
+                            disabled={currentRunIndex <= 0}
+                            aria-label="Previous generation"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <span className="text-xs text-[#808080] min-w-[6rem] text-center">
+                            Generation {currentRunIndex + 1} of {runsWithStoryboard.length}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-[#808080] hover:text-[#FFFFFF] disabled:opacity-40"
+                            onClick={() => setStoryboardRunIndex((i) => Math.min(runsWithStoryboard.length - 1, i + 1))}
+                            disabled={currentRunIndex >= runsWithStoryboard.length - 1}
+                            aria-label="Next generation"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-[#808080]">1 generation</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {currentRun?.shotOrderedList?.map((shot) => (
+                        <div
+                          key={shot.shotSlot}
+                          className="relative flex-shrink-0 w-24 h-24 rounded border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group"
+                        >
+                          {shot.firstFrameUrl ? (
+                            <img
+                              src={shot.firstFrameUrl}
+                              alt={`Shot ${shot.shotSlot}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-[#808080]">Shot {shot.shotSlot}</div>
+                          )}
+                          {shot.videoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setPlayingVideoUrl(shot.videoUrl ?? null)}
+                              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none"
+                              aria-label="Play video"
+                            >
+                              <Play className="w-8 h-8 text-white drop-shadow" fill="currentColor" />
+                            </button>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[10px] text-white text-center py-0.5">#{shot.shotSlot}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-3">
                 {history.slice(0, 5).map((item) => (
                   <Card key={item.id} className="overflow-hidden bg-[#141414] border-[#3F3F46]">
                     <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        {/* Thumbnail Grid */}
-                        <div className="grid grid-cols-2 gap-1 w-32 h-32 flex-shrink-0">
-                          {item.outputs.slice(0, 4).map((video, idx) => (
-                            <img
-                              key={idx}
-                              src={video.thumbnailUrl}
-                              alt={video.clipType}
-                              className="w-full h-full object-cover rounded"
-                            />
-                          ))}
+                      {/* Feature 0233: Storyboard strip - one cell per shot, first frame + play overlay when video */}
+                      {item.shotOrderedList && item.shotOrderedList.length > 0 && (
+                        <div className="mb-4">
+                          <div className="text-xs font-medium text-[#808080] mb-2">Storyboard</div>
+                          <div className="flex gap-2 overflow-x-auto pb-2">
+                            {item.shotOrderedList.map((shot) => (
+                              <div
+                                key={shot.shotSlot}
+                                className="relative flex-shrink-0 w-24 h-24 rounded border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group"
+                              >
+                                {shot.firstFrameUrl ? (
+                                  <img
+                                    src={shot.firstFrameUrl}
+                                    alt={`Shot ${shot.shotSlot}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-[10px] text-[#808080]">Shot {shot.shotSlot}</div>
+                                )}
+                                {shot.videoUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPlayingVideoUrl(shot.videoUrl ?? null)}
+                                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none"
+                                    aria-label="Play video"
+                                  >
+                                    <Play className="w-8 h-8 text-white drop-shadow" fill="currentColor" />
+                                  </button>
+                                )}
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[10px] text-white text-center py-0.5">#{shot.shotSlot}</div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
+                      )}
+                      <div className="flex items-start gap-4">
+                        {/* Thumbnail Grid (videos only - hide when no outputs e.g. first-frame-only run) */}
+                        {item.outputs.length > 0 && (
+                          <div className="grid grid-cols-2 gap-1 w-32 h-32 flex-shrink-0">
+                            {item.outputs.slice(0, 4).map((video, idx) => (
+                              <img
+                                key={idx}
+                                src={video.thumbnailUrl}
+                                alt={video.clipType}
+                                className="w-full h-full object-cover rounded"
+                              />
+                            ))}
+                          </div>
+                        )}
                         
                         {/* Info */}
                         <div className="flex-1 min-w-0">
@@ -4789,12 +4954,34 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                     </CardContent>
                   </Card>
                 ))}
+                </div>
               </div>
-            )}
+              );
+            })()}
           </motion.div>
         )}
         </div>
       </div>
+      
+      {/* Feature 0233: Video playback modal for storyboard strip play button */}
+      <Dialog open={!!playingVideoUrl} onOpenChange={(open) => !open && setPlayingVideoUrl(null)}>
+        <DialogContent className="max-w-4xl bg-[#141414] border-[#3F3F46] p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Play video</DialogTitle>
+          </DialogHeader>
+          {playingVideoUrl && (
+            <div className="relative aspect-video w-full">
+              <video
+                src={playingVideoUrl}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+                onEnded={() => setPlayingVideoUrl(null)}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       
       {/* Decision Modal */}
       <SceneBuilderDecisionModal

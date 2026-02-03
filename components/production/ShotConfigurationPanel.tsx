@@ -137,6 +137,8 @@ interface ShotConfigurationPanelProps {
   // Feature 0182: Tab structure
   activeTab?: 'basic' | 'advanced'; // Which tab is currently active
   isDialogueShot?: boolean; // Whether this is a dialogue shot (for conditional tab labels)
+  /** Slot rendered after reference selection (Character, Location, Props) and before Dialogue Workflow (Premium/Standard). Used for Reference Shot model + preview so flow is: ref selection → model → preview → video options. */
+  renderAfterReferenceSelection?: React.ReactNode;
   // Feature 0182: Continuation (REMOVED - deferred to post-launch)
 }
 
@@ -211,7 +213,8 @@ export function ShotConfigurationPanel({
   propThumbnailS3KeyMap,
   propThumbnailUrlsMap: propThumbnailUrlsMapFromParent, // Not used - we fetch directly
   activeTab = 'basic',
-  isDialogueShot = false
+  isDialogueShot = false,
+  renderAfterReferenceSelection
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -1603,6 +1606,9 @@ export function ShotConfigurationPanel({
       })()}
         </>
       )}
+
+      {/* Reference Shot (model + preview) slot: after ref selection, before video options. Flow: ref selection → model dropdown → reference preview → video options. */}
+      {renderAfterReferenceSelection}
 
       {/* 🔥 REORDERED: Dialogue Workflow Selection - Fifth (dialogue shots only) */}
       {/* Feature 0182: Show in Basic tab for LIP SYNC OPTIONS - Always visible for dialogue shots */}

@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Film, Check, ChevronDown, Upload, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Film, Check, ChevronDown, ChevronUp, Upload, X, Loader2, Plus } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { ShotNavigatorList } from './ShotNavigatorList';
@@ -304,6 +304,8 @@ export function ShotConfigurationStep({
   const shotSlot = shot.slot;
   const selectedReferenceShotModels = state.selectedReferenceShotModels;
   const selectedVideoTypes = state.selectedVideoTypes;
+  const generateVideoForShot = state.generateVideoForShot ?? {};
+  const videoOptInForThisShot = !!generateVideoForShot[shotSlot];
   
   // Use context values (context is source of truth, props are for backward compatibility)
   // Override props with context values
@@ -683,17 +685,16 @@ export function ShotConfigurationStep({
     }
   }, [shotSlot, actions]);
   
-  // 🔥 FIX: Initialize default video type when shot is first accessed (for action/establishing shots, or Hidden Mouth)
+  // 🔥 Feature 0233: Only require video type when dialogue shot has video opt-in. Action/establishing are first-frame-only.
   useEffect(() => {
-    const needsVideoType = (shot.type === 'action' || shot.type === 'establishing') ||
-      (shot.type === 'dialogue' && finalSelectedDialogueWorkflow === 'off-frame-voiceover');
+    const needsVideoType = shot.type === 'dialogue' && videoOptInForThisShot;
     if (needsVideoType && onVideoTypeChange) {
       const currentVideoType = selectedVideoTypes[shotSlot];
       if (!currentVideoType) {
         onVideoTypeChange(shotSlot, 'cinematic-visuals');
       }
     }
-  }, [shot.slot, shot.type, finalSelectedDialogueWorkflow, selectedVideoTypes, onVideoTypeChange]);
+  }, [shot.slot, shot.type, videoOptInForThisShot, selectedVideoTypes, onVideoTypeChange]);
   
   // 🔥 NEW: Auto-select default dialogue quality (reliable/Wryda) when dialogue shot is first accessed
   useEffect(() => {
@@ -1088,13 +1089,12 @@ export function ShotConfigurationStep({
       }
     }
     
-    // 3. Validate video type selection (required for action/establishing shots, and for Hidden Mouth)
-    const needsVideoType = (shot.type === 'action' || shot.type === 'establishing') ||
-      (shot.type === 'dialogue' && finalSelectedDialogueWorkflow === 'off-frame-voiceover');
+    // 3. Validate video type selection (Feature 0233: only when dialogue shot has video opt-in)
+    const needsVideoType = shot.type === 'dialogue' && videoOptInForThisShot;
     if (needsVideoType && onVideoTypeChange) {
       const currentVideoType = selectedVideoTypes[shotSlot];
       if (!currentVideoType) {
-        validationErrors.push('Video model selection required. Please select Runway Gen4, Luma Ray2, or Veo 3.1 in the Video Model section.');
+        validationErrors.push('Video model selection required. Expand "Add Dialogue Video" and select a lip-sync option.');
       }
     }
     
@@ -1263,29 +1263,34 @@ export function ShotConfigurationStep({
           {/* 🔥 NEW: Hide reference selection UI when first frame is uploaded (references not needed) */}
           {!uploadedFirstFrameUrl && (
             <>
-              {/* Conditional rendering: Tabs for dialogue shots, single screen for action shots */}
+              {/* Conditional rendering: Tabs for dialogue shots, single screen for action shots. Dialogue: ref selection (in panel) → Reference Shot model + preview (renderAfterReferenceSelection) → video options (in panel). Action: config then Reference Shot at bottom. */}
               {isDialogueShot ? (
-                /* Dialogue shots: Show tabs (LIP SYNC OPTIONS / NON-LIP SYNC OPTIONS) */
-                <Tabs
-                  value={activeTab}
-                  onValueChange={(value) => {
-                    setActiveTab(value);
-                    scrollToTop();
-                  }}
-                  className="w-full"
-                >
-                  <TabsList className="grid w-full grid-cols-2 bg-[#1F1F1F] border border-[#3F3F46]">
-                    <TabsTrigger value="basic" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
-                      LIP SYNC OPTIONS
-                    </TabsTrigger>
-                    <TabsTrigger value="advanced" className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white">
-                      NON-LIP SYNC OPTIONS
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  {/* LIP SYNC OPTIONS Tab */}
-                  <TabsContent value="basic" className="mt-4">
-                    <ShotConfigurationPanel
+                /* Feature 0233: Dialogue shots – "+ Add Dialogue Video" collapsible. When expanded: LIP SYNC OPTIONS only. NON-LIP SYNC hidden for launch. */
+                <div className="space-y-4">
+                  {!videoOptInForThisShot ? (
+                    <div className="py-3 border-b border-[#3F3F46]">
+                      <button
+                        type="button"
+                        onClick={() => actions.updateGenerateVideoForShot(shotSlot, true)}
+                        className="flex items-center gap-2 text-xs font-medium text-[#DC143C] hover:text-[#E83555] transition-colors"
+                      >
+                        <Plus className="w-4 h-4" /> Add Dialogue Video
+                      </button>
+                      <p className="text-[10px] text-[#808080] mt-1">First frame only by default. Expand to add lip-sync video for this shot.</p>
+                    </div>
+                  ) : (
+                    <div className="pb-3 border-b border-[#3F3F46]">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-[#FFFFFF]">Dialogue Video (LIP SYNC OPTIONS)</span>
+                        <button
+                          type="button"
+                          onClick={() => actions.updateGenerateVideoForShot(shotSlot, false)}
+                          className="flex items-center gap-1 text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors"
+                        >
+                          <ChevronUp className="w-3 h-3" /> Collapse
+                        </button>
+                      </div>
+                      <ShotConfigurationPanel
                   activeTab="basic"
                   isDialogueShot={isDialogueShot}
                   shot={shot}
@@ -1355,84 +1360,82 @@ export function ShotConfigurationStep({
                   onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                   propThumbnailUrlsMap={propThumbnailUrlsMap}
+                  renderAfterReferenceSelection={onReferenceShotModelChange ? (
+                    <>
+                      <ReferenceShotSelector shotSlot={shot.slot} selectedModel={selectedReferenceShotModels[shot.slot]} onModelChange={finalOnReferenceShotModelChange} />
+                      {(() => {
+                        const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
+                        const allShotCharacters = new Set<string>();
+                        explicitCharacters.forEach(charId => allShotCharacters.add(charId));
+                        Object.values(shotMappings || {}).forEach(mapping => {
+                          if (mapping && mapping !== '__ignore__') {
+                            if (Array.isArray(mapping)) { mapping.forEach(charId => allShotCharacters.add(charId)); } else { allShotCharacters.add(mapping); }
+                          }
+                        });
+                        (finalSelectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
+                        const isOffFrameForDisplay = finalSelectedDialogueWorkflow === 'off-frame-voiceover' && activeTab === 'advanced';
+                        if (isOffFrameForDisplay) {
+                          if (finalOffFrameShotType === 'off-frame') allShotCharacters.delete(shot.characterId);
+                          if (finalOffFrameListenerCharacterId && finalOffFrameShotType && isOffFrameListenerShotType(finalOffFrameShotType as OffFrameShotType)) allShotCharacters.add(finalOffFrameListenerCharacterId);
+                          if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
+                        } else {
+                          if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
+                          (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
+                        }
+                        allShotCharacters.forEach(charId => {
+                          const char = allCharacters.find(c => c.id === charId);
+                          if (char) {
+                            const charRef = finalSelectedCharacterReferences[shot.slot]?.[charId];
+                            if (charRef && (charRef.imageUrl || charRef.s3Key)) {
+                              let imageUrl = charRef.imageUrl;
+                              if (!imageUrl && charRef.s3Key && finalCharacterHeadshots[charId]) {
+                                const headshot = finalCharacterHeadshots[charId].find(h => h.s3Key === charRef.s3Key);
+                                if (headshot?.imageUrl) imageUrl = headshot.imageUrl;
+                              }
+                              if (imageUrl) references.push({ type: 'character', imageUrl, label: char.name || `Character ${charId}`, id: `char-${charId}` });
+                            }
+                          }
+                        });
+                        const locationRef = finalSelectedLocationReferences[shot.slot];
+                        if (locationRef) {
+                          const location = finalSceneProps.find(loc => loc.id === shot.locationId);
+                          const locationImageUrl = resolveLocationImageUrl(locationRef, { thumbnailS3KeyMap: null, thumbnailUrlsMap: null, fullImageUrlsMap: locationReferenceFullImageUrlsMap || propImageUrlsMap });
+                          if (locationImageUrl) references.push({ type: 'location', imageUrl: locationImageUrl, label: location?.name || 'Location', id: `loc-${shot.slot}` });
+                        }
+                        const shotPropsForThisShot = finalSceneProps.filter(prop => finalPropsToShots[prop.id]?.includes(shot.slot));
+                        shotPropsForThisShot.forEach(prop => {
+                          const propConfig = finalShotProps[shot.slot]?.[prop.id];
+                          const availableImages = getAvailablePropImages(prop);
+                          const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                          const selectedImage = selectedImageId ? availableImages.find(img => img.id === selectedImageId) : availableImages[0];
+                          if (selectedImage) {
+                            const fullProp = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>; images?: Array<{ url: string; s3Key?: string }>; baseReference?: { s3Key?: string; imageUrl?: string } };
+                            let imageS3Key: string | null = null;
+                            if (fullProp.angleReferences) { const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id); if (ref?.s3Key) imageS3Key = ref.s3Key; }
+                            if (!imageS3Key && fullProp.images) { const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id); if (imgData?.s3Key) imageS3Key = imgData.s3Key; }
+                            if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') imageS3Key = fullProp.baseReference.s3Key;
+                            if (!imageS3Key && selectedImage.id && (selectedImage.id.startsWith('asset/') || selectedImage.id.includes('/'))) imageS3Key = selectedImage.id;
+                            let displayUrl: string | undefined;
+                            if (imageS3Key) {
+                              if (finalPropThumbnailS3KeyMap?.has(imageS3Key)) { const thumbnailS3Key = finalPropThumbnailS3KeyMap.get(imageS3Key); if (thumbnailS3Key && propThumbnailUrlsMap?.has(thumbnailS3Key)) displayUrl = propThumbnailUrlsMap.get(thumbnailS3Key); }
+                              if (!displayUrl && propImageUrlsMap?.has(imageS3Key)) displayUrl = propImageUrlsMap.get(imageS3Key);
+                            }
+                            if (!displayUrl && selectedImage.imageUrl) {
+                              if (selectedImage.imageUrl.startsWith('http')) displayUrl = selectedImage.imageUrl;
+                              else if (propImageUrlsMap?.has(selectedImage.imageUrl)) displayUrl = propImageUrlsMap.get(selectedImage.imageUrl);
+                            }
+                            if (!displayUrl) displayUrl = fullProp.baseReference?.imageUrl || prop.imageUrl;
+                            if (displayUrl) references.push({ type: 'prop', imageUrl: displayUrl, label: prop.name, id: `prop-${prop.id}` });
+                          }
+                        });
+                        return references.length > 0 ? <ReferencePreview references={references} className="mt-2 mb-3" /> : null;
+                      })()}
+                    </>
+                  ) : undefined}
                 />
-              </TabsContent>
-
-              {/* NON-LIP SYNC OPTIONS Tab */}
-              <TabsContent value="advanced" className="mt-4">
-                <ShotConfigurationPanel
-                  activeTab="advanced"
-                  isDialogueShot={isDialogueShot}
-                  shot={shot}
-                  sceneAnalysisResult={sceneAnalysisResult}
-                  shotMappings={shotMappings}
-                  hasPronouns={hasPronouns}
-                  explicitCharacters={explicitCharacters}
-                  singularPronounCharacters={singularPronounCharacters}
-                  pluralPronounCharacters={pluralPronounCharacters}
-                  selectedLocationReferences={finalSelectedLocationReferences}
-                  onLocationAngleChange={finalOnLocationAngleChange}
-                  isLocationAngleRequired={isLocationAngleRequired}
-                  needsLocationAngle={needsLocationAngle}
-                  locationOptOuts={finalLocationOptOuts}
-                  onLocationOptOutChange={finalOnLocationOptOutChange}
-                  locationDescriptions={finalLocationDescriptions}
-                  onLocationDescriptionChange={finalOnLocationDescriptionChange}
-                  renderCharacterControlsOnly={renderCharacterControlsOnly}
-                  renderCharacterImagesOnly={renderCharacterImagesOnly}
-                  pronounInfo={pronounInfo}
-                  allCharacters={allCharacters}
-                  selectedCharactersForShots={finalSelectedCharactersForShots}
-                  onCharactersForShotChange={finalOnCharactersForShotChange}
-                  onPronounMappingChange={finalOnPronounMappingChange}
-                  characterHeadshots={finalCharacterHeadshots}
-                  loadingHeadshots={finalLoadingHeadshots}
-                  selectedCharacterReferences={finalSelectedCharacterReferences}
-                  characterOutfits={finalCharacterOutfits}
-                  onCharacterReferenceChange={finalOnCharacterReferenceChange}
-                  onCharacterOutfitChange={finalOnCharacterOutfitChange}
-                  characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
-                  characterThumbnailUrlsMap={characterThumbnailUrlsMap}
-                  selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
-                  visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
-                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps
-                  locationThumbnailUrlsMap={locationThumbnailUrlsMap}
-                  locationFullImageUrlsMap={locationFullImageUrlsMap}
-                  selectedDialogueQuality={finalSelectedDialogueQuality}
-                  selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
-                  onDialogueQualityChange={finalOnDialogueQualityChange}
-                  onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
-                  dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
-                  onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
-                  narrationOverride={finalNarrationOverride}
-                  onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
-                  narratorCharacterId={finalNarratorCharacterId}
-                  onNarrationNarratorChange={(_, characterId) => actions.updateNarrationNarratorCharacterId(shotSlot, characterId)}
-                  offFrameShotType={finalOffFrameShotType}
-                  offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
-                  offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
-                  offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
-                  onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
-                  offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
-                  onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
-                  onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
-                  onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
-                  onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
-                  pronounExtrasPrompts={shotPronounExtrasPrompts}
-                  onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
-                  sceneProps={finalSceneProps}
-                  propsToShots={finalPropsToShots}
-                  onPropsToShotsChange={finalOnPropsToShotsChange}
-                  shotProps={finalShotProps}
-                  onPropDescriptionChange={finalOnPropDescriptionChange}
-                  onPropImageChange={finalOnPropImageChange}
-                  shotWorkflowOverride={shotWorkflowOverride}
-                  onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
-                  propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
-                  propThumbnailUrlsMap={propThumbnailUrlsMap}
-                />
-                  </TabsContent>
-                </Tabs>
+                    </div>
+                  )}
+                </div>
               ) : (
                 /* Action/Establishing shots: Single screen, no tabs */
                 <ShotConfigurationPanel
@@ -1504,213 +1507,95 @@ export function ShotConfigurationStep({
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
                 />
               )}
-            </>
-          )}
-
-          {/* Reference Shot (First Frame) Model Selection - Hide when first frame is uploaded */}
-          {onReferenceShotModelChange && !uploadedFirstFrameUrl && (
-            <>
-              <ReferenceShotSelector
-                shotSlot={shot.slot}
-                selectedModel={selectedReferenceShotModels[shot.slot]}
-                onModelChange={finalOnReferenceShotModelChange}
-              />
-              {/* Reference Preview - Shows what references will be used for this shot (directly under Reference Shot) */}
-              {(() => {
-                // Collect references for this shot
-                const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
-                
-                // Character references - include explicit characters, pronoun-mapped characters, and additional characters
-                const allShotCharacters = new Set<string>();
-                
-                // Add explicit characters
-                explicitCharacters.forEach(charId => allShotCharacters.add(charId));
-                
-                // Add characters from pronoun mappings
-                Object.values(shotMappings || {}).forEach(mapping => {
-                  if (mapping && mapping !== '__ignore__') {
-                    if (Array.isArray(mapping)) {
-                      mapping.forEach(charId => allShotCharacters.add(charId));
-                    } else {
-                      allShotCharacters.add(mapping);
-                    }
-                  }
-                });
-                
-                // Add additional characters
-                (finalSelectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
-                
-                // Tab-aware: on Basic tab show lip sync ref set; on Advanced use stored workflow (plan 0227)
-                const isOffFrameForDisplay = finalSelectedDialogueWorkflow === 'off-frame-voiceover' && activeTab === 'advanced';
-                if (isOffFrameForDisplay) {
-                  // Off-frame: speaker is not in frame, remove from reference list
-                  if (finalOffFrameShotType === 'off-frame') {
-                    allShotCharacters.delete(shot.characterId);
-                  }
-                  // Listener shot types: add listener character
-                  if (finalOffFrameListenerCharacterId && finalOffFrameShotType && isOffFrameListenerShotType(finalOffFrameShotType as OffFrameShotType)) {
-                    allShotCharacters.add(finalOffFrameListenerCharacterId);
-                  }
-                  // Group shot types: add group character IDs
-                  if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) {
-                    finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
-                  }
-                } else {
-                  // Basic tab or non–off-frame: do not show off-frame-only characters (listener/group) in reference list
-                  if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
-                  (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
-                }
-                
-                // Collect references for all characters
-                allShotCharacters.forEach(charId => {
-                  const char = allCharacters.find(c => c.id === charId);
-                  if (char) {
-                    const charRef = finalSelectedCharacterReferences[shot.slot]?.[charId];
-                    // 🔥 FIX: Check if we have a reference (even if imageUrl is empty, we might have s3Key)
-                    // The imageUrl should be set by the parent component's useEffect that updates with presigned URLs
-                    if (charRef && (charRef.imageUrl || charRef.s3Key)) {
-                      // Use imageUrl if available, otherwise try to get from characterHeadshots
-                      let imageUrl = charRef.imageUrl;
-                      if (!imageUrl && charRef.s3Key && finalCharacterHeadshots[charId]) {
-                        const headshot = finalCharacterHeadshots[charId].find(h => h.s3Key === charRef.s3Key);
-                        if (headshot?.imageUrl) {
-                          imageUrl = headshot.imageUrl;
+              {/* Reference Shot (First Frame) - Action/establishing only: at bottom after config (prop selection, describe shot, etc.) so References carousel is right below model dropdown */}
+              {!isDialogueShot && onReferenceShotModelChange && (
+                <>
+                  <ReferenceShotSelector
+                    shotSlot={shot.slot}
+                    selectedModel={selectedReferenceShotModels[shot.slot]}
+                    onModelChange={finalOnReferenceShotModelChange}
+                  />
+                  {/* Reference Preview - Shows what references will be used for this shot (directly under Reference Shot) */}
+                  {(() => {
+                    const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
+                    const allShotCharacters = new Set<string>();
+                    explicitCharacters.forEach(charId => allShotCharacters.add(charId));
+                    Object.values(shotMappings || {}).forEach(mapping => {
+                      if (mapping && mapping !== '__ignore__') {
+                        if (Array.isArray(mapping)) {
+                          mapping.forEach(charId => allShotCharacters.add(charId));
+                        } else {
+                          allShotCharacters.add(mapping);
                         }
                       }
-                      
-                      if (imageUrl) {
-                        references.push({
-                          type: 'character',
-                          imageUrl: imageUrl,
-                          label: char.name || `Character ${charId}`,
-                          id: `char-${charId}`
-                        });
-                      }
-                    }
-                  }
-                });
-                
-                // Location reference
-                const locationRef = finalSelectedLocationReferences[shot.slot];
-                if (locationRef) {
-                  const location = finalSceneProps.find(loc => loc.id === shot.locationId);
-                  
-                  // 🔥 FIX: Use standardized URL resolution utility with proper location URL map
-                  const locationImageUrl = resolveLocationImageUrl(
-                    locationRef,
-                    {
-                      thumbnailS3KeyMap: null, // Location references don't use thumbnail maps in references section
-                      thumbnailUrlsMap: null,
-                      fullImageUrlsMap: locationReferenceFullImageUrlsMap || propImageUrlsMap // 🔥 FIX: Use location map first, prop map as fallback
-                    }
-                  );
-                  
-                  // Only add if we have a valid URL
-                  if (locationImageUrl) {
-                    references.push({
-                      type: 'location',
-                      imageUrl: locationImageUrl,
-                      label: location?.name || 'Location',
-                      id: `loc-${shot.slot}`
                     });
-                  }
-                }
-                
-                // 🔥 FIX: Prop references - show all props with their actual images (not generic icon)
-                const shotPropsForThisShot = finalSceneProps.filter(prop => 
-                  finalPropsToShots[prop.id]?.includes(shot.slot)
-                );
-                shotPropsForThisShot.forEach(prop => {
-                  const propConfig = finalShotProps[shot.slot]?.[prop.id];
-                  const availableImages = getAvailablePropImages(prop);
-                  const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
-                  const selectedImage = selectedImageId 
-                    ? availableImages.find(img => img.id === selectedImageId)
-                    : availableImages[0];
-                  
-                  if (selectedImage) {
-                    // Find the s3Key for the selected image
-                    const fullProp = prop as typeof prop & {
-                      angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
-                      images?: Array<{ url: string; s3Key?: string }>;
-                      baseReference?: { s3Key?: string; imageUrl?: string };
-                    };
-                    
-                    let imageS3Key: string | null = null;
-                    if (fullProp.angleReferences) {
-                      const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id);
-                      if (ref?.s3Key) imageS3Key = ref.s3Key;
+                    (finalSelectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
+                    const isOffFrameForDisplay = finalSelectedDialogueWorkflow === 'off-frame-voiceover' && activeTab === 'advanced';
+                    if (isOffFrameForDisplay) {
+                      if (finalOffFrameShotType === 'off-frame') allShotCharacters.delete(shot.characterId);
+                      if (finalOffFrameListenerCharacterId && finalOffFrameShotType && isOffFrameListenerShotType(finalOffFrameShotType as OffFrameShotType)) allShotCharacters.add(finalOffFrameListenerCharacterId);
+                      if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
+                    } else {
+                      if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
+                      (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
                     }
-                    if (!imageS3Key && fullProp.images) {
-                      const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id);
-                      if (imgData?.s3Key) imageS3Key = imgData.s3Key;
-                    }
-                    if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') {
-                      imageS3Key = fullProp.baseReference.s3Key;
-                    }
-                    
-                    // 🔥 FIX: Also check if selectedImage.id is the s3Key itself
-                    if (!imageS3Key && selectedImage.id && (selectedImage.id.startsWith('asset/') || selectedImage.id.includes('/'))) {
-                      imageS3Key = selectedImage.id;
-                    }
-                    
-                    // Get presigned URL from maps (thumbnail first, then full image)
-                    let displayUrl: string | undefined;
-                    if (imageS3Key) {
-                      // Try thumbnail first
-                      if (finalPropThumbnailS3KeyMap?.has(imageS3Key)) {
-                        const thumbnailS3Key = finalPropThumbnailS3KeyMap.get(imageS3Key);
-                        if (thumbnailS3Key && propThumbnailUrlsMap?.has(thumbnailS3Key)) {
-                          displayUrl = propThumbnailUrlsMap.get(thumbnailS3Key);
+                    allShotCharacters.forEach(charId => {
+                      const char = allCharacters.find(c => c.id === charId);
+                      if (char) {
+                        const charRef = finalSelectedCharacterReferences[shot.slot]?.[charId];
+                        if (charRef && (charRef.imageUrl || charRef.s3Key)) {
+                          let imageUrl = charRef.imageUrl;
+                          if (!imageUrl && charRef.s3Key && finalCharacterHeadshots[charId]) {
+                            const headshot = finalCharacterHeadshots[charId].find(h => h.s3Key === charRef.s3Key);
+                            if (headshot?.imageUrl) imageUrl = headshot.imageUrl;
+                          }
+                          if (imageUrl) references.push({ type: 'character', imageUrl, label: char.name || `Character ${charId}`, id: `char-${charId}` });
                         }
                       }
-                      // Fallback to full image
-                      if (!displayUrl && propImageUrlsMap?.has(imageS3Key)) {
-                        displayUrl = propImageUrlsMap.get(imageS3Key);
+                    });
+                    const locationRef = finalSelectedLocationReferences[shot.slot];
+                    if (locationRef) {
+                      const location = finalSceneProps.find(loc => loc.id === shot.locationId);
+                      const locationImageUrl = resolveLocationImageUrl(locationRef, { thumbnailS3KeyMap: null, thumbnailUrlsMap: null, fullImageUrlsMap: locationReferenceFullImageUrlsMap || propImageUrlsMap });
+                      if (locationImageUrl) references.push({ type: 'location', imageUrl: locationImageUrl, label: location?.name || 'Location', id: `loc-${shot.slot}` });
+                    }
+                    const shotPropsForThisShot = finalSceneProps.filter(prop => finalPropsToShots[prop.id]?.includes(shot.slot));
+                    shotPropsForThisShot.forEach(prop => {
+                      const propConfig = finalShotProps[shot.slot]?.[prop.id];
+                      const availableImages = getAvailablePropImages(prop);
+                      const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                      const selectedImage = selectedImageId ? availableImages.find(img => img.id === selectedImageId) : availableImages[0];
+                      if (selectedImage) {
+                        const fullProp = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>; images?: Array<{ url: string; s3Key?: string }>; baseReference?: { s3Key?: string; imageUrl?: string } };
+                        let imageS3Key: string | null = null;
+                        if (fullProp.angleReferences) { const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id); if (ref?.s3Key) imageS3Key = ref.s3Key; }
+                        if (!imageS3Key && fullProp.images) { const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id); if (imgData?.s3Key) imageS3Key = imgData.s3Key; }
+                        if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') imageS3Key = fullProp.baseReference.s3Key;
+                        if (!imageS3Key && selectedImage.id && (selectedImage.id.startsWith('asset/') || selectedImage.id.includes('/'))) imageS3Key = selectedImage.id;
+                        let displayUrl: string | undefined;
+                        if (imageS3Key) {
+                          if (finalPropThumbnailS3KeyMap?.has(imageS3Key)) { const thumbnailS3Key = finalPropThumbnailS3KeyMap.get(imageS3Key); if (thumbnailS3Key && propThumbnailUrlsMap?.has(thumbnailS3Key)) displayUrl = propThumbnailUrlsMap.get(thumbnailS3Key); }
+                          if (!displayUrl && propImageUrlsMap?.has(imageS3Key)) displayUrl = propImageUrlsMap.get(imageS3Key);
+                        }
+                        if (!displayUrl && selectedImage.imageUrl) {
+                          if (selectedImage.imageUrl.startsWith('http')) displayUrl = selectedImage.imageUrl;
+                          else if (propImageUrlsMap?.has(selectedImage.imageUrl)) displayUrl = propImageUrlsMap.get(selectedImage.imageUrl);
+                        }
+                        if (!displayUrl) displayUrl = fullProp.baseReference?.imageUrl || prop.imageUrl;
+                        if (displayUrl) references.push({ type: 'prop', imageUrl: displayUrl, label: prop.name, id: `prop-${prop.id}` });
                       }
-                    }
-                    // 🔥 FIX: If displayUrl is still empty, try selectedImage.imageUrl
-                    // It might already be a presigned URL or a direct URL
-                    if (!displayUrl && selectedImage.imageUrl) {
-                      // Check if it's already a URL (starts with http) or might be an s3Key
-                      if (selectedImage.imageUrl.startsWith('http')) {
-                        displayUrl = selectedImage.imageUrl;
-                      } else if (propImageUrlsMap?.has(selectedImage.imageUrl)) {
-                        // It's an s3Key that's in the map
-                        displayUrl = propImageUrlsMap.get(selectedImage.imageUrl);
-                      }
-                    }
-                    // Final fallback to baseReference or prop.imageUrl
-                    if (!displayUrl) {
-                      displayUrl = fullProp.baseReference?.imageUrl || prop.imageUrl;
-                    }
-                    
-                    // 🔥 FIX: Add to references if we have a display URL
-                    // If displayUrl is an s3Key (not a URL), it will fail to load, but that's okay
-                    // The onError handler in ReferencePreview will show the fallback icon
-                    if (displayUrl) {
-                      references.push({
-                        type: 'prop',
-                        imageUrl: displayUrl,
-                        label: prop.name,
-                        id: `prop-${prop.id}`
-                      });
-                    }
-                  }
-                });
-                
-                return references.length > 0 ? (
-                  <ReferencePreview references={references} className="mt-2 mb-3" />
-                ) : null;
-              })()}
+                    });
+                    return references.length > 0 ? <ReferencePreview references={references} className="mt-2 mb-3" /> : null;
+                  })()}
+                </>
+              )}
             </>
           )}
 
-          {/* Video Generation Selection */}
-          {/* Show for action shots OR dialogue non-lip-sync shots */}
-          {onVideoTypeChange && (
+          {/* Video Generation Selection - Feature 0233: Only when dialogue shot has video opt-in. Action/establishing are first-frame-only. */}
+          {onVideoTypeChange && isDialogueShot && videoOptInForThisShot && (
             <>
-          {/* Feature 0224: Narrate Shot = primary video prompt + optional Override first frame. Action shots = two checkboxes. */}
+          {/* Feature 0224: Narrate Shot = primary video prompt + optional Override first frame. */}
           {isOverrideAllowed && (
             <div className="mt-4 pt-3 border-t border-[#3F3F46]">
               {isSceneVoiceover ? (
@@ -1902,7 +1787,8 @@ export function ShotConfigurationStep({
                   );
                 })()}
                 
-                {/* First Frame Mode Selection */}
+                {/* First Frame Mode Selection - Feature 0233: Only for dialogue shots. Action/establishing are generate-only. */}
+                {isDialogueShot && (
                 <div className="mb-3">
                   <label className="block text-[10px] text-[#808080] mb-2 font-medium">
                     First Frame Source:
@@ -1932,9 +1818,10 @@ export function ShotConfigurationStep({
                     </label>
                   </div>
                 </div>
+                )}
                 
-                {/* First Frame Upload UI (when mode is 'upload') */}
-                {firstFrameMode === 'upload' && (
+                {/* First Frame Upload UI (when mode is 'upload') - dialogue only; action/establishing are generate-only */}
+                {isDialogueShot && firstFrameMode === 'upload' && (
                   <div className="mb-3">
                     <label className="block text-[10px] text-[#808080] mb-1.5">
                       Upload First Frame Image:
@@ -1997,8 +1884,8 @@ export function ShotConfigurationStep({
                   </div>
                 )}
                 
-              {/* First Frame Prompt Override (when mode is 'generate') */}
-              {firstFrameMode === 'generate' && (
+              {/* First Frame Prompt Override (when generate: dialogue or always for action/establishing) */}
+              {(firstFrameMode === 'generate' || !isDialogueShot) && (
                 <div>
                   <label className="block text-[10px] text-[#808080] mb-1.5">
                     First Frame Prompt (Image Model):
@@ -2042,21 +1929,20 @@ export function ShotConfigurationStep({
             )}
             </div>
           )}
-              <VideoGenerationSelector
-                shotSlot={shot.slot}
-                shotType={shot.type}
-                selectedVideoType={selectedVideoTypes[shot.slot]}
-                onVideoTypeChange={finalOnVideoTypeChange}
-                shotCameraAngle={shotCameraAngle}
-                onCameraAngleChange={finalOnCameraAngleChange}
-                shotDuration={shotDuration}
-                onDurationChange={finalOnDurationChange}
-                isLipSyncWorkflow={(() => {
-                  // Default to 'first-frame-lipsync' if no workflow is selected (basic tab defaults to lip-sync)
-                  const effectiveWorkflow = finalSelectedDialogueWorkflow || (shot.type === 'dialogue' && activeTab === 'basic' ? 'first-frame-lipsync' : undefined);
-                  return shot.type === 'dialogue' && (effectiveWorkflow === 'first-frame-lipsync' || effectiveWorkflow === 'extreme-closeup' || effectiveWorkflow === 'extreme-closeup-mouth');
-                })()}
-              />
+              {/* Feature 0233: Only show video model/duration when dialogue shot has video opt-in. Action/establishing are first-frame-only. */}
+              {isDialogueShot && videoOptInForThisShot && onVideoTypeChange && (
+                <VideoGenerationSelector
+                  shotSlot={shot.slot}
+                  shotType={shot.type}
+                  selectedVideoType={selectedVideoTypes[shot.slot]}
+                  onVideoTypeChange={finalOnVideoTypeChange}
+                  shotCameraAngle={shotCameraAngle}
+                  onCameraAngleChange={finalOnCameraAngleChange}
+                  shotDuration={shotDuration}
+                  onDurationChange={finalOnDurationChange}
+                  isLipSyncWorkflow={true}
+                />
+              )}
               {/* Aspect Ratio Selector */}
               {onAspectRatioChange && (
                 <AspectRatioSelector
@@ -2068,37 +1954,54 @@ export function ShotConfigurationStep({
           )}
 
 
-          {/* Cost Calculator - Prices from backend (margins hidden) - Moved after Video Generation */}
+          {/* Cost Calculator - Feature 0233: First frame only when collapsed; first frame + video when expanded (dialogue) or action (first frame only) */}
           {pricing && (
             <div className="pt-3 border-t border-[#3F3F46]">
               <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#808080]">Reference Shot:</span>
+                  <span className="text-[#808080]">Reference Shot (first frame):</span>
                   <span className="text-[#FFFFFF] font-medium">{pricing.firstFramePrice} credits</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#808080]">HD Video:</span>
-                  <span className="text-[#FFFFFF] font-medium">{pricing.hdPrice} credits</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#808080]">4K Video:</span>
-                  <span className="text-[#FFFFFF] font-medium">{pricing.k4Price} credits</span>
-                </div>
-                <div className="pt-2 border-t border-[#3F3F46]">
-                  <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-[#FFFFFF]">HD Total:</span>
-                    <span className="text-[#FFFFFF]">
-                      {pricing.firstFramePrice + pricing.hdPrice} credits
-                    </span>
+                {(isDialogueShot && videoOptInForThisShot) && (
+                  <>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#808080]">HD Video:</span>
+                      <span className="text-[#FFFFFF] font-medium">{pricing.hdPrice} credits</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#808080]">4K Video:</span>
+                      <span className="text-[#FFFFFF] font-medium">{pricing.k4Price} credits</span>
+                    </div>
+                    <div className="pt-2 border-t border-[#3F3F46]">
+                      <div className="flex items-center justify-between text-xs font-medium">
+                        <span className="text-[#FFFFFF]">HD Total:</span>
+                        <span className="text-[#FFFFFF]">
+                          {pricing.firstFramePrice + pricing.hdPrice} credits
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs font-medium mt-1">
+                        <span className="text-[#FFFFFF]">4K Total:</span>
+                        <span className="text-[#FFFFFF]">
+                          {pricing.firstFramePrice + pricing.k4Price} credits
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {(!isDialogueShot || !videoOptInForThisShot) && (
+                  <div className="pt-2 border-t border-[#3F3F46]">
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span className="text-[#FFFFFF]">Total (first frame only):</span>
+                      <span className="text-[#FFFFFF]">{pricing.firstFramePrice} credits</span>
+                    </div>
+                    {isDialogueShot && (
+                      <div className="text-[10px] text-[#808080] italic mt-1">
+                        Expand &quot;Add Dialogue Video&quot; to include video cost
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between text-xs font-medium mt-1">
-                    <span className="text-[#FFFFFF]">4K Total:</span>
-                    <span className="text-[#FFFFFF]">
-                      {pricing.firstFramePrice + pricing.k4Price} credits
-                    </span>
-                  </div>
-                </div>
+                )}
                 <div className="text-[10px] text-[#808080] italic mt-1">
                   Final resolution selected on review page
                 </div>

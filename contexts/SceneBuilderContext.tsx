@@ -133,6 +133,8 @@ export interface SceneBuilderState {
   shotAspectRatios: Record<number, AspectRatio>;
   selectedReferenceShotModels: Record<number, ReferenceShotModel>;
   selectedVideoTypes: Record<number, VideoType>;
+  /** Feature 0233: Per-shot video opt-in. When false/absent, shot is first-frame-only. */
+  generateVideoForShot: Record<number, boolean>;
   
   // Global Settings
   globalResolution: Resolution;
@@ -244,6 +246,9 @@ export interface SceneBuilderActions {
   updateReferenceShotModel: (shotSlot: number, model: ReferenceShotModel) => void;
   setSelectedVideoTypes: (types: Record<number, VideoType>) => void;
   updateVideoType: (shotSlot: number, videoType: VideoType) => void;
+  /** Feature 0233: Per-shot video opt-in. Expand "Add Dialogue Video" sets true. */
+  setGenerateVideoForShot: (byShot: Record<number, boolean>) => void;
+  updateGenerateVideoForShot: (shotSlot: number, enabled: boolean) => void;
   
   // Global Settings Actions
   setGlobalResolution: (resolution: Resolution) => void;
@@ -354,6 +359,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     shotAspectRatios: {},
     selectedReferenceShotModels: {},
     selectedVideoTypes: {},
+    generateVideoForShot: {},
     
     // Global Settings
     globalResolution: '4k',
@@ -1207,6 +1213,20 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         selectedVideoTypes: {
           ...prev.selectedVideoTypes,
           [shotSlot]: videoType
+        }
+      }));
+    }, []),
+    
+    setGenerateVideoForShot: useCallback((byShot) => {
+      setState(prev => ({ ...prev, generateVideoForShot: byShot }));
+    }, []),
+    
+    updateGenerateVideoForShot: useCallback((shotSlot, enabled) => {
+      setState(prev => ({
+        ...prev,
+        generateVideoForShot: {
+          ...prev.generateVideoForShot,
+          [shotSlot]: enabled
         }
       }));
     }, []),
