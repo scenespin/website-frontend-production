@@ -60,7 +60,7 @@ type ProductionTab =
   | 'locations'     // Location Bank
   | 'assets'        // Asset Bank (Props)
   | 'readings';     // Screenplay Readings
-  // Note: Scene Builder and Storyboard moved to /direct
+  // Note: Scene Builder and Shot Board moved to /direct
   // Note: Images, Video, Audio removed (use Media Library in /storage)
   // Note: Storage moved to /storage route
   // Note: AI Chat is now a drawer (not a tab) - triggered from various buttons

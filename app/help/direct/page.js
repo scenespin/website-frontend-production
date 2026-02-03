@@ -6,8 +6,8 @@ import ComingSoonBadge from "@/components/ComingSoonBadge";
 import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
-  title: `Direct & Storyboard | ${config.appName} Help`,
-  description: "Learn how to review, organize, and control your production with Wryda.ai's Direct hub featuring Scene Builder and Storyboard views.",
+  title: `Direct & Shot Board | ${config.appName} Help`,
+  description: "Learn how to review, organize, and control your production with Wryda.ai's Direct hub featuring Scene Builder and Shot Board views.",
   canonicalUrlRelative: "/help/direct",
 });
 
@@ -37,7 +37,7 @@ export default function DirectHelp() {
           <ComingSoonBadge size="md" />
         </div>
         <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
-          Review, organize, and control your production. Use Scene Builder to generate scenes and Storyboard to view all your generated videos.
+          Review, organize, and control your production. Use Scene Builder to generate scenes and Shot Board to view all your first frames and videos.
         </p>
 
         {/* Direct Hub Overview */}
@@ -45,7 +45,7 @@ export default function DirectHelp() {
           <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Direct Hub</h2>
           <p className="mb-6 text-[#B3B3B3]">
             The Direct hub is your command center for production. It features two main views: Scene Builder for generating scenes 
-            and Storyboard for reviewing and organizing all your generated content.
+            and Shot Board for reviewing all your first frames and videos.
           </p>
           
           <div className="card bg-[#141414] border border-white/10 mb-6">
@@ -68,16 +68,16 @@ export default function DirectHelp() {
                 </div>
                 <div className="p-4 rounded border border-[#00D9FF]/30 bg-[#0A0A0A]">
                   <h4 className="font-semibold mb-3 text-[#00D9FF] flex items-center gap-2">
-                    📋 Storyboard
+                    📋 Shot Board
                   </h4>
                   <p className="text-sm text-[#B3B3B3] mb-3">
-                    Visual storyboard view of all your generated scenes. See full stitched scenes, individual shots, and organize your production.
+                    View all your shots organized by scene. See first frames for each shot with per-shot variation cycling.
                   </p>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• View all generated scenes</li>
-                    <li>• See individual shots per scene</li>
-                    <li>• Review first frame thumbnails</li>
-                    <li>• Organize by scene number</li>
+                    <li>• View first frames for all shots</li>
+                    <li>• Cycle through variations per shot</li>
+                    <li>• Play videos inline</li>
+                    <li>• Organized by scene number</li>
                   </ul>
                 </div>
               </div>
@@ -101,7 +101,7 @@ export default function DirectHelp() {
                 <li><strong className="text-[#FFFFFF]">Configure Shots</strong> - Set quality tier, resolution, aspect ratio, and duration</li>
                 <li><strong className="text-[#FFFFFF]">Assign Characters</strong> - Assign characters to shots with outfit selection</li>
                 <li><strong className="text-[#FFFFFF]">Generate</strong> - AI generates video clips for each shot with automatic consistency</li>
-                <li><strong className="text-[#FFFFFF]">Review</strong> - Review generated videos in the Storyboard view</li>
+                <li><strong className="text-[#FFFFFF]">Review</strong> - Review generated first frames and videos in the Shot Board</li>
               </ol>
             </div>
           </div>
@@ -133,33 +133,33 @@ export default function DirectHelp() {
           </div>
         </section>
 
-        {/* Storyboard */}
+        {/* Shot Board */}
         <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Storyboard View</h2>
+          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Shot Board</h2>
           <p className="mb-6 text-[#B3B3B3]">
-            Visual storyboard interface showing all your generated scenes organized by scene number.
+            View all your shots organized by scene with per-shot variation cycling.
           </p>
           
           <div className="card bg-[#141414] border border-white/10">
             <div className="card-body">
-              <h3 className="font-bold mb-4 text-[#DC143C]">Storyboard Features:</h3>
+              <h3 className="font-bold mb-4 text-[#DC143C]">Shot Board Features:</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Scene Organization</h4>
+                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Shot Organization</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• View all scenes by scene number</li>
-                    <li>• See full stitched scenes (combined videos)</li>
-                    <li>• View individual shots per scene</li>
-                    <li>• First frame thumbnails for quick preview</li>
+                    <li>• View all shots organized by scene</li>
+                    <li>• First frame displayed for each shot</li>
+                    <li>• Horizontal scrolling per scene</li>
+                    <li>• Shot number badges</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Review & Control</h4>
+                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Variation Cycling</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Review generated videos</li>
-                    <li>• See generation metadata</li>
-                    <li>• Organize your production</li>
-                    <li>• Access all media in Media Library</li>
+                    <li>• Cycle through variations per shot</li>
+                    <li>• Navigate with left/right arrows</li>
+                    <li>• Play videos with play button overlay</li>
+                    <li>• Data pulled from Media Library</li>
                   </ul>
                 </div>
               </div>
@@ -183,7 +183,7 @@ export default function DirectHelp() {
                   <strong className="text-[#FFFFFF]">Generate Videos</strong> - Use Production to generate videos with Scene Builder
                 </li>
                 <li>
-                  <strong className="text-[#FFFFFF]">Review in Direct</strong> - Go to Direct hub to review generated scenes in Storyboard view
+                  <strong className="text-[#FFFFFF]">Review in Direct</strong> - Go to Direct hub to review generated shots in the Shot Board
                 </li>
                 <li>
                   <strong className="text-[#FFFFFF]">Control Your Production</strong> - Organize scenes, review shots, and manage your production

@@ -5,7 +5,7 @@
  * 
  * Sub-navigation for Direct Hub:
  * - Scene Builder (renamed from Scene Manifest)
- * - Storyboard (renamed from Scenes)
+ * - Shot Board (renamed from Storyboard)
  */
 
 import React from 'react';
@@ -34,9 +34,9 @@ const DIRECT_TABS = [
   },
   {
     id: 'storyboard' as DirectTab,
-    label: 'Storyboard',
+    label: 'Shot Board',
     icon: Film,
-    description: 'Stitched scene videos & storyboard',
+    description: 'View all shots with first frames and videos',
   },
   {
     id: 'soundscape' as DirectTab,

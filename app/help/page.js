@@ -120,7 +120,7 @@ export default function HelpCenter() {
               description="Review, organize, and control your production"
               features={[
                 "Scene Builder interface",
-                "Storyboard view of all scenes",
+                "Shot Board view of all first frames and videos",
                 "Review generated videos",
                 "Organize your production"
               ]}

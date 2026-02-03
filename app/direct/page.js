@@ -5,11 +5,11 @@ import DirectPageClient from './DirectPageClient';
 export const dynamic = 'force-dynamic';
 
 /**
- * Direct Page - Scene Builder & Storyboard
+ * Direct Page - Scene Builder & Shot Board
  * 
  * Contains:
  * - Scene Builder (renamed from Scene Manifest)
- * - Storyboard (renamed from Scenes)
+ * - Shot Board (renamed from Storyboard) - displays first frames and videos per shot
  */
 
 export default function DirectPage() {

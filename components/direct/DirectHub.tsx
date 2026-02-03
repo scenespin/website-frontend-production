@@ -1,19 +1,19 @@
 'use client';
 
 /**
- * Direct Hub - Scene Builder & Storyboard
+ * Direct Hub - Scene Builder & Shot Board
  * 
  * Contains:
  * - Scene Builder (renamed from Scene Manifest)
- * - Storyboard (renamed from Scenes)
+ * - Shot Board (renamed from Storyboard) - displays first frames and videos per shot
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
-import { ScenesPanel } from '@/components/production/ScenesPanel';
+import { ShotBoardPanel } from '@/components/production/ShotBoardPanel';
 import { StyleProfilesPanel } from '@/components/production/StyleProfilesPanel';
 import { VideoSoundscapePanel } from '@/components/production/VideoSoundscapePanel';
 import { ProductionErrorBoundary } from '@/components/production/ProductionErrorBoundary';
@@ -89,8 +89,9 @@ export function DirectHub() {
 
         {activeTab === 'storyboard' && (
           <div className="h-full overflow-y-auto">
-            <ScenesPanel
+            <ShotBoardPanel
               className="h-full"
+              onNavigateToSceneBuilder={() => handleTabChange('scene-builder')}
             />
           </div>
         )}
