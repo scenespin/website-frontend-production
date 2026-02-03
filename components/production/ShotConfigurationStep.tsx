@@ -701,6 +701,7 @@ export function ShotConfigurationStep({
   }, [shotSlot, actions]);
   
   // 🔥 Feature 0233: Only require video type when dialogue shot has video opt-in. Action/establishing are first-frame-only.
+  // 🔥 FIX Issue 3: Clear video type when video opt-in is disabled to prevent incorrect cost calculation
   useEffect(() => {
     const needsVideoType = shot.type === 'dialogue' && videoOptInForThisShot;
     if (needsVideoType && onVideoTypeChange) {
@@ -708,8 +709,14 @@ export function ShotConfigurationStep({
       if (!currentVideoType) {
         onVideoTypeChange(shotSlot, 'cinematic-visuals');
       }
+    } else if (shot.type === 'dialogue' && !videoOptInForThisShot && onVideoTypeChange) {
+      // Clear video type when video opt-in is disabled to prevent incorrect pricing
+      const currentVideoType = selectedVideoTypes[shotSlot];
+      if (currentVideoType) {
+        onVideoTypeChange(shotSlot, undefined as any); // Clear the video type
+      }
     }
-  }, [shot.slot, shot.type, videoOptInForThisShot, selectedVideoTypes, onVideoTypeChange]);
+  }, [shot.slot, shot.type, videoOptInForThisShot, selectedVideoTypes, shotSlot, onVideoTypeChange]);
   
   // 🔥 NEW: Auto-select default dialogue quality (reliable/Wryda) when dialogue shot has video opt-in
   // 🔥 FIX Issue 3: Only set quality when video is opted in - otherwise it affects cost calculation
@@ -956,13 +963,18 @@ export function ShotConfigurationStep({
       setIsLoadingPricing(true);
       try {
         const referenceShotModel = selectedReferenceShotModels[shot.slot] || 'nano-banana-pro-2k'; // Default to match UI
-        const videoType = selectedVideoTypes[shot.slot];
+        // 🔥 FIX Issue 3: Only include video type if video opt-in is enabled for dialogue shots
+        const videoType = (shot.type === 'dialogue' && videoOptInForThisShot) ? selectedVideoTypes[shot.slot] : undefined;
         const pricingResult = await SceneBuilderService.calculatePricing(
           [{ slot: shot.slot, credits: shot.credits }],
           shotDuration ? { [shot.slot]: shotDuration } : undefined,
           getToken,
           { [shot.slot]: referenceShotModel }, // Always pass model (use default if not selected)
-          videoType ? { [shot.slot]: videoType } : undefined
+          videoType ? { [shot.slot]: videoType } : undefined,
+          undefined, // dialogueQualities
+          undefined, // dialogueWorkflows
+          undefined, // voiceoverBaseWorkflows
+          generateVideoForShot // 🔥 FIX Issue 3: Pass generateVideoForShot to ensure correct pricing
         );
         
         const shotPricing = pricingResult.shots.find(s => s.shotSlot === shot.slot);
@@ -983,7 +995,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shotDuration, selectedReferenceShotModels, selectedVideoTypes, getToken, shot.slot]);
+  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -993,6 +1005,7 @@ export function ShotConfigurationStep({
     // First frame override validation: when checkbox is on, must have prompt or uploaded image (Plan 0233: applies to both dialogue and action)
     // 🔥 FIX Issue 1: Use ref for synchronous check to avoid React batching issues
     // The ref is updated immediately when checkbox is clicked, before React re-renders
+    // Check ref first (most up-to-date), then context state, then if prompt override exists
     const firstFrameOverrideChecked = firstFrameOverrideCheckboxRef.current || firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride;
     if (firstFrameOverrideChecked) {
       const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
@@ -1591,10 +1604,11 @@ export function ShotConfigurationStep({
                 <input
                   type="checkbox"
                   id={`first-frame-override-${shotSlot}`}
-                  checked={firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride}
+                  checked={firstFrameOverrideCheckboxRef.current || firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride}
                   onChange={(e) => {
                     const isChecked = e.target.checked;
                     // 🔥 FIX Issue 1: Update ref synchronously before async context update
+                    // This ensures validation can read the current state immediately
                     firstFrameOverrideCheckboxRef.current = isChecked;
                     actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
                     if (!isChecked) actions.updateFirstFramePromptOverride(shotSlot, '');

@@ -1214,13 +1214,19 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     }, []),
     
     updateVideoType: useCallback((shotSlot, videoType) => {
-      setState(prev => ({
-        ...prev,
-        selectedVideoTypes: {
-          ...prev.selectedVideoTypes,
-          [shotSlot]: videoType
+      setState(prev => {
+        const newVideoTypes = { ...prev.selectedVideoTypes };
+        if (videoType === undefined || videoType === null) {
+          // Clear video type when undefined/null is passed
+          delete newVideoTypes[shotSlot];
+        } else {
+          newVideoTypes[shotSlot] = videoType;
         }
-      }));
+        return {
+          ...prev,
+          selectedVideoTypes: newVideoTypes
+        };
+      });
     }, []),
     
     setGenerateVideoForShot: useCallback((byShot) => {
