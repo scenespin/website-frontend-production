@@ -2410,15 +2410,20 @@ export function LocationDetailModal({
                   locationId={location.locationId}
                   locationName={location.name}
                   screenplayId={screenplayId || ''}
-                  locationProfile={location}
-                  location={{ ...location, angleVariations: angleVariations.length > 0 ? angleVariations : (location.angleVariations || []) }}
+                  locationProfile={latestLocation}
+                  location={{ 
+                    ...latestLocation, 
+                    angleVariations: angleVariations.length > 0 ? angleVariations : (latestLocation.angleVariations || []),
+                    backgrounds: backgrounds.length > 0 ? backgrounds : (latestLocation.backgrounds || []),
+                    baseReference: latestLocation.baseReference || location.baseReference
+                  }}
                   onClose={() => setCoverageTab(null)}
                   onComplete={async (result) => {
                     // Job started - tab will close, job runs in background
                     // User can track progress in Jobs tab
                     // Location data will refresh automatically when job completes
                     if (result?.jobId) {
-                      toast.success(`${result.type === 'angles' ? 'Angle' : 'Background'} generation started!`, {
+                      toast.success(`${result.type === 'angles' ? 'Angle' : result.type === 'ecu-backgrounds' ? 'ECU' : 'Background'} generation started!`, {
                         description: 'View in Jobs tab to track progress.',
                         duration: 5000
                       });

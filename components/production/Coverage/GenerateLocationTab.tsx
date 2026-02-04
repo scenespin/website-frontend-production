@@ -14,18 +14,61 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Zap, Check, Star, ImageIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { hasLocationReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import LocationAnglePackageSelector from '../LocationAnglePackageSelector';
 import LocationBackgroundPackageSelector from '../LocationBackgroundPackageSelector';
+import { THUMBNAIL_ASPECT_RATIO } from '../utils/imageConstants';
 
-/** ECU package display (Feature 0232). One ECU image per selected source; package defines variation style per image. */
-const ECU_PACKAGES_UI: Record<string, { id: string; name: string; variationCount: number }> = {
-  essentials: { id: 'essentials', name: 'Essentials', variationCount: 3 },
-  standard: { id: 'standard', name: 'Standard', variationCount: 5 },
-  premium: { id: 'premium', name: 'Premium', variationCount: 8 },
+/** Human-readable labels for background types (shared with LocationDetailModal pattern) */
+const BACKGROUND_TYPE_LABELS: Record<string, string> = {
+  'window': 'Window',
+  'wall': 'Wall',
+  'doorway': 'Doorway',
+  'texture': 'Texture',
+  'corner-detail': 'Corner Detail',
+  'furniture': 'Furniture',
+  'architectural-feature': 'Architectural Feature',
+  'custom': 'Custom',
+  'ecu-soft': 'ECU Soft'
+};
+
+/** Human-readable labels for ECU variation types */
+const ECU_VARIATION_LABELS: Record<string, string> = {
+  'ecu-soft': 'Soft blur',
+  'ecu-abstract-warm': 'Abstract warm',
+  'ecu-abstract-cool': 'Abstract cool',
+  'ecu-texture-echo': 'Texture echo'
+};
+
+/** ECU package definitions (matches backend ecu-packages.ts) */
+const ECU_PACKAGES: Record<string, { 
+  id: string; 
+  name: string; 
+  variationTypes: string[];
+  variationCount: number;
+}> = {
+  essentials: { 
+    id: 'essentials', 
+    name: 'Essentials', 
+    variationTypes: ['ecu-soft', 'ecu-abstract-warm', 'ecu-abstract-cool'],
+    variationCount: 3 
+  },
+  standard: { 
+    id: 'standard', 
+    name: 'Standard', 
+    variationTypes: ['ecu-soft', 'ecu-abstract-warm', 'ecu-abstract-cool', 'ecu-texture-echo', 'ecu-soft'],
+    variationCount: 5 
+  },
+  premium: { 
+    id: 'premium', 
+    name: 'Premium', 
+    variationTypes: ['ecu-soft', 'ecu-abstract-warm', 'ecu-abstract-cool', 'ecu-texture-echo', 'ecu-soft', 'ecu-abstract-warm', 'ecu-abstract-cool', 'ecu-texture-echo'],
+    variationCount: 8 
+  },
 };
 
 interface GenerateLocationTabProps {
@@ -120,13 +163,19 @@ export function GenerateLocationTab({
         id: getAngleSelectionId(a),
         imageUrl: a.imageUrl,
         label: a.angle || 'Angle',
+        timeOfDay: a.timeOfDay,
+        weather: a.weather,
       }));
     }
     if (ecuSourceType === 'backgrounds') {
       return (loc?.backgrounds || []).map((b: any) => ({
         id: b.s3Key || b.id,
         imageUrl: b.imageUrl,
-        label: b.backgroundType || 'Background',
+        label: BACKGROUND_TYPE_LABELS[b.backgroundType] || b.backgroundType || 'Background',
+        backgroundType: b.backgroundType,
+        timeOfDay: b.timeOfDay,
+        weather: b.weather,
+        description: b.description,
       }));
     }
     return [];
@@ -788,7 +837,7 @@ export function GenerateLocationTab({
                               type="button"
                               onClick={() => toggleAngleSelection(angleSelId)}
                               disabled={!validation.canSelect && !isSelected}
-                              className={`relative aspect-square rounded border-2 transition-all ${
+                              className={`relative ${THUMBNAIL_ASPECT_RATIO} rounded border-2 transition-all ${
                                 isSelected
                                   ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
                                   : !validation.canSelect
@@ -940,12 +989,14 @@ export function GenerateLocationTab({
                 {ecuSourceList.map((item) => {
                   const id = getECUSourceId(item);
                   const isSelected = selectedECUSourceIds.includes(id);
+                  const hasMetadata = ecuSourceType === 'backgrounds' && ((item as any).timeOfDay || (item as any).weather);
+                  const hasAngleMetadata = ecuSourceType === 'angle-variations' && ((item as any).timeOfDay || (item as any).weather);
                   return (
                     <button
                       key={id}
                       type="button"
                       onClick={() => toggleECUSource(id)}
-                      className={`relative aspect-square rounded border-2 transition-all ${
+                      className={`relative ${THUMBNAIL_ASPECT_RATIO} rounded border-2 transition-all ${
                         isSelected ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50' : 'border-[#3F3F46] hover:border-[#808080]'
                       }`}
                     >
@@ -959,6 +1010,25 @@ export function GenerateLocationTab({
                           <svg className="w-5 h-5 text-[#DC143C]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                         </div>
                       )}
+                      {/* Metadata badges - show timeOfDay and weather (for backgrounds and angles) */}
+                      {(hasMetadata || hasAngleMetadata) && (
+                        <div className="absolute top-1 left-1 right-1 flex flex-wrap gap-1">
+                          {(item as any).timeOfDay && (
+                            <div className="px-1.5 py-0.5 bg-blue-600/90 text-white text-[8px] font-medium rounded">
+                              {(item as any).timeOfDay}
+                            </div>
+                          )}
+                          {(item as any).weather && (
+                            <div className="px-1.5 py-0.5 bg-green-600/90 text-white text-[8px] font-medium rounded">
+                              {(item as any).weather}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {/* Bottom label - angle name for angles, backgroundType for backgrounds, label for reference images */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5 rounded-b text-[9px] text-white truncate">
+                        {ecuSourceType === 'angle-variations' ? item.label : ecuSourceType === 'backgrounds' ? item.label : item.label}
+                      </div>
                     </button>
                   );
                 })}
@@ -967,20 +1037,99 @@ export function GenerateLocationTab({
           </div>
           <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
             <h3 className="text-sm font-semibold text-white mb-3">Step 3c: ECU package</h3>
-            <div className="flex gap-2 flex-wrap">
-              {Object.values(ECU_PACKAGES_UI).map((pkg) => (
-                <button
-                  key={pkg.id}
-                  type="button"
-                  onClick={() => setEcuPackageId(pkg.id)}
-                  className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                    ecuPackageId === pkg.id ? 'border-[#DC143C] bg-[#DC143C]/10 text-white' : 'border-[#3F3F46] text-[#808080] hover:border-[#DC143C]/50'
-                  }`}
-                >
-                  {pkg.name} ({pkg.variationCount} styles)
-                </button>
-              ))}
+            <div className="flex items-center gap-2 text-xs text-[#808080] mb-2">
+              <span>More variations = more creative options per source image</span>
             </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {Object.values(ECU_PACKAGES).map((pkg) => {
+                const PACKAGE_ICONS: Record<string, any> = {
+                  essentials: Zap,
+                  standard: Check,
+                  premium: Star
+                };
+                const PACKAGE_COLORS: Record<string, string> = {
+                  essentials: 'from-base-content/50 to-base-content/40',
+                  standard: 'from-blue-500 to-blue-600',
+                  premium: 'from-purple-500 to-purple-600'
+                };
+                const Icon = PACKAGE_ICONS[pkg.id] || ImageIcon;
+                const isSelected = ecuPackageId === pkg.id;
+                const isRecommended = pkg.id === 'standard';
+                const ecuCredits = selectedECUSourceIds.length * creditsPerImage;
+                
+                return (
+                  <motion.div
+                    key={pkg.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`
+                      relative rounded-lg border-2 p-3 cursor-pointer transition-all
+                      ${isSelected 
+                        ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                        : 'border-[#3F3F46] bg-[#0A0A0A] hover:border-[#DC143C]/50'
+                      }
+                    `}
+                    onClick={() => setEcuPackageId(pkg.id)}
+                  >
+                    {/* Recommended Badge */}
+                    {isRecommended && (
+                      <div className="absolute -top-1.5 -right-1.5">
+                        <div className="bg-[#DC143C] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                          REC
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Package Icon & Name */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`p-1.5 rounded bg-gradient-to-br ${PACKAGE_COLORS[pkg.id]}`}>
+                        <Icon className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <h3 className="text-xs font-semibold text-white truncate">
+                        {pkg.name}
+                      </h3>
+                    </div>
+                    
+                    {/* Credits (if sources selected) */}
+                    {selectedECUSourceIds.length > 0 && (
+                      <div className="text-sm font-bold text-white mb-1.5">
+                        {ecuCredits} <span className="text-[10px] font-normal text-[#808080]">credits</span>
+                      </div>
+                    )}
+                    
+                    {/* Variation Count & Types */}
+                    <div className="space-y-1 mb-2">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-[#808080]">Variations</span>
+                        <span className="text-white font-semibold">{pkg.variationCount}</span>
+                      </div>
+                      {/* Variation Preview - Show unique variation types */}
+                      <div className="text-[9px] text-[#808080] mt-1">
+                        <div className="flex flex-wrap gap-1">
+                          {[...new Set(pkg.variationTypes)].map((variationType, idx) => (
+                            <span key={idx} className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">
+                              {ECU_VARIATION_LABELS[variationType] || variationType}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Selected Indicator */}
+                    {isSelected && (
+                      <div className="mt-2 py-1 bg-[#DC143C] text-white text-center rounded text-[10px] font-semibold">
+                        ✓ Selected
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+            {selectedECUSourceIds.length > 0 && (
+              <p className="mt-3 text-xs text-[#808080]">
+                {selectedECUSourceIds.length} source{selectedECUSourceIds.length !== 1 ? 's' : ''} selected × {ECU_PACKAGES[ecuPackageId]?.variationCount || 0} variation{ECU_PACKAGES[ecuPackageId]?.variationCount !== 1 ? 's' : ''} = {selectedECUSourceIds.length * (ECU_PACKAGES[ecuPackageId]?.variationCount || 0)} total ECU image{selectedECUSourceIds.length * (ECU_PACKAGES[ecuPackageId]?.variationCount || 0) !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
         </div>
       )}
