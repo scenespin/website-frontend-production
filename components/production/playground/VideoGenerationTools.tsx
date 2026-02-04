@@ -68,6 +68,20 @@ export function VideoGenerationTools({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
+  const [videoModelDropdownOpen, setVideoModelDropdownOpen] = useState(false);
+  const videoModelDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close Video Model dropdown when clicking outside
+  useEffect(() => {
+    if (!videoModelDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (videoModelDropdownRef.current && !videoModelDropdownRef.current.contains(e.target as Node)) {
+        setVideoModelDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [videoModelDropdownOpen]);
 
   // Starting Frame mode: either uploaded (file + s3Key) or from prop (URL only)
   const [startImage, setStartImage] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
@@ -115,7 +129,11 @@ export function VideoGenerationTools({
         const filtered = (Array.isArray(list) ? list : []).filter(
           (m: VideoModel) => !m.requiresSourceVideo
         );
-        const sorted = [...filtered].sort((a: VideoModel, b: VideoModel) =>
+        // Use "Grok Video (xAI)" so it sorts A–Z right under Google (no custom order)
+        const withLabels = filtered.map((m: VideoModel) =>
+          m.id === 'grok-imagine-video' ? { ...m, label: 'Grok Video (xAI)' } : m
+        );
+        const sorted = [...withLabels].sort((a: VideoModel, b: VideoModel) =>
           (a.label || a.id).localeCompare(b.label || b.id)
         );
         setModels(sorted);
@@ -704,8 +722,8 @@ export function VideoGenerationTools({
           </p>
         </div>
 
-        {/* Model Selection – generate-from-scratch only (Runway Aleph is in "modify video" flows) */}
-        <div className="flex-shrink-0">
+        {/* Model Selection – custom dropdown so opening it doesn't freeze parent scroll */}
+        <div className="flex-shrink-0 relative" ref={videoModelDropdownRef}>
           <label className="block text-sm font-medium text-white mb-2">
             Video Model
           </label>
@@ -720,18 +738,42 @@ export function VideoGenerationTools({
             </div>
           ) : (
             <>
-              <select
-                value={selectedModel || (models[0]?.id ?? '')}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+              <button
+                type="button"
+                onClick={() => !isGenerating && setVideoModelDropdownOpen((o) => !o)}
                 disabled={isGenerating}
+                className={cn(
+                  "w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-left text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent flex items-center justify-between",
+                  videoModelDropdownOpen && "ring-2 ring-cinema-red border-transparent"
+                )}
               >
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
+                <span>{selectedModelInfo?.label ?? models.find((m) => m.id === selectedModel)?.label ?? selectedModel || 'Select model'}</span>
+                <span className={cn("text-[#808080] transition-transform", videoModelDropdownOpen && "rotate-180")}>▼</span>
+              </button>
+              {videoModelDropdownOpen && (
+                <div
+                  className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-[#3F3F46] bg-[#1F1F1F] shadow-lg"
+                  style={{ minWidth: videoModelDropdownRef.current?.offsetWidth }}
+                >
+                  {models.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedModel(m.id);
+                        setVideoModelDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "w-full px-4 py-2.5 text-left text-sm transition-colors",
+                        m.id === selectedModel ? "bg-cinema-red/20 text-white" : "text-white hover:bg-[#2A2A2A]"
+                      )}
+                    >
+                      {m.id === selectedModel && <span className="mr-2">✓</span>}
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               {selectedModel && selectedModelInfo && (
                 <p className="mt-1.5 text-xs text-[#808080]">
                   {selectedModelInfo.description || selectedModelInfo.provider} • {getTotalCredits()} credits

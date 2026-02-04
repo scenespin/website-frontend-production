@@ -123,14 +123,24 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     if (url) setPlayingVideoUrl(url);
   }, []);
 
-  const handleDownload = useCallback((entry: VideoBrowserEntry) => {
+  const handleDownload = useCallback(async (entry: VideoBrowserEntry) => {
     if (!entry.videoUrl) return;
-    const link = document.createElement('a');
-    link.href = entry.videoUrl;
-    link.download = entry.videoFileName;
-    link.rel = 'noopener noreferrer';
-    link.target = '_blank';
-    link.click();
+    try {
+      const response = await fetch(entry.videoUrl);
+      if (!response.ok) throw new Error(response.statusText);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = entry.videoFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (err) {
+      console.error('[VideoBrowserPanel] Failed to download video:', err);
+      toast.error('Failed to download video');
+    }
   }, []);
 
   if (!screenplayId || isLoading) {
