@@ -373,10 +373,10 @@ export function SceneReviewStep({
                       </div>
                     )}
 
-                    {/* Workflow - Display only for dialogue shots when video is opted-in (hidden for action/establishing and first-frame-only dialogue) */}
+                    {/* Dialogue line - Display for dialogue shots when video is opted-in (instead of suggested workflow). Fallback "—" for rare bad/legacy data where type is dialogue but dialogueBlock.dialogue is missing. */}
                     {shot.type === 'dialogue' && generateVideoForShot[shot.slot] && (
                       <div className="text-[10px] text-[#808080]">
-                        Suggested Workflow: <span className="text-[#FFFFFF]">{getWorkflowLabel(shot.workflow || 'hollywood-standard')}</span>
+                        Dialogue: <span className="text-[#FFFFFF]">"{shot.dialogueBlock?.dialogue ?? '—'}"</span>
                         {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
                           <span className="text-[#DC143C] ml-2">
                             (Override: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])})
