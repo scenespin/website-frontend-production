@@ -155,10 +155,16 @@ export function VideoGenerationTools({
     }
   }, [selectedModel]);
 
-  // Credits: use selected model's creditsMap when available, else fallback by duration
+  // Credits: use selected model's creditsMap from API (same source as backend charge). Fallback only when map missing or duration not in map.
   const getTotalCredits = (): number => {
-    if (selectedModelInfo?.creditsMap && typeof selectedModelInfo.creditsMap[selectedDuration] === 'number') {
-      return selectedModelInfo.creditsMap[selectedDuration];
+    const map = selectedModelInfo?.creditsMap;
+    if (map && typeof map[selectedDuration] === 'number') {
+      return map[selectedDuration];
+    }
+    if (map && Object.keys(map).length > 0) {
+      const durations = Object.keys(map).map(Number).sort((a, b) => a - b);
+      const nearest = durations.reduce((prev, d) => (Math.abs(d - selectedDuration) < Math.abs(prev - selectedDuration) ? d : prev));
+      return map[nearest] ?? 50;
     }
     return selectedDuration === 5 ? 50 : 100;
   };
