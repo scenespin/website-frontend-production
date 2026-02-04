@@ -747,7 +747,7 @@ export function VideoGenerationTools({
                   videoModelDropdownOpen && "ring-2 ring-cinema-red border-transparent"
                 )}
               >
-                <span>{selectedModelInfo?.label ?? models.find((m) => m.id === selectedModel)?.label ?? selectedModel || 'Select model'}</span>
+                <span>{selectedModelInfo?.label ?? models.find((m) => m.id === selectedModel)?.label ?? (selectedModel || 'Select model')}</span>
                 <span className={cn("text-[#808080] transition-transform", videoModelDropdownOpen && "rotate-180")}>▼</span>
               </button>
               {videoModelDropdownOpen && (
