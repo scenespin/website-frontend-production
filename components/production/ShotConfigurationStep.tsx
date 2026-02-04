@@ -329,8 +329,10 @@ export function ShotConfigurationStep({
   const finalShotProps = state.shotProps;
   const finalPropThumbnailS3KeyMap = state.propThumbnailS3KeyMap;
   const shotPronounExtrasPrompts = (state.pronounExtrasPrompts[shotSlot] || {});
-  const finalSelectedDialogueQuality = state.selectedDialogueQualities[shotSlot];
-  const finalSelectedDialogueWorkflow = state.selectedDialogueWorkflows[shotSlot];
+  // 🔥 FIX: Use props first (from parent state), fallback to context state
+  // This ensures pricing updates when user selects Premium/Wryda in UnifiedDialogueDropdown
+  const finalSelectedDialogueQuality = selectedDialogueQuality ?? state.selectedDialogueQualities[shotSlot];
+  const finalSelectedDialogueWorkflow = selectedDialogueWorkflow ?? state.selectedDialogueWorkflows[shotSlot];
   const finalDialogueWorkflowPrompt = state.dialogueWorkflowPrompts[shotSlot];
   const finalOffFrameShotType = state.offFrameShotType[shotSlot];
   const finalOffFrameListenerCharacterId = state.offFrameListenerCharacterId[shotSlot] ?? null;

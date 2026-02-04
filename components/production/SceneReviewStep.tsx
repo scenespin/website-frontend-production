@@ -240,11 +240,17 @@ export function SceneReviewStep({
   ];
 
   // Feature 0234: Calculate total duration - only count shots with video opt-in
+  // Duration varies by quality: Premium (VEO) = 4s quick-cut / 8s extended-take, Reliable (LongCat/Wryda) = 5s quick-cut / 8s extended-take
   const totalDuration = selectedShots.reduce((total: number, shot: any) => {
     // Only dialogue shots with video opt-in contribute to duration
     if (shot.type === 'dialogue' && generateVideoForShot[shot.slot]) {
       const duration = shotDurations[shot.slot] || 'quick-cut';
-      const seconds = duration === 'extended-take' ? 10 : 5;
+      const quality = selectedDialogueQualities?.[shot.slot] || 'reliable';
+      // Premium (VEO): 4s quick-cut, 8s extended-take
+      // Reliable (LongCat/Wryda): 5s quick-cut, 8s extended-take
+      const seconds = duration === 'extended-take' 
+        ? 8  // Both Premium and Reliable use 8s for extended-take
+        : (quality === 'premium' ? 4 : 5);  // Premium = 4s, Reliable = 5s
       return total + seconds;
     }
     // Action/establishing shots and dialogue without video opt-in are first-frame-only (no duration)
