@@ -110,6 +110,7 @@ function ShotCell({
             src={firstFrameUrl}
             alt={`Shot ${shot.shotNumber}`}
             className="w-full h-full object-contain"
+            style={{ objectFit: 'contain' }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-[#0A0A0A]">
