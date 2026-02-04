@@ -421,10 +421,9 @@ export function VideoGenerationTools({
   };
 
   return (
-    <div className={cn("h-full flex bg-[#0A0A0A] min-h-0", className)}>
-      {/* Left Panel - Form Controls */}
-      <div className="w-1/2 flex flex-col min-h-0">
-        <div className="flex-1 min-h-0 overflow-y-auto">
+    <div className={cn("min-h-full flex bg-[#0A0A0A]", className)}>
+      {/* Left Panel - Form Controls (no inner scroll; whole page scrolls) */}
+      <div className="w-1/2 flex flex-col">
         <div className="flex flex-col gap-6 p-4 md:p-6">
         {/* Mode Tabs */}
         <div className="flex-shrink-0 mb-6">
@@ -776,8 +775,6 @@ export function VideoGenerationTools({
           </select>
         </div>
         </div>
-        </div>
-        </div>
 
         {/* Generate Button */}
         <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
@@ -810,8 +807,8 @@ export function VideoGenerationTools({
       {/* Divider */}
       <div className="w-px bg-white/10 flex-shrink-0"></div>
 
-      {/* Right Panel - Preview */}
-      <div className="w-1/2 flex flex-col min-h-0">
+      {/* Right Panel - Preview (min height so output area fills when content is short) */}
+      <div className="w-1/2 flex flex-col min-h-full">
         <GenerationPreview
           isGenerating={isGenerating}
           generatedVideoUrl={generatedVideoUrl}

@@ -111,9 +111,9 @@ export function DirectHub() {
         )}
 
         {activeTab === 'video-gen' && (
-          <div className="h-full overflow-hidden flex flex-col">
+          <div className="h-full overflow-y-auto">
             <VideoGenerationTools
-              className="flex-1 min-h-0"
+              className="min-h-full"
               screenplayId={screenplayId ?? undefined}
               initialStartImageUrl={videoGenPreFill?.firstFrameUrl}
               sceneId={videoGenPreFill?.sceneId}

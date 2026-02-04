@@ -31,9 +31,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Forward request to backend
+    // Forward request to backend (context=playground for Video Gen; no-store so list is fresh after backend deploy)
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-    const url = `${backendUrl}/api/video/models`;
+    const url = `${backendUrl}/api/video/models?context=playground`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      cache: 'no-store',
     });
 
     if (!response.ok) {
