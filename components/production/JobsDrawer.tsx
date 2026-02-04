@@ -250,7 +250,7 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
     }, 45 * 60 * 1000); // 45 minutes - refresh before expiration
 
     return () => clearInterval(refreshInterval);
-  }, [s3Key, fallbackUrl, getToken, imageUrl]);
+  }, [s3Key, fallbackUrl, getToken]);
 
   if (isLoading) {
     return (
@@ -1569,6 +1569,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                             >
                               {pose.s3Key ? (
                                 <ImageThumbnailFromS3Key 
+                                  key={pose.s3Key}
                                   s3Key={pose.s3Key} 
                                   alt={pose.poseName || `Pose ${index + 1}`}
                                   fallbackUrl={pose.imageUrl}
@@ -1622,6 +1623,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                             >
                               {angleRef.s3Key ? (
                                 <ImageThumbnailFromS3Key 
+                                  key={angleRef.s3Key}
                                   s3Key={angleRef.s3Key} 
                                   alt={`${angleRef.angle} view`}
                                   fallbackUrl={angleRef.imageUrl}
@@ -1677,6 +1679,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                             >
                               {bgRef.s3Key ? (
                                 <ImageThumbnailFromS3Key 
+                                  key={bgRef.s3Key}
                                   s3Key={bgRef.s3Key} 
                                   alt={`${bgRef.backgroundType} background`}
                                   fallbackUrl={bgRef.imageUrl}
@@ -1733,11 +1736,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                               title={canNavigate ? `View ${entityName || entityType}` : undefined}
                             >
                               {img.s3Key ? (
-                                <ImageThumbnailFromS3Key 
-                                  s3Key={img.s3Key} 
-                                  alt={img.label || `Image ${index + 1}`}
-                                  fallbackUrl={img.imageUrl}
-                                />
+<ImageThumbnailFromS3Key 
+                                key={img.s3Key}
+                                s3Key={img.s3Key} 
+                                alt={img.label || `Image ${index + 1}`}
+                                fallbackUrl={img.imageUrl}
+                              />
                               ) : img.imageUrl ? (
                                 <img
                                   src={img.imageUrl}
