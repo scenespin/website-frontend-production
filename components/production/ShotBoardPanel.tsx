@@ -103,8 +103,8 @@ function ShotCell({
   };
 
   return (
-    <div className="relative flex-shrink-0 w-48 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group">
-      <div className="relative w-full aspect-video bg-[#0A0A0A]">
+    <div className="relative flex-shrink-0 w-48 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group flex flex-col">
+      <div className="relative w-full aspect-video flex-shrink-0 bg-[#0A0A0A]">
         {firstFrameUrl ? (
           <img
             src={firstFrameUrl}
@@ -121,8 +121,8 @@ function ShotCell({
         </div>
       </div>
 
-      {/* Single-line toolbar: < 2/2 Frame Video > — tight under larger frame */}
-      <div className="flex items-center justify-between gap-1.5 px-1.5 py-1 bg-[#141414] border-t border-[#3F3F46]">
+      {/* Toolbar: same width as frame (no overflow past image) */}
+      <div className="flex items-center justify-between gap-1.5 px-1.5 py-1 bg-[#141414] border-t border-[#3F3F46] w-full min-w-0 flex-shrink-0">
         {hasMultipleVariations ? (
           <button
             type="button"
