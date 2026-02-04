@@ -768,17 +768,29 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
         const tracked = trackedJobIdsRef.current;
 
-        // Merge contract: add-only. Never overwrite a job already in state.
-        // - List API: discovery only (GSI eventual consistency). Adds new jobIds; never replaces existing.
+        // Merge contract: add-only for same-status; allow list to push terminal status so UI updates when poll hasn't run yet.
+        // - List API: adds new jobIds; for existing jobs, overwrite only when list has completed/failed and we have running/queued (so panel shows "Done" immediately; backfill fetches full job for thumbnail).
         // - directFetchedJobsRef: jobs we fetched by ID (recovery, placeholder replacement). Same rule.
-        // - Poll / get-by-ID and optimistic add remain the single source of truth for updates. Eliminates list-vs-poll race.
+        // - Poll / get-by-ID and optimistic add remain source of truth for full results; list can only advance status to terminal.
 
+        const isTerminal = (s: string) => s === 'completed' || s === 'failed';
         jobList.forEach((newJob: WorkflowJob) => {
-          if (jobMap.has(newJob.jobId)) {
-            if (diagnosticJobIdsRef.current.has(newJob.jobId)) {
+          const existing = jobMap.get(newJob.jobId);
+          if (existing) {
+            const listIsTerminal = isTerminal(newJob.status);
+            const existingNonTerminal = !isTerminal(existing.status);
+            if (listIsTerminal && existingNonTerminal) {
+              jobMap.set(newJob.jobId, newJob);
+              if (diagnosticJobIdsRef.current.has(newJob.jobId)) {
+                console.log('[JobsDrawer] [DEBUG] merge list (list terminal → overwrite)', {
+                  jobId: newJob.jobId.slice(-12),
+                  newStatus: newJob.status,
+                });
+              }
+            } else if (diagnosticJobIdsRef.current.has(newJob.jobId)) {
               console.log('[JobsDrawer] [DEBUG] merge list (keep existing)', {
                 jobId: newJob.jobId.slice(-12),
-                existingStatus: jobMap.get(newJob.jobId)?.status,
+                existingStatus: existing.status,
               });
             }
             return;
