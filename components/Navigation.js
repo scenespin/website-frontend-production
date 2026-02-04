@@ -30,7 +30,7 @@ import {
   Package,
   BookOpen as BookOpenIcon,
   Palette,
-  Sparkles
+  Wand2
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -303,7 +303,7 @@ export default function Navigation() {
         { name: 'Scene Builder', href: '/direct?tab=scene-builder', icon: Clapperboard, description: 'Script-based scene generation' },
         { name: 'Shots', href: '/direct?tab=shots', icon: Film, description: 'First frames per scene and shot' },
         { name: 'Videos', href: '/direct?tab=videos', icon: Video, description: 'Browse and play all generated videos' },
-        { name: 'Video Gen', href: '/direct?tab=video-gen', icon: Sparkles, description: 'Generate video from image or prompt' },
+        { name: 'Video Gen', href: '/direct?tab=video-gen', icon: Wand2, description: 'Generate video from image or prompt' },
       ]
     },
     {

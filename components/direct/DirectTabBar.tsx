@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Clapperboard, Film, Video, Sparkles } from 'lucide-react';
+import { Clapperboard, Film, Video, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type DirectTab = 'scene-builder' | 'shots' | 'videos' | 'video-gen';
@@ -39,7 +39,7 @@ const DIRECT_TABS = [
   {
     id: 'video-gen' as DirectTab,
     label: 'Video Gen',
-    icon: Sparkles,
+    icon: Wand2,
     description: 'Generate video from image or prompt',
   },
 ] as const;

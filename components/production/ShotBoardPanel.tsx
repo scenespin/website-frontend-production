@@ -69,15 +69,26 @@ function ShotCell({
     setVariationIndex((i) => Math.min(variations.length - 1, i + 1));
   };
 
-  const handleDownloadFirstFrame = (e: React.MouseEvent) => {
+  const handleDownloadFirstFrame = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!firstFrameUrl) return;
-    const link = document.createElement('a');
-    link.href = firstFrameUrl;
-    link.download = currentVariation.firstFrame.fileName || `shot-${shot.shotNumber}-first-frame.jpg`;
-    link.rel = 'noopener noreferrer';
-    link.target = '_blank';
-    link.click();
+    const filename = currentVariation.firstFrame.fileName || `shot-${shot.shotNumber}-first-frame.jpg`;
+    try {
+      const response = await fetch(firstFrameUrl);
+      if (!response.ok) throw new Error(response.statusText);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (err) {
+      console.error('[ShotBoard] Failed to download first frame:', err);
+      toast.error('Failed to download image');
+    }
   };
 
   const handleGenerateVideo = (e: React.MouseEvent) => {
@@ -326,7 +337,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: Sho
                 key={scene.sceneId}
                 scene={scene}
                 presignedUrls={presignedUrls}
-                onGenerateVideo={handleOpenGenerateVideo}
+                onGenerateVideo={handleGenerateVideo}
               />
             ))}
           </div>

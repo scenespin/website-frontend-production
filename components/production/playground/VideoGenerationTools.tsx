@@ -16,7 +16,6 @@ import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { GenerationPreview } from './GenerationPreview';
-import { ExamplesSection } from './ExamplesSection';
 
 interface VideoModel {
   id: string;
@@ -402,22 +401,11 @@ export function VideoGenerationTools({
     }
   };
 
-  const handleSelectExample = (example: any) => {
-    setPrompt(example.prompt);
-    // Scroll to prompt input
-    setTimeout(() => {
-      const promptElement = document.querySelector('textarea[placeholder*="Describe"]');
-      promptElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-  };
-
   return (
-    <div className={cn("h-full flex bg-[#0A0A0A]", className)}>
+    <div className={cn("h-full flex bg-[#0A0A0A] min-h-0", className)}>
       {/* Left Panel - Form Controls */}
-      <div className="w-1/2 flex flex-col">
-        {/* Examples Section */}
-        <ExamplesSection type="video" onSelectExample={handleSelectExample} />
-        
+      <div className="w-1/2 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="flex flex-col gap-6 p-4 md:p-6">
         {/* Mode Tabs */}
         <div className="flex-shrink-0 mb-6">
@@ -770,7 +758,8 @@ export function VideoGenerationTools({
         </div>
         </div>
         </div>
-        
+        </div>
+
         {/* Generate Button */}
         <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
           <button
@@ -803,7 +792,7 @@ export function VideoGenerationTools({
       <div className="w-px bg-white/10 flex-shrink-0"></div>
 
       {/* Right Panel - Preview */}
-      <div className="w-1/2 flex flex-col">
+      <div className="w-1/2 flex flex-col min-h-0">
         <GenerationPreview
           isGenerating={isGenerating}
           generatedVideoUrl={generatedVideoUrl}
