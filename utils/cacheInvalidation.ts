@@ -39,11 +39,10 @@ export function invalidateProductionHubCache(
   queryClient.invalidateQueries({ queryKey });
   
   // Step 3: Refetch immediately (for active queries) - this ensures UI updates right away
-  // 🔥 FIX: Use 'all' instead of 'active' to invalidate Scene Builder cache even when unmounted
   console.log(`[cacheInvalidation] 🔄 Refetching ${entityType} queries immediately`);
   queryClient.refetchQueries({ 
     queryKey,
-    type: 'all' // Refetch all queries (active + inactive) so Scene Builder cache is invalidated
+    type: 'active' // Only refetch active queries
   }).then(() => {
     console.log(`[cacheInvalidation] ✅ Immediate refetch completed for ${entityType}`);
   }).catch((error) => {
@@ -52,12 +51,11 @@ export function invalidateProductionHubCache(
   
   // Step 4: Refetch again after delay to ensure fresh data from DynamoDB (handles eventual consistency)
   // The delay accounts for DynamoDB eventual consistency
-  // 🔥 FIX: Use 'all' instead of 'active' to invalidate Scene Builder cache even when unmounted
   setTimeout(() => {
     console.log(`[cacheInvalidation] 🔄 Refetching ${entityType} queries after ${delay}ms delay (DynamoDB eventual consistency)`);
     queryClient.refetchQueries({ 
       queryKey,
-      type: 'all' // Refetch all queries (active + inactive) so Scene Builder cache is invalidated
+      type: 'active' // Only refetch active queries
     }).then(() => {
       console.log(`[cacheInvalidation] ✅ Delayed refetch completed for ${entityType}`);
     }).catch((error) => {

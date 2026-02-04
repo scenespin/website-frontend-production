@@ -803,6 +803,7 @@ export function VideoGenerationTools({
           </button>
         </div>
       </div>
+      </div>
 
       {/* Divider */}
       <div className="w-px bg-white/10 flex-shrink-0"></div>
