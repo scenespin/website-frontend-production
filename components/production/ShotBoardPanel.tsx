@@ -222,7 +222,7 @@ function SceneRow({
 /**
  * Main Shot Board Panel component
  */
-export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: ShotBoardPanelProps) {
+export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGenerateVideo: onGenerateVideoProp }: ShotBoardPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   const queryClient = useQueryClient();
@@ -252,6 +252,17 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: Sho
     setGenerateVideoContext(context);
     setGenerateVideoModalOpen(true);
   }, []);
+
+  const handleGenerateVideo = useCallback(
+    (context: GenerateVideoContext) => {
+      if (onGenerateVideoProp) {
+        onGenerateVideoProp(context);
+      } else {
+        handleOpenGenerateVideo(context);
+      }
+    },
+    [onGenerateVideoProp, handleOpenGenerateVideo]
+  );
 
   const handleCloseGenerateVideoModal = useCallback(() => {
     setGenerateVideoModalOpen(false);
