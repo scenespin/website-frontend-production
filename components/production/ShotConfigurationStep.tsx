@@ -974,7 +974,12 @@ export function ShotConfigurationStep({
         // 🔥 FIX Issue 3: Only include video type if video opt-in is enabled for dialogue shots
         const videoType = (shot.type === 'dialogue' && videoOptInForThisShot) ? selectedVideoTypes[shot.slot] : undefined;
         const pricingResult = await SceneBuilderService.calculatePricing(
-          [{ slot: shot.slot, credits: shot.credits }],
+          [{ 
+            slot: shot.slot, 
+            credits: shot.credits,
+            type: shot.type,
+            dialogueText: shot.type === 'dialogue' ? shot.dialogueBlock?.dialogue : undefined
+          }],
           shotDuration ? { [shot.slot]: shotDuration } : undefined,
           getToken,
           { [shot.slot]: referenceShotModel }, // Always pass model (use default if not selected)

@@ -454,6 +454,17 @@ export default function PoseGenerationModal({
       if (result.jobId) {
         setJobId(result.jobId);
         console.log('[PoseGeneration] Job created:', result.jobId);
+        // Notify Jobs Drawer so it shows the job immediately (placeholder + fetch-by-ID). Without this, the job only appears when list/GSI returns it.
+        if (typeof window !== 'undefined' && projectId) {
+          window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+            detail: {
+              jobId: result.jobId,
+              screenplayId: projectId,
+              jobType: 'pose-generation',
+              assetName: characterName,
+            },
+          }));
+        }
       }
       
       // Reset state first to ensure clean state for next use

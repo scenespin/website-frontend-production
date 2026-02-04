@@ -395,6 +395,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   // Diagnostic: job IDs to log (recently added optimistically). Max 10; cleared with tracked.
   const diagnosticJobIdsRef = useRef<Set<string>>(new Set());
   const MAX_DIAGNOSTIC_JOBS = 10;
+  const lastLoadJobsLogRef = useRef<{ count: number; runningCount: number }>({ count: -1, runningCount: -1 });
   const hasResultsForLog = (j: WorkflowJob) => j?.results && (
     (j.results.poses?.length) ||
     (j.results.angleReferences?.length) ||
@@ -727,16 +728,39 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         jobList.push(...workflowJobs);
       }
 
-      // Diagnostic: log what we queried and what we got (always, so production can confirm ID + count)
-      const summary = jobList.slice(0, 20).map(j => `${j.jobId.slice(-8)}:${j.status}:${j.progress}%`);
-      console.log('[JobsDrawer] loadJobs', {
-        screenplayId: screenplayId.slice(0, 24) + (screenplayId.length > 24 ? '…' : ''),
-        count: jobList.length,
-        jobs: summary,
-        runningCount: jobList.filter(j => j.status === 'running' || j.status === 'queued').length,
-      });
+      // Log only when interesting: running jobs, or count/runningCount changed (reduces noise when drawer open with all completed)
+      const runningCount = jobList.filter(j => j.status === 'running' || j.status === 'queued').length;
+      const prev = lastLoadJobsLogRef.current;
+      const countChanged = prev.count !== jobList.length || prev.runningCount !== runningCount;
+      if (runningCount > 0 || countChanged) {
+        const summary = jobList.slice(0, 20).map(j => `${j.jobId.slice(-8)}:${j.status}:${j.progress}%`);
+        console.log('[JobsDrawer] loadJobs', {
+          screenplayId: screenplayId.slice(0, 24) + (screenplayId.length > 24 ? '…' : ''),
+          count: jobList.length,
+          jobs: summary,
+          runningCount,
+        });
+        lastLoadJobsLogRef.current = { count: jobList.length, runningCount };
+      }
       
       const apiJobIds = new Set(jobList.map((j: WorkflowJob) => j.jobId));
+
+      // Recover last-created job after refresh: if list didn't return it (GSI delay or timing), fetch by ID and add it
+      try {
+        const raw = sessionStorage.getItem(`wryda:last-job:${screenplayId}`);
+        if (raw) {
+          const { jobId: storedJobId, ts } = JSON.parse(raw);
+          const maxAge = 5 * 60 * 1000; // 5 min
+          if (storedJobId && ts && Date.now() - ts < maxAge && !apiJobIds.has(storedJobId)) {
+            const recovered = await fetchJobDirectly(storedJobId);
+            if (recovered) {
+              jobList.push(recovered);
+              apiJobIds.add(storedJobId);
+            }
+          }
+          sessionStorage.removeItem(`wryda:last-job:${screenplayId}`);
+        }
+      } catch (_) { /* ignore */ }
 
       setJobs(prevJobs => {
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
@@ -867,7 +891,15 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; jobType?: string; assetName?: string }>) => {
       const { jobId, screenplayId: eventScreenplayId, jobType = 'image-generation', assetName } = e.detail || {};
       if (!jobId || !eventScreenplayId?.trim()) return;
-      if (eventScreenplayId.trim() !== screenplayId?.trim()) return;
+      const mismatch = eventScreenplayId.trim() !== screenplayId?.trim();
+      if (mismatch) {
+        console.warn('[JobsDrawer] Optimistic job event (screenplayId mismatch – accepting anyway so job shows)', {
+          eventScreenplayId: eventScreenplayId.slice(0, 30),
+          drawerScreenplayId: (screenplayId || '').slice(0, 30),
+          jobId: jobId.slice(-12),
+        });
+      }
+      // Accept event even on mismatch so the job always shows; list may still filter by drawer's screenplayId later
       placeholderRetryCountRef.current = 0;
       trackedJobIdsRef.current.add(jobId);
       if (diagnosticJobIdsRef.current.size >= MAX_DIAGNOSTIC_JOBS) {
@@ -887,6 +919,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         creditsUsed: 0,
       };
       optimisticPlaceholdersRef.current.set(jobId, placeholder);
+      try {
+        sessionStorage.setItem(`wryda:last-job:${eventScreenplayId}`, JSON.stringify({ jobId, ts: Date.now() }));
+      } catch (_) { /* ignore */ }
       setJobs(prev => {
         if (prev.some(j => j.jobId === jobId)) return prev;
         return [placeholder, ...prev];

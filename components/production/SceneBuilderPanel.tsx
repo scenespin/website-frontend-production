@@ -647,7 +647,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           }
         });
         const pricingResult = await SceneBuilderService.calculatePricing(
-          shots.map((s: any) => ({ slot: s.slot, credits: s.credits || 0, type: s.type })),
+          shots.map((s: any) => ({ 
+            slot: s.slot, 
+            credits: s.credits || 0, 
+            type: s.type,
+            dialogueText: s.type === 'dialogue' ? s.dialogueBlock?.dialogue : undefined
+          })),
           shotDurations,
           getToken,
           referenceShotModels,

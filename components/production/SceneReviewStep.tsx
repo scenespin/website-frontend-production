@@ -146,7 +146,12 @@ export function SceneReviewStep({
         });
         
         const pricingResult = await SceneBuilderService.calculatePricing(
-          selectedShots.map((shot: any) => ({ slot: shot.slot, credits: shot.credits || 0, type: shot.type })),
+          selectedShots.map((shot: any) => ({ 
+            slot: shot.slot, 
+            credits: shot.credits || 0, 
+            type: shot.type,
+            dialogueText: shot.type === 'dialogue' ? shot.dialogueBlock?.dialogue : undefined
+          })),
           shotDurations,
           getToken,
           referenceShotModelsWithDefaults,

@@ -733,7 +733,7 @@ export class SceneBuilderService {
    * SECURITY: All margin calculations are done server-side
    */
   static async calculatePricing(
-    shots: Array<{ slot: number; credits: number; type?: string }>,
+    shots: Array<{ slot: number; credits: number; type?: string; dialogueText?: string }>,
     shotDurations?: Record<number, 'quick-cut' | 'extended-take'>,
     getTokenFn?: (options: { template: string }) => Promise<string | null>,
     referenceShotModels?: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>,
