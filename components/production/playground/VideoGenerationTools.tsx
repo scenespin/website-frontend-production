@@ -37,6 +37,7 @@ interface VideoGenerationToolsProps {
   initialStartImageUrl?: string;
   /** Optional: scene/shot context for job placement and labeling */
   sceneId?: string;
+  sceneNumber?: number;  // Feature 0241: Scene number for Media Library folder structure
   sceneName?: string;
   shotNumber?: number;
 }
@@ -50,6 +51,7 @@ export function VideoGenerationTools({
   screenplayId: propScreenplayId,
   initialStartImageUrl,
   sceneId: propSceneId,
+  sceneNumber: propSceneNumber,
   sceneName: propSceneName,
   shotNumber: propShotNumber,
 }: VideoGenerationToolsProps) {
@@ -350,6 +352,7 @@ export function VideoGenerationTools({
         aspectRatio: aspectRatio,
         cameraMotion: selectedCameraAngle ? cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText || 'none' : 'none',
         sceneId: propSceneId ?? `playground_${Date.now()}`,
+        sceneNumber: propSceneNumber,
         sceneName: propSceneName ?? `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
       };
       if (selectedModel) requestBody.preferredProvider = selectedModel;

@@ -24,6 +24,7 @@ interface ShotBoardPanelProps {
 export interface GenerateVideoContext {
   firstFrameUrl: string;
   sceneId: string;
+  sceneNumber: number;  // Feature 0241: Scene number for Media Library folder structure
   shotNumber: number;
   sceneHeading: string;
 }
@@ -40,11 +41,13 @@ export interface GenerateVideoContext {
 function ShotCell({
   shot,
   sceneHeading,
+  sceneNumber,
   presignedUrls,
   onGenerateVideo,
 }: {
   shot: ShotBoardShot;
   sceneHeading: string;
+  sceneNumber: number;  // Feature 0241: Scene number for Media Library folder structure
   presignedUrls: Map<string, string>;
   onGenerateVideo: (context: GenerateVideoContext) => void;
 }) {
@@ -103,6 +106,7 @@ function ShotCell({
     onGenerateVideo({
       firstFrameUrl,
       sceneId: shot.sceneId,
+      sceneNumber,
       shotNumber: shot.shotNumber,
       sceneHeading,
     });
@@ -206,6 +210,7 @@ function SceneRow({
   presignedUrls: Map<string, string>;
   onGenerateVideo: (context: GenerateVideoContext) => void;
 }) {
+  const sceneNumber = scene.sceneNumber;
   return (
     <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
       <div className="px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between">
@@ -228,6 +233,7 @@ function SceneRow({
               key={`${scene.sceneId}-${shot.shotNumber}`}
               shot={shot}
               sceneHeading={scene.sceneHeading}
+              sceneNumber={sceneNumber}
               presignedUrls={presignedUrls}
               onGenerateVideo={onGenerateVideo}
             />

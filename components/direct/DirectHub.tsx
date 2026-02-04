@@ -117,6 +117,7 @@ export function DirectHub() {
               screenplayId={screenplayId ?? undefined}
               initialStartImageUrl={videoGenPreFill?.firstFrameUrl}
               sceneId={videoGenPreFill?.sceneId}
+              sceneNumber={videoGenPreFill?.sceneNumber}
               sceneName={videoGenPreFill?.sceneHeading}
               shotNumber={videoGenPreFill?.shotNumber}
             />
