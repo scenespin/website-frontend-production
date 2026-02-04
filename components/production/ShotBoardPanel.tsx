@@ -163,7 +163,7 @@ function ShotCell({
             aria-label="Download first frame"
           >
             <Download className="w-3 h-3" />
-            Frame
+            Download frame
           </button>
           <button
             type="button"
