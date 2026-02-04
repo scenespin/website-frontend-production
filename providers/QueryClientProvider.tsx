@@ -26,7 +26,7 @@ export function QueryClientProvider({ children }: QueryClientProviderProps) {
         refetchOnWindowFocus: false, // Prevent unnecessary refetches
         refetchOnMount: true,
         refetchOnReconnect: true,
-        queryTimeout: 30 * 1000, // 🔥 FIX: 30 second timeout to prevent infinite loading states
+        // Note: Query timeouts are handled via cleanup on unmount and reset on remount in SceneBuilderPanel
       },
       mutations: {
         retry: 1,
