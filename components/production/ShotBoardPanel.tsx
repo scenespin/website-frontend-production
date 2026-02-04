@@ -121,55 +121,63 @@ function ShotCell({
         </div>
       </div>
 
-      {hasMultipleVariations && (
-        <div className="flex items-center justify-between px-1 py-1 bg-[#141414] border-t border-[#3F3F46]">
+      {/* Single-line toolbar: < 2/2 Frame Video > (or just Frame Video when one variation) */}
+      <div className="flex items-center justify-between gap-0.5 px-1 py-1 bg-[#141414] border-t border-[#3F3F46]">
+        {hasMultipleVariations ? (
           <button
             type="button"
             onClick={handlePrev}
             disabled={currentIndex <= 0}
-            className="p-0.5 text-[#808080] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="flex-shrink-0 p-0.5 text-[#808080] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             aria-label="Previous variation"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[9px] text-[#808080]">
+        ) : (
+          <span className="w-3.5 flex-shrink-0" aria-hidden />
+        )}
+        {hasMultipleVariations && (
+          <span className="flex-shrink-0 text-[9px] text-[#808080] min-w-[1.5rem] text-center">
             {currentIndex + 1}/{variations.length}
           </span>
+        )}
+        <div className="flex items-center gap-1 flex-1 justify-center min-w-0">
+          <button
+            type="button"
+            onClick={handleDownloadFirstFrame}
+            disabled={!firstFrameUrl}
+            className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            title="Download first frame"
+            aria-label="Download first frame"
+          >
+            <Download className="w-3 h-3" />
+            Frame
+          </button>
+          <button
+            type="button"
+            onClick={handleGenerateVideo}
+            disabled={!firstFrameUrl || !onGenerateVideo}
+            className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            title="Generate video from this frame (opens Video Gen tab)"
+            aria-label="Generate video"
+          >
+            <Video className="w-3 h-3" />
+            Video
+          </button>
+        </div>
+        {hasMultipleVariations ? (
           <button
             type="button"
             onClick={handleNext}
             disabled={currentIndex >= variations.length - 1}
-            className="p-0.5 text-[#808080] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="flex-shrink-0 p-0.5 text-[#808080] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             aria-label="Next variation"
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
-        </div>
-      )}
-
-      <div className="flex items-center gap-1 px-1 py-1 bg-[#141414] border-t border-[#3F3F46]">
-        <button
-          type="button"
-          onClick={handleDownloadFirstFrame}
-          disabled={!firstFrameUrl}
-          className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Download first frame"
-          aria-label="Download first frame"
-        >
-          <Download className="w-3 h-3" />
-          Frame
-        </button>
-        <button
-          type="button"
-          onClick={handleGenerateVideo}
-          disabled={!firstFrameUrl || !onGenerateVideo}
-          className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Generate video from this frame (opens Video Gen tab)"
-          aria-label="Generate video"
-        >
-          <Video className="w-3 h-3" />
-          Video
-        </button>
+        ) : (
+          <span className="w-3.5 flex-shrink-0" aria-hidden />
+        )}
       </div>
     </div>
   );
