@@ -977,8 +977,12 @@ export function ShotConfigurationStep({
           getToken,
           { [shot.slot]: referenceShotModel }, // Always pass model (use default if not selected)
           videoType ? { [shot.slot]: videoType } : undefined,
-          undefined, // dialogueQualities
-          undefined, // dialogueWorkflows
+          isDialogueShot && videoOptInForThisShot && finalSelectedDialogueQuality
+            ? { [shot.slot]: finalSelectedDialogueQuality }
+            : undefined,
+          isDialogueShot && videoOptInForThisShot && finalSelectedDialogueWorkflow
+            ? { [shot.slot]: finalSelectedDialogueWorkflow }
+            : undefined,
           undefined, // voiceoverBaseWorkflows
           generateVideoForShot // 🔥 FIX Issue 3: Pass generateVideoForShot to ensure correct pricing
         );
@@ -1001,7 +1005,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken]);
+  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
