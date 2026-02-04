@@ -384,20 +384,6 @@ export function ShotConfigurationStep({
   const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Track checkbox state so validation sees it before context updates (avoids React batching).
-  const firstFrameOverrideCheckboxRef = useRef<boolean>(firstFrameOverrideEnabledFromContext);
-  const prevShotSlotRef = useRef<number>(shotSlot);
-  useEffect(() => {
-    if (prevShotSlotRef.current !== shotSlot) {
-      prevShotSlotRef.current = shotSlot;
-      firstFrameOverrideCheckboxRef.current = firstFrameOverrideEnabledFromContext;
-      return;
-    }
-    if (firstFrameOverrideEnabledFromContext) {
-      firstFrameOverrideCheckboxRef.current = true;
-    }
-  }, [shotSlot, firstFrameOverrideEnabledFromContext]);
-  
   // Sync context state when override data exists (preserves state on navigation)
   // Clear overrides when switching away from Narrate Shot (e.g. to Hidden Mouth or lip-sync)
   useEffect(() => {
@@ -1020,11 +1006,7 @@ export function ShotConfigurationStep({
     
     // 1. Validate prompt override requirements (if overrides are enabled)
     // First frame override validation: when checkbox is on, must have prompt or uploaded image (Plan 0233: applies to both dialogue and action)
-    // 🔥 FIX Issue 1: Use ref for synchronous check to avoid React batching issues
-    // The ref is updated immediately when checkbox is clicked, before React re-renders
-    // Check ref first (most up-to-date), then context state, then if prompt override exists
-    const firstFrameOverrideChecked = firstFrameOverrideCheckboxRef.current || firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride;
-    if (firstFrameOverrideChecked) {
+    if (firstFrameOverrideEnabledFromContext) {
       const hasFirstFramePrompt = finalFirstFramePromptOverride?.trim() !== '';
       const hasUploadedFirstFrame = !!uploadedFirstFrameUrl;
       if (!hasFirstFramePrompt && !hasUploadedFirstFrame) {
@@ -1621,12 +1603,9 @@ export function ShotConfigurationStep({
                 <input
                   type="checkbox"
                   id={`first-frame-override-${shotSlot}`}
-                  checked={firstFrameOverrideCheckboxRef.current || firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride}
+                  checked={firstFrameOverrideEnabledFromContext}
                   onChange={(e) => {
                     const isChecked = e.target.checked;
-                    // 🔥 FIX Issue 1: Update ref synchronously before async context update
-                    // This ensures validation can read the current state immediately
-                    firstFrameOverrideCheckboxRef.current = isChecked;
                     actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
                     if (!isChecked) actions.updateFirstFramePromptOverride(shotSlot, '');
                   }}
@@ -1733,7 +1712,23 @@ export function ShotConfigurationStep({
                     rows={3}
                     className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
                   />
-                  <div className="text-[10px] text-[#808080] italic">This prompt will be used instead of the auto-generated prompt. Only references with variables will be included.</div>
+                  {/* Warning message when override is enabled but prompt is empty */}
+                  {firstFrameOverrideEnabledFromContext && !finalFirstFramePromptOverride?.trim() && !uploadedFirstFrameUrl && (
+                    <div className="mt-2 p-3 bg-[#2A1A0A] border border-[#DC6B3C] rounded">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-[#DC6B3C] mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98 1.742 2.98H4.42c1.955 0 2.502-1.646 1.742-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-[#DC6B3C] mb-1">Warning: Empty Prompt</p>
+                          <p className="text-[10px] text-[#FFB380]">
+                            You've enabled "Override First Frame" but haven't entered a prompt. Please enter a prompt or upload an image before continuing.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-[10px] text-[#808080] italic mt-2">This prompt will be used instead of the auto-generated prompt. Only references with variables will be included.</div>
                 </div>
               )}
             </div>
