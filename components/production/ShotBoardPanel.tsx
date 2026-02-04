@@ -1,11 +1,10 @@
 'use client';
 
 /**
- * Shot Board Panel (First frames sub-tab)
+ * Shots panel (first frames)
  *
  * Displays first frames only, organized by scene with per-shot variation cycling.
- * Toolbar: Download first frame, Generate video (opens VideoGenerationTools modal).
- * Video playback and download live in the Videos sub-tab.
+ * Toolbar: Download first frame, Generate video (switches to Video Gen tab with pre-fill).
  */
 
 import React, { useState, useCallback } from 'react';
@@ -14,12 +13,11 @@ import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShotBoard, type ShotBoardScene, type ShotBoardShot, getTotalShotCount } from '@/hooks/useShotBoard';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { VideoGenerationTools } from '@/components/production/playground/VideoGenerationTools';
 
 interface ShotBoardPanelProps {
   className?: string;
   onNavigateToSceneBuilder?: () => void;
+  onGenerateVideo?: (context: GenerateVideoContext) => void;
 }
 
 /** Context passed when opening Generate video modal */
@@ -153,9 +151,9 @@ function ShotCell({
         <button
           type="button"
           onClick={handleGenerateVideo}
-          disabled={!firstFrameUrl}
+          disabled={!firstFrameUrl || !onGenerateVideo}
           className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Generate video from this frame"
+          title="Generate video from this frame (opens Video Gen tab)"
           aria-label="Generate video"
         >
           <Video className="w-3 h-3" />
@@ -285,7 +283,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: Sho
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-white">Shot Board</h2>
+          <h2 className="text-lg font-semibold text-white">Shots</h2>
           <span className="text-xs text-[#808080]">
             {scenes.length} scene{scenes.length !== 1 ? 's' : ''} • {totalShots} shot{totalShots !== 1 ? 's' : ''}
           </span>
@@ -294,7 +292,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: Sho
           onClick={handleRefresh}
           disabled={isLoading || presignedUrlsLoading}
           className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A] rounded transition-colors disabled:opacity-50"
-          title="Refresh Shot Board"
+          title="Refresh shots"
         >
           <RefreshCw className={`w-4 h-4 ${presignedUrlsLoading ? 'animate-spin' : ''}`} />
           Refresh
@@ -334,27 +332,6 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder }: Sho
           </div>
         </div>
       )}
-
-      {/* Generate video modal */}
-      <Dialog open={generateVideoModalOpen} onOpenChange={(open) => !open && handleCloseGenerateVideoModal()}>
-        <DialogContent className="max-w-7xl h-[90vh] bg-[#0A0A0A] border-[#3F3F46] p-0 overflow-hidden flex flex-col">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Generate video</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            {generateVideoContext && screenplayId && (
-              <VideoGenerationTools
-                className="h-full"
-                screenplayId={screenplayId}
-                initialStartImageUrl={generateVideoContext.firstFrameUrl}
-                sceneId={generateVideoContext.sceneId}
-                sceneName={generateVideoContext.sceneHeading}
-                shotNumber={generateVideoContext.shotNumber}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

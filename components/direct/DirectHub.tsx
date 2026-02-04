@@ -1,57 +1,64 @@
 'use client';
 
 /**
- * Direct Hub - Scene Builder & Shot Board
- * 
- * Contains:
- * - Scene Builder (renamed from Scene Manifest)
- * - Shot Board (renamed from Storyboard) - displays first frames and videos per shot
+ * Direct Hub - Scene Builder | Shots | Videos | Video Gen
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
-import { ShotBoardView } from '@/components/production/ShotBoardView';
-import { StyleProfilesPanel } from '@/components/production/StyleProfilesPanel';
-import { VideoSoundscapePanel } from '@/components/production/VideoSoundscapePanel';
-import { ProductionErrorBoundary } from '@/components/production/ProductionErrorBoundary';
+import { ShotBoardPanel } from '@/components/production/ShotBoardPanel';
+import { VideoBrowserPanel } from '@/components/production/VideoBrowserPanel';
+import { VideoGenerationTools } from '@/components/production/playground/VideoGenerationTools';
 import { DirectTabBar, DirectTab } from './DirectTabBar';
+import type { GenerateVideoContext } from '@/components/production/ShotBoardPanel';
+
+const VALID_TABS: DirectTab[] = ['scene-builder', 'shots', 'videos', 'video-gen'];
 
 export function DirectHub() {
-  const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
   const screenplayId = screenplay.screenplayId;
-  
-  // State - sync with URL params
+
   const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
-  
-  // Sync activeTab with URL params
+  const [videoGenPreFill, setVideoGenPreFill] = useState<GenerateVideoContext | null>(null);
+
   useEffect(() => {
-    const tabFromUrl = searchParams.get('tab') as DirectTab | null;
-    
-    if (tabFromUrl && ['style-profiles', 'scene-builder', 'storyboard', 'soundscape'].includes(tabFromUrl)) {
-      setActiveTab(tabFromUrl);
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl as DirectTab)) {
+      setActiveTab(tabFromUrl as DirectTab);
+    } else if (tabFromUrl === 'storyboard') {
+      setActiveTab('shots');
     } else {
       setActiveTab('scene-builder');
     }
   }, [searchParams]);
 
-  // Update URL when activeTab changes
-  const handleTabChange = (tab: DirectTab) => {
-    setActiveTab(tab);
-    const newUrl = new URL(window.location.href);
-    if (tab === 'style-profiles') {
-      newUrl.searchParams.delete('tab');
-    } else {
+  const handleTabChange = useCallback(
+    (tab: DirectTab) => {
+      setActiveTab(tab);
+      if (tab !== 'video-gen') {
+        setVideoGenPreFill(null);
+      }
+      const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('tab', tab);
-    }
-    router.push(newUrl.pathname + newUrl.search, { scroll: false });
-  };
+      router.push(newUrl.pathname + newUrl.search, { scroll: false });
+    },
+    [router]
+  );
+
+  const handleGenerateVideoFromShots = useCallback(
+    (context: GenerateVideoContext) => {
+      setVideoGenPreFill(context);
+      setActiveTab('video-gen');
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('tab', 'video-gen');
+      router.push(newUrl.pathname + newUrl.search, { scroll: false });
+    },
+    [router]
+  );
 
   // Early return if no screenplay
   if (!screenplayId) {
@@ -87,29 +94,31 @@ export function DirectHub() {
           </div>
         )}
 
-        {activeTab === 'storyboard' && (
+        {activeTab === 'shots' && (
           <div className="h-full overflow-y-auto">
-            <ShotBoardView
+            <ShotBoardPanel
               className="h-full"
               onNavigateToSceneBuilder={() => handleTabChange('scene-builder')}
+              onGenerateVideo={handleGenerateVideoFromShots}
             />
           </div>
         )}
 
-        {activeTab === 'style-profiles' && (
+        {activeTab === 'videos' && (
           <div className="h-full overflow-y-auto">
-            <StyleProfilesPanel
-              projectId={screenplayId}
-              className="h-full"
-            />
+            <VideoBrowserPanel className="h-full" />
           </div>
         )}
 
-        {activeTab === 'soundscape' && (
-          <div className="h-full overflow-y-auto">
-            <VideoSoundscapePanel
-              projectId={screenplayId}
-              className="h-full"
+        {activeTab === 'video-gen' && (
+          <div className="h-full overflow-hidden flex flex-col">
+            <VideoGenerationTools
+              className="flex-1 min-h-0"
+              screenplayId={screenplayId ?? undefined}
+              initialStartImageUrl={videoGenPreFill?.firstFrameUrl}
+              sceneId={videoGenPreFill?.sceneId}
+              sceneName={videoGenPreFill?.sceneHeading}
+              shotNumber={videoGenPreFill?.shotNumber}
             />
           </div>
         )}

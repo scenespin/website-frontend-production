@@ -1,10 +1,10 @@
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
-import { Film, Clapperboard, Music, Palette } from "lucide-react";
+import { Film, Clapperboard, Video, Palette } from "lucide-react";
 
 export const metadata = getSEOTags({
   title: `Direct - Coming Soon | ${config.appName}`,
-  description: "Direct hub features are coming soon. Scene Builder, Shot Board, Style Profiles, and Soundscape will be available shortly.",
+  description: "Direct hub features are coming soon. Scene Builder, Shot Board, Videos, and Style Profiles will be available shortly.",
   canonicalUrlRelative: "/coming-soon",
 });
 
@@ -21,14 +21,14 @@ export default function ComingSoonPage() {
       description: "View all shots with first frames and per-shot variation cycling",
     },
     {
+      name: "Videos",
+      icon: Video,
+      description: "Browse and play all generated videos by scene and shot",
+    },
+    {
       name: "Style Profiles",
       icon: Palette,
       description: "Analyze video styles for consistent generation across scenes",
-    },
-    {
-      name: "Soundscape",
-      icon: Music,
-      description: "AI-generated sound effects and music for your videos",
     },
   ];
 
@@ -52,7 +52,7 @@ export default function ComingSoonPage() {
             We're putting the finishing touches on our Direct features. 
             <br />
             <span className="text-gray-400 text-lg mt-2 block">
-              Scene Builder, Shot Board, Style Profiles, and Soundscape will be available shortly.
+              Scene Builder, Shot Board, Videos, and Style Profiles will be available shortly.
             </span>
           </p>
         </div>

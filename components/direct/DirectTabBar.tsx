@@ -2,17 +2,15 @@
 
 /**
  * Direct Tab Bar Component
- * 
- * Sub-navigation for Direct Hub:
- * - Scene Builder (renamed from Scene Manifest)
- * - Shot Board (renamed from Storyboard)
+ *
+ * Scene Builder | Shots | Videos | Video Gen
  */
 
 import React from 'react';
-import { Clapperboard, Film, Palette, Music } from 'lucide-react';
+import { Clapperboard, Film, Video, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type DirectTab = 'scene-builder' | 'storyboard' | 'style-profiles' | 'soundscape';
+export type DirectTab = 'scene-builder' | 'shots' | 'videos' | 'video-gen';
 
 interface DirectTabBarProps {
   activeTab: DirectTab;
@@ -21,28 +19,28 @@ interface DirectTabBarProps {
 
 const DIRECT_TABS = [
   {
-    id: 'style-profiles' as DirectTab,
-    label: 'Style Profiles',
-    icon: Palette,
-    description: 'Analyze video styles for consistent generation',
-  },
-  {
     id: 'scene-builder' as DirectTab,
     label: 'Scene Builder',
     icon: Clapperboard,
     description: 'Script-based scene generation',
   },
   {
-    id: 'storyboard' as DirectTab,
-    label: 'Shot Board',
+    id: 'shots' as DirectTab,
+    label: 'Shots',
     icon: Film,
-    description: 'View all shots with first frames and videos',
+    description: 'First frames per scene and shot',
   },
   {
-    id: 'soundscape' as DirectTab,
-    label: 'Soundscape',
-    icon: Music,
-    description: 'AI-generated sound effects and music for videos',
+    id: 'videos' as DirectTab,
+    label: 'Videos',
+    icon: Video,
+    description: 'Browse and play all generated videos',
+  },
+  {
+    id: 'video-gen' as DirectTab,
+    label: 'Video Gen',
+    icon: Sparkles,
+    description: 'Generate video from image or prompt',
   },
 ] as const;
 
