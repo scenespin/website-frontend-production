@@ -1,17 +1,15 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { updateScreenplay } from '@/utils/screenplayStorage';
-import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { normalizeScreenplayText, cleanWebPastedText, fixCharacterEncoding, addBasicFountainSpacing } from '@/utils/screenplayNormalizer';
 import { processChunkedImport } from '@/utils/screenplayStreamParser';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X, File } from 'lucide-react';
-import type { Character, Location, Scene, StoryBeat } from '@/types/screenplay';
 import { extractTextFromPDF, isPDFFile } from '@/utils/pdfTextExtractor';
 import { extractTextFromWord, isWordFile } from '@/utils/wordTextExtractor';
 import { extractTextFromFDX, isFDXFile } from '@/utils/fdxTextExtractor';
@@ -24,7 +22,6 @@ interface ScriptImportModalProps {
 
 export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModalProps) {
     const { getToken } = useAuth();
-    const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     const { setContent, saveNow, state: editorState } = useEditor();
     const editorContent = editorState.content;
     const screenplay = useScreenplay();
@@ -241,16 +238,13 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             return;
         }
         
-        // 🔥 NEW: Check if user has existing data
-        // Only show warning if there's actual content (not just default 8-beat template)
-        // Check: characters, locations, scenes, OR editor has content
+        // Optional: show informational note when user has existing data (script-only import)
         const hasExistingData = screenplay.characters.length > 0 
             || screenplay.locations.length > 0 
             || screenplay.scenes.length > 0
-            || (editorContent && editorContent.trim().length > 0); // Editor has actual content
+            || (editorContent && editorContent.trim().length > 0);
         
         if (hasExistingData && !showWarning) {
-            // Show warning first
             setShowWarning(true);
             return;
         }
@@ -258,57 +252,17 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         setIsImporting(true);
         
         try {
-            console.log('[ScriptImportModal] 🔥 DESTRUCTIVE IMPORT - Starting...');
+            console.log('[ScriptImportModal] Import script only (non-destructive)...');
             
-            // 🔥 CRITICAL: Ensure screenplay exists in DynamoDB FIRST
-            if (!screenplay.screenplayId) {
-                console.log('[ScriptImportModal] ⚠️ No screenplay_id yet - creating screenplay first...');
-                // Set content so EditorContext can save it
-                setContent(content);
-                // Trigger screenplay creation
-                await saveNow();
-                console.log('[ScriptImportModal] ✅ Screenplay saved');
-                
-                // Feature 0119: Get screenplay ID from Clerk metadata (falls back to localStorage)
-                const screenplayId = getCurrentScreenplayId(user);
-                if (!screenplayId) {
-                    throw new Error('Failed to get screenplay ID after save');
-                }
-                console.log('[ScriptImportModal] ✅ Got screenplay ID:', screenplayId);
-            }
-            
-            // Feature 0119: Get screenplay ID from Clerk metadata (falls back to localStorage)
-            const screenplayId = getCurrentScreenplayId(user);
-            if (!screenplayId) {
-                throw new Error('No screenplay ID available');
-            }
-            
-            // 🔥 STEP 1: Delete old data from DynamoDB FIRST
-            console.log('[ScriptImportModal] 🗑️  Clearing all data from DynamoDB...');
-            await screenplay.clearAllData();
-            console.log('[ScriptImportModal] ✅ DynamoDB cleared');
-            
-            // 🔥 STEP 2: Reset frontend state to get fresh 8-beat structure
-            console.log('[ScriptImportModal] 🧹 Calling clearContentOnly() to get fresh 8-beat structure...');
-            const freshBeats = await screenplay.clearContentOnly();
-            console.log('[ScriptImportModal] ✅ Have', freshBeats.length, 'beats for scene distribution');
-            
-            if (freshBeats.length === 0) {
-                throw new Error('clearContentOnly() returned empty array - this should never happen!');
-            }
-            
-            // Step 2: Apply time of day corrections and remove camera directions
+            // Apply time of day corrections to scene headings
             let correctedContent = content;
-            
-            // Apply selected time of day to scene headings
             if (parseResult.questionableItems && Object.keys(selectedTimeOfDay).length > 0) {
                 const lines = correctedContent.split('\n');
                 parseResult.questionableItems.forEach((item: any, index: number) => {
                     if (item.type === 'scene_heading' && item.reason.includes('time of day')) {
                         const timeOfDay = selectedTimeOfDay[index] || 'DAY';
-                        const lineIndex = item.lineNumber - 1; // Convert to 0-based index
+                        const lineIndex = item.lineNumber - 1;
                         if (lineIndex >= 0 && lineIndex < lines.length) {
-                            // Update the line with time of day
                             lines[lineIndex] = item.text + ' - ' + timeOfDay;
                         }
                     }
@@ -316,230 +270,63 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 correctedContent = lines.join('\n');
             }
             
-            // Remove camera directions from content (they're stored in scene metadata)
-            // Camera directions are already excluded from being treated as characters,
-            // but we should remove them from the script text to keep it clean
-            // IMPORTANT: Replace with blank line to preserve Fountain spacing structure
+            // Remove camera direction lines from script text (replace with blank line)
             if (parseResult.scenes) {
                 const lines = correctedContent.split('\n');
                 const cameraDirectionsToRemove = new Set<string>();
-                
-                // Collect all camera directions from all scenes
                 parseResult.scenes.forEach((scene: any) => {
-                    if (scene.cameraDirections && scene.cameraDirections.length > 0) {
+                    if (scene.cameraDirections?.length > 0) {
                         scene.cameraDirections.forEach((cameraDir: string) => {
                             cameraDirectionsToRemove.add(cameraDir.trim().toUpperCase());
                         });
                     }
                 });
-                
-                // Remove camera direction lines (case-insensitive match)
-                // Replace with blank line to preserve spacing structure
                 if (cameraDirectionsToRemove.size > 0) {
                     for (let i = 0; i < lines.length; i++) {
-                        const lineTrimmed = lines[i].trim().toUpperCase();
-                        if (cameraDirectionsToRemove.has(lineTrimmed)) {
-                            // Replace with blank line to preserve Fountain spacing structure
+                        if (cameraDirectionsToRemove.has(lines[i].trim().toUpperCase())) {
                             lines[i] = '';
                         }
                     }
                 }
-                
                 correctedContent = lines.join('\n');
             }
             
-            // Step 3: Apply web cleaning if enabled (paste tab only)
-            // Feature 0197: Opt-in web paste cleaning
             let processedContent = correctedContent;
             if (enableWebCleaning && activeTab === 'paste') {
                 processedContent = cleanWebPastedText(correctedContent);
             }
-            
-            // Always fix character encoding issues (safe for all sources)
             processedContent = fixCharacterEncoding(processedContent);
-            
-            // Apply basic Fountain spacing (blank lines after scene headings, before characters, after dialogue)
-            // This is essential for PDF/Word imports which lack proper spacing
             processedContent = addBasicFountainSpacing(processedContent);
             
-            // Set content in editor
+            // Only overwrite editor content; do not touch characters, locations, scenes, or media
             setContent(processedContent);
             
-            // Step 3: Import characters (with explicit screenplay ID)
-            let importedCharacters: Character[] = [];
-            if (parseResult.characters.size > 0) {
-                const characterNames = Array.from(parseResult.characters) as string[];
-                const characterDescriptions = parseResult.characterDescriptions || new Map<string, string>();
-                importedCharacters = await screenplay.bulkImportCharacters(characterNames, characterDescriptions, screenplayId);
-                console.log('[ScriptImportModal] ✅ Imported', characterNames.length, 'characters');
+            if (!screenplay.screenplayId) {
+                await saveNow();
             }
             
-            // Step 4: Import locations (with explicit screenplay ID and types)
-            let importedLocations: Location[] = [];
-            if (parseResult.locations.size > 0) {
-                const locationNames = Array.from(parseResult.locations) as string[];
-                const locationTypes = parseResult.locationTypes; // 🔥 NEW: Get location types map
-                importedLocations = await screenplay.bulkImportLocations(locationNames, locationTypes, screenplayId);
-                console.log('[ScriptImportModal] ✅ Imported', locationNames.length, 'locations with types');
-            }
-            
-            // Step 5: Build complete beat structure with scenes (NO STATE UPDATES)
-            // 🔥 PROPER FIX: Build data structure first, THEN save in one operation
-            let scenesWithOrder: Scene[] = []; // Declare outside if block for optimistic UI
-            if (parseResult.scenes.length > 0) {
-                // 🔥 CRITICAL: Use freshBeats which we got directly from clearContentOnly()
-                // No more waiting for React state! We have the data synchronously!
-                if (freshBeats.length === 0) {
-                    throw new Error('No beats available for scene import. Please refresh and try again.');
-                }
-                
-                console.log('[ScriptImportModal] ✅ Using', freshBeats.length, 'fresh beats for scene import (no state timing issues!)');
-                
-                // 🔥 PROPER FIX: Build Scene objects directly (don't use bulkImportScenes yet)
-                const now = new Date().toISOString();
-                const allScenes = parseResult.scenes.map((scene, globalIndex) => {
-                    // Map character names to IDs
-                    const characterIds = (scene.characters || [])
-                        .map(charName => {
-                            const char = importedCharacters.find(c => 
-                                c.name.toUpperCase() === charName.toUpperCase()
-                            );
-                            return char?.id;
-                        })
-                        .filter(Boolean) as string[];
-                    
-                    // Map location name to ID
-                    const location = importedLocations.find(l => 
-                        l.name.toUpperCase() === scene.location.toUpperCase()
-                    );
-                    
-                    // Create full Scene object
-                    // 🔥 NEW: Include camera directions in synopsis for Scene Builder access
-                    // Format: Original synopsis + camera directions (if any)
-                    let sceneSynopsis = scene.synopsis || `Imported from script`;
-                    if (scene.cameraDirections && scene.cameraDirections.length > 0) {
-                        const cameraDirText = scene.cameraDirections.join('; ');
-                        sceneSynopsis = sceneSynopsis 
-                            ? `${sceneSynopsis}\n\nCamera Directions: ${cameraDirText}`
-                            : `Camera Directions: ${cameraDirText}`;
-                    }
-                    
-                    return {
-                        id: `scene-${Date.now()}-${globalIndex}-${Math.random().toString(36).substr(2, 9)}`,
-                        // Feature 0117: beatId removed - scenes use global order
-                        number: globalIndex + 1,
-                        heading: scene.heading,
-                        synopsis: sceneSynopsis, // 🔥 NEW: Includes camera directions for Scene Builder
-                        status: 'draft' as const,
-                        order: 0, // Will be set to global order (1, 2, 3...)
-                        group_label: scene.group_label, // 🔥 NEW: Use extracted section from Fountain
-                        fountain: {
-                            startLine: scene.startLine,
-                            endLine: scene.endLine,
-                            tags: {
-                                characters: characterIds,
-                                location: location?.id,
-                                // 🔥 NEW: Store camera directions in tags for easy access
-                                cameraDirections: scene.cameraDirections || []
-                            }
-                        },
-                        createdAt: now,
-                        updatedAt: now
-                    };
-                });
-                
-                console.log('[ScriptImportModal] ✅ Built', allScenes.length, 'complete Scene objects');
-                
-                // 🔥 Feature 0117: Simplified - assign global order (1, 2, 3, 4...)
-                // Use group_label from Fountain sections if available, otherwise assign based on scene position
-                scenesWithOrder = allScenes.map((scene, index) => {
-                    // If scene already has group_label from Fountain section, use it
-                    // Otherwise, optionally assign based on scene position (fallback)
-                    let group_label = scene.group_label;
-                    if (!group_label) {
-                        // Fallback: For 8-beat template, divide scenes into 8 groups
-                        const beatTitles = ['Setup', 'Inciting Incident', 'First Plot Point', 'First Pinch Point', 
-                                          'Midpoint', 'Second Pinch Point', 'Second Plot Point', 'Resolution'];
-                        const scenesPerGroup = Math.ceil(allScenes.length / 8);
-                        const groupIndex = Math.floor(index / scenesPerGroup);
-                        group_label = groupIndex < beatTitles.length ? beatTitles[groupIndex] : undefined;
-                    }
-                    
-                    return {
-                        ...scene,
-                        order: index + 1, // Global order (1, 2, 3, 4...)
-                        group_label // Use Fountain section or fallback assignment
-                    };
-                });
-                
-                console.log('[ScriptImportModal] ✅ Assigned global order to', scenesWithOrder.length, 'scenes');
-                
-                // Feature 0117: Save scenes to wryda-scenes table (with explicit screenplay ID)
-                console.log('[ScriptImportModal] 💾 Saving scenes to wryda-scenes table...');
-                await screenplay.saveScenes(scenesWithOrder, screenplayId);
-                console.log('[ScriptImportModal] ✅ Saved', scenesWithOrder.length, 'scenes to wryda-scenes table');
-            }
-            
-            // Step 6: Update screenplay content to DynamoDB AND localStorage
-            console.log('[ScriptImportModal] 💾 Updating screenplay content...');
-            localStorage.setItem('screenplay_draft', content);
-            
-            // Also save content to DynamoDB so it persists on refresh
+            localStorage.setItem('screenplay_draft', processedContent);
             if (screenplay.screenplayId) {
                 await updateScreenplay({
                     screenplay_id: screenplay.screenplayId,
-                    content: content
+                    content: processedContent
                 }, getToken);
-                console.log('[ScriptImportModal] ✅ Saved content to DynamoDB');
             }
             
-            // 🔥 OPTIMISTIC UI: Update React state immediately instead of reloading page
-            // This makes data appear instantly while DynamoDB saves in background
-            console.log('[ScriptImportModal] ⚡ Applying optimistic UI updates...');
-            
-            // Get the current state after bulk imports (which updated internal state)
-            const currentState = screenplay.getCurrentState();
-            
-            // Update characters state with ALL characters (existing + newly imported)
-            screenplay.setCharacters?.(currentState.characters);
-            console.log('[ScriptImportModal] ✅ Updated characters state:', currentState.characters.length);
-            
-            // Update locations state with ALL locations (existing + newly imported)
-            screenplay.setLocations?.(currentState.locations);
-            console.log('[ScriptImportModal] ✅ Updated locations state:', currentState.locations.length);
-            
-            // 🔥 Beats removed - update scenes state directly
-            screenplay.setScenes?.(scenesWithOrder);
-            console.log('[ScriptImportModal] ✅ Updated scenes state:', scenesWithOrder.length);
-            
-            // Keep beats as empty UI templates (for backward compatibility if needed)
-            const currentBeats = screenplay.getCurrentState().beats;
-            const updatedBeats = screenplay.groupScenesIntoBeats?.(scenesWithOrder, currentBeats) || currentBeats;
-            screenplay.setBeats?.(updatedBeats);
-            
-            // 🔥 FIX: Explicitly rebuild relationships after import to ensure scene counts are correct
-            // The useEffect might not trigger immediately, so we call it explicitly
-            await screenplay.updateRelationships?.();
-            console.log('[ScriptImportModal] ✅ Rebuilt relationships for scene counts');
-            
-            // Success toast
-            toast.success('✅ Screenplay Imported', {
-                description: `${parseResult.characters.size} characters, ${parseResult.locations.size} locations, ${parseResult.scenes.length} scenes`
+            toast.success('Script updated', {
+                description: 'Use Rescan in the toolbar to add new characters/locations from the script. Your boards and media are unchanged.'
             });
-            
-            // Close modal - data appears instantly!
-            console.log('[ScriptImportModal] ⚡ Import complete - data visible immediately!');
             onClose();
             
         } catch (error) {
             console.error('[ScriptImportModal] Import failed:', error);
-            toast.error('❌ Import failed', {
+            toast.error('Import failed', {
                 description: error instanceof Error ? error.message : 'Please try again'
             });
         } finally {
             setIsImporting(false);
         }
-    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent, enableWebCleaning, activeTab, selectedTimeOfDay, user]);
+    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent, enableWebCleaning, activeTab, selectedTimeOfDay]);
     
     if (!isOpen) return null;
     
@@ -738,31 +525,31 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                     </div>
                                 </div>
                                 
-                                {/* 🔥 NEW: Warning about destructive import */}
+                                {/* Info when user has existing data: import only replaces script */}
                                 {showWarning && (
-                                    <div className="mt-4 p-4 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
+                                    <div className="mt-4 p-4 bg-[#3B82F6]/10 border border-[#3B82F6]/30 rounded-lg">
                                         <div className="flex items-start gap-3">
-                                            <AlertTriangle className="w-6 h-6 text-[#DC143C] mt-0.5" />
+                                            <AlertTriangle className="w-6 h-6 text-[#3B82F6] mt-0.5" />
                                             <div className="flex-1">
-                                                <h3 className="font-bold text-lg text-[#FFFFFF]">⚠️ Warning: This will replace ALL existing data</h3>
+                                                <h3 className="font-bold text-lg text-[#FFFFFF]">Replace script only</h3>
                                                 <div className="text-sm mt-1 text-[#808080]">
-                                                    You currently have:
+                                                    You have existing data. Import will replace <strong>only the script text</strong> in the editor.
                                                     <ul className="list-disc list-inside mt-1 text-[#FFFFFF]">
                                                         {screenplay.characters.length > 0 && (
-                                                            <li><strong>{screenplay.characters.length} characters</strong></li>
+                                                            <li><strong>{screenplay.characters.length} characters</strong> — kept</li>
                                                         )}
                                                         {screenplay.locations.length > 0 && (
-                                                            <li><strong>{screenplay.locations.length} locations</strong></li>
+                                                            <li><strong>{screenplay.locations.length} locations</strong> — kept</li>
                                                         )}
                                                         {screenplay.scenes.length > 0 && (
-                                                            <li><strong>{screenplay.scenes.length} scenes</strong></li>
+                                                            <li><strong>{screenplay.scenes.length} scenes</strong> — kept</li>
                                                         )}
                                                         {editorContent && editorContent.trim().length > 0 && (
-                                                            <li><strong>Screenplay content in editor</strong></li>
+                                                            <li>Current script — will be replaced</li>
                                                         )}
                                                     </ul>
                                                     <p className="mt-2 text-[#FFFFFF]">
-                                                        Importing this screenplay will <strong>DELETE ALL</strong> of your existing data and replace it with the new screenplay.
+                                                        Use <strong>Rescan</strong> in the toolbar after import to add new characters/locations from the script. Your boards and media are not deleted.
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2 mt-3">
@@ -775,7 +562,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                                     </button>
                                                     <button 
                                                         onClick={handleImport} 
-                                                        className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/90 text-white rounded-lg text-sm font-medium transition-colors"
+                                                        className="px-4 py-2 bg-[#3B82F6] hover:bg-[#3B82F6]/90 text-white rounded-lg text-sm font-medium transition-colors"
                                                         disabled={isImporting}
                                                     >
                                                         {isImporting ? (
@@ -784,7 +571,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                                                 Importing...
                                                             </>
                                                         ) : (
-                                                            'Yes, Replace All Data'
+                                                            'Replace script only'
                                                         )}
                                                     </button>
                                                 </div>
