@@ -29,7 +29,16 @@ export interface GenerateVideoContext {
 }
 
 /**
- * Individual shot cell with variation cycling (first frames only)
+ * Individual shot cell with variation cycling (first frames only).
+ *
+ * CODE PATH (so we know we're editing the right place):
+ *   URL: /direct?tab=shots → app/direct/page.js → DirectPageClient → DirectHub
+ *   → activeTab === 'shots' → this file ShotBoardPanel → SceneRow → ShotCell (here).
+ *
+ * LETTERBOX: Image uses flex-centered container + img max-w-full max-h-full object-contain
+ * so the full frame is shown with bars (no crop). Verify: Inspect the shot card;
+ * it should have data-shot-board="letterbox-v2". Toolbar bg is #1A1A1A (slightly lighter).
+ * If you don't see that or letterboxing, the deployed bundle may be old — redeploy and hard refresh.
  */
 function ShotCell({
   shot,
@@ -103,33 +112,35 @@ function ShotCell({
   };
 
   return (
-    <div className="relative flex-shrink-0 w-48 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group flex flex-col">
-      <div className="relative w-full aspect-video flex-shrink-0 bg-[#0A0A0A]">
+    <div
+      className="relative flex-shrink-0 w-48 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group flex flex-col"
+      data-shot-board="letterbox-v2"
+    >
+      {/* Letterbox: flex center + max dimensions so image never crops; bars show as container bg */}
+      <div className="relative w-full aspect-video flex-shrink-0 flex items-center justify-center bg-[#0A0A0A] overflow-hidden">
         {firstFrameUrl ? (
           <img
             src={firstFrameUrl}
             alt={`Shot ${shot.shotNumber}`}
-            className="w-full h-full object-contain"
+            className="max-w-full max-h-full w-auto h-auto object-contain"
             style={{ objectFit: 'contain' }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-[#0A0A0A]">
-            <Film className="w-6 h-6 text-[#808080]" />
-          </div>
+          <Film className="w-6 h-6 text-[#808080]" />
         )}
         <div className="absolute top-1 left-1 bg-[#DC143C] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
           #{shot.shotNumber}
         </div>
       </div>
 
-      {/* Toolbar: same width as frame (no overflow past image) */}
-      <div className="flex items-center justify-between gap-1.5 px-1.5 py-1 bg-[#141414] border-t border-[#3F3F46] w-full min-w-0 flex-shrink-0">
+      {/* Toolbar: First frame · Frame | Video (visible layout so we can confirm this bundle loads) */}
+      <div className="flex items-center justify-between gap-1.5 px-1.5 py-1 bg-[#1A1A1A] border-t border-[#3F3F46] w-full min-w-0 flex-shrink-0">
         {hasMultipleVariations ? (
           <button
             type="button"
             onClick={handlePrev}
             disabled={currentIndex <= 0}
-            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded border border-[#3F3F46] bg-[#1A1A1A] text-[#808080] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A] transition-colors"
+            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded border border-[#3F3F46] bg-[#262626] text-[#808080] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#262626] transition-colors"
             aria-label="Previous variation"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -147,7 +158,7 @@ function ShotCell({
             type="button"
             onClick={handleDownloadFirstFrame}
             disabled={!firstFrameUrl}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#3F3F46] bg-[#1A1A1A] text-[9px] font-medium text-[#A1A1AA] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A] transition-colors flex-shrink-0"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#3F3F46] bg-[#262626] text-[9px] font-medium text-[#A1A1AA] hover:text-white hover:bg-[#2A2A2A] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             title="Download first frame"
             aria-label="Download first frame"
           >
@@ -158,7 +169,7 @@ function ShotCell({
             type="button"
             onClick={handleGenerateVideo}
             disabled={!firstFrameUrl || !onGenerateVideo}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#3F3F46] bg-[#1A1A1A] text-[9px] font-medium text-[#A1A1AA] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A] transition-colors flex-shrink-0"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#3F3F46] bg-[#262626] text-[9px] font-medium text-[#A1A1AA] hover:text-white hover:bg-[#2A2A2A] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             title="Generate video from this frame (opens Video Gen tab)"
             aria-label="Generate video"
           >
@@ -171,7 +182,7 @@ function ShotCell({
             type="button"
             onClick={handleNext}
             disabled={currentIndex >= variations.length - 1}
-            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded border border-[#3F3F46] bg-[#1A1A1A] text-[#808080] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A] transition-colors"
+            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded border border-[#3F3F46] bg-[#262626] text-[#808080] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#262626] transition-colors"
             aria-label="Next variation"
           >
             <ChevronRight className="w-3.5 h-3.5" />
