@@ -121,47 +121,47 @@ function ShotCell({
         </div>
       </div>
 
-      {/* Single-line toolbar: < 2/2 Frame Video > (or just Frame Video when one variation) */}
-      <div className="flex items-center justify-between gap-0.5 px-1 py-1 bg-[#141414] border-t border-[#3F3F46]">
+      {/* Single-line toolbar: < 2/2 Frame Video > — spaced, bordered buttons to match UI */}
+      <div className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#141414] border-t border-[#3F3F46]">
         {hasMultipleVariations ? (
           <button
             type="button"
             onClick={handlePrev}
             disabled={currentIndex <= 0}
-            className="flex-shrink-0 p-0.5 text-[#808080] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded border border-[#3F3F46] bg-[#1A1A1A] text-[#808080] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A] transition-colors"
             aria-label="Previous variation"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
         ) : (
-          <span className="w-3.5 flex-shrink-0" aria-hidden />
+          <span className="w-7 flex-shrink-0" aria-hidden />
         )}
         {hasMultipleVariations && (
-          <span className="flex-shrink-0 text-[9px] text-[#808080] min-w-[1.5rem] text-center">
+          <span className="flex-shrink-0 text-[10px] text-[#71717A] font-medium tabular-nums min-w-[2rem] text-center">
             {currentIndex + 1}/{variations.length}
           </span>
         )}
-        <div className="flex items-center gap-1 flex-1 justify-center min-w-0">
+        <div className="flex items-center gap-1.5 flex-1 justify-center min-w-0">
           <button
             type="button"
             onClick={handleDownloadFirstFrame}
             disabled={!firstFrameUrl}
-            className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#3F3F46] bg-[#1A1A1A] text-[10px] font-medium text-[#A1A1AA] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A] transition-colors flex-shrink-0"
             title="Download first frame"
             aria-label="Download first frame"
           >
-            <Download className="w-3 h-3" />
+            <Download className="w-3.5 h-3.5" />
             Frame
           </button>
           <button
             type="button"
             onClick={handleGenerateVideo}
             disabled={!firstFrameUrl || !onGenerateVideo}
-            className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-[#808080] hover:text-white hover:bg-[#262626] rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#3F3F46] bg-[#1A1A1A] text-[10px] font-medium text-[#A1A1AA] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A] transition-colors flex-shrink-0"
             title="Generate video from this frame (opens Video Gen tab)"
             aria-label="Generate video"
           >
-            <Video className="w-3 h-3" />
+            <Video className="w-3.5 h-3.5" />
             Video
           </button>
         </div>
@@ -170,13 +170,13 @@ function ShotCell({
             type="button"
             onClick={handleNext}
             disabled={currentIndex >= variations.length - 1}
-            className="flex-shrink-0 p-0.5 text-[#808080] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded border border-[#3F3F46] bg-[#1A1A1A] text-[#808080] hover:text-white hover:bg-[#262626] hover:border-[#52525B] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A] transition-colors"
             aria-label="Next variation"
           >
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         ) : (
-          <span className="w-3.5 flex-shrink-0" aria-hidden />
+          <span className="w-7 flex-shrink-0" aria-hidden />
         )}
       </div>
     </div>
