@@ -35,10 +35,7 @@ export interface GenerateVideoContext {
  *   URL: /direct?tab=shots → app/direct/page.js → DirectPageClient → DirectHub
  *   → activeTab === 'shots' → this file ShotBoardPanel → SceneRow → ShotCell (here).
  *
- * LETTERBOX: Image uses flex-centered container + img max-w-full max-h-full object-contain
- * so the full frame is shown with bars (no crop). Verify: Inspect the shot card;
- * it should have data-shot-board="letterbox-v2". Toolbar bg is #1A1A1A (slightly lighter).
- * If you don't see that or letterboxing, the deployed bundle may be old — redeploy and hard refresh.
+ * Display: w-72 card, image fills frame (object-cover) for full-size look. data-shot-board="letterbox-v2".
  */
 function ShotCell({
   shot,
@@ -60,7 +57,7 @@ function ShotCell({
 
   if (!currentVariation) {
     return (
-      <div className="relative flex-shrink-0 w-40 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] flex items-center justify-center aspect-video">
+      <div className="relative flex-shrink-0 w-72 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] flex items-center justify-center aspect-video">
         <span className="text-[10px] text-[#808080]">No data</span>
       </div>
     );
@@ -113,20 +110,22 @@ function ShotCell({
 
   return (
     <div
-      className="relative flex-shrink-0 w-48 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group flex flex-col"
+      className="relative flex-shrink-0 w-72 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group flex flex-col"
       data-shot-board="letterbox-v2"
     >
-      {/* Letterbox: flex center + max dimensions so image never crops; bars show as container bg */}
-      <div className="relative w-full aspect-video flex-shrink-0 flex items-center justify-center bg-[#0A0A0A] overflow-hidden">
+      {/* Full-size frame: image fills the aspect-video box */}
+      <div className="relative w-full aspect-video flex-shrink-0 bg-[#0A0A0A] overflow-hidden">
         {firstFrameUrl ? (
           <img
             src={firstFrameUrl}
             alt={`Shot ${shot.shotNumber}`}
-            className="max-w-full max-h-full w-auto h-auto object-contain"
-            style={{ objectFit: 'contain' }}
+            className="w-full h-full object-cover"
+            style={{ objectFit: 'cover' }}
           />
         ) : (
-          <Film className="w-6 h-6 text-[#808080]" />
+          <div className="w-full h-full flex items-center justify-center bg-[#0A0A0A]">
+            <Film className="w-6 h-6 text-[#808080]" />
+          </div>
         )}
         <div className="absolute top-1 left-1 bg-[#DC143C] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
           #{shot.shotNumber}
