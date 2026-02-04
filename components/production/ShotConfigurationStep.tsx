@@ -723,7 +723,22 @@ export function ShotConfigurationStep({
         onDialogueQualityChange(shotSlot, 'reliable');
       }
     }
-  }, [shot.slot, shot.type, videoOptInForThisShot, finalSelectedDialogueQuality, onDialogueQualityChange]);
+  }, [shot.slot, shot.type, videoOptInForThisShot, finalSelectedDialogueQuality, shotSlot, onDialogueQualityChange]);
+  
+  // 🔥 NEW: Auto-select default dialogue workflow when dialogue shot has video opt-in
+  // This ensures pricing calculates correctly when checkbox is checked (fixes bug where video cost shows 0)
+  useEffect(() => {
+    // Only initialize for dialogue shots that have video opt-in and need workflow selection
+    if (shot.type === 'dialogue' && videoOptInForThisShot && onDialogueWorkflowChange) {
+      const currentWorkflow = finalSelectedDialogueWorkflow;
+      // If no workflow is set, use detected workflow or default to 'first-frame-lipsync' (Wryda Standard)
+      if (!currentWorkflow) {
+        const detectedWorkflow = sceneAnalysisResult?.dialogue?.workflowType;
+        const defaultWorkflow = detectedWorkflow || 'first-frame-lipsync';
+        onDialogueWorkflowChange(shotSlot, defaultWorkflow);
+      }
+    }
+  }, [shot.slot, shot.type, videoOptInForThisShot, finalSelectedDialogueWorkflow, sceneAnalysisResult?.dialogue?.workflowType, shotSlot, onDialogueWorkflowChange]);
   
   // 🔥 NEW: Fetch presigned URLs for prop images (for references section)
   // Collect all prop image S3 keys for this shot
