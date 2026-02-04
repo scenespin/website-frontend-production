@@ -689,7 +689,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   /**
-   * Load jobs from API
+   * Load jobs from list API and merge into state.
+   * Merge is add-only: we never overwrite a job already in state (from poll, optimistic add, or recovery).
+   * List is for discovery; poll/get-by-ID are the source of truth for updates. See merge contract below.
    */
   const loadJobs = async (showLoading: boolean = false) => {
     try {
@@ -765,52 +767,30 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       setJobs(prevJobs => {
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
         const tracked = trackedJobIdsRef.current;
-        // Single source of truth: tracked jobs are updated only via get-by-ID. List is for discovery; never overwrite tracked.
-        const hasResults = (j: WorkflowJob) => j.results && (
-          (j.results.poses?.length) ||
-          (j.results.angleReferences?.length) ||
-          (j.results.backgroundReferences?.length) ||
-          (j.results.images?.length) ||
-          (j.results.videos?.length) ||
-          (j.results.screenplayReading) ||
-          (j.results.videoSoundscape)
-        );
+
+        // Merge contract: add-only. Never overwrite a job already in state.
+        // - List API: discovery only (GSI eventual consistency). Adds new jobIds; never replaces existing.
+        // - directFetchedJobsRef: jobs we fetched by ID (recovery, placeholder replacement). Same rule.
+        // - Poll / get-by-ID and optimistic add remain the single source of truth for updates. Eliminates list-vs-poll race.
+
         jobList.forEach((newJob: WorkflowJob) => {
-          if (tracked.has(newJob.jobId)) {
-            // Don't overwrite tracked with list when list has no results (poll/get-by-ID is source of truth).
-            // Do accept list when it has results and we don't (e.g. thumbnail) so UI can update without waiting for poll.
-            const existing = jobMap.get(newJob.jobId);
-            const listHasRes = hasResults(newJob);
-            const existingHasRes = existing && hasResults(existing);
-            const accepted = !!(existing && listHasRes && !existingHasRes);
-            if (accepted) {
-              jobMap.set(newJob.jobId, newJob);
-              optimisticPlaceholdersRef.current.delete(newJob.jobId);
-            }
+          if (jobMap.has(newJob.jobId)) {
             if (diagnosticJobIdsRef.current.has(newJob.jobId)) {
-              console.log('[JobsDrawer] [DEBUG] merge list (tracked)', {
+              console.log('[JobsDrawer] [DEBUG] merge list (keep existing)', {
                 jobId: newJob.jobId.slice(-12),
-                action: accepted ? 'accepted_list_had_results' : 'skipped_tracked',
-                listStatus: newJob.status,
-                listHasResults: listHasRes,
-                existingStatus: existing?.status,
-                existingHasResults: existingHasRes,
+                existingStatus: jobMap.get(newJob.jobId)?.status,
               });
             }
             return;
           }
-          const existing = jobMap.get(newJob.jobId);
-          if (existing && (existing.status === 'completed' || existing.status === 'failed') && (newJob.status === 'completed' || newJob.status === 'failed')) {
-            if (hasResults(existing) && !hasResults(newJob)) {
-              jobMap.set(newJob.jobId, { ...newJob, results: existing.results });
-            } else {
-              jobMap.set(newJob.jobId, newJob);
-            }
-          } else {
-            jobMap.set(newJob.jobId, newJob);
-          }
+          jobMap.set(newJob.jobId, newJob);
         });
+
         directFetchedJobsRef.current.forEach((job, id) => {
+          if (jobMap.has(id)) {
+            if (apiJobIds.has(id)) directFetchedJobsRef.current.delete(id);
+            return;
+          }
           if (!apiJobIds.has(id)) jobMap.set(id, job);
           else directFetchedJobsRef.current.delete(id);
         });
