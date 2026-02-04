@@ -82,9 +82,19 @@ export function VideoGenerationTools({
     }
   }, [initialStartImageUrl]);
 
-  // Frame to Frame mode
-  const [frame1, setFrame1] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
-  const [frame2, setFrame2] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
+  // When switching to Frame to Frame, carry over the current starting frame into Frame 1 so it persists
+  const handleSwitchToFrameToFrame = () => {
+    setActiveMode('frame-to-frame');
+    if (startImage) {
+      setFrame1({ file: startImage.file, preview: startImage.preview, s3Key: startImage.s3Key });
+    } else if (startImageUrlFromProp) {
+      setFrame1({ preview: startImageUrlFromProp });
+    }
+  };
+
+  // Frame to Frame mode (frame1 can be URL-only when carried over from Starting Frame)
+  const [frame1, setFrame1] = useState<{ file?: File; preview: string; s3Key?: string } | null>(null);
+  const [frame2, setFrame2] = useState<{ file?: File; preview: string; s3Key?: string } | null>(null);
   const frame1InputRef = useRef<HTMLInputElement>(null);
   const frame2InputRef = useRef<HTMLInputElement>(null);
 
@@ -282,9 +292,12 @@ export function VideoGenerationTools({
       return;
     }
 
-    if (activeMode === 'frame-to-frame' && (!frame1?.s3Key || !frame2?.s3Key)) {
-      toast.error('Please upload both frame images');
-      return;
+    if (activeMode === 'frame-to-frame') {
+      const frame1Valid = frame1 && (frame1.s3Key || (frame1.preview && frame1.preview.startsWith('http')));
+      if (!frame1Valid || !frame2?.s3Key) {
+        toast.error('Please upload both frame images');
+        return;
+      }
     }
 
     if (!screenplayId || screenplayId === 'default') {
@@ -332,8 +345,8 @@ export function VideoGenerationTools({
         }
       }
 
-      if (activeMode === 'frame-to-frame' && frame1?.s3Key && frame2?.s3Key) {
-        requestBody.startImageUrl = frame1.s3Key;
+      if (activeMode === 'frame-to-frame' && frame1 && frame2?.s3Key) {
+        requestBody.startImageUrl = frame1.s3Key ?? (frame1.preview?.startsWith('http') ? frame1.preview : undefined);
         requestBody.endImageUrl = frame2.s3Key;
         requestBody.prompt = `Transition from first frame to second frame: ${finalPrompt}`;
       }
@@ -382,8 +395,8 @@ export function VideoGenerationTools({
         setStartImage(null);
         setStartImageUrlFromProp(null);
       } else {
-        if (frame1?.preview) URL.revokeObjectURL(frame1.preview);
-        if (frame2?.preview) URL.revokeObjectURL(frame2.preview);
+        if (frame1?.preview?.startsWith('blob:')) URL.revokeObjectURL(frame1.preview);
+        if (frame2?.preview?.startsWith('blob:')) URL.revokeObjectURL(frame2.preview);
         setFrame1(null);
         setFrame2(null);
       }
@@ -430,7 +443,7 @@ export function VideoGenerationTools({
           </button>
 
           <button
-            onClick={() => setActiveMode('frame-to-frame')}
+            onClick={handleSwitchToFrameToFrame}
             className={cn(
               "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
               activeMode === 'frame-to-frame'
@@ -556,7 +569,7 @@ export function VideoGenerationTools({
                   <button
                     type="button"
                     onClick={() => {
-                      URL.revokeObjectURL(frame1.preview);
+                      if (frame1.preview?.startsWith('blob:')) URL.revokeObjectURL(frame1.preview);
                       setFrame1(null);
                     }}
                     className="absolute top-2 right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center"
@@ -614,7 +627,7 @@ export function VideoGenerationTools({
                   <button
                     type="button"
                     onClick={() => {
-                      URL.revokeObjectURL(frame2.preview);
+                      if (frame2.preview?.startsWith('blob:')) URL.revokeObjectURL(frame2.preview);
                       setFrame2(null);
                     }}
                     className="absolute top-2 right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center"
