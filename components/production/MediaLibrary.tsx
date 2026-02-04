@@ -426,10 +426,16 @@ export default function MediaLibrary({
 
         if (localResponse.ok) {
           const localData = await localResponse.json();
-          const backendFiles = localData.files || [];
+          const rawBackendFiles = localData.files || [];
+          // 🔥 Filter out archived/expired files (same as useMediaFiles) so Archive and Scene Builder stay in sync
+          const backendFiles = rawBackendFiles.filter((file: any) => {
+            if (file.isArchived === true || file.metadata?.isArchived === true) return false;
+            return true;
+          });
           
           console.log('[MediaLibrary] Loaded files from backend:', {
             count: backendFiles.length,
+            filteredArchived: rawBackendFiles.length - backendFiles.length,
             screenplayId: projectId, // projectId prop is actually screenplayId
             projectId: projectId, // Keep for backward compatibility
             files: backendFiles.map((f: any) => ({ id: f.fileId, name: f.fileName }))

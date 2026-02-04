@@ -382,13 +382,19 @@ export function ShotConfigurationStep({
   const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // 🔥 FIX Issue 1: Track checkbox state synchronously to avoid React batching issues
-  // This ref is updated immediately when the checkbox is clicked, before React re-renders
+  // Track checkbox state so validation sees it before context updates (avoids React batching).
   const firstFrameOverrideCheckboxRef = useRef<boolean>(firstFrameOverrideEnabledFromContext);
-  // Keep ref in sync with context state
+  const prevShotSlotRef = useRef<number>(shotSlot);
   useEffect(() => {
-    firstFrameOverrideCheckboxRef.current = firstFrameOverrideEnabledFromContext;
-  }, [firstFrameOverrideEnabledFromContext]);
+    if (prevShotSlotRef.current !== shotSlot) {
+      prevShotSlotRef.current = shotSlot;
+      firstFrameOverrideCheckboxRef.current = firstFrameOverrideEnabledFromContext;
+      return;
+    }
+    if (firstFrameOverrideEnabledFromContext) {
+      firstFrameOverrideCheckboxRef.current = true;
+    }
+  }, [shotSlot, firstFrameOverrideEnabledFromContext]);
   
   // Sync context state when override data exists (preserves state on navigation)
   // Clear overrides when switching away from Narrate Shot (e.g. to Hidden Mouth or lip-sync)
