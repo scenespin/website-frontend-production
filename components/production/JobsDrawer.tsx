@@ -31,6 +31,7 @@ import { useDrawer } from '@/contexts/DrawerContext';
 import { useRouter } from 'next/navigation';
 import { Z_INDEX } from '@/config/z-index';
 import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -298,6 +299,136 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
         img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
       }}
     />
+  );
+}
+
+/**
+ * Helper component to display pose images from Media Library
+ * Used as fallback when job.results.poses is empty but poses exist in Media Library
+ * Uses the same pattern as CharacterDetailModal for reliable image display
+ */
+function PoseImagesFromMediaLibrary({ 
+  screenplayId, 
+  characterId, 
+  characterName,
+  maxImages = 4,
+  onNavigateToEntity,
+  onClose
+}: { 
+  screenplayId: string; 
+  characterId: string; 
+  characterName?: string;
+  maxImages?: number;
+  onNavigateToEntity?: (entityType: 'character' | 'location' | 'asset', entityId: string) => void;
+  onClose: () => void;
+}) {
+  // Query Media Library for files with entityType: 'character' and entityId: characterId
+  const { data: mediaFilesData, isLoading: isLoadingFiles } = useMediaFiles({
+    screenplayId,
+    entityType: 'character',
+    entityId: characterId,
+  });
+
+  // Filter to only pose images (source: 'pose-generation' or folder contains 'outfits')
+  const poseFiles = useMemo(() => {
+    if (!mediaFilesData?.files) return [];
+    return mediaFilesData.files.filter((file: any) => {
+      // Check if it's a pose from pose-generation
+      const isPose = file.metadata?.source === 'pose-generation' || 
+                     file.metadata?.uploadMethod === 'pose-generation' ||
+                     file.metadata?.poseId ||
+                     file.s3Key?.includes('/poses/') ||
+                     file.s3Key?.includes('/outfits/');
+      // Only include image files
+      const isImage = file.fileType?.startsWith('image/') || 
+                      file.s3Key?.match(/\.(png|jpg|jpeg|webp|gif)$/i);
+      return isPose && isImage;
+    }).slice(0, maxImages);
+  }, [mediaFilesData?.files, maxImages]);
+
+  // Get S3 keys for bulk presigned URL generation
+  const s3Keys = useMemo(() => 
+    poseFiles.map((file: any) => file.s3Key).filter(Boolean),
+    [poseFiles]
+  );
+
+  // Generate presigned URLs for all pose images (same pattern as CharacterDetailModal)
+  const { data: presignedUrls = new Map(), isLoading: isLoadingUrls } = useBulkPresignedUrls(
+    s3Keys,
+    s3Keys.length > 0 // Only fetch if we have keys
+  );
+
+  const canNavigate = onNavigateToEntity && characterId;
+
+  if (isLoadingFiles) {
+    return (
+      <div className="grid grid-cols-4 gap-1">
+        {[...Array(Math.min(4, maxImages))].map((_, i) => (
+          <div key={i} className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
+            <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (poseFiles.length === 0) {
+    return (
+      <div className="text-[10px] text-[#6B7280] italic">
+        Poses saved to character
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-4 gap-1">
+      {poseFiles.map((file: any, index: number) => {
+        const imageUrl = presignedUrls.get(file.s3Key) || '';
+        return (
+          <div
+            key={file.s3Key || index}
+            className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
+              canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
+            }`}
+            onClick={() => {
+              if (canNavigate) {
+                onNavigateToEntity('character', characterId);
+                onClose();
+              }
+            }}
+            title={canNavigate ? `View ${characterName || 'Character'}` : undefined}
+          >
+            {isLoadingUrls ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+              </div>
+            ) : imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={file.metadata?.poseName || `Pose ${index + 1}`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-[#1F1F1F] text-[#6B7280] text-[8px]">
+                No image
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {mediaFilesData?.files && mediaFilesData.files.filter((f: any) => 
+        (f.metadata?.source === 'pose-generation' || f.s3Key?.includes('/poses/')) && 
+        f.fileType?.startsWith('image/')
+      ).length > maxImages && (
+        <div className="relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] flex items-center justify-center">
+          <span className="text-[8px] text-[#808080]">+more</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1588,7 +1719,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                     </div>
 
                     {/* Compact thumbnails - 4 columns for drawer */}
-                    {job.jobType === 'pose-generation' && job.results.poses && job.results.poses.length > 0 && (
+                    {/* Pose generation: Use job.results.poses if available, otherwise fallback to Media Library */}
+                    {job.jobType === 'pose-generation' && job.results.poses && job.results.poses.length > 0 ? (
                       <div className="grid grid-cols-4 gap-1">
                         {job.results.poses.slice(0, 4).map((pose, index) => {
                           const characterId = job.metadata?.inputs?.characterId;
@@ -1634,7 +1766,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                           </div>
                         )}
                       </div>
-                    )}
+                    ) : job.jobType === 'pose-generation' && job.metadata?.inputs?.characterId && screenplayId ? (
+                      /* Fallback: job.results.poses is empty but we have characterId - fetch from Media Library */
+                      <PoseImagesFromMediaLibrary
+                        screenplayId={screenplayId}
+                        characterId={job.metadata.inputs.characterId}
+                        characterName={job.metadata.inputs.characterName}
+                        maxImages={4}
+                        onNavigateToEntity={onNavigateToEntity}
+                        onClose={onClose}
+                      />
+                    ) : null}
 
                     {/* Angle References - Location/Asset angles */}
                     {job.jobType === 'image-generation' && job.results?.angleReferences && job.results.angleReferences.length > 0 && (
