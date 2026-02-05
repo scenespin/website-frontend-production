@@ -155,7 +155,15 @@ export function GenerateLocationTab({
           label: img.metadata?.isBase ? 'Base reference' : 'Reference',
         })).filter((x: any) => x.id);
       }
-      if (base?.s3Key) return [{ id: base.s3Key, imageUrl: base.imageUrl, label: 'Base reference' }];
+      // Fallback to baseReference - include even if imageUrl is missing (backend can resolve from s3Key)
+      if (base?.s3Key) {
+        return [{ 
+          id: base.s3Key, 
+          imageUrl: base.imageUrl || '', // Empty string if missing - grid will show placeholder
+          label: 'Base reference',
+          s3Key: base.s3Key // Include s3Key for backend resolution
+        }];
+      }
       return [];
     }
     if (ecuSourceType === 'angle-variations') {
@@ -648,7 +656,7 @@ export function GenerateLocationTab({
   
   const selectedPackageId = packageType === 'angles' ? selectedAnglePackageId : selectedBackgroundPackageId;
   const itemCount = packageType === 'extreme-closeups'
-    ? selectedECUSourceIds.length
+    ? selectedECUSourceIds.length * (ECU_PACKAGES[ecuPackageId]?.variationCount || 0)
     : packageType === 'angles'
       ? angleCounts[selectedPackageId] || 6
       : backgroundCounts[selectedPackageId] || 6;
@@ -1003,7 +1011,13 @@ export function GenerateLocationTab({
                       {item.imageUrl ? (
                         <img src={item.imageUrl} alt="" className="w-full h-full object-cover rounded" />
                       ) : (
-                        <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center text-[10px] text-[#808080] rounded">{item.label}</div>
+                        <div className="w-full h-full bg-[#1A1A1A] flex flex-col items-center justify-center text-[10px] text-[#808080] rounded p-2 text-center">
+                          <div className="mb-1">📷</div>
+                          <div>{item.label || 'No preview'}</div>
+                          {(item as any).s3Key && (
+                            <div className="text-[8px] text-[#606060] mt-1">Image available</div>
+                          )}
+                        </div>
                       )}
                       {isSelected && (
                         <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20 rounded">
@@ -1055,7 +1069,9 @@ export function GenerateLocationTab({
                 const Icon = PACKAGE_ICONS[pkg.id] || ImageIcon;
                 const isSelected = ecuPackageId === pkg.id;
                 const isRecommended = pkg.id === 'standard';
-                const ecuCredits = selectedECUSourceIds.length * creditsPerImage;
+                const ecuCredits = selectedECUSourceIds.length > 0 
+                  ? selectedECUSourceIds.length * pkg.variationCount * creditsPerImage 
+                  : 0;
                 
                 return (
                   <motion.div
