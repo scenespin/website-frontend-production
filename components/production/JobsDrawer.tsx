@@ -42,6 +42,31 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+/** SessionStorage key for recent job IDs we care about (fetch-by-IDs on drawer open) */
+const RECENT_JOB_IDS_KEY = (screenplayId: string) => `wryda:recent-job-ids:${screenplayId}`;
+const MAX_RECENT_JOB_IDS = 20;
+
+function addRecentJobId(screenplayId: string, jobId: string): void {
+  if (typeof window === 'undefined' || !screenplayId?.trim() || !jobId?.trim()) return;
+  try {
+    const key = RECENT_JOB_IDS_KEY(screenplayId.trim());
+    const raw = sessionStorage.getItem(key);
+    const ids: string[] = raw ? JSON.parse(raw) : [];
+    const next = [jobId, ...ids.filter((id) => id !== jobId)].slice(0, MAX_RECENT_JOB_IDS);
+    sessionStorage.setItem(key, JSON.stringify(next));
+  } catch (_) { /* ignore */ }
+}
+
+function getRecentJobIds(screenplayId: string): string[] {
+  if (typeof window === 'undefined' || !screenplayId?.trim()) return [];
+  try {
+    const raw = sessionStorage.getItem(RECENT_JOB_IDS_KEY(screenplayId.trim()));
+    return raw ? JSON.parse(raw) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 // Reuse WorkflowJob interface from ProductionJobsPanel
 interface WorkflowJob {
   jobId: string;
@@ -764,6 +789,28 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         }
       } catch (_) { /* ignore */ }
 
+      // Fetch-by-IDs on drawer open: ensure recent jobs we care about are in the list (fixes disappear-after-refresh)
+      const recentIds = getRecentJobIds(screenplayId);
+      const missingRecentIds = recentIds.filter((id) => !apiJobIds.has(id));
+      if (missingRecentIds.length > 0) {
+        const fetchedByRecent: WorkflowJob[] = [];
+        for (const id of missingRecentIds.slice(0, 15)) {
+          const job = await fetchJobDirectly(id, { silent: true });
+          if (job) {
+            fetchedByRecent.push(job);
+            jobList.push(job);
+            apiJobIds.add(job.jobId);
+          }
+        }
+        if (fetchedByRecent.length > 0) {
+          console.log('[JobsDrawer] Fetch-by-IDs (recent)', {
+            requested: missingRecentIds.length,
+            fetched: fetchedByRecent.length,
+            ids: fetchedByRecent.map((j) => j.jobId.slice(-12)),
+          });
+        }
+      }
+
       setJobs(prevJobs => {
         const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
         const tracked = trackedJobIdsRef.current;
@@ -913,6 +960,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       optimisticPlaceholdersRef.current.set(jobId, placeholder);
       try {
         sessionStorage.setItem(`wryda:last-job:${eventScreenplayId}`, JSON.stringify({ jobId, ts: Date.now() }));
+        addRecentJobId(eventScreenplayId.trim(), jobId);
       } catch (_) { /* ignore */ }
       setJobs(prev => {
         if (prev.some(j => j.jobId === jobId)) return prev;

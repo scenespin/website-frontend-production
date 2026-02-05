@@ -3142,6 +3142,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       console.log('[SceneBuilderPanel] ✅ Workflow execution started:', executionId);
       setWorkflowExecutionId(executionId);
+      // So JobsDrawer can show this job and store it in recent-job-ids (fetch-by-IDs on drawer open)
+      if (typeof window !== 'undefined' && projectId) {
+        window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+          detail: { jobId: executionId, screenplayId: projectId, jobType: 'workflow-execution' }
+        }));
+      }
         
         // Set initial workflow status to show progress immediately
         setWorkflowStatus({
