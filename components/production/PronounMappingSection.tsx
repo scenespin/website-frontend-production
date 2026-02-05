@@ -309,6 +309,7 @@ export function PronounMappingSection({
   };
   
   // Helper to get character with outfit data (prefer characters with outfit data)
+  // Feature 0250: Filter out empty outfits (outfits with no active/non-archived files)
   const getCharacterWithOutfits = (characterId: string): Character | null => {
     // First, try to find character in allCharactersWithOutfits (should have outfit data from sceneAnalysisResult)
     let char: any = null;
@@ -321,23 +322,56 @@ export function PronounMappingSection({
     
     if (!char) return null;
     
-    // If character doesn't have availableOutfits but has headshots, extract outfits from headshots
-    if ((!char.availableOutfits || char.availableOutfits.length === 0) && characterHeadshots[characterId]) {
-      const headshots = characterHeadshots[characterId] || [];
-      const outfitSet = new Set<string>();
-      headshots.forEach((headshot: any) => {
-        const outfitName = headshot.outfitName || headshot.metadata?.outfitName;
-        if (outfitName && outfitName !== 'default') {
-          outfitSet.add(outfitName);
-        }
+    // Get headshots for this character (used for filtering and extraction)
+    const headshots = characterHeadshots[characterId] || [];
+    
+    // Helper: Normalize outfit name for comparison (handles underscores, hyphens, spaces)
+    const normalizeOutfitName = (name: string): string => {
+      if (!name) return '';
+      return name.toLowerCase().replace(/[-_\s]+/g, '_').replace(/^_+|_+$/g, '').trim();
+    };
+    
+    // Helper: Check if an outfit has any active (non-archived) files
+    const outfitHasActiveFiles = (outfitName: string): boolean => {
+      if (!outfitName) return false;
+      const normalizedOutfit = normalizeOutfitName(outfitName);
+      return headshots.some((h: any) => {
+        const hOutfit = h.outfitName || h.metadata?.outfitName || 'default';
+        const normalizedHOutfit = normalizeOutfitName(hOutfit);
+        const isArchived = h.isArchived || h.metadata?.isArchived;
+        return normalizedHOutfit === normalizedOutfit && !isArchived;
       });
-      const extractedOutfits = Array.from(outfitSet).sort();
-      if (extractedOutfits.length > 0) {
+    };
+    
+    // If character has availableOutfits, filter to only those with active files
+    if (char.availableOutfits && char.availableOutfits.length > 0) {
+      const activeOutfits = char.availableOutfits.filter((outfit: string) => outfitHasActiveFiles(outfit));
+      if (activeOutfits.length > 0) {
         return {
           ...char,
-          availableOutfits: extractedOutfits
+          availableOutfits: activeOutfits
         };
       }
+      // If no active outfits after filtering, fall through to extract from headshots
+    }
+    
+    // Extract outfits from headshots (only non-archived ones)
+    const outfitSet = new Set<string>();
+    headshots.forEach((headshot: any) => {
+      const isArchived = headshot.isArchived || headshot.metadata?.isArchived;
+      if (isArchived) return; // Skip archived files
+      
+      const outfitName = headshot.outfitName || headshot.metadata?.outfitName;
+      if (outfitName && outfitName !== 'default') {
+        outfitSet.add(outfitName);
+      }
+    });
+    const extractedOutfits = Array.from(outfitSet).sort();
+    if (extractedOutfits.length > 0) {
+      return {
+        ...char,
+        availableOutfits: extractedOutfits
+      };
     }
     
     return char;
