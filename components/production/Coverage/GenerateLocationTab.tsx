@@ -201,28 +201,16 @@ export function GenerateLocationTab({
   const getAngleSelectionId = (angle: any) => angle?.s3Key || angle?.angleId || angle?.id || '';
 
   // ECU tab: source list and stable id per source (Feature 0232)
+  // Reference images use same grid as angles/backgrounds (no dropdown); list built from ecuReferenceOptions + presigned URLs
   const ecuSourceList = useMemo(() => {
     const loc = location ?? locationProfile;
     if (ecuSourceType === 'reference-images') {
-      const base = loc?.baseReference;
-      const fromImages = loc?.images?.filter((img: any) => img?.metadata?.isBase || img?.metadata?.source === 'user-upload' || img?.metadata?.createdIn === 'creation') ?? [];
-      if (fromImages.length > 0) {
-        return fromImages.map((img: any) => ({
-          id: img.s3Key || img.metadata?.s3Key || img.id || '',
-          imageUrl: img.imageUrl,
-          label: img.metadata?.isBase ? 'Base reference' : 'Reference',
-        })).filter((x: any) => x.id);
-      }
-      // Fallback to baseReference - include even if imageUrl is missing (backend can resolve from s3Key)
-      if (base?.s3Key) {
-        return [{ 
-          id: base.s3Key, 
-          imageUrl: base.imageUrl || '', // Empty string if missing - grid will show placeholder
-          label: 'Base reference',
-          s3Key: base.s3Key // Include s3Key for backend resolution
-        }];
-      }
-      return [];
+      return ecuReferenceOptions.map((opt) => ({
+        id: opt.s3Key,
+        s3Key: opt.s3Key,
+        label: opt.label,
+        imageUrl: ecuRefPresignedUrls.get(opt.s3Key) ?? '',
+      }));
     }
     if (ecuSourceType === 'angle-variations') {
       return (loc?.angleVariations || []).map((a: any) => ({
@@ -249,7 +237,7 @@ export function GenerateLocationTab({
       }));
     }
     return [];
-  }, [location, locationProfile, ecuSourceType]);
+  }, [location, locationProfile, ecuSourceType, ecuReferenceOptions, ecuRefPresignedUrls]);
   const getECUSourceId = (item: { id: string }) => item.id;
   const toggleECUSource = (id: string) => {
     setSelectedECUSourceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -1050,44 +1038,13 @@ export function GenerateLocationTab({
           </div>
           <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
             <h3 className="text-sm font-semibold text-white mb-3">Step 3b: Select source image(s)</h3>
-            {ecuSourceType === 'reference-images' ? (
-              ecuReferenceOptions.length === 0 ? (
-                <p className="text-sm text-[#808080]">No reference images. Add one in the Creation section.</p>
-              ) : (
-                <div className="space-y-2">
-                  <label className="block text-xs text-[#808080]">Use reference image</label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <select
-                      value={selectedECUSourceIds[0] ?? ecuReferenceOptions[0]?.s3Key ?? ''}
-                      onChange={(e) => setSelectedECUSourceIds(e.target.value ? [e.target.value] : [])}
-                      className="select select-bordered min-w-[180px] h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-                    >
-                      {ecuReferenceOptions.map((opt) => (
-                        <option key={opt.s3Key} value={opt.s3Key} className="bg-[#1A1A1A] text-white">
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    {(() => {
-                      const s3Key = selectedECUSourceIds[0] ?? ecuReferenceOptions[0]?.s3Key;
-                      const previewUrl = s3Key ? ecuRefPresignedUrls.get(s3Key) : null;
-                      return previewUrl ? (
-                        <div className={`${THUMBNAIL_ASPECT_RATIO} w-20 rounded border border-[#3F3F46] overflow-hidden bg-[#0A0A0A]`}>
-                          <img src={previewUrl} alt="" className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className={`${THUMBNAIL_ASPECT_RATIO} w-20 rounded border border-[#3F3F46] bg-[#0A0A0A] flex items-center justify-center text-[10px] text-[#606060]`}>
-                          Preview
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <p className="text-xs text-[#606060]">Preview uses a fresh URL so it stays valid after re-upload.</p>
-                </div>
-              )
-            ) : ecuSourceList.length === 0 ? (
+            {ecuSourceList.length === 0 ? (
               <p className="text-sm text-[#808080]">
-                {ecuSourceType === 'angle-variations' ? 'No angle variations. Generate angles first.' : 'No backgrounds. Generate backgrounds first.'}
+                {ecuSourceType === 'reference-images'
+                  ? 'No reference images. Add one in the Creation section.'
+                  : ecuSourceType === 'angle-variations'
+                    ? 'No angle variations. Generate angles first.'
+                    : 'No backgrounds. Generate backgrounds first.'}
               </p>
             ) : (
               <>
