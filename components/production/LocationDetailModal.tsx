@@ -598,6 +598,8 @@ export function LocationDetailModal({
       const isBackground = file.metadata?.isBackground === true ||
                            file.metadata?.source === 'background-generation' ||
                            file.metadata?.uploadMethod === 'background-generation' ||
+                           file.metadata?.source === 'ecu-generation' ||       // Feature 0232: ECU images are backgrounds
+                           file.metadata?.uploadMethod === 'ecu-generation' || // Feature 0232: ECU images are backgrounds
                            (dynamoMetadata?.isBackground ?? false);
       const isBase = dynamoMetadata?.isBase ?? false;
       
