@@ -323,16 +323,21 @@ function PoseImagesFromMediaLibrary({
   onClose: () => void;
 }) {
   // Query Media Library for files with entityType: 'character' and entityId: characterId
-  const { data: mediaFilesData, isLoading: isLoadingFiles } = useMediaFiles({
+  // useMediaFiles signature: (screenplayId, folderId?, enabled?, includeAllFolders?, entityType?, entityId?, directChildrenOnly?)
+  const { data: mediaFilesData, isLoading: isLoadingFiles } = useMediaFiles(
     screenplayId,
-    entityType: 'character',
-    entityId: characterId,
-  });
+    undefined, // folderId - not filtering by folder
+    true, // enabled
+    true, // includeAllFolders - search all folders for this character's poses
+    'character', // entityType
+    characterId // entityId
+  );
 
   // Filter to only pose images (source: 'pose-generation' or folder contains 'outfits')
+  // useMediaFiles returns MediaFile[] directly (not { files: [...] })
   const poseFiles = useMemo(() => {
-    if (!mediaFilesData?.files) return [];
-    return mediaFilesData.files.filter((file: any) => {
+    if (!mediaFilesData || !Array.isArray(mediaFilesData)) return [];
+    return mediaFilesData.filter((file: any) => {
       // Check if it's a pose from pose-generation
       const isPose = file.metadata?.source === 'pose-generation' || 
                      file.metadata?.uploadMethod === 'pose-generation' ||
@@ -344,7 +349,7 @@ function PoseImagesFromMediaLibrary({
                       file.s3Key?.match(/\.(png|jpg|jpeg|webp|gif)$/i);
       return isPose && isImage;
     }).slice(0, maxImages);
-  }, [mediaFilesData?.files, maxImages]);
+  }, [mediaFilesData, maxImages]);
 
   // Get S3 keys for bulk presigned URL generation
   const s3Keys = useMemo(() => 
@@ -420,7 +425,7 @@ function PoseImagesFromMediaLibrary({
           </div>
         );
       })}
-      {mediaFilesData?.files && mediaFilesData.files.filter((f: any) => 
+      {mediaFilesData && Array.isArray(mediaFilesData) && mediaFilesData.filter((f: any) => 
         (f.metadata?.source === 'pose-generation' || f.s3Key?.includes('/poses/')) && 
         f.fileType?.startsWith('image/')
       ).length > maxImages && (
