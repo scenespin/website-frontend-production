@@ -147,24 +147,39 @@ export function GenerateLocationTab({
   const [error, setError] = useState<string>('');
   
   // ECU reference options: s3Keys only (no stale imageUrl). Base first, then Reference 2, 3, ...
+  // 🔥 Feature 0232: Fixed to read from creationImages (LocationProfile format) instead of referenceImages
   const ecuReferenceOptions = useMemo(() => {
     const loc = location ?? locationProfile;
-    const baseKey = loc?.baseReference?.s3Key ?? loc?.referenceImages?.[0];
-    const refs = loc?.referenceImages || [];
-    if (!baseKey && refs.length === 0) return [];
+    
+    // Get base reference s3Key from LocationProfile
+    const baseKey = loc?.baseReference?.s3Key;
+    
+    // Get additional reference s3Keys from creationImages (LocationProfile format)
+    // Each creationImage is a LocationReference object with an s3Key property
+    const creationImageKeys: string[] = (loc?.creationImages || [])
+      .map((img: { s3Key?: string }) => img?.s3Key)
+      .filter((k): k is string => !!k);
+    
+    if (!baseKey && creationImageKeys.length === 0) return [];
+    
     const seen = new Set<string>();
     const out: { s3Key: string; label: string }[] = [];
+    
+    // Add base reference first
     if (baseKey) {
       seen.add(baseKey);
       out.push({ s3Key: baseKey, label: 'Base reference' });
     }
-    refs.forEach((k: string, i: number) => {
+    
+    // Add additional Creation images as Reference 2, 3, etc.
+    creationImageKeys.forEach((k: string) => {
       if (!k || seen.has(k)) return;
       seen.add(k);
-      out.push({ s3Key: k, label: out.length === 1 ? 'Reference 2' : `Reference ${out.length + 1}` });
+      out.push({ s3Key: k, label: `Reference ${out.length + 1}` });
     });
+    
     return out;
-  }, [location?.baseReference?.s3Key, location?.referenceImages, locationProfile?.baseReference?.s3Key, locationProfile?.referenceImages]);
+  }, [location?.baseReference?.s3Key, location?.creationImages, locationProfile?.baseReference?.s3Key, locationProfile?.creationImages]);
 
   const ecuRefS3Keys = useMemo(() => ecuReferenceOptions.map((r) => r.s3Key), [ecuReferenceOptions]);
   const ecuRefPresignedEnabled = packageType === 'extreme-closeups' && ecuSourceType === 'reference-images' && ecuRefS3Keys.length > 0;

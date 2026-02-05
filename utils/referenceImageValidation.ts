@@ -38,12 +38,30 @@ export function hasCharacterReference(opts: {
   return false;
 }
 
-/** Location has reference images (images or referenceImages array). */
+/** 
+ * Location has reference images.
+ * Supports both LocationProfile (baseReference + creationImages) and raw Location (referenceImages).
+ * 🔥 Feature 0232: Fixed to check LocationProfile properties correctly.
+ */
 export function hasLocationReference(location?: {
+  // LocationProfile properties (from /api/location-bank/list)
+  baseReference?: { s3Key?: string } | null;
+  creationImages?: unknown[];
+  // Raw Location properties (backward compatibility)
   images?: unknown[];
   referenceImages?: unknown[];
 } | null): boolean {
   if (!location) return false;
+  
+  // Check LocationProfile properties first (preferred format)
+  if (location.baseReference?.s3Key && location.baseReference.s3Key.trim() !== '') {
+    return true;
+  }
+  if (Array.isArray(location.creationImages) && location.creationImages.length > 0) {
+    return true;
+  }
+  
+  // Fallback: Check raw Location properties (backward compatibility)
   const images = location.images ?? location.referenceImages;
   return Array.isArray(images) && images.length > 0;
 }
