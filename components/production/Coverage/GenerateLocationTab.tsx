@@ -51,6 +51,12 @@ const ECU_PACKAGES: Record<string, {
   variationTypes: string[];
   variationCount: number;
 }> = {
+  single: {
+    id: 'single',
+    name: 'Single',
+    variationTypes: ['ecu-soft'],
+    variationCount: 1,
+  },
   essentials: { 
     id: 'essentials', 
     name: 'Essentials', 
@@ -176,7 +182,11 @@ export function GenerateLocationTab({
       }));
     }
     if (ecuSourceType === 'backgrounds') {
-      return (loc?.backgrounds || []).map((b: any) => ({
+      // Exclude ECU backgrounds so they are not offered as sources for generating more ECUs
+      const nonEcuBackgrounds = (loc?.backgrounds || []).filter(
+        (b: any) => b.metadata?.useCase !== 'extreme-closeup'
+      );
+      return nonEcuBackgrounds.map((b: any) => ({
         id: b.s3Key || b.id,
         imageUrl: b.imageUrl,
         label: BACKGROUND_TYPE_LABELS[b.backgroundType] || b.backgroundType || 'Background',
@@ -1057,11 +1067,13 @@ export function GenerateLocationTab({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {Object.values(ECU_PACKAGES).map((pkg) => {
                 const PACKAGE_ICONS: Record<string, any> = {
+                  single: ImageIcon,
                   essentials: Zap,
                   standard: Check,
                   premium: Star
                 };
                 const PACKAGE_COLORS: Record<string, string> = {
+                  single: 'from-[#6B7280] to-[#4B5563]',
                   essentials: 'from-base-content/50 to-base-content/40',
                   standard: 'from-blue-500 to-blue-600',
                   premium: 'from-purple-500 to-purple-600'
