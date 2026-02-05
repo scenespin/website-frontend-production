@@ -18,6 +18,7 @@ import { Loader2, Zap, Check, Star, ImageIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { hasLocationReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import LocationAnglePackageSelector from '../LocationAnglePackageSelector';
 import LocationBackgroundPackageSelector from '../LocationBackgroundPackageSelector';
@@ -138,11 +139,47 @@ export function GenerateLocationTab({
   const [ecuSourceType, setEcuSourceType] = useState<'reference-images' | 'angle-variations' | 'backgrounds'>('reference-images');
   const [selectedECUSourceIds, setSelectedECUSourceIds] = useState<string[]>([]);
   const [ecuPackageId, setEcuPackageId] = useState<string>('essentials');
+  // When Single package is selected, which one variation to generate (dropdown)
+  const [singleVariationType, setSingleVariationType] = useState<string>('ecu-soft');
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>('');
   
+  // ECU reference options: s3Keys only (no stale imageUrl). Base first, then Reference 2, 3, ...
+  const ecuReferenceOptions = useMemo(() => {
+    const loc = location ?? locationProfile;
+    const baseKey = loc?.baseReference?.s3Key ?? loc?.referenceImages?.[0];
+    const refs = loc?.referenceImages || [];
+    if (!baseKey && refs.length === 0) return [];
+    const seen = new Set<string>();
+    const out: { s3Key: string; label: string }[] = [];
+    if (baseKey) {
+      seen.add(baseKey);
+      out.push({ s3Key: baseKey, label: 'Base reference' });
+    }
+    refs.forEach((k: string, i: number) => {
+      if (!k || seen.has(k)) return;
+      seen.add(k);
+      out.push({ s3Key: k, label: out.length === 1 ? 'Reference 2' : `Reference ${out.length + 1}` });
+    });
+    return out;
+  }, [location?.baseReference?.s3Key, location?.referenceImages, locationProfile?.baseReference?.s3Key, locationProfile?.referenceImages]);
+
+  const ecuRefS3Keys = useMemo(() => ecuReferenceOptions.map((r) => r.s3Key), [ecuReferenceOptions]);
+  const ecuRefPresignedEnabled = packageType === 'extreme-closeups' && ecuSourceType === 'reference-images' && ecuRefS3Keys.length > 0;
+  const { data: ecuRefPresignedUrls = new Map<string, string>() } = useBulkPresignedUrls(ecuRefS3Keys, ecuRefPresignedEnabled);
+
+  // When ECU source is reference-images, ensure one reference is selected (use first if none or selection no longer in list)
+  useEffect(() => {
+    if (ecuSourceType !== 'reference-images' || ecuReferenceOptions.length === 0) return;
+    const current = selectedECUSourceIds[0];
+    const inList = current && ecuReferenceOptions.some((r) => r.s3Key === current);
+    if (!inList) {
+      setSelectedECUSourceIds([ecuReferenceOptions[0].s3Key]);
+    }
+  }, [ecuSourceType, ecuReferenceOptions]);
+
   // Get available angles for source selection
   const availableAngles = location?.angleVariations || [];
   // Stable id for selection/API: backend matches by id or s3Key; use s3Key when present so selection survives Media Library vs API shape
@@ -425,13 +462,13 @@ export function GenerateLocationTab({
       return;
     }
     if (packageType === 'extreme-closeups') {
+      if (ecuSourceType === 'reference-images' && !hasLocationReference(loc)) {
+        showReferenceRequired(toast, setError);
+        return;
+      }
       if (selectedECUSourceIds.length === 0) {
         toast.error('Select at least one source image for ECU generation.');
         setError('Select at least one source image.');
-        return;
-      }
-      if (ecuSourceType === 'reference-images' && !hasLocationReference(loc)) {
-        showReferenceRequired(toast, setError);
         return;
       }
       if (ecuSourceType === 'backgrounds' && (!loc?.backgrounds || loc.backgrounds.length === 0)) {
@@ -470,6 +507,7 @@ export function GenerateLocationTab({
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             ecuPackageId,
+            ...(ecuPackageId === 'single' && { selectedVariationType: singleVariationType }),
             sourceType: ecuSourceType,
             selectedSourceIds: selectedECUSourceIds,
             providerId,
@@ -997,12 +1035,48 @@ export function GenerateLocationTab({
           </div>
           <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
             <h3 className="text-sm font-semibold text-white mb-3">Step 3b: Select source image(s)</h3>
-            <p className="text-xs text-[#808080] mb-2">One ECU image will be generated per selected image.</p>
-            {ecuSourceList.length === 0 ? (
+            {ecuSourceType === 'reference-images' ? (
+              ecuReferenceOptions.length === 0 ? (
+                <p className="text-sm text-[#808080]">No reference images. Add one in the Creation section.</p>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-xs text-[#808080]">Use reference image</label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <select
+                      value={selectedECUSourceIds[0] ?? ecuReferenceOptions[0]?.s3Key ?? ''}
+                      onChange={(e) => setSelectedECUSourceIds(e.target.value ? [e.target.value] : [])}
+                      className="select select-bordered min-w-[180px] h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                    >
+                      {ecuReferenceOptions.map((opt) => (
+                        <option key={opt.s3Key} value={opt.s3Key} className="bg-[#1A1A1A] text-white">
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {(() => {
+                      const s3Key = selectedECUSourceIds[0] ?? ecuReferenceOptions[0]?.s3Key;
+                      const previewUrl = s3Key ? ecuRefPresignedUrls.get(s3Key) : null;
+                      return previewUrl ? (
+                        <div className={`${THUMBNAIL_ASPECT_RATIO} w-20 rounded border border-[#3F3F46] overflow-hidden bg-[#0A0A0A]`}>
+                          <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className={`${THUMBNAIL_ASPECT_RATIO} w-20 rounded border border-[#3F3F46] bg-[#0A0A0A] flex items-center justify-center text-[10px] text-[#606060]`}>
+                          Preview
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <p className="text-xs text-[#606060]">Preview uses a fresh URL so it stays valid after re-upload.</p>
+                </div>
+              )
+            ) : ecuSourceList.length === 0 ? (
               <p className="text-sm text-[#808080]">
-                {ecuSourceType === 'reference-images' ? 'No reference images.' : ecuSourceType === 'angle-variations' ? 'No angle variations. Generate angles first.' : 'No backgrounds. Generate backgrounds first.'}
+                {ecuSourceType === 'angle-variations' ? 'No angle variations. Generate angles first.' : 'No backgrounds. Generate backgrounds first.'}
               </p>
             ) : (
+              <>
+                <p className="text-xs text-[#808080] mb-2">One ECU image will be generated per selected image.</p>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 bg-[#0A0A0A] rounded border border-[#3F3F46]">
                 {ecuSourceList.map((item) => {
                   const id = getECUSourceId(item);
@@ -1057,6 +1131,7 @@ export function GenerateLocationTab({
                   );
                 })}
               </div>
+              </>
             )}
           </div>
           <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
@@ -1153,9 +1228,23 @@ export function GenerateLocationTab({
                 );
               })}
             </div>
+            {ecuPackageId === 'single' && (
+              <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                <label className="block text-xs text-[#808080] mb-1.5">Style for single ECU</label>
+                <select
+                  value={singleVariationType}
+                  onChange={(e) => setSingleVariationType(e.target.value)}
+                  className="select select-bordered w-full max-w-xs h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                >
+                  {Object.entries(ECU_VARIATION_LABELS).map(([value, label]) => (
+                    <option key={value} value={value} className="bg-[#1A1A1A] text-white">{label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             {selectedECUSourceIds.length > 0 && (
               <p className="mt-3 text-xs text-[#808080]">
-                {selectedECUSourceIds.length} source{selectedECUSourceIds.length !== 1 ? 's' : ''} selected × {ECU_PACKAGES[ecuPackageId]?.variationCount || 0} variation{ECU_PACKAGES[ecuPackageId]?.variationCount !== 1 ? 's' : ''} = {selectedECUSourceIds.length * (ECU_PACKAGES[ecuPackageId]?.variationCount || 0)} total ECU image{selectedECUSourceIds.length * (ECU_PACKAGES[ecuPackageId]?.variationCount || 0) !== 1 ? 's' : ''}
+                {selectedECUSourceIds.length} source{selectedECUSourceIds.length !== 1 ? 's' : ''} selected × {ecuPackageId === 'single' ? 1 : (ECU_PACKAGES[ecuPackageId]?.variationCount || 0)} variation{(ecuPackageId === 'single' ? 1 : ECU_PACKAGES[ecuPackageId]?.variationCount || 0) !== 1 ? 's' : ''} = {selectedECUSourceIds.length * (ecuPackageId === 'single' ? 1 : (ECU_PACKAGES[ecuPackageId]?.variationCount || 0))} total ECU image{selectedECUSourceIds.length * (ecuPackageId === 'single' ? 1 : (ECU_PACKAGES[ecuPackageId]?.variationCount || 0)) !== 1 ? 's' : ''}
               </p>
             )}
           </div>
