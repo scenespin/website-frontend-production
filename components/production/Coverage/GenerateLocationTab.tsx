@@ -284,6 +284,18 @@ export function GenerateLocationTab({
       return matchesTimeOfDay && matchesWeather;
     });
   }, [availableAngles, sourceType, filterTimeOfDay, filterWeather]);
+
+  // When Background source is angle-variations, ensure one angle is selected (single-select default)
+  useEffect(() => {
+    if (packageType !== 'backgrounds' || sourceType !== 'angle-variations' || filteredAngles.length === 0) return;
+    const current = selectedAngleIds[0];
+    const filteredIds = filteredAngles.map((a: any) => getAngleSelectionId(a));
+    const inList = current && filteredIds.includes(current);
+    if (!inList) {
+      setSelectedAngleIds([getAngleSelectionId(filteredAngles[0])]);
+      setSelectedAngleId(getAngleSelectionId(filteredAngles[0]));
+    }
+  }, [packageType, sourceType, filteredAngles]);
   
   // Get selected angles with full data (match by stable selection id)
   const selectedAngles = useMemo(() => {
@@ -339,51 +351,13 @@ export function GenerateLocationTab({
     return { canSelect: true };
   };
   
-  // Toggle angle selection (multi-select) with validation
-  const toggleAngleSelection = (angleId: string) => {
-    const angle = availableAngles.find((a: any) => getAngleSelectionId(a) === angleId);
-    if (!angle) return;
+  // Single-select: one angle per background generation run (same as reference images)
+  const selectAngleForBackground = (angleId: string) => {
+    setSelectedAngleIds(prev => (prev.includes(angleId) ? prev : [angleId]));
+    setSelectedAngleId(angleId);
+  };
 
-    if (selectedAngleIds.includes(angleId)) {
-      // Deselecting - always allowed
-      setSelectedAngleIds(prev => prev.filter(id => id !== angleId));
-      if (selectedAngleIds.length === 1) {
-        setSelectedAngleId('');
-      }
-    } else {
-      const validation = canSelectAngle(angle);
-      if (!validation.canSelect) {
-        toast.error(validation.reason || 'Cannot select this angle');
-        return;
-      }
-      setSelectedAngleIds(prev => [...prev, angleId]);
-      setSelectedAngleId(angleId);
-    }
-  };
-  
-  // Select all filtered angles (only if they all have same metadata)
-  const selectAllFiltered = () => {
-    if (filteredAngles.length === 0) return;
-    
-    // Check if all filtered angles have same metadata
-    const timeOfDays = filteredAngles.map((a: any) => a.timeOfDay).filter(Boolean);
-    const weathers = filteredAngles.map((a: any) => a.weather).filter(Boolean);
-    const uniqueTimeOfDays = [...new Set(timeOfDays)];
-    const uniqueWeathers = [...new Set(weathers)];
-    
-    if (uniqueTimeOfDays.length > 1 || uniqueWeathers.length > 1) {
-      toast.error('Cannot select all: angles have different metadata. Please adjust filters.');
-      return;
-    }
-    
-    const allIds = filteredAngles.map((a: any) => getAngleSelectionId(a)).filter(Boolean);
-    setSelectedAngleIds(allIds);
-    if (allIds.length > 0) {
-      setSelectedAngleId(allIds[0]); // For backward compatibility
-    }
-  };
-  
-  // Clear all selections
+  // Clear angle selection (Background Packages)
   const clearAngleSelections = () => {
     setSelectedAngleIds([]);
     setSelectedAngleId('');
@@ -489,14 +463,21 @@ export function GenerateLocationTab({
       showReferenceRequired(toast, setError);
       return;
     }
-    if (packageType === 'backgrounds' && sourceType === 'reference-images') {
-      if (!hasLocationReference(loc)) {
-        showReferenceRequired(toast, setError);
-        return;
+    if (packageType === 'backgrounds') {
+      if (sourceType === 'reference-images') {
+        if (!hasLocationReference(loc)) {
+          showReferenceRequired(toast, setError);
+          return;
+        }
+        if (selectedBackgroundReferenceIds.length === 0) {
+          toast.error('Select one reference image.');
+          setError('Select one reference image.');
+          return;
+        }
       }
-      if (selectedBackgroundReferenceIds.length === 0) {
-        toast.error('Select at least one reference image.');
-        setError('Select at least one reference image.');
+      if (sourceType === 'angle-variations' && selectedAngleIds.length === 0) {
+        toast.error('Select one angle.');
+        setError('Select one angle.');
         return;
       }
     }
@@ -935,31 +916,22 @@ export function GenerateLocationTab({
                       </div>
                     </div>
                     
-                    {/* Selection Controls */}
+                    {/* Selection Controls - single-select: one angle per run */}
                     {filteredAngles.length > 0 && (
                       <div className="flex items-center justify-between">
                         <div className="text-xs text-[#808080]">
                           {filteredAngles.length} angle{filteredAngles.length !== 1 ? 's' : ''} found
-                          {selectedAngleIds.length > 0 && ` • ${selectedAngleIds.length} selected`}
+                          {selectedAngleIds.length > 0 && ' • 1 selected'}
                         </div>
-                        <div className="flex gap-2">
+                        {selectedAngleIds.length > 0 && (
                           <button
                             type="button"
-                            onClick={selectAllFiltered}
+                            onClick={clearAngleSelections}
                             className="px-3 py-1 text-xs bg-[#0A0A0A] border border-[#3F3F46] hover:bg-[#1A1A1A] text-white rounded transition-colors"
                           >
-                            Select All
+                            Clear
                           </button>
-                          {selectedAngleIds.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={clearAngleSelections}
-                              className="px-3 py-1 text-xs bg-[#0A0A0A] border border-[#3F3F46] hover:bg-[#1A1A1A] text-white rounded transition-colors"
-                            >
-                              Clear
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     )}
                     
@@ -969,7 +941,6 @@ export function GenerateLocationTab({
                         {filteredAngles.map((angle: any) => {
                           const angleSelId = getAngleSelectionId(angle);
                           const isSelected = selectedAngleIds.includes(angleSelId);
-                          const validation = canSelectAngle(angle);
                           const hasMetadata = (angle.generationMethod === 'ai-generated' || angle.generationMethod === 'angle-variation') &&
                             (angle.timeOfDay || angle.weather);
 
@@ -977,16 +948,11 @@ export function GenerateLocationTab({
                             <button
                               key={angleSelId || angle.angle || 'angle'}
                               type="button"
-                              onClick={() => toggleAngleSelection(angleSelId)}
-                              disabled={!validation.canSelect && !isSelected}
+                              onClick={() => selectAngleForBackground(angleSelId)}
                               className={`relative ${THUMBNAIL_ASPECT_RATIO} rounded border-2 transition-all ${
-                                isSelected
-                                  ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
-                                  : !validation.canSelect
-                                  ? 'border-[#3F3F46] opacity-50 cursor-not-allowed'
-                                  : 'border-[#3F3F46] hover:border-[#808080]'
+                                isSelected ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50' : 'border-[#3F3F46] hover:border-[#808080]'
                               }`}
-                              title={`${angle.angle || 'Angle'}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}${!validation.canSelect && !isSelected ? ' - Cannot mix with selected angles' : ''}`}
+                              title={`${angle.angle || 'Angle'}${angle.timeOfDay ? ` - ${angle.timeOfDay}` : ''}${angle.weather ? ` - ${angle.weather}` : ''}`}
                             >
                               {angle.imageUrl ? (
                                 <img
@@ -1408,6 +1374,7 @@ export function GenerateLocationTab({
             !providerId ||
             (packageType !== 'extreme-closeups' && !selectedPackageId) ||
             (packageType === 'backgrounds' && sourceType === 'reference-images' && selectedBackgroundReferenceIds.length === 0) ||
+            (packageType === 'backgrounds' && sourceType === 'angle-variations' && selectedAngleIds.length === 0) ||
             (packageType === 'extreme-closeups' && (selectedECUSourceIds.length === 0 || (ecuSourceType === 'backgrounds' && (!location?.backgrounds || location.backgrounds.length === 0))))
           }
           className="flex-1 px-4 py-3 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
