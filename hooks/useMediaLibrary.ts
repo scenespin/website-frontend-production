@@ -228,17 +228,46 @@ export function usePresignedUrl(s3Key: string | null, enabled: boolean = false) 
 
 /**
  * Query hook for generating bulk presigned URLs (for grid view thumbnails)
+ * 
+ * Feature 0243: Can use proxy URLs (stable, cacheable) or presigned URLs (legacy).
+ * Toggle via USE_PROXY_URLS environment variable or feature flag.
  */
 export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) {
   const { getToken } = useAuth();
+  
+  // Feature flag: Set to false to use legacy presigned URLs (for testing/debugging)
+  const USE_PROXY_URLS = process.env.NEXT_PUBLIC_USE_PROXY_URLS !== 'false'; // Default: true (use proxy)
 
   return useQuery<Map<string, string>, Error>({
-    queryKey: ['media', 'presigned-urls', [...s3Keys].sort().join(',')],
+    queryKey: ['media', 'presigned-urls', [...s3Keys].sort().join(','), USE_PROXY_URLS ? 'proxy' : 'presigned'],
     queryFn: async () => {
       if (s3Keys.length === 0) {
         return new Map();
       }
 
+      // Feature 0243: Use proxy URLs if enabled (stable, cacheable, no API call)
+      if (USE_PROXY_URLS) {
+        const urlMap = new Map<string, string>();
+        s3Keys.forEach((s3Key) => {
+          if (s3Key) {
+            urlMap.set(s3Key, `/api/media/file?key=${encodeURIComponent(s3Key)}`);
+          }
+        });
+
+        console.log('[useBulkPresignedUrls] ✅ Generated proxy URLs:', {
+          success: true,
+          urlsCount: urlMap.size,
+          urlsSample: Array.from(urlMap.entries()).slice(0, 2).map(([key, url]) => ({
+            s3Key: key.substring(0, 50) + '...',
+            proxyUrl: url,
+            isThumbnail: key.includes('thumbnails/')
+          }))
+        });
+
+        return urlMap;
+      }
+
+      // Legacy: Fetch presigned URLs from API
       const token = await getAuthToken(getToken);
       if (!token) {
         throw new Error('Not authenticated');
@@ -249,7 +278,6 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
         expiresIn: 3600, // 1 hour
       };
 
-      // Debug logging for thumbnail URL generation
       console.log('[useBulkPresignedUrls] 🔍 Requesting bulk presigned URLs:', {
         s3KeysCount: s3Keys.length,
         s3KeysSample: s3Keys.slice(0, 3).map(k => k.substring(0, 50) + '...'),
@@ -285,7 +313,6 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
         }
       });
 
-      // Debug logging for successful thumbnail URL generation
       console.log('[useBulkPresignedUrls] ✅ Bulk presigned URL response:', {
         success: true,
         urlsCount: urlMap.size,
@@ -299,9 +326,9 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
       return urlMap;
     },
     enabled: enabled && s3Keys.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: USE_PROXY_URLS ? Infinity : 5 * 60 * 1000, // Proxy URLs never expire, presigned URLs expire in 5 min
     gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: 2,
+    retry: USE_PROXY_URLS ? false : 2, // No retry needed for proxy URLs
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 }

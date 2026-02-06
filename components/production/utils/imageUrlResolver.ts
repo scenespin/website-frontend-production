@@ -13,7 +13,10 @@ import type { MediaFile } from '@/types/media';
  * Priority order:
  * 1. Thumbnail URL (fastest, smallest)
  * 2. Full image URL from map (for selected/visible items)
- * 3. Fallback imageUrl (if it's a valid presigned URL)
+ * 3. Fallback to proxy URL (if USE_PROXY_URLS enabled) or fallback imageUrl
+ * 
+ * Feature 0243: Can use proxy URLs (stable, cacheable) or presigned URLs (legacy).
+ * Toggle via USE_PROXY_URLS environment variable.
  * 
  * @param options - Resolution options
  * @returns The best available image URL, or null if none available
@@ -23,9 +26,9 @@ export function resolveImageUrl(options: {
   s3Key: string | null | undefined;
   /** Map of s3Key -> thumbnailS3Key */
   thumbnailS3KeyMap?: Map<string, string> | null;
-  /** Map of thumbnailS3Key -> presigned URL */
+  /** Map of thumbnailS3Key -> URL (proxy URL or presigned URL) */
   thumbnailUrlsMap?: Map<string, string> | null;
-  /** Map of s3Key -> full image presigned URL */
+  /** Map of s3Key -> full image URL (proxy URL or presigned URL) */
   fullImageUrlsMap?: Map<string, string> | null;
   /** Fallback imageUrl (should be presigned URL, but will be validated) */
   fallbackImageUrl?: string | null;
@@ -37,6 +40,9 @@ export function resolveImageUrl(options: {
     fullImageUrlsMap,
     fallbackImageUrl
   } = options;
+
+  // Feature flag: Set to false to use legacy presigned URLs (for testing/debugging)
+  const USE_PROXY_URLS = process.env.NEXT_PUBLIC_USE_PROXY_URLS !== 'false'; // Default: true (use proxy)
 
   // If no s3Key, we can't resolve anything
   if (!s3Key) {
@@ -50,10 +56,17 @@ export function resolveImageUrl(options: {
   // Priority 1: Try thumbnail URL (fastest)
   if (thumbnailS3KeyMap?.has(s3Key)) {
     const thumbnailS3Key = thumbnailS3KeyMap.get(s3Key);
-    if (thumbnailS3Key && thumbnailUrlsMap?.has(thumbnailS3Key)) {
-      const thumbnailUrl = thumbnailUrlsMap.get(thumbnailS3Key);
-      if (thumbnailUrl && isValidImageUrl(thumbnailUrl)) {
-        return thumbnailUrl;
+    if (thumbnailS3Key) {
+      // Check if map has a URL (could be proxy URL or presigned URL)
+      if (thumbnailUrlsMap?.has(thumbnailS3Key)) {
+        const thumbnailUrl = thumbnailUrlsMap.get(thumbnailS3Key);
+        if (thumbnailUrl && isValidImageUrl(thumbnailUrl)) {
+          return thumbnailUrl;
+        }
+      }
+      // If USE_PROXY_URLS enabled and no URL in map, generate proxy URL from thumbnailS3Key
+      if (USE_PROXY_URLS) {
+        return `/api/media/file?key=${encodeURIComponent(thumbnailS3Key)}`;
       }
     }
   }
@@ -66,7 +79,12 @@ export function resolveImageUrl(options: {
     }
   }
 
-  // Priority 3: Try fallback imageUrl (if it's a valid presigned URL)
+  // Priority 3: Generate proxy URL for original s3Key (if USE_PROXY_URLS enabled)
+  if (USE_PROXY_URLS) {
+    return `/api/media/file?key=${encodeURIComponent(s3Key)}`;
+  }
+
+  // Priority 4: Try fallback imageUrl (if it's a valid presigned URL)
   if (fallbackImageUrl && isValidImageUrl(fallbackImageUrl)) {
     return fallbackImageUrl;
   }
@@ -76,7 +94,9 @@ export function resolveImageUrl(options: {
 }
 
 /**
- * Checks if a string is a valid image URL (presigned URL or data URL).
+ * Checks if a string is a valid image URL (presigned URL, proxy URL, or data URL).
+ * 
+ * Feature 0243: Updated to accept proxy URLs (relative paths starting with /).
  * 
  * @param url - The URL to validate
  * @returns True if the URL is valid, false otherwise
@@ -86,9 +106,13 @@ export function isValidImageUrl(url: string | null | undefined): boolean {
     return false;
   }
   
-  // Valid if it starts with http/https (presigned URL) or data: (data URL)
+  // Valid if it starts with:
+  // - http/https (presigned URL)
+  // - / (proxy URL or relative path)
+  // - data: (data URL)
   return url.startsWith('http://') || 
          url.startsWith('https://') || 
+         url.startsWith('/') ||
          url.startsWith('data:');
 }
 
