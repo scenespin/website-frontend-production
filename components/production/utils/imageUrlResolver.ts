@@ -184,6 +184,9 @@ export interface MediaFilePresignedMaps {
  * Resolves display URL for a MediaFile by storage type.
  * Use for local/wryda-temp (S3), google-drive, and dropbox (with dropboxUrlMap).
  * Call from components that display media; pair with useDropboxPreviewUrls for Dropbox.
+ * 
+ * Feature 0243: Phase 1 - Returns proxy URL for S3 and Dropbox (stable, cacheable).
+ * Presigned maps and dropboxUrlMap are ignored for local/dropbox when proxy is used.
  */
 export function getMediaFileDisplayUrl(
   file: MediaFile,
@@ -197,15 +200,15 @@ export function getMediaFileDisplayUrl(
     return `https://drive.google.com/uc?export=view&id=${cloudFileId}`;
   }
   if (st === 'dropbox') {
-    return dropboxUrlMap?.get(file.id) ?? null;
+    // Feature 0243: Use proxy URL for Dropbox (stable, cacheable)
+    const dropboxPath = getDropboxPath(file);
+    if (!dropboxPath) return null;
+    return `/api/media/file?provider=dropbox&path=${encodeURIComponent(dropboxPath)}`;
   }
   if (st === 'local' || st === 'wryda-temp') {
-    return resolveImageUrl({
-      s3Key: file.s3Key ?? null,
-      thumbnailS3KeyMap: presignedMaps?.thumbnailS3KeyMap ?? undefined,
-      thumbnailUrlsMap: presignedMaps?.thumbnailUrlsMap ?? undefined,
-      fullImageUrlsMap: presignedMaps?.fullImageUrlsMap ?? undefined,
-    });
+    // Feature 0243: Use proxy URL for S3 (stable, cacheable)
+    if (!file.s3Key) return null;
+    return `/api/media/file?key=${encodeURIComponent(file.s3Key)}`;
   }
   return null;
 }
