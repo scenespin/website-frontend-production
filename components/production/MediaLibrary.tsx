@@ -668,7 +668,7 @@ export default function MediaLibrary({
       return displayFiles;
     }
     
-    return displayFiles.filter(file => {
+    const filtered = displayFiles.filter(file => {
       // Cloud storage files are always valid (they have original URLs)
       if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
         return !!file.fileUrl; // Only filter if no fileUrl at all
@@ -679,9 +679,40 @@ export default function MediaLibrary({
       const fileUrl = getFileUrl(file, useThumbnail);
       
       // Include file if it has a valid URL (non-empty string)
-      return !!fileUrl && fileUrl.length > 0;
+      const isValid = !!fileUrl && fileUrl.length > 0;
+      
+      // 🔍 DEBUG: Log filtered out videos
+      if (!isValid && file.mediaFileType === 'video' && file.s3Key) {
+        console.warn('[MediaLibrary] Video filtered out (no URL):', {
+          fileName: file.fileName,
+          s3Key: file.s3Key.substring(0, 80),
+          hasPresignedUrl: bulkPresignedUrls.has(file.s3Key),
+          useThumbnail,
+          thumbnailS3Key: file.thumbnailS3Key,
+          viewMode
+        });
+      }
+      
+      return isValid;
     });
-  }, [displayFiles, bulkPresignedUrls, viewMode, getFileUrl]);
+    
+    // 🔍 DEBUG: Log video files in folder
+    if (selectedFolderId) {
+      const videosInDisplay = displayFiles.filter(f => f.mediaFileType === 'video');
+      const videosInFiltered = filtered.filter(f => f.mediaFileType === 'video');
+      if (videosInDisplay.length !== videosInFiltered.length) {
+        console.warn('[MediaLibrary] Videos filtered:', {
+          folderId: selectedFolderId,
+          totalVideos: videosInDisplay.length,
+          filteredVideos: videosInFiltered.length,
+          filteredOut: videosInDisplay.length - videosInFiltered.length,
+          videoFiles: videosInDisplay.map(f => ({ fileName: f.fileName, s3Key: f.s3Key?.substring(0, 50) }))
+        });
+      }
+    }
+    
+    return filtered;
+  }, [displayFiles, bulkPresignedUrls, viewMode, getFileUrl, selectedFolderId]);
 
   // Helper function to detect file type from MIME type or filename
   const detectFileType = (mimeTypeOrFilename: string): 'video' | 'image' | 'audio' | 'other' => {
