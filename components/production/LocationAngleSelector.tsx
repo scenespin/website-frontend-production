@@ -194,16 +194,20 @@ export function LocationAngleSelector({
       addedS3Keys.add(baseReference.s3Key);
     }
     
-    // Group backgrounds by timeOfDay/weather (same grouping logic)
+    // Group backgrounds by timeOfDay/weather, or "Extreme close-ups" for ECU (metadata.useCase)
+    const EXTREME_CLOSE_UPS_GROUP = 'Extreme close-ups';
     backgrounds.forEach(background => {
+      const isExtremeCloseUp = (background as any).metadata?.useCase === 'extreme-closeup';
       const metadataParts = [
         background.timeOfDay ? background.timeOfDay : null,
         background.weather ? background.weather : null
       ].filter(Boolean);
       
-      const groupKey = metadataParts.length > 0 
-        ? metadataParts.join(' • ') 
-        : 'No Metadata';
+      const groupKey = isExtremeCloseUp
+        ? EXTREME_CLOSE_UPS_GROUP
+        : metadataParts.length > 0
+          ? metadataParts.join(' • ')
+          : 'No Metadata';
       
       if (!groups[groupKey]) groups[groupKey] = [];
       
@@ -267,6 +271,8 @@ export function LocationAngleSelector({
       if (b === 'No Metadata') return -1;
       if (a === 'Creation Image') return 1; // Creation Image last
       if (b === 'Creation Image') return -1;
+      if (a === 'Extreme close-ups') return -1; // Before No Metadata
+      if (b === 'Extreme close-ups') return 1;
       return a.localeCompare(b);
     });
   }, [groupedPhotos]);
@@ -561,6 +567,8 @@ export function LocationAngleSelector({
                     displayName = 'Creation Image';
                   } else if (groupKey === 'No Metadata') {
                     displayName = 'No Metadata';
+                  } else if (groupKey === 'Extreme close-ups') {
+                    displayName = 'Extreme close-ups';
                   } else {
                     displayName = groupKey
                       .split(' • ')
