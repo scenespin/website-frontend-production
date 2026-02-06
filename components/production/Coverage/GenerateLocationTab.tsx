@@ -123,6 +123,7 @@ export function GenerateLocationTab({
   const [sourceType, setSourceType] = useState<'reference-images' | 'angle-variations'>('reference-images');
   const [selectedAngleId, setSelectedAngleId] = useState<string>(''); // For backward compatibility (single select)
   const [selectedAngleIds, setSelectedAngleIds] = useState<string[]>([]); // NEW: Multi-select support
+  const [selectedBackgroundReferenceIds, setSelectedBackgroundReferenceIds] = useState<string[]>([]); // When source is reference-images
   
   // Step 2b.1: Metadata filters for angle selection (only for backgrounds with angle-variations source)
   const [filterTimeOfDay, setFilterTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>('');
@@ -182,7 +183,9 @@ export function GenerateLocationTab({
   }, [location?.baseReference?.s3Key, location?.creationImages, locationProfile?.baseReference?.s3Key, locationProfile?.creationImages]);
 
   const ecuRefS3Keys = useMemo(() => ecuReferenceOptions.map((r) => r.s3Key), [ecuReferenceOptions]);
-  const ecuRefPresignedEnabled = packageType === 'extreme-closeups' && ecuSourceType === 'reference-images' && ecuRefS3Keys.length > 0;
+  const ecuRefPresignedEnabled =
+    (packageType === 'extreme-closeups' && ecuSourceType === 'reference-images' && ecuRefS3Keys.length > 0) ||
+    (packageType === 'backgrounds' && sourceType === 'reference-images' && ecuRefS3Keys.length > 0);
   const { data: ecuRefPresignedUrls = new Map<string, string>() } = useBulkPresignedUrls(ecuRefS3Keys, ecuRefPresignedEnabled);
 
   // When ECU source is reference-images, ensure one reference is selected (use first if none or selection no longer in list)
@@ -194,6 +197,16 @@ export function GenerateLocationTab({
       setSelectedECUSourceIds([ecuReferenceOptions[0].s3Key]);
     }
   }, [ecuSourceType, ecuReferenceOptions]);
+
+  // When Background source is reference-images, ensure one reference is selected (same as ECU)
+  useEffect(() => {
+    if (packageType !== 'backgrounds' || sourceType !== 'reference-images' || ecuReferenceOptions.length === 0) return;
+    const current = selectedBackgroundReferenceIds[0];
+    const inList = current && ecuReferenceOptions.some((r) => r.s3Key === current);
+    if (!inList) {
+      setSelectedBackgroundReferenceIds([ecuReferenceOptions[0].s3Key]);
+    }
+  }, [packageType, sourceType, ecuReferenceOptions]);
 
   // Get available angles for source selection
   const availableAngles = location?.angleVariations || [];
@@ -239,8 +252,24 @@ export function GenerateLocationTab({
     return [];
   }, [location, locationProfile, ecuSourceType, ecuReferenceOptions, ecuRefPresignedUrls]);
   const getECUSourceId = (item: { id: string }) => item.id;
-  const toggleECUSource = (id: string) => {
-    setSelectedECUSourceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // Single-select: one source image per ECU generation run (same as Background Packages)
+  const selectECUSource = (id: string) => {
+    setSelectedECUSourceIds((prev) => (prev.includes(id) ? prev : [id]));
+  };
+
+  // Background packages: reference image list when source is reference-images (same as ECU grid)
+  const bgRefSourceList = useMemo(() => {
+    if (packageType !== 'backgrounds' || sourceType !== 'reference-images') return [];
+    return ecuReferenceOptions.map((opt) => ({
+      id: opt.s3Key,
+      s3Key: opt.s3Key,
+      label: opt.label,
+      imageUrl: ecuRefPresignedUrls.get(opt.s3Key) ?? '',
+    }));
+  }, [packageType, sourceType, ecuReferenceOptions, ecuRefPresignedUrls]);
+  // Single-select: one reference image per background generation run
+  const selectBackgroundReference = (id: string) => {
+    setSelectedBackgroundReferenceIds((prev) => (prev.includes(id) ? prev : [id]));
   };
 
   // Filter angles by metadata (for visual selector)
@@ -460,9 +489,16 @@ export function GenerateLocationTab({
       showReferenceRequired(toast, setError);
       return;
     }
-    if (packageType === 'backgrounds' && sourceType === 'reference-images' && !hasLocationReference(loc)) {
-      showReferenceRequired(toast, setError);
-      return;
+    if (packageType === 'backgrounds' && sourceType === 'reference-images') {
+      if (!hasLocationReference(loc)) {
+        showReferenceRequired(toast, setError);
+        return;
+      }
+      if (selectedBackgroundReferenceIds.length === 0) {
+        toast.error('Select at least one reference image.');
+        setError('Select at least one reference image.');
+        return;
+      }
     }
     if (packageType === 'extreme-closeups') {
       if (ecuSourceType === 'reference-images' && !hasLocationReference(loc)) {
@@ -629,6 +665,7 @@ export function GenerateLocationTab({
           sourceType: sourceType,
           selectedAngleId: sourceType === 'angle-variations' && selectedAngleId ? selectedAngleId : undefined, // Backward compatibility
           selectedAngleIds: sourceType === 'angle-variations' && selectedAngleIds.length > 0 ? selectedAngleIds : undefined, // NEW: Multi-select
+          selectedReferenceS3Keys: sourceType === 'reference-images' && selectedBackgroundReferenceIds.length > 0 ? selectedBackgroundReferenceIds : undefined,
           // 🔥 Feature 0190: Single background type selection
           selectedBackgroundType: selectedBackgroundPackageId === 'single' ? selectedBackgroundType : undefined,
           additionalPrompt: additionalPrompt.trim() || undefined,
@@ -810,6 +847,52 @@ export function GenerateLocationTab({
               </div>
             </label>
           </div>
+          
+          {/* Reference image grid when Generate From = Reference Images (same as ECU / angles) */}
+          {sourceType === 'reference-images' && bgRefSourceList.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-[#3F3F46] space-y-3">
+              <p className="text-xs text-[#808080]">Select one reference image. Backgrounds will be generated from this image (package determines how many).</p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                {bgRefSourceList.map((item) => {
+                  const id = item.id;
+                  const isSelected = selectedBackgroundReferenceIds.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => selectBackgroundReference(id)}
+                      className={`relative ${THUMBNAIL_ASPECT_RATIO} rounded border-2 transition-all ${
+                        isSelected ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50' : 'border-[#3F3F46] hover:border-[#808080]'
+                      }`}
+                    >
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt="" className="w-full h-full object-cover rounded" />
+                      ) : (
+                        <div className="w-full h-full bg-[#1A1A1A] flex flex-col items-center justify-center text-[10px] text-[#808080] rounded p-2 text-center">
+                          <div className="mb-1">📷</div>
+                          <div>{item.label || 'No preview'}</div>
+                          {item.s3Key && <div className="text-[8px] text-[#606060] mt-1">Image available</div>}
+                        </div>
+                      )}
+                      {isSelected && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[#DC143C]/20 rounded">
+                          <svg className="w-5 h-5 text-[#DC143C]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5 rounded-b text-[9px] text-white truncate">
+                        {item.label}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {sourceType === 'reference-images' && bgRefSourceList.length === 0 && (
+            <div className="mt-4 pt-4 border-t border-[#3F3F46]">
+              <p className="text-sm text-[#808080]">No reference images. Add one in the Creation section.</p>
+            </div>
+          )}
           
           {/* Angle Selection UI - Separate section to keep radio buttons aligned */}
           {sourceType === 'angle-variations' && availableAngles.length > 0 && (
@@ -1059,7 +1142,7 @@ export function GenerateLocationTab({
                     <button
                       key={id}
                       type="button"
-                      onClick={() => toggleECUSource(id)}
+                      onClick={() => selectECUSource(id)}
                       className={`relative ${THUMBNAIL_ASPECT_RATIO} rounded border-2 transition-all ${
                         isSelected ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50' : 'border-[#3F3F46] hover:border-[#808080]'
                       }`}
@@ -1324,6 +1407,7 @@ export function GenerateLocationTab({
             isLoadingModels ||
             !providerId ||
             (packageType !== 'extreme-closeups' && !selectedPackageId) ||
+            (packageType === 'backgrounds' && sourceType === 'reference-images' && selectedBackgroundReferenceIds.length === 0) ||
             (packageType === 'extreme-closeups' && (selectedECUSourceIds.length === 0 || (ecuSourceType === 'backgrounds' && (!location?.backgrounds || location.backgrounds.length === 0))))
           }
           className="flex-1 px-4 py-3 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
