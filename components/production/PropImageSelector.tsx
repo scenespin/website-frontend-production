@@ -2,16 +2,23 @@
 
 /**
  * PropImageSelector - Prop Image Selection for Shots
- * 
- * Displays dropdown for selecting image group (Production Hub / Creation Image)
- * and grid of images for the selected group.
- * Consistent with LocationAngleSelector pattern.
+ *
+ * Single dropdown: All angles (by category) + Creation Image.
+ * Display names use spaces (no underscores). Same pattern as location filter.
  */
 
 import React, { useMemo, useState } from 'react';
 import { Check, Package } from 'lucide-react';
 import { getAvailablePropImagesByGroup, type AvailableImage } from './utils/propImageUtils';
 import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_ASPECT_RATIO, THUMBNAIL_STYLE } from './utils/imageConstants';
+
+const CREATION_IMAGE_VALUE = '__creation__';
+
+/** Display category with spaces instead of underscores (e.g. "back_left" → "back left"). */
+function formatCategoryDisplay(value: string): string {
+  if (value === CREATION_IMAGE_VALUE) return 'Creation Image';
+  return value.replace(/_/g, ' ').trim() || value;
+}
 
 interface PropImageSelectorProps {
   propId: string;
@@ -45,84 +52,64 @@ export function PropImageSelector({
     return getAvailablePropImagesByGroup(prop);
   }, [prop]);
 
-  // Get available groups (only show groups that have images)
-  const availableGroups = useMemo(() => {
-    const groups: Array<'Production Hub' | 'Creation Image'> = [];
-    if (groupedImages['Production Hub'].length > 0) {
-      groups.push('Production Hub');
+  const hubImages = groupedImages['Production Hub'] || [];
+  const creationImages = groupedImages['Creation Image'] || [];
+  const hasAnyImages = hubImages.length > 0 || creationImages.length > 0;
+
+  // Unified options: All (if any hub) + each angle category + Creation Image (if any)
+  const unifiedOptions = useMemo(() => {
+    const options: Array<{ value: string; count: number }> = [];
+    if (hubImages.length > 0) {
+      options.push({ value: 'All', count: hubImages.length });
+      const labels = new Set<string>();
+      hubImages.forEach((img) => {
+        const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
+        labels.add(label);
+      });
+      Array.from(labels)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach((label) => {
+          const count = hubImages.filter((img) => {
+            const l = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
+            return l === label;
+          }).length;
+          options.push({ value: label, count });
+        });
     }
-    if (groupedImages['Creation Image'].length > 0) {
-      groups.push('Creation Image');
+    if (creationImages.length > 0) {
+      options.push({ value: CREATION_IMAGE_VALUE, count: creationImages.length });
     }
-    return groups;
+    return options;
   }, [groupedImages]);
 
-  // Determine which group the selected image belongs to
-  const selectedGroup = useMemo(() => {
-    if (!selectedImageId) return availableGroups[0] || null;
-    
-    // Check Production Hub
-    if (groupedImages['Production Hub'].some(img => img.id === selectedImageId)) {
-      return 'Production Hub';
+  // Single selection: one of 'All', an angle label, or CREATION_IMAGE_VALUE
+  const selectedOptionFromImage = useMemo(() => {
+    if (!selectedImageId) return unifiedOptions[0]?.value ?? 'All';
+    const inCreation = creationImages.some((img) => img.id === selectedImageId);
+    if (inCreation) return CREATION_IMAGE_VALUE;
+    const hubImg = hubImages.find((img) => img.id === selectedImageId);
+    if (hubImg) {
+      const label = (hubImg.label && hubImg.label.trim()) ? hubImg.label.trim() : 'Uncategorized';
+      return label;
     }
-    
-    // Check Creation Image
-    if (groupedImages['Creation Image'].some(img => img.id === selectedImageId)) {
-      return 'Creation Image';
-    }
-    
-    return availableGroups[0] || null;
-  }, [selectedImageId, groupedImages, availableGroups]);
+    return unifiedOptions[0]?.value ?? 'All';
+  }, [selectedImageId, hubImages, creationImages, unifiedOptions]);
 
-  // Current group selection (defaults to first available group or selected image's group)
-  const [currentGroup, setCurrentGroup] = useState<'Production Hub' | 'Creation Image' | null>(
-    selectedGroup || availableGroups[0] || null
-  );
+  const [selectedOption, setSelectedOption] = useState<string>(() => selectedOptionFromImage);
 
-  // Categories (unique labels) for Production Hub images - enables "Filter by" dropdown
-  const productionHubCategories = useMemo(() => {
-    const hub = groupedImages['Production Hub'] || [];
-    const labels = new Set<string>();
-    hub.forEach((img) => {
-      const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-      labels.add(label);
-    });
-    return Array.from(labels).sort((a, b) => a.localeCompare(b));
-  }, [groupedImages]);
-
-  // Category filter (only used when currentGroup === 'Production Hub')
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-
-  // Sync selectedCategory when selected image changes (e.g. user selected an image in a category)
   React.useEffect(() => {
-    if (currentGroup !== 'Production Hub' || !selectedImageId) return;
-    const hub = groupedImages['Production Hub'] || [];
-    const selectedImg = hub.find((img) => img.id === selectedImageId);
-    if (selectedImg) {
-      const label = (selectedImg.label && selectedImg.label.trim()) ? selectedImg.label.trim() : 'Uncategorized';
-      setSelectedCategory((prev) => (prev === label ? prev : label));
-    }
-  }, [currentGroup, selectedImageId, groupedImages]);
+    setSelectedOption((prev) => (prev === selectedOptionFromImage ? prev : selectedOptionFromImage));
+  }, [selectedOptionFromImage]);
 
-  // Reset category when switching to Creation Image so next time Production Hub opens with "All"
-  React.useEffect(() => {
-    if (currentGroup !== 'Production Hub') setSelectedCategory('All');
-  }, [currentGroup]);
-
-  // Get images for current group
-  const currentGroupImages = useMemo(() => {
-    if (!currentGroup) return [];
-    return groupedImages[currentGroup] || [];
-  }, [currentGroup, groupedImages]);
-
-  // Apply category filter when Production Hub is selected
+  // Images to show based on single dropdown selection
   const displayedImages = useMemo(() => {
-    if (currentGroup !== 'Production Hub' || selectedCategory === 'All') return currentGroupImages;
-    return currentGroupImages.filter((img) => {
+    if (selectedOption === CREATION_IMAGE_VALUE) return creationImages;
+    if (selectedOption === 'All') return hubImages;
+    return hubImages.filter((img) => {
       const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-      return label === selectedCategory;
+      return label === selectedOption;
     });
-  }, [currentGroup, selectedCategory, currentGroupImages]);
+  }, [selectedOption, hubImages, creationImages]);
 
   // Resolve image URL (thumbnail or full)
   const resolveImageUrl = (image: AvailableImage): string | null => {
@@ -142,23 +129,17 @@ export function PropImageSelector({
     return null;
   };
 
-  // Handle group change
-  const handleGroupChange = (newGroup: 'Production Hub' | 'Creation Image') => {
-    setCurrentGroup(newGroup);
-    setSelectedCategory('All');
-    onImageChange(propId, undefined);
-  };
-
-  // Handle category change (Production Hub only)
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-    const nextDisplayed = category === 'All'
-      ? currentGroupImages
-      : currentGroupImages.filter((img) => {
-          const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-          return label === category;
-        });
-    const stillVisible = selectedImageId && nextDisplayed.some((img) => img.id === selectedImageId);
+  const handleOptionChange = (value: string) => {
+    setSelectedOption(value);
+    const nextImages = value === CREATION_IMAGE_VALUE
+      ? creationImages
+      : value === 'All'
+        ? hubImages
+        : hubImages.filter((img) => {
+            const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
+            return label === value;
+          });
+    const stillVisible = selectedImageId && nextImages.some((img) => img.id === selectedImageId);
     if (!stillVisible) onImageChange(propId, undefined);
   };
 
@@ -168,8 +149,7 @@ export function PropImageSelector({
     onImageChange(propId, newSelection);
   };
 
-  // If no images available, show message
-  if (availableGroups.length === 0) {
+  if (!hasAnyImages) {
     return (
       <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
         <div className="text-xs text-[#808080]">
@@ -181,60 +161,27 @@ export function PropImageSelector({
 
   return (
     <div className="space-y-2">
-      {/* Image source dropdown */}
-      {availableGroups.length > 1 && (
+      {/* Single unified dropdown: All + angle categories + Creation Image */}
+      {unifiedOptions.length > 0 && (
         <div className="flex items-center gap-2">
-          <label className="text-xs text-[#808080]">Image source:</label>
+          <label className="text-xs text-[#808080]">Filter by:</label>
           <select
-            value={currentGroup || ''}
-            onChange={(e) => {
-              const newGroup = e.target.value as 'Production Hub' | 'Creation Image';
-              if (newGroup) handleGroupChange(newGroup);
-            }}
+            value={selectedOption}
+            onChange={(e) => handleOptionChange(e.target.value)}
             className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
           >
-            {availableGroups.map(group => (
-              <option key={group} value={group}>
-                {group}
+            {unifiedOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {formatCategoryDisplay(opt.value)} ({opt.count})
               </option>
             ))}
           </select>
         </div>
       )}
 
-      {/* Category filter (Production Hub only, when multiple categories exist) */}
-      {currentGroup === 'Production Hub' && productionHubCategories.length > 1 && (
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-[#808080]">Filter by:</label>
-          <select
-            value={selectedCategory}
-            onChange={(e) => handleCategoryChange(e.target.value)}
-            className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
-          >
-            <option value="All">All ({currentGroupImages.length})</option>
-            {productionHubCategories.map((cat) => {
-              const count = currentGroupImages.filter((img) => {
-                const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-                return label === cat;
-              }).length;
-              return (
-                <option key={cat} value={cat}>
-                  {cat} ({count})
-                </option>
-              );
-            })}
-          </select>
-        </div>
-      )}
-
       {/* Image Grid */}
-      {currentGroup && displayedImages.length > 0 && (
+      {displayedImages.length > 0 && (
         <div>
-          {availableGroups.length === 1 && (
-            <div className="text-[10px] text-[#808080] mb-1.5">
-              {currentGroup}
-            </div>
-          )}
           <div className={`grid ${SCENE_BUILDER_GRID_COLS} ${SCENE_BUILDER_GRID_GAP}`}>
             {displayedImages.map((image) => {
               const isSelected = selectedImageId === image.id;
@@ -271,10 +218,10 @@ export function PropImageSelector({
                       <Check className="w-3 h-3 text-white" />
                     </div>
                   )}
-                  {image.label && (
+                  {(image.label || selectedOption === CREATION_IMAGE_VALUE) && (
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
                       <span className="text-[10px] text-white truncate block">
-                        {image.label}
+                        {selectedOption === CREATION_IMAGE_VALUE ? 'Creation Image' : formatCategoryDisplay(image.label || '')}
                       </span>
                     </div>
                   )}
@@ -285,13 +232,10 @@ export function PropImageSelector({
         </div>
       )}
 
-      {/* No images in selected group or category */}
-      {currentGroup && displayedImages.length === 0 && (
+      {displayedImages.length === 0 && hasAnyImages && (
         <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
           <div className="text-xs text-[#808080]">
-            {currentGroup === 'Production Hub' && selectedCategory !== 'All'
-              ? `No images in "${selectedCategory}"`
-              : `No ${currentGroup} images available`}
+            No images in "{formatCategoryDisplay(selectedOption)}"
           </div>
         </div>
       )}
