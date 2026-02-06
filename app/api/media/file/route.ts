@@ -87,14 +87,38 @@ export async function GET(request: NextRequest) {
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
     const cacheControl = response.headers.get('cache-control') || 'public, max-age=86400';
 
-    // Stream the response back to client
-    const blob = await response.blob();
-    
-    return new NextResponse(blob, {
+    // Stream the response back to client (important for videos - don't load entire file into memory)
+    // Use ReadableStream to properly stream large files like videos
+    const reader = response.body?.getReader();
+    if (!reader) {
+      return NextResponse.json(
+        { error: 'No response body' },
+        { status: 500 }
+      );
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+          controller.close();
+        } catch (error: any) {
+          controller.error(error);
+        }
+      },
+    });
+
+    return new NextResponse(stream, {
       status: 200,
       headers: {
         'Content-Type': contentType,
         'Cache-Control': cacheControl,
+        // Important for video playback: allow range requests for seeking
+        'Accept-Ranges': 'bytes',
       },
     });
   } catch (error: any) {
