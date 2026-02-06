@@ -41,8 +41,8 @@ export function resolveImageUrl(options: {
     fallbackImageUrl
   } = options;
 
-  // Feature flag: Set to false to use legacy presigned URLs (for testing/debugging)
-  const USE_PROXY_URLS = process.env.NEXT_PUBLIC_USE_PROXY_URLS !== 'false'; // Default: true (use proxy)
+  // TEMPORARILY DISABLED: Set to false to use legacy presigned URLs (for testing/debugging)
+  const USE_PROXY_URLS = false; // Temporarily disabled - using presigned URLs for testing
 
   // If no s3Key, we can't resolve anything
   if (!s3Key) {

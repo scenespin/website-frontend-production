@@ -235,8 +235,8 @@ export function usePresignedUrl(s3Key: string | null, enabled: boolean = false) 
 export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) {
   const { getToken } = useAuth();
   
-  // Feature flag: Set to false to use legacy presigned URLs (for testing/debugging)
-  const USE_PROXY_URLS = process.env.NEXT_PUBLIC_USE_PROXY_URLS !== 'false'; // Default: true (use proxy)
+  // TEMPORARILY DISABLED: Set to false to use legacy presigned URLs (for testing/debugging)
+  const USE_PROXY_URLS = false; // Temporarily disabled - using presigned URLs for testing
 
   return useQuery<Map<string, string>, Error>({
     queryKey: ['media', 'presigned-urls', [...s3Keys].sort().join(','), USE_PROXY_URLS ? 'proxy' : 'presigned'],
