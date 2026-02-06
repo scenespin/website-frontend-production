@@ -31,6 +31,7 @@ export interface LocationBackground {
   metadata?: {
     providerId?: string;
     quality?: string;
+    useCase?: string; // e.g. 'extreme-closeup' for ECU grouping in LocationAngleSelector
   };
   timeOfDay?: string;
   weather?: string;
@@ -240,7 +241,8 @@ export function useLocationReferences({
           file.metadata?.source === 'background-generation' ||
           file.metadata?.uploadMethod === 'background-generation' ||
           file.metadata?.generationMethod === 'background-generation' ||
-          (file.folderPath && file.folderPath.some((path: string) => path.toLowerCase().includes('background')))
+          file.metadata?.useCase === 'extreme-closeup' ||
+          (file.folderPath && file.folderPath.some((path: string) => path.toLowerCase().includes('background') || path.toLowerCase().includes('extreme close')))
         );
 
         // 🔥 DEBUG: Log classification for each file
@@ -268,7 +270,8 @@ export function useLocationReferences({
             sourceAngleId: file.metadata?.sourceAngleId,
             metadata: {
               providerId: file.metadata?.providerId,
-              quality: file.metadata?.quality
+              quality: file.metadata?.quality,
+              useCase: file.metadata?.useCase // Extreme close-ups: so LocationAngleSelector can group by "Extreme close-ups"
             },
             timeOfDay: file.metadata?.timeOfDay,
             weather: file.metadata?.weather,

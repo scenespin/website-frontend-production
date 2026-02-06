@@ -79,11 +79,50 @@ export function PropImageSelector({
     selectedGroup || availableGroups[0] || null
   );
 
+  // Categories (unique labels) for Production Hub images - enables "Filter by" dropdown
+  const productionHubCategories = useMemo(() => {
+    const hub = groupedImages['Production Hub'] || [];
+    const labels = new Set<string>();
+    hub.forEach((img) => {
+      const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
+      labels.add(label);
+    });
+    return Array.from(labels).sort((a, b) => a.localeCompare(b));
+  }, [groupedImages]);
+
+  // Category filter (only used when currentGroup === 'Production Hub')
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+
+  // Sync selectedCategory when selected image changes (e.g. user selected an image in a category)
+  React.useEffect(() => {
+    if (currentGroup !== 'Production Hub' || !selectedImageId) return;
+    const hub = groupedImages['Production Hub'] || [];
+    const selectedImg = hub.find((img) => img.id === selectedImageId);
+    if (selectedImg) {
+      const label = (selectedImg.label && selectedImg.label.trim()) ? selectedImg.label.trim() : 'Uncategorized';
+      setSelectedCategory((prev) => (prev === label ? prev : label));
+    }
+  }, [currentGroup, selectedImageId, groupedImages]);
+
+  // Reset category when switching to Creation Image so next time Production Hub opens with "All"
+  React.useEffect(() => {
+    if (currentGroup !== 'Production Hub') setSelectedCategory('All');
+  }, [currentGroup]);
+
   // Get images for current group
   const currentGroupImages = useMemo(() => {
     if (!currentGroup) return [];
     return groupedImages[currentGroup] || [];
   }, [currentGroup, groupedImages]);
+
+  // Apply category filter when Production Hub is selected
+  const displayedImages = useMemo(() => {
+    if (currentGroup !== 'Production Hub' || selectedCategory === 'All') return currentGroupImages;
+    return currentGroupImages.filter((img) => {
+      const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
+      return label === selectedCategory;
+    });
+  }, [currentGroup, selectedCategory, currentGroupImages]);
 
   // Resolve image URL (thumbnail or full)
   const resolveImageUrl = (image: AvailableImage): string | null => {
@@ -106,8 +145,21 @@ export function PropImageSelector({
   // Handle group change
   const handleGroupChange = (newGroup: 'Production Hub' | 'Creation Image') => {
     setCurrentGroup(newGroup);
-    // Clear selection when switching groups (user must select from new group)
+    setSelectedCategory('All');
     onImageChange(propId, undefined);
+  };
+
+  // Handle category change (Production Hub only)
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    const nextDisplayed = category === 'All'
+      ? currentGroupImages
+      : currentGroupImages.filter((img) => {
+          const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
+          return label === category;
+        });
+    const stillVisible = selectedImageId && nextDisplayed.some((img) => img.id === selectedImageId);
+    if (!stillVisible) onImageChange(propId, undefined);
   };
 
   // Handle image selection
@@ -129,7 +181,7 @@ export function PropImageSelector({
 
   return (
     <div className="space-y-2">
-      {/* Group Dropdown */}
+      {/* Image source dropdown */}
       {availableGroups.length > 1 && (
         <div className="flex items-center gap-2">
           <label className="text-xs text-[#808080]">Image source:</label>
@@ -150,8 +202,33 @@ export function PropImageSelector({
         </div>
       )}
 
+      {/* Category filter (Production Hub only, when multiple categories exist) */}
+      {currentGroup === 'Production Hub' && productionHubCategories.length > 1 && (
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-[#808080]">Filter by:</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-white text-xs focus:border-[#DC143C] focus:outline-none"
+          >
+            <option value="All">All ({currentGroupImages.length})</option>
+            {productionHubCategories.map((cat) => {
+              const count = currentGroupImages.filter((img) => {
+                const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
+                return label === cat;
+              }).length;
+              return (
+                <option key={cat} value={cat}>
+                  {cat} ({count})
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
+
       {/* Image Grid */}
-      {currentGroup && currentGroupImages.length > 0 && (
+      {currentGroup && displayedImages.length > 0 && (
         <div>
           {availableGroups.length === 1 && (
             <div className="text-[10px] text-[#808080] mb-1.5">
@@ -159,7 +236,7 @@ export function PropImageSelector({
             </div>
           )}
           <div className={`grid ${SCENE_BUILDER_GRID_COLS} ${SCENE_BUILDER_GRID_GAP}`}>
-            {currentGroupImages.map((image) => {
+            {displayedImages.map((image) => {
               const isSelected = selectedImageId === image.id;
               const imageUrl = resolveImageUrl(image);
               
@@ -208,11 +285,13 @@ export function PropImageSelector({
         </div>
       )}
 
-      {/* No images in selected group */}
-      {currentGroup && currentGroupImages.length === 0 && (
+      {/* No images in selected group or category */}
+      {currentGroup && displayedImages.length === 0 && (
         <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg">
           <div className="text-xs text-[#808080]">
-            No {currentGroup} images available
+            {currentGroup === 'Production Hub' && selectedCategory !== 'All'
+              ? `No images in "${selectedCategory}"`
+              : `No ${currentGroup} images available`}
           </div>
         </div>
       )}
