@@ -7,12 +7,13 @@
  * Toolbar: Download first frame, Generate video (switches to Video Gen tab with pre-fill).
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Film, RefreshCw, Loader2, ChevronLeft, ChevronRight, Clapperboard, Download, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShotBoard, type ShotBoardScene, type ShotBoardShot, getTotalShotCount } from '@/hooks/useShotBoard';
+import { ImageViewer, type ImageItem } from './ImageViewer';
 
 interface ShotBoardPanelProps {
   className?: string;
@@ -44,12 +45,16 @@ function ShotCell({
   sceneNumber,
   presignedUrls,
   onGenerateVideo,
+  onFrameClick,
+  globalIndex,
 }: {
   shot: ShotBoardShot;
   sceneHeading: string;
   sceneNumber: number;  // Feature 0241: Scene number for Media Library folder structure
   presignedUrls: Map<string, string>;
   onGenerateVideo: (context: GenerateVideoContext) => void;
+  onFrameClick?: (index: number) => void;
+  globalIndex?: number;
 }) {
   const [variationIndex, setVariationIndex] = useState(0);
   const variations = shot.variations;
@@ -117,8 +122,25 @@ function ShotCell({
       className="relative flex-shrink-0 w-72 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group flex flex-col"
       data-shot-board="letterbox-v2"
     >
-      {/* Full-size frame: image fills the aspect-video box */}
-      <div className="relative w-full aspect-video flex-shrink-0 bg-[#0A0A0A] overflow-hidden">
+      {/* Full-size frame: image fills the aspect-video box; click opens ImageViewer */}
+      <div
+        className={`relative w-full aspect-video flex-shrink-0 bg-[#0A0A0A] overflow-hidden ${firstFrameUrl && onFrameClick != null ? 'cursor-pointer' : ''}`}
+        role={firstFrameUrl && onFrameClick != null ? 'button' : undefined}
+        tabIndex={firstFrameUrl && onFrameClick != null ? 0 : undefined}
+        onClick={(e) => {
+          if (firstFrameUrl && onFrameClick != null && globalIndex != null) {
+            e.stopPropagation();
+            onFrameClick(globalIndex);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (firstFrameUrl && onFrameClick != null && globalIndex != null && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            e.stopPropagation();
+            onFrameClick(globalIndex);
+          }
+        }}
+      >
         {firstFrameUrl ? (
           <img
             src={firstFrameUrl}
@@ -205,10 +227,14 @@ function SceneRow({
   scene,
   presignedUrls,
   onGenerateVideo,
+  onFrameClick,
+  startIndex,
 }: {
   scene: ShotBoardScene;
   presignedUrls: Map<string, string>;
   onGenerateVideo: (context: GenerateVideoContext) => void;
+  onFrameClick?: (index: number) => void;
+  startIndex: number;
 }) {
   const sceneNumber = scene.sceneNumber;
   return (
@@ -228,7 +254,7 @@ function SceneRow({
       </div>
       <div className="p-4">
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {scene.shots.map((shot) => (
+          {scene.shots.map((shot, i) => (
             <ShotCell
               key={`${scene.sceneId}-${shot.shotNumber}`}
               shot={shot}
@@ -236,6 +262,8 @@ function SceneRow({
               sceneNumber={sceneNumber}
               presignedUrls={presignedUrls}
               onGenerateVideo={onGenerateVideo}
+              onFrameClick={onFrameClick}
+              globalIndex={onFrameClick != null ? startIndex + i : undefined}
             />
           ))}
         </div>
@@ -264,6 +292,32 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
 
   const [generateVideoModalOpen, setGenerateVideoModalOpen] = useState(false);
   const [generateVideoContext, setGenerateVideoContext] = useState<GenerateVideoContext | null>(null);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
+
+  // Flat list of first frames (first variation per shot) for ImageViewer navigation
+  const allFirstFrameImages = useMemo((): ImageItem[] => {
+    const items: ImageItem[] = [];
+    for (const scene of scenes) {
+      for (const shot of scene.shots) {
+        const firstVariation = shot.variations[0];
+        if (!firstVariation?.firstFrame) continue;
+        const url = presignedUrls.get(firstVariation.firstFrame.s3Key);
+        if (!url) continue;
+        items.push({
+          id: `${scene.sceneId}-${shot.shotNumber}`,
+          url,
+          label: `Scene ${scene.sceneNumber} · Shot ${shot.shotNumber}`,
+        });
+      }
+    }
+    return items;
+  }, [scenes, presignedUrls]);
+
+  const handleFrameClick = useCallback((index: number) => {
+    setImageViewerIndex(index);
+    setImageViewerOpen(true);
+  }, []);
 
   const handleRefresh = useCallback(() => {
     if (screenplayId) {
@@ -368,17 +422,28 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
         /* Scene List */
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 space-y-4">
-            {scenes.map((scene) => (
+            {scenes.map((scene, sceneIndex) => (
               <SceneRow
                 key={scene.sceneId}
                 scene={scene}
                 presignedUrls={presignedUrls}
                 onGenerateVideo={handleGenerateVideo}
+                onFrameClick={allFirstFrameImages.length > 0 ? handleFrameClick : undefined}
+                startIndex={scenes.slice(0, sceneIndex).reduce((s, sc) => s + sc.shots.length, 0)}
               />
             ))}
           </div>
         </div>
       )}
+
+      {/* Full-size image viewer: click any first frame to open */}
+      <ImageViewer
+        images={allFirstFrameImages}
+        currentIndex={imageViewerIndex}
+        isOpen={imageViewerOpen}
+        onClose={() => setImageViewerOpen(false)}
+        groupName="First frames"
+      />
     </div>
   );
 }
