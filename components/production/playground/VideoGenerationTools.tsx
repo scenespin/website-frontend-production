@@ -361,7 +361,8 @@ export function VideoGenerationTools({
 
       if (activeMode === 'starting-frame') {
         if (startImage?.s3Key) {
-          requestBody.startImageUrl = startImage.s3Key;
+          requestBody.startImageS3Key = startImage.s3Key;
+          requestBody.startImageUrl = startImage.s3Key; // Backend accepts key here and presigns for job
         } else if (startImageUrlFromProp) {
           requestBody.startImageUrl = startImageUrlFromProp;
         }
