@@ -158,6 +158,7 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       sceneHeading: string;
       shotsMap: Map<number, ShotVariation[]>;
     }>();
+    const videoKeysMatchedToFirstFrame = new Set<string>();
 
     for (const firstFrame of firstFrames) {
       const metadata = (firstFrame as any).metadata || {};
@@ -188,6 +189,7 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       // Find matching video (same scene, shot, timestamp)
       const videoKey = `${sceneId}-${shotNumber}-${timestamp}`;
       const matchingVideo = videoMap.get(videoKey);
+      if (matchingVideo) videoKeysMatchedToFirstFrame.add(videoKey);
 
       // Create variation
       const variation: ShotVariation = {
@@ -210,6 +212,44 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       }
 
       variations.push(variation);
+    }
+
+    // Include videos that have no matching first frame (e.g. Video Gen without start frame)
+    // so they still show in the Videos tab.
+    for (const [videoKey, video] of videoMap) {
+      if (videoKeysMatchedToFirstFrame.has(videoKey)) continue;
+      const metadata = (video as any).metadata || {};
+      const sceneId = metadata.sceneId;
+      const sceneNumber = metadata.sceneNumber ?? 1;
+      const shotNumber = metadata.shotNumber;
+      const timestamp = metadata.timestamp || '';
+      if (!sceneId || shotNumber === undefined) continue;
+      const sceneHeading = metadata.sceneName || `Scene ${sceneNumber}`;
+      const sceneKey = `${sceneId}-${sceneNumber}`;
+      if (!sceneMap.has(sceneKey)) {
+        sceneMap.set(sceneKey, {
+          sceneId,
+          sceneNumber,
+          sceneHeading,
+          shotsMap: new Map()
+        });
+      }
+      const scene = sceneMap.get(sceneKey)!;
+      if (!scene.shotsMap.has(shotNumber)) {
+        scene.shotsMap.set(shotNumber, []);
+      }
+      const variations = scene.shotsMap.get(shotNumber)!;
+      const videoMetadata = (video as any).metadata || {};
+      variations.push({
+        timestamp,
+        firstFrame: { fileId: '', s3Key: '', fileName: '' },
+        video: {
+          fileId: (video as any).fileId || (video as any).id || '',
+          s3Key: (video as any).s3Key || '',
+          fileName: (video as any).fileName || '',
+          metadata: videoMetadata
+        }
+      });
     }
 
     // Convert to final structure and sort

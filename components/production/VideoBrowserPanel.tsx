@@ -29,6 +29,10 @@ export interface VideoBrowserEntry {
   videoFileName: string;
   videoS3Key: string;
   videoUrl: string | undefined;
+  /** False when the video was generated without a start frame (text-to-video only). */
+  hasFirstFrame: boolean;
+  /** From registration metadata: 'text-only' | 'image-start' | 'image-interpolation' | 'reference-images' */
+  videoMode?: string;
 }
 
 function formatTimestamp(ts: string): string {
@@ -70,6 +74,7 @@ function buildVideoEntries(
       for (const variation of shot.variations) {
         if (!variation.video?.s3Key) continue;
         const videoUrl = presignedUrls.get(variation.video.s3Key);
+        const metadata = (variation.video as any).metadata || {};
         entries.push({
           sceneNumber: scene.sceneNumber,
           sceneHeading: scene.sceneHeading,
@@ -79,6 +84,8 @@ function buildVideoEntries(
           videoFileName: variation.video.fileName || `shot-${shot.shotNumber}.mp4`,
           videoS3Key: variation.video.s3Key,
           videoUrl,
+          hasFirstFrame: !!(variation.firstFrame?.s3Key),
+          videoMode: metadata.videoMode,
         });
       }
     }
@@ -224,6 +231,16 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                   <span className="text-[10px] text-[#808080] flex-shrink-0">
                     {formatTimestamp(entry.timestamp)}
                   </span>
+                  {entry.videoMode === 'image-interpolation' && (
+                    <span className="flex-shrink-0 text-[10px] font-medium text-emerald-500/90 bg-emerald-500/10 px-2 py-0.5 rounded" title="Generated from first and last frame (frame to frame)">
+                      Frame to frame
+                    </span>
+                  )}
+                  {!entry.hasFirstFrame && (
+                    <span className="flex-shrink-0 text-[10px] font-medium text-amber-500/90 bg-amber-500/10 px-2 py-0.5 rounded" title="Generated from text only (no start frame)">
+                      Text-to-video
+                    </span>
+                  )}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       type="button"
