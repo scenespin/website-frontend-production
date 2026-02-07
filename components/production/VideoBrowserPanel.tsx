@@ -16,7 +16,7 @@ import {
   useShotBoard,
   type ShotBoardScene,
 } from '@/hooks/useShotBoard';
-import { useMediaFiles, useBulkPresignedUrls, useStandaloneVideosPaginated } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useStandaloneVideosPaginated, type StandaloneVideosPage } from '@/hooks/useMediaLibrary';
 import type { MediaFile } from '@/types/media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -166,7 +166,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     isFetchingNextPage: isLoadingMoreStandalone,
   } = useStandaloneVideosPaginated(screenplayId, currentSection === 'standalone');
   const standaloneFiles = useMemo(
-    () => standalonePages?.pages.flatMap((p) => p.files) ?? [],
+    () => standalonePages?.pages.flatMap((p: StandaloneVideosPage) => p.files) ?? [],
     [standalonePages]
   );
   const standaloneS3Keys = useMemo(

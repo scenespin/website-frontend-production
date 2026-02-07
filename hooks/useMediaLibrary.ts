@@ -178,6 +178,9 @@ export function useMediaFiles(
 
 const PAGE_SIZE = 50;
 
+/** Page shape returned by useStandaloneVideosPaginated (each page in data.pages) */
+export type StandaloneVideosPage = { files: MediaFile[]; nextToken?: string };
+
 /**
  * Paginated standalone videos for Direct > Videos tab (Feature 0254).
  * Returns all accumulated pages and loadMore() for next page. Use for standalone section only.
@@ -185,7 +188,7 @@ const PAGE_SIZE = 50;
 export function useStandaloneVideosPaginated(screenplayId: string, enabled: boolean = true) {
   const { getToken } = useAuth();
 
-  return useInfiniteQuery<{ files: MediaFile[]; nextToken?: string }, Error>({
+  return useInfiniteQuery<StandaloneVideosPage, Error>({
     queryKey: ['media', 'files', screenplayId, 'standalone-video', 'paginated'],
     queryFn: async ({ pageParam }: { pageParam?: string }) => {
       const token = await getAuthToken(getToken);
