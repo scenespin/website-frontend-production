@@ -188,7 +188,7 @@ export type StandaloneVideosPage = { files: MediaFile[]; nextToken?: string };
 export function useStandaloneVideosPaginated(screenplayId: string, enabled: boolean = true) {
   const { getToken } = useAuth();
 
-  return useInfiniteQuery<StandaloneVideosPage, Error>({
+  return useInfiniteQuery<StandaloneVideosPage, Error, import('@tanstack/react-query').InfiniteData<StandaloneVideosPage>, string[], string | undefined>({
     queryKey: ['media', 'files', screenplayId, 'standalone-video', 'paginated'],
     queryFn: async ({ pageParam }: { pageParam?: string }) => {
       const token = await getAuthToken(getToken);
