@@ -57,7 +57,8 @@ function ShotCell({
   globalIndex?: number;
 }) {
   const [variationIndex, setVariationIndex] = useState(0);
-  const variations = shot.variations;
+  // Only show variations that have a first frame (avoids empty placeholder for video-only / text-to-video)
+  const variations = shot.variations.filter((v) => v.firstFrame?.s3Key);
   const hasMultipleVariations = variations.length > 1;
 
   const currentIndex = Math.min(variationIndex, variations.length - 1);
