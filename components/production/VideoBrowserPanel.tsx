@@ -1,38 +1,44 @@
 'use client';
 
 /**
- * Video Browser Panel
+ * Video Browser Panel (Feature 0254)
  *
- * Lists all videos from the Shot Board data (Media Library) by scene/shot/date.
- * Click a row or Play to open the video in a modal. Uses same data as First frames (useShotBoard).
+ * Two sections in the same list: Scene-context videos (from Shots/Scene Builder) and Standalone videos.
+ * Toggle icon next to Refresh switches between sections. Same table: Scene | Shot | Type | Time | Actions.
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { RefreshCw, Loader2, Play, Video, Download } from 'lucide-react';
+import { RefreshCw, Loader2, Play, Video, Download, Layers, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useShotBoard,
   type ShotBoardScene,
-  type ShotBoardShot,
 } from '@/hooks/useShotBoard';
+import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import type { MediaFile } from '@/types/media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
+export type VideoSection = 'scene' | 'standalone';
+
+export type VideoSortKey = 'scene' | 'shot' | 'type' | 'time';
+
 export interface VideoBrowserEntry {
-  sceneNumber: number;
-  sceneHeading: string;
-  sceneId: string;
-  shotNumber: number;
+  /** Null/undefined for standalone entries (show "—") */
+  sceneNumber?: number | null;
+  sceneHeading?: string | null;
+  sceneId?: string | null;
+  shotNumber?: number | null;
   timestamp: string;
   videoFileName: string;
   videoS3Key: string;
   videoUrl: string | undefined;
-  /** False when the video was generated without a start frame (text-to-video only). */
   hasFirstFrame: boolean;
-  /** From registration metadata: 'text-only' | 'image-start' | 'image-interpolation' | 'reference-images' */
   videoMode?: string;
+  /** Stable key for list (fileId or scene-shot-timestamp) */
+  entryKey: string;
 }
 
 function formatTimestamp(ts: string): string {
@@ -86,11 +92,37 @@ function buildVideoEntries(
           videoUrl,
           hasFirstFrame: !!(variation.firstFrame?.s3Key),
           videoMode: metadata.videoMode,
+          entryKey: `${scene.sceneId}-${shot.shotNumber}-${variation.timestamp}`,
         });
       }
     }
   }
   return entries;
+}
+
+function buildStandaloneEntries(
+  files: MediaFile[],
+  presignedUrls: Map<string, string>
+): VideoBrowserEntry[] {
+  return files
+    .filter((f) => f.s3Key && ((f as any).mediaFileType === 'video' || (typeof f.fileType === 'string' && f.fileType.startsWith('video/'))))
+    .map((file, index) => {
+      const metadata = (file as any).metadata || {};
+      const timestamp = metadata.timestamp || (file as any).uploadedAt || (file as any).createdAt || '';
+      return {
+        sceneNumber: null,
+        sceneHeading: null,
+        sceneId: null,
+        shotNumber: null,
+        timestamp: typeof timestamp === 'string' ? timestamp : new Date(timestamp).toISOString(),
+        videoFileName: file.fileName || 'video.mp4',
+        videoS3Key: file.s3Key || '',
+        videoUrl: presignedUrls.get(file.s3Key!),
+        hasFirstFrame: false,
+        videoMode: metadata.videoMode,
+        entryKey: (file as any).id || file.s3Key || `standalone-${index}`,
+      };
+    });
 }
 
 interface VideoBrowserPanelProps {
@@ -101,22 +133,82 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId ?? '';
   const queryClient = useQueryClient();
+  const [currentSection, setCurrentSection] = useState<VideoSection>('scene');
+  const [sortKey, setSortKey] = useState<VideoSortKey>('time');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+
+  const handleSort = useCallback((key: VideoSortKey) => {
+    setSortKey((prev) => {
+      if (prev === key) {
+        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+        return prev;
+      }
+      setSortDir(key === 'time' ? 'desc' : 'asc');
+      return key;
+    });
+  }, []);
 
   const {
     scenes,
-    isLoading,
+    isLoading: sceneLoading,
     error,
     refetch,
     presignedUrls,
-    presignedUrlsLoading,
-  } = useShotBoard(screenplayId, !!screenplayId);
+    presignedUrlsLoading: sceneUrlsLoading,
+  } = useShotBoard(screenplayId, !!screenplayId && currentSection === 'scene');
 
-  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
-
-  const videoEntries = useMemo(
-    () => buildVideoEntries(scenes, presignedUrls),
-    [scenes, presignedUrls]
+  const { data: standaloneFiles = [], isLoading: standaloneLoading } = useMediaFiles(
+    screenplayId,
+    undefined,
+    !!screenplayId && currentSection === 'standalone',
+    true,
+    'standalone-video'
   );
+  const standaloneS3Keys = useMemo(
+    () => standaloneFiles.map((f) => f.s3Key).filter((k): k is string => !!k),
+    [standaloneFiles]
+  );
+  const { data: standalonePresignedUrls = new Map<string, string>(), isLoading: standaloneUrlsLoading } = useBulkPresignedUrls(
+    standaloneS3Keys,
+    currentSection === 'standalone' && standaloneS3Keys.length > 0
+  );
+
+  const sceneEntries = useMemo(() => buildVideoEntries(scenes, presignedUrls), [scenes, presignedUrls]);
+  const standaloneEntries = useMemo(
+    () => buildStandaloneEntries(standaloneFiles, standalonePresignedUrls),
+    [standaloneFiles, standalonePresignedUrls]
+  );
+
+  const rawEntries = currentSection === 'scene' ? sceneEntries : standaloneEntries;
+  const videoEntries = useMemo(() => {
+    const sorted = [...rawEntries].sort((a, b) => {
+      const mult = sortDir === 'asc' ? 1 : -1;
+      const nullLastNum = (x: number | null | undefined, y: number | null | undefined): number => {
+        const xNull = x == null ? 1 : 0;
+        const yNull = y == null ? 1 : 0;
+        if (xNull !== yNull) return xNull - yNull;
+        return (x ?? 0) - (y ?? 0);
+      };
+      switch (sortKey) {
+        case 'scene':
+          return mult * nullLastNum(a.sceneNumber, b.sceneNumber);
+        case 'shot':
+          return mult * nullLastNum(a.shotNumber, b.shotNumber);
+        case 'type': {
+          const ta = a.videoMode ?? '';
+          const tb = b.videoMode ?? '';
+          return mult * (ta < tb ? -1 : ta > tb ? 1 : 0);
+        }
+        case 'time':
+        default:
+          return mult * (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0);
+      }
+    });
+    return sorted;
+  }, [rawEntries, sortKey, sortDir]);
+  const isLoading = currentSection === 'scene' ? sceneLoading : standaloneLoading;
+  const presignedUrlsLoading = currentSection === 'scene' ? sceneUrlsLoading : standaloneUrlsLoading;
 
   const handleRefresh = useCallback(() => {
     if (screenplayId) {
@@ -125,6 +217,10 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
       toast.success('Refreshing videos...');
     }
   }, [screenplayId, queryClient, refetch]);
+
+  const toggleSection = useCallback(() => {
+    setCurrentSection((s) => (s === 'scene' ? 'standalone' : 'scene'));
+  }, []);
 
   const handlePlay = useCallback((url: string | undefined) => {
     if (url) setPlayingVideoUrl(url);
@@ -180,22 +276,38 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
 
   return (
     <div className={cn('h-full flex flex-col bg-[#0A0A0A]', className)}>
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between">
+      {/* Header: count + toggle (Scene / Standalone) + Refresh */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between gap-2">
         <span className="text-xs text-[#808080]">
           {videoEntries.length} video{videoEntries.length !== 1 ? 's' : ''}
         </span>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={presignedUrlsLoading}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A] rounded transition-colors disabled:opacity-50"
-          title="Refresh videos"
-          aria-label="Refresh videos"
-        >
-          <RefreshCw className={cn('w-4 h-4', presignedUrlsLoading && 'animate-spin')} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={toggleSection}
+            className={cn(
+              'p-2 rounded transition-colors',
+              currentSection === 'scene'
+                ? 'text-[#DC143C] bg-[#DC143C]/10 hover:bg-[#DC143C]/20'
+                : 'text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A]'
+            )}
+            title={currentSection === 'scene' ? 'Showing scene videos (click for standalone)' : 'Showing standalone videos (click for scene)'}
+            aria-label={currentSection === 'scene' ? 'Switch to standalone videos' : 'Switch to scene videos'}
+          >
+            <Layers className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={presignedUrlsLoading}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A] rounded transition-colors disabled:opacity-50"
+            title="Refresh videos"
+            aria-label="Refresh videos"
+          >
+            <RefreshCw className={cn('w-4 h-4', presignedUrlsLoading && 'animate-spin')} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -204,44 +316,62 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
           <Video className="w-12 h-12 text-[#808080] mb-4" />
           <h3 className="text-lg font-semibold text-white mb-2">No videos yet</h3>
           <p className="text-sm text-[#808080] max-w-sm">
-            Generate videos from the First frames tab (Generate video) or from Scene Builder. They will appear here.
+            {currentSection === 'scene'
+              ? 'Generate videos from the First frames tab (Generate video) or from Scene Builder. They will appear here.'
+              : 'Standalone videos (no scene/shot) will appear here when you generate from Video Gen without a scene.'}
           </p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
+            {/* Sortable column headers */}
+            <div className="flex items-center gap-4 px-4 py-2 text-[10px] font-medium text-[#808080] uppercase tracking-wider border-b border-[#3F3F46] mb-2">
+              <button type="button" onClick={() => handleSort('scene')} className="flex items-center gap-1 w-16 flex-shrink-0 text-left hover:text-[#B3B3B3]">
+                Scene {sortKey === 'scene' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+              </button>
+              <button type="button" onClick={() => handleSort('shot')} className="flex items-center gap-1 w-14 flex-shrink-0 text-left hover:text-[#B3B3B3]">
+                Shot {sortKey === 'shot' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+              </button>
+              <button type="button" onClick={() => handleSort('type')} className="flex items-center gap-1 w-28 flex-shrink-0 text-left hover:text-[#B3B3B3]">
+                Type {sortKey === 'type' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+              </button>
+              <button type="button" onClick={() => handleSort('time')} className="flex items-center gap-1 flex-shrink-0 text-left hover:text-[#B3B3B3]">
+                Time {sortKey === 'time' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+              </button>
+              <span className="flex-shrink-0 ml-auto w-24 text-right">Actions</span>
+            </div>
             <ul className="space-y-1" role="list">
-              {videoEntries.map((entry, index) => (
+              {videoEntries.map((entry) => (
                 <li
-                  key={`${entry.sceneId}-${entry.shotNumber}-${entry.timestamp}-${index}`}
+                  key={entry.entryKey}
                   className={cn(
                     'flex items-center gap-4 px-4 py-3 rounded-lg border border-[#3F3F46] bg-[#141414]',
                     'hover:bg-[#1A1A1A] transition-colors'
                   )}
                 >
                   <span className="text-xs text-[#808080] w-16 flex-shrink-0">
-                    Scene {entry.sceneNumber}
+                    {entry.sceneNumber != null ? `Scene ${entry.sceneNumber}` : '—'}
                   </span>
                   <span className="text-xs text-[#808080] w-14 flex-shrink-0">
-                    Shot #{entry.shotNumber}
+                    {entry.shotNumber != null ? `Shot #${entry.shotNumber}` : '—'}
                   </span>
-                  <span className="text-xs text-[#B3B3B3] flex-1 min-w-0 truncate" title={entry.sceneHeading}>
-                    {entry.sceneHeading}
+                  <span className="text-xs text-[#B3B3B3] w-28 flex-shrink-0">
+                    {entry.videoMode === 'image-interpolation' && (
+                      <span className="text-[10px] font-medium text-emerald-500/90 bg-emerald-500/10 px-2 py-0.5 rounded" title="Frame to frame">
+                        Frame to frame
+                      </span>
+                    )}
+                    {!entry.hasFirstFrame && entry.videoMode !== 'image-interpolation' && (
+                      <span className="text-[10px] font-medium text-amber-500/90 bg-amber-500/10 px-2 py-0.5 rounded" title="Text-to-video">
+                        Text-to-video
+                      </span>
+                    )}
+                    {entry.hasFirstFrame && entry.videoMode !== 'image-interpolation' && <span className="text-[#808080]">—</span>}
                   </span>
                   <span className="text-[10px] text-[#808080] flex-shrink-0">
                     {formatTimestamp(entry.timestamp)}
                   </span>
-                  {entry.videoMode === 'image-interpolation' && (
-                    <span className="flex-shrink-0 text-[10px] font-medium text-emerald-500/90 bg-emerald-500/10 px-2 py-0.5 rounded" title="Generated from first and last frame (frame to frame)">
-                      Frame to frame
-                    </span>
-                  )}
-                  {!entry.hasFirstFrame && (
-                    <span className="flex-shrink-0 text-[10px] font-medium text-amber-500/90 bg-amber-500/10 px-2 py-0.5 rounded" title="Generated from text only (no start frame)">
-                      Text-to-video
-                    </span>
-                  )}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
                     <button
                       type="button"
                       onClick={() => handlePlay(entry.videoUrl)}

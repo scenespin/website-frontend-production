@@ -59,7 +59,7 @@ export function useMediaFiles(
   folderId?: string, 
   enabled: boolean = true, 
   includeAllFolders: boolean = false,
-  entityType?: 'character' | 'location' | 'asset' | 'scene',
+  entityType?: 'character' | 'location' | 'asset' | 'scene' | 'standalone-video',
   entityId?: string,
   directChildrenOnly: boolean = false
 ) {
