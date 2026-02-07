@@ -16,7 +16,7 @@ import {
   useShotBoard,
   type ShotBoardScene,
 } from '@/hooks/useShotBoard';
-import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { useMediaFiles, useBulkPresignedUrls, useStandaloneVideosPaginated } from '@/hooks/useMediaLibrary';
 import type { MediaFile } from '@/types/media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -158,12 +158,16 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     presignedUrlsLoading: sceneUrlsLoading,
   } = useShotBoard(screenplayId, !!screenplayId && currentSection === 'scene');
 
-  const { data: standaloneFiles = [], isLoading: standaloneLoading } = useMediaFiles(
-    screenplayId,
-    undefined,
-    !!screenplayId && currentSection === 'standalone',
-    true,
-    'standalone-video'
+  const {
+    data: standalonePages,
+    isLoading: standaloneLoading,
+    fetchNextPage,
+    hasNextPage: hasMoreStandalone,
+    isFetchingNextPage: isLoadingMoreStandalone,
+  } = useStandaloneVideosPaginated(screenplayId, currentSection === 'standalone');
+  const standaloneFiles = useMemo(
+    () => standalonePages?.pages.flatMap((p) => p.files) ?? [],
+    [standalonePages]
   );
   const standaloneS3Keys = useMemo(
     () => standaloneFiles.map((f) => f.s3Key).filter((k): k is string => !!k),
@@ -396,6 +400,18 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                 </li>
               ))}
             </ul>
+            {currentSection === 'standalone' && hasMoreStandalone && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage()}
+                  disabled={isLoadingMoreStandalone}
+                  className="px-4 py-2 text-sm text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A] rounded border border-[#3F3F46] disabled:opacity-50"
+                >
+                  {isLoadingMoreStandalone ? 'Loading…' : 'Load more'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

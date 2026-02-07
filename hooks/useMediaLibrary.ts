@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { getDropboxPath } from '@/components/production/utils/imageUrlResolver';
 import type { 
@@ -173,6 +173,70 @@ export function useMediaFiles(
     refetchIntervalInBackground: false, // Only refetch when tab is active
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
+const PAGE_SIZE = 50;
+
+/**
+ * Paginated standalone videos for Direct > Videos tab (Feature 0254).
+ * Returns all accumulated pages and loadMore() for next page. Use for standalone section only.
+ */
+export function useStandaloneVideosPaginated(screenplayId: string, enabled: boolean = true) {
+  const { getToken } = useAuth();
+
+  return useInfiniteQuery<{ files: MediaFile[]; nextToken?: string }, Error>({
+    queryKey: ['media', 'files', screenplayId, 'standalone-video', 'paginated'],
+    queryFn: async ({ pageParam }: { pageParam?: string }) => {
+      const token = await getAuthToken(getToken);
+      if (!token) throw new Error('Not authenticated');
+
+      const params = new URLSearchParams({
+        screenplayId,
+        includeAllFolders: 'true',
+        entityType: 'standalone-video',
+        limit: String(PAGE_SIZE),
+      });
+      if (pageParam) params.set('nextToken', pageParam);
+
+      const response = await fetch(`/api/media/list?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Failed to fetch: ${response.status} ${err.slice(0, 100)}`);
+      }
+
+      const data: MediaFileListResponse = await response.json();
+      const backendFiles = (data.files || []).filter(
+        (file: any) => file.isArchived !== true && file.metadata?.isArchived !== true
+      );
+
+      const files: MediaFile[] = backendFiles.map((file: any) => ({
+        id: file.fileId,
+        fileName: file.fileName,
+        s3Key: file.s3Key,
+        fileType: detectFileType(file.fileType),
+        mediaFileType: file.mediaFileType,
+        fileSize: file.fileSize,
+        storageType: (file.storageType || 'local') as 'local' | 'google-drive' | 'dropbox' | 'wryda-temp',
+        uploadedAt: file.createdAt,
+        expiresAt: undefined,
+        thumbnailUrl: undefined,
+        folderId: file.folderId,
+        folderPath: file.folderPath,
+        metadata: file.metadata,
+        thumbnailS3Key: file.metadata?.thumbnailS3Key || file.thumbnailS3Key,
+        entityType: file.entityType,
+        entityId: file.entityId,
+      }));
+
+      return { files, nextToken: data.nextToken };
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextToken ?? undefined,
+    enabled: enabled && !!screenplayId,
+    staleTime: 5 * 1000,
   });
 }
 

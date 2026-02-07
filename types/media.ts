@@ -121,6 +121,8 @@ export interface MediaFileListResponse {
     folderPath?: string[]; // Feature 0128: Optional breadcrumb path array
   }>;
   count: number;
+  /** Present when more pages exist (Feature 0254) */
+  nextToken?: string;
 }
 
 // ============================================================================
