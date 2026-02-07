@@ -357,6 +357,7 @@ export function VideoGenerationTools({
       };
       if (selectedModel) requestBody.preferredProvider = selectedModel;
       if (propShotNumber != null) requestBody.shotNumber = propShotNumber;
+      if (propScreenplayId) requestBody.screenplayId = propScreenplayId;
 
       if (activeMode === 'starting-frame') {
         if (startImage?.s3Key) {
