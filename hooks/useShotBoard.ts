@@ -130,7 +130,8 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       // Must have sceneId and sceneNumber
       if (!metadata.sceneId || metadata.sceneNumber === undefined) continue;
 
-      if (metadata.isFirstFrame) {
+      // Exclude association-only copies (Video Gen duplicate into video folder); Shots tab = Scene Builder first frames only
+      if (metadata.isFirstFrame && metadata.source !== 'video-gen-association') {
         firstFrames.push(file);
       } else {
         // Check if it's a video
