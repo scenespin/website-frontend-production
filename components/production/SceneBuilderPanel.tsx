@@ -1266,100 +1266,123 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     if (!locationId || allLocations.length === 0) return null;
     return allLocations.find(loc => loc.locationId === locationId) || null;
   }, [locationId, allLocations]);
-  
-  // 🔥 NEW: Use custom hook for location references
+
+  // 🔥 Feature 0256-style: Payload-first location refs – list from payload (same as Production Hub), URLs from presigned
+  const payloadLocationS3Keys = React.useMemo(() => {
+    if (!locationMetadata) return [];
+    const keys: string[] = [];
+    const seen = new Set<string>();
+    [locationMetadata.baseReference?.s3Key, ...(locationMetadata.angleVariations || []).map((a: any) => a.s3Key), ...(locationMetadata.backgrounds || []).map((b: any) => b.s3Key)]
+      .filter(Boolean)
+      .forEach((k: string) => {
+        if (k && !k.startsWith('thumbnails/') && !seen.has(k)) {
+          seen.add(k);
+          keys.push(k);
+        }
+      });
+    return keys;
+  }, [locationMetadata]);
+  const { data: locationPayloadUrls = new Map<string, string>() } = useBulkPresignedUrls(
+    payloadLocationS3Keys.length > 0 ? payloadLocationS3Keys : [],
+    !!locationId && payloadLocationS3Keys.length > 0
+  );
+
+  // Build location data from payload (deduped by s3Key) so Scene Builder shows same list as Production Hub
+  const locationDataFromPayload = React.useMemo(() => {
+    if (!locationMetadata || !locationMetadata.name) return null;
+    const seenAngles = new Set<string>();
+    const seenBackgrounds = new Set<string>();
+    const angleVariations: Array<{ angleId: string; angle: string; s3Key: string; imageUrl: string; label?: string; timeOfDay?: string; weather?: string }> = [];
+    (locationMetadata.angleVariations || []).forEach((v: any) => {
+      if (!v?.s3Key || v.s3Key.startsWith('thumbnails/') || seenAngles.has(v.s3Key)) return;
+      seenAngles.add(v.s3Key);
+      angleVariations.push({
+        angleId: v.id || `ref_${v.s3Key}`,
+        angle: v.angle || 'front',
+        s3Key: v.s3Key,
+        imageUrl: locationPayloadUrls.get(v.s3Key) || v.imageUrl || '',
+        label: v.angle || v.label,
+        timeOfDay: v.timeOfDay,
+        weather: v.weather
+      });
+    });
+    const backgrounds: Array<{ id: string; imageUrl: string; s3Key: string; backgroundType?: string; timeOfDay?: string; weather?: string; metadata?: any }> = [];
+    (locationMetadata.backgrounds || []).forEach((bg: any) => {
+      if (!bg?.s3Key || bg.s3Key.startsWith('thumbnails/') || seenBackgrounds.has(bg.s3Key)) return;
+      seenBackgrounds.add(bg.s3Key);
+      backgrounds.push({
+        id: bg.id || `bg_${bg.s3Key}`,
+        imageUrl: locationPayloadUrls.get(bg.s3Key) || bg.imageUrl || '',
+        s3Key: bg.s3Key,
+        backgroundType: bg.backgroundType || 'custom',
+        timeOfDay: bg.timeOfDay,
+        weather: bg.weather,
+        metadata: bg.metadata
+      });
+    });
+    if (angleVariations.length === 0 && backgrounds.length === 0) return null;
+    return { angleVariations, backgrounds };
+  }, [locationMetadata, locationPayloadUrls]);
+
+  // Fallback: Media Library when no payload data (e.g. old flow or no location in bank)
   const {
     angleVariations: locationAngleVariations,
     backgrounds: locationBackgrounds,
     locationThumbnailS3KeyMap,
     locationThumbnailUrlsMap,
-    locationFullImageUrlsMap, // 🔥 NEW: Full image URLs for files without thumbnails
+    locationFullImageUrlsMap,
     loading: loadingLocation
   } = useLocationReferences({
     projectId,
     locationId: locationId || null,
-    enabled: !!locationId
+    enabled: !!locationId && !locationDataFromPayload
   });
-  
-  // 🔥 NEW: Map location hook data to expected format, enriched with DynamoDB metadata
+
   const locationDataFromMediaLibrary = React.useMemo(() => {
     if (!locationId || (locationAngleVariations.length === 0 && locationBackgrounds.length === 0)) {
       return null;
     }
-    
-    // 🔥 FIX: Create maps from DynamoDB location metadata for fast lookup by s3Key
-    const angleMetadataMap = new Map<string, { timeOfDay?: string; weather?: string; angle?: string; label?: string }>();
-    const backgroundMetadataMap = new Map<string, { timeOfDay?: string; weather?: string; backgroundType?: string }>();
-    
-    if (locationMetadata) {
-      // Map angle variations from DynamoDB
-      locationMetadata.angleVariations?.forEach(angle => {
-        if (angle.s3Key) {
-          angleMetadataMap.set(angle.s3Key, {
-            timeOfDay: angle.timeOfDay,
-            weather: angle.weather,
-            angle: angle.angle,
-            label: angle.angle // Use angle as label if no explicit label
-          });
-        }
-      });
-      
-      // Map backgrounds from DynamoDB
-      locationMetadata.backgrounds?.forEach(bg => {
-        if (bg.s3Key) {
-          backgroundMetadataMap.set(bg.s3Key, {
-            timeOfDay: bg.timeOfDay,
-            weather: bg.weather,
-            backgroundType: bg.backgroundType
-          });
-        }
-      });
-    }
-    
     return {
-      angleVariations: locationAngleVariations.map(angle => {
-        // 🔥 FIX: Enrich with DynamoDB metadata if available
-        const dbMetadata = angleMetadataMap.get(angle.s3Key);
-        return {
-          angleId: angle.angleId,
-          angle: dbMetadata?.angle || angle.angle,
-          s3Key: angle.s3Key,
-          imageUrl: angle.imageUrl,
-          label: dbMetadata?.label || angle.label || angle.angle,
-          timeOfDay: dbMetadata?.timeOfDay || angle.timeOfDay,
-          weather: dbMetadata?.weather || angle.weather
-        };
-      }),
-      backgrounds: locationBackgrounds.map(bg => {
-        // 🔥 FIX: Enrich with DynamoDB metadata if available
-        const dbMetadata = backgroundMetadataMap.get(bg.s3Key);
-        return {
-          id: bg.id,
-          imageUrl: bg.imageUrl,
-          s3Key: bg.s3Key,
-          backgroundType: (dbMetadata?.backgroundType || bg.backgroundType || 'custom') as 'custom' | 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature',
-          sourceType: bg.sourceType as 'angle-variations' | 'reference-images' | undefined,
-          sourceAngleId: bg.sourceAngleId,
-          metadata: bg.metadata,
-          timeOfDay: dbMetadata?.timeOfDay || bg.timeOfDay,
-          weather: dbMetadata?.weather || bg.weather
-        };
-      })
+      angleVariations: locationAngleVariations.map(angle => ({
+        angleId: angle.angleId,
+        angle: angle.angle,
+        s3Key: angle.s3Key,
+        imageUrl: angle.imageUrl,
+        label: angle.label || angle.angle,
+        timeOfDay: angle.timeOfDay,
+        weather: angle.weather
+      })),
+      backgrounds: locationBackgrounds.map(bg => ({
+        id: bg.id,
+        imageUrl: bg.imageUrl,
+        s3Key: bg.s3Key,
+        backgroundType: (bg.backgroundType || 'custom') as 'custom' | 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature',
+        sourceType: bg.sourceType,
+        sourceAngleId: bg.sourceAngleId,
+        metadata: bg.metadata,
+        timeOfDay: bg.timeOfDay,
+        weather: bg.weather
+      }))
     };
-  }, [locationId, locationAngleVariations, locationBackgrounds, locationMetadata]);
-  
-  // 🔥 NEW: Merge Media Library location data with sceneAnalysisResult
-  // Also merge fresh location metadata from Location Bank if available
+  }, [locationId, locationAngleVariations, locationBackgrounds]);
+
+  // Prefer payload-first data so Scene Builder matches Production Hub (deduped, up-to-date)
+  const locationDataEffective = locationDataFromPayload ?? locationDataFromMediaLibrary;
+
+  // When payload-first, use presigned URLs for location; else use hook maps
+  const locationThumbnailUrlsMapEffective = locationDataFromPayload ? locationPayloadUrls : locationThumbnailUrlsMap;
+  const locationFullImageUrlsMapEffective = locationDataFromPayload ? locationPayloadUrls : locationFullImageUrlsMap;
+  const locationReferenceFullImageUrlsMapEffective = locationDataFromPayload ? locationPayloadUrls : (locationFullImageUrlsMap ?? new Map());
+
+  // 🔥 NEW: Merge location data with sceneAnalysisResult
   const enrichedSceneAnalysisResult = React.useMemo(() => {
     if (!sceneAnalysisResult) return sceneAnalysisResult;
-    
-    // If we have Media Library data, use it; otherwise use database data
-    const finalAngleVariations = locationDataFromMediaLibrary?.angleVariations.length > 0 
-      ? locationDataFromMediaLibrary.angleVariations 
+
+    const finalAngleVariations = locationDataEffective?.angleVariations?.length
+      ? locationDataEffective.angleVariations
       : sceneAnalysisResult.location.angleVariations || [];
-    
-    const finalBackgrounds = locationDataFromMediaLibrary?.backgrounds.length > 0
-      ? locationDataFromMediaLibrary.backgrounds
+    const finalBackgrounds = locationDataEffective?.backgrounds?.length
+      ? locationDataEffective.backgrounds
       : sceneAnalysisResult.location.backgrounds || [];
     
     // 🔥 FIX: Merge fresh location metadata from Location Bank (name, etc.)
@@ -1375,26 +1398,23 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           angleVariations: finalAngleVariations,
           backgrounds: finalBackgrounds
         };
-    
+
     return {
       ...sceneAnalysisResult,
       location: enrichedLocation
     } as SceneAnalysisResult;
-  }, [sceneAnalysisResult, locationDataFromMediaLibrary, locationId, locationMetadata]);
-  
+  }, [sceneAnalysisResult, locationDataEffective, locationId, locationMetadata]);
+
   // 🔥 FIX: Move console.log to useEffect to prevent React error #185
   useEffect(() => {
     if (!enrichedSceneAnalysisResult) return;
     console.log('[SceneBuilderPanel] Location data:', {
       locationId,
-      mediaLibraryAngles: locationDataFromMediaLibrary?.angleVariations.length || 0,
-      mediaLibraryBackgrounds: locationDataFromMediaLibrary?.backgrounds.length || 0,
-      databaseAngles: enrichedSceneAnalysisResult.location.angleVariations?.length || 0,
-      databaseBackgrounds: enrichedSceneAnalysisResult.location.backgrounds?.length || 0,
-      finalAngles: enrichedSceneAnalysisResult.location.angleVariations?.length || 0,
-      finalBackgrounds: enrichedSceneAnalysisResult.location.backgrounds?.length || 0
+      payloadFirst: !!locationDataFromPayload,
+      angles: enrichedSceneAnalysisResult.location.angleVariations?.length || 0,
+      backgrounds: enrichedSceneAnalysisResult.location.backgrounds?.length || 0
     });
-  }, [enrichedSceneAnalysisResult, locationDataFromMediaLibrary, locationId]);
+  }, [enrichedSceneAnalysisResult, locationDataFromPayload, locationId]);
   
   // Toggle workflow selection
   const toggleWorkflow = (workflowId: string) => {
@@ -4605,10 +4625,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   characterThumbnailUrlsMap={characterThumbnailUrlsMap}
                   selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
                   visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
-                  locationReferenceFullImageUrlsMap={locationReferenceFullImageUrlsMap} // 🔥 NEW: Pass location URL map for references section
-                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap} // 🔥 NEW: Pass location URL maps for LocationAngleSelector
-                  locationThumbnailUrlsMap={locationThumbnailUrlsMap}
-                  locationFullImageUrlsMap={locationFullImageUrlsMap} // 🔥 FIX: Use full image URLs from useLocationReferences hook
+                  locationReferenceFullImageUrlsMap={locationReferenceFullImageUrlsMapEffective}
+                  locationThumbnailS3KeyMap={locationThumbnailS3KeyMap}
+                  locationThumbnailUrlsMap={locationThumbnailUrlsMapEffective}
+                  locationFullImageUrlsMap={locationFullImageUrlsMapEffective}
                   onCharacterReferenceChange={(shotSlot, characterId, reference) => {
                     setSelectedCharacterReferences(prev => {
                       const shotRefs = prev[shotSlot] || {};
@@ -4845,7 +4865,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
                 characterThumbnailUrlsMap={characterThumbnailUrlsMap}
                 locationThumbnailS3KeyMap={locationThumbnailS3KeyMap}
-                locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                locationThumbnailUrlsMap={locationThumbnailUrlsMapEffective}
                 propThumbnailS3KeyMap={propThumbnailS3KeyMap}
                 propThumbnailUrlsMap={propThumbnailUrlsMap}
                 uploadedFirstFrames={contextState.uploadedFirstFrames}

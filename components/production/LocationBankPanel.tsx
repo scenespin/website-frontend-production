@@ -152,6 +152,9 @@ export function LocationBankPanel({
       if (updates.angleVariations !== undefined) {
         apiUpdates.angleVariations = updates.angleVariations;
       }
+      if (updates.backgrounds !== undefined) {
+        apiUpdates.backgrounds = updates.backgrounds;
+      }
       if (updates.name !== undefined) apiUpdates.name = updates.name;
       if (updates.description !== undefined) apiUpdates.description = updates.description;
       if (updates.type !== undefined) apiUpdates.type = updates.type;

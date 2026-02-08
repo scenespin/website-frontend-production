@@ -14,9 +14,11 @@ import { DialogueWorkflowType } from '@/components/production/UnifiedDialogueDro
 import { SceneAnalysisResult } from '@/types/screenplay';
 import type { OffFrameShotType } from '@/types/offFrame';
 import { useCharacterReferences, type UseCharacterReferencesReturn } from '@/components/production/hooks/useCharacterReferences';
+import type { CharacterHeadshot } from '@/components/production/hooks/useCharacterReferences';
 import { filterValidCharacterIds } from '@/components/production/utils/characterIdValidation';
 import { getCharactersFromActionShot } from '@/components/production/utils/sceneBuilderUtils';
 import { useCharacters } from '@/hooks/useCharacterBank';
+import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 
 // ============================================================================
 // Types
@@ -463,11 +465,72 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
   ]);
   
   // ============================================================================
-  // Media Library Hook (Character References)
+  // Payload-first character refs (same list as Character Bank), then fallback to ML
   // ============================================================================
-  
-  // Call hook in provider - updates context directly (no sync needed).
-  // Typed so dropboxUrlMap stays in sync with UseCharacterReferencesReturn (fixes build if hook contract changes).
+  const payloadCharacterS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    const seen = new Set<string>();
+    const idSet = new Set(characterIdsForMediaLibrary);
+    allScreenplayCharacters.forEach((char: any) => {
+      if (!idSet.has(char.id)) return;
+      const refs: Array<{ s3Key?: string }> = [
+        ...(char.images || []).map((img: any) => ({ s3Key: img.s3Key || img.metadata?.s3Key })),
+        ...(char.poseReferences || char.angleReferences || []),
+        ...(char.references || [])
+      ];
+      if (char.baseReference?.s3Key) refs.push({ s3Key: char.baseReference.s3Key });
+      refs.forEach((r: any) => {
+        const k = r?.s3Key;
+        if (k && !k.startsWith('thumbnails/') && !seen.has(k)) {
+          seen.add(k);
+          keys.push(k);
+        }
+      });
+    });
+    return keys;
+  }, [allScreenplayCharacters, characterIdsForMediaLibrary]);
+
+  const { data: characterPayloadUrls = new Map<string, string>() } = useBulkPresignedUrls(
+    payloadCharacterS3Keys.length > 0 ? payloadCharacterS3Keys : [],
+    characterIdsForMediaLibrary.length > 0 && payloadCharacterS3Keys.length > 0
+  );
+
+  const characterHeadshotsFromPayload = useMemo((): Record<string, CharacterHeadshot[]> => {
+    const out: Record<string, CharacterHeadshot[]> = {};
+    const idSet = new Set(characterIdsForMediaLibrary);
+    allScreenplayCharacters.forEach((char: any) => {
+      if (!idSet.has(char.id)) return;
+      const seen = new Set<string>();
+      const headshots: CharacterHeadshot[] = [];
+      const add = (s3Key: string, label?: string, outfitName?: string) => {
+        if (!s3Key || s3Key.startsWith('thumbnails/') || seen.has(s3Key)) return;
+        seen.add(s3Key);
+        headshots.push({
+          s3Key,
+          imageUrl: characterPayloadUrls.get(s3Key) || '',
+          label: label || char.name,
+          outfitName
+        });
+      };
+      (char.images || []).forEach((img: any) => {
+        const k = img.s3Key || img.metadata?.s3Key;
+        if (k) add(k, img.metadata?.poseName || img.metadata?.outfitName || char.name, img.metadata?.outfitName);
+      });
+      (char.poseReferences || char.angleReferences || []).forEach((ref: any) => {
+        if (ref?.s3Key) add(ref.s3Key, ref.label || ref.metadata?.poseName || char.name, ref.metadata?.outfitName);
+      });
+      (char.references || []).forEach((ref: any) => {
+        if (ref?.s3Key) add(ref.s3Key, ref.label || char.name, ref.metadata?.outfitName);
+      });
+      if (char.baseReference?.s3Key) add(char.baseReference.s3Key, `${char.name} - Base`);
+      if (headshots.length > 0) out[char.id] = headshots;
+    });
+    return out;
+  }, [allScreenplayCharacters, characterIdsForMediaLibrary, characterPayloadUrls]);
+
+  const usePayloadForCharacters = Object.keys(characterHeadshotsFromPayload).length > 0;
+
+  // Media Library fallback when no payload data
   const {
     characterHeadshots: characterHeadshotsFromHook,
     characterThumbnailS3KeyMap: hookThumbnailS3KeyMap,
@@ -478,7 +541,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
   }: UseCharacterReferencesReturn = useCharacterReferences({
     projectId,
     characterIds: characterIdsForMediaLibrary,
-    enabled: characterIdsForMediaLibrary.length > 0
+    enabled: characterIdsForMediaLibrary.length > 0 && !usePayloadForCharacters
   });
   
   // 🔥 FIX: Create stable signatures for Map objects to prevent infinite loops
@@ -514,33 +577,29 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       .join('|');
   }, [hookDropboxUrlMap]);
   
-  // 🔥 FIX: Create stable signature for characterHeadshotsFromHook to prevent infinite loops
+  // Effective headshots: payload-first when available, else ML hook
+  const characterHeadshotsEffective = usePayloadForCharacters ? characterHeadshotsFromPayload : characterHeadshotsFromHook;
+
   const characterHeadshotsSignature = useMemo(() => {
-    if (!characterHeadshotsFromHook || Object.keys(characterHeadshotsFromHook).length === 0) return '';
+    if (!characterHeadshotsEffective || Object.keys(characterHeadshotsEffective).length === 0) return '';
     return JSON.stringify(
-      Object.entries(characterHeadshotsFromHook)
+      Object.entries(characterHeadshotsEffective)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([charId, headshots]) => [
           charId,
           headshots.map(h => `${h.s3Key || ''}:${h.imageUrl || ''}`).sort().join(',')
         ])
     );
-  }, [characterHeadshotsFromHook]);
-  
-  // Update context state directly when hook data changes (no sync loop!)
+  }, [characterHeadshotsEffective]);
+
   const lastHeadshotsSignatureRef = useRef<string>('');
   useEffect(() => {
-    // Only update if signature actually changed
-    if (characterHeadshotsSignature === lastHeadshotsSignatureRef.current) {
-      return;
-    }
-    
+    if (characterHeadshotsSignature === lastHeadshotsSignatureRef.current) return;
     lastHeadshotsSignatureRef.current = characterHeadshotsSignature;
-    
-    if (Object.keys(characterHeadshotsFromHook).length > 0) {
-      setState(prev => ({ ...prev, characterHeadshots: characterHeadshotsFromHook }));
+    if (Object.keys(characterHeadshotsEffective).length > 0) {
+      setState(prev => ({ ...prev, characterHeadshots: characterHeadshotsEffective }));
     }
-  }, [characterHeadshotsSignature, characterHeadshotsFromHook]);
+  }, [characterHeadshotsSignature, characterHeadshotsEffective]);
 
   // 🔥 FIX: Create stable signature for loadingHeadshots to prevent infinite loops
   const loadingHeadshotsSignature = useMemo(() => {
@@ -553,42 +612,38 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
   
   const lastLoadingHeadshotsSignatureRef = useRef<string>('');
   useEffect(() => {
-    // Only update if signature actually changed
-    if (loadingHeadshotsSignature === lastLoadingHeadshotsSignatureRef.current) {
-      return;
-    }
-    
-    lastLoadingHeadshotsSignatureRef.current = loadingHeadshotsSignature;
-    
+    const loadingSignature = usePayloadForCharacters ? 'payload-done' : loadingHeadshotsSignature;
+    if (loadingSignature === lastLoadingHeadshotsSignatureRef.current) return;
+    lastLoadingHeadshotsSignatureRef.current = loadingSignature;
     const loading: Record<string, boolean> = {};
     characterIdsForMediaLibrary.forEach(charId => {
-      loading[charId] = loadingCharacterHeadshots;
+      loading[charId] = usePayloadForCharacters ? false : loadingCharacterHeadshots;
     });
     setState(prev => ({ ...prev, loadingHeadshots: loading }));
-  }, [loadingHeadshotsSignature, characterIdsForMediaLibrary, loadingCharacterHeadshots]);
+  }, [loadingHeadshotsSignature, characterIdsForMediaLibrary, loadingCharacterHeadshots, usePayloadForCharacters]);
   
-  // 🔥 CRITICAL FIX: Update Media Library maps in context using stable signatures
-  // Map objects are recreated on every render even if contents are the same
-  // Use stable signatures to prevent infinite loops
+  const emptyMapRef = useRef(new Map<string, string>());
+  const characterThumbnailUrlsMapEffective = usePayloadForCharacters ? characterPayloadUrls : hookThumbnailUrlsMap;
+  const characterFullImageUrlsMapEffective = usePayloadForCharacters ? characterPayloadUrls : hookFullImageUrlsMap;
+  const characterThumbnailS3KeyMapEffective = usePayloadForCharacters ? emptyMapRef.current : hookThumbnailS3KeyMap;
+  const characterDropboxUrlMapEffective = usePayloadForCharacters ? emptyMapRef.current : hookDropboxUrlMap;
+
+  const effectiveMapsSignature = usePayloadForCharacters
+    ? `payload|${payloadCharacterS3Keys.length}`
+    : `${thumbnailS3KeyMapSignature}|${thumbnailUrlsMapSignature}|${fullImageUrlsMapSignature}|${dropboxUrlMapSignature}`;
+
   const lastMapsSignatureRef = useRef<string>('');
   useEffect(() => {
-    const combinedSignature = `${thumbnailS3KeyMapSignature}|${thumbnailUrlsMapSignature}|${fullImageUrlsMapSignature}|${dropboxUrlMapSignature}`;
-    
-    // Only update if signature actually changed
-    if (combinedSignature === lastMapsSignatureRef.current) {
-      return;
-    }
-    
-    lastMapsSignatureRef.current = combinedSignature;
-    
-    setState(prev => ({ 
-      ...prev, 
-      characterThumbnailS3KeyMap: hookThumbnailS3KeyMap,
-      characterThumbnailUrlsMap: hookThumbnailUrlsMap,
-      characterFullImageUrlsMap: hookFullImageUrlsMap,
-      characterDropboxUrlMap: hookDropboxUrlMap
+    if (effectiveMapsSignature === lastMapsSignatureRef.current) return;
+    lastMapsSignatureRef.current = effectiveMapsSignature;
+    setState(prev => ({
+      ...prev,
+      characterThumbnailS3KeyMap: characterThumbnailS3KeyMapEffective,
+      characterThumbnailUrlsMap: characterThumbnailUrlsMapEffective,
+      characterFullImageUrlsMap: characterFullImageUrlsMapEffective,
+      characterDropboxUrlMap: characterDropboxUrlMapEffective
     }));
-  }, [thumbnailS3KeyMapSignature, thumbnailUrlsMapSignature, fullImageUrlsMapSignature, dropboxUrlMapSignature, hookThumbnailS3KeyMap, hookThumbnailUrlsMap, hookFullImageUrlsMap, hookDropboxUrlMap]);
+  }, [effectiveMapsSignature, characterThumbnailS3KeyMapEffective, characterThumbnailUrlsMapEffective, characterFullImageUrlsMapEffective, characterDropboxUrlMapEffective]);
 
   // ============================================================================
   // Action Creators (using useCallback for performance)

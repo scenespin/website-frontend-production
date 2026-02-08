@@ -413,8 +413,9 @@ export default function AssetDetailModal({
       const isProductionHubImage = createdIn === 'production-hub' || source === 'angle-generation' || source === 'production-hub';
       const isCreationImage = !isProductionHubImage && (!source || source === 'user-upload');
       const isAngleRef = source === 'angle-generation';
+      // Use unique id per image so thumbnail map shows correct image per slot (fix duplicate thumbnails)
       images.push({
-        id: img.id || (isAngleRef ? `angle-${img.metadata?.angle || 'unknown'}` : `img-${idx}`),
+        id: img.id || (s3Key ? `img-${idx}-${s3Key.replace(/\//g, '_')}` : `img-${idx}`),
         imageUrl: img.url || img.imageUrl || '',
         s3Key,
         label: isAngleRef ? `${latestAsset.name} - ${img.metadata?.angle || img.angle || 'Angle'} view` : `${latestAsset.name} - Image ${idx + 1}`,

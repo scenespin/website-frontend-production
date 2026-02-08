@@ -105,9 +105,50 @@ export function usePropReferences(
     return map;
   }, [propMediaFiles]);
 
-  // Enrich props with Media Library data (Media Library is source of truth)
+  // Payload-first: use API list and only resolve URLs (same list as Asset Bank)
+  const payloadPropS3Keys = useMemo(() => {
+    const keys: string[] = [];
+    const seen = new Set<string>();
+    initialProps.forEach((prop) => {
+      [...(prop.angleReferences || []).map((r) => r.s3Key), ...(prop.images || []).map((i) => i.s3Key)].forEach((k) => {
+        if (k && !k.startsWith('thumbnails/') && !seen.has(k)) {
+          seen.add(k);
+          keys.push(k);
+        }
+      });
+      if (prop.baseReference?.s3Key && !seen.has(prop.baseReference.s3Key) && !prop.baseReference.s3Key.startsWith('thumbnails/')) {
+        seen.add(prop.baseReference.s3Key);
+        keys.push(prop.baseReference.s3Key);
+      }
+    });
+    return keys;
+  }, [initialProps]);
+  const { data: payloadPropUrls = new Map<string, string>() } = useBulkPresignedUrls(
+    payloadPropS3Keys.length > 0 ? payloadPropS3Keys : [],
+    enabled && propIds.length > 0 && payloadPropS3Keys.length > 0
+  );
+  const usePayloadForProps = initialProps.length > 0 && payloadPropS3Keys.length > 0;
+
+  // Enrich props: payload-first when API provided refs, else Media Library as source of truth
   const enrichedProps = useMemo(() => {
-    // 🔥 FIX: If initialProps is empty but Media Library has files, create props from Media Library
+    if (usePayloadForProps) {
+      return initialProps.map((prop) => ({
+        ...prop,
+        angleReferences: (prop.angleReferences || []).map((ref) => ({
+          ...ref,
+          imageUrl: payloadPropUrls.get(ref.s3Key) || ref.imageUrl || ''
+        })),
+        images: (prop.images || []).map((img) => ({
+          ...img,
+          url: payloadPropUrls.get(img.s3Key || '') || img.url || ''
+        })),
+        baseReference:
+          prop.baseReference?.s3Key != null
+            ? { ...prop.baseReference, imageUrl: payloadPropUrls.get(prop.baseReference.s3Key) || prop.baseReference.imageUrl || '' }
+            : prop.baseReference
+      }));
+    }
+    // If initialProps is empty but Media Library has files, create props from Media Library
     if (initialProps.length === 0 && propMediaFiles.length > 0) {
       // Group Media Library files by entityId to create props
       const propsByEntityId = new Map<string, any[]>();
@@ -251,7 +292,7 @@ export function usePropReferences(
         baseReference: prop.baseReference // Preserve baseReference for fallback when all images are deleted
       };
     });
-  }, [initialProps, propMediaFiles]);
+  }, [initialProps, propMediaFiles, payloadPropUrls, usePayloadForProps]);
 
   // Collect all prop image thumbnail S3 keys
   const propThumbnailS3Keys = useMemo(() => {
