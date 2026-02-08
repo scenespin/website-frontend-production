@@ -10,7 +10,7 @@
  * - Advanced options
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square, Volume2, Crop, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
@@ -527,169 +527,14 @@ export function CharacterDetailModal({
     return map;
   }, [latestCharacter.baseReference, latestCharacter.references, latestCharacter.poseReferences, latestCharacter.id]);
   
-  // 🔥 NEW: Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
-  const imagesFromMediaLibrary = useMemo(() => {
+  // Feature 0256: Payload-first. Build list from character (baseReference, references, poseReferences/images); ML only for URLs.
+  const normalizeOutfitName = useCallback((name: string): string => {
+    if (!name) return '';
+    return name.toLowerCase().replace(/[_\s]+/g, '_').replace(/^_+|_+$/g, '').trim();
+  }, []);
+
+  const payloadImages = useMemo(() => {
     const images: Array<{
-      id: string;
-      imageUrl: string; // Will be generated from s3Key
-      s3Key: string;
-      label: string;
-      isBase: boolean;
-      isPose: boolean;
-      outfitName?: string;
-      outfitNameOriginal?: string; // Original outfit name for display
-      poseId?: string;
-      isRegenerated?: boolean;
-      regeneratedFrom?: string;
-      metadata?: any;
-      index: number;
-    }> = [];
-    
-    let index = 0;
-    
-    // Process Media Library files
-    mediaFiles.forEach((file: any) => {
-      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
-      
-      // 🔥 FIX: Exclude clothing references from gallery and references tab
-      // Clothing references are stored in folders like "Clothing_Reference" or "Clothing References"
-      // They should be saved in the archive but not displayed in the gallery
-      if (file.folderPath && Array.isArray(file.folderPath)) {
-        const isClothingReference = file.folderPath.some((folder: string) => 
-          folder && (
-            folder.toLowerCase().includes('clothing') && 
-            (folder.toLowerCase().includes('reference') || folder.toLowerCase().includes('ref'))
-          )
-        );
-        if (isClothingReference) {
-          return; // Skip clothing references
-        }
-      }
-      
-      // Also check metadata for clothing reference indicator
-      if (file.metadata?.isClothingReference === true || 
-          file.metadata?.referenceType === 'clothing' ||
-          file.fileName?.toLowerCase().includes('clothing_reference') ||
-          file.fileName?.toLowerCase().includes('clothing-reference')) {
-        return; // Skip clothing references
-      }
-      
-      // Get metadata from DynamoDB (character prop)
-      const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
-      
-      // 🔥 Determine if image is from Creation section
-      // Creation images are identified by Media Library metadata ONLY (source of truth)
-      // createdIn: 'creation' or uploadMethod: 'character-creation'
-      const isFromCreation = file.metadata?.createdIn === 'creation' || 
-                            file.metadata?.uploadMethod === 'character-creation';
-      
-      // Determine image type from Media Library metadata or DynamoDB
-      // 🔥 FIX: If image is from Creation section, it's NOT a pose
-      const isPose = isFromCreation ? false : (
-        file.metadata?.source === 'pose-generation' || 
-        file.metadata?.uploadMethod === 'pose-generation' ||
-        (dynamoMetadata?.isPose ?? false)
-      );
-      const isBase = dynamoMetadata?.isBase ?? false;
-      
-      // Get label from DynamoDB metadata or Media Library
-      const label = dynamoMetadata?.label || 
-                    file.fileName?.replace(/\.[^/.]+$/, '') || 
-                    'Image';
-      
-      // Get outfit from DynamoDB metadata or Media Library folder
-      // 🔥 FIX: Store both original and normalized outfit name
-      let outfitNameOriginal = dynamoMetadata?.outfitName;
-      if (!outfitNameOriginal && file.folderPath && Array.isArray(file.folderPath)) {
-        const outfitsIndex = file.folderPath.indexOf('Outfits');
-        if (outfitsIndex >= 0 && outfitsIndex + 1 < file.folderPath.length) {
-          outfitNameOriginal = file.folderPath[outfitsIndex + 1];
-        }
-      }
-      if (!outfitNameOriginal) {
-        outfitNameOriginal = file.metadata?.outfitName || extractOutfitFromS3Key(file.s3Key) || 'default';
-      }
-      
-      // Normalize outfit name for matching (but preserve original for display)
-      const normalizeOutfitName = (name: string): string => {
-        if (!name) return '';
-        return name
-          .toLowerCase()
-          .replace(/[_\s]+/g, '_')
-          .replace(/^_+|_+$/g, '')
-          .trim();
-      };
-      const outfitName = normalizeOutfitName(outfitNameOriginal);
-      
-      // 🔥 FIX: Use s3Key as stable ID if no DynamoDB ID found (for newly uploaded images)
-      // This ensures uploaded images are clickable even before DynamoDB metadata is available
-      const stableId = dynamoMetadata?.id || 
-                       file.metadata?.referenceId || 
-                       `ref_${file.s3Key?.replace(/[^a-zA-Z0-9]/g, '_')}` || 
-                       `img-${index}`;
-      
-      images.push({
-        id: stableId,
-        imageUrl: '', // Will be generated from s3Key via presigned URL
-        s3Key: file.s3Key,
-        label,
-        isBase,
-        isPose,
-        outfitName, // Normalized for matching
-        outfitNameOriginal: outfitNameOriginal, // Original for display
-        poseId: dynamoMetadata?.poseId,
-        isRegenerated: dynamoMetadata?.isRegenerated,
-        regeneratedFrom: dynamoMetadata?.regeneratedFrom,
-        metadata: { ...file.metadata, ...dynamoMetadata?.metadata, outfitNameOriginal },
-        index
-      });
-    });
-    
-    return images;
-  }, [mediaFiles, dynamoDBMetadataMap]);
-  
-  // Generate presigned URLs for Media Library images
-  const mediaLibraryS3Keys = useMemo(() => 
-    imagesFromMediaLibrary.map(img => img.s3Key).filter(Boolean),
-    [imagesFromMediaLibrary]
-  );
-  
-  const { data: mediaLibraryUrls = new Map() } = useBulkPresignedUrls(
-    mediaLibraryS3Keys.length > 0 ? mediaLibraryS3Keys : [],
-    isOpen && mediaLibraryS3Keys.length > 0
-  );
-  const dropboxUrlMap = useDropboxPreviewUrls(mediaFiles, isOpen && mediaFiles.length > 0);
-  const presignedMapsForDisplay = useMemo(() => ({
-    fullImageUrlsMap: mediaLibraryUrls,
-    thumbnailS3KeyMap,
-    thumbnailUrlsMap: new Map<string, string>(),
-  }), [mediaLibraryUrls, thumbnailS3KeyMap]);
-  
-  // Enrich Media Library images with display URLs (S3 presigned, Drive view URL, or Dropbox temporary link)
-  // 🔥 Feature 0200: Filter out images with expired/broken presigned URLs
-  const enrichedMediaLibraryImages = useMemo(() => {
-    return imagesFromMediaLibrary
-      .map(img => {
-        const file = mediaFileMap.get(img.s3Key);
-        const displayUrl = getMediaFileDisplayUrl(
-          file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
-          presignedMapsForDisplay,
-          dropboxUrlMap
-        );
-        return {
-          ...img,
-          imageUrl: displayUrl || img.imageUrl || '',
-        };
-      })
-      .filter(img => {
-        return !!img.imageUrl && img.imageUrl.length > 0;
-      });
-  }, [imagesFromMediaLibrary, mediaLibraryUrls, presignedMapsForDisplay, dropboxUrlMap, mediaFileMap]);
-  
-  // 🔥 FALLBACK: Use character prop images if not in Media Library (for backward compatibility)
-  // 🔥 NEW: Also check unified images array from backend (includes all images with proper metadata)
-  const fallbackImages = useMemo(() => {
-    const fallback: Array<{
       id: string;
       imageUrl: string;
       s3Key: string;
@@ -697,149 +542,125 @@ export function CharacterDetailModal({
       isBase: boolean;
       isPose: boolean;
       outfitName?: string;
+      outfitNameOriginal?: string;
       poseId?: string;
       isRegenerated?: boolean;
       regeneratedFrom?: string;
       metadata?: any;
       index: number;
     }> = [];
-    const mediaLibraryS3KeysSet = new Set(mediaLibraryS3Keys);
-    
-    // 🔥 NEW: Check unified images array first (primary source from backend)
-    // This includes all images (baseReference, references, poseReferences) with proper metadata
+    let index = 0;
+    const skipClothing = (metadata: any) =>
+      metadata?.isClothingReference === true || metadata?.referenceType === 'clothing';
+
     if (latestCharacter.images && Array.isArray(latestCharacter.images)) {
       latestCharacter.images.forEach((img: any, idx: number) => {
         const imgS3Key = img.s3Key || img.metadata?.s3Key;
-        if (!imgS3Key || mediaLibraryS3KeysSet.has(imgS3Key)) {
-          return; // Skip if already in Media Library
-        }
-        
-        const imageUrl = img.imageUrl || img.url || '';
+        if (!imgS3Key || imgS3Key.startsWith('thumbnails/') || skipClothing(img.metadata)) return;
         const metadata = img.metadata || {};
         const isBase = metadata.isBase || false;
         const isPose = metadata.isPose || metadata.source === 'pose-generation' || false;
-        const createdIn = metadata.createdIn || 'creation';
-        
-        // Extract outfit name from metadata
-        const outfitName = metadata.outfitName || extractOutfitFromS3Key(imgS3Key) || (isPose ? 'default' : undefined);
-        
-        fallback.push({
+        const outfitNameOriginal = metadata.outfitName || extractOutfitFromS3Key(imgS3Key) || (isPose ? 'default' : undefined);
+        images.push({
           id: img.id || `img-${idx}`,
-          imageUrl,
+          imageUrl: img.imageUrl || img.url || '',
           s3Key: imgS3Key,
           label: img.label || metadata.label || (isBase ? 'Base Reference' : isPose ? 'Pose' : 'Reference'),
           isBase,
           isPose,
-          outfitName,
+          outfitName: outfitNameOriginal ? normalizeOutfitName(outfitNameOriginal) : undefined,
+          outfitNameOriginal,
           poseId: metadata.poseId,
           isRegenerated: metadata.isRegenerated || false,
           regeneratedFrom: metadata.regeneratedFrom,
-          metadata: {
-            ...metadata,
-            createdIn, // Preserve createdIn for filtering
-            source: metadata.source || (isPose ? 'pose-generation' : 'user-upload'),
-            uploadMethod: metadata.uploadMethod || (createdIn === 'creation' ? 'character-creation' : undefined)
-          },
-          index: fallback.length
+          metadata: { ...metadata, createdIn: metadata.createdIn || 'creation' },
+          index: index++
         });
       });
     } else {
-      // Fallback to separate fields if unified images array not available
-      // Check baseReference
-      if (latestCharacter.baseReference?.s3Key && !mediaLibraryS3KeysSet.has(latestCharacter.baseReference.s3Key)) {
-        fallback.push({
+      if (latestCharacter.baseReference?.s3Key && !latestCharacter.baseReference.s3Key.startsWith('thumbnails/')) {
+        images.push({
           id: 'base',
           imageUrl: latestCharacter.baseReference.imageUrl || '',
           s3Key: latestCharacter.baseReference.s3Key,
           label: 'Base Reference',
           isBase: true,
           isPose: false,
-          metadata: { createdIn: 'creation', source: 'user-upload', uploadMethod: 'character-creation' },
-          index: 0
+          metadata: { createdIn: 'creation', source: 'user-upload' },
+          index: index++
         });
       }
-      
-      // Check references
       (latestCharacter.references || []).forEach((ref: any, idx: number) => {
         const refS3Key = ref.s3Key || ref.metadata?.s3Key;
-        if (refS3Key && !mediaLibraryS3KeysSet.has(refS3Key)) {
-          fallback.push({
-            id: ref.id || `ref-${idx}`,
-            imageUrl: ref.imageUrl || '',
-            s3Key: refS3Key,
-            label: ref.label || 'Reference',
-            isBase: false,
-            isPose: false,
-            metadata: { createdIn: 'creation', source: 'user-upload', uploadMethod: 'character-creation', ...ref.metadata },
-            index: fallback.length
-          });
-        }
+        if (!refS3Key || refS3Key.startsWith('thumbnails/') || skipClothing(ref.metadata)) return;
+        images.push({
+          id: ref.id || `ref-${idx}`,
+          imageUrl: ref.imageUrl || '',
+          s3Key: refS3Key,
+          label: ref.label || 'Reference',
+          isBase: false,
+          isPose: false,
+          metadata: { createdIn: 'creation', source: 'user-upload', ...ref.metadata },
+          index: index++
+        });
       });
-      
-      // Check poseReferences
       const rawPoseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
       rawPoseRefs.forEach((ref: any, idx: number) => {
         const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
-        if (refS3Key && !mediaLibraryS3KeysSet.has(refS3Key)) {
-          const refObj = typeof ref === 'string' ? null : ref;
-          const outfitFromMetadata = refObj?.metadata?.outfitName;
-          const outfitFromS3 = extractOutfitFromS3Key(refS3Key);
-          const outfitName = outfitFromMetadata || outfitFromS3 || 'default';
-          
-          fallback.push({
-            id: refObj?.id || `pose-${idx}`,
-            imageUrl: typeof ref === 'string' ? '' : (ref.imageUrl || ''),
-            s3Key: refS3Key,
-            label: (typeof ref === 'string' ? 'Pose' : ref.label) || refObj?.metadata?.poseName || 'Pose',
-            isBase: false,
-            isPose: true,
-            outfitName,
-            poseId: refObj?.poseId || refObj?.metadata?.poseId,
-            isRegenerated: refObj?.metadata?.isRegenerated || false,
-            regeneratedFrom: refObj?.metadata?.regeneratedFrom,
-            metadata: { createdIn: 'production-hub', source: 'pose-generation', ...(refObj?.metadata || {}) },
-            index: fallback.length
-          });
-        }
+        if (!refS3Key || refS3Key.startsWith('thumbnails/')) return;
+        const refObj = typeof ref === 'string' ? null : ref;
+        const outfitNameOriginal = refObj?.metadata?.outfitName || refObj?.outfitName || extractOutfitFromS3Key(refS3Key) || 'default';
+        images.push({
+          id: refObj?.id || `pose-${idx}`,
+          imageUrl: typeof ref === 'string' ? '' : (ref.imageUrl || ''),
+          s3Key: refS3Key,
+          label: (typeof ref === 'string' ? 'Pose' : ref.label) || refObj?.metadata?.poseName || 'Pose',
+          isBase: false,
+          isPose: true,
+          outfitName: normalizeOutfitName(outfitNameOriginal),
+          outfitNameOriginal,
+          poseId: refObj?.poseId || refObj?.metadata?.poseId,
+          isRegenerated: refObj?.metadata?.isRegenerated || false,
+          regeneratedFrom: refObj?.metadata?.regeneratedFrom,
+          metadata: { createdIn: 'production-hub', source: 'pose-generation', ...(refObj?.metadata || {}) },
+          index: index++
+        });
       });
     }
-    
-    return fallback;
-  }, [latestCharacter.baseReference, latestCharacter.references, latestCharacter.poseReferences, latestCharacter.images, latestCharacter.id, mediaLibraryS3Keys]);
-  
-  // Generate presigned URLs for fallback images that have s3Key but expired imageUrl
-  const fallbackS3Keys = useMemo(() => 
-    fallbackImages
-      .filter(img => img.s3Key && (!img.imageUrl || !img.imageUrl.startsWith('http')))
-      .map(img => img.s3Key)
-      .filter(Boolean),
-    [fallbackImages]
+    return images;
+  }, [latestCharacter.baseReference, latestCharacter.references, latestCharacter.poseReferences, latestCharacter.images, normalizeOutfitName]);
+
+  const payloadS3Keys = useMemo(() =>
+    payloadImages.map(img => img.s3Key).filter(Boolean),
+    [payloadImages]
   );
-  
-  const { data: fallbackUrls = new Map() } = useBulkPresignedUrls(
-    fallbackS3Keys.length > 0 ? fallbackS3Keys : [],
-    isOpen && fallbackS3Keys.length > 0
+  const { data: mediaLibraryUrls = new Map() } = useBulkPresignedUrls(
+    payloadS3Keys.length > 0 ? payloadS3Keys : [],
+    isOpen && payloadS3Keys.length > 0
   );
+  const dropboxUrlMap = useDropboxPreviewUrls(mediaFiles, isOpen && mediaFiles.length > 0);
+  const presignedMapsForDisplay = useMemo(() => ({
+    fullImageUrlsMap: mediaLibraryUrls,
+    thumbnailS3KeyMap,
+    thumbnailUrlsMap: new Map<string, string>(),
+  }), [mediaLibraryUrls, thumbnailS3KeyMap]);
+
+  const getDisplayUrl = useCallback((img: { s3Key: string; imageUrl?: string }) => {
+    const file = mediaFileMap.get(img.s3Key);
+    return getMediaFileDisplayUrl(
+      file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
+      presignedMapsForDisplay,
+      dropboxUrlMap
+    ) || img.imageUrl || '';
+  }, [mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
   
-  // Enrich fallback images with presigned URLs
-  const enrichedFallbackImages = useMemo(() => {
-    return fallbackImages.map(img => ({
-      ...img,
-      imageUrl: img.s3Key && fallbackUrls.has(img.s3Key) 
-        ? fallbackUrls.get(img.s3Key) || img.imageUrl || ''
-        : img.imageUrl || ''
-    }));
-  }, [fallbackImages, fallbackUrls]);
-  
-  // 🔥 COMBINED: Media Library images (primary) + Fallback images (from character prop)
-  // 🔥 Feature 0200: Filter out enriched fallback images with empty imageUrl (expired files)
+  // Feature 0256: allImages = payload list enriched with display URLs.
   const allImages = useMemo(() => {
-    // Filter enriched fallback images to only include those with valid URLs
-    // This prevents broken images from appearing when presigned URL generation fails
-    const validFallbackImages = enrichedFallbackImages.filter(img => !!img.imageUrl && img.imageUrl.length > 0);
-    // Prioritize Media Library images, then add valid fallback images
-    return [...enrichedMediaLibraryImages, ...validFallbackImages];
-  }, [enrichedMediaLibraryImages, enrichedFallbackImages]);
+    return payloadImages.map(img => ({
+      ...img,
+      imageUrl: img.imageUrl && img.imageUrl.length > 0 ? img.imageUrl : getDisplayUrl(img)
+    }));
+  }, [payloadImages, getDisplayUrl]);
   
   // 🔥 FIX: Use same simple filtering approach as LocationDetailModal and AssetDetailModal
   // Filter by boolean flags (isPose) instead of metadata, matching the pattern used by locations and assets

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Camera, Upload } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Character, ImageAsset } from '@/types/screenplay'
@@ -56,17 +56,24 @@ export default function CharacterDetailSidebar({
     character?.id // entityId
   );
   
-  // Get s3Keys for presigned URL generation
+  // Feature 0256: Payload-first. Build list from character.images (or getEntityImages); ML only for display URLs.
+  const payloadImages = useMemo(() => {
+    if (!character?.id) return [];
+    const fromPayload = character.images ?? getEntityImages('character', character.id) ?? [];
+    return fromPayload.filter((img: any) => {
+      const s3 = img.metadata?.s3Key;
+      return s3 && !String(s3).startsWith('thumbnails/');
+    });
+  }, [character?.id, character?.images, getEntityImages]);
+
   const characterMediaS3Keys = useMemo(() => {
-    return characterMediaFiles
-      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
-      .map((file: any) => file.s3Key);
-  }, [characterMediaFiles]);
-  
-  // Fetch presigned URLs for character images
+    const keys = payloadImages.map((img: any) => img.metadata?.s3Key).filter(Boolean);
+    return [...new Set(keys)];
+  }, [payloadImages]);
+
   const { data: characterPresignedUrls = new Map() } = useBulkPresignedUrls(
     characterMediaS3Keys,
-    characterMediaS3Keys.length > 0
+    !!screenplayId && !!character?.id && characterMediaS3Keys.length > 0
   );
   const dropboxUrlMap = useDropboxPreviewUrls(characterMediaFiles, characterMediaFiles.length > 0);
   const presignedMapsForDisplay = useMemo(() => ({
@@ -74,28 +81,43 @@ export default function CharacterDetailSidebar({
     thumbnailS3KeyMap: null as Map<string, string> | null,
     thumbnailUrlsMap: null as Map<string, string> | null,
   }), [characterPresignedUrls]);
-  
-  // 🔥 Feature 0200: Build enriched images from Media Library with display URLs (S3 presigned, Drive view URL, or Dropbox temporary link)
+
+  const mediaFileMap = useMemo(() => {
+    const map = new Map<string, any>();
+    characterMediaFiles.forEach((file: any) => {
+      if (file.s3Key && !file.s3Key.startsWith('thumbnails/')) map.set(file.s3Key, file);
+    });
+    return map;
+  }, [characterMediaFiles]);
+
+  const getDisplayUrl = useCallback((img: { imageUrl?: string; metadata?: { s3Key?: string } }) => {
+    const s3Key = img.metadata?.s3Key;
+    if (!s3Key) return img.imageUrl || '';
+    const file = mediaFileMap.get(s3Key);
+    return getMediaFileDisplayUrl(
+      file ?? { id: s3Key, storageType: 'local' as const, s3Key },
+      presignedMapsForDisplay,
+      dropboxUrlMap
+    ) || img.imageUrl || '';
+  }, [mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
+
   const mediaLibraryImages = useMemo(() => {
-    return characterMediaFiles
-      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
-      .map((file: any) => {
-        const displayUrl = getMediaFileDisplayUrl(file, presignedMapsForDisplay, dropboxUrlMap);
-        return {
-          imageUrl: displayUrl || '',
-          metadata: {
-            s3Key: file.s3Key,
-            source: file.metadata?.source || 'upload',
-            prompt: file.metadata?.prompt,
-            modelUsed: file.metadata?.modelUsed,
-            angle: file.metadata?.angle,
-            ...file.metadata
-          },
-          createdAt: file.createdAt || new Date().toISOString()
-        };
-      })
-      .filter((img: any) => !!img.imageUrl);
-  }, [characterMediaFiles, characterPresignedUrls, presignedMapsForDisplay, dropboxUrlMap]);
+    return payloadImages.map((img: any) => {
+      const displayUrl = img.imageUrl && img.imageUrl.startsWith('http') ? img.imageUrl : getDisplayUrl(img);
+      return {
+        imageUrl: displayUrl || '',
+        metadata: {
+          s3Key: img.metadata?.s3Key,
+          source: img.metadata?.source || 'upload',
+          prompt: img.metadata?.prompt,
+          modelUsed: img.metadata?.modelUsed,
+          angle: img.metadata?.angle,
+          ...img.metadata
+        },
+        createdAt: img.createdAt || new Date().toISOString()
+      };
+    }).filter((img: any) => !!img.imageUrl);
+  }, [payloadImages, getDisplayUrl]);
   
   // Check if character is in script (if editing existing character) - memoized to prevent render loops
   const isInScript = useMemo(() => {

@@ -13,7 +13,7 @@
  * Consistent with CharacterDetailModal and LocationDetailModal
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
@@ -388,8 +388,8 @@ export default function AssetDetailModal({
     return map;
   }, [latestAsset.images, latestAsset.angleReferences, latestAsset.name]);
   
-  // Build images from Media Library FIRST (primary source), enrich with DynamoDB metadata
-  const imagesFromMediaLibrary = useMemo(() => {
+  // Feature 0256: Payload-first. Build list from latestAsset.images + angleReferences; ML only for URLs.
+  const payloadImages = useMemo(() => {
     const images: Array<{
       id: string;
       imageUrl: string;
@@ -404,71 +404,65 @@ export default function AssetDetailModal({
       metadata?: any;
       index: number;
     }> = [];
-    
     let index = 0;
-    
-    // Process Media Library files
-    mediaFiles.forEach((file: any) => {
-      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
-      
-      // Get metadata from DynamoDB (asset prop)
-      const dynamoMetadata = dynamoDBMetadataMap.get(file.s3Key);
-      
-      // Determine image type from Media Library metadata or DynamoDB
-      // Check if this is a Production Hub image (either AI-generated or user-uploaded in Production Hub)
-      const isAngleReference = file.metadata?.source === 'angle-generation' ||
-                                file.metadata?.uploadMethod === 'angle-generation' ||
-                                (dynamoMetadata?.isAngleReference ?? false);
-      const isProductionHubUpload = file.metadata?.createdIn === 'production-hub' ||
-                                     file.metadata?.isProductionHub === true;
-      // Image is from Creation section only if NOT from Production Hub (either AI or upload)
-      const isCreationImage = !isAngleReference && !isProductionHubUpload;
-      const isBase = dynamoMetadata?.isBase ?? (index === 0 && isCreationImage);
-      
-      // Get label from DynamoDB metadata or Media Library
-      const label = dynamoMetadata?.label ||
-                    file.fileName?.replace(/\.[^/.]+$/, '') ||
-                    `${latestAsset.name} - Image ${index + 1}`;
-      
+    const creationImages = latestAsset.images || [];
+    creationImages.forEach((img: any, idx: number) => {
+      const s3Key = img.s3Key || img.metadata?.s3Key;
+      if (!s3Key || s3Key.startsWith('thumbnails/')) return;
+      const source = img.metadata?.source;
+      const createdIn = img.metadata?.createdIn;
+      const isProductionHubImage = createdIn === 'production-hub' || source === 'angle-generation' || source === 'production-hub';
+      const isCreationImage = !isProductionHubImage && (!source || source === 'user-upload');
       images.push({
-        id: dynamoMetadata?.id || file.id || `img-${index}`,
-        imageUrl: '', // Will be generated from s3Key via presigned URL
-        s3Key: file.s3Key,
-        label,
-        isBase,
-        isAngleReference,
-        isProductionHubUpload, // User uploads from Production Hub
-        isCreationImage, // Images from Creation section only
-        angle: dynamoMetadata?.angle || file.metadata?.angle,
-        isRegenerated: dynamoMetadata?.isRegenerated,
-        metadata: { ...file.metadata, ...dynamoMetadata?.metadata },
-        index
+        id: img.id || `img-${idx}`,
+        imageUrl: img.url || img.imageUrl || '',
+        s3Key,
+        label: `${latestAsset.name} - Image ${idx + 1}`,
+        isBase: idx === 0,
+        isAngleReference: source === 'angle-generation',
+        isProductionHubUpload: isProductionHubImage && source !== 'angle-generation',
+        isCreationImage,
+        metadata: img.metadata || {},
+        index: index++
       });
-      
-      index++;
     });
-    
-    // Sort: creation images first (base first), then angle references
-    return images.sort((a, b) => {
-      if (a.isAngleReference !== b.isAngleReference) {
-        return a.isAngleReference ? 1 : -1; // Creation images first
-      }
-      if (a.isBase !== b.isBase) {
-        return a.isBase ? -1 : 1; // Base first
-      }
-      return a.index - b.index;
+    (latestAsset.angleReferences || []).forEach((ref: any) => {
+      if (!ref.s3Key || ref.s3Key.startsWith('thumbnails/')) return;
+      const isRegenerated = ref.metadata?.isRegenerated || false;
+      images.push({
+        id: ref.id || `angle-${ref.angle || 'unknown'}`,
+        imageUrl: ref.imageUrl || '',
+        s3Key: ref.s3Key,
+        label: `${latestAsset.name} - ${ref.angle || 'Angle'} view`,
+        isBase: false,
+        isAngleReference: true,
+        isProductionHubUpload: false,
+        isCreationImage: false,
+        angle: ref.angle,
+        isRegenerated,
+        metadata: {
+          s3Key: ref.s3Key,
+          angle: ref.angle,
+          source: 'angle-generation',
+          createdIn: 'production-hub',
+          creditsUsed: ref.creditsUsed || 0,
+          providerId: ref.metadata?.providerId || ref.metadata?.generationMetadata?.providerId,
+          quality: ref.metadata?.quality || ref.metadata?.generationMetadata?.quality,
+          isRegenerated
+        },
+        index: index++
+      });
     });
-  }, [mediaFiles, dynamoDBMetadataMap, latestAsset.name]);
-  
-  // Generate presigned URLs for Media Library images
-  const mediaLibraryS3Keys = useMemo(() =>
-    imagesFromMediaLibrary.map(img => img.s3Key).filter(Boolean),
-    [imagesFromMediaLibrary]
+    return images;
+  }, [latestAsset.images, latestAsset.angleReferences, latestAsset.name]);
+
+  const payloadS3Keys = useMemo(() =>
+    payloadImages.map(img => img.s3Key).filter(Boolean),
+    [payloadImages]
   );
-  
   const { data: mediaLibraryUrls = new Map() } = useBulkPresignedUrls(
-    mediaLibraryS3Keys.length > 0 ? mediaLibraryS3Keys : [],
-    isOpen && mediaLibraryS3Keys.length > 0
+    payloadS3Keys.length > 0 ? payloadS3Keys : [],
+    isOpen && payloadS3Keys.length > 0
   );
   const dropboxUrlMap = useDropboxPreviewUrls(mediaFiles, isOpen && mediaFiles.length > 0);
   const thumbnailS3KeyMapForDisplay = useMemo(() => {
@@ -483,111 +477,22 @@ export default function AssetDetailModal({
     thumbnailS3KeyMap: thumbnailS3KeyMapForDisplay,
     thumbnailUrlsMap: new Map<string, string>(),
   }), [mediaLibraryUrls, thumbnailS3KeyMapForDisplay]);
-  
-  // Enrich Media Library images with display URLs (S3 presigned, Drive view URL, or Dropbox temporary link)
-  const enrichedMediaLibraryImages = useMemo(() => {
-    return imagesFromMediaLibrary
-      .map(img => {
-        const file = mediaFileMap.get(img.s3Key);
-        const displayUrl = getMediaFileDisplayUrl(
-          file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
-          presignedMapsForDisplay,
-          dropboxUrlMap
-        );
-        return { ...img, imageUrl: displayUrl || img.imageUrl || '' };
-      })
-      .filter(img => !!img.imageUrl && img.imageUrl.length > 0);
-  }, [imagesFromMediaLibrary, presignedMapsForDisplay, dropboxUrlMap, mediaFileMap]);
-  
-  // 🔥 FALLBACK: Use asset prop images if not in Media Library (for backward compatibility)
-  const fallbackImages = useMemo(() => {
-    const fallback: Array<{
-      id: string;
-      imageUrl: string;
-      s3Key?: string;
-      label: string;
-      isBase: boolean;
-      isAngleReference?: boolean;
-      isProductionHubUpload?: boolean;
-      isCreationImage?: boolean;
-      angle?: string;
-      isRegenerated?: boolean;
-      metadata?: any;
-      index: number;
-    }> = [];
-    const mediaLibraryS3KeysSet = new Set(mediaLibraryS3Keys);
-    
-    // Check creation images
-    assetImages.forEach((img: any, idx: number) => {
-      const source = img.metadata?.source;
-      const createdIn = img.metadata?.createdIn;
-      // 🔥 FIX: Check BOTH source AND createdIn to properly categorize images
-      // Production Hub uploads set createdIn: 'production-hub', not source
-      const isProductionHubImage = createdIn === 'production-hub' || 
-                                    source === 'angle-generation' ||
-                                    source === 'production-hub';
-      const isCreationImage = !isProductionHubImage && (!source || source === 'user-upload');
-      
-      const s3Key = img.s3Key || img.metadata?.s3Key;
-      if (s3Key && !mediaLibraryS3KeysSet.has(s3Key)) {
-        fallback.push({
-          id: `img-${idx}`,
-          imageUrl: img.url || '',
-          s3Key,
-          label: `${latestAsset.name} - Image ${idx + 1}`,
-          isBase: idx === 0,
-          isAngleReference: source === 'angle-generation',
-          isProductionHubUpload: isProductionHubImage && source !== 'angle-generation',
-          isCreationImage: isCreationImage,
-          metadata: img.metadata || {},
-          index: fallback.length
-        });
-      }
-    });
-    
-    // Check angleReferences
-    const angleReferences = asset.angleReferences || [];
-    angleReferences.forEach((ref: any) => {
-      if (ref.s3Key && !mediaLibraryS3KeysSet.has(ref.s3Key)) {
-        const isRegenerated = ref.metadata?.isRegenerated || false;
-        fallback.push({
-          id: ref.id || `angle-${ref.angle || 'unknown'}`,
-          imageUrl: ref.imageUrl || '',
-          s3Key: ref.s3Key,
-          label: `${latestAsset.name} - ${ref.angle || 'Angle'} view`,
-          isBase: false,
-          isAngleReference: true,
-          isProductionHubUpload: false, // AI-generated angles are not "uploads"
-          isCreationImage: false, // Angle references are Production Hub images
-          angle: ref.angle,
-          isRegenerated,
-          metadata: {
-            s3Key: ref.s3Key,
-            angle: ref.angle,
-            source: 'angle-generation',
-            createdIn: 'production-hub',
-            creditsUsed: ref.creditsUsed || 0,
-            providerId: ref.metadata?.providerId || ref.metadata?.generationMetadata?.providerId,
-            quality: ref.metadata?.quality || ref.metadata?.generationMetadata?.quality,
-            isRegenerated
-          },
-          index: fallback.length
-        });
-      }
-    });
-    
-    return fallback;
-  }, [latestAsset.images, latestAsset.angleReferences, latestAsset.name, mediaLibraryS3Keys]);
-  
-  // 🔥 COMBINED: Media Library images (primary) + Fallback images (from asset prop)
-  // 🔥 Feature 0200: Filter out fallback images with empty imageUrl (expired files)
+
+  const getDisplayUrl = useCallback((img: { s3Key: string; imageUrl?: string }) => {
+    const file = mediaFileMap.get(img.s3Key);
+    return getMediaFileDisplayUrl(
+      file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
+      presignedMapsForDisplay,
+      dropboxUrlMap
+    ) || img.imageUrl || '';
+  }, [mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
+
   const allImages = useMemo(() => {
-    // Filter fallback images to only include those with valid URLs
-    const validFallbackImages = fallbackImages.filter(img => !!img.imageUrl && img.imageUrl.length > 0);
-    const combined = [...enrichedMediaLibraryImages, ...validFallbackImages];
-    
-    return combined;
-  }, [enrichedMediaLibraryImages, fallbackImages]);
+    return payloadImages.map(img => ({
+      ...img,
+      imageUrl: img.imageUrl && img.imageUrl.length > 0 ? img.imageUrl : getDisplayUrl(img)
+    }));
+  }, [payloadImages, getDisplayUrl]);
   
   // 🔥 DERIVED: Separate creation images and production hub images
   // userImages = Creation section images ONLY (not from Production Hub)
@@ -695,17 +600,15 @@ export default function AssetDetailModal({
       console.log('[AssetDetailModal] Asset images:', {
         assetId: latestAsset.id,
         assetName: latestAsset.name,
-        mediaLibraryFilesCount: mediaFiles.length,
-        imagesFromMediaLibraryCount: imagesFromMediaLibrary.length,
-        enrichedMediaLibraryImagesCount: enrichedMediaLibraryImages.length,
-        fallbackImagesCount: fallbackImages.length,
+        mediaFilesCount: mediaFiles.length,
+        payloadImagesCount: payloadImages.length,
         allImagesCount: allImages.length,
         userImagesCount: userImages.length,
         angleImageObjectsCount: angleImageObjects.length,
         canGenerateAngles,
       });
     }
-  }, [isOpen, latestAsset.id, latestAsset.name, mediaFiles.length, imagesFromMediaLibrary.length, enrichedMediaLibraryImages.length, fallbackImages.length, allImages.length, userImages.length, angleImageObjects.length, canGenerateAngles]);
+  }, [isOpen, latestAsset.id, latestAsset.name, mediaFiles.length, payloadImages.length, allImages.length, userImages.length, angleImageObjects.length, canGenerateAngles]);
 
   const handleGeneratePackages = () => {
     // Switch to Generate tab

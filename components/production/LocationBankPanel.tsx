@@ -49,87 +49,29 @@ export function LocationBankPanel({
     !!screenplayId
   );
 
-  // 🔥 Feature 0200: Query Media Library for all location files (source of truth for cards)
-  // This matches the pattern used by LocationDetailModal - ensures cards and modals show same data
+  // Feature 0256: Payload-first. Query Media Library only for URL enrichment (presigned, Dropbox).
   const { data: allLocationMediaFiles = [] } = useMediaFiles(
     screenplayId || '',
-    undefined, // no folder filter
-    !!screenplayId, // enabled
-    true, // includeAllFolders
-    'location' // entityType - get all location files
+    undefined,
+    !!screenplayId,
+    true,
+    'location'
   );
 
-  // 🔥 Feature 0200: Process Media Library files to get angles and backgrounds per location
-  // This is the same logic used in LocationDetailModal - ensures consistency
-  // 🔥 FIX: Use creationImages ARRAY instead of single baseReference (matches AssetBankPanel pattern)
-  const locationImagesFromMediaLibrary = useMemo(() => {
-    const locationMap: Record<string, {
-      creationImages: Array<{ s3Key: string; label?: string; isBase?: boolean }>;
-      angles: Array<{ s3Key: string; angle?: string; label?: string }>;
-      backgrounds: Array<{ s3Key: string; backgroundType?: string }>;
-    }> = {};
-
-    allLocationMediaFiles.forEach((file: any) => {
-      if (!file.s3Key || file.s3Key.startsWith('thumbnails/')) return;
-      
-      const entityId = file.metadata?.entityId || file.entityId;
-      if (!entityId) return;
-
-      if (!locationMap[entityId]) {
-        locationMap[entityId] = { creationImages: [], angles: [], backgrounds: [] };
-      }
-
-      // Check if it's a background
-      const hasAngleMetadata = file.metadata?.angle !== undefined;
-      const isBackground = !hasAngleMetadata && (
-        file.metadata?.isBackground === true ||
-        file.metadata?.source === 'background-generation' ||
-        file.metadata?.backgroundType !== undefined
-      );
-
-      if (isBackground) {
-        locationMap[entityId].backgrounds.push({
-          s3Key: file.s3Key,
-          backgroundType: file.metadata?.backgroundType
-        });
-      } else if (hasAngleMetadata || file.metadata?.sourceType === 'angle-variations') {
-        // Angle variation
-        locationMap[entityId].angles.push({
-          s3Key: file.s3Key,
-          angle: file.metadata?.angle,
-          label: file.metadata?.angle
-        });
-      } else if (
-        file.metadata?.isBase === true ||
-        file.metadata?.source === 'user-upload' ||
-        file.metadata?.createdIn === 'creation' ||
-        file.metadata?.referenceType === 'base' ||
-        file.metadata?.referenceType === 'additional'
-      ) {
-        // Creation/reference images: backend stores referenceType, createdIn, uploadMethod (not always isBase)
-        const isBase = file.metadata?.isBase === true || file.metadata?.referenceType === 'base';
-        locationMap[entityId].creationImages.push({
-          s3Key: file.s3Key,
-          label: file.fileName?.replace(/\.[^/.]+$/, '') || 'Image',
-          isBase
-        });
-      }
-    });
-
-    return locationMap;
-  }, [allLocationMediaFiles]);
-
-  // 🔥 Feature 0200: Get all s3Keys for presigned URL generation
+  // Feature 0256: Build list of s3Keys from location payload (source of truth for what to show).
   const allLocationS3Keys = useMemo(() => {
     const keys: string[] = [];
-    Object.values(locationImagesFromMediaLibrary).forEach(loc => {
-      // 🔥 FIX: Iterate over creationImages array (matches AssetBankPanel pattern)
-      loc.creationImages.forEach(img => keys.push(img.s3Key));
-      loc.angles.forEach(a => keys.push(a.s3Key));
-      loc.backgrounds.forEach(b => keys.push(b.s3Key));
+    locations.forEach((loc) => {
+      if (loc.baseReference?.s3Key && !loc.baseReference.s3Key.startsWith('thumbnails/')) keys.push(loc.baseReference.s3Key);
+      (loc.angleVariations || []).forEach((v: any) => { if (v.s3Key && !v.s3Key.startsWith('thumbnails/')) keys.push(v.s3Key); });
+      (loc.backgrounds || []).forEach((b: any) => { if (b.s3Key && !b.s3Key.startsWith('thumbnails/')) keys.push(b.s3Key); });
+      (loc.images || []).forEach((img: any) => {
+        const s3 = img.s3Key || img.metadata?.s3Key;
+        if (s3 && !s3.startsWith('thumbnails/')) keys.push(s3);
+      });
     });
-    return keys;
-  }, [locationImagesFromMediaLibrary]);
+    return [...new Set(keys)];
+  }, [locations]);
 
   // 🔥 Feature 0200: Generate presigned URLs for all location images
   const { data: locationPresignedUrls = new Map() } = useBulkPresignedUrls(
@@ -159,19 +101,6 @@ export function LocationBankPanel({
     );
   }, [locationMediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
 
-  // 🔥 FIX: Calculate backgrounds count per location from Media Library (source of truth)
-  const backgroundsCountByLocation = useMemo(() => {
-    const counts: Record<string, number> = {};
-    
-    Object.entries(locationImagesFromMediaLibrary).forEach(([entityId, loc]) => {
-      const validBackgrounds = loc.backgrounds.filter(bg => !!getLocationImageDisplayUrl(bg.s3Key));
-      if (validBackgrounds.length > 0) {
-        counts[entityId] = validBackgrounds.length;
-      }
-    });
-    return counts;
-  }, [locationImagesFromMediaLibrary, getLocationImageDisplayUrl]);
-
   const isLoading = queryLoading || propsIsLoading;
 
   // Local UI state only
@@ -191,37 +120,6 @@ export function LocationBankPanel({
       }
     }
   }, [entityToOpen, locations, showLocationDetail, onEntityOpened]);
-
-  // 🔧 DEBUG: One-time log for troubleshooting location card image (paste console output for support)
-  useEffect(() => {
-    if (locations.length === 0 || !allLocationMediaFiles.length) return;
-    const newsOffice = locations.find((l: any) => l.name === 'NEWS OFFICE');
-    if (!newsOffice) return;
-    const ml = locationImagesFromMediaLibrary[newsOffice.locationId];
-    const mediaFilesForLocation = allLocationMediaFiles.filter(
-      (f: any) => (f.metadata?.entityId || f.entityId) === newsOffice.locationId
-    );
-    const firstCreationFile = mediaFilesForLocation.find(
-      (f: any) =>
-        f.metadata?.createdIn === 'creation' ||
-        f.metadata?.referenceType === 'base' ||
-        f.metadata?.referenceType === 'additional' ||
-        f.metadata?.isBase
-    );
-    console.log('[LocationBankPanel] DEBUG – paste this for troubleshooting:', {
-      locationId: newsOffice.locationId,
-      'location.images count': newsOffice.images?.length ?? 0,
-      'location.images[0] metadata keys': newsOffice.images?.[0]?.metadata ? Object.keys(newsOffice.images[0].metadata) : [],
-      'location.baseReference': newsOffice.baseReference ? { hasS3Key: !!newsOffice.baseReference.s3Key, hasImageUrl: !!newsOffice.baseReference.imageUrl } : null,
-      'Media Library creationImages count': ml?.creationImages?.length ?? 0,
-      'Media Library angles count': ml?.angles?.length ?? 0,
-      'Media Library backgrounds count': ml?.backgrounds?.length ?? 0,
-      'first creation file metadata keys': firstCreationFile?.metadata ? Object.keys(firstCreationFile.metadata) : [],
-      'first creation file createdIn/referenceType': firstCreationFile?.metadata
-        ? { createdIn: firstCreationFile.metadata.createdIn, referenceType: firstCreationFile.metadata.referenceType, isBase: firstCreationFile.metadata.isBase }
-        : null,
-    });
-  }, [locations, allLocationMediaFiles, locationImagesFromMediaLibrary]);
 
   // Early return after all hooks
   if (!screenplayId) {
@@ -346,118 +244,77 @@ export function LocationBankPanel({
           <div className="p-4 mx-4">
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2.5">
               {locations.map((location) => {
+                // Feature 0256: Build card list from payload first; ML only for display URL.
                 const allReferences: CinemaCardImage[] = [];
-                const addedS3Keys = new Set<string>(); // Track to avoid duplicates
-                const mediaLibraryImages = locationImagesFromMediaLibrary[location.locationId];
+                const addedS3Keys = new Set<string>();
 
-                // 🔥 FIX: Prefer creation/reference image for the card's main display.
-                // Add creation images FIRST so allReferences[0] is the reference image, not angle generation.
-                // 1) Creation images from Media Library (source of truth; has presigned URLs)
-                if (mediaLibraryImages && mediaLibraryImages.creationImages.length > 0) {
-                  mediaLibraryImages.creationImages.forEach((img) => {
-                    if (addedS3Keys.has(img.s3Key)) return;
-                    const imageUrl = getLocationImageDisplayUrl(img.s3Key);
-                    if (imageUrl) {
-                      addedS3Keys.add(img.s3Key);
-                      allReferences.push({
-                        id: img.s3Key,
-                        imageUrl,
-                        label: img.isBase ? `${location.name} - Base Reference` : `${location.name} - ${img.label || 'Image'}`
-                      });
-                    }
-                  });
-                }
-                // 2) Creation images from location.images (API) not already added
-                if (location.images && Array.isArray(location.images)) {
-                  location.images.forEach((img: any) => {
-                    const s3Key = img.s3Key || img.id;
-                    const isCreation = img.metadata?.isBase === true || img.metadata?.createdIn === 'creation';
-                    if (!isCreation || addedS3Keys.has(s3Key)) return;
-                    const imageUrl = img.imageUrl || img.url;
-                    if (imageUrl && s3Key) {
-                      addedS3Keys.add(s3Key);
-                      allReferences.push({
-                        id: s3Key,
-                        imageUrl,
-                        label: img.metadata?.isBase ? `${location.name} - Base Reference` : `${location.name} - ${img.label || 'Image'}`
-                      });
-                    }
-                  });
-                }
-                // Legacy: single baseReference if still no creation image
-                if (allReferences.length === 0 && location.baseReference?.imageUrl && location.baseReference.s3Key && !addedS3Keys.has(location.baseReference.s3Key)) {
-                  addedS3Keys.add(location.baseReference.s3Key);
-                  allReferences.push({
-                    id: location.baseReference.id || location.baseReference.s3Key,
-                    imageUrl: location.baseReference.imageUrl,
-                    label: `${location.name} - Base Reference`
-                  });
-                }
-                // 3) Rest of location.images (angles, backgrounds from API)
-                if (location.images && Array.isArray(location.images)) {
-                  location.images.forEach((img: any) => {
-                    const imageUrl = img.imageUrl || img.url;
-                    const s3Key = img.s3Key || img.id;
-                    if (imageUrl && s3Key && !addedS3Keys.has(s3Key)) {
-                      addedS3Keys.add(s3Key);
-                      allReferences.push({
-                        id: s3Key,
-                        imageUrl,
-                        label: img.metadata?.isBase ? `${location.name} - Base Reference` : `${location.name} - ${img.label || 'Image'}`
-                      });
-                    }
-                  });
-                }
+                const urlFor = (s3Key: string, payloadUrl?: string) =>
+                  payloadUrl || getLocationImageDisplayUrl(s3Key);
 
-                // 4) Production Hub images from Media Library (angles, then backgrounds)
-                if (mediaLibraryImages) {
-                  mediaLibraryImages.angles.forEach((angle) => {
-                    if (addedS3Keys.has(angle.s3Key)) return;
-                    const imageUrl = getLocationImageDisplayUrl(angle.s3Key);
-                    if (imageUrl) {
-                      addedS3Keys.add(angle.s3Key);
-                      allReferences.push({
-                        id: angle.s3Key,
-                        imageUrl,
-                        label: `${location.name} - ${angle.angle || angle.label || 'angle'} view`
-                      });
-                    }
-                  });
-                  mediaLibraryImages.backgrounds.forEach((bg) => {
-                    if (addedS3Keys.has(bg.s3Key)) return;
-                    const imageUrl = getLocationImageDisplayUrl(bg.s3Key);
-                    if (imageUrl) {
-                      addedS3Keys.add(bg.s3Key);
-                      allReferences.push({
-                        id: bg.s3Key,
-                        imageUrl,
-                        label: `${location.name} - ${bg.backgroundType || 'Background'}`
-                      });
-                    }
-                  });
-                }
-
-                // Legacy fallback: angle variations from entity
-                (location.angleVariations || [])
-                  .filter((variation: any) => variation.imageUrl && !addedS3Keys.has(variation.s3Key || variation.id))
-                  .forEach((variation) => {
+                // 1) Creation: baseReference then creation images from location.images
+                if (location.baseReference?.s3Key && !addedS3Keys.has(location.baseReference.s3Key)) {
+                  const imageUrl = urlFor(location.baseReference.s3Key, location.baseReference.imageUrl);
+                  if (imageUrl) {
+                    addedS3Keys.add(location.baseReference.s3Key);
                     allReferences.push({
-                      id: variation.id || variation.s3Key,
-                      imageUrl: variation.imageUrl,
-                      label: `${location.name} - ${variation.angle} view`
+                      id: location.baseReference.id || location.baseReference.s3Key,
+                      imageUrl,
+                      label: `${location.name} - Base Reference`
                     });
+                  }
+                }
+                (location.images || [])
+                  .filter((img: any) => {
+                    const s3 = img.s3Key || img.metadata?.s3Key;
+                    return s3 && (img.metadata?.isBase === true || img.metadata?.createdIn === 'creation') && !addedS3Keys.has(s3);
+                  })
+                  .forEach((img: any) => {
+                    const s3Key = img.s3Key || img.metadata?.s3Key;
+                    const imageUrl = urlFor(s3Key, img.imageUrl || img.url);
+                    if (imageUrl) {
+                      addedS3Keys.add(s3Key);
+                      allReferences.push({
+                        id: s3Key,
+                        imageUrl,
+                        label: img.metadata?.isBase ? `${location.name} - Base Reference` : `${location.name} - ${img.metadata?.label || 'Image'}`
+                      });
+                    }
                   });
+                // 2) Angles from payload
+                (location.angleVariations || []).forEach((v: any) => {
+                  const s3Key = v.s3Key || v.id;
+                  if (!s3Key || addedS3Keys.has(s3Key)) return;
+                  const imageUrl = urlFor(s3Key, v.imageUrl);
+                  if (imageUrl) {
+                    addedS3Keys.add(s3Key);
+                    allReferences.push({
+                      id: v.id || s3Key,
+                      imageUrl,
+                      label: `${location.name} - ${v.angle || 'angle'} view`
+                    });
+                  }
+                });
+                // 3) Backgrounds from payload
+                (location.backgrounds || []).forEach((b: any) => {
+                  if (!b.s3Key || addedS3Keys.has(b.s3Key)) return;
+                  const imageUrl = urlFor(b.s3Key, b.imageUrl);
+                  if (imageUrl) {
+                    addedS3Keys.add(b.s3Key);
+                    allReferences.push({
+                      id: b.id || b.s3Key,
+                      imageUrl,
+                      label: `${location.name} - ${b.backgroundType || 'Background'}`
+                    });
+                  }
+                });
 
                 const locationType = location.type;
                 const typeLabel = location.type === 'interior' ? 'INT.' : 
                                  location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
-                // Build metadata string with angles and backgrounds count
-                // 🔥 Feature 0200: Use Media Library counts (source of truth) - matches detail modal
-                const angleCount = mediaLibraryImages 
-                  ? mediaLibraryImages.angles.filter(a => !!getLocationImageDisplayUrl(a.s3Key)).length
-                  : (location.angleVariations || []).filter((v: any) => v.imageUrl).length;
-                const backgroundCount = backgroundsCountByLocation[location.locationId] || 0;
+                // Feature 0256: Counts from payload
+                const angleCount = location.angleVariations?.length ?? 0;
+                const backgroundCount = location.backgrounds?.length ?? 0;
                 
                 let metadata: string | undefined;
                 if (angleCount > 0 && backgroundCount > 0) {
