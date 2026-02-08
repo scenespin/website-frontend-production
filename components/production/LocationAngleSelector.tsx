@@ -122,7 +122,12 @@ export function LocationAngleSelector({
     }
   }, [locationId, onLocationReferenceChange, onAngleChange]);
   
-  // Group both angles AND backgrounds by timeOfDay/weather (unified grouping)
+  // 🔥 Scene Builder dropdown: four groups only - Creation Image | Angles | Backgrounds | Extreme close-ups (no weather metadata)
+  const GROUP_CREATION_IMAGE = 'Creation Image';
+  const GROUP_ANGLES = 'Angles';
+  const GROUP_BACKGROUNDS = 'Backgrounds';
+  const GROUP_ECU = 'Extreme close-ups';
+
   const groupedPhotos = React.useMemo(() => {
     const groups: Record<string, Array<{
       type: 'angle' | 'background';
@@ -132,56 +137,21 @@ export function LocationAngleSelector({
       imageUrl: string;
       s3Key: string;
       label: string;
-      badge?: string; // For display (e.g., "Angle", "Background • Window")
+      badge?: string;
       timeOfDay?: string;
       weather?: string;
       isBase?: boolean;
-    }>> = {};
-    
-    // 🔥 FIX: Track which s3Keys are already added to avoid duplication
+    }>> = {
+      [GROUP_CREATION_IMAGE]: [],
+      [GROUP_ANGLES]: [],
+      [GROUP_BACKGROUNDS]: [],
+      [GROUP_ECU]: []
+    };
     const addedS3Keys = new Set<string>();
-    
-    // Group angle variations by timeOfDay/weather FIRST
-    // This ensures baseReference that's also in angleVariations gets grouped correctly
-    angleVariations.forEach(angle => {
-      // Check if this is the base reference (creation image)
-      const isBaseReference = baseReference && angle.s3Key === baseReference.s3Key;
-      
-      const metadataParts = [
-        angle.timeOfDay ? angle.timeOfDay : null,
-        angle.weather ? angle.weather : null
-      ].filter(Boolean);
-      
-      // 🔥 FIX: If it's the base reference and has no metadata, put it in "Creation Image" group
-      // Otherwise use metadata or "No Metadata"
-      const groupKey = isBaseReference && metadataParts.length === 0
-        ? 'Creation Image'
-        : metadataParts.length > 0 
-          ? metadataParts.join(' • ') 
-          : 'No Metadata';
-      
-      if (!groups[groupKey]) groups[groupKey] = [];
-      groups[groupKey].push({
-        type: 'angle',
-        id: angle.angleId,
-        angleId: angle.angleId,
-        imageUrl: angle.imageUrl,
-        s3Key: angle.s3Key,
-        label: angle.label || angle.angle,
-        badge: 'Angle',
-        timeOfDay: angle.timeOfDay,
-        weather: angle.weather,
-        isBase: isBaseReference
-      });
-      
-      addedS3Keys.add(angle.s3Key);
-    });
-    
-    // 🔥 FIX: Only add baseReference to "Creation Image" group if it's NOT already in angleVariations
-    // This prevents duplication - baseReference should only appear once
-    if (baseReference && !addedS3Keys.has(baseReference.s3Key)) {
-      if (!groups['Creation Image']) groups['Creation Image'] = [];
-      groups['Creation Image'].push({
+
+    // Creation Image: baseReference only (if not already in angleVariations)
+    if (baseReference?.s3Key && !angleVariations.some(a => a.s3Key === baseReference.s3Key)) {
+      groups[GROUP_CREATION_IMAGE].push({
         type: 'angle',
         id: undefined,
         angleId: undefined,
@@ -193,32 +163,49 @@ export function LocationAngleSelector({
       });
       addedS3Keys.add(baseReference.s3Key);
     }
-    
-    // Group backgrounds by timeOfDay/weather, or "Extreme close-ups" for ECU (metadata.useCase)
-    const EXTREME_CLOSE_UPS_GROUP = 'Extreme close-ups';
+
+    // Angles: all angleVariations (optionally show baseReference here too if it's in angleVariations)
+    angleVariations.forEach(angle => {
+      const isBaseReference = baseReference && angle.s3Key === baseReference.s3Key;
+      groups[GROUP_ANGLES].push({
+        type: 'angle',
+        id: angle.angleId,
+        angleId: angle.angleId,
+        imageUrl: angle.imageUrl,
+        s3Key: angle.s3Key,
+        label: angle.label || angle.angle,
+        badge: 'Angle',
+        timeOfDay: angle.timeOfDay,
+        weather: angle.weather,
+        isBase: !!isBaseReference
+      });
+      addedS3Keys.add(angle.s3Key);
+    });
+
+    // If baseReference is in angleVariations, also add it to Creation Image so the group exists
+    if (baseReference?.s3Key && addedS3Keys.has(baseReference.s3Key) && groups[GROUP_CREATION_IMAGE].length === 0) {
+      const baseAngle = angleVariations.find(a => a.s3Key === baseReference.s3Key);
+      if (baseAngle) {
+        groups[GROUP_CREATION_IMAGE].push({
+          type: 'angle',
+          id: baseAngle.angleId,
+          angleId: baseAngle.angleId,
+          imageUrl: baseReference.imageUrl,
+          s3Key: baseReference.s3Key,
+          label: `Base (${baseReference.angle})`,
+          badge: 'Angle',
+          isBase: true
+        });
+      }
+    }
+
+    // Backgrounds: non-ECU | Extreme close-ups: ECU
     backgrounds.forEach(background => {
       const isExtremeCloseUp = (background as any).metadata?.useCase === 'extreme-closeup';
-      const metadataParts = [
-        background.timeOfDay ? background.timeOfDay : null,
-        background.weather ? background.weather : null
-      ].filter(Boolean);
-      
-      const groupKey = isExtremeCloseUp
-        ? EXTREME_CLOSE_UPS_GROUP
-        : metadataParts.length > 0
-          ? metadataParts.join(' • ')
-          : 'No Metadata';
-      
-      if (!groups[groupKey]) groups[groupKey] = [];
-      
-      // Format background type label (with null check)
+      const groupKey = isExtremeCloseUp ? GROUP_ECU : GROUP_BACKGROUNDS;
       const backgroundTypeLabel = background.backgroundType
-        ? background.backgroundType
-        .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ')
-        : 'Background'; // Default label if backgroundType is missing
-      
+        ? background.backgroundType.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        : 'Background';
       groups[groupKey].push({
         type: 'background',
         id: background.id,
@@ -232,49 +219,14 @@ export function LocationAngleSelector({
         isBase: false
       });
     });
-    
-    // 🔥 FIX: If "No Metadata" group only contains the creation image (base reference), rename it to "Creation Image"
-    if (groups['No Metadata'] && baseReference) {
-      const noMetadataGroup = groups['No Metadata'];
-      const isOnlyCreationImage = noMetadataGroup.length === 1 && 
-        noMetadataGroup[0].s3Key === baseReference.s3Key;
-      
-      if (isOnlyCreationImage) {
-        // Rename "No Metadata" to "Creation Image"
-        groups['Creation Image'] = groups['Creation Image'] || [];
-        groups['Creation Image'].push(...groups['No Metadata']);
-        delete groups['No Metadata'];
-      }
-    }
-    
-    // 🔥 FIX: Merge "Creation" and "Creation Image" into a single "Creation Image" group
-    if (groups['Creation'] && groups['Creation Image']) {
-      groups['Creation Image'].push(...groups['Creation']);
-      delete groups['Creation'];
-    } else if (groups['Creation']) {
-      // Rename "Creation" to "Creation Image" for consistency
-      groups['Creation Image'] = groups['Creation'];
-      delete groups['Creation'];
-    }
-    
+
     return groups;
   }, [baseReference, angleVariations, backgrounds]);
-  
-  // Get all group keys (sorted: "No Metadata" last, then alphabetically)
-  // 🔥 SIMPLIFIED: Always include "Creation Image" - user selects what they want
+
+  // Order: Creation Image, Angles, Backgrounds, Extreme close-ups (only include groups that have items)
   const groupKeys = React.useMemo(() => {
-    const keys = Object.keys(groupedPhotos);
-    
-    // Always include all groups (including Creation Image) - no filtering
-    return keys.sort((a, b) => {
-      if (a === 'No Metadata') return 1;
-      if (b === 'No Metadata') return -1;
-      if (a === 'Creation Image') return 1; // Creation Image last
-      if (b === 'Creation Image') return -1;
-      if (a === 'Extreme close-ups') return -1; // Before No Metadata
-      if (b === 'Extreme close-ups') return 1;
-      return a.localeCompare(b);
-    });
+    const order = [GROUP_CREATION_IMAGE, GROUP_ANGLES, GROUP_BACKGROUNDS, GROUP_ECU];
+    return order.filter(key => (groupedPhotos[key]?.length ?? 0) > 0);
   }, [groupedPhotos]);
   
   // Check if we're using Creation image (last resort)
@@ -530,12 +482,8 @@ export function LocationAngleSelector({
             </div>
           )}
           
-          {/* Time of Day/Weather Group Selector (similar to outfit dropdown) - Only show if angles available AND not just Creation Image/No Metadata */}
-          {(() => {
-            // 🔥 FIX: Hide dropdown if only "Creation Image" and/or "No Metadata" are available
-            const hasProductionHubImages = groupKeys.some(k => k !== 'Creation Image' && k !== 'No Metadata');
-            return groupKeys.length > 1 && allPhotos.length > 0 && hasProductionHubImages;
-          })() && (
+          {/* Filter by: Creation Image | Angles | Backgrounds | Extreme close-ups */}
+          {groupKeys.length > 1 && (
             <div className="flex items-center gap-2">
               <label className="text-xs text-[#808080]">Filter by:</label>
               <select
@@ -562,22 +510,9 @@ export function LocationAngleSelector({
               >
                 {groupKeys.map((groupKey) => {
                   const count = groupedPhotos[groupKey]?.length || 0;
-                  let displayName: string;
-                  if (groupKey === 'Creation Image') {
-                    displayName = 'Creation Image';
-                  } else if (groupKey === 'No Metadata') {
-                    displayName = 'No Metadata';
-                  } else if (groupKey === 'Extreme close-ups') {
-                    displayName = 'Extreme close-ups';
-                  } else {
-                    displayName = groupKey
-                      .split(' • ')
-                      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-                      .join(' • ');
-                  }
                   return (
                     <option key={groupKey} value={groupKey}>
-                      {displayName} ({count} photos)
+                      {groupKey} ({count} photo{count !== 1 ? 's' : ''})
                     </option>
                   );
                 })}
