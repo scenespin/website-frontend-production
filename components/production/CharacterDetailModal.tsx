@@ -34,6 +34,7 @@ import { useThumbnailMapping, type GalleryImage } from '@/hooks/useThumbnailMapp
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatProviderTag } from '@/utils/providerLabels';
+import { canonicalOutfitName, canonicalToDisplay } from '@/utils/outfitUtils';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { VoiceAssignmentTab } from './VoiceAssignmentTab';
 import { VoiceBrowserModal } from './VoiceBrowserModal';
@@ -417,53 +418,27 @@ export function CharacterDetailModal({
     return entityMediaFiles;
   }, [entityMediaFiles]);
   
-  // Extract outfit names from Media Library folder paths
+  // Extract outfit names from Media Library folder paths (Feature 0255: canonical for dedup)
   const mediaLibraryOutfitNames = useMemo(() => {
     const outfitSet = new Set<string>();
-    const characterName = character.name;
-    
-    // 🔥 NEW: Normalize outfit name to handle case sensitivity and separator differences
-    const normalizeOutfitName = (name: string): string => {
-      if (!name) return '';
-      // Normalize: lowercase, replace underscores/spaces with consistent format, trim
-      return name
-        .toLowerCase()
-        .replace(/[_\s]+/g, '_') // Replace spaces and multiple underscores with single underscore
-        .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
-        .trim();
-    };
-    
     mediaFiles.forEach((file: any) => {
-      // Check if file belongs to this character
       const metadata = file.metadata || {};
       if (metadata.entityType === 'character' && metadata.entityId === character.id) {
-        // Extract outfit from folderPath: ['Characters', 'Character Name', 'Outfits', 'Outfit Name']
         if (file.folderPath && Array.isArray(file.folderPath)) {
           const outfitsIndex = file.folderPath.indexOf('Outfits');
           if (outfitsIndex >= 0 && outfitsIndex + 1 < file.folderPath.length) {
             const outfitName = file.folderPath[outfitsIndex + 1];
             if (outfitName && outfitName !== 'Outfits') {
-              // 🔥 FIX: Normalize before adding to prevent duplicates
-              const normalized = normalizeOutfitName(outfitName);
-              if (normalized) {
-                // Store original name but use normalized for deduplication
-                // We'll use a Map to preserve the original casing for display
-                outfitSet.add(normalized);
-              }
+              const canonical = canonicalOutfitName(outfitName);
+              outfitSet.add(canonical);
             }
           }
         }
-        // Also check metadata.outfitName (from pose generation)
         if (metadata.outfitName) {
-          // 🔥 FIX: Normalize before adding to prevent duplicates
-          const normalized = normalizeOutfitName(metadata.outfitName);
-          if (normalized) {
-            outfitSet.add(normalized);
-          }
+          outfitSet.add(canonicalOutfitName(metadata.outfitName));
         }
       }
     });
-    
     return Array.from(outfitSet);
   }, [mediaFiles, latestCharacter.id, latestCharacter.name]);
   
@@ -895,24 +870,12 @@ export function CharacterDetailModal({
       }));
   }, [allImages]);
   
-  // 🔥 NEW: Group poses by outfit, and pair regenerated poses with originals
+  // Group poses by outfit (Feature 0255: canonical key for dedup)
   const posesByOutfit = useMemo(() => {
-    // 🔥 FIX: Normalize outfit names for grouping
-    const normalizeOutfitName = (name: string): string => {
-      if (!name) return '';
-      return name
-        .toLowerCase()
-        .replace(/[_\s]+/g, '_')
-        .replace(/^_+|_+$/g, '')
-        .trim();
-    };
-    
     const grouped: Record<string, PoseReferenceWithOutfit[]> = {};
-    
-    // First, separate original poses from regenerated ones
     const originalPoses: PoseReferenceWithOutfit[] = [];
     const regeneratedPoses: PoseReferenceWithOutfit[] = [];
-    
+
     poseReferences.forEach(pose => {
       if (pose.isRegenerated && pose.regeneratedFrom) {
         regeneratedPoses.push(pose);
@@ -920,67 +883,34 @@ export function CharacterDetailModal({
         originalPoses.push(pose);
       }
     });
-    
-    // Group original poses by outfit, and add regenerated versions right after each original
+
     originalPoses.forEach(pose => {
-      const outfit = normalizeOutfitName(pose.outfitName || 'default');
-      if (!grouped[outfit]) {
-        grouped[outfit] = [];
-      }
+      const outfit = canonicalOutfitName(pose.outfitName || 'default');
+      if (!grouped[outfit]) grouped[outfit] = [];
       grouped[outfit].push(pose);
-      
-      // Find and add any regenerated versions of this pose right after it
       const regeneratedVersions = regeneratedPoses.filter(r => r.regeneratedFrom === pose.s3Key);
-      if (regeneratedVersions.length > 0) {
-        grouped[outfit].push(...regeneratedVersions);
-      }
+      if (regeneratedVersions.length > 0) grouped[outfit].push(...regeneratedVersions);
     });
-    
-    // Add any regenerated poses that don't have a matching original (shouldn't happen, but safety)
+
     regeneratedPoses.forEach(regenerated => {
       if (!originalPoses.some(orig => orig.s3Key === regenerated.regeneratedFrom)) {
-        const outfit = normalizeOutfitName(regenerated.outfitName || 'default');
-        if (!grouped[outfit]) {
-          grouped[outfit] = [];
-        }
+        const outfit = canonicalOutfitName(regenerated.outfitName || 'default');
+        if (!grouped[outfit]) grouped[outfit] = [];
         grouped[outfit].push(regenerated);
       }
     });
-    
+
     return grouped;
   }, [poseReferences]);
   
-  // Get outfit names sorted (default first, then alphabetically)
-  // Combine Media Library folder names with posesByOutfit keys
+  // Outfit names for dropdown (canonical; default first, then alphabetical)
   const outfitNames = useMemo(() => {
-    // 🔥 NEW: Normalize outfit name to handle case sensitivity and separator differences
-    const normalizeOutfitName = (name: string): string => {
-      if (!name) return '';
-      // Normalize: lowercase, replace underscores/spaces with consistent format, trim
-      return name
-        .toLowerCase()
-        .replace(/[_\s]+/g, '_') // Replace spaces and multiple underscores with single underscore
-        .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
-        .trim();
-    };
-    
     const allOutfits = new Set<string>();
-    
-    // Add outfits from Media Library folders (already normalized in mediaLibraryOutfitNames)
-    mediaLibraryOutfitNames.forEach(outfit => {
-      const normalized = normalizeOutfitName(outfit);
-      if (normalized) allOutfits.add(normalized);
-    });
-    
-    // Add outfits from posesByOutfit (from pose metadata) - normalize them too
-    Object.keys(posesByOutfit).forEach(outfit => {
-      const normalized = normalizeOutfitName(outfit);
-      if (normalized) allOutfits.add(normalized);
-    });
-    
+    mediaLibraryOutfitNames.forEach(o => allOutfits.add(o));
+    Object.keys(posesByOutfit).forEach(o => allOutfits.add(o));
     const outfits = Array.from(allOutfits);
-    const defaultOutfit = outfits.find(o => o === 'default' || o.toLowerCase() === 'default');
-    const otherOutfits = outfits.filter(o => o !== 'default' && o.toLowerCase() !== 'default').sort();
+    const defaultOutfit = outfits.find(o => o === 'default');
+    const otherOutfits = outfits.filter(o => o !== 'default').sort();
     return defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
   }, [posesByOutfit, mediaLibraryOutfitNames, isOpen, poseReferences.length]);
   
@@ -1666,19 +1596,11 @@ export function CharacterDetailModal({
                             <option value="__all__" className="bg-[#1A1A1A] text-[#FFFFFF]">All Outfits ({galleryImages.length})</option>
                             {outfitNames.map((outfitName) => {
                               const outfitCount = galleryImages.filter(img => (img.outfitName || 'default') === outfitName).length;
-                              // 🔥 FIX: Skip empty outfits - don't show in dropdown if no images
                               if (outfitCount === 0) return null;
-                              let outfitDisplayName: string;
-                              if (outfitName === 'default') {
-                                outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
-                                  ? displayPhysicalAttributes.typicalClothing
-                                  : 'Default Outfit';
-                              } else {
-                                outfitDisplayName = outfitName
-                                  .split('-')
-                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                  .join(' ');
-                              }
+                              const outfitDisplayName = canonicalToDisplay(
+                                outfitName,
+                                displayPhysicalAttributes?.typicalClothing || 'Default Outfit'
+                              );
                               return (
                                 <option key={outfitName} value={outfitName} className="bg-[#1A1A1A] text-[#FFFFFF]">
                                   {outfitDisplayName} ({outfitCount})
@@ -2040,20 +1962,11 @@ export function CharacterDetailModal({
                             <option value="__all__" className="bg-[#1A1A1A] text-[#FFFFFF]">All Outfits ({poseReferences.length})</option>
                             {outfitNames.map((outfitName) => {
                               const outfitPoses = posesByOutfit[outfitName] || [];
-                              // 🔥 FIX: Skip empty outfits - don't show in dropdown if no images
                               if (outfitPoses.length === 0) return null;
-                              let outfitDisplayName: string;
-                              if (outfitName === 'default') {
-                                outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
-                                  ? displayPhysicalAttributes.typicalClothing
-                                  : 'Default Outfit';
-                              } else {
-                                // 🔥 FIX: Handle both underscores and hyphens in outfit names
-                                outfitDisplayName = outfitName
-                                  .split(/[-_]/)
-                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                  .join(' ');
-                              }
+                              const outfitDisplayName = canonicalToDisplay(
+                                outfitName,
+                                displayPhysicalAttributes?.typicalClothing || 'Default Outfit'
+                              );
                               return (
                                 <option key={outfitName} value={outfitName} className="bg-[#1A1A1A] text-[#FFFFFF]">
                                   {outfitDisplayName} ({outfitPoses.length})
@@ -2064,28 +1977,16 @@ export function CharacterDetailModal({
                         </div>
                       )}
                       
-                      {/* Production Hub Images Grid - Filtered by selected outfit */}
-                      {/* 🔥 FIX: Normalize outfit names when filtering */}
+                      {/* Production Hub Images Grid - Filtered by selected outfit (canonical match) */}
                       {/* 🔥 FIX: Use more columns for smaller thumbnails (match ModernGallery grid-only layout) */}
                       {/* Mobile: 2 columns for larger thumbnails, Desktop: More columns - slightly bigger with more gap */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
                         {(() => {
-                          const normalizeOutfitName = (name: string): string => {
-                            if (!name) return '';
-                            return name
-                              .toLowerCase()
-                              .replace(/[_\s]+/g, '_')
-                              .replace(/^_+|_+$/g, '')
-                              .trim();
-                          };
-                          const filteredPoses = selectedOutfitReferences 
-                            ? (() => {
-                                const normalizedSelected = normalizeOutfitName(selectedOutfitReferences);
-                                return poseReferences.filter(img => {
-                                  const imgOutfit = img.outfitName || 'default';
-                                  return normalizeOutfitName(imgOutfit) === normalizedSelected;
-                                });
-                              })()
+                          const filteredPoses = selectedOutfitReferences
+                            ? poseReferences.filter(img => {
+                                const imgOutfit = img.outfitName || 'default';
+                                return canonicalOutfitName(imgOutfit) === canonicalOutfitName(selectedOutfitReferences);
+                              })
                             : poseReferences;
                           return filteredPoses.map((img) => {
                           // All images in poseReferences are Production Hub images (editable/deletable)

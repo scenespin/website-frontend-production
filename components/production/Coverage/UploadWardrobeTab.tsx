@@ -21,6 +21,7 @@ import type { MediaFile } from '@/types/media';
 import { PoseGuidanceSection } from '../CharacterStudio/PoseGuidanceSection';
 import { MediaLibraryBrowser } from '../CharacterStudio/MediaLibraryBrowser';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { canonicalOutfitName, canonicalToDisplay } from '@/utils/outfitUtils';
 
 interface UploadWardrobeTabProps {
   characterId: string;
@@ -56,14 +57,12 @@ export function UploadWardrobeTab({
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Extract existing outfit names
+  // Existing outfit names (canonical for dedup; Feature 0255)
   const existingOutfits = useMemo(() => {
     const outfits = new Set<string>();
     existingReferences.forEach(ref => {
-      const outfit = ref.metadata?.outfitName || 'default';
-      if (outfit !== 'default') {
-        outfits.add(outfit);
-      }
+      const outfit = canonicalOutfitName(ref.metadata?.outfitName || 'default');
+      if (outfit !== 'default') outfits.add(outfit);
     });
     return Array.from(outfits).sort();
   }, [existingReferences]);
@@ -126,7 +125,7 @@ export function UploadWardrobeTab({
     
     setIsProcessing(true);
     const uploadedS3Keys: string[] = [];
-    const outfitNameToUse = finalOutfitName;
+    const outfitNameToUse = canonicalOutfitName(finalOutfitName!);
 
     try {
       for (const file of files) {
@@ -189,7 +188,7 @@ export function UploadWardrobeTab({
                 source: 'user-upload',
                 label: file.name,
                 metadata: {
-                  outfitName: outfitNameToUse === 'default' ? 'default' : outfitNameToUse,
+                  outfitName: outfitNameToUse,
                   fileName: file.name,
                   fileSize: file.size
                 },
@@ -249,7 +248,7 @@ export function UploadWardrobeTab({
     }
     
     setIsProcessing(true);
-    const outfitNameToUse = finalOutfitName;
+    const outfitNameToUse = canonicalOutfitName(finalOutfitName!);
 
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -273,7 +272,7 @@ export function UploadWardrobeTab({
                 source: 'user-upload',
                 label: file.fileName,
                 metadata: {
-                  outfitName: outfitNameToUse === 'default' ? 'default' : outfitNameToUse,
+                  outfitName: outfitNameToUse,
                   fileName: file.fileName,
                   fileSize: file.fileSize,
                   fromMediaLibrary: true,
@@ -371,7 +370,7 @@ export function UploadWardrobeTab({
                 >
                   <option value="__select__" className="bg-[#1A1A1A] text-[#FFFFFF]">Select an outfit...</option>
                   {existingOutfits.map(outfit => (
-                    <option key={outfit} value={outfit} className="bg-[#1A1A1A] text-[#FFFFFF]">{outfit}</option>
+                    <option key={outfit} value={outfit} className="bg-[#1A1A1A] text-[#FFFFFF]">{canonicalToDisplay(outfit)}</option>
                   ))}
                 </select>
               ) : (

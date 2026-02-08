@@ -21,6 +21,7 @@ import type { MediaFile } from '@/types/media';
 import { useMediaFiles } from '@/hooks/useMediaLibrary';
 import { OutfitSelector } from '../OutfitSelector';
 import { PoseGuidanceSection } from './PoseGuidanceSection';
+import { canonicalOutfitName } from '@/utils/outfitUtils';
 import { MediaLibraryBrowser } from './MediaLibraryBrowser';
 
 interface UploadImagesTabProps {
@@ -52,14 +53,12 @@ export function UploadImagesTab({
   const [selectedMediaLibraryImages, setSelectedMediaLibraryImages] = useState<MediaFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Extract existing outfit names
+  // Existing outfit names (canonical for dedup; Feature 0255)
   const existingOutfits = useMemo(() => {
     const outfits = new Set<string>();
     existingReferences.forEach(ref => {
-      const outfit = ref.metadata?.outfitName || 'default';
-      if (outfit !== 'default') {
-        outfits.add(outfit);
-      }
+      const outfit = canonicalOutfitName(ref.metadata?.outfitName || 'default');
+      if (outfit !== 'default') outfits.add(outfit);
     });
     return Array.from(outfits);
   }, [existingReferences]);
@@ -138,7 +137,8 @@ export function UploadImagesTab({
             img.file === file ? { ...img, progress: 60 } : img
           ));
 
-          // Step 3: Register in Character Bank
+          // Step 3: Register in Character Bank (send canonical outfit name)
+          const outfitToSend = canonicalOutfitName(outfitName);
           const registerResponse = await fetch(
             `/api/character-bank/${characterId}/references`,
             {
@@ -149,11 +149,11 @@ export function UploadImagesTab({
               },
               body: JSON.stringify({
                 s3Key: s3Key,
-                outfitName: outfitName === 'default' ? undefined : outfitName,
+                outfitName: outfitToSend === 'default' ? undefined : outfitToSend,
                 source: 'user-upload',
                 label: file.name,
                 metadata: {
-                  outfitName: outfitName === 'default' ? 'default' : outfitName,
+                  outfitName: outfitToSend,
                   fileName: file.name,
                   fileSize: file.size
                 },
@@ -185,7 +185,7 @@ export function UploadImagesTab({
 
       if (uploadedS3Keys.length > 0) {
         toast.success(`Successfully uploaded ${uploadedS3Keys.length} image(s)`);
-        onComplete({ outfitName, images: uploadedS3Keys });
+        onComplete({ outfitName: canonicalOutfitName(outfitName), images: uploadedS3Keys });
       }
 
     } catch (error: any) {
@@ -233,6 +233,7 @@ export function UploadImagesTab({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
+      const outfitToSend = canonicalOutfitName(outfitName);
       const uploadedS3Keys: string[] = [];
 
       for (const file of newImages) {
@@ -247,11 +248,11 @@ export function UploadImagesTab({
               },
               body: JSON.stringify({
                 s3Key: file.s3Key,
-                outfitName: outfitName === 'default' ? undefined : outfitName,
+                outfitName: outfitToSend === 'default' ? undefined : outfitToSend,
                 source: 'user-upload',
                 label: file.fileName,
                 metadata: {
-                  outfitName: outfitName === 'default' ? 'default' : outfitName,
+                  outfitName: outfitToSend,
                   fileName: file.fileName,
                   fileSize: file.fileSize,
                   fromMediaLibrary: true,
