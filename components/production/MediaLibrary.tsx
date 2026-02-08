@@ -630,10 +630,12 @@ export default function MediaLibrary({
     .filter(f => f.thumbnailS3Key)
     .map(f => f.thumbnailS3Key!);
   
-  // Generate presigned URLs for thumbnails (grid view) or full images (list view)
-  const keysToFetch = viewMode === 'grid' && thumbnailS3Keys.length > 0 
-    ? thumbnailS3Keys  // Use thumbnails in grid view if available
-    : s3Keys;           // Use full images in list view or if no thumbnails
+  // Generate presigned URLs: always include all s3Keys so every file (including videos) has a URL.
+  // In grid view also fetch thumbnail keys so images can show thumbnails; videos (no thumbnailS3Key) still need their s3Key.
+  const keysToFetch =
+    viewMode === 'grid' && thumbnailS3Keys.length > 0
+      ? [...new Set([...thumbnailS3Keys, ...s3Keys])]
+      : s3Keys;
   
   const { data: bulkPresignedUrls } = useBulkPresignedUrls(
     keysToFetch,

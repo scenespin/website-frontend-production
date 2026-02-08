@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 
 export type VideoSection = 'scene' | 'standalone';
 
-export type VideoSortKey = 'scene' | 'shot' | 'type' | 'time';
+export type VideoSortKey = 'scene' | 'shot' | 'type' | 'provider' | 'time';
 
 export interface VideoBrowserEntry {
   /** Null/undefined for standalone entries (show "—") */
@@ -38,8 +38,34 @@ export interface VideoBrowserEntry {
   videoUrl: string | undefined;
   hasFirstFrame: boolean;
   videoMode?: string;
+  /** Provider id (e.g. runway-gen4-turbo, veo-2) for display and sort */
+  videoProvider?: string | null;
   /** Stable key for list (fileId or scene-shot-timestamp) */
   entryKey: string;
+}
+
+/** Map provider id from backend to display label in Videos list */
+function getProviderLabel(provider: string | null | undefined): string {
+  if (!provider) return '—';
+  const p = provider.toLowerCase();
+  if (p === 'veo-2' || p === 'veo-2.0') return 'Veo 2.0';
+  if (p === 'veo-2-fast') return 'Veo 2.0 Fast';
+  if (p === 'veo-3' || p === 'veo-3.0') return 'Veo 3.0';
+  if (p === 'veo-3-fast') return 'Veo 3.0 Fast';
+  if (p === 'veo-3.1') return 'Veo 3.1';
+  if (p === 'veo-3.1-fast') return 'Veo 3.1 Fast';
+  if (p === 'luma' || p === 'luma-ray-2') return 'Luma Ray 2';
+  if (p === 'luma-ray-3') return 'Luma Ray 3';
+  if (p === 'luma-ray-flash-2') return 'Luma Ray Flash 2';
+  if (p === 'runway' || p === 'runway-gen4-turbo') return 'Runway Gen4 Turbo';
+  if (p === 'runway-gen4-aleph') return 'Runway Gen4 Aleph';
+  if (p === 'runway-gen3a-turbo') return 'Runway Gen3a Turbo';
+  if (p === 'runway-gen3a') return 'Runway Gen3a';
+  if (p === 'sora-2') return 'Sora 2';
+  if (p === 'sora-2-pro') return 'Sora 2 Pro';
+  if (p === 'sora-2-pro-hd') return 'Sora 2 Pro HD';
+  if (p === 'grok-imagine-video') return 'Grok';
+  return provider;
 }
 
 function formatTimestamp(ts: string): string {
@@ -93,6 +119,7 @@ function buildVideoEntries(
           videoUrl,
           hasFirstFrame: !!(variation.firstFrame?.s3Key),
           videoMode: metadata.videoMode,
+          videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
           entryKey: `${scene.sceneId}-${shot.shotNumber}-${variation.timestamp}`,
         });
       }
@@ -121,6 +148,7 @@ function buildStandaloneEntries(
         videoUrl: presignedUrls.get(file.s3Key!),
         hasFirstFrame: false,
         videoMode: metadata.videoMode,
+        videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
         entryKey: (file as any).id || file.s3Key || `standalone-${index}`,
       };
     });
@@ -207,6 +235,11 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
           const tb = b.videoMode ?? '';
           return mult * (ta < tb ? -1 : ta > tb ? 1 : 0);
         }
+        case 'provider': {
+          const pa = getProviderLabel(a.videoProvider) ?? '—';
+          const pb = getProviderLabel(b.videoProvider) ?? '—';
+          return mult * (pa < pb ? -1 : pa > pb ? 1 : 0);
+        }
         case 'time':
         default:
           return mult * (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0);
@@ -233,25 +266,37 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     if (url) setPlayingVideoUrl(url);
   }, []);
 
-  const handleDownload = useCallback(async (entry: VideoBrowserEntry) => {
-    if (!entry.videoUrl) return;
-    try {
-      const response = await fetch(entry.videoUrl);
-      if (!response.ok) throw new Error(response.statusText);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = entry.videoFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-    } catch (err) {
-      console.error('[VideoBrowserPanel] Failed to download video:', err);
-      toast.error('Failed to download video');
-    }
-  }, []);
+  const handleDownload = useCallback(
+    async (entry: VideoBrowserEntry) => {
+      if (!entry.videoS3Key) {
+        toast.error('Download not available for this video');
+        return;
+      }
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const url = `${BACKEND_API_URL}/api/media/file?key=${encodeURIComponent(entry.videoS3Key)}`;
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error(response.statusText);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = entry.videoFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        toast.success('Download started');
+      } catch (err) {
+        console.error('[VideoBrowserPanel] Failed to download video:', err);
+        toast.error('Failed to download video');
+      }
+    },
+    [getToken]
+  );
 
   const handleDeleteVideo = useCallback(
     async (entry: VideoBrowserEntry) => {
@@ -376,6 +421,9 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
               <button type="button" onClick={() => handleSort('type')} className="flex items-center gap-1 w-28 flex-shrink-0 text-left hover:text-[#B3B3B3]">
                 Type {sortKey === 'type' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>
+              <button type="button" onClick={() => handleSort('provider')} className="flex items-center gap-1 w-24 flex-shrink-0 text-left hover:text-[#B3B3B3]">
+                Provider {sortKey === 'provider' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+              </button>
               <button type="button" onClick={() => handleSort('time')} className="flex items-center gap-1 flex-shrink-0 text-left hover:text-[#B3B3B3]">
                 Time {sortKey === 'time' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>
@@ -402,12 +450,24 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                         Frame to frame
                       </span>
                     )}
-                    {!entry.hasFirstFrame && entry.videoMode !== 'image-interpolation' && (
+                    {entry.videoMode === 'image-start' && (
+                      <span className="text-[10px] font-medium text-sky-500/90 bg-sky-500/10 px-2 py-0.5 rounded" title="Image-to-video">
+                        Image-to-video
+                      </span>
+                    )}
+                    {entry.videoMode === 'reference-images' && (
+                      <span className="text-[10px] font-medium text-violet-500/90 bg-violet-500/10 px-2 py-0.5 rounded" title="Reference images">
+                        Reference images
+                      </span>
+                    )}
+                    {(entry.videoMode === 'text-only' || !entry.videoMode) && (
                       <span className="text-[10px] font-medium text-amber-500/90 bg-amber-500/10 px-2 py-0.5 rounded" title="Text-to-video">
                         Text-to-video
                       </span>
                     )}
-                    {entry.hasFirstFrame && entry.videoMode !== 'image-interpolation' && <span className="text-[#808080]">—</span>}
+                  </span>
+                  <span className="text-xs text-[#808080] w-24 flex-shrink-0">
+                    {getProviderLabel(entry.videoProvider)}
                   </span>
                   <span className="text-[10px] text-[#808080] flex-shrink-0">
                     {formatTimestamp(entry.timestamp)}
@@ -426,7 +486,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     <button
                       type="button"
                       onClick={() => handleDownload(entry)}
-                      disabled={!entry.videoUrl}
+                      disabled={!entry.videoS3Key}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#808080] hover:text-white hover:bg-[#262626] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       aria-label="Download video"
                     >
