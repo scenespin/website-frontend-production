@@ -8,8 +8,9 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Film, RefreshCw, Loader2, ChevronLeft, ChevronRight, Clapperboard, Download, Video } from 'lucide-react';
+import { Film, RefreshCw, Loader2, ChevronLeft, ChevronRight, Clapperboard, Download, Video, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShotBoard, type ShotBoardScene, type ShotBoardShot, getTotalShotCount } from '@/hooks/useShotBoard';
@@ -46,6 +47,7 @@ function ShotCell({
   presignedUrls,
   onGenerateVideo,
   onFrameClick,
+  onDeleteFirstFrame,
   globalIndex,
 }: {
   shot: ShotBoardShot;
@@ -54,6 +56,7 @@ function ShotCell({
   presignedUrls: Map<string, string>;
   onGenerateVideo: (context: GenerateVideoContext) => void;
   onFrameClick?: (index: number) => void;
+  onDeleteFirstFrame?: (s3Key: string) => void;
   globalIndex?: number;
 }) {
   const [variationIndex, setVariationIndex] = useState(0);
@@ -202,6 +205,22 @@ function ShotCell({
             <Video className="w-3 h-3" />
             Video
           </button>
+          {onDeleteFirstFrame && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!confirm('Delete this first frame? This cannot be undone.')) return;
+                onDeleteFirstFrame(currentVariation.firstFrame.s3Key);
+              }}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#3F3F46] bg-[#262626] text-[9px] font-medium text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 hover:border-[#DC143C]/30 transition-colors flex-shrink-0"
+              title="Delete first frame"
+              aria-label="Delete first frame"
+            >
+              <Trash2 className="w-3 h-3" />
+              Delete
+            </button>
+          )}
         </div>
         {hasMultipleVariations ? (
           <button
@@ -229,12 +248,14 @@ function SceneRow({
   presignedUrls,
   onGenerateVideo,
   onFrameClick,
+  onDeleteFirstFrame,
   startIndex,
 }: {
   scene: ShotBoardScene;
   presignedUrls: Map<string, string>;
   onGenerateVideo: (context: GenerateVideoContext) => void;
   onFrameClick?: (index: number) => void;
+  onDeleteFirstFrame?: (s3Key: string) => void;
   startIndex: number;
 }) {
   const sceneNumber = scene.sceneNumber;
@@ -264,6 +285,7 @@ function SceneRow({
               presignedUrls={presignedUrls}
               onGenerateVideo={onGenerateVideo}
               onFrameClick={onFrameClick}
+              onDeleteFirstFrame={onDeleteFirstFrame}
               globalIndex={onFrameClick != null ? startIndex + i : undefined}
             />
           ))}
@@ -280,6 +302,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   // Fetch shot board data
   const {
@@ -348,6 +371,36 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
     setGenerateVideoModalOpen(false);
     setGenerateVideoContext(null);
   }, []);
+
+  const handleDeleteFirstFrame = useCallback(
+    async (s3Key: string) => {
+      if (!screenplayId) return;
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const res = await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ s3Key }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.message || res.statusText || 'Delete failed');
+        }
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+        queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+        await refetch();
+        toast.success('First frame deleted');
+      } catch (err: any) {
+        console.error('[ShotBoard] Delete first frame failed:', err);
+        toast.error(err?.message || 'Failed to delete first frame');
+      }
+    },
+    [screenplayId, getToken, queryClient, refetch]
+  );
 
   // Loading state
   if (!screenplayId || isLoading) {
@@ -430,6 +483,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
                 presignedUrls={presignedUrls}
                 onGenerateVideo={handleGenerateVideo}
                 onFrameClick={allFirstFrameImages.length > 0 ? handleFrameClick : undefined}
+                onDeleteFirstFrame={handleDeleteFirstFrame}
                 startIndex={scenes.slice(0, sceneIndex).reduce((s, sc) => s + sc.shots.length, 0)}
               />
             ))}

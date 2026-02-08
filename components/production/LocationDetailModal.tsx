@@ -1623,7 +1623,7 @@ export function LocationDetailModal({
                             <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded text-xs">{nonEcuBackgrounds.length} image{nonEcuBackgrounds.length !== 1 ? 's' : ''}</span>
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                            {nonEcuBackgrounds.map((background: LocationBackground) => {
+                            {nonEcuBackgrounds.map((background) => {
                                       const img = allImages.find(i => i.s3Key === background.s3Key && !i.isBase);
                                       if (!img) return null;
                                       const imgId = img.id || `bg_${background.s3Key}`;
@@ -1640,7 +1640,7 @@ export function LocationDetailModal({
                                         'corner-detail': 'Corner Detail',
                                         'furniture': 'Furniture',
                                         'architectural-feature': 'Architectural Feature',
-                                        'custom': background.description || 'Custom Background'
+                                        'custom': (background as LocationBackground).description || 'Custom Background'
                                       };
                                       const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
                                       
@@ -1842,7 +1842,7 @@ export function LocationDetailModal({
                                                               backgroundId: background.id,
                                                               s3Key: currentS3Key,
                                                               backgroundType: background.backgroundType,
-                                                              background: background,
+                                                              background: background as LocationBackground,
                                                             });
                                                           }}
                                                           disabled={isRegenerating}
@@ -1956,18 +1956,6 @@ export function LocationDetailModal({
                                     })}
                                   </div>
                                 </div>
-                                        );
-                                      }
-                                      return null;
-                                    })}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
                   )}
 
                   {/* Feature 0223: Extreme close-up backgrounds - separate section */}

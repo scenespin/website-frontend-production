@@ -8,8 +8,9 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { RefreshCw, Loader2, Play, Video, Download, Layers, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { RefreshCw, Loader2, Play, Video, Download, Trash2, Layers, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -133,10 +134,12 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId ?? '';
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
   const [currentSection, setCurrentSection] = useState<VideoSection>('scene');
   const [sortKey, setSortKey] = useState<VideoSortKey>('time');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
   const handleSort = useCallback((key: VideoSortKey) => {
     setSortKey((prev) => {
@@ -249,6 +252,40 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
       toast.error('Failed to download video');
     }
   }, []);
+
+  const handleDeleteVideo = useCallback(
+    async (entry: VideoBrowserEntry) => {
+      if (!entry.videoS3Key || !screenplayId) return;
+      if (!confirm('Delete this video? This cannot be undone.')) return;
+      setDeletingKey(entry.entryKey);
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const res = await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ s3Key: entry.videoS3Key }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.message || res.statusText || 'Delete failed');
+        }
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+        queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+        await refetch();
+        toast.success('Video deleted');
+      } catch (err: any) {
+        console.error('[VideoBrowserPanel] Delete video failed:', err);
+        toast.error(err?.message || 'Failed to delete video');
+      } finally {
+        setDeletingKey(null);
+      }
+    },
+    [screenplayId, getToken, queryClient, refetch]
+  );
 
   if (!screenplayId || isLoading) {
     return (
@@ -395,6 +432,20 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     >
                       <Download className="w-3.5 h-3.5" />
                       Download
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteVideo(entry)}
+                      disabled={deletingKey === entry.entryKey}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Delete video"
+                    >
+                      {deletingKey === entry.entryKey ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                      Delete
                     </button>
                   </div>
                 </li>
