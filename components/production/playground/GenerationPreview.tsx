@@ -19,6 +19,8 @@ interface GenerationPreviewProps {
   onDownload?: () => void;
   onShare?: () => void;
   className?: string;
+  /** Optional header label (default: "Output") */
+  title?: string;
 }
 
 export function GenerationPreview({
@@ -28,7 +30,8 @@ export function GenerationPreview({
   generationTime,
   onDownload,
   onShare,
-  className = ''
+  className = '',
+  title = 'Output',
 }: GenerationPreviewProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [displayTime, setDisplayTime] = useState(0);
@@ -60,7 +63,7 @@ export function GenerationPreview({
     <div className={cn("h-full flex flex-col bg-[#141414]", className)}>
       {/* Header */}
       <div className="flex-shrink-0 border-b border-white/10 px-4 py-3">
-        <h3 className="text-sm font-medium text-base-content">Output</h3>
+        <h3 className="text-sm font-medium text-base-content">{title}</h3>
       </div>
 
       {/* Content Area */}

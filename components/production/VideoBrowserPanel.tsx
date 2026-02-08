@@ -44,7 +44,10 @@ export interface VideoBrowserEntry {
   entryKey: string;
 }
 
-/** Map provider id from backend to display label in Videos list */
+/** Max length for unknown provider display (avoid overflow in table cell) */
+const MAX_PROVIDER_LABEL_LENGTH = 24;
+
+/** Map provider id from backend to display label in Videos list. Unknown providers get a sanitized fallback. */
 function getProviderLabel(provider: string | null | undefined): string {
   if (!provider) return '—';
   const p = provider.toLowerCase();
@@ -65,7 +68,11 @@ function getProviderLabel(provider: string | null | undefined): string {
   if (p === 'sora-2-pro') return 'Sora 2 Pro';
   if (p === 'sora-2-pro-hd') return 'Sora 2 Pro HD';
   if (p === 'grok-imagine-video') return 'Grok';
-  return provider;
+  // Unknown provider: title-case and truncate for table display
+  const fallback = provider.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return fallback.length > MAX_PROVIDER_LABEL_LENGTH
+    ? fallback.slice(0, MAX_PROVIDER_LABEL_LENGTH - 1) + '…'
+    : fallback || provider;
 }
 
 function formatTimestamp(ts: string): string {
@@ -274,6 +281,10 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
       }
       try {
         const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          toast.error('Please sign in to download');
+          return;
+        }
         const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
         const url = `${BACKEND_API_URL}/api/media/file?key=${encodeURIComponent(entry.videoS3Key)}`;
         const response = await fetch(url, {
@@ -463,6 +474,11 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     {(entry.videoMode === 'text-only' || !entry.videoMode) && (
                       <span className="text-[10px] font-medium text-amber-500/90 bg-amber-500/10 px-2 py-0.5 rounded" title="Text-to-video">
                         Text-to-video
+                      </span>
+                    )}
+                    {entry.videoMode && !['image-interpolation', 'image-start', 'reference-images', 'text-only'].includes(entry.videoMode) && (
+                      <span className="text-[10px] font-medium text-[#808080] bg-[#262626] px-2 py-0.5 rounded" title={entry.videoMode}>
+                        Video
                       </span>
                     )}
                   </span>

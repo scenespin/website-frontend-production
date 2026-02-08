@@ -479,189 +479,8 @@ export function VideoGenerationTools({
         </div>
         </div>
 
-        {/* Generation Form */}
+        {/* Generation Form - controls only; frame preview/upload is on the right */}
         <div className="flex-1 flex flex-col gap-6">
-        {/* Image Upload Section */}
-        {activeMode === 'starting-frame' ? (
-          <div className="flex-shrink-0">
-            <label className="block text-sm font-medium text-white mb-2">
-              Starting Frame Image
-            </label>
-            <input
-              ref={startImageInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImageSelect(e, setStartImage)}
-              className="hidden"
-              disabled={isUploading || isGenerating}
-            />
-            {!startImage && !startImageUrlFromProp ? (
-              <button
-                type="button"
-                onClick={() => startImageInputRef.current?.click()}
-                disabled={isUploading || isGenerating}
-                className={cn(
-                  "w-full px-4 py-12 border-2 border-dashed rounded-lg",
-                  "flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
-                  isUploading || isGenerating
-                    ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
-                    : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
-                )}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span>Uploading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-6 h-6" />
-                    <span>Upload Starting Frame</span>
-                  </>
-                )}
-              </button>
-            ) : (
-              <div className="relative">
-                <img
-                  src={startImage ? startImage.preview : startImageUrlFromProp ?? ''}
-                  alt="Starting frame"
-                  className="w-full h-48 object-cover rounded-lg border border-[#3F3F46]"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (startImage?.preview) URL.revokeObjectURL(startImage.preview);
-                    setStartImage(null);
-                    setStartImageUrlFromProp(null);
-                  }}
-                  className="absolute top-2 right-2 w-8 h-8 bg-cinema-red rounded-full flex items-center justify-center"
-                  aria-label="Clear starting frame"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex-shrink-0 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Frame 1 (Start)
-              </label>
-              <input
-                ref={frame1InputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageSelect(e, setFrame1)}
-                className="hidden"
-                disabled={isUploading || isGenerating}
-              />
-              {!frame1 ? (
-                <button
-                  type="button"
-                  onClick={() => frame1InputRef.current?.click()}
-                  disabled={isUploading || isGenerating}
-                  className={cn(
-                    "w-full px-4 py-8 border-2 border-dashed rounded-lg",
-                    "flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
-                    isUploading || isGenerating
-                      ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
-                      : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
-                  )}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-5 h-5" />
-                      <span>Upload Frame 1</span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <div className="relative">
-                  <img
-                    src={frame1.preview}
-                    alt="Frame 1"
-                    className="w-full h-32 object-cover rounded-lg border border-[#3F3F46]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (frame1.preview?.startsWith('blob:')) URL.revokeObjectURL(frame1.preview);
-                      setFrame1(null);
-                    }}
-                    className="absolute top-2 right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center"
-                  >
-                    <X className="w-3 h-3 text-white" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Frame 2 (End)
-              </label>
-              <input
-                ref={frame2InputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageSelect(e, setFrame2)}
-                className="hidden"
-                disabled={isUploading || isGenerating}
-              />
-              {!frame2 ? (
-                <button
-                  type="button"
-                  onClick={() => frame2InputRef.current?.click()}
-                  disabled={isUploading || isGenerating}
-                  className={cn(
-                    "w-full px-4 py-8 border-2 border-dashed rounded-lg",
-                    "flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
-                    isUploading || isGenerating
-                      ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
-                      : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
-                  )}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-5 h-5" />
-                      <span>Upload Frame 2</span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <div className="relative">
-                  <img
-                    src={frame2.preview}
-                    alt="Frame 2"
-                    className="w-full h-32 object-cover rounded-lg border border-[#3F3F46]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (frame2.preview?.startsWith('blob:')) URL.revokeObjectURL(frame2.preview);
-                      setFrame2(null);
-                    }}
-                    className="absolute top-2 right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center"
-                  >
-                    <X className="w-3 h-3 text-white" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Camera Angle Selection */}
         <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
@@ -855,14 +674,179 @@ export function VideoGenerationTools({
       {/* Divider */}
       <div className="w-px bg-white/10 flex-shrink-0"></div>
 
-      {/* Right Panel - Preview (min height so output area fills when content is short) */}
-      <div className="w-1/2 flex flex-col min-h-full">
-        <GenerationPreview
-          isGenerating={isGenerating}
-          generatedVideoUrl={generatedVideoUrl}
-          generationTime={generationTime}
-          onDownload={handleDownload}
+      {/* Right Panel - Frame preview (top) + Latest generated (bottom) */}
+      <div className="w-1/2 flex flex-col min-h-full bg-[#141414]">
+        {/* Hidden file inputs (triggered from preview area) */}
+        <input
+          ref={startImageInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleImageSelect(e, setStartImage)}
+          className="hidden"
+          disabled={isUploading || isGenerating}
+          aria-hidden
         />
+        <input
+          ref={frame1InputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleImageSelect(e, setFrame1)}
+          className="hidden"
+          disabled={isUploading || isGenerating}
+          aria-hidden
+        />
+        <input
+          ref={frame2InputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleImageSelect(e, setFrame2)}
+          className="hidden"
+          disabled={isUploading || isGenerating}
+          aria-hidden
+        />
+
+        {/* Top: Input frame(s) preview / upload */}
+        <div className="flex-shrink-0 border-b border-white/10 p-4">
+          <h3 className="text-sm font-medium text-white mb-3">
+            {activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}
+          </h3>
+          {activeMode === 'starting-frame' ? (
+            <div className="rounded-lg border-2 border-dashed border-[#3F3F46] overflow-hidden bg-[#0A0A0A] min-h-[200px] flex items-center justify-center">
+              {!startImage && !startImageUrlFromProp ? (
+                <button
+                  type="button"
+                  onClick={() => startImageInputRef.current?.click()}
+                  disabled={isUploading || isGenerating}
+                  className={cn(
+                    "w-full h-full min-h-[200px] flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
+                    isUploading || isGenerating
+                      ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
+                      : "text-[#808080] hover:border-cinema-red hover:text-cinema-red"
+                  )}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8" />
+                      <span>Upload Starting Frame</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="relative w-full h-full min-h-[200px]">
+                  <img
+                    src={startImage ? startImage.preview : startImageUrlFromProp ?? ''}
+                    alt="Starting frame"
+                    className="w-full h-full min-h-[200px] object-contain bg-[#0A0A0A]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (startImage?.preview) URL.revokeObjectURL(startImage.preview);
+                      setStartImage(null);
+                      setStartImageUrlFromProp(null);
+                    }}
+                    className="absolute top-2 right-2 w-8 h-8 bg-cinema-red rounded-full flex items-center justify-center"
+                    aria-label="Clear starting frame"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="text-xs text-[#808080] mb-1.5">Frame 1 (Start)</p>
+                <div className="rounded-lg border-2 border-dashed border-[#3F3F46] overflow-hidden bg-[#0A0A0A] min-h-[160px] flex items-center justify-center">
+                  {!frame1 ? (
+                    <button
+                      type="button"
+                      onClick={() => frame1InputRef.current?.click()}
+                      disabled={isUploading || isGenerating}
+                      className={cn(
+                        "w-full h-full min-h-[160px] flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
+                        isUploading || isGenerating
+                          ? "text-[#808080] cursor-not-allowed"
+                          : "text-[#808080] hover:text-cinema-red"
+                      )}
+                    >
+                      {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
+                      <span>Upload Frame 1</span>
+                    </button>
+                  ) : (
+                    <div className="relative w-full h-full min-h-[160px]">
+                      <img src={frame1.preview} alt="Frame 1" className="w-full h-full min-h-[160px] object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (frame1.preview?.startsWith('blob:')) URL.revokeObjectURL(frame1.preview);
+                          setFrame1(null);
+                        }}
+                        className="absolute top-2 right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center"
+                        aria-label="Clear frame 1"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-[#808080] mb-1.5">Frame 2 (End)</p>
+                <div className="rounded-lg border-2 border-dashed border-[#3F3F46] overflow-hidden bg-[#0A0A0A] min-h-[160px] flex items-center justify-center">
+                  {!frame2 ? (
+                    <button
+                      type="button"
+                      onClick={() => frame2InputRef.current?.click()}
+                      disabled={isUploading || isGenerating}
+                      className={cn(
+                        "w-full h-full min-h-[160px] flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
+                        isUploading || isGenerating
+                          ? "text-[#808080] cursor-not-allowed"
+                          : "text-[#808080] hover:text-cinema-red"
+                      )}
+                    >
+                      {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
+                      <span>Upload Frame 2</span>
+                    </button>
+                  ) : (
+                    <div className="relative w-full h-full min-h-[160px]">
+                      <img src={frame2.preview} alt="Frame 2" className="w-full h-full min-h-[160px] object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (frame2.preview?.startsWith('blob:')) URL.revokeObjectURL(frame2.preview);
+                          setFrame2(null);
+                        }}
+                        className="absolute top-2 right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center"
+                        aria-label="Clear frame 2"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom: Latest generated video (updates when a video is generated this session; can be extended to load latest on mount) */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <GenerationPreview
+            isGenerating={isGenerating}
+            generatedVideoUrl={generatedVideoUrl}
+            generationTime={generationTime}
+            onDownload={handleDownload}
+            className="flex-1 min-h-0"
+            title="Latest generated"
+          />
+        </div>
       </div>
     </div>
   );

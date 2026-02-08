@@ -632,10 +632,12 @@ export default function MediaLibrary({
   
   // Generate presigned URLs: always include all s3Keys so every file (including videos) has a URL.
   // In grid view also fetch thumbnail keys so images can show thumbnails; videos (no thumbnailS3Key) still need their s3Key.
-  const keysToFetch =
+  const MAX_BULK_PRESIGNED_KEYS = 200; // Cap request size for large folders (backend/network limits)
+  const rawKeysToFetch =
     viewMode === 'grid' && thumbnailS3Keys.length > 0
       ? [...new Set([...thumbnailS3Keys, ...s3Keys])]
       : s3Keys;
+  const keysToFetch = rawKeysToFetch.slice(0, MAX_BULK_PRESIGNED_KEYS);
   
   const { data: bulkPresignedUrls } = useBulkPresignedUrls(
     keysToFetch,
@@ -2153,6 +2155,13 @@ export default function MediaLibrary({
             path={selectedFolderPath}
             onNavigate={handleBreadcrumbClick}
           />
+
+          {/* Cap note when folder has more items than we request URLs for */}
+          {rawKeysToFetch.length > MAX_BULK_PRESIGNED_KEYS && (
+            <div className="px-3 md:px-4 lg:px-6 py-2 text-sm text-[#808080]">
+              Showing first {MAX_BULK_PRESIGNED_KEYS} items in this folder.
+            </div>
+          )}
           
           {/* File Grid Content */}
           <div className="flex-1 overflow-y-auto">
