@@ -718,21 +718,54 @@ export function LocationDetailModal({
       }
     });
     
-    // 🔥 REMOVED: Fallback logic for angles and backgrounds
-    // Media Library is the single source of truth - if it's not in Media Library, don't show it
-    // This prevents deleted items from reappearing via stale latestLocation data
+    // Fallback for angles/backgrounds from server (DynamoDB) when not yet in Media Library
+    // Fix: New uploads appear in DynamoDB immediately but Media Library GSI can be eventually
+    // consistent; without this, uploaded images don't show until the next refetch catches them.
+    (latestLocation.angleVariations || []).forEach((variation: LocationReference) => {
+      if (variation.s3Key && !mediaLibraryS3KeysSet.has(variation.s3Key) && variation.imageUrl) {
+        fallback.push({
+          id: variation.id || `ref_${variation.s3Key}`,
+          imageUrl: variation.imageUrl,
+          s3Key: variation.s3Key,
+          label: `${latestLocation.name} - ${variation.angle || 'angle'} view`,
+          isBase: false,
+          isAngle: true,
+          isBackground: false,
+          angle: variation.angle,
+          timeOfDay: variation.timeOfDay,
+          weather: variation.weather,
+          metadata: variation.metadata,
+          index: fallback.length
+        });
+      }
+    });
+    (latestLocation.backgrounds || []).forEach((bg: LocationBackground) => {
+      if (bg.s3Key && !mediaLibraryS3KeysSet.has(bg.s3Key) && bg.imageUrl) {
+        fallback.push({
+          id: bg.id || `bg_${bg.s3Key}`,
+          imageUrl: bg.imageUrl,
+          s3Key: bg.s3Key,
+          label: `${latestLocation.name} - ${(bg as any).backgroundType || 'background'}`,
+          isBase: false,
+          isAngle: false,
+          isBackground: true,
+          backgroundType: (bg as any).backgroundType,
+          metadata: (bg as any).metadata,
+          index: fallback.length
+        });
+      }
+    });
     
-    // 🔥 DEBUG: Log fallback images composition (only baseReference and creationImages now)
     if (fallback.length > 0) {
-      console.log('[LocationDetailModal] 🔄 FALLBACK IMAGES (baseReference/creationImages only):', {
+      console.log('[LocationDetailModal] 🔄 FALLBACK IMAGES (baseReference/creationImages/angles/backgrounds):', {
         fallbackCount: fallback.length,
         fallbackS3Keys: fallback.map(f => f.s3Key),
         fallbackTypes: fallback.map(f => ({ s3Key: f.s3Key, isBase: f.isBase, isAngle: f.isAngle, isBackground: f.isBackground }))
-        });
-      }
+      });
+    }
     
     return fallback;
-  }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
+  }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId, mediaLibraryS3Keys]);
   
   // 🔥 COMBINED: Media Library images (primary) + Fallback images (from location prop)
   // 🔥 Feature 0200: Filter out fallback images with empty imageUrl (expired files)
@@ -2373,32 +2406,18 @@ export function LocationDetailModal({
                     backgroundType: bg.backgroundType || 'default'
                   }))}
                   onComplete={async (result) => {
-                    // 🔥 FIX: Use same aggressive pattern as CharacterBankPanel and LocationDetailModal.handleFileUpload (works!)
-                    // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
-                    // Also invalidate presigned URLs so new images get fresh URLs
+                    // Invalidate and refetch so modal shows new images. Refetch locations immediately
+                    // (DynamoDB is consistent) so fallback can show new angles/backgrounds; refetch
+                    // media after delay for GSI eventual consistency.
                     queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-                    queryClient.invalidateQueries({ 
-                      queryKey: ['media', 'files', screenplayId],
-                      exact: false
-                    });
-                    queryClient.invalidateQueries({ 
-                      queryKey: ['media', 'presigned-urls'],
-                      exact: false // Invalidate all presigned URL queries (they have dynamic keys)
-                    });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+                    await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'], type: 'active' });
                     setTimeout(() => {
-                      queryClient.refetchQueries({ 
-                        queryKey: ['locations', screenplayId, 'production-hub'],
-                        type: 'active' // Only refetch active (enabled) queries
-                      });
-                      queryClient.refetchQueries({ 
-                        queryKey: ['media', 'files', screenplayId],
-                        exact: false
-                      });
-                      queryClient.refetchQueries({ 
-                        queryKey: ['media', 'presigned-urls'],
-                        exact: false // Refetch all presigned URL queries
-                      });
+                      queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'], type: 'active' });
+                      queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+                      queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
                     }, 2000);
                     const categoryLabel = result.category === 'angles' ? 'Location Angles' : 'Location Backgrounds';
                     toast.success(`Successfully added ${result.images.length} image(s) to ${categoryLabel}: ${result.viewName}`);
