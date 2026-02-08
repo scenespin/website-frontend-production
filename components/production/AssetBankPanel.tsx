@@ -308,73 +308,53 @@ export default function AssetBankPanel({ className = '', isMobile = false, scree
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
             {filteredAssets.map((asset) => {
+              // 🔥 FIX: Use asset payload as source of truth for count and order (creation first, then angles).
+              // Media Library list is capped (e.g. 50) across ALL assets, so using it alone under-counts and
+              // can show wrong main image. We use asset.images + asset.angleReferences for which images exist,
+              // and resolve URLs from Media Library when available, else from asset prop.
               const allReferences: CinemaCardImage[] = [];
-              
-              // 🔥 Feature 0200: Use Media Library as source of truth (matches AssetDetailModal pattern)
               const mediaLibraryImages = assetImagesFromMediaLibrary[asset.id];
-              
-              if (mediaLibraryImages) {
-                // Add creation images (user-uploaded, from Creation section) with valid presigned URLs
-                mediaLibraryImages.creationImages.forEach((img) => {
-                  const file = assetMediaFileMap.get(img.s3Key);
-                  const imageUrl = getMediaFileDisplayUrl(
-                    file ?? { id: img.s3Key, storageType: 'local', s3Key: img.s3Key } as any,
-                    presignedMapsForDisplay,
-                    dropboxUrlMap
-                  );
+
+              const resolveUrl = (s3Key: string): string | null => {
+                const file = assetMediaFileMap.get(s3Key);
+                return getMediaFileDisplayUrl(
+                  file ?? { id: s3Key, storageType: 'local', s3Key } as any,
+                  presignedMapsForDisplay,
+                  dropboxUrlMap
+                ) || null;
+              };
+
+              // 1) Creation images first (same order as modal – reference image is first)
+              if (asset.images && asset.images.length > 0) {
+                asset.images.forEach((img: any, idx: number) => {
+                  const isAngleGenerated = img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation';
+                  if (isAngleGenerated) return;
+                  const s3Key = img.s3Key || img.metadata?.s3Key;
+                  const imageUrl = (s3Key && resolveUrl(s3Key)) || img.url || null;
                   if (imageUrl) {
                     allReferences.push({
-                      id: img.s3Key,
+                      id: s3Key || `img-${asset.id}-${idx}`,
                       imageUrl,
-                      label: `${asset.name} - ${img.label || 'Image'}`
-                    });
-                  }
-                });
-                
-                // Add angle references with valid presigned URLs
-                mediaLibraryImages.angleReferences.forEach((ref) => {
-                  const file = assetMediaFileMap.get(ref.s3Key);
-                  const imageUrl = getMediaFileDisplayUrl(
-                    file ?? { id: ref.s3Key, storageType: 'local', s3Key: ref.s3Key } as any,
-                    presignedMapsForDisplay,
-                    dropboxUrlMap
-                  );
-                  if (imageUrl) {
-                    allReferences.push({
-                      id: ref.s3Key,
-                      imageUrl,
-                      label: `${asset.name} - ${ref.angle || ref.label || 'angle'} view`
-                    });
-                  }
-                });
-              } else {
-                // Fallback to asset prop data (for backward compatibility)
-                if (asset.images && asset.images.length > 0) {
-                  asset.images.forEach((img, idx) => {
-                    const isAngleGenerated = img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation';
-                    if (!isAngleGenerated && img.url) {
-                      allReferences.push({
-                        id: img.s3Key || `img-${asset.id}-${idx}`,
-                        imageUrl: img.url,
-                        label: `${asset.name} - Image ${idx + 1}`
-                      });
-                    }
-                  });
-                }
-                
-                const angleRefs = asset.angleReferences || [];
-                angleRefs.forEach((ref, idx) => {
-                  if (ref && ref.imageUrl) {
-                    allReferences.push({
-                      id: ref.s3Key || `angle-${asset.id}-${idx}`,
-                      imageUrl: ref.imageUrl,
-                      label: `${asset.name} - ${ref.angle || 'angle'} view`
+                      label: `${asset.name} - Image ${idx + 1}`
                     });
                   }
                 });
               }
+              // 2) Angle references (Production Hub)
+              const angleRefs = asset.angleReferences || [];
+              angleRefs.forEach((ref: any, idx: number) => {
+                if (!ref) return;
+                const s3Key = ref.s3Key;
+                const imageUrl = (s3Key && resolveUrl(s3Key)) || ref.imageUrl || null;
+                if (imageUrl) {
+                  allReferences.push({
+                    id: s3Key || `angle-${asset.id}-${idx}`,
+                    imageUrl,
+                    label: `${asset.name} - ${ref.angle || 'angle'} view`
+                  });
+                }
+              });
 
-              // 🔥 Feature 0200: Count images with valid presigned URLs (matches detail modal)
               const imageCount = allReferences.length;
               const metadata = imageCount > 0 ? `${imageCount} image${imageCount !== 1 ? 's' : ''}` : undefined;
 

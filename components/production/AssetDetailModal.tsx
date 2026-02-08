@@ -1532,25 +1532,18 @@ export default function AssetDetailModal({
                                             throw new Error(errorData.error || 'Failed to delete image');
                                           }
                                           
-                                          // 🔥 FIX: Aggressively clear and refetch asset queries (same pattern as Creation section)
+                                          // Refetch immediately so modal and panel update without needing refresh
                                           queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                                           queryClient.invalidateQueries({ 
                                             queryKey: ['media', 'files', screenplayId],
                                             exact: false
                                           });
-                                          setTimeout(() => {
-                                            queryClient.refetchQueries({ 
-                                              queryKey: ['assets', screenplayId, 'production-hub'],
-                                              type: 'active'
-                                            });
-                                            queryClient.refetchQueries({ 
-                                              queryKey: ['media', 'files', screenplayId],
-                                              exact: false
-                                            });
-                                          }, 2000);
-                                          
-                                          onUpdate(); // Refresh asset list in parent
+                                          await Promise.all([
+                                            queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'], type: 'active' }),
+                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false })
+                                          ]);
+                                          onUpdate();
                                           toast.success('Image deleted');
                                         } catch (error: any) {
                                           console.error('[AssetDetailModal] Failed to delete image:', error);
@@ -1645,33 +1638,16 @@ export default function AssetDetailModal({
                   screenplayId={screenplayId || ''}
                   existingImages={latestAsset.images || []}
                   onComplete={async (result) => {
-                    // 🔥 FIX: Use same aggressive pattern as AssetDetailModal.handleFileUpload (works!)
-                    // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
-                    // Also invalidate presigned URLs so new images get fresh URLs
+                    // Refetch immediately so modal and panel show new images without refresh
                     queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                     queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-                    queryClient.invalidateQueries({ 
-                      queryKey: ['media', 'files', screenplayId],
-                      exact: false
-                    });
-                    queryClient.invalidateQueries({ 
-                      queryKey: ['media', 'presigned-urls'],
-                      exact: false // Invalidate all presigned URL queries (they have dynamic keys)
-                    });
-                    setTimeout(() => {
-                      queryClient.refetchQueries({ 
-                        queryKey: ['assets', screenplayId, 'production-hub'],
-                        type: 'active' // Only refetch active (enabled) queries
-                      });
-                      queryClient.refetchQueries({ 
-                        queryKey: ['media', 'files', screenplayId],
-                        exact: false
-                      });
-                      queryClient.refetchQueries({ 
-                        queryKey: ['media', 'presigned-urls'],
-                        exact: false // Refetch all presigned URL queries
-                      });
-                    }, 2000);
+                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+                    await Promise.all([
+                      queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'], type: 'active' }),
+                      queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false }),
+                      queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false })
+                    ]);
                     toast.success(`Successfully added ${result.images.length} image(s) to ${result.angleName}`);
                     setCoverageTab(null);
                   }}
@@ -1841,25 +1817,17 @@ export default function AssetDetailModal({
                     throw new Error(errorData.error || 'Failed to delete images');
                   }
                   
-                  // 🔥 FIX: Aggressively clear and refetch asset queries (same pattern as Creation section)
+                  // Refetch immediately so modal and panel update without needing refresh
                   queryClient.removeQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                   queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
                   queryClient.invalidateQueries({ 
                     queryKey: ['media', 'files', screenplayId],
                     exact: false
                   });
-                  setTimeout(() => {
-                    queryClient.refetchQueries({ 
-                      queryKey: ['assets', screenplayId, 'production-hub'],
-                      type: 'active'
-                    });
-                    queryClient.refetchQueries({ 
-                      queryKey: ['media', 'files', screenplayId],
-                      exact: false
-                    });
-                  }, 2000);
-                  
-                  // Trigger parent update
+                  await Promise.all([
+                    queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'], type: 'active' }),
+                    queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false })
+                  ]);
                   onUpdate();
                   
                   // Update asset via callback if provided
