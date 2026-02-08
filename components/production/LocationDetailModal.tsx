@@ -1785,12 +1785,13 @@ export function LocationDetailModal({
                                               // Continue with location update even if Media Library deletion fails
                                             }
                                             
-                                            // Remove from angleVariations by matching s3Key (keep original working pattern)
-                                            const updatedAngleVariations = angleVariations.filter(
+                                            // 🔥 FIX: Base update on server state so we only remove this one item.
+                                            // Using UI-derived angleVariations could be a subset of DynamoDB; sending it would
+                                            // cause the backend to treat all other DB entries as "removed" and delete them.
+                                            const updatedAngleVariations = (latestLocation.angleVariations || []).filter(
                                               (v: any) => v.s3Key !== variation.s3Key
                                             );
                                             
-                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend
                                             await onUpdate(location.locationId, {
                                               angleVariations: updatedAngleVariations
                                             });
@@ -2117,12 +2118,11 @@ export function LocationDetailModal({
                                                             // Continue with location update even if Media Library deletion fails
                                                           }
                                                           
-                                                          // Use exact same working pattern as angles: filter derived backgrounds (from allImages)
-                                                          const updatedBackgrounds = backgrounds.filter(
-                                                            (b: LocationBackground) => b.s3Key !== background.s3Key
+                                                          // 🔥 FIX: Base update on server state so we only remove this one item (same as angles).
+                                                          const updatedBackgrounds = (latestLocation.backgrounds || []).filter(
+                                                            (b: any) => b.s3Key !== background.s3Key
                                                           );
                                                           
-                                                          // 🔥 ONE-WAY SYNC: Only update Production Hub backend (same pattern as angles)
                                                           await onUpdate(location.locationId, {
                                                             backgrounds: updatedBackgrounds
                                                           });
@@ -2561,13 +2561,11 @@ export function LocationDetailModal({
                 onClick={async () => {
                   setShowBulkDeleteConfirm(false);
                   try {
-                    // Get selected variations by matching IDs - use derived angleVariations for ID matching (has all metadata)
+                    // Match selected UI items to server list by id/s3Key (use derived angleVariations for ID matching)
                     const selectedVariations = angleVariations.filter((v: any) => {
                       const imgId = v.id || `ref_${v.s3Key}`;
                       return selectedImageIds.has(imgId);
                     });
-                    
-                    // Extract s3Keys
                     const s3KeysToDelete = new Set(selectedVariations.map((v: any) => v.s3Key).filter(Boolean));
                     
                     if (s3KeysToDelete.size === 0) {
@@ -2575,12 +2573,12 @@ export function LocationDetailModal({
                       return;
                     }
                     
-                    // Batch delete: Remove all selected angle variations in one update (keep original working pattern)
-                    const updatedAngleVariations = angleVariations.filter((variation: any) => 
-                      !s3KeysToDelete.has(variation.s3Key)
+                    // 🔥 FIX: Base update on server state so we only remove selected items.
+                    // Using UI-derived angleVariations could be a subset of DynamoDB and would cause mass deletion.
+                    const updatedAngleVariations = (latestLocation.angleVariations || []).filter(
+                      (variation: any) => !s3KeysToDelete.has(variation.s3Key)
                     );
                     
-                    // Single update call for all deletions
                     await onUpdate(location.locationId, { 
                       angleVariations: updatedAngleVariations
                     });
