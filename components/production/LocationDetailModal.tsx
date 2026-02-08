@@ -13,7 +13,7 @@
  * Consistent with CharacterDetailModal for scene consistency and AI generation
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info, Eye, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -178,6 +178,32 @@ export function LocationDetailModal({
   if (!screenplayId) {
     return null;
   }
+
+  // Ensure angle variations are registered in Media Library when modal opens (fixes orphans from failed registration during angle job)
+  useEffect(() => {
+    if (!isOpen || !latestLocation?.locationId || !screenplayId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token || cancelled) return;
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const res = await fetch(
+          `${BACKEND_API_URL}/api/location-bank/${latestLocation.locationId}/ensure-angle-media?screenplayId=${encodeURIComponent(screenplayId)}`,
+          { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok || cancelled) return;
+        const data = await res.json().catch(() => ({}));
+        if (data?.registered > 0) {
+          queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+        }
+      } catch (_) {
+        // Fire-and-forget; don't block modal
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, latestLocation?.locationId, screenplayId, getToken, queryClient]);
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
