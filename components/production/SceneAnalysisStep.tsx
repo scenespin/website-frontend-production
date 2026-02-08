@@ -60,18 +60,14 @@ export function SceneAnalysisStep({
   
   // Create handlers that use context actions
   const onEnabledShotsChange = useCallback((shots: number[]) => {
-    console.log('[SceneAnalysisStep] onEnabledShotsChange called with:', shots);
     actions.setEnabledShots(shots);
-    console.log('[SceneAnalysisStep] onEnabledShotsChange - context action called, checking state...');
     if (onEnabledShotsChangeProp) {
       onEnabledShotsChangeProp(shots);
     }
   }, [actions, onEnabledShotsChangeProp]);
   
   const onPropsToShotsChange = useCallback((assignment: Record<string, number[]>) => {
-    console.log('[SceneAnalysisStep] onPropsToShotsChange called with:', assignment);
     actions.setPropsToShots(assignment);
-    console.log('[SceneAnalysisStep] onPropsToShotsChange - context action called, checking state...');
     if (onPropsToShotsChangeProp) {
       onPropsToShotsChangeProp(assignment);
     }
@@ -155,53 +151,47 @@ export function SceneAnalysisStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Props Assignment Section (if props exist) */}
+          {/* Single Select All / Deselect All for shots only (top section) */}
+          <div className="flex items-center justify-between pb-1 border-b border-[#3F3F46]">
+            <span className="text-xs text-[#808080]">
+              Shot selection: {selectedShotsCount} of {shots.length} selected
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const allSlots = shots.map((s: any) => s.slot);
+                  onEnabledShotsChange(allSlots);
+                  userDeselectedShotsRef.current = false;
+                }}
+                className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
+              >
+                Select All
+              </button>
+              <span className="text-[#3F3F46]">|</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  userDeselectedShotsRef.current = true;
+                  onEnabledShotsChange([]);
+                }}
+                className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
+              >
+                Deselect All
+              </button>
+            </div>
+          </div>
+
+          {/* Props Assignment Section (if props exist) - no Select All/Deselect All; prop checkboxes assign per shot */}
           {sceneProps.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-[#FFFFFF]">
-                  Props Assignment ({sceneProps.length} {sceneProps.length === 1 ? 'prop' : 'props'})
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('[SceneAnalysisStep] Props Select All clicked', { enabledShots, shots: shots.map((s: any) => s.slot), sceneProps });
-                      // Select All: Assign all props to all enabled shots (or all shots if none enabled)
-                      const allSlots = enabledShots.length > 0 ? enabledShots : shots.map((s: any) => s.slot);
-                      const newPropsToShots: Record<string, number[]> = {};
-                      sceneProps.forEach(prop => {
-                        newPropsToShots[prop.id] = [...allSlots];
-                      });
-                      console.log('[SceneAnalysisStep] Props Select All - calling onPropsToShotsChange with:', newPropsToShots);
-                      onPropsToShotsChange(newPropsToShots);
-                    }}
-                    className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
-                  >
-                    Select All
-                  </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[SceneAnalysisStep] Props Deselect All clicked', { currentPropsToShots: propsToShots });
-                    // 🔥 FIX: Set flag to prevent auto-select from re-selecting
-                    userDeselectedPropsRef.current = true;
-                    // Deselect All: Remove all props from all shots
-                    // 🔥 FIX: Force state update by creating a new empty object (not reusing empty object)
-                    const emptyPropsToShots: Record<string, number[]> = {};
-                    console.log('[SceneAnalysisStep] Props Deselect All - calling onPropsToShotsChange with:', emptyPropsToShots);
-                    onPropsToShotsChange(emptyPropsToShots);
-                  }}
-                  className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
-                >
-                  Deselect All
-                </button>
-                </div>
-              </div>
+              <label className="text-xs font-medium text-[#FFFFFF]">
+                Props Assignment ({sceneProps.length} {sceneProps.length === 1 ? 'prop' : 'props'})
+              </label>
               {/* Props List with Checkboxes */}
               <div className="space-y-2 p-2 bg-[#0A0A0A] rounded border border-[#3F3F46]">
                 {sceneProps.map((prop) => {
@@ -210,18 +200,6 @@ export function SceneAnalysisStep({
                   const assignedShots = propsToShots[prop.id] || [];
                   const isAssignedToAll = targetShots.length > 0 && 
                     targetShots.every(slot => assignedShots.includes(slot));
-                  
-                  // 🔥 DEBUG: Log checkbox state
-                  if (prop.id === sceneProps[0]?.id) {
-                    console.log('[SceneAnalysisStep] Prop checkbox state:', {
-                      propId: prop.id,
-                      targetShots,
-                      assignedShots,
-                      isAssignedToAll,
-                      propsToShotsKeys: Object.keys(propsToShots),
-                      propsToShotsEmpty: Object.keys(propsToShots).length === 0
-                    });
-                  }
                   
                   return (
                     <label
@@ -260,46 +238,11 @@ export function SceneAnalysisStep({
             </div>
           )}
 
-          {/* Shot Breakdown with Checkboxes */}
+          {/* Shot Breakdown with Checkboxes (Select All / Deselect All is in top section above) */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-[#FFFFFF]">
-                Shot Breakdown ({selectedShotsCount} of {shots.length} selected)
-              </label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[SceneAnalysisStep] Shots Select All clicked', { shots: shots.map((s: any) => s.slot) });
-                    const allSlots = shots.map((s: any) => s.slot);
-                    console.log('[SceneAnalysisStep] Shots Select All - calling onEnabledShotsChange with:', allSlots);
-                    onEnabledShotsChange(allSlots);
-                  }}
-                  className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
-                >
-                  Select All
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[SceneAnalysisStep] Shots Deselect All clicked', { currentEnabledShots: enabledShots });
-                    // 🔥 FIX: Set flag to prevent auto-select from re-selecting
-                    userDeselectedShotsRef.current = true;
-                    // 🔥 FIX: Force state update by creating a new empty array (not reusing empty array)
-                    const emptyShots: number[] = [];
-                    console.log('[SceneAnalysisStep] Shots Deselect All - calling onEnabledShotsChange with:', emptyShots);
-                    onEnabledShotsChange(emptyShots);
-                  }}
-                  className="text-[10px] text-[#808080] hover:text-[#DC143C] transition-colors cursor-pointer"
-                >
-                  Deselect All
-                </button>
-              </div>
-            </div>
+            <label className="text-xs font-medium text-[#FFFFFF]">
+              Shot Breakdown ({selectedShotsCount} of {shots.length} selected)
+            </label>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {shots.map((shot: any) => {
                 const isSelected = enabledShots.includes(shot.slot);
@@ -307,17 +250,6 @@ export function SceneAnalysisStep({
                 const assignedProps = sceneProps.filter(prop => 
                   propsToShots[prop.id]?.includes(shot.slot)
                 );
-                
-                // 🔥 DEBUG: Log shot checkbox state
-                if (shot.slot === shots[0]?.slot) {
-                  console.log('[SceneAnalysisStep] Shot checkbox state:', {
-                    shotSlot: shot.slot,
-                    enabledShots,
-                    isSelected,
-                    enabledShotsLength: enabledShots.length,
-                    enabledShotsEmpty: enabledShots.length === 0
-                  });
-                }
                 
                 return (
                   <div
@@ -336,7 +268,9 @@ export function SceneAnalysisStep({
                         onChange={(e) => {
                           if (e.target.checked) {
                             onEnabledShotsChange([...enabledShots, shot.slot]);
+                            if (enabledShots.length + 1 > 0) userDeselectedShotsRef.current = false;
                           } else {
+                            userDeselectedShotsRef.current = true;
                             onEnabledShotsChange(enabledShots.filter(s => s !== shot.slot));
                           }
                         }}
