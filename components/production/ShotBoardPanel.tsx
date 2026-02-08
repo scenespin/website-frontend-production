@@ -247,14 +247,14 @@ function SceneRow({
   onGenerateVideo,
   onFrameClick,
   onDeleteFirstFrame,
-  startIndex,
+  viewerIndexByShot,
 }: {
   scene: ShotBoardScene;
   presignedUrls: Map<string, string>;
   onGenerateVideo: (context: GenerateVideoContext) => void;
   onFrameClick?: (index: number) => void;
   onDeleteFirstFrame?: (s3Key: string) => void;
-  startIndex: number;
+  viewerIndexByShot: Map<string, number>;
 }) {
   const sceneNumber = scene.sceneNumber;
   return (
@@ -274,7 +274,7 @@ function SceneRow({
       </div>
       <div className="p-4">
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {scene.shots.map((shot, i) => (
+          {scene.shots.map((shot) => (
             <ShotCell
               key={`${scene.sceneId}-${shot.shotNumber}`}
               shot={shot}
@@ -284,7 +284,7 @@ function SceneRow({
               onGenerateVideo={onGenerateVideo}
               onFrameClick={onFrameClick}
               onDeleteFirstFrame={onDeleteFirstFrame}
-              globalIndex={onFrameClick != null ? startIndex + i : undefined}
+              globalIndex={viewerIndexByShot.get(`${scene.sceneId}-${shot.shotNumber}`)}
             />
           ))}
         </div>
@@ -317,23 +317,28 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
 
-  // Flat list of first frames (first variation per shot) for ImageViewer navigation
-  const allFirstFrameImages = useMemo((): ImageItem[] => {
+  // Flat list of first frames for ImageViewer — same rule as ShotCell: first variation that has a first frame (keeps list and cards in sync)
+  const { allFirstFrameImages, viewerIndexByShot } = useMemo(() => {
     const items: ImageItem[] = [];
+    const indexByShot = new Map<string, number>();
+    let index = 0;
     for (const scene of scenes) {
       for (const shot of scene.shots) {
-        const firstVariation = shot.variations[0];
-        if (!firstVariation?.firstFrame) continue;
+        const variationsWithFrame = shot.variations.filter((v) => v.firstFrame?.s3Key);
+        const firstVariation = variationsWithFrame[0];
+        if (!firstVariation) continue;
         const url = presignedUrls.get(firstVariation.firstFrame.s3Key);
         if (!url) continue;
+        indexByShot.set(`${scene.sceneId}-${shot.shotNumber}`, index);
         items.push({
           id: `${scene.sceneId}-${shot.shotNumber}`,
           url,
           label: `Scene ${scene.sceneNumber} · Shot ${shot.shotNumber}`,
         });
+        index += 1;
       }
     }
-    return items;
+    return { allFirstFrameImages: items, viewerIndexByShot: indexByShot };
   }, [scenes, presignedUrls]);
 
   const handleFrameClick = useCallback((index: number) => {
@@ -474,7 +479,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
         /* Scene List */
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 space-y-4">
-            {scenes.map((scene, sceneIndex) => (
+            {scenes.map((scene) => (
               <SceneRow
                 key={scene.sceneId}
                 scene={scene}
@@ -482,7 +487,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
                 onGenerateVideo={handleGenerateVideo}
                 onFrameClick={allFirstFrameImages.length > 0 ? handleFrameClick : undefined}
                 onDeleteFirstFrame={handleDeleteFirstFrame}
-                startIndex={scenes.slice(0, sceneIndex).reduce((s, sc) => s + sc.shots.length, 0)}
+                viewerIndexByShot={viewerIndexByShot}
               />
             ))}
           </div>
