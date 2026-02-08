@@ -175,43 +175,15 @@ export function LocationBankPanel({
 
       toast.success('Location updated successfully');
       
-      // Check cache before invalidation
-      const cacheBeforeInvalidate = queryClient.getQueryData<any[]>(['locations', screenplayId, 'production-hub']);
-      console.log('[LocationBankPanel] 📊 Cache before invalidation:', {
-        hasData: !!cacheBeforeInvalidate,
-        locationCount: cacheBeforeInvalidate?.length,
-        updatedLocation: cacheBeforeInvalidate?.find(l => l.locationId === locationId),
-        backgroundsCount: cacheBeforeInvalidate?.find(l => l.locationId === locationId)?.backgrounds?.length
-      });
-      
-      // 🔥 FIX: Use same aggressive pattern as CharacterBankPanel and LocationDetailModal (works!)
-      // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
-      // This ensures disabled queries don't block invalidation (see GitHub issue #947)
-      // Also invalidate presigned URLs so new images get fresh URLs
-      console.log('[LocationBankPanel] 🔄 Invalidating locations cache');
+      // Same pattern as angle delete: invalidate + delayed refetch (angles, backgrounds, ECU all use this path)
       queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-      queryClient.invalidateQueries({ 
-        queryKey: ['media', 'files', screenplayId],
-        exact: false
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['media', 'presigned-urls'],
-        exact: false // Invalidate all presigned URL queries (they have dynamic keys)
-      });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
       setTimeout(() => {
-        queryClient.refetchQueries({ 
-          queryKey: ['locations', screenplayId, 'production-hub'],
-          type: 'active' // Only refetch active (enabled) queries
-        });
-        queryClient.refetchQueries({ 
-          queryKey: ['media', 'files', screenplayId],
-          exact: false
-        });
-        queryClient.refetchQueries({ 
-          queryKey: ['media', 'presigned-urls'],
-          exact: false // Refetch all presigned URL queries
-        });
+        queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'], type: 'active' });
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+        queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
       }, 2000);
       
       if (onLocationsUpdate) onLocationsUpdate();
