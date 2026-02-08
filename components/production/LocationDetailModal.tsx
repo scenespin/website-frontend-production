@@ -2470,33 +2470,70 @@ export function LocationDetailModal({
                 onClick={async () => {
                   setShowBulkDeleteConfirm(false);
                   try {
-                    // Match selected UI items to server list by id/s3Key (use derived angleVariations for ID matching)
-                    const selectedVariations = angleVariations.filter((v: any) => {
+                    // Bulk delete supports both angles and backgrounds (including ECU). Resolve selectedImageIds
+                    // to s3Keys using the same ID format as the UI: ref_${s3Key} for angles, bg_${s3Key} for backgrounds.
+                    const angleS3KeysToDelete = new Set<string>();
+                    const backgroundS3KeysToDelete = new Set<string>();
+
+                    for (const v of angleVariations) {
                       const imgId = v.id || `ref_${v.s3Key}`;
-                      return selectedImageIds.has(imgId);
-                    });
-                    const s3KeysToDelete = new Set(selectedVariations.map((v: any) => v.s3Key).filter(Boolean));
-                    
-                    if (s3KeysToDelete.size === 0) {
+                      if (selectedImageIds.has(imgId) && v.s3Key) angleS3KeysToDelete.add(v.s3Key);
+                    }
+                    for (const b of backgrounds) {
+                      const imgId = b.id || `bg_${b.s3Key}`;
+                      if (selectedImageIds.has(imgId) && b.s3Key) backgroundS3KeysToDelete.add(b.s3Key);
+                    }
+
+                    const totalToDelete = angleS3KeysToDelete.size + backgroundS3KeysToDelete.size;
+                    if (totalToDelete === 0) {
                       toast.error('No valid images to delete');
                       return;
                     }
-                    
-                    // 🔥 FIX: Base update on server state so we only remove selected items.
-                    // Using UI-derived angleVariations could be a subset of DynamoDB and would cause mass deletion.
-                    const updatedAngleVariations = (latestLocation.angleVariations || []).filter(
-                      (variation: any) => !s3KeysToDelete.has(variation.s3Key)
-                    );
-                    
-                    await onUpdate(location.locationId, { 
-                      angleVariations: updatedAngleVariations
-                    });
-                    
-                    // Clear selection and exit selection mode
+
+                    // Delete from Media Library first (non-fatal per key), same pattern as single delete
+                    const token = await getToken({ template: 'wryda-backend' });
+                    const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                    const allS3KeysToDelete = [...angleS3KeysToDelete, ...backgroundS3KeysToDelete];
+                    for (const s3Key of allS3KeysToDelete) {
+                      try {
+                        await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ s3Key }),
+                        });
+                      } catch {
+                        /* non-fatal */
+                      }
+                    }
+
+                    // Base updates on server state (latestLocation) so we only remove selected items
+                    const updates: Partial<LocationProfile> = {};
+                    if (angleS3KeysToDelete.size > 0) {
+                      updates.angleVariations = (latestLocation.angleVariations || []).filter(
+                        (v: any) => !angleS3KeysToDelete.has(v.s3Key)
+                      );
+                    }
+                    if (backgroundS3KeysToDelete.size > 0) {
+                      updates.backgrounds = (latestLocation.backgrounds || []).filter(
+                        (b: any) => !backgroundS3KeysToDelete.has(b.s3Key)
+                      ) as LocationBackground[];
+                    }
+
+                    await onUpdate(location.locationId, updates);
+
+                    queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                    queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+                    queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+                    setTimeout(() => {
+                      queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'], type: 'active' });
+                      queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+                      queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+                    }, 2000);
+
                     setSelectedImageIds(new Set());
                     setSelectionMode(false);
-                    
-                    toast.success(`Successfully deleted ${s3KeysToDelete.size} image${s3KeysToDelete.size !== 1 ? 's' : ''}`);
+                    toast.success(`Successfully deleted ${totalToDelete} image${totalToDelete !== 1 ? 's' : ''}`);
                   } catch (error: any) {
                     console.error('[LocationDetailModal] Bulk deletion error:', error);
                     toast.error(`Failed to delete images: ${error.message}`);
