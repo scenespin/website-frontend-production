@@ -121,9 +121,16 @@ export function PropImageSelector({
       return propThumbnailUrlsMap.get(thumbnailS3Key) || null;
     }
     
-    // Try full image URL as fallback
+    // Try full image URL from URL maps
     if (propFullImageUrlsMap?.has(s3Key)) {
       return propFullImageUrlsMap.get(s3Key) || null;
+    }
+    
+    // 🔥 FIX: Fallback to presigned URL from payload enrichment
+    // In payload-first mode, presigned URLs are fetched for all prop images
+    // but URL maps may only contain selected/visible images
+    if (image.presignedUrl) {
+      return image.presignedUrl;
     }
     
     return null;

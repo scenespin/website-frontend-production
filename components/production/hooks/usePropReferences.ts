@@ -14,7 +14,7 @@ export interface PropType {
   name: string;
   imageUrl?: string;
   s3Key?: string;
-  angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>;
+  angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string; angle?: string }>;
   images?: Array<{ url: string; s3Key?: string }>;
   baseReference?: { s3Key?: string; imageUrl?: string };
 }

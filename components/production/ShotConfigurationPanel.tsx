@@ -937,7 +937,20 @@ export function ShotConfigurationPanel({
                                 
                                 const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
                                 const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
-                                const displayUrl = thumbnailUrl || fullImageUrl;
+                                // 🔥 FIX: Fallback to presigned URL from enriched prop (payload-first)
+                                let payloadPresignedUrl: string | undefined;
+                                if (!thumbnailUrl && !fullImageUrl && selectedImage) {
+                                  const ref = fullProp.angleReferences?.find(r => r.id === selectedImage.id);
+                                  if (ref?.imageUrl && ref.imageUrl.includes('://')) {
+                                    payloadPresignedUrl = ref.imageUrl;
+                                  } else {
+                                    const img = fullProp.images?.find(i => i.s3Key === selectedImage.id || i.url === selectedImage.id);
+                                    if (img?.url && img.url.includes('://')) {
+                                      payloadPresignedUrl = img.url;
+                                    }
+                                  }
+                                }
+                                const displayUrl = thumbnailUrl || fullImageUrl || payloadPresignedUrl;
                                 
                                 return displayUrl ? (
                                   <img 
@@ -1510,19 +1523,20 @@ export function ShotConfigurationPanel({
                           
                           const thumbnailUrl = thumbnailKey && propThumbnailUrlsMap?.get(thumbnailKey);
                           const fullImageUrl = imageS3Key && propFullImageUrlsMap?.get(imageS3Key);
-                          // 🔥 Feature 0200: Only use presigned URLs from maps - don't fall back to expired entity prop URLs
-                          // This prevents 404/403 errors from expired images
-                          const displayUrl = thumbnailUrl || fullImageUrl;
-                          
-                          // 🔥 DIAGNOSTIC: Log final URL resolution (always log)
-                          console.log('[PropImageDebug] Final URL resolution for', prop.name, ':', {
-                            imageS3Key,
-                            thumbnailKey,
-                            thumbnailUrl: thumbnailUrl || 'NOT FOUND',
-                            fullImageUrl: fullImageUrl || 'NOT FOUND',
-                            displayUrl: displayUrl || 'NO URL FOUND',
-                            selectedImage: selectedImage
-                          });
+                          // 🔥 FIX: Fallback to presigned URL from enriched prop (payload-first)
+                          let payloadPresignedUrl: string | undefined;
+                          if (!thumbnailUrl && !fullImageUrl && selectedImage) {
+                            const ref = fullProp.angleReferences?.find(r => r.id === selectedImage.id);
+                            if (ref?.imageUrl && ref.imageUrl.includes('://')) {
+                              payloadPresignedUrl = ref.imageUrl;
+                            } else {
+                              const img = fullProp.images?.find(i => i.s3Key === selectedImage.id || i.url === selectedImage.id);
+                              if (img?.url && img.url.includes('://')) {
+                                payloadPresignedUrl = img.url;
+                              }
+                            }
+                          }
+                          const displayUrl = thumbnailUrl || fullImageUrl || payloadPresignedUrl;
                           
                           return displayUrl ? (
                             <img 
